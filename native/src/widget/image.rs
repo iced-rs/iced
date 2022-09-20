@@ -7,7 +7,7 @@ use crate::layout;
 use crate::renderer;
 use crate::widget::Tree;
 use crate::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget, Animation,
 };
 
 use std::hash::Hash;
@@ -116,18 +116,19 @@ where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    fn width(&self) -> Length {
-        self.width
+    fn width(&self) -> Animation {
+        Animation::new_idle(self.width)
     }
 
-    fn height(&self) -> Length {
-        self.height
+    fn height(&self) -> Animation {
+        Animation::new_idle(self.height)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,
@@ -138,6 +139,8 @@ where
             self.content_fit,
         )
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn draw(
         &self,

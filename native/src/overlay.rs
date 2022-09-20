@@ -30,6 +30,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        tree: &Tree,
     ) -> layout::Node;
 
     /// Draws the [`Overlay`] using the associated `Renderer`.

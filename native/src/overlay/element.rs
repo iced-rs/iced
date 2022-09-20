@@ -5,6 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
+use crate::widget::Tree;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// A generic [`Overlay`].
@@ -51,8 +52,8 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.overlay.layout(renderer, bounds, self.position)
+    pub fn layout(&self, renderer: &Renderer, bounds: Size, tree: &Tree) -> layout::Node {
+        self.overlay.layout(renderer, bounds, self.position, tree)
     }
 
     /// Processes a runtime [`Event`].
@@ -137,8 +138,9 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        tree: &Tree
     ) -> layout::Node {
-        self.content.layout(renderer, bounds, position)
+        self.content.layout(renderer, bounds, position, tree)
     }
 
     fn operate(

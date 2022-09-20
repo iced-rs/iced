@@ -12,7 +12,7 @@ use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Tree;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Shell, Size, Vector, Widget, Animation,
 };
 
 pub use iced_style::menu::{Appearance, StyleSheet};
@@ -204,6 +204,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        tree: &Tree
     ) -> layout::Node {
         let space_below = bounds.height - (position.y + self.target_height);
         let space_above = position.y;
@@ -221,7 +222,7 @@ where
         )
         .width(Length::Units(self.width));
 
-        let mut node = self.container.layout(renderer, &limits);
+        let mut node = self.container.layout(renderer, &limits, tree);
 
         node.move_to(if space_below > space_above {
             position + Vector::new(0.0, self.target_height)
@@ -325,18 +326,19 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Length {
-        Length::Fill
+    fn width(&self) -> Animation {
+        Animation::new_idle(Length::Fill)
     }
 
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn height(&self) -> Animation {
+        Animation::new_idle(Length::Shrink)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         use std::f32;
 
@@ -356,6 +358,8 @@ where
 
         layout::Node::new(size)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,

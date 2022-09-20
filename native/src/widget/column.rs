@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Widget,
+    Shell, Widget, Animation,
 };
 
 use std::u32;
@@ -17,8 +17,8 @@ use std::u32;
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
-    width: Length,
-    height: Length,
+    width: Animation,
+    height: Animation,
     max_width: u32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
@@ -37,8 +37,8 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Animation::new_idle(Length::Shrink),
+            height: Animation::new_idle(Length::Shrink),
             max_width: u32::MAX,
             align_items: Alignment::Start,
             children,
@@ -63,13 +63,13 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Sets the width of the [`Column`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
     /// Sets the height of the [`Column`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Animation::new_idle(height);
         self
     }
 
@@ -114,11 +114,11 @@ where
         tree.diff_children(&self.children);
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.height
     }
 
@@ -126,11 +126,12 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
-            .width(self.width)
-            .height(self.height);
+            .width(self.width.at())
+            .height(self.height.at());
 
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
@@ -140,8 +141,11 @@ where
             self.spacing as f32,
             self.align_items,
             &self.children,
+            &tree.children,
         )
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

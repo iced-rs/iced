@@ -89,6 +89,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::Animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 /// A component that displays information and allows interaction.
@@ -118,10 +119,10 @@ where
     Renderer: crate::Renderer,
 {
     /// Returns the width of the [`Widget`].
-    fn width(&self) -> Length;
+    fn width(&self) -> Animation;
 
     /// Returns the height of the [`Widget`].
-    fn height(&self) -> Length;
+    fn height(&self) -> Animation;
 
     /// Returns the [`layout::Node`] of the [`Widget`].
     ///
@@ -131,6 +132,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.
@@ -215,4 +217,7 @@ where
     ) -> Option<overlay::Element<'a, Message, Renderer>> {
         None
     }
+
+    /// Steps animation forward to given time
+    fn step(&mut self, _now: usize);
 }

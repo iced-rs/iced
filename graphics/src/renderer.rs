@@ -7,6 +7,7 @@ use iced_native::renderer;
 use iced_native::svg;
 use iced_native::text::{self, Text};
 use iced_native::{Background, Element, Font, Point, Rectangle, Size};
+use iced_native::widget::Tree;
 
 pub use iced_native::renderer::Style;
 
@@ -56,9 +57,10 @@ where
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
+        tree: &Tree,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.as_widget().layout(self, limits);
+        let layout = element.as_widget().layout(self, limits, tree);
 
         self.backend.trim_measurements();
 

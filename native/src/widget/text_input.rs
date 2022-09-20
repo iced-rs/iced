@@ -24,7 +24,7 @@ use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Rectangle, Shell, Size, Vector, Widget, Animation,
 };
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
@@ -60,7 +60,7 @@ where
     value: Value,
     is_secure: bool,
     font: Renderer::Font,
-    width: Length,
+    width: Animation,
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
@@ -132,7 +132,7 @@ where
     }
     /// Sets the width of the [`TextInput`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
@@ -208,21 +208,24 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn height(&self) -> Animation {
+        Animation::new_idle(Length::Shrink)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
+        layout(renderer, limits, self.width.at(), self.padding, self.size)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

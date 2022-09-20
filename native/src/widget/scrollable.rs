@@ -10,7 +10,7 @@ use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Background, Clipboard, Color, Command, Element, Layout, Length, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Rectangle, Shell, Size, Vector, Widget, Animation,
 };
 
 use std::{f32, u32};
@@ -33,7 +33,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
-    height: Length,
+    height: Animation,
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
@@ -51,7 +51,7 @@ where
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             id: None,
-            height: Length::Shrink,
+            height: Animation::new_idle(Length::Shrink),
             scrollbar_width: 10,
             scrollbar_margin: 0,
             scroller_width: 10,
@@ -69,7 +69,7 @@ where
 
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Animation::new_idle(height);
         self
     }
 
@@ -135,11 +135,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.content.as_widget().width()
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.height
     }
 
@@ -147,18 +147,21 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,
             limits,
-            Widget::<Message, Renderer>::width(self),
-            self.height,
+            Widget::<Message, Renderer>::width(self).at(),
+            self.height.at(),
             u32::MAX,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
+                self.content.as_widget().layout(renderer, limits, tree)
             },
         )
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

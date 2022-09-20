@@ -44,6 +44,7 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub mod animation;
 pub mod clipboard;
 pub mod command;
 pub mod event;
@@ -90,6 +91,8 @@ pub use iced_style::theme;
 #[doc(no_inline)]
 pub use executor::Executor;
 
+pub use animation::Animation;
+pub use animation::Ease;
 pub use clipboard::Clipboard;
 pub use command::Command;
 pub use debug::Debug;

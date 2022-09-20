@@ -9,7 +9,7 @@ use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
-    Widget,
+    Widget, Animation,
 };
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
@@ -40,7 +40,7 @@ where
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
-    width: Length,
+    width: Animation,
     size: u16,
     spacing: u16,
     text_size: Option<u16>,
@@ -75,7 +75,7 @@ where
             is_checked,
             on_toggle: Box::new(f),
             label: label.into(),
-            width: Length::Shrink,
+            width: Animation::new_idle(Length::Shrink),
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
@@ -92,7 +92,7 @@ where
 
     /// Sets the width of the [`Checkbox`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
@@ -132,21 +132,22 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn height(&self) -> Animation {
+        Animation::new_idle(Length::Shrink)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         Row::<(), Renderer>::new()
-            .width(self.width)
+            .width(self.width.at())
             .spacing(self.spacing)
             .align_items(Alignment::Center)
             .push(
@@ -157,14 +158,16 @@ where
             .push(
                 Text::new(&self.label)
                     .font(self.font.clone())
-                    .width(self.width)
+                    .width(self.width.at())
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
                     ),
             )
-            .layout(renderer, limits)
+            .layout(renderer, limits, tree)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,

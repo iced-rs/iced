@@ -8,7 +8,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Rectangle, Shell, Widget, Animation,
 };
 
 use std::u32;
@@ -136,18 +136,19 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
-        self.width
+    fn width(&self) -> Animation {
+        Animation::new_idle(self.width)
     }
 
-    fn height(&self) -> Length {
-        self.height
+    fn height(&self) -> Animation {
+        Animation::new_idle(self.height)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,
@@ -160,10 +161,12 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
+                self.content.as_widget().layout(renderer, limits, tree)
             },
         )
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

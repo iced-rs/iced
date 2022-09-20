@@ -60,6 +60,7 @@ impl Tree {
     ) where
         Renderer: crate::Renderer,
     {
+        println!("state check {:?}", self.state);
         if self.tag == new.borrow().tag() {
             new.borrow().diff(self)
         } else {

@@ -6,7 +6,7 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
+    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget, Animation,
 };
 
 use std::borrow::Borrow;
@@ -270,11 +270,11 @@ where
         self.widget.diff(tree)
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.widget.width()
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.widget.height()
     }
 
@@ -282,9 +282,12 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: & Tree,
     ) -> layout::Node {
-        self.widget.layout(renderer, limits)
+        self.widget.layout(renderer, limits, tree)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,
@@ -437,11 +440,11 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.element.widget.width()
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.element.widget.height()
     }
 
@@ -465,8 +468,13 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
-        self.element.widget.layout(renderer, limits)
+        self.element.widget.layout(renderer, limits, tree)
+    }
+
+    fn step(&mut self, now: usize) {
+        self.element.widget.step(now);
     }
 
     fn operate(

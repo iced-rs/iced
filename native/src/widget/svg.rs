@@ -4,7 +4,7 @@ use crate::renderer;
 use crate::svg;
 use crate::widget::Tree;
 use crate::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget, Animation,
 };
 
 use std::path::PathBuf;
@@ -20,8 +20,8 @@ pub use svg::Handle;
 #[derive(Debug, Clone)]
 pub struct Svg {
     handle: Handle,
-    width: Length,
-    height: Length,
+    width: Animation,
+    height: Animation,
     content_fit: ContentFit,
 }
 
@@ -30,8 +30,8 @@ impl Svg {
     pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
-            width: Length::Fill,
-            height: Length::Shrink,
+            width: Animation::new_idle(Length::Fill),
+            height: Animation::new_idle(Length::Shrink),
             content_fit: ContentFit::Contain,
         }
     }
@@ -44,13 +44,13 @@ impl Svg {
 
     /// Sets the width of the [`Svg`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
     /// Sets the height of the [`Svg`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Animation::new_idle(height);
         self
     }
 
@@ -69,11 +69,11 @@ impl<Message, Renderer> Widget<Message, Renderer> for Svg
 where
     Renderer: svg::Renderer,
 {
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.height
     }
 
@@ -81,6 +81,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.dimensions(&self.handle);
@@ -88,8 +89,8 @@ where
 
         // The size to be available to the widget prior to `Shrink`ing
         let raw_size = limits
-            .width(self.width)
-            .height(self.height)
+            .width(self.width.at())
+            .height(self.height.at())
             .resolve(image_size);
 
         // The uncropped size of the image when fit to the bounds above
@@ -97,11 +98,11 @@ where
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
-            width: match self.width {
+            width: match self.width.at() {
                 Length::Shrink => f32::min(raw_size.width, full_size.width),
                 _ => raw_size.width,
             },
-            height: match self.height {
+            height: match self.height.at() {
                 Length::Shrink => f32::min(raw_size.height, full_size.height),
                 _ => raw_size.height,
             },
@@ -109,6 +110,8 @@ where
 
         layout::Node::new(final_size)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn draw(
         &self,

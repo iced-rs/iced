@@ -8,7 +8,7 @@ use crate::text;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
-    Shell, Widget,
+    Shell, Widget, Animation,
 };
 
 pub use iced_style::toggler::{Appearance, StyleSheet};
@@ -37,7 +37,7 @@ where
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
-    width: Length,
+    width: Animation,
     size: u16,
     text_size: Option<u16>,
     text_alignment: alignment::Horizontal,
@@ -74,7 +74,7 @@ where
             is_active,
             on_toggle: Box::new(f),
             label: label.into(),
-            width: Length::Fill,
+            width: Animation::new_idle(Length::Fill),
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
@@ -92,7 +92,7 @@ where
 
     /// Sets the width of the [`Toggler`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
@@ -138,21 +138,22 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn height(&self) -> Animation {
+        Animation::new_idle(Length::Shrink)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         let mut row = Row::<(), Renderer>::new()
-            .width(self.width)
+            .width(self.width.at())
             .spacing(self.spacing)
             .align_items(Alignment::Center);
 
@@ -161,7 +162,7 @@ where
                 Text::new(label)
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.clone())
-                    .width(self.width)
+                    .width(self.width.at())
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
@@ -175,8 +176,10 @@ where
                 .height(Length::Units(self.size)),
         );
 
-        row.layout(renderer, limits)
+        row.layout(renderer, limits, tree)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,

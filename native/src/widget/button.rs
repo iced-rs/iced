@@ -11,7 +11,7 @@ use crate::widget::tree::{self, Tree};
 use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Rectangle, Shell, Vector, Widget, Animation, Ease
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -58,8 +58,8 @@ where
 {
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
-    width: Length,
-    height: Length,
+    width: Animation,
+    height: Animation,
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -74,8 +74,8 @@ where
         Button {
             content: content.into(),
             on_press: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Animation::new_idle(Length::Shrink),
+            height: Animation::new_idle(Length::Shrink),
             padding: Padding::new(5),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
@@ -83,13 +83,25 @@ where
 
     /// Sets the width of the [`Button`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
     /// Sets the height of the [`Button`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Animation::new_idle(height);
+        self
+    }
+
+    /// Begins an animation between two width values immediately by changing width state
+    pub fn animate_width(mut self, start: Length, end: Length, runtime: usize, ease: Ease) -> Self {
+        self.width = Animation::new(start, end, runtime, ease);
+        self
+    }
+
+    /// Begins an animation between two height values immediately by changing height state
+    pub fn animate_height(mut self, start: Length, end: Length, runtime: usize, ease: Ease) -> Self {
+        self.height = Animation::new(start, end, runtime, ease);
         self
     }
 
@@ -129,7 +141,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::new(self.width(), self.height()))
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -140,11 +152,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.height
     }
 
@@ -152,17 +164,26 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
+        if let crate::widget::tree::State::Some(state) = &tree.state {
+            println!("button has state! {:?}", state.downcast_ref::<State>());
+        }
         layout(
             renderer,
             limits,
-            self.width,
-            self.height,
+            self.width.at(),
+            self.height.at(),
             self.padding,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
+                self.content.as_widget().layout(renderer, limits, tree)
             },
         )
+    }
+
+    fn step(&mut self, now: usize) {
+        self.width.step(now);
+        self.height.step(now);
     }
 
     fn operate(
@@ -289,12 +310,18 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_pressed: bool,
+    width: Animation,
+    height: Animation,
 }
 
 impl State {
     /// Creates a new [`State`].
-    pub fn new() -> State {
-        State::default()
+    pub fn new(width: Animation, height: Animation) -> State {
+        State {
+            width,
+            height,
+            ..Default::default()
+        }
     }
 }
 

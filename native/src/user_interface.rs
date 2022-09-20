@@ -94,13 +94,17 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        println!("build user interface");
+        let mut root = root.into();
+        //println!("{:?}", root.as_widget().state());
+        //root.step(500);
+        println!("post step");
 
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
         let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
+            renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
 
         UserInterface {
             root,
@@ -188,6 +192,7 @@ where
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
 
+        println!("update user interface");
         let mut state = State::Updated;
         let mut manual_overlay =
             ManuallyDrop::new(self.root.as_widget_mut().overlay(
@@ -197,33 +202,31 @@ where
             ));
 
         let (base_cursor, overlay_statuses) = if manual_overlay.is_some() {
-            let bounds = self.bounds;
+            // TODO: fix overlay implementation, disabling for animation testing.
+            (cursor_position, vec![event::Status::Ignored; events.len()])
 
-            let mut overlay = manual_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds);
-            let mut event_statuses = Vec::new();
+            //let bounds = self.bounds;
 
-            for event in events.iter().cloned() {
-                let mut shell = Shell::new(messages);
+            //let mut overlay = manual_overlay.as_mut().unwrap();
+            //let mut layout = overlay.layout(renderer, bounds, &self.state);
+            //let mut event_statuses = Vec::new();
 
-                let event_status = overlay.on_event(
-                    event,
-                    Layout::new(&layout),
-                    cursor_position,
-                    renderer,
-                    clipboard,
-                    &mut shell,
-                );
+            //for event in events.iter().cloned() {
+            //    let mut shell = Shell::new(messages);
 
-                event_statuses.push(event_status);
+            //    let event_status = overlay.on_event(
+            //        event,
+            //        Layout::new(&layout),
+            //        cursor_position,
+            //        renderer,
+            //        clipboard,
+            //        &mut shell,
+            //    );
 
-                if shell.is_layout_invalid() {
-                    let _ = ManuallyDrop::into_inner(manual_overlay);
+            //    event_statuses.push(event_status);
 
-                    self.base = renderer.layout(
-                        &self.root,
-                        &layout::Limits::new(Size::ZERO, self.bounds),
-                    );
+            //    if shell.is_layout_invalid() {
+            //        let _ = ManuallyDrop::into_inner(manual_overlay);
 
                     manual_overlay =
                         ManuallyDrop::new(self.root.as_widget_mut().overlay(
@@ -231,33 +234,45 @@ where
                             Layout::new(&self.base),
                             renderer,
                         ));
+            //        self.base = renderer.layout(
+            //            &self.root,
+            //            &self.state,
+            //            &layout::Limits::new(Size::ZERO, self.bounds),
+            //        );
 
-                    if manual_overlay.is_none() {
-                        break;
-                    }
+            //        manual_overlay =
+            //            ManuallyDrop::new(self.root.as_widget().overlay(
+            //                &mut self.state,
+            //                Layout::new(&self.base),
+            //                renderer,
+            //            ));
 
-                    overlay = manual_overlay.as_mut().unwrap();
+            //        if manual_overlay.is_none() {
+            //            break;
+            //        }
 
-                    shell.revalidate_layout(|| {
-                        layout = overlay.layout(renderer, bounds);
-                    });
-                }
+            //        overlay = manual_overlay.as_mut().unwrap();
 
-                if shell.are_widgets_invalid() {
-                    state = State::Outdated;
-                }
-            }
+            //        shell.revalidate_layout(|| {
+            //            layout = overlay.layout(renderer, bounds, &self.state);
+            //        });
+            //    }
 
-            let base_cursor = if layout.bounds().contains(cursor_position) {
-                // TODO: Type-safe cursor availability
-                Point::new(-1.0, -1.0)
-            } else {
-                cursor_position
-            };
+            //    if shell.are_widgets_invalid() {
+            //        state = State::Outdated;
+            //    }
+            //}
 
-            self.overlay = Some(layout);
+            //let base_cursor = if layout.bounds().contains(cursor_position) {
+            //    // TODO: Type-safe cursor availability
+            //    Point::new(-1.0, -1.0)
+            //} else {
+            //    cursor_position
+            //};
 
-            (base_cursor, event_statuses)
+            //self.overlay = Some(layout);
+
+            //(base_cursor, event_statuses)
         } else {
             (cursor_position, vec![event::Status::Ignored; events.len()])
         };
@@ -292,6 +307,7 @@ where
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
                         &self.root,
+                        &self.state,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -395,26 +411,28 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) = self
-            .root
-            .as_widget_mut()
-            .overlay(&mut self.state, Layout::new(&self.base), renderer)
-        {
-            let overlay_layout = self
-                .overlay
-                .take()
-                .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
+        let base_cursor = if let Some(overlay) = self.root.as_widget().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+        ) {
+            // TODO: renable overlay, disabled for animation testing
+            cursor_position
+            //let overlay_layout = self
+            //    .overlay
+            //    .take()
+            //    .unwrap_or_else(|| overlay.layout(renderer, self.bounds, &self.state));
 
-            let new_cursor_position =
-                if overlay_layout.bounds().contains(cursor_position) {
-                    Point::new(-1.0, -1.0)
-                } else {
-                    cursor_position
-                };
+            //let new_cursor_position =
+            //    if overlay_layout.bounds().contains(cursor_position) {
+            //        Point::new(-1.0, -1.0)
+            //    } else {
+            //        cursor_position
+            //    };
 
-            self.overlay = Some(overlay_layout);
+            //self.overlay = Some(overlay_layout);
 
-            new_cursor_position
+            //new_cursor_position
         } else {
             cursor_position
         };

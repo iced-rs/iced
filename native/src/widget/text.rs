@@ -4,7 +4,7 @@ use crate::layout;
 use crate::renderer;
 use crate::text;
 use crate::widget::Tree;
-use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget, Animation};
 
 use std::borrow::Cow;
 
@@ -33,8 +33,8 @@ where
 {
     content: Cow<'a, str>,
     size: Option<u16>,
-    width: Length,
-    height: Length,
+    width: Animation,
+    height: Animation,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     font: Renderer::Font,
@@ -52,8 +52,8 @@ where
             content: content.into(),
             size: None,
             font: Default::default(),
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: Animation::new_idle(Length::Shrink),
+            height: Animation::new_idle(Length::Shrink),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
@@ -85,13 +85,13 @@ where
 
     /// Sets the width of the [`Text`] boundaries.
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Animation::new_idle(width);
         self
     }
 
     /// Sets the height of the [`Text`] boundaries.
     pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+        self.height = Animation::new_idle(height);
         self
     }
 
@@ -119,11 +119,11 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.width
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.height
     }
 
@@ -131,8 +131,9 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits.width(self.width.at()).height(self.height.at());
 
         let size = self.size.unwrap_or_else(|| renderer.default_size());
 
@@ -145,6 +146,8 @@ where
 
         layout::Node::new(size)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn draw(
         &self,

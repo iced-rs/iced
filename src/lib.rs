@@ -194,9 +194,11 @@ use iced_wgpu as renderer;
 use iced_glow as renderer;
 
 pub use iced_native::theme;
+pub use iced_native::animation;
 pub use runtime::event;
 pub use runtime::subscription;
 
+pub use animation::Ease;
 pub use application::Application;
 pub use element::Element;
 pub use error::Error;

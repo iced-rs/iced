@@ -6,6 +6,7 @@ pub use null::Null;
 
 use crate::layout;
 use crate::{Background, Color, Element, Rectangle, Vector};
+use crate::widget::Tree;
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
@@ -19,9 +20,11 @@ pub trait Renderer: Sized {
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
+        tree: &Tree,
         limits: &layout::Limits,
     ) -> layout::Node {
-        element.as_widget().layout(self, limits)
+        println!("called layout");
+        element.as_widget().layout(self, limits, tree)
     }
 
     /// Draws the primitives recorded in the given closure in a new layer.

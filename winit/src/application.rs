@@ -282,6 +282,7 @@ async fn run_instance<A, E, C>(
     );
     runtime.track(application.subscription());
 
+    println!("first user interface build");
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
         cache,
@@ -295,6 +296,7 @@ async fn run_instance<A, E, C>(
     let mut messages = Vec::new();
 
     debug.startup_finished();
+    println!("run instalnce");
 
     while let Some(event) = receiver.next().await {
         match event {
@@ -348,6 +350,7 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
+                    println!("build interface in the loop");
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &application,
                         cache,
@@ -696,6 +699,7 @@ pub fn run_command<A, E>(
                 let mut current_cache = std::mem::take(cache);
                 let mut current_operation = Some(action.into_operation());
 
+                println!("build user interface from event");
                 let mut user_interface = build_user_interface(
                     application,
                     current_cache,

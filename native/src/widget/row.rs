@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
-    Widget,
+    Widget, Animation,
 };
 
 /// A container that distributes its contents horizontally.
@@ -104,18 +104,19 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn width(&self) -> Length {
-        self.width
+    fn width(&self) -> Animation {
+        Animation::new_idle(self.width)
     }
 
-    fn height(&self) -> Length {
-        self.height
+    fn height(&self) -> Animation {
+        Animation::new_idle(self.height)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 
@@ -127,8 +128,11 @@ where
             self.spacing as f32,
             self.align_items,
             &self.children,
+            &tree.children,
         )
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

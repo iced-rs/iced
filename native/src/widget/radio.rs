@@ -9,155 +9,156 @@ use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Widget,
-};
+        Shell, Widget, Animation,
+    };
 
-pub use iced_style::radio::{Appearance, StyleSheet};
+    pub use iced_style::radio::{Appearance, StyleSheet};
 
-/// A circular button representing a choice.
-///
-/// # Example
-/// ```
-/// # type Radio<Message> =
-/// #     iced_native::widget::Radio<Message, iced_native::renderer::Null>;
-/// #
-/// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// pub enum Choice {
-///     A,
-///     B,
-/// }
-///
-/// #[derive(Debug, Clone, Copy)]
-/// pub enum Message {
-///     RadioSelected(Choice),
-/// }
-///
-/// let selected_choice = Some(Choice::A);
-///
-/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
-///
-/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
-/// ```
-///
-/// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
-#[allow(missing_debug_implementations)]
-pub struct Radio<Message, Renderer>
-where
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    is_selected: bool,
-    on_click: Message,
-    label: String,
-    width: Length,
-    size: u16,
-    spacing: u16,
-    text_size: Option<u16>,
-    font: Renderer::Font,
-    style: <Renderer::Theme as StyleSheet>::Style,
-}
-
-impl<Message, Renderer> Radio<Message, Renderer>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
-    /// The default size of a [`Radio`] button.
-    pub const DEFAULT_SIZE: u16 = 28;
-
-    /// The default spacing of a [`Radio`] button.
-    pub const DEFAULT_SPACING: u16 = 15;
-
-    /// Creates a new [`Radio`] button.
+    /// A circular button representing a choice.
     ///
-    /// It expects:
-    ///   * the value related to the [`Radio`] button
-    ///   * the label of the [`Radio`] button
-    ///   * the current selected value
-    ///   * a function that will be called when the [`Radio`] is selected. It
-    ///   receives the value of the radio and must produce a `Message`.
-    pub fn new<F, V>(
-        value: V,
-        label: impl Into<String>,
-        selected: Option<V>,
-        f: F,
-    ) -> Self
+    /// # Example
+    /// ```
+    /// # type Radio<Message> =
+    /// #     iced_native::widget::Radio<Message, iced_native::renderer::Null>;
+    /// #
+    /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    /// pub enum Choice {
+    ///     A,
+    ///     B,
+    /// }
+    ///
+    /// #[derive(Debug, Clone, Copy)]
+    /// pub enum Message {
+    ///     RadioSelected(Choice),
+    /// }
+    ///
+    /// let selected_choice = Some(Choice::A);
+    ///
+    /// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
+    ///
+    /// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
+    /// ```
+    ///
+    /// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
+    #[allow(missing_debug_implementations)]
+    pub struct Radio<Message, Renderer>
     where
-        V: Eq + Copy,
-        F: FnOnce(V) -> Message,
+        Renderer: text::Renderer,
+        Renderer::Theme: StyleSheet,
     {
-        Radio {
-            is_selected: Some(value) == selected,
-            on_click: f(value),
-            label: label.into(),
-            width: Length::Shrink,
-            size: Self::DEFAULT_SIZE,
-            spacing: Self::DEFAULT_SPACING, //15
-            text_size: None,
-            font: Default::default(),
-            style: Default::default(),
+        is_selected: bool,
+        on_click: Message,
+        label: String,
+        width: Length,
+        size: u16,
+        spacing: u16,
+        text_size: Option<u16>,
+        font: Renderer::Font,
+        style: <Renderer::Theme as StyleSheet>::Style,
+    }
+
+    impl<Message, Renderer> Radio<Message, Renderer>
+    where
+        Message: Clone,
+        Renderer: text::Renderer,
+        Renderer::Theme: StyleSheet,
+    {
+        /// The default size of a [`Radio`] button.
+        pub const DEFAULT_SIZE: u16 = 28;
+
+        /// The default spacing of a [`Radio`] button.
+        pub const DEFAULT_SPACING: u16 = 15;
+
+        /// Creates a new [`Radio`] button.
+        ///
+        /// It expects:
+        ///   * the value related to the [`Radio`] button
+        ///   * the label of the [`Radio`] button
+        ///   * the current selected value
+        ///   * a function that will be called when the [`Radio`] is selected. It
+        ///   receives the value of the radio and must produce a `Message`.
+        pub fn new<F, V>(
+            value: V,
+            label: impl Into<String>,
+            selected: Option<V>,
+            f: F,
+        ) -> Self
+        where
+            V: Eq + Copy,
+            F: FnOnce(V) -> Message,
+        {
+            Radio {
+                is_selected: Some(value) == selected,
+                on_click: f(value),
+                label: label.into(),
+                width: Length::Shrink,
+                size: Self::DEFAULT_SIZE,
+                spacing: Self::DEFAULT_SPACING, //15
+                text_size: None,
+                font: Default::default(),
+                style: Default::default(),
+            }
+        }
+
+        /// Sets the size of the [`Radio`] button.
+        pub fn size(mut self, size: u16) -> Self {
+            self.size = size;
+            self
+        }
+
+        /// Sets the width of the [`Radio`] button.
+        pub fn width(mut self, width: Length) -> Self {
+            self.width = width;
+            self
+        }
+
+        /// Sets the spacing between the [`Radio`] button and the text.
+        pub fn spacing(mut self, spacing: u16) -> Self {
+            self.spacing = spacing;
+            self
+        }
+
+        /// Sets the text size of the [`Radio`] button.
+        pub fn text_size(mut self, text_size: u16) -> Self {
+            self.text_size = Some(text_size);
+            self
+        }
+
+        /// Sets the text font of the [`Radio`] button.
+        pub fn font(mut self, font: Renderer::Font) -> Self {
+            self.font = font;
+            self
+        }
+
+        /// Sets the style of the [`Radio`] button.
+        pub fn style(
+            mut self,
+            style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        ) -> Self {
+            self.style = style.into();
+            self
         }
     }
 
-    /// Sets the size of the [`Radio`] button.
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
-        self
+    impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
+    where
+        Message: Clone,
+        Renderer: text::Renderer,
+        Renderer::Theme: StyleSheet + widget::text::StyleSheet,
+    {
+        fn width(&self) -> Animation {
+        Animation::new_idle(self.width)
     }
 
-    /// Sets the width of the [`Radio`] button.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
-        self
-    }
-
-    /// Sets the spacing between the [`Radio`] button and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
-        self
-    }
-
-    /// Sets the text size of the [`Radio`] button.
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
-        self
-    }
-
-    /// Sets the text font of the [`Radio`] button.
-    pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
-        self
-    }
-
-    /// Sets the style of the [`Radio`] button.
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
-        self.style = style.into();
-        self
-    }
-}
-
-impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
-where
-    Message: Clone,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + widget::text::StyleSheet,
-{
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn height(&self) -> Animation {
+        Animation::new_idle(Length::Shrink)
     }
 
     fn layout(
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
         Row::<(), Renderer>::new()
             .width(self.width)
@@ -171,8 +172,10 @@ where
             .push(Text::new(&self.label).width(self.width).size(
                 self.text_size.unwrap_or_else(|| renderer.default_size()),
             ))
-            .layout(renderer, limits)
+            .layout(renderer, limits, tree)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,

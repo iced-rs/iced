@@ -10,7 +10,7 @@ use crate::widget::overlay;
 use crate::widget::{Text, Tree};
 use crate::{
     Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Shell, Size, Vector, Widget, Animation,
 };
 
 use std::borrow::Cow;
@@ -114,11 +114,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Length {
+    fn width(&self) -> Animation {
         self.content.as_widget().width()
     }
 
-    fn height(&self) -> Length {
+    fn height(&self) -> Animation {
         self.content.as_widget().height()
     }
 
@@ -126,9 +126,12 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
+        tree: &Tree,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits)
+        self.content.as_widget().layout(renderer, limits, tree)
     }
+
+    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,
@@ -178,6 +181,12 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        // TODO: FIX tooltip,
+        // is will be possible to pass state into draw() to that a tooltip
+        // can have access to the layout, but not yet. Disabling for now.
+        // Having access to the sate in the draw is probably necessary to
+        // animate widget style as well.
+        return ();
         self.content.as_widget().draw(
             &tree.children[0],
             renderer,
@@ -288,6 +297,8 @@ pub fn draw<Renderer>(
     Renderer: crate::Renderer,
     Renderer::Theme: container::StyleSheet,
 {
+    // TODO see draw() impl for tooltip
+    return ();
     use container::StyleSheet;
 
     let bounds = layout.bounds();
