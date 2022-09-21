@@ -1,7 +1,6 @@
-//! Build and show dropdown menus.
-///
-/// This is an alias of an `iced_native` element with a default `Renderer`.
+//! Display interactive elements on top of other widgets.
 pub mod menu {
+    //! Build and show dropdown menus.
     pub use iced_native::overlay::menu::{Appearance, State, StyleSheet};
 
     /// A widget that produces a message when clicked.
