@@ -1,15 +1,18 @@
 //! Create interactive, native cross-platform applications.
+mod state;
+
+pub use state::State;
+
 use crate::mouse;
 use crate::{Error, Executor, Runtime};
 
-pub use iced_winit::multi_window::{
-    self, Application, Event, State, StyleSheet,
-};
+pub use iced_winit::multi_window::{self, Application, StyleSheet};
 
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
+use iced_winit::settings;
 use iced_winit::user_interface;
 use iced_winit::window;
 use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
@@ -238,7 +241,7 @@ async fn run_instance<A, E, C>(
     {
         let state = states.get(&window::Id::MAIN).unwrap();
 
-        multi_window::run_command(
+        run_command(
             &application,
             &mut cache,
             state,
@@ -324,7 +327,7 @@ async fn run_instance<A, E, C>(
                                 .collect();
 
                         // Update application
-                        multi_window::update(
+                        update(
                             &mut application,
                             &mut cache,
                             state,
@@ -343,15 +346,13 @@ async fn run_instance<A, E, C>(
 
                         let should_exit = application.should_exit();
 
-                        interfaces = ManuallyDrop::new(
-                            multi_window::build_user_interfaces(
-                                &application,
-                                &mut renderer,
-                                &mut debug,
-                                &states,
-                                pure_states,
-                            ),
-                        );
+                        interfaces = ManuallyDrop::new(build_user_interfaces(
+                            &application,
+                            &mut renderer,
+                            &mut debug,
+                            &states,
+                            pure_states,
+                        ));
 
                         if should_exit {
                             break 'main;
@@ -570,4 +571,239 @@ async fn run_instance<A, E, C>(
 
     // Manually drop the user interface
     // drop(ManuallyDrop::into_inner(user_interface));
+}
+
+/// TODO(derezzedex):
+// This is the an wrapper around the `Application::Message` associate type
+// to allows the `shell` to create internal messages, while still having
+// the current user specified custom messages.
+#[derive(Debug)]
+pub enum Event<Message> {
+    /// An [`Application`] generated message
+    Application(Message),
+
+    /// TODO(derezzedex)
+    // Create a wrapper variant of `window::Event` type instead
+    // (maybe we should also allow users to listen/react to those internal messages?)
+    NewWindow(window::Id, settings::Window),
+    /// TODO(derezzedex)
+    CloseWindow(window::Id),
+    /// TODO(derezzedex)
+    WindowCreated(window::Id, glutin::window::Window),
+}
+
+/// Updates an [`Application`] by feeding it the provided messages, spawning any
+/// resulting [`Command`], and tracking its [`Subscription`].
+pub fn update<A: Application, E: Executor>(
+    application: &mut A,
+    cache: &mut user_interface::Cache,
+    state: &State<A>,
+    renderer: &mut A::Renderer,
+    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
+    clipboard: &mut Clipboard,
+    proxy: &mut glutin::event_loop::EventLoopProxy<Event<A::Message>>,
+    debug: &mut Debug,
+    messages: &mut Vec<A::Message>,
+    windows: &HashMap<window::Id, glutin::window::Window>,
+    graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
+) where
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
+    for message in messages.drain(..) {
+        debug.log_message(&message);
+
+        debug.update_started();
+        let command = runtime.enter(|| application.update(message));
+        debug.update_finished();
+
+        run_command(
+            application,
+            cache,
+            state,
+            renderer,
+            command,
+            runtime,
+            clipboard,
+            proxy,
+            debug,
+            windows,
+            graphics_info,
+        );
+    }
+
+    let subscription = application.subscription().map(Event::Application);
+    runtime.track(subscription);
+}
+
+/// Runs the actions of a [`Command`].
+pub fn run_command<A, E>(
+    application: &A,
+    cache: &mut user_interface::Cache,
+    state: &State<A>,
+    renderer: &mut A::Renderer,
+    command: Command<A::Message>,
+    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
+    clipboard: &mut Clipboard,
+    proxy: &mut glutin::event_loop::EventLoopProxy<Event<A::Message>>,
+    debug: &mut Debug,
+    windows: &HashMap<window::Id, glutin::window::Window>,
+    _graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
+) where
+    A: Application,
+    E: Executor,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
+    use iced_native::command;
+    use iced_native::system;
+    use iced_native::window;
+    use iced_winit::clipboard;
+    use iced_winit::futures::FutureExt;
+
+    for action in command.actions() {
+        match action {
+            command::Action::Future(future) => {
+                runtime.spawn(Box::pin(future.map(Event::Application)));
+            }
+            command::Action::Clipboard(action) => match action {
+                clipboard::Action::Read(tag) => {
+                    let message = tag(clipboard.read());
+
+                    proxy
+                        .send_event(Event::Application(message))
+                        .expect("Send message to event loop");
+                }
+                clipboard::Action::Write(contents) => {
+                    clipboard.write(contents);
+                }
+            },
+            command::Action::Window(id, action) => {
+                let window = windows.get(&id).expect("No window found");
+
+                match action {
+                    window::Action::Resize { width, height } => {
+                        window.set_inner_size(glutin::dpi::LogicalSize {
+                            width,
+                            height,
+                        });
+                    }
+                    window::Action::Move { x, y } => {
+                        window.set_outer_position(
+                            glutin::dpi::LogicalPosition { x, y },
+                        );
+                    }
+                    window::Action::SetMode(mode) => {
+                        window.set_visible(conversion::visible(mode));
+                        window.set_fullscreen(conversion::fullscreen(
+                            window.primary_monitor(),
+                            mode,
+                        ));
+                    }
+                    window::Action::FetchMode(tag) => {
+                        let mode = if window.is_visible().unwrap_or(true) {
+                            conversion::mode(window.fullscreen())
+                        } else {
+                            window::Mode::Hidden
+                        };
+
+                        proxy
+                            .send_event(Event::Application(tag(mode)))
+                            .expect("Send message to event loop");
+                    }
+                }
+            }
+            command::Action::System(action) => match action {
+                system::Action::QueryInformation(_tag) => {
+                    #[cfg(feature = "iced_winit/system")]
+                    {
+                        let graphics_info = _graphics_info();
+                        let proxy = proxy.clone();
+
+                        let _ = std::thread::spawn(move || {
+                            let information =
+                                crate::system::information(graphics_info);
+
+                            let message = _tag(information);
+
+                            proxy
+                                .send_event(Event::Application(message))
+                                .expect("Send message to event loop")
+                        });
+                    }
+                }
+            },
+            command::Action::Widget(action) => {
+                use crate::widget::operation;
+
+                let mut current_cache = std::mem::take(cache);
+                let mut current_operation = Some(action.into_operation());
+
+                let mut user_interface = multi_window::build_user_interface(
+                    application,
+                    current_cache,
+                    renderer,
+                    state.logical_size(),
+                    debug,
+                    window::Id::MAIN, // TODO(derezzedex): run the operation on every widget tree
+                );
+
+                while let Some(mut operation) = current_operation.take() {
+                    user_interface.operate(renderer, operation.as_mut());
+
+                    match operation.finish() {
+                        operation::Outcome::None => {}
+                        operation::Outcome::Some(message) => {
+                            proxy
+                                .send_event(Event::Application(message))
+                                .expect("Send message to event loop");
+                        }
+                        operation::Outcome::Chain(next) => {
+                            current_operation = Some(next);
+                        }
+                    }
+                }
+
+                current_cache = user_interface.into_cache();
+                *cache = current_cache;
+            }
+        }
+    }
+}
+
+/// TODO(derezzedex)
+pub fn build_user_interfaces<'a, A>(
+    application: &'a A,
+    renderer: &mut A::Renderer,
+    debug: &mut Debug,
+    states: &HashMap<window::Id, State<A>>,
+    mut pure_states: HashMap<window::Id, user_interface::Cache>,
+) -> HashMap<
+    window::Id,
+    iced_winit::UserInterface<
+        'a,
+        <A as Application>::Message,
+        <A as Application>::Renderer,
+    >,
+>
+where
+    A: Application + 'static,
+    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+{
+    let mut interfaces = HashMap::new();
+
+    for (id, pure_state) in pure_states.drain() {
+        let state = &states.get(&id).unwrap();
+
+        let user_interface = multi_window::build_user_interface(
+            application,
+            pure_state,
+            renderer,
+            state.logical_size(),
+            debug,
+            id,
+        );
+
+        let _ = interfaces.insert(id, user_interface);
+    }
+
+    interfaces
 }
