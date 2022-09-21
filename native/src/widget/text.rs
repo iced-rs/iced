@@ -6,6 +6,8 @@ use crate::text;
 use crate::widget::Tree;
 use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
+use std::borrow::Cow;
+
 pub use iced_style::text::{Appearance, StyleSheet};
 
 /// A paragraph of text.
@@ -15,7 +17,7 @@ pub use iced_style::text::{Appearance, StyleSheet};
 /// ```
 /// # use iced_native::Color;
 /// #
-/// # type Text = iced_native::widget::Text<iced_native::renderer::Null>;
+/// # type Text<'a> = iced_native::widget::Text<'a, iced_native::renderer::Null>;
 /// #
 /// Text::new("I <3 iced!")
 ///     .size(40)
@@ -24,12 +26,12 @@ pub use iced_style::text::{Appearance, StyleSheet};
 ///
 /// ![Text drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Text<Renderer>
+pub struct Text<'a, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    content: String,
+    content: Cow<'a, str>,
     size: Option<u16>,
     width: Length,
     height: Length,
@@ -39,15 +41,15 @@ where
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<Renderer> Text<Renderer>
+impl<'a, Renderer> Text<'a, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new<T: ToString>(label: T) -> Self {
+    pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
         Text {
-            content: label.to_string(),
+            content: content.into(),
             size: None,
             font: Default::default(),
             width: Length::Shrink,
@@ -112,7 +114,7 @@ where
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Text<Renderer>
+impl<'a, Message, Renderer> Widget<Message, Renderer> for Text<'a, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -216,18 +218,18 @@ pub fn draw<Renderer>(
     });
 }
 
-impl<'a, Message, Renderer> From<Text<Renderer>>
+impl<'a, Message, Renderer> From<Text<'a, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Renderer: text::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
-    fn from(text: Text<Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(text: Text<'a, Renderer>) -> Element<'a, Message, Renderer> {
         Element::new(text)
     }
 }
 
-impl<Renderer> Clone for Text<Renderer>
+impl<'a, Renderer> Clone for Text<'a, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,

@@ -91,7 +91,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ///
     /// ```
     /// # mod counter {
-    /// #     type Text = iced_native::widget::Text<iced_native::renderer::Null>;
+    /// #     type Text<'a> = iced_native::widget::Text<'a, iced_native::renderer::Null>;
     /// #
     /// #     #[derive(Debug, Clone, Copy)]
     /// #     pub enum Message {}

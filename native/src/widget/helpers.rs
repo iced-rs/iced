@@ -101,18 +101,18 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::container::StyleSheet + widget::text::StyleSheet,
 {
-    widget::Tooltip::new(content, tooltip, position)
+    widget::Tooltip::new(content, tooltip.to_string(), position)
 }
 
 /// Creates a new [`Text`] widget with the provided content.
 ///
 /// [`Text`]: widget::Text
-pub fn text<Renderer>(text: impl ToString) -> widget::Text<Renderer>
+pub fn text<'a, Renderer>(text: impl ToString) -> widget::Text<'a, Renderer>
 where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text::StyleSheet,
 {
-    widget::Text::new(text)
+    widget::Text::new(text.to_string())
 }
 
 /// Creates a new [`Checkbox`].
