@@ -70,9 +70,9 @@ impl Application for Example {
 
         (
             Example {
-                windows: HashMap::from([(window::Id::new(0usize), window)]),
+                windows: HashMap::from([(window::Id::MAIN, window)]),
                 panes_created: 1,
-                _focused: window::Id::new(0usize),
+                _focused: window::Id::MAIN,
             },
             Command::none(),
         )

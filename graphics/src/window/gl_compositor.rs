@@ -30,7 +30,7 @@ pub trait GLCompositor: Sized {
     /// The settings of the [`GLCompositor`].
     ///
     /// It's up to you to decide the configuration supported by your renderer!
-    type Settings: Default;
+    type Settings: Default + Clone;
 
     /// Creates a new [`GLCompositor`] and [`Renderer`] with the given
     /// [`Settings`] and an OpenGL address loader function.
