@@ -81,23 +81,31 @@ impl Animation {
     }
 
     /// Takes the current frame, and the time that the next frame should be rendered, and returns the state at that frame.
-    pub fn step(&mut self, now: usize) {
-        println!("step");
+    pub fn step(&mut self, now: usize) -> Animation {
+        println!("stepping the animation");
         match self {
-            Animation::Idle(_at) => {},
+            Animation::Idle(at) => {Animation::Idle(*at)},
             Animation::Working(mut state) => {
                 match state.ease {
                     Ease::Linear => {
-                        let start: f64 = state.bounds.get_start().into();
-                        let end: f64 = state.bounds.get_end().into();
-                        let slope = (end - start) / state.runtime as f64;
-                        let value = start + (now - state.begin / state.runtime) as f64 * slope;
+                        //println!("in the working animation");
+                        //let start: f64 = state.bounds.get_start().into();
+                        //let end: f64 = state.bounds.get_end().into();
+                        //let slope = (end - start) / state.runtime as f64;
+                        //let value = start + (now - state.begin / state.runtime) as f64 * slope;
 
-                        if value >= end {
-                            state.at = state.bounds.as_length();
-                        } else {
-                            state.at = Length::Units(value.clamp(u16::MIN.into(), u16::MAX.into()).round() as u16);
-                        }
+                        //if value >= end {
+                        //    state.at = state.bounds.as_length();
+                        //} else {
+                        //    println!("value: {} | state.at = {:?}", value, state.at);
+                        //    state.at = Length::Units(value.clamp(u16::MIN.into(), u16::MAX.into()).round() as u16);
+                        //    println!("value: {} | state.at = {:?}", value, state.at);
+                        //}
+                        state.at = match state.at {
+                            Length::Units(units) => Length::Units(units + 1),
+                            _ => Length::Shrink,
+                        };
+                        Animation::Working( state )
                     }
                 }
             }

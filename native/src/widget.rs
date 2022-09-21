@@ -92,6 +92,8 @@ use crate::renderer;
 use crate::Animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
+use std::any::Any;
+
 /// A component that displays information and allows interaction.
 ///
 /// If you want to build your own widgets, you will need to implement this
@@ -161,6 +163,11 @@ where
         tree::State::None
     }
 
+    /// Replaces the widget's state with some other widget's state.
+    /// This can be used to take state from the [`UserInterface`]'s cache
+    /// and replace the new interface with a cache's state.
+    fn step_state(&mut self, state: &mut tree::State, time: usize) {}
+
     /// Returns the state [`Tree`] of the children of the [`Widget`].
     fn children(&self) -> Vec<Tree> {
         Vec::new()
@@ -168,6 +175,9 @@ where
 
     /// Reconciliates the [`Widget`] with the provided [`Tree`].
     fn diff(&self, _tree: &mut Tree) {}
+
+    /// See [`diff`], a mutable version
+    fn diff_mut(&mut self, _tree: &mut Tree) {}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -219,5 +229,16 @@ where
     }
 
     /// Steps animation forward to given time
-    fn step(&mut self, _now: usize);
+    fn step(&mut self, _now: usize) {
+        println!("in fucking widget");
+    }
+}
+
+/// A trait requireing that all Widgets implement a standard set of functions.
+pub trait WidgetState: Any {
+    /// Steps the widget state forward in time.
+    /// This is used for animations to step the widget state to the next frame
+    fn step(&mut self, time: usize) {
+        println!("in fucking widgetstate");
+    }
 }

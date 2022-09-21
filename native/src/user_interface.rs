@@ -101,10 +101,13 @@ where
         println!("post step");
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        state.diff_mut(root.as_widget_mut());
+        //state.diff(root.as_widget());
 
+        println!("done did a diff");
         let base =
             renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
+        println!("did a layout");
 
         UserInterface {
             root,
@@ -192,7 +195,6 @@ where
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
 
-        println!("update user interface");
         let mut state = State::Updated;
         let mut manual_overlay =
             ManuallyDrop::new(self.root.as_widget_mut().overlay(

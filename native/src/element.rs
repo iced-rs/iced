@@ -9,7 +9,7 @@ use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget, Animation,
 };
 
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 
 /// A generic [`Widget`].
 ///
@@ -228,6 +228,30 @@ impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
     }
 }
 
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
+    for &mut Element<'a, Message, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Renderer> BorrowMut<dyn Widget<Message, Renderer> + 'a>
+    for Element<'a, Message, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
+impl<'a, Message, Renderer> BorrowMut<dyn Widget<Message, Renderer> + 'a>
+    for &mut Element<'a, Message, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
 struct Map<'a, A, B, Renderer> {
     widget: Box<dyn Widget<A, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B + 'a>,
@@ -287,7 +311,7 @@ where
         self.widget.layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, _now: usize) {}
+    fn step(&mut self, _now: usize) {println!("step in element");}
 
     fn operate(
         &self,
@@ -474,6 +498,7 @@ where
     }
 
     fn step(&mut self, now: usize) {
+        println!("step in element with stuff");
         self.element.widget.step(now);
     }
 

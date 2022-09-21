@@ -301,9 +301,10 @@ async fn run_instance<A, E, C>(
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() {
-                    continue;
-                }
+                println!("Main event cleared");
+                //if events.is_empty() && messages.is_empty() {
+                //    continue;
+                //}
 
                 debug.event_processing_started();
 
@@ -321,11 +322,13 @@ async fn run_instance<A, E, C>(
                     runtime.broadcast(event);
                 }
 
-                if !messages.is_empty()
-                    || matches!(
-                        interface_state,
-                        user_interface::State::Outdated,
-                    )
+                //if !messages.is_empty()
+                //    || matches!(
+                //        interface_state,
+                //        user_interface::State::Outdated,
+                //    )
+                // TODO: A TOTAL HACK THIS NEEDS TO BE FIXED!!!
+                if true
                 {
                     let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
@@ -473,6 +476,8 @@ async fn run_instance<A, E, C>(
                         }
                     },
                 }
+                // TODO: REMOVE THIS THIS IS A TOTAL HACK!
+                window.request_redraw();
             }
             event::Event::WindowEvent {
                 event: window_event,

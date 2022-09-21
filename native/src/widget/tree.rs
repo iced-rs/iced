@@ -1,8 +1,9 @@
 //! Store internal widget state in a state tree to ensure continuity.
 use crate::Widget;
+use crate::widget::WidgetState;
 
 use std::any::{self, Any};
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
 
 /// A persistent state widget tree.
@@ -69,6 +70,27 @@ impl Tree {
     }
 
     /// Reconciliates the children of the tree with the provided list of widgets.
+    /// See [`diff`], this is similar, but uses a mutable reference to
+    /// the tree, which allows us to step animations in [`user_interface::build`]
+    pub fn diff_mut<'a, Message, Renderer>(
+        &mut self,
+        mut new: impl BorrowMut<dyn Widget<Message, Renderer> + 'a>,
+    ) where
+        Renderer: crate::Renderer,
+    {
+        println!("in diff mut {:?}", self.state);
+        if self.tag == new.borrow_mut().tag() {
+            println!("about to tree step");
+            new.borrow_mut().step_state(&mut self.state, 500);
+                //new.borrow_mut().step(500);
+            new.borrow_mut().diff_mut(self)
+        } else {
+            println!("they dont match");
+            *self = Self::new(new);
+        }
+    }
+
+    /// Reconciliates the children of the tree with the provided list of [`Element`].
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
@@ -83,6 +105,21 @@ impl Tree {
     }
 
     /// Reconciliates the children of the tree with the provided list of widgets using custom
+    /// mutable child diff
+    pub fn diff_children_mut<'a, Message, Renderer>(
+        &mut self,
+        new_children: &mut [impl BorrowMut<dyn Widget<Message, Renderer> + 'a>],
+    ) where
+        Renderer: crate::Renderer,
+    {
+        self.diff_children_custom_mut(
+            new_children,
+            |tree, widget| tree.diff_mut(widget.borrow_mut()),
+            |widget| Self::new(widget.borrow_mut()),
+        )
+    }
+
+    /// Reconciliates the children of the tree with the provided list of [`Element`] using custom
     /// logic both for diffing and creating new widget state.
     pub fn diff_children_custom<T>(
         &mut self,
@@ -103,6 +140,30 @@ impl Tree {
         if self.children.len() < new_children.len() {
             self.children.extend(
                 new_children[self.children.len()..].iter().map(new_state),
+            );
+        }
+    }
+
+    /// mutable version of diff_children_custom
+    pub fn diff_children_custom_mut<T>(
+        &mut self,
+        new_children: &mut [T],
+        diff_mut: impl Fn(&mut Tree, &mut T),
+        new_state: impl Fn(&mut T) -> Self,
+    ) {
+        if self.children.len() > new_children.len() {
+            self.children.truncate(new_children.len());
+        }
+
+        for (child_state, new) in
+            self.children.iter_mut().zip(new_children.iter_mut())
+        {
+            diff_mut(child_state, new);
+        }
+
+        if self.children.len() < new_children.len() {
+            self.children.extend(
+                new_children[self.children.len()..].iter_mut().map(new_state),
             );
         }
     }
@@ -140,7 +201,7 @@ impl State {
     /// Creates a new [`State`].
     pub fn new<T>(state: T) -> Self
     where
-        T: 'static,
+        T: 'static + WidgetState,
     {
         State::Some(Box::new(state))
     }

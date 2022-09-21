@@ -20,6 +20,7 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget;
+use crate::widget::WidgetState;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
@@ -1051,7 +1052,6 @@ impl operation::TextInput for State {
     fn select_all(&mut self) {
         State::select_all(self)
     }
-}
 
 mod platform {
     use crate::keyboard;

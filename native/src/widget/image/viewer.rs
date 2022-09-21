@@ -4,6 +4,7 @@ use crate::image;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
+use crate::widget::WidgetState;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
@@ -359,6 +360,11 @@ impl Default for State {
             cursor_grabbed_at: None,
         }
     }
+}
+
+impl WidgetState for State {
+    // TODO make widget's dimensions animate
+    fn step(&mut self, time: usize) {}
 }
 
 impl State {
