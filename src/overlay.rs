@@ -1,4 +1,11 @@
 //! Display interactive elements on top of other widgets.
+
+/// A generic [`Overlay`].
+///
+/// This is an alias of an `iced_native` element with a default `Renderer`.
+pub type Element<'a, Message, Renderer = crate::Renderer> =
+    iced_native::overlay::Element<'a, Message, Renderer>;
+
 pub mod menu {
     //! Build and show dropdown menus.
     pub use iced_native::overlay::menu::{Appearance, State, StyleSheet};
