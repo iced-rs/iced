@@ -543,9 +543,11 @@ pub fn draw<T, Renderer>(
             content: label,
             size: text_size,
             font: font.clone(),
-            color: is_selected
-                .then(|| style.text_color)
-                .unwrap_or(style.placeholder_color),
+            color: if is_selected {
+                style.text_color
+            } else {
+                style.placeholder_color
+            },
             bounds: Rectangle {
                 x: bounds.x + f32::from(padding.left),
                 y: bounds.center_y() - text_size / 2.0,

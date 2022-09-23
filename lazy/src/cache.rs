@@ -9,5 +9,5 @@ pub struct Cache<'a, Message: 'a, Renderer: 'a> {
 
     #[borrows(mut element)]
     #[covariant]
-    pub overlay: Option<overlay::Element<'this, Message, Renderer>>,
+    overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }
