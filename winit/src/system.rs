@@ -31,6 +31,7 @@ pub(crate) fn information(
         system_name: system.name(),
         system_kernel: system.kernel_version(),
         system_version: system.long_os_version(),
+        system_short_version: system.os_version(),
         cpu_brand: cpu.brand().into(),
         cpu_cores: system.physical_core_count(),
         memory_total: system.total_memory(),

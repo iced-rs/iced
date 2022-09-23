@@ -1,22 +1,29 @@
 /// Contains informations about the system (e.g. system name, processor, memory, graphics adapter).
 #[derive(Clone, Debug)]
 pub struct Information {
-    /// Contains the system name.
+    /// The operating system name
     pub system_name: Option<String>,
-    /// Contains the kernel version.
+    /// Operating system kernel version
     pub system_kernel: Option<String>,
-    /// Contains the systme version.
+    /// Long operating system version
+    ///
+    /// Examples:
+    /// - MacOS 10.15 Catalina
+    /// - Windows 10 Pro
+    /// - Ubuntu 20.04 LTS (Focal Fossa)
     pub system_version: Option<String>,
-    /// Contains the processor brand.
+    /// Short operating system version number
+    pub system_short_version: Option<String>,
+    /// Detailed processor model information
     pub cpu_brand: String,
-    /// Contains the number of physical cores on the processor.
+    /// The number of physical cores on the processor
     pub cpu_cores: Option<usize>,
-    /// Contains the total RAM size in KB.
+    /// Total RAM size, KB
     pub memory_total: u64,
-    /// Contains the system used RAM size in KB.
+    /// Memory used by this process, KB
     pub memory_used: Option<u64>,
-    /// Contains the graphics backend.
+    /// Underlying graphics backend for rendering
     pub graphics_backend: String,
-    /// Contains the graphics adapter.
+    /// Model information for the active graphics adapter
     pub graphics_adapter: String,
 }
