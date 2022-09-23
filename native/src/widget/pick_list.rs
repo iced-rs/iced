@@ -11,7 +11,6 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container;
 use crate::widget::scrollable;
-use crate::widget::WidgetState;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
@@ -163,8 +162,6 @@ where
         )
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -269,11 +266,6 @@ pub struct State<T> {
     is_open: bool,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
-}
-
-impl<T: 'static> WidgetState for State<T> {
-    // TODO make widget's dimensions animate
-    fn step(&mut self, time: usize) {}
 }
 
 impl<T> State<T> {

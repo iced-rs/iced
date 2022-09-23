@@ -1,6 +1,6 @@
 //! Store internal widget state in a state tree to ensure continuity.
 use crate::Widget;
-use crate::widget::WidgetState;
+use crate::animation;
 
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
@@ -72,21 +72,21 @@ impl Tree {
     /// Reconciliates the children of the tree with the provided list of widgets.
     /// See [`diff`], this is similar, but uses a mutable reference to
     /// the tree, which allows us to step animations in [`user_interface::build`]
+    /// Also takes an accumulator to track when the next redraw is necessary, if at all.
     pub fn diff_mut<'a, Message, Renderer>(
         &mut self,
+        mut acc: animation::Request,
         mut new: impl BorrowMut<dyn Widget<Message, Renderer> + 'a>,
-    ) where
+    ) -> animation::Request
+    where
         Renderer: crate::Renderer,
     {
-        println!("in diff mut {:?}", self.state);
         if self.tag == new.borrow_mut().tag() {
-            println!("about to tree step");
-            new.borrow_mut().step_state(&mut self.state, 500);
-                //new.borrow_mut().step(500);
-            new.borrow_mut().diff_mut(self)
+            acc = acc.min(new.borrow_mut().step_state(&mut self.state, 500));
+            new.borrow_mut().diff_mut(acc, self)
         } else {
-            println!("they dont match");
             *self = Self::new(new);
+            acc
         }
     }
 
@@ -108,13 +108,16 @@ impl Tree {
     /// mutable child diff
     pub fn diff_children_mut<'a, Message, Renderer>(
         &mut self,
+        acc: animation::Request,
         new_children: &mut [impl BorrowMut<dyn Widget<Message, Renderer> + 'a>],
-    ) where
+    ) -> animation::Request
+    where
         Renderer: crate::Renderer,
     {
         self.diff_children_custom_mut(
+            acc,
             new_children,
-            |tree, widget| tree.diff_mut(widget.borrow_mut()),
+            |tree, widget| tree.diff_mut(acc, widget.borrow_mut()),
             |widget| Self::new(widget.borrow_mut()),
         )
     }
@@ -147,25 +150,23 @@ impl Tree {
     /// mutable version of diff_children_custom
     pub fn diff_children_custom_mut<T>(
         &mut self,
+        mut acc: animation::Request,
         new_children: &mut [T],
-        diff_mut: impl Fn(&mut Tree, &mut T),
+        diff_mut: impl Fn(&mut Tree, &mut T) -> animation::Request,
         new_state: impl Fn(&mut T) -> Self,
-    ) {
+    ) -> animation::Request {
         if self.children.len() > new_children.len() {
             self.children.truncate(new_children.len());
         }
 
-        for (child_state, new) in
-            self.children.iter_mut().zip(new_children.iter_mut())
-        {
-            diff_mut(child_state, new);
-        }
+        acc = acc.min(self.children.iter_mut().zip(new_children.iter_mut()).fold(acc, |accu, (child_state, new)| accu.min(diff_mut(child_state, new))));
 
         if self.children.len() < new_children.len() {
             self.children.extend(
                 new_children[self.children.len()..].iter_mut().map(new_state),
             );
         }
+        acc
     }
 }
 
@@ -201,7 +202,7 @@ impl State {
     /// Creates a new [`State`].
     pub fn new<T>(state: T) -> Self
     where
-        T: 'static + WidgetState,
+        T: 'static,
     {
         State::Some(Box::new(state))
     }

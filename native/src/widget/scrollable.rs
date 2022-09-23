@@ -6,7 +6,6 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::widget;
-use crate::widget::WidgetState;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
@@ -161,8 +160,6 @@ where
             },
         )
     }
-
-    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,
@@ -835,11 +832,6 @@ impl Default for State {
             offset: Offset::Absolute(0.0),
         }
     }
-}
-
-impl WidgetState for State {
-    // TODO make widget's dimensions animate
-    fn step(&mut self, time: usize) {}
 }
 
 impl operation::Scrollable for State {

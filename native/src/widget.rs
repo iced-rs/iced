@@ -89,6 +89,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::animation;
 use crate::Animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
@@ -166,7 +167,7 @@ where
     /// Replaces the widget's state with some other widget's state.
     /// This can be used to take state from the [`UserInterface`]'s cache
     /// and replace the new interface with a cache's state.
-    fn step_state(&mut self, state: &mut tree::State, time: usize) {}
+    fn step_state(&mut self, state: &mut tree::State, time: usize) -> animation::Request {animation::Request::None}
 
     /// Returns the state [`Tree`] of the children of the [`Widget`].
     fn children(&self) -> Vec<Tree> {
@@ -177,7 +178,7 @@ where
     fn diff(&self, _tree: &mut Tree) {}
 
     /// See [`diff`], a mutable version
-    fn diff_mut(&mut self, _tree: &mut Tree) {}
+    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree) -> animation::Request {acc}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -226,19 +227,5 @@ where
         _renderer: &Renderer,
     ) -> Option<overlay::Element<'a, Message, Renderer>> {
         None
-    }
-
-    /// Steps animation forward to given time
-    fn step(&mut self, _now: usize) {
-        println!("in fucking widget");
-    }
-}
-
-/// A trait requireing that all Widgets implement a standard set of functions.
-pub trait WidgetState: Any {
-    /// Steps the widget state forward in time.
-    /// This is used for animations to step the widget state to the next frame
-    fn step(&mut self, time: usize) {
-        println!("in fucking widgetstate");
     }
 }

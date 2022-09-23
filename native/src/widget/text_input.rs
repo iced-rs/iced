@@ -20,7 +20,6 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget;
-use crate::widget::WidgetState;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
@@ -225,8 +224,6 @@ where
     ) -> layout::Node {
         layout(renderer, limits, self.width.at(), self.padding, self.size)
     }
-
-    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

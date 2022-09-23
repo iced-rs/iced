@@ -359,8 +359,6 @@ where
         layout::Node::new(size)
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn on_event(
         &mut self,
         _state: &mut Tree,

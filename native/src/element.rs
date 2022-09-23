@@ -4,6 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
+use crate::animation;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget, Animation,
@@ -311,8 +312,6 @@ where
         self.widget.layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, _now: usize) {println!("step in element");}
-
     fn operate(
         &self,
         tree: &mut Tree,
@@ -497,9 +496,8 @@ where
         self.element.widget.layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, now: usize) {
-        println!("step in element with stuff");
-        self.element.widget.step(now);
+    fn step_state(&mut self, state: &mut tree::State, now: usize) -> animation::Request {
+        self.element.widget.step_state(state, now)
     }
 
     fn operate(

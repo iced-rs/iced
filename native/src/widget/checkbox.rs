@@ -167,8 +167,6 @@ where
             .layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn on_event(
         &mut self,
         _tree: &mut Tree,

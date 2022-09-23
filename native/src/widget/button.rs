@@ -7,8 +7,9 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::animation;
 use crate::widget::tree::{self, Tree};
-use crate::widget::{Operation, WidgetState};
+use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget, Animation, Ease
@@ -144,7 +145,7 @@ where
         tree::State::new(State::new(self.width(), self.height()))
     }
 
-    fn step_state(&mut self, state: &mut tree::State, time: usize) {
+    fn step_state(&mut self, state: &mut tree::State, time: usize) -> animation::Request {
         state.downcast_mut::<State>().step(time)
     }
 
@@ -328,20 +329,10 @@ impl State {
     }
 
     /// Steps the state forward a frame to the given time.
-    pub fn step(&mut self, now: usize) {
-        println!("step button start w={:?} h={:?}", self.width.at(), self.height.at());
+    pub fn step(&mut self, now: usize) -> animation::Request {
         self.width = self.width.step(now);
         self.height = self.height.step(now);
-        println!("step button stop w={:?} h={:?}", self.width.at(), self.height.at());
-    }
-}
-
-// TODO: probably remove this and associated trait.
-impl WidgetState for State {
-    fn step(&mut self, time: usize) {
-        println!("step thing");
-        self.width = self.width.step(time);
-        self.height = self.height.step(time);
+        animation::Request::AnimationFrame
     }
 }
 

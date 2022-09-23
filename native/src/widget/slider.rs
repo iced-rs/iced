@@ -6,7 +6,6 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::touch;
-use crate::widget::WidgetState;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
@@ -181,8 +180,6 @@ where
 
         layout::Node::new(size)
     }
-
-    fn step(&mut self, _now: usize) {}
 
     fn on_event(
         &mut self,
@@ -476,9 +473,4 @@ impl State {
     pub fn new() -> State {
         State::default()
     }
-}
-
-impl WidgetState for State {
-    // TODO make widget's dimensions animate
-    fn step(&mut self, time: usize) {}
 }

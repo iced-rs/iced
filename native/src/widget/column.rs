@@ -4,6 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::animation;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
@@ -114,8 +115,8 @@ where
         tree.diff_children(&self.children);
     }
 
-    fn diff_mut(&mut self, tree: &mut Tree) {
-        tree.diff_children_mut(&mut self.children);
+    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree) -> animation::Request {
+        tree.diff_children_mut(acc, &mut self.children)
     }
 
     fn width(&self) -> Animation {
@@ -148,8 +149,6 @@ where
             &tree.children,
         )
     }
-
-    fn step(&mut self, _now: usize) {}
 
     fn operate(
         &self,

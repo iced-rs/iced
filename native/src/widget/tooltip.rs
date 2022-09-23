@@ -131,8 +131,6 @@ where
         self.content.as_widget().layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn on_event(
         &mut self,
         tree: &mut Tree,

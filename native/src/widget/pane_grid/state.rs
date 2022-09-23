@@ -5,7 +5,6 @@ use crate::widget::pane_grid::{
     Axis, Configuration, Direction, Node, Pane, Split,
 };
 use crate::{Point, Rectangle, Size};
-use crate::widget::WidgetState;
 
 use std::collections::HashMap;
 
@@ -240,11 +239,6 @@ impl<T> State<T> {
     }
 }
 
-impl<T: 'static> WidgetState for State<T> {
-    // TODO make widget's dimensions animate
-    fn step(&mut self, time: usize) {}
-}
-
 /// The internal state of a [`PaneGrid`].
 ///
 /// [`PaneGrid`]: crate::widget::PaneGrid
@@ -346,11 +340,6 @@ impl Action {
             _ => None,
         }
     }
-}
-
-impl WidgetState for Action {
-    // TODO make widget's dimensions animate
-    fn step(&mut self, time: usize) {}
 }
 
 impl Internal {

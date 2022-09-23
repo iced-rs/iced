@@ -1,6 +1,8 @@
 //! State management and calculation for widget state animations
 use crate::Length;
 
+use iced_core::time::Instant;
+
 /// A type for managing animations
 ///
 /// Most animations are only temporary, so when done/idle
@@ -157,4 +159,24 @@ impl Bounds {
             Bounds::FillPortion(_, e) => Length::FillPortion(e),
         }
     }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+/// The time that a widget requests to be redrawn.
+///
+/// Widgets that implement a [`widget::step_state`] return this value.
+/// It is a signal to the iced runtime when the widget should be redrawn.
+/// Iced will only listen to the shortest time returned from all of the widgets
+/// in the view. Because the widget will then be able to return its requested time
+/// the next time its [`widget::step_state`] is called because of the widget that
+/// required rerender sooner.
+pub enum Request {
+    /// Similar to javascript's requestAnimationFrame, This is a request to render "as soon as possible".
+    /// Though for iced's runtime and most custom implementations that will be as soon as the refresh rate
+    /// of the monitor.
+    AnimationFrame,
+    /// Request some time in the future. That isn't tied to any other value.
+    Timeout(Instant),
+    /// The widget doesn't need to reanimate. It is either done animating, or static.
+    None,
 }

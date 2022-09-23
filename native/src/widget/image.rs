@@ -140,8 +140,6 @@ where
         )
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn draw(
         &self,
         _state: &Tree,

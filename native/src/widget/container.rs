@@ -166,8 +166,6 @@ where
         )
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn operate(
         &self,
         tree: &mut Tree,

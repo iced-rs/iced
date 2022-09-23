@@ -175,8 +175,6 @@ use crate::{
             .layout(renderer, limits, tree)
     }
 
-    fn step(&mut self, _now: usize) {}
-
     fn on_event(
         &mut self,
         _state: &mut Tree,

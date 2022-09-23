@@ -5,6 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
+use crate::animation;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -27,6 +28,7 @@ pub struct UserInterface<'a, Message, Renderer> {
     state: widget::Tree,
     overlay: Option<layout::Node>,
     bounds: Size,
+    requestAnimation: animation::Request
 }
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
@@ -96,13 +98,9 @@ where
     ) -> Self {
         println!("build user interface");
         let mut root = root.into();
-        //println!("{:?}", root.as_widget().state());
-        //root.step(500);
-        println!("post step");
 
         let Cache { mut state } = cache;
-        state.diff_mut(root.as_widget_mut());
-        //state.diff(root.as_widget());
+        let requestAnimation = state.diff_mut(animation::Request::None, root.as_widget_mut());
 
         println!("done did a diff");
         let base =
@@ -115,6 +113,7 @@ where
             state,
             overlay: None,
             bounds,
+            requestAnimation,
         }
     }
 
