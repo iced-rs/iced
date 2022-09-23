@@ -134,6 +134,8 @@ impl From<[f32; 4]> for Color {
     }
 }
 
+/// Creates a [`Color`] with shorter and cleaner syntax.
+///
 /// # Examples
 ///
 /// ```
