@@ -9,12 +9,14 @@ pub fn main() -> iced::Result {
     Example::run(Settings::default())
 }
 
+#[allow(clippy::large_enum_variant)]
 enum Example {
     Loading,
     Loaded { information: system::Information },
 }
 
 #[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Message {
     InformationReceived(system::Information),
     Refresh,
@@ -80,6 +82,14 @@ impl Application for Example {
                         .unwrap_or(&"unknown".to_string())
                 ));
 
+                let system_short_version = text(format!(
+                    "System short version: {}",
+                    information
+                        .system_short_version
+                        .as_ref()
+                        .unwrap_or(&"unknown".to_string())
+                ));
+
                 let cpu_brand =
                     text(format!("Processor brand: {}", information.cpu_brand));
 
@@ -126,6 +136,7 @@ impl Application for Example {
                     system_name.size(30),
                     system_kernel.size(30),
                     system_version.size(30),
+                    system_short_version.size(30),
                     cpu_brand.size(30),
                     cpu_cores.size(30),
                     memory_total.size(30),
