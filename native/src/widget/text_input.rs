@@ -615,25 +615,21 @@ where
                     keyboard::KeyCode::C
                         if state.keyboard_modifiers.command() =>
                     {
-                        match state.cursor.selection(value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
+                        if let Some((start, end)) =
+                            state.cursor.selection(value)
+                        {
+                            clipboard
+                                .write(value.select(start, end).to_string());
                         }
                     }
                     keyboard::KeyCode::X
                         if state.keyboard_modifiers.command() =>
                     {
-                        match state.cursor.selection(value) {
-                            Some((start, end)) => {
-                                clipboard.write(
-                                    value.select(start, end).to_string(),
-                                );
-                            }
-                            None => {}
+                        if let Some((start, end)) =
+                            state.cursor.selection(value)
+                        {
+                            clipboard
+                                .write(value.select(start, end).to_string());
                         }
 
                         let mut editor = Editor::new(value, &mut state.cursor);
