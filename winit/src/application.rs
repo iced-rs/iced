@@ -19,10 +19,13 @@ use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
+use iced_native::time::Instant;
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::mem::ManuallyDrop;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// An interactive, native cross-platform application.
 ///
@@ -182,12 +185,16 @@ where
 
     let (mut sender, receiver) = mpsc::unbounded();
 
+    let redraw_tracker = Rc::new(RefCell::new(None));
+    let redraw_t = redraw_tracker.clone();
+
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
         compositor,
         renderer,
         runtime,
         proxy,
+        redraw_tracker,
         debug,
         receiver,
         init_command,
@@ -225,8 +232,16 @@ where
             let poll = instance.as_mut().poll(&mut context);
 
             *control_flow = match poll {
-                task::Poll::Pending => ControlFlow::Wait,
-                task::Poll::Ready(_) => ControlFlow::Exit,
+                task::Poll::Pending => {
+                    let mut timeout = redraw_t.borrow_mut();
+                    let wait_type = match *timeout {
+                        Some(instant) => ControlFlow::WaitUntil(instant),
+                        None => ControlFlow::Wait,
+                    };
+                    *timeout = None;
+                    wait_type
+                }
+                task::Poll::Ready(value) => ControlFlow::Exit,
             };
         }
     })
@@ -238,6 +253,7 @@ async fn run_instance<A, E, C>(
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    mut redraw_tracker: Rc<RefCell<Option<Instant>>>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
     init_command: Command<A::Message>,
@@ -301,10 +317,9 @@ async fn run_instance<A, E, C>(
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                println!("Main event cleared");
-                //if events.is_empty() && messages.is_empty() {
-                //    continue;
-                //}
+                if events.is_empty() && messages.is_empty() && !user_interface.is_dirty() {
+                    continue;
+                }
 
                 debug.event_processing_started();
 
@@ -322,13 +337,11 @@ async fn run_instance<A, E, C>(
                     runtime.broadcast(event);
                 }
 
-                //if !messages.is_empty()
-                //    || matches!(
-                //        interface_state,
-                //        user_interface::State::Outdated,
-                //    )
-                // TODO: A TOTAL HACK THIS NEEDS TO BE FIXED!!!
-                if true
+                if !messages.is_empty()
+                    || matches!(
+                        interface_state,
+                        user_interface::State::Outdated,
+                    ) || user_interface.is_dirty()
                 {
                     let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
@@ -386,6 +399,9 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
+                if let Some(timeout) = user_interface.get_redraw_timeout() {
+                    *redraw_tracker.borrow_mut() = Some(timeout);
+                }
                 window.request_redraw();
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(

@@ -84,7 +84,6 @@ impl Animation {
 
     /// Takes the current frame, and the time that the next frame should be rendered, and returns the state at that frame.
     pub fn step(&mut self, now: usize) -> Animation {
-        println!("stepping the animation");
         match self {
             Animation::Idle(at) => {Animation::Idle(*at)},
             Animation::Working(mut state) => {

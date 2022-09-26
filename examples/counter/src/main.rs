@@ -41,7 +41,8 @@ impl Sandbox for Counter {
         column![
             button("Increment").on_press(Message::IncrementPressed).width(Length::Units(100)),
             text(self.value).size(50),
-            button("Decrement").on_press(Message::DecrementPressed).animate_width(Length::Units(10), Length::Units(100), 1000, Ease::Linear)
+            // button("Decrement").on_press(Message::DecrementPressed).animate_width(Length::Units(10), Length::Units(100), 1000, Ease::Linear)
+            button("Decrement").on_press(Message::DecrementPressed).width(Length::Units(100)),
         ]
         .padding(20)
         .align_items(Alignment::Center)

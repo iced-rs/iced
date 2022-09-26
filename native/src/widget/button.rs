@@ -145,9 +145,9 @@ where
         tree::State::new(State::new(self.width(), self.height()))
     }
 
-    fn step_state(&mut self, state: &mut tree::State, time: usize) -> animation::Request {
-        state.downcast_mut::<State>().step(time)
-    }
+    //fn step_state(&mut self, state: &mut tree::State, time: usize) -> animation::Request {
+    //    state.downcast_mut::<State>().step(time)
+    //}
 
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
@@ -326,13 +326,6 @@ impl State {
             height,
             ..Default::default()
         }
-    }
-
-    /// Steps the state forward a frame to the given time.
-    pub fn step(&mut self, now: usize) -> animation::Request {
-        self.width = self.width.step(now);
-        self.height = self.height.step(now);
-        animation::Request::AnimationFrame
     }
 }
 

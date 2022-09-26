@@ -8,6 +8,8 @@ use crate::widget;
 use crate::animation;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
+use iced_core::time::Instant;
+
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
 /// It can be updated and drawn.
@@ -96,16 +98,13 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        println!("build user interface");
         let mut root = root.into();
 
         let Cache { mut state } = cache;
         let requestAnimation = state.diff_mut(animation::Request::None, root.as_widget_mut());
 
-        println!("done did a diff");
         let base =
             renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
-        println!("did a layout");
 
         UserInterface {
             root,
@@ -541,6 +540,25 @@ where
     /// process.
     pub fn into_cache(self) -> Cache {
         Cache { state: self.state }
+    }
+
+    /// Convenience function for iced integrations to check if a redraw is
+    /// necessary. Reuturns `None` if not, and `Some(Instant)` where `Instant`
+    /// is the duration until the next redraw should be made.
+    pub fn get_redraw_timeout(&self) -> Option<Instant> {
+        match self.requestAnimation {
+            animation::Request::None => None,
+            animation::Request::AnimationFrame => Some(Instant::now()),
+            animation::Request::Timeout(timeout) => Some(timeout)
+        }
+    }
+
+    /// Convenience function for iced integrations to check if a redraw is necessary.
+    pub fn is_dirty(&self) -> bool {
+        match self.requestAnimation {
+            animation::Request::None => false,
+            _ => true
+        }
     }
 }
 
