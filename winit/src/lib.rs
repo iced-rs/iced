@@ -35,6 +35,7 @@
 pub use iced_native::*;
 pub use winit;
 
+#[cfg(feature = "application")]
 pub mod application;
 pub mod clipboard;
 pub mod conversion;
@@ -48,6 +49,7 @@ mod error;
 mod position;
 mod proxy;
 
+#[cfg(feature = "application")]
 pub use application::Application;
 pub use clipboard::Clipboard;
 pub use error::Error;

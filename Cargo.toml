@@ -96,7 +96,7 @@ iced_core = { version = "0.5", path = "core" }
 iced_futures = { version = "0.4", path = "futures" }
 iced_native = { version = "0.5", path = "native" }
 iced_graphics = { version = "0.3", path = "graphics" }
-iced_winit = { version = "0.4", path = "winit" }
+iced_winit = { version = "0.4", path = "winit", features = ["application"] }
 iced_glutin = { version = "0.3", path = "glutin", optional = true }
 iced_glow = { version = "0.3", path = "glow", optional = true }
 thiserror = "1.0"
