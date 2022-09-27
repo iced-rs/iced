@@ -9,29 +9,29 @@ use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget, Animation};
 /// It can be useful if you want to fill some space with nothing.
 #[derive(Debug)]
 pub struct Space {
-    width: Animation,
-    height: Animation,
+    width: Length,
+    height: Length,
 }
 
 impl Space {
     /// Creates an amount of empty [`Space`] with the given width and height.
     pub fn new(width: Length, height: Length) -> Self {
-        Space { width: Animation::new_idle(width), height: Animation::new_idle(height) }
+        Space { width, height }
     }
 
     /// Creates an amount of horizontal [`Space`].
     pub fn with_width(width: Length) -> Self {
         Space {
-            width: Animation::new_idle(width),
-            height: Animation::new_idle(Length::Shrink),
+            width: width,
+            height: Length::Shrink,
         }
     }
 
     /// Creates an amount of vertical [`Space`].
     pub fn with_height(height: Length) -> Self {
         Space {
-            width: Animation::new_idle(Length::Shrink),
-            height: Animation::new_idle(height),
+            width: Length::Shrink,
+            height: height,
         }
     }
 }
@@ -40,11 +40,11 @@ impl<Message, Renderer> Widget<Message, Renderer> for Space
 where
     Renderer: crate::Renderer,
 {
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.height
     }
 
@@ -54,7 +54,7 @@ where
         limits: &layout::Limits,
         tree: &Tree,
     ) -> layout::Node {
-        let limits = limits.width(self.width.at()).height(self.height.at());
+        let limits = limits.width(self.width).height(self.height);
 
         layout::Node::new(limits.resolve(Size::ZERO))
     }

@@ -20,8 +20,8 @@ pub use svg::Handle;
 #[derive(Debug, Clone)]
 pub struct Svg {
     handle: Handle,
-    width: Animation,
-    height: Animation,
+    width: Length,
+    height: Length,
     content_fit: ContentFit,
 }
 
@@ -30,8 +30,8 @@ impl Svg {
     pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
-            width: Animation::new_idle(Length::Fill),
-            height: Animation::new_idle(Length::Shrink),
+            width: Length::Fill,
+            height: Length::Shrink,
             content_fit: ContentFit::Contain,
         }
     }
@@ -44,13 +44,13 @@ impl Svg {
 
     /// Sets the width of the [`Svg`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Svg`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = Animation::new_idle(height);
+        self.height = height;
         self
     }
 
@@ -69,11 +69,11 @@ impl<Message, Renderer> Widget<Message, Renderer> for Svg
 where
     Renderer: svg::Renderer,
 {
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.height
     }
 
@@ -89,8 +89,8 @@ where
 
         // The size to be available to the widget prior to `Shrink`ing
         let raw_size = limits
-            .width(self.width.at())
-            .height(self.height.at())
+            .width(self.width)
+            .height(self.height)
             .resolve(image_size);
 
         // The uncropped size of the image when fit to the bounds above
@@ -98,11 +98,11 @@ where
 
         // Shrink the widget to fit the resized image, if requested
         let final_size = Size {
-            width: match self.width.at() {
+            width: match self.width {
                 Length::Shrink => f32::min(raw_size.width, full_size.width),
                 _ => raw_size.width,
             },
-            height: match self.height.at() {
+            height: match self.height {
                 Length::Shrink => f32::min(raw_size.height, full_size.height),
                 _ => raw_size.height,
             },

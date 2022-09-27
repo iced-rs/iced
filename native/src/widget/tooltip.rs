@@ -114,11 +114,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.content.as_widget().width()
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.content.as_widget().height()
     }
 

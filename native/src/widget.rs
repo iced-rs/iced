@@ -122,10 +122,10 @@ where
     Renderer: crate::Renderer,
 {
     /// Returns the width of the [`Widget`].
-    fn width(&self) -> Animation;
+    fn width(&self) -> Length;
 
     /// Returns the height of the [`Widget`].
-    fn height(&self) -> Animation;
+    fn height(&self) -> Length;
 
     /// Returns the [`layout::Node`] of the [`Widget`].
     ///

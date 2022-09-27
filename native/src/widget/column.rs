@@ -8,7 +8,7 @@ use crate::animation;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Widget, Animation,
+    Shell, Widget,
 };
 
 use std::u32;
@@ -18,8 +18,8 @@ use std::u32;
 pub struct Column<'a, Message, Renderer> {
     spacing: u16,
     padding: Padding,
-    width: Animation,
-    height: Animation,
+    width: Length,
+    height: Length,
     max_width: u32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
@@ -38,8 +38,8 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0,
             padding: Padding::ZERO,
-            width: Animation::new_idle(Length::Shrink),
-            height: Animation::new_idle(Length::Shrink),
+            width: Length::Shrink,
+            height: Length::Shrink,
             max_width: u32::MAX,
             align_items: Alignment::Start,
             children,
@@ -64,13 +64,13 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
 
     /// Sets the width of the [`Column`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Column`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = Animation::new_idle(height);
+        self.height = height;
         self
     }
 
@@ -119,11 +119,11 @@ where
         tree.diff_children_mut(acc, &mut self.children)
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.height
     }
 
@@ -135,8 +135,8 @@ where
     ) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
-            .width(self.width.at())
-            .height(self.height.at());
+            .width(self.width)
+            .height(self.height);
 
         layout::flex::resolve(
             layout::flex::Axis::Vertical,

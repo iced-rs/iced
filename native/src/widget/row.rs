@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
-    Widget, Animation,
+    Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -104,12 +104,12 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height)
+    fn height(&self) -> Length {
+        self.height
     }
 
     fn layout(

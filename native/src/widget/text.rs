@@ -33,8 +33,8 @@ where
 {
     content: Cow<'a, str>,
     size: Option<u16>,
-    width: Animation,
-    height: Animation,
+    width: Length,
+    height: Length,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     font: Renderer::Font,
@@ -52,8 +52,8 @@ where
             content: content.into(),
             size: None,
             font: Default::default(),
-            width: Animation::new_idle(Length::Shrink),
-            height: Animation::new_idle(Length::Shrink),
+            width: Length::Shrink,
+            height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
@@ -85,13 +85,13 @@ where
 
     /// Sets the width of the [`Text`] boundaries.
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Text`] boundaries.
     pub fn height(mut self, height: Length) -> Self {
-        self.height = Animation::new_idle(height);
+        self.height = height;
         self
     }
 
@@ -119,11 +119,11 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.height
     }
 
@@ -133,7 +133,7 @@ where
         limits: &layout::Limits,
         tree: &Tree,
     ) -> layout::Node {
-        let limits = limits.width(self.width.at()).height(self.height.at());
+        let limits = limits.width(self.width).height(self.height);
 
         let size = self.size.unwrap_or_else(|| renderer.default_size());
 

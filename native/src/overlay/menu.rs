@@ -12,7 +12,7 @@ use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Tree;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget, Animation,
+    Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::{Appearance, StyleSheet};
@@ -326,12 +326,12 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Animation {
-        Animation::new_idle(Length::Fill)
+    fn width(&self) -> Length {
+        Length::Fill
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(

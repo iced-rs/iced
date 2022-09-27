@@ -33,7 +33,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
-    height: Animation,
+    height: Length,
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
@@ -51,7 +51,7 @@ where
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             id: None,
-            height: Animation::new_idle(Length::Shrink),
+            height: Length::Shrink,
             scrollbar_width: 10,
             scrollbar_margin: 0,
             scroller_width: 10,
@@ -69,7 +69,7 @@ where
 
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: Length) -> Self {
-        self.height = Animation::new_idle(height);
+        self.height = height;
         self
     }
 
@@ -135,11 +135,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.content.as_widget().width()
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.height
     }
 
@@ -152,8 +152,8 @@ where
         layout(
             renderer,
             limits,
-            Widget::<Message, Renderer>::width(self).at(),
-            self.height.at(),
+            Widget::<Message, Renderer>::width(self),
+            self.height,
             u32::MAX,
             |renderer, limits| {
                 self.content.as_widget().layout(renderer, limits, tree)

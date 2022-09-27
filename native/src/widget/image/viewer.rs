@@ -95,12 +95,12 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height)
+    fn height(&self) -> Length {
+        self.height
     }
 
     fn layout(

@@ -88,8 +88,8 @@ where
 
         items.iter().zip(tree.iter()).for_each(|(child, child_tree)| {
             let cross_fill_factor = match axis {
-                Axis::Horizontal => child.as_widget().height().at(),
-                Axis::Vertical => child.as_widget().width().at(),
+                Axis::Horizontal => child.as_widget().height(),
+                Axis::Vertical => child.as_widget().width(),
             }
             .fill_factor();
 
@@ -111,8 +111,8 @@ where
 
     for (i, (child, child_tree)) in items.iter().zip(tree.iter()).enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width().at(),
-            Axis::Vertical => child.as_widget().height().at(),
+            Axis::Horizontal => child.as_widget().width(),
+            Axis::Vertical => child.as_widget().height(),
         }
         .fill_factor();
 
@@ -153,8 +153,8 @@ where
 
     for (i, (child, child_tree)) in items.iter().zip(tree.iter()).enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width().at(),
-            Axis::Vertical => child.as_widget().height().at(),
+            Axis::Horizontal => child.as_widget().width(),
+            Axis::Vertical => child.as_widget().height(),
         }
         .fill_factor();
 

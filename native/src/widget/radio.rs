@@ -9,7 +9,7 @@ use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-        Shell, Widget, Animation,
+        Shell, Widget,
     };
 
     pub use iced_style::radio::{Appearance, StyleSheet};
@@ -146,12 +146,12 @@ use crate::{
         Renderer: text::Renderer,
         Renderer::Theme: StyleSheet + widget::text::StyleSheet,
     {
-        fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+        fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(

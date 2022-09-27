@@ -37,7 +37,7 @@ where
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
-    width: Animation,
+    width: Length,
     size: u16,
     text_size: Option<u16>,
     text_alignment: alignment::Horizontal,
@@ -74,7 +74,7 @@ where
             is_active,
             on_toggle: Box::new(f),
             label: label.into(),
-            width: Animation::new_idle(Length::Fill),
+            width: Length::Fill,
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
@@ -92,7 +92,7 @@ where
 
     /// Sets the width of the [`Toggler`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
@@ -138,12 +138,12 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(
@@ -153,7 +153,7 @@ where
         tree: &Tree,
     ) -> layout::Node {
         let mut row = Row::<(), Renderer>::new()
-            .width(self.width.at())
+            .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center);
 
@@ -162,7 +162,7 @@ where
                 Text::new(label)
                     .horizontal_alignment(self.text_alignment)
                     .font(self.font.clone())
-                    .width(self.width.at())
+                    .width(self.width)
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),

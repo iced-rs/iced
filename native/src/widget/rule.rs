@@ -2,7 +2,7 @@
 use crate::layout;
 use crate::renderer;
 use crate::widget::Tree;
-use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget, Animation};
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 pub use iced_style::rule::{Appearance, FillMode, StyleSheet};
 
@@ -59,12 +59,12 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height)
+    fn height(&self) -> Length {
+        self.height
     }
 
     fn layout(

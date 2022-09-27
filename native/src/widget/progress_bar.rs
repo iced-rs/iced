@@ -2,7 +2,7 @@
 use crate::layout;
 use crate::renderer;
 use crate::widget::Tree;
-use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget, Animation};
+use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -82,12 +82,12 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT)))
+    fn height(&self) -> Length {
+        self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT))
     }
 
     fn layout(

@@ -43,7 +43,7 @@ use crate::widget::container;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget, Animation,
+    Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -265,12 +265,12 @@ where
         }
     }
 
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height)
+    fn height(&self) -> Length {
+        self.height
     }
 
     fn layout(

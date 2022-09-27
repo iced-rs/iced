@@ -9,7 +9,7 @@ use crate::touch;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Widget, Animation,
+    Shell, Size, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -53,7 +53,7 @@ where
     value: T,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
-    width: Animation,
+    width: Length,
     height: u16,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -98,7 +98,7 @@ where
             step: T::from(1),
             on_change: Box::new(on_change),
             on_release: None,
-            width: Animation::new_idle(Length::Fill),
+            width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
             style: Default::default(),
         }
@@ -117,7 +117,7 @@ where
 
     /// Sets the width of the [`Slider`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
@@ -159,12 +159,12 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(
@@ -174,7 +174,7 @@ where
         tree: &Tree,
     ) -> layout::Node {
         let limits =
-            limits.width(self.width.at()).height(Length::Units(self.height));
+            limits.width(self.width).height(Length::Units(self.height));
 
         let size = limits.resolve(Size::ZERO);
 

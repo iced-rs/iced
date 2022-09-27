@@ -14,7 +14,7 @@ use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
-    Widget, Animation,
+    Widget,
 };
 use std::borrow::Cow;
 
@@ -136,12 +136,12 @@ where
         tree::State::new(State::<T>::new())
     }
 
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(

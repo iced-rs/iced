@@ -295,11 +295,11 @@ where
         self.widget.diff(tree)
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.widget.width()
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.widget.height()
     }
 
@@ -463,11 +463,11 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.element.widget.width()
     }
 
-    fn height(&self) -> Animation {
+    fn height(&self) -> Length {
         self.element.widget.height()
     }
 

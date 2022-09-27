@@ -8,7 +8,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget, Animation,
+    Rectangle, Shell, Widget,
 };
 
 use std::u32;
@@ -136,12 +136,12 @@ where
         tree.diff_children(std::slice::from_ref(&self.content))
     }
 
-    fn width(&self) -> Animation {
-        Animation::new_idle(self.width)
+    fn width(&self) -> Length {
+        self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(self.height)
+    fn height(&self) -> Length {
+        self.height
     }
 
     fn layout(

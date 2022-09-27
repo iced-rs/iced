@@ -60,7 +60,7 @@ where
     value: Value,
     is_secure: bool,
     font: Renderer::Font,
-    width: Animation,
+    width: Length,
     padding: Padding,
     size: Option<u16>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
@@ -132,7 +132,7 @@ where
     }
     /// Sets the width of the [`TextInput`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = Animation::new_idle(width);
+        self.width = width;
         self
     }
 
@@ -208,12 +208,12 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Animation {
+    fn width(&self) -> Length {
         self.width
     }
 
-    fn height(&self) -> Animation {
-        Animation::new_idle(Length::Shrink)
+    fn height(&self) -> Length {
+        Length::Shrink
     }
 
     fn layout(
@@ -222,7 +222,7 @@ where
         limits: &layout::Limits,
         tree: &Tree,
     ) -> layout::Node {
-        layout(renderer, limits, self.width.at(), self.padding, self.size)
+        layout(renderer, limits, self.width, self.padding, self.size)
     }
 
     fn operate(
