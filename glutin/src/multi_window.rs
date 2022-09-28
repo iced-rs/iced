@@ -58,7 +58,7 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let context = {
+    let (context, window) = {
         let builder = settings.window.into_builder(
             &application.title(),
             event_loop.primary_monitor(),
@@ -115,7 +115,14 @@ where
 
         #[allow(unsafe_code)]
         unsafe {
-            context.make_current().expect("Make OpenGL context current")
+            let (context, window) = context.split();
+
+            (
+                context
+                    .make_current(&window)
+                    .expect("Make OpenGL context current"),
+                window,
+            )
         }
     };
 
@@ -137,6 +144,7 @@ where
         debug,
         receiver,
         context,
+        window,
         init_command,
         settings.exit_on_close_request,
     ));
@@ -205,7 +213,8 @@ async fn run_instance<A, E, C>(
     mut receiver: mpsc::UnboundedReceiver<
         glutin::event::Event<'_, Event<A::Message>>,
     >,
-    context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
+    mut context: glutin::RawContext<glutin::PossiblyCurrent>,
+    window: Window,
     init_command: Command<A::Message>,
     _exit_on_close_request: bool,
 ) where
@@ -217,9 +226,9 @@ async fn run_instance<A, E, C>(
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
 
-    let mut clipboard = Clipboard::connect(context.window());
+    let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
-    let state = State::new(&application, context.window());
+    let state = State::new(&application, &window);
     let user_interface = multi_window::build_user_interface(
         &application,
         user_interface::Cache::default(),
@@ -229,9 +238,7 @@ async fn run_instance<A, E, C>(
         window::Id::MAIN,
     );
 
-    #[allow(unsafe_code)]
-    let (mut context, window) = unsafe { context.split() };
-
+    let mut current_context_window = window.id();
     let mut window_ids = HashMap::from([(window.id(), window::Id::MAIN)]);
     let mut windows = HashMap::from([(window::Id::MAIN, window)]);
     let mut states = HashMap::from([(window::Id::MAIN, state)]);
@@ -445,15 +452,19 @@ async fn run_instance<A, E, C>(
                     .get(&id)
                     .and_then(|id| states.get_mut(id))
                     .unwrap();
+                let window =
+                    window_ids.get(&id).and_then(|id| windows.get(id)).unwrap();
 
                 debug.render_started();
 
                 #[allow(unsafe_code)]
                 unsafe {
-                    if !context.is_current() {
+                    if current_context_window != id {
                         context = context
-                            .make_current()
+                            .make_current(window)
                             .expect("Make OpenGL context current");
+
+                        current_context_window = id;
                     }
                 }
 
@@ -483,11 +494,6 @@ async fn run_instance<A, E, C>(
                     debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {
-                        let window = window_ids
-                            .get(&id)
-                            .and_then(|id| windows.get_mut(id))
-                            .unwrap();
-
                         window.set_cursor_icon(conversion::mouse_interaction(
                             new_mouse_interaction,
                         ));
@@ -513,7 +519,7 @@ async fn run_instance<A, E, C>(
                     &debug.overlay(),
                 );
 
-                context.swap_buffers().expect("Swap buffers");
+                context.swap_buffers(window).expect("Swap buffers");
 
                 debug.render_finished();
 
