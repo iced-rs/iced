@@ -30,7 +30,7 @@ pub struct UserInterface<'a, Message, Renderer> {
     state: widget::Tree,
     overlay: Option<layout::Node>,
     bounds: Size,
-    requestAnimation: animation::Request
+    request_animation: animation::Request
 }
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
@@ -101,7 +101,7 @@ where
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        let requestAnimation = state.diff_mut(animation::Request::None, root.as_widget_mut());
+        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut());
 
         let base =
             renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
@@ -112,7 +112,7 @@ where
             state,
             overlay: None,
             bounds,
-            requestAnimation,
+            request_animation,
         }
     }
 
@@ -546,7 +546,7 @@ where
     /// necessary. Reuturns `None` if not, and `Some(Instant)` where `Instant`
     /// is the duration until the next redraw should be made.
     pub fn get_redraw_timeout(&self) -> Option<Instant> {
-        match self.requestAnimation {
+        match self.request_animation {
             animation::Request::None => None,
             animation::Request::AnimationFrame => Some(Instant::now()),
             animation::Request::Timeout(timeout) => Some(timeout)
@@ -555,7 +555,7 @@ where
 
     /// Convenience function for iced integrations to check if a redraw is necessary.
     pub fn is_dirty(&self) -> bool {
-        match self.requestAnimation {
+        match self.request_animation {
             animation::Request::None => false,
             _ => true
         }

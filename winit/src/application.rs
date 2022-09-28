@@ -194,9 +194,9 @@ where
         renderer,
         runtime,
         proxy,
-        redraw_tracker,
         debug,
         receiver,
+        redraw_tracker,
         init_command,
         window,
         settings.exit_on_close_request,
@@ -241,7 +241,7 @@ where
                     *timeout = None;
                     wait_type
                 }
-                task::Poll::Ready(value) => ControlFlow::Exit,
+                task::Poll::Ready(_) => ControlFlow::Exit,
             };
         }
     })
@@ -253,9 +253,9 @@ async fn run_instance<A, E, C>(
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
-    mut redraw_tracker: Rc<RefCell<Option<Instant>>>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    redraw_tracker: Rc<RefCell<Option<Instant>>>,
     init_command: Command<A::Message>,
     window: winit::window::Window,
     exit_on_close_request: bool,

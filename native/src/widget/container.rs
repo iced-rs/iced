@@ -5,10 +5,12 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::animation;
+use crate::widget;
 use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Rectangle, Shell, Widget, Animation,
 };
 
 use std::u32;
@@ -33,6 +35,7 @@ where
     vertical_alignment: alignment::Vertical,
     style: <Renderer::Theme as StyleSheet>::Style,
     content: Element<'a, Message, Renderer>,
+    animation: Animation,
 }
 
 impl<'a, Message, Renderer> Container<'a, Message, Renderer>
@@ -55,6 +58,7 @@ where
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
             content: content.into(),
+            animation: Animation::default(),
         }
     }
 
@@ -73,6 +77,14 @@ where
     /// Sets the height of the [`Container`].
     pub fn height(mut self, height: Length) -> Self {
         self.height = height;
+        self
+    }
+
+    /// Attaches an animation to the container. This will mutate the
+    /// Widget over the requested duration, and will cause Iced to
+    /// rerender until the animiation is complete.
+    pub fn animate(mut self, animation: Animation) -> Self {
+        self.animation = animation;
         self
     }
 
@@ -119,6 +131,24 @@ where
     ) -> Self {
         self.style = style.into();
         self
+    }
+}
+
+/// The identifier of a [`Container`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
     }
 }
 

@@ -12,7 +12,7 @@ use crate::widget::tree::{self, Tree};
 use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget, Animation, Ease
+    Rectangle, Shell, Vector, Widget, Ease
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -295,8 +295,6 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_pressed: bool,
-    width: Animation,
-    height: Animation,
 }
 
 impl State {
@@ -305,7 +303,6 @@ impl State {
         State::default()
     }
 }
-
 /// Processes the given [`Event`] and updates the [`State`] of a [`Button`]
 /// accordingly.
 pub fn update<'a, Message: Clone>(

@@ -40,7 +40,7 @@ pub mod checkbox {
 
 pub mod container {
     //! Decorate content and apply alignment.
-    pub use iced_native::widget::container::{Appearance, StyleSheet};
+    pub use iced_native::widget::container::{Appearance, StyleSheet, Id};
 
     /// An element decorating some content.
     pub type Container<'a, Message, Renderer = crate::Renderer> =

@@ -1,29 +1,140 @@
 //! State management and calculation for widget state animations
 use crate::Length;
+use crate::widget::Id;
 
-use iced_core::time::Instant;
+use iced_core::time::{Instant, Duration};
+use std::fmt;
 
 /// A type for managing animations
 ///
-/// Most animations are only temporary, so when done/idle
-/// we can just drop the extra data. This type can also
-/// handle the calculations for each animation based on the
-/// [`Ease`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Animation {
-    /// Used to hold the current animation state at a frame
-    /// tells the iced to animate the next frame when calculating layout/
-    Working(Working),
-    /// Holds current value when animation is idle, or finished.
-    /// Iced will skip animation calculations, but can be converted into
-    /// [`Animation::Working`] after any `view()`.
-    Idle(Idle),
+/// The id is used to allow for data to be extended to an animation, or notify
+/// iced that a new animation should be added without considering the previous
+/// animation.
+/// Each transition, whether that be width, height, padding, etc must reference
+/// a keyframe as a trigger to start the transition. This allows for many
+/// animations to start at the same time, or have some start at an offset of
+/// others.
+#[derive(Debug)]
+pub struct Animation {
+    id: Id,
+    keyframes: Vec<Keyframe>,
+    transitions: Vec<Transition>,
+    loop_type: LoopType,
 }
 
-impl std::default::Default for Animation {
+impl Default for Animation {
     fn default() -> Self {
-        Animation::Idle(Idle::default())
+        Animation {
+            id: Id::unique(),
+            keyframes: Vec::new(),
+            transitions: Vec::new(),
+            loop_type: LoopType::None,
+        }
     }
+}
+
+impl Animation {
+    /// Create a new animation to be attached to a widget.
+    pub fn new(keyframes: Vec<Keyframe>, transitions: Vec<Transition>, loop_type: LoopType) -> Self{
+        Animation {
+            id: Id::unique(),
+            keyframes,
+            transitions,
+            loop_type,
+        }
+    }
+
+    /// Create an animation with an Id. This is useful if keyframes or transitions need to be modified,
+    /// appended, deleted, etc before the animation is complete.
+    pub fn with_id(id: Id, keyframes: Vec<Keyframe>, transitions: Vec<Transition>, loop_type: LoopType) -> Self{
+        Animation {
+            id,
+            keyframes,
+            transitions,
+            loop_type,
+        }
+    }
+}
+
+/// A point in time that can trigger animation start. The time doesn't have to match exactly.
+/// Any time after the keyframe's start will trigger a step in the [`Transition`].
+/// start is the time from when the animation is created.
+#[derive(Debug)]
+pub struct Keyframe {
+    id: Id,
+    start: Duration,
+}
+
+impl Keyframe {
+    /// Create a new Keyframe
+    pub fn new(start: Duration) -> Self {
+        Keyframe {
+            id: Id::unique(),
+            start,
+        }
+    }
+
+    /// Create a new keyframe with an Id known before the keyframe is created.
+    /// Useful for animations that have keyframes known in advance.
+    pub fn with_id(id: Id, start: Duration) -> Self {
+        Keyframe {
+            id,
+            start,
+        }
+    }
+}
+
+/// The data needed for transitioning between two values.
+//#[derive(Debug)]
+//pub struct Transition {
+//    trigger: Id,
+//    duration: Duration,
+//    at: u16,
+//    end: u16,
+//    ease: Ease,
+//}
+
+type Transition = Box<dyn Animatable>;
+
+impl fmt::Debug for Transition {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: make debug printing more verbose
+        write!(f, "Debug print of a transition")
+    }
+}
+
+/// A trait that must be implemented by any value that is animatable.
+pub trait Animatable {
+    /// The current state of the interpolation.
+    fn at<A>(&self) -> A;
+}
+
+/// A type to request animating the widget's width
+#[derive(Debug)]
+pub struct Width {
+    trigger: Id,
+    duration: Duration,
+    at: u16,
+    end: u16,
+    ease: Ease,
+}
+
+impl Animatable for Width {
+    fn at(&self) -> Length {
+        Length::Units(self.at)
+    }
+}
+
+/// The action that should be completed if to replay an animation if at all
+#[derive(Debug)]
+pub enum LoopType {
+    /// Jump back to the beginning of the animation and replay
+    Jump,
+    /// Flip the order of the animation and play in reverse when animation finishes.
+    Bounce,
+    /// The animation plays once then stays at it's completed possition.
+    None,
+    // TODO: Should have a loop u16 number of times options like Repeat(LoopType, u16)
 }
 
 /// The function used to transition between given values.
@@ -32,86 +143,6 @@ pub enum Ease {
     /// Animate linearly, animates at the same speed through the whole animation.
     Linear,
     // TODO: in, out, cubic, should also be options
-}
-
-/// The animation state at a specific frame
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Working {
-    bounds: Bounds,
-    at: Length,
-    begin: usize,
-    runtime: usize,
-    ease: Ease,
-}
-
-/// The animation state when not running.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Idle {
-    at: Length,
-}
-
-impl Default for Idle {
-    fn default() -> Self {
-        Idle { at: Length::Shrink }
-    }
-}
-
-impl Animation {
-    /// Creates an [`Animation`] that is idle for now, for when we want to animate later
-    pub fn new_idle(at: Length) -> Animation {
-        Animation::Idle(Idle {at})
-    }
-
-    /// Creates an animation that will begin to animate immediatly.
-    pub fn new(start: Length, end: Length, runtime: usize, ease: Ease) -> Animation {
-        let bounds = Bounds::new(start, end);
-        Animation::Working(Working {
-            bounds,
-            at: start,
-            begin: 0,
-            runtime,
-            ease,
-        })
-    }
-
-    /// A helper function to get state now, whether the animation is [`Working`] or [`Idle`]
-    pub fn at(&self) -> Length {
-        match self {
-            Animation::Working(state) => state.at,
-            Animation::Idle(state) => state.at,
-        }
-    }
-
-    /// Takes the current frame, and the time that the next frame should be rendered, and returns the state at that frame.
-    pub fn step(&mut self, now: usize) -> Animation {
-        match self {
-            Animation::Idle(at) => {Animation::Idle(*at)},
-            Animation::Working(mut state) => {
-                match state.ease {
-                    Ease::Linear => {
-                        //println!("in the working animation");
-                        //let start: f64 = state.bounds.get_start().into();
-                        //let end: f64 = state.bounds.get_end().into();
-                        //let slope = (end - start) / state.runtime as f64;
-                        //let value = start + (now - state.begin / state.runtime) as f64 * slope;
-
-                        //if value >= end {
-                        //    state.at = state.bounds.as_length();
-                        //} else {
-                        //    println!("value: {} | state.at = {:?}", value, state.at);
-                        //    state.at = Length::Units(value.clamp(u16::MIN.into(), u16::MAX.into()).round() as u16);
-                        //    println!("value: {} | state.at = {:?}", value, state.at);
-                        //}
-                        state.at = match state.at {
-                            Length::Units(units) => Length::Units(units + 1),
-                            _ => Length::Shrink,
-                        };
-                        Animation::Working( state )
-                    }
-                }
-            }
-        }
-    }
 }
 
 /// A type that forces the start and end to to be of the same length type.
