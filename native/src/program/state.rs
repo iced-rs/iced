@@ -1,8 +1,9 @@
 use crate::application;
+use crate::event::{self, Event};
 use crate::mouse;
 use crate::renderer;
 use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
+use crate::{Clipboard, Command, Debug, Point, Program, Size};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -82,8 +83,9 @@ where
     /// Processes all the queued events and messages, rebuilding and redrawing
     /// the widgets of the linked [`Program`] if necessary.
     ///
-    /// Returns the [`Command`] obtained from [`Program`] after updating it,
-    /// only if an update was necessary.
+    /// Returns a list containing the instances of [`Event`] that were not
+    /// captured by any widget, and the [`Command`] obtained from [`Program`]
+    /// after updating it, only if an update was necessary.
     pub fn update(
         &mut self,
         bounds: Size,
@@ -93,7 +95,7 @@ where
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
-    ) -> Option<Command<P::Message>> {
+    ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -105,7 +107,7 @@ where
         debug.event_processing_started();
         let mut messages = Vec::new();
 
-        let _ = user_interface.update(
+        let (_, event_statuses) = user_interface.update(
             &self.queued_events,
             cursor_position,
             renderer,
@@ -113,11 +115,21 @@ where
             &mut messages,
         );
 
-        messages.append(&mut self.queued_messages);
+        let uncaptured_events = self
+            .queued_events
+            .iter()
+            .zip(event_statuses)
+            .filter_map(|(event, status)| {
+                matches!(status, event::Status::Ignored).then_some(event)
+            })
+            .cloned()
+            .collect();
+
         self.queued_events.clear();
+        messages.append(&mut self.queued_messages);
         debug.event_processing_finished();
 
-        if messages.is_empty() {
+        let command = if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor_position);
@@ -158,7 +170,9 @@ where
             self.cache = Some(user_interface.into_cache());
 
             Some(commands)
-        }
+        };
+
+        (uncaptured_events, command)
     }
 }
 
