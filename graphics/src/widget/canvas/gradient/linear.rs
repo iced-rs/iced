@@ -57,17 +57,17 @@ impl Builder {
             return None;
         }
 
+        let mut stops: Vec<ColorStop> = self.stops.clone().into_iter().map(|f| ColorStop {
+            offset: f.0,
+            color: f.1
+        }).collect();
+
+        stops.sort_by(|a, b| a.offset.partial_cmp(&b.offset).unwrap());
+
         Some(Gradient::Linear(Linear {
             start: self.start,
             end: self.end,
-            color_stops: self
-                .stops
-                .into_iter()
-                .map(|f| ColorStop {
-                    offset: f.0,
-                    color: f.1,
-                })
-                .collect(),
+            color_stops: stops
         }))
     }
 }
