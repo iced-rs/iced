@@ -6,4 +6,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../.." , features = ["cosmic_theme"] }
+freedesktop-icons = "0.2.1"
+iced = { path = "../.." , features = ["cosmic_theme", "svg"] }

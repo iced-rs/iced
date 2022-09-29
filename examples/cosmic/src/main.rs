@@ -1,12 +1,29 @@
 use iced::widget::{
     button, checkbox, column, container, horizontal_rule, progress_bar, radio,
-    row, scrollable, slider, text, text_input, toggler, vertical_rule,
+    row, scrollable, slider, svg, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
 use iced::{theme, Alignment, Element, Length, Sandbox, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Styling::run(Settings::default())
+}
+
+fn icon(name: &str, size: u16) -> svg::Svg {
+    let handle = match freedesktop_icons::lookup(name)
+        .with_size(size)
+        .with_theme("Pop")
+        .with_cache()
+        .force_svg()
+        .find()
+    {
+        Some(path) => svg::Handle::from_path(path),
+        None => {
+            eprintln!("icon '{}' size {} not found", name, size);
+            svg::Handle::from_memory(Vec::new())
+        },
+    };
+    svg::Svg::new(handle)
 }
 
 #[derive(Default)]
@@ -105,6 +122,7 @@ impl Sandbox for Styling {
         .spacing(10);
 
         let content = column![
+            icon("pop-os", 64),
             choose_theme,
             horizontal_rule(10),
             text("Buttons"),
