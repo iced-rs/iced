@@ -10,6 +10,10 @@ documentation = "https://docs.rs/iced_style"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
+[features]
+default = []
+cosmic_theme = []
+
 [dependencies.iced_core]
 version = "0.5"
 path = "../core"

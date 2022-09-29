@@ -9,6 +9,8 @@ repository = "https://github.com/iced-rs/iced"
 
 [features]
 debug = []
+# COSMIC Theme
+cosmic_theme = ["iced_style/cosmic_theme"]
 
 [dependencies]
 twox-hash = { version = "1.5", default-features = false }
