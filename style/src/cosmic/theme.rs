@@ -246,8 +246,8 @@ fn checkbox_appearance(
             base.color
         }),
         checkmark_color,
-        border_radius: 2.0,
-        border_width: 1.0,
+        border_radius: 4.0,
+        border_width: if is_checked { 0.0 } else { 1.0 },
         border_color: accent.color,
         text_color: None,
     }
