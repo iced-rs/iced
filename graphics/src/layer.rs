@@ -7,9 +7,10 @@ use crate::{
 
 use iced_native::image;
 use iced_native::svg;
+use crate::shader::Shader;
 
 /// A group of primitives that should be clipped together.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Layer<'a> {
     /// The clipping bounds of the [`Layer`].
     pub bounds: Rectangle,
@@ -18,7 +19,7 @@ pub struct Layer<'a> {
     pub quads: Vec<Quad>,
 
     /// The triangle meshes of the [`Layer`].
-    pub meshes: Vec<Mesh<'a>>,
+    pub meshes: Meshes<'a>,
 
     /// The text of the [`Layer`].
     pub text: Vec<Text<'a>>,
@@ -33,7 +34,7 @@ impl<'a> Layer<'a> {
         Self {
             bounds,
             quads: Vec::new(),
-            meshes: Vec::new(),
+            meshes: Meshes(Vec::new()),
             text: Vec::new(),
             images: Vec::new(),
         }
@@ -159,7 +160,11 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { buffers, size } => {
+            Primitive::Mesh2D {
+                buffers,
+                size,
+                shader,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
@@ -169,11 +174,14 @@ impl<'a> Layer<'a> {
 
                 // Only draw visible content
                 if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh {
-                        origin: Point::new(translation.x, translation.y),
-                        buffers,
-                        clip_bounds,
-                    });
+                    layer.meshes.0.push(
+                        Mesh {
+                            origin: Point::new(translation.x, translation.y),
+                            buffers,
+                            clip_bounds,
+                            shader,
+                        }
+                    );
                 }
             }
             Primitive::Clip { bounds, content } => {
@@ -270,6 +278,9 @@ pub struct Mesh<'a> {
 
     /// The clipping bounds of the [`Mesh`].
     pub clip_bounds: Rectangle<f32>,
+
+    /// The shader of the [`Mesh`].
+    pub shader: &'a Shader,
 }
 
 /// A paragraph of text.
@@ -323,3 +334,21 @@ unsafe impl bytemuck::Zeroable for Quad {}
 
 #[allow(unsafe_code)]
 unsafe impl bytemuck::Pod for Quad {}
+
+#[derive(Debug)]
+/// A collection of meshes.
+pub struct Meshes<'a>(pub Vec<Mesh<'a>>);
+
+impl<'a> Meshes<'a> {
+    /// Returns the number of total vertices & total indices of all [`Mesh`]es.
+    pub fn attribute_count(&self) -> (usize, usize) {
+        self.0
+            .iter()
+            .map(|Mesh { buffers, .. }| {
+                (buffers.vertices.len(), buffers.indices.len())
+            })
+            .fold((0, 0), |(total_v, total_i), (v, i)| {
+                (total_v + v, total_i + i)
+            })
+    }
+}

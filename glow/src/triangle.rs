@@ -1,66 +1,41 @@
-//! Draw meshes of triangles.
+//! Draw meshes of triangle.
+mod gradient;
+mod solid;
+
 use crate::program::{self, Shader};
 use crate::Transformation;
 use glow::HasContext;
-use iced_graphics::layer;
+use iced_graphics::layer::{Mesh, Meshes};
+use iced_graphics::shader;
 use std::marker::PhantomData;
 
+use crate::triangle::gradient::GradientProgram;
+use crate::triangle::solid::SolidProgram;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-
-const VERTEX_BUFFER_SIZE: usize = 10_000;
-const INDEX_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
-    program: <glow::Context as HasContext>::Program,
     vertex_array: <glow::Context as HasContext>::VertexArray,
     vertices: Buffer<Vertex2D>,
     indices: Buffer<u32>,
-    transform_location: <glow::Context as HasContext>::UniformLocation,
     current_transform: Transformation,
+    programs: TrianglePrograms,
+}
+
+#[derive(Debug)]
+struct TrianglePrograms {
+    solid: TriangleProgram,
+    gradient: TriangleProgram,
+}
+
+#[derive(Debug)]
+enum TriangleProgram {
+    Solid(SolidProgram),
+    Gradient(GradientProgram),
 }
 
 impl Pipeline {
-    pub fn new(
-        gl: &glow::Context,
-        shader_version: &program::Version,
-    ) -> Pipeline {
-        let program = unsafe {
-            let vertex_shader = Shader::vertex(
-                gl,
-                shader_version,
-                include_str!("shader/common/triangle.vert"),
-            );
-            let fragment_shader = Shader::fragment(
-                gl,
-                shader_version,
-                include_str!("shader/common/triangle.frag"),
-            );
-
-            program::create(
-                gl,
-                &[vertex_shader, fragment_shader],
-                &[(0, "i_Position"), (1, "i_Color")],
-            )
-        };
-
-        let transform_location =
-            unsafe { gl.get_uniform_location(program, "u_Transform") }
-                .expect("Get transform location");
-
-        unsafe {
-            gl.use_program(Some(program));
-
-            let transform: [f32; 16] = Transformation::identity().into();
-            gl.uniform_matrix_4_f32_slice(
-                Some(&transform_location),
-                false,
-                &transform,
-            );
-
-            gl.use_program(None);
-        }
-
+    pub fn new(gl: &glow::Context, shader_version: &program::Version) -> Self {
         let vertex_array =
             unsafe { gl.create_vertex_array().expect("Create vertex array") };
 
@@ -73,7 +48,7 @@ impl Pipeline {
                 gl,
                 glow::ARRAY_BUFFER,
                 glow::DYNAMIC_DRAW,
-                VERTEX_BUFFER_SIZE,
+                std::mem::size_of::<Vertex2D>() as usize,
             )
         };
 
@@ -82,7 +57,7 @@ impl Pipeline {
                 gl,
                 glow::ELEMENT_ARRAY_BUFFER,
                 glow::DYNAMIC_DRAW,
-                INDEX_BUFFER_SIZE,
+                std::mem::size_of::<u32>() as usize,
             )
         };
 
@@ -92,58 +67,45 @@ impl Pipeline {
             gl.enable_vertex_attrib_array(0);
             gl.vertex_attrib_pointer_f32(0, 2, glow::FLOAT, false, stride, 0);
 
-            gl.enable_vertex_attrib_array(1);
-            gl.vertex_attrib_pointer_f32(
-                1,
-                4,
-                glow::FLOAT,
-                false,
-                stride,
-                4 * 2,
-            );
-
             gl.bind_vertex_array(None);
-        }
+        };
 
-        Pipeline {
-            program,
+        Self {
             vertex_array,
             vertices,
             indices,
-            transform_location,
             current_transform: Transformation::identity(),
+            programs: TrianglePrograms {
+                solid: TriangleProgram::Solid(SolidProgram::new(
+                    gl,
+                    shader_version,
+                )),
+                gradient: TriangleProgram::Gradient(GradientProgram::new(
+                    gl,
+                    shader_version,
+                )),
+            },
         }
     }
 
     pub fn draw(
         &mut self,
+        meshes: &Meshes<'_>,
         gl: &glow::Context,
         target_height: u32,
         transformation: Transformation,
         scale_factor: f32,
-        meshes: &[layer::Mesh<'_>],
     ) {
         unsafe {
             gl.enable(glow::MULTISAMPLE);
             gl.enable(glow::SCISSOR_TEST);
-            gl.use_program(Some(self.program));
-            gl.bind_vertex_array(Some(self.vertex_array));
+            gl.bind_vertex_array(Some(self.vertex_array))
         }
 
-        // This looks a bit crazy, but we are just counting how many vertices
-        // and indices we will need to handle.
-        // TODO: Improve readability
-        let (total_vertices, total_indices) = meshes
-            .iter()
-            .map(|layer::Mesh { buffers, .. }| {
-                (buffers.vertices.len(), buffers.indices.len())
-            })
-            .fold((0, 0), |(total_v, total_i), (v, i)| {
-                (total_v + v, total_i + i)
-            });
+        //count the total number of vertices & indices we need to handle for all meshes
+        let (total_vertices, total_indices) = meshes.attribute_count();
 
-        // Then we ensure the current buffers are big enough, resizing if
-        // necessary
+        // Then we ensure the current attribute buffers are big enough, resizing if necessary
         unsafe {
             self.vertices.bind(gl, total_vertices);
             self.indices.bind(gl, total_indices);
@@ -153,7 +115,7 @@ impl Pipeline {
         let mut last_vertex = 0;
         let mut last_index = 0;
 
-        for layer::Mesh { buffers, .. } in meshes {
+        for Mesh { buffers, .. } in meshes.0.iter() {
             unsafe {
                 gl.buffer_sub_data_u8_slice(
                     glow::ARRAY_BUFFER,
@@ -176,11 +138,12 @@ impl Pipeline {
         let mut last_vertex = 0;
         let mut last_index = 0;
 
-        for layer::Mesh {
+        for Mesh {
             buffers,
             origin,
             clip_bounds,
-        } in meshes
+            shader,
+        } in meshes.0.iter()
         {
             let transform =
                 transformation * Transformation::translate(origin.x, origin.y);
@@ -188,17 +151,6 @@ impl Pipeline {
             let clip_bounds = (*clip_bounds * scale_factor).snap();
 
             unsafe {
-                if self.current_transform != transform {
-                    let matrix: [f32; 16] = transform.into();
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(&self.transform_location),
-                        false,
-                        &matrix,
-                    );
-
-                    self.current_transform = transform;
-                }
-
                 gl.scissor(
                     clip_bounds.x as i32,
                     (target_height - (clip_bounds.y + clip_bounds.height))
@@ -206,6 +158,15 @@ impl Pipeline {
                     clip_bounds.width as i32,
                     clip_bounds.height as i32,
                 );
+
+                let t = if self.current_transform != transform {
+                    self.current_transform = transform;
+                    Some(transform)
+                } else {
+                    None
+                };
+
+                self.use_with_shader(gl, shader, t);
 
                 gl.draw_elements_base_vertex(
                     glow::TRIANGLES,
@@ -222,34 +183,79 @@ impl Pipeline {
 
         unsafe {
             gl.bind_vertex_array(None);
-            gl.use_program(None);
             gl.disable(glow::SCISSOR_TEST);
             gl.disable(glow::MULTISAMPLE);
         }
     }
-}
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-struct Uniforms {
-    transform: [f32; 16],
-}
-
-unsafe impl bytemuck::Zeroable for Uniforms {}
-unsafe impl bytemuck::Pod for Uniforms {}
-
-impl Default for Uniforms {
-    fn default() -> Self {
-        Self {
-            transform: *Transformation::identity().as_ref(),
+    fn use_with_shader(
+        &mut self,
+        gl: &glow::Context,
+        shader: &shader::Shader,
+        transform: Option<Transformation>,
+    ) {
+        match shader {
+            shader::Shader::Solid(color) => {
+                if let TriangleProgram::Solid(solid_program) =
+                    &mut self.programs.solid
+                {
+                    unsafe { gl.use_program(Some(solid_program.program)) }
+                    solid_program.set_uniforms(gl, color, transform);
+                }
+            }
+            shader::Shader::Gradient(gradient) => {
+                if let TriangleProgram::Gradient(gradient_program) =
+                    &mut self.programs.gradient
+                {
+                    unsafe { gl.use_program(Some(gradient_program.program)) }
+                    gradient_program.set_uniforms(gl, gradient, transform);
+                }
+            }
         }
     }
 }
 
-impl From<Transformation> for Uniforms {
-    fn from(transformation: Transformation) -> Uniforms {
-        Self {
-            transform: transformation.into(),
+/// A simple shader program. Uses [`triangle.vert`] for its vertex shader and only binds position
+/// attribute location.
+pub(super) fn simple_triangle_program(
+    gl: &glow::Context,
+    shader_version: &program::Version,
+    fragment_shader: &'static str,
+) -> <glow::Context as HasContext>::Program {
+    unsafe {
+        let vertex_shader = Shader::vertex(
+            gl,
+            shader_version,
+            include_str!("shader/common/triangle.vert"),
+        );
+
+        let fragment_shader =
+            Shader::fragment(gl, shader_version, fragment_shader);
+
+        program::create(
+            gl,
+            &[vertex_shader, fragment_shader],
+            &[(0, "i_Position")],
+        )
+    }
+}
+
+pub(super) fn update_transform(
+    gl: &glow::Context,
+    program: <glow::Context as HasContext>::Program,
+    transform: Option<Transformation>
+) {
+    if let Some(t) = transform {
+        let transform_location =
+            unsafe { gl.get_uniform_location(program, "u_Transform") }
+                .expect("Get transform location.");
+
+        unsafe {
+            gl.uniform_matrix_4_f32_slice(
+                Some(&transform_location),
+                false,
+                t.as_ref(),
+            );
         }
     }
 }

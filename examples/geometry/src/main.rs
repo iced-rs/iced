@@ -1,6 +1,9 @@
 //! This example showcases a simple native custom widget that renders using
 //! arbitrary low-level geometry.
+//!
+//TODO need to update this now that vertex data doesn't contain color data
 mod rainbow {
+    use iced::Color;
     // For now, to implement a custom native widget you will need to add
     // `iced_native` and `iced_wgpu` to your dependencies.
     //
@@ -12,6 +15,7 @@ mod rainbow {
     // implemented by `iced_wgpu` and other renderers.
     use iced_graphics::renderer::{self, Renderer};
     use iced_graphics::{Backend, Primitive};
+    use iced_graphics::shader::Shader;
 
     use iced_native::widget::{self, Widget};
     use iced_native::{
@@ -63,20 +67,20 @@ mod rainbow {
             cursor_position: Point,
             _viewport: &Rectangle,
         ) {
-            use iced_graphics::triangle::{Mesh2D, Vertex2D};
+            use iced_graphics::triangle::{Mesh2D, Shader, Vertex2D};
             use iced_native::Renderer as _;
 
             let b = layout.bounds();
 
             // R O Y G B I V
-            let color_r = [1.0, 0.0, 0.0, 1.0];
-            let color_o = [1.0, 0.5, 0.0, 1.0];
-            let color_y = [1.0, 1.0, 0.0, 1.0];
-            let color_g = [0.0, 1.0, 0.0, 1.0];
-            let color_gb = [0.0, 1.0, 0.5, 1.0];
-            let color_b = [0.0, 0.2, 1.0, 1.0];
-            let color_i = [0.5, 0.0, 1.0, 1.0];
-            let color_v = [0.75, 0.0, 0.5, 1.0];
+            // let color_r = [1.0, 0.0, 0.0, 1.0];
+            // let color_o = [1.0, 0.5, 0.0, 1.0];
+            // let color_y = [1.0, 1.0, 0.0, 1.0];
+            // let color_g = [0.0, 1.0, 0.0, 1.0];
+            // let color_gb = [0.0, 1.0, 0.5, 1.0];
+            // let color_b = [0.0, 0.2, 1.0, 1.0];
+            // let color_i = [0.5, 0.0, 1.0, 1.0];
+            // let color_v = [0.75, 0.0, 0.5, 1.0];
 
             let posn_center = {
                 if b.contains(cursor_position) {
@@ -101,39 +105,39 @@ mod rainbow {
                     vertices: vec![
                         Vertex2D {
                             position: posn_center,
-                            color: [1.0, 1.0, 1.0, 1.0],
+                            // color: [1.0, 1.0, 1.0, 1.0],
                         },
                         Vertex2D {
                             position: posn_tl,
-                            color: color_r,
+                            // color: color_r,
                         },
                         Vertex2D {
                             position: posn_t,
-                            color: color_o,
+                            // color: color_o,
                         },
                         Vertex2D {
                             position: posn_tr,
-                            color: color_y,
+                            // color: color_y,
                         },
                         Vertex2D {
                             position: posn_r,
-                            color: color_g,
+                            // color: color_g,
                         },
                         Vertex2D {
                             position: posn_br,
-                            color: color_gb,
+                            // color: color_gb,
                         },
                         Vertex2D {
                             position: posn_b,
-                            color: color_b,
+                            // color: color_b,
                         },
                         Vertex2D {
                             position: posn_bl,
-                            color: color_i,
+                            // color: color_i,
                         },
                         Vertex2D {
                             position: posn_l,
-                            color: color_v,
+                            // color: color_v,
                         },
                     ],
                     indices: vec![
@@ -147,6 +151,7 @@ mod rainbow {
                         0, 8, 1, // L
                     ],
                 },
+                shader: Shader::Solid(Color::BLACK),
             };
 
             renderer.with_translation(Vector::new(b.x, b.y), |renderer| {

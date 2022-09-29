@@ -1,7 +1,6 @@
-use crate::program;
+use crate::{program, triangle};
 use crate::quad;
 use crate::text;
-use crate::triangle;
 use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
@@ -100,16 +99,16 @@ impl Backend {
             );
         }
 
-        if !layer.meshes.is_empty() {
+        if !layer.meshes.0.is_empty() {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
 
             self.triangle_pipeline.draw(
+                &layer.meshes,
                 gl,
                 target_height,
                 scaled,
                 scale_factor,
-                &layer.meshes,
             );
         }
 

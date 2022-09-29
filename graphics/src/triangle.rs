@@ -6,20 +6,22 @@ use bytemuck::{Pod, Zeroable};
 pub struct Mesh2D {
     /// The vertices of the mesh
     pub vertices: Vec<Vertex2D>,
-
     /// The list of vertex indices that defines the triangles of the mesh.
-    ///
-    /// Therefore, this list should always have a length that is a multiple of
-    /// 3.
     pub indices: Vec<u32>,
 }
 
-/// A two-dimensional vertex with some color in __linear__ RGBA.
+/// A two-dimensional vertex.
 #[derive(Copy, Clone, Debug, Zeroable, Pod)]
 #[repr(C)]
 pub struct Vertex2D {
-    /// The vertex position
+    /// The vertex position in 2D space.
     pub position: [f32; 2],
-    /// The vertex color in __linear__ RGBA.
-    pub color: [f32; 4],
+}
+
+/// Convert from lyon's position data to Iced's Vertex2D type.
+impl Vertex2D {
+    /// Converts from [`lyon::math::Point`] to [`Vertex2D`]. Used for generating primitives.
+    pub fn from(points: Vec<lyon::math::Point>) -> Vec<Vertex2D> {
+        points.iter().map(|p| Vertex2D { position: [p.x, p.y]}).collect()
+    }
 }
