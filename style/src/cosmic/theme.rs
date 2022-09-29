@@ -101,7 +101,7 @@ impl button::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let appearance = button::Appearance {
-            border_radius: 2.0,
+            border_radius: 24.0,
             ..button::Appearance::default()
         };
 
@@ -304,39 +304,23 @@ impl slider::StyleSheet for Theme {
     type Style = ();
 
     fn active(&self, _style: Self::Style) -> slider::Appearance {
-        //TODO: use palette
+        let palette = self.palette();
+
         //TODO: no way to set rail thickness
-        match self {
-            Theme::Dark => slider::Appearance {
-                rail_colors: (
-                    Color::from_rgba8(0x94, 0xEB, 0xEB, 0.75),
-                    //TODO: no way to set color before/after slider: Color::from_rgb8(0x78, 0x78, 0x78),
-                    Color::TRANSPARENT,
-                ),
-                handle: slider::Handle {
-                    shape: slider::HandleShape::Circle {
-                        radius: 10.0,
-                    },
-                    color: Color::from_rgb8(0x94, 0xEB, 0xEB),
-                    border_color: Color::from_rgba8(0, 0, 0, 0.0),
-                    border_width: 0.0,
-                }
-            },
-            Theme::Light => slider::Appearance {
-                rail_colors: (
-                    Color::from_rgba8(0x00, 0x49, 0x6D, 0.75),
-                    //TODO: no way to set color before/after slider: Color::from_rgb8(0x93, 0x93, 0x93),
-                    Color::TRANSPARENT,
-                ),
-                handle: slider::Handle {
-                    shape: slider::HandleShape::Circle {
-                        radius: 10.0,
-                    },
-                    color: Color::from_rgb8(0x00, 0x49, 0x6D),
-                    border_width: 0.0,
-                    border_color: Color::from_rgba8(0, 0, 0, 0.0),
-                }
-            },
+        slider::Appearance {
+            rail_colors: (
+                palette.primary,
+                //TODO: no way to set color before/after slider
+                Color::TRANSPARENT,
+            ),
+            handle: slider::Handle {
+                shape: slider::HandleShape::Circle {
+                    radius: 10.0,
+                },
+                color: palette.primary,
+                border_color: Color::TRANSPARENT,
+                border_width: 0.0,
+            }
         }
     }
 
@@ -460,28 +444,21 @@ impl toggler::StyleSheet for Theme {
         _style: Self::Style,
         is_active: bool,
     ) -> toggler::Appearance {
-        //TODO: use palette
-        match self {
-            Theme::Dark => toggler::Appearance {
-                background: if is_active {
-                    Color::from_rgb8(0x94, 0xEB, 0xEB)
-                } else {
-                    Color::from_rgb8(0x78, 0x78, 0x78)
-                },
-                background_border: None,
-                foreground: Color::from_rgb8(0x27, 0x27, 0x27),
-                foreground_border: None,
+        let palette = self.palette();
+
+        toggler::Appearance {
+            background: if is_active {
+                palette.primary
+            } else {
+                //TODO: Grab neutral from palette
+                match self {
+                    Theme::Dark => Color::from_rgb8(0x78, 0x78, 0x78),
+                    Theme::Light => Color::from_rgb8(0x93, 0x93, 0x93),
+                }
             },
-            Theme::Light => toggler::Appearance {
-                background: if is_active {
-                    Color::from_rgb8(0x00, 0x49, 0x6D)
-                } else {
-                    Color::from_rgb8(0x93, 0x93, 0x93)
-                },
-                background_border: None,
-                foreground: Color::from_rgb8(0xE4, 0xE4, 0xE4),
-                foreground_border: None,
-            }
+            background_border: None,
+            foreground: palette.text,
+            foreground_border: None,
         }
     }
 
@@ -490,6 +467,7 @@ impl toggler::StyleSheet for Theme {
         style: Self::Style,
         is_active: bool,
     ) -> toggler::Appearance {
+        //TODO: grab colors from palette
         match self {
             Theme::Dark  => toggler::Appearance {
                 background: if is_active {

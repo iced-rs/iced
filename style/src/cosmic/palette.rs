@@ -15,46 +15,58 @@ pub struct Palette {
 
 impl Palette {
     pub const LIGHT: Self = Self {
-        background: Color::WHITE,
-        text: Color::BLACK,
+        background: Color::from_rgb(
+            0xee as f32 / 255.0,
+            0xee as f32 / 255.0,
+            0xee as f32 / 255.0,
+        ),
+        text: Color::from_rgb(
+            0x35 as f32 / 255.0,
+            0x35 as f32 / 255.0,
+            0x35 as f32 / 255.0,
+        ),
         primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
+            0x00 as f32 / 255.0,
+            0x49 as f32 / 255.0,
+            0x6d as f32 / 255.0,
         ),
         success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
+            0x3b as f32 / 255.0,
+            0x6e as f32 / 255.0,
+            0x43 as f32 / 255.0,
         ),
         danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
+            0xa0 as f32 / 255.0,
+            0x25 as f32 / 255.0,
+            0x2b as f32 / 255.0,
         ),
     };
 
     pub const DARK: Self = Self {
         background: Color::from_rgb(
-            0x20 as f32 / 255.0,
-            0x22 as f32 / 255.0,
-            0x25 as f32 / 255.0,
+            0x29 as f32 / 255.0,
+            0x29 as f32 / 255.0,
+            0x29 as f32 / 255.0
         ),
-        text: Color::from_rgb(0.90, 0.90, 0.90),
+        text: Color::from_rgb(
+            0xe4 as f32 / 255.0,
+            0xe4 as f32 / 255.0,
+            0xe4 as f32 / 255.0,
+        ),
         primary: Color::from_rgb(
-            0x5E as f32 / 255.0,
-            0x7C as f32 / 255.0,
-            0xE2 as f32 / 255.0,
+            0x94 as f32 / 255.0,
+            0xeb as f32 / 255.0,
+            0xeb as f32 / 255.0,
         ),
         success: Color::from_rgb(
-            0x12 as f32 / 255.0,
-            0x66 as f32 / 255.0,
-            0x4F as f32 / 255.0,
+            0xac as f32 / 255.0,
+            0xf7 as f32 / 255.0,
+            0xd2 as f32 / 255.0,
         ),
         danger: Color::from_rgb(
-            0xC3 as f32 / 255.0,
-            0x42 as f32 / 255.0,
-            0x3F as f32 / 255.0,
+            0xff as f32 / 255.0,
+            0xb5 as f32 / 255.0,
+            0xb5 as f32 / 255.0,
         ),
     };
 }
