@@ -457,7 +457,11 @@ impl toggler::StyleSheet for Theme {
                 }
             },
             background_border: None,
-            foreground: palette.text,
+            //TODO: Grab neutral from palette
+            foreground: match self {
+                Theme::Dark => Color::from_rgb8(0x27, 0x27, 0x27),
+                Theme::Light => Color::from_rgb8(0xe4, 0xe4, 0xe4),
+            },
             foreground_border: None,
         }
     }

@@ -21,9 +21,9 @@ impl Palette {
             0xee as f32 / 255.0,
         ),
         text: Color::from_rgb(
-            0x35 as f32 / 255.0,
-            0x35 as f32 / 255.0,
-            0x35 as f32 / 255.0,
+            0x00 as f32 / 255.0,
+            0x00 as f32 / 255.0,
+            0x00 as f32 / 255.0,
         ),
         primary: Color::from_rgb(
             0x00 as f32 / 255.0,
