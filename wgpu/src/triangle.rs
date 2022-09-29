@@ -92,7 +92,6 @@ impl Pipeline {
     ) {
         //count the total number of vertices & indices we need to handle
         let (total_vertices, total_indices) = meshes.attribute_count();
-        println!("total vertices: {}, total indices: {}", total_vertices, total_indices);
 
         //Only create buffers if they need to be re-sized or don't exist
         if needs_recreate(&self.vertex_buffer, total_vertices) {
@@ -136,14 +135,11 @@ impl Pipeline {
                             mesh.origin.y,
                         );
 
-                    println!("Mesh attribute data: Vertex: {:?}, Index: {:?}", mesh.buffers.vertices, mesh.buffers.indices);
-
                     let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
                     let indices = bytemuck::cast_slice(&mesh.buffers.indices);
 
                     //TODO: it's (probably) more efficient to reduce this write command and
                     // iterate first and then upload
-                    println!("vertex buffer len: {}, index length: {}", vertices.len(), indices.len());
                     vertex_buffer.write(offset_v, vertices);
                     index_buffer.write(offset_i, indices);
 
