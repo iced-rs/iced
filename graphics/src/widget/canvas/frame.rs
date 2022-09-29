@@ -3,11 +3,13 @@ use std::borrow::Cow;
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::triangle;
-use crate::widget::canvas::path;
-use crate::widget::canvas::{Fill, Geometry, Path, Stroke, Text};
+use crate::widget::canvas::{Fill, Geometry, Path, Stroke, Text, path};
 use crate::Primitive;
 
+use crate::triangle::{Vertex2D};
+use crate::shader::Shader;
 use lyon::tessellation;
+use lyon::tessellation::geometry_builder::Positions;
 
 /// The frame of a [`Canvas`].
 ///
@@ -15,7 +17,7 @@ use lyon::tessellation;
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
-    buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+    buffers: Vec<(tessellation::VertexBuffers<lyon::math::Point, u32>, Shader)>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
@@ -42,7 +44,7 @@ impl Frame {
     pub fn new(size: Size) -> Frame {
         Frame {
             size,
-            buffers: lyon::tessellation::VertexBuffers::new(),
+            buffers: Vec::new(),
             primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
@@ -82,18 +84,18 @@ impl Frame {
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
-    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Fill { color, rule } = fill.into();
+    pub fn fill<'a>(&mut self, path: &Path, fill: impl Into<Fill<'a>>) {
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let mut buf = tessellation::VertexBuffers::new();
+
+        let mut buffers =
+            tessellation::BuffersBuilder::new(&mut buf, Positions);
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
 
-        let result = if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
@@ -107,25 +109,24 @@ impl Frame {
                 &options,
                 &mut buffers,
             )
-        };
+        }.expect("Tessellate path.");
 
-        result.expect("Tessellate path");
+        self.buffers.push((buf, style.into()))
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
     /// its `Size` on the [`Frame`] by filling it with the provided style.
-    pub fn fill_rectangle(
+    pub fn fill_rectangle<'a>(
         &mut self,
         top_left: Point,
         size: Size,
-        fill: impl Into<Fill>,
+        fill: impl Into<Fill<'a>>,
     ) {
-        let Fill { color, rule } = fill.into();
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let mut buf = tessellation::VertexBuffers::new();
+
+        let mut buffers = tessellation::BuffersBuilder::new(&mut buf, Positions);
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -147,6 +148,8 @@ impl Frame {
                 &mut buffers,
             )
             .expect("Fill rectangle");
+
+        self.buffers.push((buf, style.into()))
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -154,10 +157,9 @@ impl Frame {
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            StrokeVertex(stroke.color.into_linear()),
-        );
+        let mut buf = tessellation::VertexBuffers::new();
+
+        let mut buffers = tessellation::BuffersBuilder::new(&mut buf, Positions);
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -171,7 +173,7 @@ impl Frame {
             Cow::Owned(path::dashed(path, stroke.line_dash))
         };
 
-        let result = if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
@@ -185,9 +187,9 @@ impl Frame {
                 &options,
                 &mut buffers,
             )
-        };
+        }.expect("Stroke path");
 
-        result.expect("Stroke path");
+        self.buffers.push((buf, stroke.style.into()))
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -331,52 +333,19 @@ impl Frame {
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
-        if !self.buffers.indices.is_empty() {
-            self.primitives.push(Primitive::Mesh2D {
-                buffers: triangle::Mesh2D {
-                    vertices: self.buffers.vertices,
-                    indices: self.buffers.indices,
-                },
-                size: self.size,
-            });
+        if !self.primitives.is_empty() {
+            for (buffer, shader) in self.buffers {
+                self.primitives.push(Primitive::Mesh2D {
+                    buffers: triangle::Mesh2D {
+                        vertices: Vertex2D::from(buffer.vertices),
+                        indices: buffer.indices
+                    },
+                    size: self.size,
+                    shader
+                })
+            }
         }
 
         self.primitives
-    }
-}
-
-struct FillVertex([f32; 4]);
-
-impl lyon::tessellation::FillVertexConstructor<triangle::Vertex2D>
-    for FillVertex
-{
-    fn new_vertex(
-        &mut self,
-        vertex: lyon::tessellation::FillVertex<'_>,
-    ) -> triangle::Vertex2D {
-        let position = vertex.position();
-
-        triangle::Vertex2D {
-            position: [position.x, position.y],
-            color: self.0,
-        }
-    }
-}
-
-struct StrokeVertex([f32; 4]);
-
-impl lyon::tessellation::StrokeVertexConstructor<triangle::Vertex2D>
-    for StrokeVertex
-{
-    fn new_vertex(
-        &mut self,
-        vertex: lyon::tessellation::StrokeVertex<'_, '_>,
-    ) -> triangle::Vertex2D {
-        let position = vertex.position();
-
-        triangle::Vertex2D {
-            position: [position.x, position.y],
-            color: self.0,
-        }
     }
 }

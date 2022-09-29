@@ -8,7 +8,7 @@ pub struct Transformation(Mat4);
 impl Transformation {
     /// Get the identity transformation.
     pub fn identity() -> Transformation {
-        Transformation(Mat4::identity())
+        Transformation(Mat4::IDENTITY)
     }
 
     /// Creates an orthographic projection.
@@ -49,5 +49,11 @@ impl AsRef<[f32; 16]> for Transformation {
 impl From<Transformation> for [f32; 16] {
     fn from(t: Transformation) -> [f32; 16] {
         *t.as_ref()
+    }
+}
+
+impl Into<Mat4> for Transformation {
+    fn into(self) -> Mat4 {
+        self.0
     }
 }

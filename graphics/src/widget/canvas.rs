@@ -5,6 +5,7 @@
 //! and more!
 
 pub mod event;
+pub mod gradient;
 pub mod path;
 
 mod cache;
@@ -19,12 +20,13 @@ mod text;
 pub use cache::Cache;
 pub use cursor::Cursor;
 pub use event::Event;
-pub use fill::{Fill, FillRule};
+pub use fill::{Fill, FillRule, FillStyle};
 pub use frame::Frame;
 pub use geometry::Geometry;
+pub use gradient::Gradient;
 pub use path::Path;
 pub use program::Program;
-pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
+pub use stroke::{LineCap, LineDash, LineJoin, Stroke, StrokeStyle};
 pub use text::Text;
 
 use crate::{Backend, Primitive, Renderer};
