@@ -24,14 +24,8 @@ pub(crate) struct Pipeline {
 
 #[derive(Debug)]
 struct TrianglePrograms {
-    solid: TriangleProgram,
-    gradient: TriangleProgram,
-}
-
-#[derive(Debug)]
-enum TriangleProgram {
-    Solid(SolidProgram),
-    Gradient(GradientProgram),
+    solid: SolidProgram,
+    gradient: GradientProgram,
 }
 
 impl Pipeline {
@@ -76,14 +70,8 @@ impl Pipeline {
             indices,
             current_transform: Transformation::identity(),
             programs: TrianglePrograms {
-                solid: TriangleProgram::Solid(SolidProgram::new(
-                    gl,
-                    shader_version,
-                )),
-                gradient: TriangleProgram::Gradient(GradientProgram::new(
-                    gl,
-                    shader_version,
-                )),
+                solid: SolidProgram::new(gl, shader_version),
+                gradient: GradientProgram::new(gl, shader_version),
             },
         }
     }
@@ -138,15 +126,20 @@ impl Pipeline {
         let mut last_vertex = 0;
         let mut last_index = 0;
 
-        for Mesh {
+        for (index, Mesh {
             buffers,
             origin,
             clip_bounds,
             shader,
-        } in meshes.0.iter()
+        }) in meshes.0.iter().enumerate()
         {
             let transform =
                 transformation * Transformation::translate(origin.x, origin.y);
+
+            if index == 0 {
+                //set initial transform uniform for both programs
+                self.programs.set_transforms(gl, transform);
+            }
 
             let clip_bounds = (*clip_bounds * scale_factor).snap();
 
@@ -196,22 +189,21 @@ impl Pipeline {
     ) {
         match shader {
             shader::Shader::Solid(color) => {
-                if let TriangleProgram::Solid(solid_program) =
-                    &mut self.programs.solid
-                {
-                    unsafe { gl.use_program(Some(solid_program.program)) }
-                    solid_program.set_uniforms(gl, color, transform);
-                }
+                unsafe { gl.use_program(Some(self.programs.solid.program)) }
+                self.programs.solid.set_uniforms(gl, color, transform);
             }
             shader::Shader::Gradient(gradient) => {
-                if let TriangleProgram::Gradient(gradient_program) =
-                    &mut self.programs.gradient
-                {
-                    unsafe { gl.use_program(Some(gradient_program.program)) }
-                    gradient_program.set_uniforms(gl, gradient, transform);
-                }
+                unsafe { gl.use_program(Some(self.programs.gradient.program)) }
+                self.programs.gradient.set_uniforms(gl, gradient, transform);
             }
         }
+    }
+}
+
+impl TrianglePrograms {
+    pub fn set_transforms(&self, gl: &glow::Context, transform: Transformation) {
+        update_transform(gl, self.solid.program, Some(transform));
+        update_transform(gl, self.gradient.program, Some(transform));
     }
 }
 
