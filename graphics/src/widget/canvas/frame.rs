@@ -335,7 +335,7 @@ impl Frame {
             if !buffer.indices.is_empty() {
                 self.primitives.push(Primitive::Mesh2D {
                     buffers: triangle::Mesh2D {
-                        vertices: Vertex2D::from(buffer.vertices),
+                        vertices: vertices_from(buffer.vertices),
                         indices: buffer.indices,
                     },
                     size: self.size,
@@ -346,4 +346,9 @@ impl Frame {
 
         self.primitives
     }
+}
+
+/// Converts from [`lyon::math::Point`] to [`Vertex2D`]. Used for generating primitives.
+fn vertices_from(points: Vec<lyon::math::Point>) -> Vec<Vertex2D> {
+    points.iter().map(|p| Vertex2D { position: [p.x, p.y]}).collect()
 }

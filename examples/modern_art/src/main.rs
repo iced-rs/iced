@@ -1,5 +1,5 @@
 use rand::{Rng, thread_rng};
-use crate::canvas::{Cursor, FillStyle, Geometry, Gradient};
+use crate::canvas::{Cursor, FillStyle, Geometry};
 use iced::widget::canvas::{Cache, Fill, Frame};
 use iced::widget::{canvas, Canvas};
 use iced::Settings;
@@ -7,6 +7,7 @@ use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
     Renderer, Size, Theme,
 };
+use iced_graphics::gradient::Gradient;
 
 fn main() -> iced::Result {
     ModernArt::run(Settings {

@@ -1,6 +1,6 @@
 use iced_native::Color;
-
-use crate::widget::canvas::Gradient;
+use crate::gradient::Gradient;
+use crate::shader::Shader;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
@@ -46,6 +46,15 @@ pub enum FillStyle<'a> {
     Solid(Color),
     /// A color gradient
     Gradient(&'a Gradient),
+}
+
+impl <'a> Into<Shader> for FillStyle<'a> {
+    fn into(self) -> Shader {
+        match self {
+            FillStyle::Solid(color) => Shader::Solid(color),
+            FillStyle::Gradient(gradient) => gradient.clone().into()
+        }
+    }
 }
 
 /// The fill rule defines how to determine what is inside and what is outside of

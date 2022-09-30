@@ -17,11 +17,3 @@ pub struct Vertex2D {
     /// The vertex position in 2D space.
     pub position: [f32; 2],
 }
-
-/// Convert from lyon's position data to Iced's Vertex2D type.
-impl Vertex2D {
-    /// Converts from [`lyon::math::Point`] to [`Vertex2D`]. Used for generating primitives.
-    pub fn from(points: Vec<lyon::math::Point>) -> Vec<Vertex2D> {
-        points.iter().map(|p| Vertex2D { position: [p.x, p.y]}).collect()
-    }
-}

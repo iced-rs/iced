@@ -1,6 +1,6 @@
 use iced_native::Color;
-
-use crate::widget::canvas::Gradient;
+use crate::gradient::Gradient;
+use crate::shader::Shader;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]
@@ -64,6 +64,15 @@ pub enum StrokeStyle<'a> {
     Solid(Color),
     /// A color gradient
     Gradient(&'a Gradient),
+}
+
+impl <'a> Into<Shader> for StrokeStyle<'a> {
+    fn into(self) -> Shader {
+        match self {
+            StrokeStyle::Solid(color) => Shader::Solid(color),
+            StrokeStyle::Gradient(gradient) => gradient.clone().into()
+        }
+    }
 }
 
 /// The shape used at the end of open subpaths when they are stroked.
