@@ -1,6 +1,7 @@
 //! Load and draw vector graphics.
 use crate::{Hasher, Rectangle};
 
+use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -25,7 +26,14 @@ impl Handle {
     /// This is useful if you already have your SVG data in-memory, maybe
     /// because you downloaded or generated it procedurally.
     pub fn from_memory(bytes: impl Into<Vec<u8>>) -> Handle {
-        Self::from_data(Data::Bytes(bytes.into()))
+        Self::from_data(Data::Bytes(Cow::Owned(bytes.into())))
+    }
+
+    /// Like [`Handle::from_memory`], but from static image data.
+    ///
+    /// Useful for images included in binary, for instance with [`include_bytes!`].
+    pub fn from_static_memory(bytes: &'static [u8]) -> Handle {
+        Self::from_data(Data::Bytes(Cow::Borrowed(bytes)))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -64,7 +72,7 @@ pub enum Data {
     /// In-memory data
     ///
     /// Can contain an SVG string or a gzip compressed data.
-    Bytes(Vec<u8>),
+    Bytes(Cow<'static, [u8]>),
 }
 
 impl std::fmt::Debug for Data {
