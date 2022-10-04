@@ -177,6 +177,7 @@ pub mod mouse;
 pub mod overlay;
 pub mod settings;
 pub mod time;
+pub mod touch;
 pub mod widget;
 pub mod window;
 

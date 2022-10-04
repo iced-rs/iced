@@ -1,0 +1,12 @@
+[package]
+name = "multitouch"
+version = "0.1.0"
+authors = ["Artur Sapek <artur@kraken.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
+tokio = { version = "1.0", features = ["sync"] }
+env_logger = "0.9"
+voronator = "0.2"
