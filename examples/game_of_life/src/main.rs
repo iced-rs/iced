@@ -424,22 +424,19 @@ mod grid {
             };
 
             match event {
-                Event::Touch(touch_event) => match touch_event {
-                    touch::Event::FingerMoved { .. } => {
-                        let message = {
-                            *interaction = if is_populated {
-                                Interaction::Erasing
-                            } else {
-                                Interaction::Drawing
-                            };
-
-                            populate.or(unpopulate)
+                Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    let message = {
+                        *interaction = if is_populated {
+                            Interaction::Erasing
+                        } else {
+                            Interaction::Drawing
                         };
 
-                        (event::Status::Captured, message)
-                    }
-                    _ => (event::Status::Ignored, None),
-                },
+                        populate.or(unpopulate)
+                    };
+
+                    (event::Status::Captured, message)
+                }
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::ButtonPressed(button) => {
                         let message = match button {

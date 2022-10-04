@@ -70,7 +70,7 @@ impl Application for Multitouch {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::FingerPressed { id, position } => {
-                self.state.fingers.insert(id, position.clone());
+                self.state.fingers.insert(id, position);
                 self.state.cache.clear();
             }
             Message::FingerLifted { id } => {
@@ -94,7 +94,7 @@ impl Application for Multitouch {
     }
 }
 
-impl<'a> canvas::Program<Message> for State {
+impl canvas::Program<Message> for State {
     type State = ();
 
     fn update(
@@ -134,11 +134,8 @@ impl<'a> canvas::Program<Message> for State {
             }
 
             // Collect tuples of (id, point);
-            let mut zones: Vec<(u64, Point)> = self
-                .fingers
-                .iter()
-                .map(|(id, pt)| (id.0, pt.clone()))
-                .collect();
+            let mut zones: Vec<(u64, Point)> =
+                self.fingers.iter().map(|(id, pt)| (id.0, *pt)).collect();
 
             // Sort by ID
             zones.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
