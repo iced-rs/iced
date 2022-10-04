@@ -2,14 +2,13 @@
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
 use iced::widget::canvas::event;
-use iced::widget::canvas::{self, Canvas, Cursor, Geometry, Path, Stroke};
+use iced::widget::canvas::{self, Canvas, Cursor, Geometry, Stroke};
 use iced::{
     executor, touch, window, Application, Color, Command, Element, Length,
     Point, Rectangle, Settings, Subscription, Theme,
 };
 
 use std::collections::HashMap;
-use voronoi;
 
 pub fn main() -> iced::Result {
     env_logger::builder().format_timestamp(None).init();
@@ -127,50 +126,35 @@ impl<'a> canvas::Program<Message> for State {
         _state: &Self::State,
         _theme: &Theme,
         bounds: Rectangle,
-        cursor: Cursor,
+        _cursor: Cursor,
     ) -> Vec<Geometry> {
         let fingerweb = self.cache.draw(bounds.size(), |frame| {
-            let mut fingers = HashMap::new();
-
-            // TODO delete fake fingers
-            fingers.insert(1, Point { x: 50.0, y: 50.0 });
-            fingers.insert(2, Point { x: 250.0, y: 400.0 });
-            fingers.insert(3, Point { x: 650.0, y: 120.0 });
-            fingers.insert(4, Point { x: 750.0, y: 520.0 });
-
-            match cursor {
-                canvas::Cursor::Available(pt) => {
-                    dbg!(&pt);
-                    fingers.insert(5, pt);
-                }
-                _ => {}
+            if self.fingers.len() < 2 {
+                return;
             }
 
             // Collect tuples of (id, point);
-            let mut zones: Vec<(i32, Point)> = fingers
+            let mut zones: Vec<(u64, Point)> = self
+                .fingers
                 .iter()
-                .map(|(id, pt)| (id.clone(), pt.clone()))
+                .map(|(id, pt)| (id.0, pt.clone()))
                 .collect();
 
             // Sort by ID
             zones.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
             // Generate sorted list of points
-            let vpoints: Vec<voronoi::Point> = zones
-                .iter()
-                .map(|zone| iced_point_to_voronoi_point(&zone.1))
-                .collect();
+            let vpoints: Vec<voronoi::Point> =
+                zones.iter().map(|zone| to_voronoi_point(&zone.1)).collect();
 
             let diagram = voronoi::voronoi(vpoints, 700.0);
             let polys = voronoi::make_polygons(&diagram);
 
-            for i in 0..polys.len() {
+            for (poly, zone) in polys.iter().zip(zones) {
                 let mut builder = canvas::path::Builder::new();
-                let zone = &zones[i];
-                let poly = &polys[i];
 
                 for (index, pt) in poly.iter().enumerate() {
-                    let pt = voronoi_point_to_iced_point(pt);
+                    let pt = from_voronoi_point(pt);
 
                     match index {
                         0 => builder.move_to(pt),
@@ -179,8 +163,6 @@ impl<'a> canvas::Program<Message> for State {
                 }
 
                 let path = builder.build();
-
-                let zone = &zones[i];
 
                 let color_r = (10 % zone.0) as f32 / 20.0;
                 let color_g = (10 % (zone.0 + 8)) as f32 / 20.0;
@@ -211,13 +193,14 @@ impl<'a> canvas::Program<Message> for State {
     }
 }
 
-fn iced_point_to_voronoi_point(pt: &iced::Point) -> voronoi::Point {
+fn to_voronoi_point(pt: &iced::Point) -> voronoi::Point {
     voronoi::Point::new(pt.x.into(), pt.y.into())
 }
 
-fn voronoi_point_to_iced_point(pt: &voronoi::Point) -> iced::Point {
+fn from_voronoi_point(pt: &voronoi::Point) -> iced::Point {
     let x: f64 = pt.x.into();
     let y: f64 = pt.y.into();
+
     Point {
         x: x as f32,
         y: y as f32,
