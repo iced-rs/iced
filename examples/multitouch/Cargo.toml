@@ -9,4 +9,4 @@ publish = false
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 tokio = { version = "1.0", features = ["sync"] }
 env_logger = "0.9"
-voronoi = "0.1.4"
+voronator = "0.2"

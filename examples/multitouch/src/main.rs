@@ -144,21 +144,29 @@ impl<'a> canvas::Program<Message> for State {
             zones.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
 
             // Generate sorted list of points
-            let vpoints: Vec<voronoi::Point> =
-                zones.iter().map(|zone| to_voronoi_point(&zone.1)).collect();
+            let vpoints: Vec<(f64, f64)> = zones
+                .iter()
+                .map(|(_, p)| (f64::from(p.x), f64::from(p.y)))
+                .collect();
 
-            let diagram = voronoi::voronoi(vpoints, 700.0);
-            let polys = voronoi::make_polygons(&diagram);
+            let diagram: voronator::VoronoiDiagram<
+                voronator::delaunator::Point,
+            > = voronator::VoronoiDiagram::from_tuple(
+                &(0.0, 0.0),
+                &(700.0, 700.0),
+                &vpoints,
+            )
+            .expect("Generate Voronoi diagram");
 
-            for (poly, zone) in polys.iter().zip(zones) {
+            for (cell, zone) in diagram.cells().iter().zip(zones) {
                 let mut builder = canvas::path::Builder::new();
 
-                for (index, pt) in poly.iter().enumerate() {
-                    let pt = from_voronoi_point(pt);
+                for (index, p) in cell.points().iter().enumerate() {
+                    let p = Point::new(p.x as f32, p.y as f32);
 
                     match index {
-                        0 => builder.move_to(pt),
-                        _ => builder.line_to(pt),
+                        0 => builder.move_to(p),
+                        _ => builder.line_to(p),
                     }
                 }
 
@@ -190,19 +198,5 @@ impl<'a> canvas::Program<Message> for State {
         });
 
         vec![fingerweb]
-    }
-}
-
-fn to_voronoi_point(pt: &iced::Point) -> voronoi::Point {
-    voronoi::Point::new(pt.x.into(), pt.y.into())
-}
-
-fn from_voronoi_point(pt: &voronoi::Point) -> iced::Point {
-    let x: f64 = pt.x.into();
-    let y: f64 = pt.y.into();
-
-    Point {
-        x: x as f32,
-        y: y as f32,
     }
 }
