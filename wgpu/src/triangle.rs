@@ -241,6 +241,9 @@ impl Pipeline {
             }
         }
 
+        self.vertex_buffer.clear();
+        self.index_buffer.clear();
+
         if let Some(blit) = &mut self.blit {
             blit.draw(encoder, target);
         }

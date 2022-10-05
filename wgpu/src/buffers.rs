@@ -37,7 +37,7 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
             usages,
             gpu: Self::gpu_buffer(device, label, size, usages),
             size,
-            _data: Default::default(),
+            _data: PhantomData,
         }
     }
 
@@ -65,7 +65,7 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
         let size =
             wgpu::BufferAddress::from((mem::size_of::<T>() * new_count) as u64);
 
-        if self.size <= size {
+        if self.size < size {
             self.offsets.clear();
             self.size = size;
             self.gpu = Self::gpu_buffer(device, self.label, size, self.usages);
@@ -119,5 +119,10 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
     /// 1 that we stored earlier when writing.
     pub fn slice_from_index(&self, index: usize) -> wgpu::BufferSlice<'_> {
         self.gpu.slice(self.offset_at(index)..)
+    }
+
+    /// Clears any temporary data from the buffer.
+    pub fn clear(&mut self) {
+        self.offsets.clear()
     }
 }
