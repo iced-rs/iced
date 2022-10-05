@@ -5,7 +5,7 @@ use crate::triangle::{
     default_triangle_primitive_state, vertex_buffer_layout,
 };
 use encase::ShaderType;
-use glam::{Vec2, Vec4};
+use glam::{IVec4, Vec4};
 use iced_graphics::gradient::Gradient;
 use iced_graphics::Transformation;
 
@@ -21,17 +21,13 @@ pub(super) struct GradientPipeline {
     bind_group: wgpu::BindGroup,
 }
 
-//TODO I can tightly pack this by rearranging/consolidating some fields
 #[derive(Debug, ShaderType)]
 pub(super) struct GradientUniforms {
     transform: glam::Mat4,
-    start: Vec2,
-    #[align(16)]
-    end: Vec2,
-    #[align(16)]
-    start_stop: i32,
-    #[align(16)]
-    end_stop: i32,
+    //xy = start, zw = end
+    direction: Vec4,
+    //x = start, y = end, zw = padding
+    stop_range: IVec4,
 }
 
 #[derive(Debug, ShaderType)]
@@ -58,7 +54,7 @@ impl GradientPipeline {
             "iced_wgpu::triangle [GRADIENT] uniforms",
         );
 
-        //TODO: With a WASM target storage buffers are not supported. Will need to use UBOs & static 
+        //TODO: With a WASM target storage buffers are not supported. Will need to use UBOs & static
         // sized array (64 on OpenGL side right now) to make gradients work
         let storage_buffer = DynamicBuffer::storage(
             device,
@@ -143,7 +139,9 @@ impl GradientPipeline {
             uniform_buffer,
             storage_buffer,
             color_stop_offset: 0,
-            color_stops_pending_write: GradientStorage { color_stops: vec![] },
+            color_stops_pending_write: GradientStorage {
+                color_stops: vec![],
+            },
             bind_group_layout,
             bind_group,
         }
@@ -159,10 +157,13 @@ impl GradientPipeline {
 
                 self.uniform_buffer.push(&GradientUniforms {
                     transform: transform.into(),
-                    start: Vec2::new(linear.start.x, linear.start.y),
-                    end: Vec2::new(linear.end.x, linear.end.y),
-                    start_stop: start_offset,
-                    end_stop: end_offset,
+                    direction: Vec4::new(
+                        linear.start.x,
+                        linear.start.y,
+                        linear.end.x,
+                        linear.end.y,
+                    ),
+                    stop_range: IVec4::new(start_offset, end_offset, 0, 0),
                 });
 
                 self.color_stop_offset = end_offset + 1;
@@ -202,13 +203,13 @@ impl GradientPipeline {
                         wgpu::BufferBinding {
                             buffer: uniform_buffer,
                             offset: 0,
-                            size: Some(GradientUniforms::min_size())
-                        }
-                    )
+                            size: Some(GradientUniforms::min_size()),
+                        },
+                    ),
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: storage_buffer.as_entire_binding()
+                    resource: storage_buffer.as_entire_binding(),
                 },
             ],
         })

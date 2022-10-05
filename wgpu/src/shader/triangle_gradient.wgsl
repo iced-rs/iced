@@ -1,10 +1,10 @@
 // uniforms
 struct GradientUniforms {
     transform: mat4x4<f32>,
-    @size(16) start: vec2<f32>,
-    @size(16) end: vec2<f32>,
-    @size(16) start_stop: i32,
-    @size(16) end_stop: i32,
+    //xy = start, wz = end
+    position: vec4<f32>,
+    //x = start, y = end, zw = padding
+    stop_range: vec4<i32>,
 }
 
 struct Stop {
@@ -13,7 +13,7 @@ struct Stop {
 };
 
 @group(0) @binding(0)
-var<uniform> gradient_uniforms: GradientUniforms;
+var<uniform> uniforms: GradientUniforms;
 
 @group(0) @binding(1)
 var<storage, read> color_stops: array<Stop>;
@@ -26,7 +26,7 @@ struct VertexOutput {
 @vertex
 fn vs_main(@location(0) input: vec2<f32>) -> VertexOutput {
     var output: VertexOutput;
-    output.position = gradient_uniforms.transform * vec4<f32>(input.xy, 0.0, 1.0);
+    output.position = uniforms.transform * vec4<f32>(input.xy, 0.0, 1.0);
     output.raw_position = input;
 
     return output;
@@ -34,13 +34,18 @@ fn vs_main(@location(0) input: vec2<f32>) -> VertexOutput {
 
 @fragment
 fn fs_gradient(input: VertexOutput) -> @location(0) vec4<f32> {
-    let v1 = gradient_uniforms.end - gradient_uniforms.start;
-    let v2 = input.raw_position.xy - gradient_uniforms.start;
+    let start = uniforms.position.xy;
+    let end = uniforms.position.zw;
+    let start_stop = uniforms.stop_range.x;
+    let end_stop = uniforms.stop_range.y;
+
+    let v1 = end - start;
+    let v2 = input.raw_position.xy - start;
     let unit = normalize(v1);
     let offset = dot(unit, v2) / length(v1);
 
-    let min_stop = color_stops[gradient_uniforms.start_stop];
-    let max_stop = color_stops[gradient_uniforms.end_stop];
+    let min_stop = color_stops[start_stop];
+    let max_stop = color_stops[end_stop];
 
     var color: vec4<f32>;
 
@@ -51,8 +56,8 @@ fn fs_gradient(input: VertexOutput) -> @location(0) vec4<f32> {
     } else {
         var min = min_stop;
         var max = max_stop;
-        var min_index = gradient_uniforms.start_stop;
-        var max_index = gradient_uniforms.end_stop;
+        var min_index = start_stop;
+        var max_index = end_stop;
 
         loop {
             if (min_index >= max_index - 1) {
