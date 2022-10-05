@@ -2,7 +2,7 @@ use std::{f32::consts::PI, time::Instant};
 
 use iced::executor;
 use iced::widget::canvas::{
-    self, Cache, Canvas, Cursor, Geometry, Path, Stroke, StrokeStyle,
+    self, Cache, Canvas, Cursor, Geometry, Path, Stroke, Style,
 };
 use iced::{
     Application, Command, Element, Length, Point, Rectangle, Settings,
@@ -114,7 +114,7 @@ impl<Message> canvas::Program<Message> for Arc {
             frame.stroke(
                 &path,
                 Stroke {
-                    style: StrokeStyle::Solid(palette.text),
+                    style: Style::Solid(palette.text),
                     width: 10.0,
                     ..Stroke::default()
                 },

@@ -253,13 +253,13 @@ impl GradientPipeline {
     pub fn configure_render_pass<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        index: usize,
+        count: usize,
     ) {
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(
             0,
             &self.bind_group,
-            &[self.uniform_buffer.offset_at_index(index)],
-        );
+            &[self.uniform_buffer.offset_at_index(count)],
+        )
     }
 }

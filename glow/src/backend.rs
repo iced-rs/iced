@@ -99,7 +99,7 @@ impl Backend {
             );
         }
 
-        if !layer.meshes.0.is_empty() {
+        if !layer.meshes.is_empty() {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
 

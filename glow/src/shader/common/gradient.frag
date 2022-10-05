@@ -23,6 +23,7 @@ uniform uint color_stops_size;
 uniform float color_stop_offsets[MAX_STOPS];
 uniform vec4 color_stop_colors[MAX_STOPS];
 
+//TODO: rewrite without branching to make ALUs happy
 void main() {
     vec2 gradient_vec = vec2(gradient_end - gradient_start);
     vec2 current_vec = vec2(raw_position.xy - gradient_start);

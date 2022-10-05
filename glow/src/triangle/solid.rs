@@ -1,13 +1,38 @@
 use crate::program::Version;
-use crate::triangle::{simple_triangle_program, update_transform};
+use crate::triangle::{set_transform, simple_triangle_program};
 use crate::Color;
 use glow::{Context, HasContext, NativeProgram};
 use iced_graphics::Transformation;
 
 #[derive(Debug)]
 pub struct SolidProgram {
-    pub(crate) program: <Context as HasContext>::Program,
-    pub(crate) uniform_data: SolidUniformData,
+    program: <Context as HasContext>::Program,
+    uniform_data: SolidUniformData,
+}
+
+#[derive(Debug)]
+pub(crate) struct SolidUniformData {
+    pub color: Color,
+    pub color_location: <Context as HasContext>::UniformLocation,
+    pub transform: Transformation,
+    pub transform_location: <Context as HasContext>::UniformLocation,
+}
+
+impl SolidUniformData {
+    fn new(gl: &Context, program: NativeProgram) -> Self {
+        Self {
+            color: Color::TRANSPARENT,
+            color_location: unsafe {
+                gl.get_uniform_location(program, "color")
+            }
+                .expect("Solid - Color uniform location."),
+            transform: Transformation::identity(),
+            transform_location: unsafe {
+                gl.get_uniform_location(program, "u_Transform")
+            }
+                .expect("Get transform location."),
+        }
+    }
 }
 
 impl SolidProgram {
@@ -24,15 +49,17 @@ impl SolidProgram {
         }
     }
 
-    pub fn set_uniforms<'a>(
+    pub fn write_uniforms(
         &mut self,
         gl: &Context,
         color: &Color,
-        transform: Option<Transformation>,
+        transform: &Transformation,
     ) {
-        update_transform(gl, self.program, transform);
+        if transform != &self.uniform_data.transform {
+            set_transform(gl, self.uniform_data.transform_location, *transform)
+        }
 
-        if &self.uniform_data.color != color {
+        if color != &self.uniform_data.color {
             unsafe {
                 gl.uniform_4_f32(
                     Some(&self.uniform_data.color_location),
@@ -46,22 +73,11 @@ impl SolidProgram {
             self.uniform_data.color = *color;
         }
     }
-}
 
-#[derive(Debug)]
-pub(crate) struct SolidUniformData {
-    pub color: Color,
-    pub color_location: <Context as HasContext>::UniformLocation,
-}
-
-impl SolidUniformData {
-    fn new(gl: &Context, program: NativeProgram) -> Self {
-        Self {
-            color: Color::TRANSPARENT,
-            color_location: unsafe {
-                gl.get_uniform_location(program, "color")
-            }
-            .expect("Solid - Color uniform location."),
+    pub fn use_program(&mut self, gl: &glow::Context, color: &Color, transform: &Transformation) {
+        unsafe {
+            gl.use_program(Some(self.program))
         }
+        self.write_uniforms(gl, color, transform)
     }
 }

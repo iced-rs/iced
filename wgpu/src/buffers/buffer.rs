@@ -1,91 +1,124 @@
 //! Utilities for static buffer operations.
+use bytemuck::{Pod, Zeroable};
+use std::marker::PhantomData;
+use std::mem;
+
+//128 triangles/indices
+const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 128;
 
 /// A generic buffer struct useful for items which have no alignment requirements
 /// (e.g. Vertex, Index buffers) and are set once and never changed until destroyed.
-///
-/// This buffer is mapped to the GPU on creation, so must be initialized with the correct capacity.
 #[derive(Debug)]
-pub(crate) struct StaticBuffer {
-    //stored sequentially per mesh iteration
+pub(crate) struct StaticBuffer<T> {
+    //stored sequentially per mesh iteration; refers to the offset index in the GPU buffer
     offsets: Vec<wgpu::BufferAddress>,
+    label: &'static str,
+    usages: wgpu::BufferUsages,
     gpu: wgpu::Buffer,
     //the static size of the buffer
     size: wgpu::BufferAddress,
+    _data: PhantomData<T>,
 }
 
-impl StaticBuffer {
+impl<T: Pod + Zeroable> StaticBuffer<T> {
+    /// Initialize a new static buffer.
     pub fn new(
         device: &wgpu::Device,
         label: &'static str,
-        size: u64,
-        usage: wgpu::BufferUsages,
-        total_offsets: usize,
+        usages: wgpu::BufferUsages,
     ) -> Self {
+        let size = (mem::size_of::<T>() as u64) * DEFAULT_STATIC_BUFFER_COUNT;
+
         Self {
-            offsets: Vec::with_capacity(total_offsets),
-            gpu: device.create_buffer(&wgpu::BufferDescriptor {
-                label: Some(label),
-                size,
-                usage,
-                mapped_at_creation: true,
-            }),
+            offsets: Vec::new(),
+            label,
+            usages,
+            gpu: Self::gpu_buffer(device, label, size, usages),
             size,
+            _data: Default::default(),
         }
     }
 
-    /// Resolves pending write operations & unmaps buffer from host memory.
-    pub fn flush(&self) {
-        (&self.gpu).unmap();
+    fn gpu_buffer(
+        device: &wgpu::Device,
+        label: &'static str,
+        size: wgpu::BufferAddress,
+        usage: wgpu::BufferUsages,
+    ) -> wgpu::Buffer {
+        device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some(label),
+            size,
+            usage,
+            mapped_at_creation: false,
+        })
     }
 
-    /// Returns whether or not the buffer needs to be recreated. This can happen whenever the mesh 
-    /// data is re-submitted.
-    pub fn needs_recreate(&self, new_size: usize) -> bool {
-        self.size != new_size as u64
-    }
+    /// Returns whether or not the buffer needs to be recreated. This can happen whenever mesh data
+    /// changes & a redraw is requested.
+    pub fn recreate_if_needed(
+        &mut self,
+        device: &wgpu::Device,
+        new_count: usize,
+    ) -> bool {
+        let size =
+            wgpu::BufferAddress::from((mem::size_of::<T>() * new_count) as u64);
 
-    /// Writes the current vertex data to the gpu buffer with a memcpy & stores its offset.
-    pub fn write(&mut self, offset: u64, content: &[u8]) {
-        //offset has to be divisible by 8 for alignment reasons
-        let actual_offset = if offset % 8 != 0 {
-            offset + 4
+        if self.size <= size {
+            self.offsets.clear();
+            self.size = size;
+            self.gpu = Self::gpu_buffer(device, self.label, size, self.usages);
+            true
         } else {
-            offset
-        };
+            false
+        }
+    }
 
-        let mut buffer = self
-            .gpu
-            .slice(actual_offset..(actual_offset + content.len() as u64))
-            .get_mapped_range_mut();
-        buffer.copy_from_slice(content);
-        self.offsets.push(actual_offset);
+    /// Writes the current vertex data to the gpu buffer if it is currently writable with a memcpy &
+    /// stores its offset.
+    ///
+    /// This will return either the offset of the written bytes, or `None` if the GPU buffer is not
+    /// currently writable.
+    pub fn write(
+        &mut self,
+        device: &wgpu::Device,
+        staging_belt: &mut wgpu::util::StagingBelt,
+        encoder: &mut wgpu::CommandEncoder,
+        offset: u64,
+        content: &[T],
+    ) -> u64 {
+        let bytes = bytemuck::cast_slice(content);
+        let bytes_size = bytes.len() as u64;
+
+        if let Some(buffer_size) = wgpu::BufferSize::new(bytes_size as u64) {
+            //offset has to be divisible by 8 for alignment reasons
+            let actual_offset = if offset % 8 != 0 { offset + 4 } else { offset };
+
+            let mut buffer = staging_belt.write_buffer(
+                encoder,
+                &self.gpu,
+                actual_offset,
+                buffer_size,
+                device,
+            );
+
+            buffer.copy_from_slice(bytes);
+
+            self.offsets.push(actual_offset);
+        }
+
+        bytes_size
     }
 
     fn offset_at(&self, index: usize) -> &wgpu::BufferAddress {
         self.offsets
             .get(index)
-            .expect(&format!("Offset index {} is not in range.", index))
+            .expect("Offset at index does not exist.")
     }
 
     /// Returns the slice calculated from the offset stored at the given index.
-    /// e.g. to calculate the slice for the 2nd mesh in the layer, this would be the offset at index 
+    /// e.g. to calculate the slice for the 2nd mesh in the layer, this would be the offset at index
     /// 1 that we stored earlier when writing.
-    pub fn slice_from_index<T>(
-        &self,
-        index: usize,
-    ) -> wgpu::BufferSlice<'_> {
+    pub fn slice_from_index(&self, index: usize) -> wgpu::BufferSlice<'_> {
         self.gpu.slice(self.offset_at(index)..)
-    }
-}
-
-/// Returns true if the current buffer doesn't exist & needs to be created, or if it's too small 
-/// for the new content.
-pub(crate) fn needs_recreate(
-    buffer: &Option<StaticBuffer>,
-    new_size: usize,
-) -> bool {
-    match buffer {
-        None => true,
-        Some(buf) => buf.needs_recreate(new_size),
     }
 }

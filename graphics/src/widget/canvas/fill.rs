@@ -8,7 +8,7 @@ pub struct Fill<'a> {
     /// The color or gradient of the fill.
     ///
     /// By default, it is set to [`FillStyle::Solid`] `BLACK`.
-    pub style: FillStyle<'a>,
+    pub style: Style<'a>,
 
     /// The fill rule defines how to determine what is inside and what is
     /// outside of a shape.
@@ -24,7 +24,7 @@ pub struct Fill<'a> {
 impl <'a> Default for Fill<'a> {
     fn default() -> Fill<'a> {
         Fill {
-            style: FillStyle::Solid(Color::BLACK),
+            style: Style::Solid(Color::BLACK),
             rule: FillRule::NonZero,
         }
     }
@@ -33,7 +33,7 @@ impl <'a> Default for Fill<'a> {
 impl<'a> From<Color> for Fill<'a> {
     fn from(color: Color) -> Fill<'a> {
         Fill {
-            style: FillStyle::Solid(color),
+            style: Style::Solid(color),
             ..Fill::default()
         }
     }
@@ -41,18 +41,18 @@ impl<'a> From<Color> for Fill<'a> {
 
 /// The color or gradient of a [`Fill`].
 #[derive(Debug, Clone)]
-pub enum FillStyle<'a> {
+pub enum Style<'a> {
     /// A solid color
     Solid(Color),
     /// A color gradient
     Gradient(&'a Gradient),
 }
 
-impl <'a> Into<Shader> for FillStyle<'a> {
+impl <'a> Into<Shader> for Style<'a> {
     fn into(self) -> Shader {
         match self {
-            FillStyle::Solid(color) => Shader::Solid(color),
-            FillStyle::Gradient(gradient) => gradient.clone().into()
+            Style::Solid(color) => Shader::Solid(color),
+            Style::Gradient(gradient) => gradient.clone().into()
         }
     }
 }

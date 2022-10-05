@@ -19,7 +19,7 @@ use iced::{
 };
 
 use std::time::Instant;
-use crate::canvas::StrokeStyle;
+use crate::canvas::Style;
 
 pub fn main() -> iced::Result {
     SolarSystem::run(Settings {
@@ -179,7 +179,7 @@ impl<Message> canvas::Program<Message> for State {
             frame.stroke(
                 &orbit,
                 Stroke {
-                    style: StrokeStyle::Solid(Color::from_rgba8(0, 153, 255, 0.1)),
+                    style: Style::Solid(Color::from_rgba8(0, 153, 255, 0.1)),
                     width: 1.0,
                     line_dash: canvas::LineDash {
                         offset: 0,

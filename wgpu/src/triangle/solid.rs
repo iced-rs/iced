@@ -8,15 +8,15 @@ use encase::ShaderType;
 use glam::Vec4;
 use iced_graphics::Transformation;
 
-pub(super) struct SolidPipeline {
+pub struct SolidPipeline {
     pipeline: wgpu::RenderPipeline,
-    pub(super) buffer: DynamicBuffer<SolidUniforms>,
+    pub(crate) buffer: DynamicBuffer<SolidUniforms>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
 #[derive(Debug, Clone, Copy, ShaderType)]
-pub(super) struct SolidUniforms {
+pub struct SolidUniforms {
     transform: glam::Mat4,
     color: Vec4,
 }
@@ -156,14 +156,13 @@ impl SolidPipeline {
     pub fn configure_render_pass<'a>(
         &'a self,
         render_pass: &mut wgpu::RenderPass<'a>,
-        index: usize,
+        count: usize,
     ) {
         render_pass.set_pipeline(&self.pipeline);
-
         render_pass.set_bind_group(
             0,
             &self.bind_group,
-            &[self.buffer.offset_at_index(index)],
-        );
+            &[self.buffer.offset_at_index(count)],
+        )
     }
 }

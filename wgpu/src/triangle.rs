@@ -3,11 +3,11 @@ use crate::{settings, Transformation};
 use core::fmt;
 use std::fmt::Formatter;
 
-use iced_graphics::layer::Meshes;
+use iced_graphics::layer::{attribute_count_of, Mesh};
 use iced_graphics::shader::Shader;
 use iced_graphics::Size;
 
-use crate::buffers::buffer::{needs_recreate, StaticBuffer};
+use crate::buffers::buffer::StaticBuffer;
 use crate::triangle::gradient::GradientPipeline;
 use crate::triangle::solid::SolidPipeline;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
@@ -20,10 +20,9 @@ mod solid;
 #[derive(Debug)]
 pub(crate) struct Pipeline {
     blit: Option<msaa::Blit>,
-    // these are optional so we don't allocate any memory to the GPU if
-    // application has no triangle meshes.
-    vertex_buffer: Option<StaticBuffer>,
-    index_buffer: Option<StaticBuffer>,
+    vertex_buffer: StaticBuffer<Vertex2D>,
+    index_buffer: StaticBuffer<u32>,
+    index_strides: Vec<u32>,
     pipelines: TrianglePipelines,
 }
 
@@ -69,8 +68,17 @@ impl Pipeline {
     ) -> Pipeline {
         Pipeline {
             blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
-            vertex_buffer: None,
-            index_buffer: None,
+            vertex_buffer: StaticBuffer::new(
+                device,
+                "iced_wgpu::triangle vertex buffer",
+                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            ),
+            index_buffer: StaticBuffer::new(
+                device,
+                "iced_wgpu::triangle vertex buffer",
+                wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
+            ),
+            index_strides: Vec::new(),
             pipelines: TrianglePipelines {
                 solid: SolidPipeline::new(device, format, antialiasing),
                 gradient: GradientPipeline::new(device, format, antialiasing),
@@ -88,177 +96,152 @@ impl Pipeline {
         target_size: Size<u32>,
         transformation: Transformation,
         scale_factor: f32,
-        meshes: &Meshes<'_>,
+        meshes: &[Mesh<'_>],
     ) {
-        //count the total number of vertices & indices we need to handle
-        let (total_vertices, total_indices) = meshes.attribute_count();
+        //count the total amount of vertices & indices we need to handle
+        let (total_vertices, total_indices) = attribute_count_of(meshes);
 
-        //Only create buffers if they need to be re-sized or don't exist
-        if needs_recreate(&self.vertex_buffer, total_vertices) {
-            //mapped to GPU at creation with total vertices
-            self.vertex_buffer = Some(StaticBuffer::new(
+        // Then we ensure the current attribute buffers are big enough, resizing if necessary
+        // with wgpu this means recreating the buffer.
+
+        //We are not currently using the return value of these functions as we have no system in
+        //place to calculate mesh diff, or to know whether or not that would be more performant for
+        //the majority of use cases. Therefore we will write GPU data every frame (for now).
+        let _ = self.vertex_buffer.recreate_if_needed(device, total_vertices);
+        let _ = self.index_buffer.recreate_if_needed(device, total_indices);
+
+        //prepare dynamic buffers & data store for writing
+        self.index_strides.clear();
+        self.pipelines.clear();
+
+        let mut vertex_offset = 0;
+        let mut index_offset = 0;
+
+        for mesh in meshes {
+            let transform = transformation
+                * Transformation::translate(mesh.origin.x, mesh.origin.y);
+
+            //write to both buffers
+            let new_vertex_offset = self.vertex_buffer.write(
                 device,
-                "iced_wgpu::triangle vertex buffer",
-                //TODO: a more reasonable default to prevent frequent resizing calls
-                // before this was 10_000
-                (std::mem::size_of::<Vertex2D>() * total_vertices) as u64,
-                wgpu::BufferUsages::VERTEX,
-                meshes.0.len(),
-            ))
-        }
+                staging_belt,
+                encoder,
+                vertex_offset,
+                &mesh.buffers.vertices,
+            );
 
-        if needs_recreate(&self.index_buffer, total_indices) {
-            //mapped to GPU at creation with total indices
-            self.index_buffer = Some(StaticBuffer::new(
+            let new_index_offset = self.index_buffer.write(
                 device,
-                "iced_wgpu::triangle index buffer",
-                //TODO: a more reasonable default to prevent frequent resizing calls
-                // before this was 10_000
-                (std::mem::size_of::<Vertex2D>() * total_indices) as u64,
-                wgpu::BufferUsages::INDEX,
-                meshes.0.len(),
-            ));
-        }
+                staging_belt,
+                encoder,
+                index_offset,
+                &mesh.buffers.indices,
+            );
 
-        if let Some(vertex_buffer) = &mut self.vertex_buffer {
-            if let Some(index_buffer) = &mut self.index_buffer {
-                let mut offset_v = 0;
-                let mut offset_i = 0;
-                //TODO: store this more efficiently
-                let mut indices_lengths = Vec::with_capacity(meshes.0.len());
+            vertex_offset = vertex_offset + new_vertex_offset;
+            index_offset = index_offset + new_index_offset;
 
-                //iterate through meshes to write all attribute data
-                for mesh in meshes.0.iter() {
-                    let transform = transformation
-                        * Transformation::translate(
-                            mesh.origin.x,
-                            mesh.origin.y,
-                        );
+            self.index_strides.push(mesh.buffers.indices.len() as u32);
 
-                    let vertices = bytemuck::cast_slice(&mesh.buffers.vertices);
-                    let indices = bytemuck::cast_slice(&mesh.buffers.indices);
-
-                    //TODO: it's (probably) more efficient to reduce this write command and
-                    // iterate first and then upload
-                    vertex_buffer.write(offset_v, vertices);
-                    index_buffer.write(offset_i, indices);
-
-                    offset_v += vertices.len() as u64;
-                    offset_i += indices.len() as u64;
-                    indices_lengths.push(mesh.buffers.indices.len());
-
-                    match mesh.shader {
-                        Shader::Solid(color) => {
-                            self.pipelines.solid.push(transform, color);
-                        }
-                        Shader::Gradient(gradient) => {
-                            self.pipelines.gradient.push(transform, gradient);
-                        }
-                    }
+            //push uniform data to CPU buffers
+            match mesh.shader {
+                Shader::Solid(color) => {
+                    self.pipelines.solid.push(transform, color);
                 }
+                Shader::Gradient(gradient) => {
+                    self.pipelines.gradient.push(transform, gradient);
+                }
+            }
+        }
 
-                //done writing to gpu buffer, unmap from host memory since we don't need it
-                //anymore
-                vertex_buffer.flush();
-                index_buffer.flush();
+        //write uniform data to GPU
+        self.pipelines.write(device, staging_belt, encoder);
 
-                //resize & memcpy uniforms from CPU buffers to GPU buffers for all pipelines
-                self.pipelines.write(device, staging_belt, encoder);
+        //configure the render pass now that the data is uploaded to the GPU
+        {
+            //configure antialiasing pass
+            let (attachment, resolve_target, load) = if let Some(blit) =
+                &mut self.blit
+            {
+                let (attachment, resolve_target) =
+                    blit.targets(device, target_size.width, target_size.height);
 
-                //configure the render pass now that the data is uploaded to the GPU
-                {
-                    //configure antialiasing pass
-                    let (attachment, resolve_target, load) =
-                        if let Some(blit) = &mut self.blit {
-                            let (attachment, resolve_target) = blit.targets(
-                                device,
-                                target_size.width,
-                                target_size.height,
-                            );
+                (
+                    attachment,
+                    Some(resolve_target),
+                    wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                )
+            } else {
+                (target, None, wgpu::LoadOp::Load)
+            };
 
-                            (
-                                attachment,
-                                Some(resolve_target),
-                                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                            )
-                        } else {
-                            (target, None, wgpu::LoadOp::Load)
-                        };
-
-                    let mut render_pass = encoder.begin_render_pass(
-                        &wgpu::RenderPassDescriptor {
-                            label: Some("iced_wgpu::triangle render pass"),
-                            color_attachments: &[Some(
-                                wgpu::RenderPassColorAttachment {
-                                    view: attachment,
-                                    resolve_target,
-                                    ops: wgpu::Operations { load, store: true },
-                                },
-                            )],
-                            depth_stencil_attachment: None,
+            let mut render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu::triangle render pass"),
+                    color_attachments: &[Some(
+                        wgpu::RenderPassColorAttachment {
+                            view: attachment,
+                            resolve_target,
+                            ops: wgpu::Operations { load, store: true },
                         },
-                    );
+                    )],
+                    depth_stencil_attachment: None,
+                });
 
-                    //TODO: do this a better way; store it in the respective pipelines perhaps
-                    // to be more readable
-                    let mut num_solids = 0;
-                    let mut num_gradients = 0;
+            //TODO I can't figure out a clean way to encapsulate these into their appropriate
+            // structs without displeasing the borrow checker due to the lifetime requirements of
+            // render_pass & using a mutable reference to each pipeline in a loop...
+            let mut num_solids = 0;
+            let mut num_gradients = 0;
 
-                    //TODO: try to avoid this extra iteration if possible
-                    for index in 0..meshes.0.len() {
-                        let clip_bounds =
-                            (meshes.0[index].clip_bounds * scale_factor).snap();
+            for (index, mesh) in meshes.iter().enumerate() {
+                let clip_bounds = (mesh.clip_bounds * scale_factor).snap();
 
-                        render_pass.set_scissor_rect(
-                            clip_bounds.x,
-                            clip_bounds.y,
-                            clip_bounds.width,
-                            clip_bounds.height,
+                render_pass.set_scissor_rect(
+                    clip_bounds.x,
+                    clip_bounds.y,
+                    clip_bounds.width,
+                    clip_bounds.height,
+                );
+
+                match mesh.shader {
+                    Shader::Solid(_) => {
+                        self.pipelines.solid.configure_render_pass(
+                            &mut render_pass,
+                            num_solids,
                         );
-
-                        match meshes.0[index].shader {
-                            Shader::Solid(_) => {
-                                self.pipelines.solid.configure_render_pass(
-                                    &mut render_pass,
-                                    num_solids,
-                                );
-                                num_solids += 1;
-                            }
-                            Shader::Gradient(_) => {
-                                self.pipelines.gradient.configure_render_pass(
-                                    &mut render_pass,
-                                    num_gradients,
-                                );
-                                num_gradients += 1;
-                            }
-                        }
-
-                        render_pass.set_index_buffer(
-                            index_buffer.slice_from_index::<u32>(index),
-                            wgpu::IndexFormat::Uint32,
-                        );
-
-                        render_pass.set_vertex_buffer(
-                            0,
-                            vertex_buffer.slice_from_index::<Vertex2D>(index),
-                        );
-
-                        render_pass.draw_indexed(
-                            0..(indices_lengths[index] as u32),
-                            0,
-                            0..1,
-                        );
+                        num_solids += 1;
                     }
-                }
+                    Shader::Gradient(_) => {
+                        self.pipelines.gradient.configure_render_pass(
+                            &mut render_pass,
+                            num_gradients,
+                        );
+                        num_gradients += 1;
+                    }
+                };
+
+                render_pass.set_vertex_buffer(
+                    0,
+                    self.vertex_buffer.slice_from_index(index),
+                );
+
+                render_pass.set_index_buffer(
+                    self.index_buffer.slice_from_index(index),
+                    wgpu::IndexFormat::Uint32,
+                );
+
+                render_pass.draw_indexed(
+                    0..(self.index_strides[index] as u32),
+                    0,
+                    0..1,
+                );
             }
         }
 
         if let Some(blit) = &mut self.blit {
             blit.draw(encoder, target);
         }
-
-        //cleanup
-        self.pipelines.clear();
     }
 }
 

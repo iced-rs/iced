@@ -50,7 +50,6 @@ impl DynamicBufferType {
     }
 }
 
-//TODO think about making cpu & gpu buffers optional
 pub(crate) struct DynamicBuffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
     cpu: DynamicBufferType,
@@ -183,7 +182,7 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
         let offset = self
             .offsets
             .get(index)
-            .expect(&format!("Index {} not found in offsets.", index))
+            .expect("Index not found in offsets.")
             .clone();
 
         offset

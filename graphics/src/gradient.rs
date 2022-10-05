@@ -1,6 +1,6 @@
 //! For creating a Gradient.
 use iced_native::Color;
-use crate::gradient::linear::Linear;
+pub use crate::gradient::linear::Linear;
 use crate::Point;
 
 #[derive(Debug, Clone, PartialEq)]

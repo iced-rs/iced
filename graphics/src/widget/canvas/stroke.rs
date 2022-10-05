@@ -8,7 +8,7 @@ pub struct Stroke<'a> {
     /// The color or gradient of the stroke.
     ///
     /// By default, it is set to [`StrokeStyle::Solid`] `BLACK`.
-    pub style: StrokeStyle<'a>,
+    pub style: Style<'a>,
     /// The distance between the two edges of the stroke.
     pub width: f32,
     /// The shape to be used at the end of open subpaths when they are stroked.
@@ -24,7 +24,7 @@ impl<'a> Stroke<'a> {
     /// Sets the color of the [`Stroke`].
     pub fn with_color(self, color: Color) -> Self {
         Stroke {
-            style: StrokeStyle::Solid(color),
+            style: Style::Solid(color),
             ..self
         }
     }
@@ -48,7 +48,7 @@ impl<'a> Stroke<'a> {
 impl<'a> Default for Stroke<'a> {
     fn default() -> Self {
         Stroke {
-            style: StrokeStyle::Solid(Color::BLACK),
+            style: Style::Solid(Color::BLACK),
             width: 1.0,
             line_cap: LineCap::default(),
             line_join: LineJoin::default(),
@@ -59,18 +59,18 @@ impl<'a> Default for Stroke<'a> {
 
 /// The color or gradient of a [`Stroke`].
 #[derive(Debug, Clone, Copy)]
-pub enum StrokeStyle<'a> {
+pub enum Style<'a> {
     /// A solid color
     Solid(Color),
     /// A color gradient
     Gradient(&'a Gradient),
 }
 
-impl <'a> Into<Shader> for StrokeStyle<'a> {
+impl <'a> Into<Shader> for Style<'a> {
     fn into(self) -> Shader {
         match self {
-            StrokeStyle::Solid(color) => Shader::Solid(color),
-            StrokeStyle::Gradient(gradient) => gradient.clone().into()
+            Style::Solid(color) => Shader::Solid(color),
+            Style::Gradient(gradient) => gradient.clone().into()
         }
     }
 }

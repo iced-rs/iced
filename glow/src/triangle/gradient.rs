@@ -1,18 +1,42 @@
 use crate::program::Version;
-use crate::triangle::{simple_triangle_program, update_transform};
+use crate::triangle::{simple_triangle_program, set_transform};
 use glow::{Context, HasContext, NativeProgram};
+use iced_graphics::gradient::Linear;
 use iced_graphics::gradient::Gradient;
-use iced_graphics::widget::canvas::gradient::Linear;
 use iced_graphics::Transformation;
 
 #[derive(Debug)]
-pub(super) struct GradientProgram {
-    pub(super) program: <Context as HasContext>::Program,
-    pub(super) uniform_data: GradientUniformData,
+pub struct GradientProgram {
+    pub program: <Context as HasContext>::Program,
+    pub uniform_data: GradientUniformData,
+}
+
+#[derive(Debug)]
+pub struct GradientUniformData {
+    gradient: Gradient,
+    transform: Transformation,
+    uniform_locations: GradientUniformLocations,
+}
+
+#[derive(Debug)]
+struct GradientUniformLocations {
+    gradient_start_location: <Context as HasContext>::UniformLocation,
+    gradient_end_location: <Context as HasContext>::UniformLocation,
+    color_stops_size_location: <Context as HasContext>::UniformLocation,
+    //currently the maximum number of stops is 64 due to needing to allocate the
+    //memory for the array of stops with a const value in GLSL
+    color_stops_locations: [ColorStopLocation; 64],
+    transform_location: <Context as HasContext>::UniformLocation,
+}
+
+#[derive(Copy, Debug, Clone)]
+struct ColorStopLocation {
+    color: <Context as HasContext>::UniformLocation,
+    offset: <Context as HasContext>::UniformLocation,
 }
 
 impl GradientProgram {
-    pub(super) fn new(gl: &Context, shader_version: &Version) -> Self {
+    pub fn new(gl: &Context, shader_version: &Version) -> Self {
         let program = simple_triangle_program(
             gl,
             shader_version,
@@ -25,15 +49,17 @@ impl GradientProgram {
         }
     }
 
-    pub(super) fn set_uniforms<'a>(
+    pub fn write_uniforms(
         &mut self,
         gl: &Context,
         gradient: &Gradient,
-        transform: Option<Transformation>,
+        transform: &Transformation,
     ) {
-        update_transform(gl, self.program, transform);
+        if transform != &self.uniform_data.transform {
+            set_transform(gl, self.uniform_data.uniform_locations.transform_location, *transform);
+        }
 
-        if &self.uniform_data.current_gradient != gradient {
+        if &self.uniform_data.gradient != gradient {
             match gradient {
                 Gradient::Linear(linear) => {
                     let gradient_start: [f32; 2] = (linear.start).into();
@@ -104,31 +130,17 @@ impl GradientProgram {
                 }
             }
 
-            self.uniform_data.current_gradient = gradient.clone();
+            self.uniform_data.gradient = gradient.clone();
         }
     }
-}
 
-#[derive(Debug)]
-pub(super) struct GradientUniformData {
-    current_gradient: Gradient,
-    uniform_locations: GradientUniformLocations,
-}
+    pub fn use_program(&mut self, gl: &glow::Context, gradient: &Gradient, transform: &Transformation) {
+        unsafe {
+            gl.use_program(Some(self.program))
+        }
 
-#[derive(Debug)]
-struct GradientUniformLocations {
-    gradient_start_location: <Context as HasContext>::UniformLocation,
-    gradient_end_location: <Context as HasContext>::UniformLocation,
-    color_stops_size_location: <Context as HasContext>::UniformLocation,
-    //currently the maximum number of stops is 64 due to needing to allocate the
-    //memory for the array of stops with a const value in GLSL
-    color_stops_locations: [ColorStopLocation; 64],
-}
-
-#[derive(Copy, Debug, Clone)]
-struct ColorStopLocation {
-    color: <Context as HasContext>::UniformLocation,
-    offset: <Context as HasContext>::UniformLocation,
+        self.write_uniforms(gl, gradient, transform);
+    }
 }
 
 impl GradientUniformData {
@@ -153,10 +165,7 @@ impl GradientUniformData {
                         &format!("color_stop_offsets[{}]", index),
                     )
                 }
-                .expect(&format!(
-                    "Gradient - Color stop offset with index {}",
-                    index
-                ));
+                .expect("Gradient - Color stop offset location.");
 
                 let color = unsafe {
                     gl.get_uniform_location(
@@ -164,25 +173,28 @@ impl GradientUniformData {
                         &format!("color_stop_colors[{}]", index),
                     )
                 }
-                .expect(&format!(
-                    "Gradient - Color stop colors with index {}",
-                    index
-                ));
+                .expect("Gradient - Color stop color location.");
 
                 ColorStopLocation { color, offset }
             });
 
+        let transform_location =
+            unsafe { gl.get_uniform_location(program, "u_Transform") }
+                .expect("Get transform location.");
+
         GradientUniformData {
-            current_gradient: Gradient::Linear(Linear {
+            gradient: Gradient::Linear(Linear {
                 start: Default::default(),
                 end: Default::default(),
                 color_stops: vec![],
             }),
+            transform: Transformation::identity(),
             uniform_locations: GradientUniformLocations {
                 gradient_start_location,
                 gradient_end_location,
                 color_stops_size_location,
                 color_stops_locations,
+                transform_location,
             },
         }
     }

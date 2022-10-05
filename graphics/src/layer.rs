@@ -19,7 +19,7 @@ pub struct Layer<'a> {
     pub quads: Vec<Quad>,
 
     /// The triangle meshes of the [`Layer`].
-    pub meshes: Meshes<'a>,
+    pub meshes: Vec<Mesh<'a>>,
 
     /// The text of the [`Layer`].
     pub text: Vec<Text<'a>>,
@@ -34,7 +34,7 @@ impl<'a> Layer<'a> {
         Self {
             bounds,
             quads: Vec::new(),
-            meshes: Meshes(Vec::new()),
+            meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
         }
@@ -174,7 +174,7 @@ impl<'a> Layer<'a> {
 
                 // Only draw visible content
                 if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.0.push(
+                    layer.meshes.push(
                         Mesh {
                             origin: Point::new(translation.x, translation.y),
                             buffers,
@@ -335,20 +335,14 @@ unsafe impl bytemuck::Zeroable for Quad {}
 #[allow(unsafe_code)]
 unsafe impl bytemuck::Pod for Quad {}
 
-#[derive(Debug)]
-/// A collection of meshes.
-pub struct Meshes<'a>(pub Vec<Mesh<'a>>);
-
-impl<'a> Meshes<'a> {
-    /// Returns the number of total vertices & total indices of all [`Mesh`]es.
-    pub fn attribute_count(&self) -> (usize, usize) {
-        self.0
-            .iter()
-            .map(|Mesh { buffers, .. }| {
-                (buffers.vertices.len(), buffers.indices.len())
-            })
-            .fold((0, 0), |(total_v, total_i), (v, i)| {
-                (total_v + v, total_i + i)
-            })
-    }
+/// Returns the number of total vertices & total indices of all [`Mesh`]es.
+pub fn attribute_count_of<'a>(meshes: &'a [Mesh<'a>]) -> (usize, usize) {
+    meshes
+        .iter()
+        .map(|Mesh { buffers, .. }| {
+            (buffers.vertices.len(), buffers.indices.len())
+        })
+        .fold((0, 0), |(total_v, total_i), (v, i)| {
+            (total_v + v, total_i + i)
+        })
 }
