@@ -2,10 +2,11 @@ use iced_native::image;
 use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
-use crate::{alignment, shader};
+use crate::{alignment, layer};
 use crate::triangle;
 
 use std::sync::Arc;
+use layer::mesh;
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]
@@ -90,7 +91,7 @@ pub enum Primitive {
         size: Size,
 
         /// The shader of the mesh
-        shader: shader::Shader,
+        style: mesh::Style,
     },
     /// A cached primitive.
     ///

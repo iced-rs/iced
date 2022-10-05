@@ -69,7 +69,6 @@ members = [
     "examples/events",
     "examples/exit",
     "examples/game_of_life",
-    "examples/geometry",
     "examples/integration_opengl",
     "examples/integration_wgpu",
     "examples/modern_art",

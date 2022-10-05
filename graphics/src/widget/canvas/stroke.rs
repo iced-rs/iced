@@ -1,6 +1,8 @@
+//! Create lines from a [crate::widget::canvas::Path] and render with various attributes/styles.
+
 use iced_native::Color;
 use crate::gradient::Gradient;
-use crate::shader::Shader;
+use crate::layer::mesh;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]
@@ -66,10 +68,10 @@ pub enum Style<'a> {
     Gradient(&'a Gradient),
 }
 
-impl <'a> Into<Shader> for Style<'a> {
-    fn into(self) -> Shader {
+impl <'a> Into<mesh::Style> for Style<'a> {
+    fn into(self) -> mesh::Style {
         match self {
-            Style::Solid(color) => Shader::Solid(color),
+            Style::Solid(color) => mesh::Style::Solid(color),
             Style::Gradient(gradient) => gradient.clone().into()
         }
     }

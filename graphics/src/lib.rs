@@ -35,7 +35,6 @@ pub mod renderer;
 pub mod triangle;
 pub mod widget;
 pub mod window;
-pub mod shader;
 pub mod gradient;
 
 pub use antialiasing::Antialiasing;

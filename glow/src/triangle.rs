@@ -5,13 +5,13 @@ mod solid;
 use crate::{program, Transformation};
 use glow::HasContext;
 use iced_graphics::layer::{attribute_count_of, Mesh};
-use iced_graphics::shader;
 use std::marker::PhantomData;
+use iced_graphics::layer;
 
 use crate::triangle::gradient::GradientProgram;
 use crate::triangle::solid::SolidProgram;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-use shader::Shader;
+use layer::mesh;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
@@ -139,11 +139,11 @@ impl Pipeline {
                     clip_bounds.height as i32,
                 );
 
-                match mesh.shader {
-                    Shader::Solid(color) => {
+                match mesh.style {
+                    mesh::Style::Solid(color) => {
                         self.programs.solid.use_program(gl, &color, &transform);
                     }
-                    Shader::Gradient(gradient) => {
+                    mesh::Style::Gradient(gradient) => {
                         self.programs.gradient.use_program(gl, &gradient, &transform);
                     }
                 }

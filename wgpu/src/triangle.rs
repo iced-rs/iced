@@ -4,13 +4,13 @@ use core::fmt;
 use std::fmt::Formatter;
 
 use iced_graphics::layer::{attribute_count_of, Mesh};
-use iced_graphics::shader::Shader;
-use iced_graphics::Size;
+use iced_graphics::{layer, Size};
 
-use crate::buffers::buffer::StaticBuffer;
+use crate::buffers::StaticBuffer;
 use crate::triangle::gradient::GradientPipeline;
 use crate::triangle::solid::SolidPipeline;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
+use layer::mesh;
 
 mod gradient;
 mod msaa;
@@ -107,7 +107,9 @@ impl Pipeline {
         //We are not currently using the return value of these functions as we have no system in
         //place to calculate mesh diff, or to know whether or not that would be more performant for
         //the majority of use cases. Therefore we will write GPU data every frame (for now).
-        let _ = self.vertex_buffer.recreate_if_needed(device, total_vertices);
+        let _ = self
+            .vertex_buffer
+            .recreate_if_needed(device, total_vertices);
         let _ = self.index_buffer.recreate_if_needed(device, total_indices);
 
         //prepare dynamic buffers & data store for writing
@@ -144,11 +146,11 @@ impl Pipeline {
             self.index_strides.push(mesh.buffers.indices.len() as u32);
 
             //push uniform data to CPU buffers
-            match mesh.shader {
-                Shader::Solid(color) => {
+            match mesh.style {
+                mesh::Style::Solid(color) => {
                     self.pipelines.solid.push(transform, color);
                 }
-                Shader::Gradient(gradient) => {
+                mesh::Style::Gradient(gradient) => {
                     self.pipelines.gradient.push(transform, gradient);
                 }
             }
@@ -204,15 +206,15 @@ impl Pipeline {
                     clip_bounds.height,
                 );
 
-                match mesh.shader {
-                    Shader::Solid(_) => {
+                match mesh.style {
+                    mesh::Style::Solid(_) => {
                         self.pipelines.solid.configure_render_pass(
                             &mut render_pass,
                             num_solids,
                         );
                         num_solids += 1;
                     }
-                    Shader::Gradient(_) => {
+                    mesh::Style::Gradient(_) => {
                         self.pipelines.gradient.configure_render_pass(
                             &mut render_pass,
                             num_gradients,

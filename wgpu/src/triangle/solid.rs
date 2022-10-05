@@ -1,4 +1,4 @@
-use crate::buffers::dynamic_buffers::DynamicBuffer;
+use crate::buffers::dynamic::DynamicBuffer;
 use crate::triangle::{
     default_fragment_target, default_multisample_state,
     default_triangle_primitive_state, vertex_buffer_layout,

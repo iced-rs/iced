@@ -1,6 +1,8 @@
-use iced_native::Color;
+//! Fill [crate::widget::canvas::Geometry] with a certain style.
+
 use crate::gradient::Gradient;
-use crate::shader::Shader;
+use crate::layer::mesh;
+use iced_native::Color;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
@@ -21,7 +23,7 @@ pub struct Fill<'a> {
     pub rule: FillRule,
 }
 
-impl <'a> Default for Fill<'a> {
+impl<'a> Default for Fill<'a> {
     fn default() -> Fill<'a> {
         Fill {
             style: Style::Solid(Color::BLACK),
@@ -48,11 +50,11 @@ pub enum Style<'a> {
     Gradient(&'a Gradient),
 }
 
-impl <'a> Into<Shader> for Style<'a> {
-    fn into(self) -> Shader {
+impl<'a> Into<mesh::Style> for Style<'a> {
+    fn into(self) -> mesh::Style {
         match self {
-            Style::Solid(color) => Shader::Solid(color),
-            Style::Gradient(gradient) => gradient.clone().into()
+            Style::Solid(color) => mesh::Style::Solid(color),
+            Style::Gradient(gradient) => gradient.clone().into(),
         }
     }
 }

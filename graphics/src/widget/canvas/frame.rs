@@ -6,7 +6,7 @@ use crate::triangle;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
 use crate::Primitive;
 
-use crate::shader::Shader;
+use crate::layer::mesh;
 use crate::triangle::Vertex2D;
 use lyon::tessellation;
 use lyon::tessellation::geometry_builder::Positions;
@@ -17,7 +17,10 @@ use lyon::tessellation::geometry_builder::Positions;
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
-    buffers: Vec<(tessellation::VertexBuffers<lyon::math::Point, u32>, Shader)>,
+    buffers: Vec<(
+        tessellation::VertexBuffers<lyon::math::Point, u32>,
+        mesh::Style,
+    )>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
@@ -109,7 +112,8 @@ impl Frame {
                 &options,
                 &mut buffers,
             )
-        }.expect("Tessellate path.");
+        }
+        .expect("Tessellate path.");
 
         self.buffers.push((buf, style.into()))
     }
@@ -126,7 +130,8 @@ impl Frame {
 
         let mut buf = tessellation::VertexBuffers::new();
 
-        let mut buffers = tessellation::BuffersBuilder::new(&mut buf, Positions);
+        let mut buffers =
+            tessellation::BuffersBuilder::new(&mut buf, Positions);
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -159,7 +164,8 @@ impl Frame {
 
         let mut buf = tessellation::VertexBuffers::new();
 
-        let mut buffers = tessellation::BuffersBuilder::new(&mut buf, Positions);
+        let mut buffers =
+            tessellation::BuffersBuilder::new(&mut buf, Positions);
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -187,7 +193,8 @@ impl Frame {
                 &options,
                 &mut buffers,
             )
-        }.expect("Stroke path");
+        }
+        .expect("Stroke path");
 
         self.buffers.push((buf, stroke.style.into()))
     }
@@ -331,7 +338,7 @@ impl Frame {
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
-        for (buffer, shader) in self.buffers {
+        for (buffer, style) in self.buffers {
             if !buffer.indices.is_empty() {
                 self.primitives.push(Primitive::Mesh2D {
                     buffers: triangle::Mesh2D {
@@ -339,7 +346,7 @@ impl Frame {
                         indices: buffer.indices,
                     },
                     size: self.size,
-                    shader,
+                    style,
                 })
             }
         }
@@ -350,5 +357,10 @@ impl Frame {
 
 /// Converts from [`lyon::math::Point`] to [`Vertex2D`]. Used for generating primitives.
 fn vertices_from(points: Vec<lyon::math::Point>) -> Vec<Vertex2D> {
-    points.iter().map(|p| Vertex2D { position: [p.x, p.y]}).collect()
+    points
+        .iter()
+        .map(|p| Vertex2D {
+            position: [p.x, p.y],
+        })
+        .collect()
 }

@@ -1,13 +1,17 @@
 //! Organize rendering primitives into a flattened list of layers.
+pub mod mesh;
+mod quad;
+mod text;
+mod image;
+
 use crate::alignment;
-use crate::triangle;
 use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
-
-use iced_native::image;
-use iced_native::svg;
-use crate::shader::Shader;
+pub use crate::layer::image::Image;
+pub use crate::layer::mesh::Mesh;
+pub use crate::layer::quad::Quad;
+pub use crate::layer::text::Text;
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -163,7 +167,7 @@ impl<'a> Layer<'a> {
             Primitive::Mesh2D {
                 buffers,
                 size,
-                shader,
+                style,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -179,7 +183,7 @@ impl<'a> Layer<'a> {
                             origin: Point::new(translation.x, translation.y),
                             buffers,
                             clip_bounds,
-                            shader,
+                            style,
                         }
                     );
                 }
@@ -241,99 +245,6 @@ impl<'a> Layer<'a> {
         }
     }
 }
-
-/// A colored rectangle with a border.
-///
-/// This type can be directly uploaded to GPU memory.
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct Quad {
-    /// The position of the [`Quad`].
-    pub position: [f32; 2],
-
-    /// The size of the [`Quad`].
-    pub size: [f32; 2],
-
-    /// The color of the [`Quad`], in __linear RGB__.
-    pub color: [f32; 4],
-
-    /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: [f32; 4],
-
-    /// The border radius of the [`Quad`].
-    pub border_radius: f32,
-
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
-}
-
-/// A mesh of triangles.
-#[derive(Debug, Clone, Copy)]
-pub struct Mesh<'a> {
-    /// The origin of the vertices of the [`Mesh`].
-    pub origin: Point,
-
-    /// The vertex and index buffers of the [`Mesh`].
-    pub buffers: &'a triangle::Mesh2D,
-
-    /// The clipping bounds of the [`Mesh`].
-    pub clip_bounds: Rectangle<f32>,
-
-    /// The shader of the [`Mesh`].
-    pub shader: &'a Shader,
-}
-
-/// A paragraph of text.
-#[derive(Debug, Clone, Copy)]
-pub struct Text<'a> {
-    /// The content of the [`Text`].
-    pub content: &'a str,
-
-    /// The layout bounds of the [`Text`].
-    pub bounds: Rectangle,
-
-    /// The color of the [`Text`], in __linear RGB_.
-    pub color: [f32; 4],
-
-    /// The size of the [`Text`].
-    pub size: f32,
-
-    /// The font of the [`Text`].
-    pub font: Font,
-
-    /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
-
-    /// The vertical alignment of the [`Text`].
-    pub vertical_alignment: alignment::Vertical,
-}
-
-/// A raster or vector image.
-#[derive(Debug, Clone)]
-pub enum Image {
-    /// A raster image.
-    Raster {
-        /// The handle of a raster image.
-        handle: image::Handle,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-    },
-    /// A vector image.
-    Vector {
-        /// The handle of a vector image.
-        handle: svg::Handle,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-    },
-}
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Zeroable for Quad {}
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Pod for Quad {}
 
 /// Returns the number of total vertices & total indices of all [`Mesh`]es.
 pub fn attribute_count_of<'a>(meshes: &'a [Mesh<'a>]) -> (usize, usize) {

@@ -1,14 +1,13 @@
 use rand::{Rng, thread_rng};
 use crate::canvas::{Cursor, Geometry};
-use iced::widget::canvas::{Cache, Fill, Frame};
+use iced::widget::canvas::{Cache, Fill, Frame, Gradient};
 use iced::widget::{canvas, Canvas};
 use iced::Settings;
 use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
     Renderer, Size, Theme,
 };
-use iced_graphics::gradient::Gradient;
-use iced_graphics::widget::canvas::Style;
+use iced_graphics::widget::canvas::fill;
 
 fn main() -> iced::Result {
     ModernArt::run(Settings {
@@ -121,7 +120,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
             top_left,
             size,
             Fill {
-                style: Style::Solid(random_color()),
+                style: fill::Style::Solid(random_color()),
                 .. Default::default()
             }
         );
@@ -130,7 +129,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
             top_left,
             size,
             Fill {
-                style: Style::Gradient(&gradient(
+                style: fill::Style::Gradient(&gradient(
                     top_left,
                     Point::new(top_left.x + size.width, top_left.y + size.height)
                 )),

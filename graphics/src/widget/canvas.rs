@@ -9,17 +9,17 @@ pub mod path;
 
 mod cache;
 mod cursor;
-mod fill;
 mod frame;
 mod geometry;
 mod program;
-mod stroke;
 mod text;
+pub mod fill;
+pub mod stroke;
 
 pub use cache::Cache;
 pub use cursor::Cursor;
 pub use event::Event;
-pub use fill::{Fill, FillRule, Style};
+pub use fill::{Fill, FillRule};
 pub use frame::Frame;
 pub use geometry::Geometry;
 pub use path::Path;
@@ -36,6 +36,8 @@ use iced_native::widget::tree::{self, Tree};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
+
+pub use crate::gradient::Gradient;
 
 use std::marker::PhantomData;
 
