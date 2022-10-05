@@ -28,6 +28,7 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
 
 use crate::{Backend, Primitive, Renderer};
+pub use crate::gradient::Gradient;
 
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
@@ -36,8 +37,6 @@ use iced_native::widget::tree::{self, Tree};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
-
-pub use crate::gradient::Gradient;
 
 use std::marker::PhantomData;
 

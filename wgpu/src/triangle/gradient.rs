@@ -54,8 +54,8 @@ impl GradientPipeline {
             "iced_wgpu::triangle [GRADIENT] uniforms",
         );
 
-        //TODO: With a WASM target storage buffers are not supported. Will need to use UBOs & static
-        // sized array (64 on OpenGL side right now) to make gradients work
+        //Note: with a WASM target storage buffers are not supported. Will need to use UBOs & static
+        // sized array (eg like the 64-sized array on OpenGL side right now) to make gradients work
         let storage_buffer = DynamicBuffer::storage(
             device,
             "iced_wgpu::triangle [GRADIENT] storage",

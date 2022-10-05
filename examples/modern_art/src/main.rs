@@ -91,7 +91,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
 
     let gradient = |top_left: Point, bottom_right: Point| -> Gradient {
         let mut builder = Gradient::linear(top_left, bottom_right);
-        let stops = thread_rng().gen_range(1..10u32);
+        let stops = thread_rng().gen_range(1..15u32);
 
         let mut i = 0;
         while i <= stops {

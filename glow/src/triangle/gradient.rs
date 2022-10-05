@@ -1,8 +1,8 @@
 use crate::program::Version;
-use crate::triangle::{simple_triangle_program, set_transform};
+use crate::triangle::{set_transform, simple_triangle_program};
 use glow::{Context, HasContext, NativeProgram};
-use iced_graphics::gradient::Linear;
 use iced_graphics::gradient::Gradient;
+use iced_graphics::gradient::Linear;
 use iced_graphics::Transformation;
 
 #[derive(Debug)]
@@ -20,19 +20,12 @@ pub struct GradientUniformData {
 
 #[derive(Debug)]
 struct GradientUniformLocations {
-    gradient_start_location: <Context as HasContext>::UniformLocation,
-    gradient_end_location: <Context as HasContext>::UniformLocation,
+    gradient_direction_location: <Context as HasContext>::UniformLocation,
     color_stops_size_location: <Context as HasContext>::UniformLocation,
     //currently the maximum number of stops is 64 due to needing to allocate the
     //memory for the array of stops with a const value in GLSL
-    color_stops_locations: [ColorStopLocation; 64],
+    color_stops_location: <Context as HasContext>::UniformLocation,
     transform_location: <Context as HasContext>::UniformLocation,
-}
-
-#[derive(Copy, Debug, Clone)]
-struct ColorStopLocation {
-    color: <Context as HasContext>::UniformLocation,
-    offset: <Context as HasContext>::UniformLocation,
 }
 
 impl GradientProgram {
@@ -56,36 +49,25 @@ impl GradientProgram {
         transform: &Transformation,
     ) {
         if transform != &self.uniform_data.transform {
-            set_transform(gl, self.uniform_data.uniform_locations.transform_location, *transform);
+            set_transform(
+                gl,
+                self.uniform_data.uniform_locations.transform_location,
+                *transform,
+            );
         }
 
         if &self.uniform_data.gradient != gradient {
             match gradient {
                 Gradient::Linear(linear) => {
-                    let gradient_start: [f32; 2] = (linear.start).into();
-                    let gradient_end: [f32; 2] = (linear.end).into();
-
                     unsafe {
-                        gl.uniform_2_f32(
+                        gl.uniform_4_f32(
                             Some(
-                                &self
-                                    .uniform_data
-                                    .uniform_locations
-                                    .gradient_start_location,
+                                &self.uniform_data.uniform_locations.gradient_direction_location
                             ),
-                            gradient_start[0],
-                            gradient_start[1],
-                        );
-
-                        gl.uniform_2_f32(
-                            Some(
-                                &self
-                                    .uniform_data
-                                    .uniform_locations
-                                    .gradient_end_location,
-                            ),
-                            gradient_end[0],
-                            gradient_end[1],
+                            linear.start.x,
+                            linear.start.y,
+                            linear.end.x,
+                            linear.end.y
                         );
 
                         gl.uniform_1_u32(
@@ -95,37 +77,32 @@ impl GradientProgram {
                                     .uniform_locations
                                     .color_stops_size_location,
                             ),
-                            linear.color_stops.len() as u32,
+                            (linear.color_stops.len() * 2) as u32,
                         );
 
-                        for (index, stop) in
-                            linear.color_stops.iter().enumerate()
-                        {
-                            gl.uniform_1_f32(
-                                Some(
-                                    &self
-                                        .uniform_data
-                                        .uniform_locations
-                                        .color_stops_locations[index]
-                                        .offset,
-                                ),
-                                stop.offset,
-                            );
+                        let mut stops = [0.0; 128];
 
-                            gl.uniform_4_f32(
-                                Some(
-                                    &self
-                                        .uniform_data
-                                        .uniform_locations
-                                        .color_stops_locations[index]
-                                        .color,
-                                ),
-                                stop.color.r,
-                                stop.color.g,
-                                stop.color.b,
-                                stop.color.a,
-                            );
+                        for (index, stop) in linear.color_stops.iter().enumerate() {
+                            if index == 16 { break; }
+                            stops[index*8] = stop.color.r;
+                            stops[(index*8)+1] = stop.color.g;
+                            stops[(index*8)+2] = stop.color.b;
+                            stops[(index*8)+3] = stop.color.a;
+                            stops[(index*8)+4] = stop.offset;
+                            stops[(index*8)+5] = 0.;
+                            stops[(index*8)+6] = 0.;
+                            stops[(index*8)+7] = 0.;
                         }
+
+                        gl.uniform_4_f32_slice(
+                            Some(
+                                &self
+                                    .uniform_data
+                                    .uniform_locations
+                                    .color_stops_location,
+                            ),
+                            &stops,
+                        );
                     }
                 }
             }
@@ -134,10 +111,13 @@ impl GradientProgram {
         }
     }
 
-    pub fn use_program(&mut self, gl: &glow::Context, gradient: &Gradient, transform: &Transformation) {
-        unsafe {
-            gl.use_program(Some(self.program))
-        }
+    pub fn use_program(
+        &mut self,
+        gl: &Context,
+        gradient: &Gradient,
+        transform: &Transformation,
+    ) {
+        unsafe { gl.use_program(Some(self.program)) }
 
         self.write_uniforms(gl, gradient, transform);
     }
@@ -145,38 +125,18 @@ impl GradientProgram {
 
 impl GradientUniformData {
     fn new(gl: &Context, program: NativeProgram) -> Self {
-        let gradient_start_location =
-            unsafe { gl.get_uniform_location(program, "gradient_start") }
-                .expect("Gradient - Get gradient_start.");
-
-        let gradient_end_location =
-            unsafe { gl.get_uniform_location(program, "gradient_end") }
-                .expect("Gradient - Get gradient_end.");
+        let gradient_direction_location =
+            unsafe { gl.get_uniform_location(program, "gradient_direction") }
+                .expect("Gradient - Get gradient_direction.");
 
         let color_stops_size_location =
             unsafe { gl.get_uniform_location(program, "color_stops_size") }
                 .expect("Gradient - Get color_stops_size.");
 
-        let color_stops_locations: [ColorStopLocation; 64] =
-            core::array::from_fn(|index| {
-                let offset = unsafe {
-                    gl.get_uniform_location(
-                        program,
-                        &format!("color_stop_offsets[{}]", index),
-                    )
-                }
-                .expect("Gradient - Color stop offset location.");
-
-                let color = unsafe {
-                    gl.get_uniform_location(
-                        program,
-                        &format!("color_stop_colors[{}]", index),
-                    )
-                }
-                .expect("Gradient - Color stop color location.");
-
-                ColorStopLocation { color, offset }
-            });
+        let color_stops_location = unsafe {
+            gl.get_uniform_location(program, "color_stops")
+                .expect("Gradient - Get color_stops.")
+        };
 
         let transform_location =
             unsafe { gl.get_uniform_location(program, "u_Transform") }
@@ -190,10 +150,9 @@ impl GradientUniformData {
             }),
             transform: Transformation::identity(),
             uniform_locations: GradientUniformLocations {
-                gradient_start_location,
-                gradient_end_location,
+                gradient_direction_location,
                 color_stops_size_location,
-                color_stops_locations,
+                color_stops_location,
                 transform_location,
             },
         }
