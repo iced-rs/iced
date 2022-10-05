@@ -15,7 +15,7 @@ pub struct Appearance {
 pub trait StyleSheet {
     type Style: Default + Copy;
 
-    fn active(&self, style: Self::Style) -> Appearance;
+    fn active(&self, style: Self::Style, is_selected: bool) -> Appearance;
 
-    fn hovered(&self, style: Self::Style) -> Appearance;
+    fn hovered(&self, style: Self::Style, is_selected: bool) -> Appearance;
 }
