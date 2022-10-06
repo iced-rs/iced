@@ -9,7 +9,6 @@ use crate::Primitive;
 use crate::layer::mesh;
 use crate::triangle::Vertex2D;
 use lyon::tessellation;
-use lyon::tessellation::geometry_builder::Positions;
 
 /// The frame of a [`Canvas`].
 ///
@@ -17,10 +16,7 @@ use lyon::tessellation::geometry_builder::Positions;
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
-    buffers: Vec<(
-        tessellation::VertexBuffers<lyon::math::Point, u32>,
-        mesh::Style,
-    )>,
+    buffers: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, mesh::Style)>,
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
@@ -93,7 +89,7 @@ impl Frame {
         let mut buf = tessellation::VertexBuffers::new();
 
         let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Positions);
+            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
@@ -131,7 +127,7 @@ impl Frame {
         let mut buf = tessellation::VertexBuffers::new();
 
         let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Positions);
+            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -165,7 +161,7 @@ impl Frame {
         let mut buf = tessellation::VertexBuffers::new();
 
         let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Positions);
+            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -342,7 +338,7 @@ impl Frame {
             if !buffer.indices.is_empty() {
                 self.primitives.push(Primitive::Mesh2D {
                     buffers: triangle::Mesh2D {
-                        vertices: vertices_from(buffer.vertices),
+                        vertices: buffer.vertices,
                         indices: buffer.indices,
                     },
                     size: self.size,
@@ -355,12 +351,30 @@ impl Frame {
     }
 }
 
-/// Converts from [`lyon::math::Point`] to [`Vertex2D`]. Used for generating primitives.
-fn vertices_from(points: Vec<lyon::math::Point>) -> Vec<Vertex2D> {
-    points
-        .iter()
-        .map(|p| Vertex2D {
-            position: [p.x, p.y],
-        })
-        .collect()
+struct Vertex2DBuilder;
+
+impl tessellation::FillVertexConstructor<Vertex2D> for Vertex2DBuilder {
+    fn new_vertex(
+        &mut self,
+        vertex: tessellation::FillVertex<'_>,
+    ) -> Vertex2D {
+        let position = vertex.position();
+
+        Vertex2D {
+            position: [position.x, position.y],
+        }
+    }
+}
+
+impl tessellation::StrokeVertexConstructor<Vertex2D> for Vertex2DBuilder {
+    fn new_vertex(
+        &mut self,
+        vertex: tessellation::StrokeVertex<'_, '_>,
+    ) -> Vertex2D {
+        let position = vertex.position();
+
+        Vertex2D {
+            position: [position.x, position.y],
+        }
+    }
 }
