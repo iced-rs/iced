@@ -47,11 +47,6 @@ impl Sandbox for Counter {
     }
 
     fn view(&self) -> Element<Message> {
-        let keyframe = Keyframe::new(Duration::ZERO);
-        let test_animation = Animation::new(
-            vec![keyframe],
-        );
-
         column![
             button("Increment").on_press(Message::IncrementPressed).width(Length::Units(100)),
             text(self.value).size(50),

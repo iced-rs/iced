@@ -10,50 +10,74 @@ use std::fmt;
 /// The id is used to allow for data to be extended to an animation, or notify
 /// iced that a new animation should be added without considering the previous
 /// animation.
-/// Each transition, whether that be width, height, padding, etc must reference
-/// a keyframe as a trigger to start the transition. This allows for many
-/// animations to start at the same time, or have some start at an offset of
-/// others.
+/// A keyframe is a descriptor of what the widget dimensions should be at some
+/// point in time. The time is relative to the first time the animation is
+/// rendered. If you would like to animate again in some length of time, it is
+/// recommended to subscribe to [`time::every`] and use that message to update
+/// your view.
+/// A keyframe is also used to describe the current state of the widget. This
+/// is to guarentee that the curret tracked state is the same as what
+/// animatable traits are available via the iced API.
 #[derive(Debug)]
 pub struct Animation {
     id: Id,
     keyframes: Vec<Keyframe>,
-    transitions: Vec<Transition>,
-    loop_type: LoopType,
+    at: Option<Keyframe>,
+    again: Again,
+    message: bool //TODO: add a message to be sent on animation completion
 }
 
-impl Default for Animation {
+impl std::default::Default for Animation {
     fn default() -> Self {
         Animation {
             id: Id::unique(),
             keyframes: Vec::new(),
-            transitions: Vec::new(),
-            loop_type: LoopType::None,
+            at: None,
+            again: Again::Never,
+            message: false,
         }
     }
 }
 
 impl Animation {
     /// Create a new animation to be attached to a widget.
-    pub fn new(keyframes: Vec<Keyframe>, transitions: Vec<Transition>, loop_type: LoopType) -> Self{
+    pub fn new() -> Self{
+        Animation::default()
+    }
+
+    /// Create a new animation to be attached to a widget.
+    /// This is an optimization if you know your keyframes
+    /// in advance.
+    pub fn with_keyframes(keyframes: Vec<Keyframe>) -> Self {
         Animation {
-            id: Id::unique(),
             keyframes,
-            transitions,
-            loop_type,
+            ..Animation::default()
         }
     }
 
     /// Create an animation with an Id. This is useful if keyframes or transitions need to be modified,
     /// appended, deleted, etc before the animation is complete.
-    pub fn with_id(id: Id, keyframes: Vec<Keyframe>, transitions: Vec<Transition>, loop_type: LoopType) -> Self{
+    pub fn with_id(id: Id) -> Self{
         Animation {
             id,
-            keyframes,
-            transitions,
-            loop_type,
+            ..Animation::default()
         }
     }
+
+    /// Add a keyframe to an animation.
+    pub fn push(mut self, keyframe: Keyframe) -> Self {
+        self.keyframes.push(keyframe);
+        self
+    }
+
+    /// What the animation should do after it has completed.
+    /// Read as a sentance,
+    /// "the animation should `play(Again::FromBeginning)`"
+    pub fn play(mut self, again: Again) -> Self {
+        self.again = again;
+        self
+    }
+
 }
 
 /// A point in time that can trigger animation start. The time doesn't have to match exactly.
@@ -62,79 +86,63 @@ impl Animation {
 #[derive(Debug)]
 pub struct Keyframe {
     id: Id,
-    start: Duration,
+    delay: Duration,
+    width: Option<Length>,
+    height: Option<Length>,
+    ease: Ease,
+}
+
+impl std::default::Default for Keyframe {
+    fn default() -> Self {
+        Keyframe {
+            id: Id::unique(),
+            delay: Duration::ZERO,
+            width: None,
+            height: None,
+            ease: Ease::Linear,
+        }
+    }
 }
 
 impl Keyframe {
     /// Create a new Keyframe
-    pub fn new(start: Duration) -> Self {
-        Keyframe {
-            id: Id::unique(),
-            start,
-        }
+    pub fn new() -> Self {
+        Keyframe::default()
     }
 
     /// Create a new keyframe with an Id known before the keyframe is created.
     /// Useful for animations that have keyframes known in advance.
-    pub fn with_id(id: Id, start: Duration) -> Self {
+    pub fn with_id(id: Id) -> Self {
         Keyframe {
             id,
-            start,
+            ..Keyframe::default()
         }
     }
-}
 
-/// The data needed for transitioning between two values.
-//#[derive(Debug)]
-//pub struct Transition {
-//    trigger: Id,
-//    duration: Duration,
-//    at: u16,
-//    end: u16,
-//    ease: Ease,
-//}
-
-type Transition = Box<dyn Animatable>;
-
-impl fmt::Debug for Transition {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: make debug printing more verbose
-        write!(f, "Debug print of a transition")
+    /// Set the desired width by the time the keyframe's delay.
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = Some(width);
+        self
     }
-}
 
-/// A trait that must be implemented by any value that is animatable.
-pub trait Animatable {
-    /// The current state of the interpolation.
-    fn at<A>(&self) -> A;
-}
-
-/// A type to request animating the widget's width
-#[derive(Debug)]
-pub struct Width {
-    trigger: Id,
-    duration: Duration,
-    at: u16,
-    end: u16,
-    ease: Ease,
-}
-
-impl Animatable for Width {
-    fn at(&self) -> Length {
-        Length::Units(self.at)
+    /// Set the desired height by the time the keyframe's delay.
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = Some(height);
+        self
     }
-}
 
-/// The action that should be completed if to replay an animation if at all
-#[derive(Debug)]
-pub enum LoopType {
-    /// Jump back to the beginning of the animation and replay
-    Jump,
-    /// Flip the order of the animation and play in reverse when animation finishes.
-    Bounce,
-    /// The animation plays once then stays at it's completed possition.
-    None,
-    // TODO: Should have a loop u16 number of times options like Repeat(LoopType, u16)
+    /// Set the easing algorithm for the values changed by this keyframe.
+    pub fn ease(mut self, ease: Ease) -> Self {
+        self.ease = ease;
+        self
+    }
+
+    /// Set the the time after animation creation that the widget animation
+    /// will have values set in the keyframe.
+    pub fn after(mut self, delay: Duration) -> Self {
+        self.delay = delay;
+        self
+    }
 }
 
 /// The function used to transition between given values.
@@ -145,50 +153,18 @@ pub enum Ease {
     // TODO: in, out, cubic, should also be options
 }
 
-/// A type that forces the start and end to to be of the same length type.
-/// Currently only Length::Units and Length::FillPortion are supported.
+/// What the animation should do after it has completed.
+/// Assigned via `play()`, read as a sentance,
+/// "the animation should `play(Again::FromBeginning)`"
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Bounds {
-    Units(u16, u16),
-    FillPortion(u16, u16),
-}
-
-impl Bounds {
-    fn new(start: Length, end: Length) -> Bounds {
-        if let Length::Units(s) = start {
-            if let Length::Units(e) = end {
-                return Bounds::Units(s, e);
-            }
-        }
-        if let Length::FillPortion(s) = start {
-            if let Length::FillPortion(e) = end {
-                return Bounds::FillPortion(s, e);
-            }
-        }
-        // TODO: Should be possible to use different types to make this error at compile time, rather than runtime
-        panic!("Only Length::Units and Length::FillPortion animatable vaules");
-    }
-
-    fn get_start(&self) -> u16 {
-        match self {
-            Bounds::Units(s, _) => *s,
-            Bounds::FillPortion(s, _) => *s,
-        }
-    }
-
-    fn get_end(&self) -> u16 {
-        match self {
-            Bounds::Units(_, e) => *e,
-            Bounds::FillPortion(_, e) => *e,
-        }
-    }
-
-    fn as_length(self) -> Length {
-        match self {
-            Bounds::Units(_, e) => Length::Units(e),
-            Bounds::FillPortion(_, e) => Length::FillPortion(e),
-        }
-    }
+pub enum Again {
+    /// After the animation has finished, sit idle at the completed state.
+    Never,
+    /// After the animation has finished, jump back to its initial state and play again.
+    FromBeginning,
+    /// After the animation had finished, play the animation in reverse. Then forwards,
+    /// then reverse again, repeating forever.
+    Bounce,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
