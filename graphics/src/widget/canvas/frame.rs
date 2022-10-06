@@ -1,3 +1,4 @@
+use lyon::geom::euclid::Vector2D;
 use std::borrow::Cow;
 
 use iced_native::{Point, Rectangle, Size, Vector};
@@ -30,9 +31,20 @@ struct Transforms {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Transform {
+pub(crate) struct Transform {
     raw: lyon::math::Transform,
     is_identity: bool,
+}
+
+impl Transform {
+    /// Transforms the given [Point] by the transformation matrix.
+    pub(crate) fn apply_to(&self, mut point: Point) -> Point {
+        let transformed =
+            self.raw.transform_vector(Vector2D::new(point.x, point.y));
+        point.x = transformed.x + self.raw.m31;
+        point.y = transformed.y + self.raw.m32;
+        point
+    }
 }
 
 impl Frame {
@@ -111,7 +123,8 @@ impl Frame {
         }
         .expect("Tessellate path.");
 
-        self.buffers.push((buf, style.into()))
+        self.buffers
+            .push((buf, style.as_mesh_style(&self.transforms.current)));
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -150,7 +163,8 @@ impl Frame {
             )
             .expect("Fill rectangle");
 
-        self.buffers.push((buf, style.into()))
+        self.buffers
+            .push((buf, style.as_mesh_style(&self.transforms.current)));
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -192,7 +206,8 @@ impl Frame {
         }
         .expect("Stroke path");
 
-        self.buffers.push((buf, stroke.style.into()))
+        self.buffers
+            .push((buf, stroke.style.as_mesh_style(&self.transforms.current)))
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -307,7 +322,7 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Applies a rotation to the current transform of the [`Frame`].
+    /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
         self.transforms.current.raw = self
@@ -354,10 +369,7 @@ impl Frame {
 struct Vertex2DBuilder;
 
 impl tessellation::FillVertexConstructor<Vertex2D> for Vertex2DBuilder {
-    fn new_vertex(
-        &mut self,
-        vertex: tessellation::FillVertex<'_>,
-    ) -> Vertex2D {
+    fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> Vertex2D {
         let position = vertex.position();
 
         Vertex2D {

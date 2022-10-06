@@ -10,14 +10,14 @@ use iced::application;
 use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
-use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke, stroke};
+use iced::widget::canvas::{self, stroke, Cursor, Path, Stroke};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
     Size, Subscription, Vector,
 };
 
+use crate::canvas::{fill, Fill, Gradient};
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
@@ -178,7 +178,9 @@ impl<Message> canvas::Program<Message> for State {
             frame.stroke(
                 &orbit,
                 Stroke {
-                    style: stroke::Style::Solid(Color::from_rgba8(0, 153, 255, 0.1)),
+                    style: stroke::Style::Solid(Color::from_rgba8(
+                        0, 153, 255, 0.1,
+                    )),
                     width: 1.0,
                     line_dash: canvas::LineDash {
                         offset: 0,
@@ -198,15 +200,23 @@ impl<Message> canvas::Program<Message> for State {
                 frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
                 let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
-                let shadow = Path::rectangle(
-                    Point::new(0.0, -Self::EARTH_RADIUS),
-                    Size::new(
-                        Self::EARTH_RADIUS * 4.0,
-                        Self::EARTH_RADIUS * 2.0,
-                    ),
-                );
 
-                frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
+                let earth_fill = Gradient::linear(
+                    Point::new(-Self::EARTH_RADIUS, 0.0),
+                    Point::new(Self::EARTH_RADIUS, 0.0),
+                )
+                .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
+                .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
+                .build()
+                .unwrap();
+
+                frame.fill(
+                    &earth,
+                    Fill {
+                        style: fill::Style::Gradient(&earth_fill),
+                        ..Default::default()
+                    },
+                );
 
                 frame.with_save(|frame| {
                     frame.rotate(rotation * 10.0);
@@ -215,14 +225,6 @@ impl<Message> canvas::Program<Message> for State {
                     let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
                     frame.fill(&moon, Color::WHITE);
                 });
-
-                frame.fill(
-                    &shadow,
-                    Color {
-                        a: 0.7,
-                        ..Color::BLACK
-                    },
-                );
             });
         });
 

@@ -3,6 +3,7 @@
 use iced_native::Color;
 use crate::gradient::Gradient;
 use crate::layer::mesh;
+use crate::widget::canvas::frame::Transform;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]
@@ -68,11 +69,16 @@ pub enum Style<'a> {
     Gradient(&'a Gradient),
 }
 
-impl <'a> Into<mesh::Style> for Style<'a> {
-    fn into(self) -> mesh::Style {
+impl<'a> Style<'a> {
+    /// Converts a fill's [Style] to a [mesh::Style] for use in the renderer's shader.
+    pub(crate) fn as_mesh_style(&self, transform: &Transform) -> mesh::Style {
         match self {
-            Style::Solid(color) => mesh::Style::Solid(color),
-            Style::Gradient(gradient) => gradient.clone().into()
+            Style::Solid(color) => {
+                mesh::Style::Solid(*color)
+            },
+            Style::Gradient(gradient) => {
+                mesh::Style::Gradient((*gradient).clone().transform(transform))
+            }
         }
     }
 }

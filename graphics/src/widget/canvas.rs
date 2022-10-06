@@ -9,12 +9,12 @@ pub mod path;
 
 mod cache;
 mod cursor;
-mod frame;
 mod geometry;
 mod program;
 mod text;
 pub mod fill;
 pub mod stroke;
+pub(crate) mod frame;
 
 pub use cache::Cache;
 pub use cursor::Cursor;

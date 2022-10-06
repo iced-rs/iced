@@ -1,9 +1,10 @@
 //! For creating a Gradient.
 mod linear;
 
-use iced_native::Color;
 pub use crate::gradient::linear::Linear;
+use crate::widget::canvas::frame::Transform;
 use crate::Point;
+use iced_native::Color;
 
 #[derive(Debug, Clone, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
@@ -27,5 +28,16 @@ impl Gradient {
     /// Creates a new linear [`linear::Builder`].
     pub fn linear(start: Point, end: Point) -> linear::Builder {
         linear::Builder::new(start, end)
+    }
+
+    /// Modifies the start & end stops of the gradient to have a proper transform value.
+    pub(crate) fn transform(mut self, transform: &Transform) -> Self {
+        match &mut self {
+            Gradient::Linear(linear) => {
+                linear.start = transform.apply_to(linear.start);
+                linear.end = transform.apply_to(linear.end);
+            }
+        }
+        self
     }
 }

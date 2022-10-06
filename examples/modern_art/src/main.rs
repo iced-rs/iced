@@ -1,12 +1,11 @@
-use rand::{Rng, thread_rng};
-use crate::canvas::{Cursor, Geometry};
-use iced::widget::canvas::{Cache, Fill, Frame, Gradient, fill};
-use iced::widget::{canvas, Canvas};
-use iced::Settings;
+use iced::widget::canvas::{
+    self, fill, Cache, Canvas, Cursor, Fill, Frame, Geometry, Gradient,
+};
 use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
-    Renderer, Size, Theme,
+    Renderer, Size, Theme, Settings
 };
+use rand::{thread_rng, Rng};
 
 fn main() -> iced::Result {
     ModernArt::run(Settings {
@@ -41,7 +40,7 @@ impl Application for ModernArt {
         String::from("Modern Art")
     }
 
-    fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, _message: Message) -> Command<Message> {
         Command::none()
     }
 
@@ -94,10 +93,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
 
         let mut i = 0;
         while i <= stops {
-            builder = builder.add_stop(
-                i as f32 / stops as f32,
-                random_color()
-            );
+            builder = builder.add_stop(i as f32 / stops as f32, random_color());
             i += 1;
         }
 
@@ -106,7 +102,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
 
     let top_left = Point::new(
         thread_rng().gen_range(0.0..bounds.width),
-        thread_rng().gen_range(0.0..bounds.height)
+        thread_rng().gen_range(0.0..bounds.height),
     );
 
     let size = Size::new(
@@ -120,8 +116,8 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
             size,
             Fill {
                 style: fill::Style::Solid(random_color()),
-                .. Default::default()
-            }
+                ..Default::default()
+            },
         );
     } else {
         frame.fill_rectangle(
@@ -130,10 +126,13 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
             Fill {
                 style: fill::Style::Gradient(&gradient(
                     top_left,
-                    Point::new(top_left.x + size.width, top_left.y + size.height)
+                    Point::new(
+                        top_left.x + size.width,
+                        top_left.y + size.height,
+                    ),
                 )),
-                .. Default::default()
-            }
+                ..Default::default()
+            },
         );
     };
 
