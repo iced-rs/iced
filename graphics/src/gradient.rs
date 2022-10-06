@@ -29,4 +29,3 @@ impl Gradient {
         linear::Builder::new(start, end)
     }
 }
-

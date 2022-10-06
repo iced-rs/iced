@@ -9,7 +9,7 @@ use std::mem;
 const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 128;
 
 /// A generic buffer struct useful for items which have no alignment requirements
-/// (e.g. Vertex, Index buffers) and are set once and never changed until destroyed.
+/// (e.g. Vertex, Index buffers) & no dynamic offsets.
 #[derive(Debug)]
 pub(crate) struct StaticBuffer<T> {
     //stored sequentially per mesh iteration; refers to the offset index in the GPU buffer
@@ -17,7 +17,6 @@ pub(crate) struct StaticBuffer<T> {
     label: &'static str,
     usages: wgpu::BufferUsages,
     gpu: wgpu::Buffer,
-    //the static size of the buffer
     size: wgpu::BufferAddress,
     _data: PhantomData<T>,
 }
@@ -75,11 +74,9 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
         }
     }
 
-    /// Writes the current vertex data to the gpu buffer if it is currently writable with a memcpy &
-    /// stores its offset.
+    /// Writes the current vertex data to the gpu buffer with a memcpy & stores its offset.
     ///
-    /// This will return either the offset of the written bytes, or `None` if the GPU buffer is not
-    /// currently writable.
+    /// Returns the size of the written bytes.
     pub fn write(
         &mut self,
         device: &wgpu::Device,

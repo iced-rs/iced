@@ -1,6 +1,6 @@
 use iced::executor;
 use iced::widget::canvas::{
-    Cache, Cursor, Geometry, LineCap, Path, Stroke, Style,
+    Cache, Cursor, Geometry, LineCap, Path, Stroke, stroke,
 };
 use iced::widget::{canvas, container};
 use iced::{
@@ -111,7 +111,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let thin_stroke = || -> Stroke {
                 Stroke {
                     width,
-                    style: Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(Color::WHITE),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -120,7 +120,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let wide_stroke = || -> Stroke {
                 Stroke {
                     width: width * 3.0,
-                    style: Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(Color::WHITE),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }

@@ -9,7 +9,7 @@ use glam::{IVec4, Vec4};
 use iced_graphics::gradient::Gradient;
 use iced_graphics::Transformation;
 
-pub(super) struct GradientPipeline {
+pub struct GradientPipeline {
     pipeline: wgpu::RenderPipeline,
     pub(super) uniform_buffer: DynamicBuffer<GradientUniforms>,
     pub(super) storage_buffer: DynamicBuffer<GradientStorage>,

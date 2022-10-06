@@ -26,7 +26,7 @@ pub(crate) struct Pipeline {
     pipelines: TrianglePipelines,
 }
 
-/// Supported triangle pipelines for different fills. Both use the same vertex shader.
+/// Supported triangle pipelines for different fills.
 pub(crate) struct TrianglePipelines {
     solid: SolidPipeline,
     gradient: GradientPipeline,

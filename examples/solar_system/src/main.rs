@@ -11,7 +11,7 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke};
+use iced::widget::canvas::{Cursor, Path, Stroke, stroke};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
@@ -19,7 +19,6 @@ use iced::{
 };
 
 use std::time::Instant;
-use crate::canvas::Style;
 
 pub fn main() -> iced::Result {
     SolarSystem::run(Settings {
@@ -85,7 +84,7 @@ impl Application for SolarSystem {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(10)).map(Message::Tick)
+        time::every(time::Duration::from_millis(10)).map(Message::Tick)
     }
 }
 
@@ -179,7 +178,7 @@ impl<Message> canvas::Program<Message> for State {
             frame.stroke(
                 &orbit,
                 Stroke {
-                    style: Style::Solid(Color::from_rgba8(0, 153, 255, 0.1)),
+                    style: stroke::Style::Solid(Color::from_rgba8(0, 153, 255, 0.1)),
                     width: 1.0,
                     line_dash: canvas::LineDash {
                         offset: 0,

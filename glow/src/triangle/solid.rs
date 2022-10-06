@@ -11,7 +11,7 @@ pub struct SolidProgram {
 }
 
 #[derive(Debug)]
-pub(crate) struct SolidUniformData {
+struct SolidUniformData {
     pub color: Color,
     pub color_location: <Context as HasContext>::UniformLocation,
     pub transform: Transformation,
@@ -74,7 +74,7 @@ impl SolidProgram {
         }
     }
 
-    pub fn use_program(&mut self, gl: &glow::Context, color: &Color, transform: &Transformation) {
+    pub fn use_program(&mut self, gl: &Context, color: &Color, transform: &Transformation) {
         unsafe {
             gl.use_program(Some(self.program))
         }

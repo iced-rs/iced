@@ -1,4 +1,4 @@
-//! Draw meshes of triangle.
+//! Draw meshes of triangles.
 mod gradient;
 mod solid;
 
