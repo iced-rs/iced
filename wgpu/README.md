@@ -6,7 +6,7 @@
 
 `iced_wgpu` is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced in native platforms.
 
-[`wgpu`] supports most modern graphics backends: Vulkan, Metal, DX11, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
+[`wgpu`] supports most modern graphics backends: Vulkan, Metal, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
 
 Currently, `iced_wgpu` supports the following primitives:
 - Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
