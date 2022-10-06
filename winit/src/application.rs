@@ -615,6 +615,9 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Window(action) => match action {
+                window::Action::Drag => {
+                    let _res = window.drag_window();
+                }
                 window::Action::Resize { width, height } => {
                     window.set_inner_size(winit::dpi::LogicalSize {
                         width,

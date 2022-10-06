@@ -4,6 +4,11 @@ use iced_native::window;
 
 pub use window::{Event, Mode};
 
+/// Begins dragging the window while the left mouse button is held.
+pub fn drag<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Drag))
+}
+
 /// Resizes the window to the given logical dimensions.
 pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Resize {

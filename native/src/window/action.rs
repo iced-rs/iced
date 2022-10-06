@@ -5,6 +5,12 @@ use std::fmt;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
+    /// Moves the window with the left mouse button until the button is
+    /// released.
+    ///
+    /// There’s no guarantee that this will work unless the left mouse
+    /// button was pressed immediately before this function is called.
+    Drag,
     /// Resize the window.
     Resize {
         /// The new logical width of the window
@@ -37,6 +43,7 @@ impl<T> Action<T> {
         T: 'static,
     {
         match self {
+            Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
@@ -48,6 +55,7 @@ impl<T> Action<T> {
 impl<T> fmt::Debug for Action<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
                 "Action::Resize {{ widget: {}, height: {} }}",
