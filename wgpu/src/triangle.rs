@@ -101,8 +101,7 @@ impl Pipeline {
         //count the total amount of vertices & indices we need to handle
         let (total_vertices, total_indices) = attribute_count_of(meshes);
 
-        // Then we ensure the current attribute buffers are big enough, resizing if necessary
-        // with wgpu this means recreating the buffer.
+        // Then we ensure the current attribute buffers are big enough, resizing if necessary.
 
         //We are not currently using the return value of these functions as we have no system in
         //place to calculate mesh diff, or to know whether or not that would be more performant for
@@ -190,9 +189,6 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
-            //TODO I can't figure out a clean way to encapsulate these into their appropriate
-            // structs without displeasing the borrow checker due to the lifetime requirements of
-            // render_pass & using a mutable reference to each pipeline in a loop...
             let mut num_solids = 0;
             let mut num_gradients = 0;
 

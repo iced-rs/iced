@@ -42,6 +42,7 @@ impl Builder {
             self.valid = false;
         }
 
+        //TODO: can sort on insert here
         self.stops.push((offset, color));
         self
     }
