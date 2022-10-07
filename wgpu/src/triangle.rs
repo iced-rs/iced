@@ -3,14 +3,13 @@ use crate::{settings, Transformation};
 use core::fmt;
 use std::fmt::Formatter;
 
-use iced_graphics::layer::{attribute_count_of, Mesh};
-use iced_graphics::{layer, Size};
+use iced_graphics::layer::{Mesh, mesh, mesh::attribute_count_of};
+use iced_graphics::Size;
 
 use crate::buffers::StaticBuffer;
 use crate::triangle::gradient::GradientPipeline;
 use crate::triangle::solid::SolidPipeline;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-use layer::mesh;
 
 mod solid;
 mod gradient;

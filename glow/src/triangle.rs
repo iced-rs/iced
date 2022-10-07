@@ -4,14 +4,12 @@ mod solid;
 
 use crate::{program, Transformation};
 use glow::HasContext;
-use iced_graphics::layer::{attribute_count_of, Mesh};
+use iced_graphics::layer::{mesh, mesh::attribute_count_of, Mesh};
 use std::marker::PhantomData;
-use iced_graphics::layer;
 
 use crate::triangle::gradient::GradientProgram;
 use crate::triangle::solid::SolidProgram;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-use layer::mesh;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
@@ -144,7 +142,9 @@ impl Pipeline {
                         self.programs.solid.use_program(gl, &color, &transform);
                     }
                     mesh::Style::Gradient(gradient) => {
-                        self.programs.gradient.use_program(gl, &gradient, &transform);
+                        self.programs
+                            .gradient
+                            .use_program(gl, &gradient, &transform);
                     }
                 }
 
@@ -203,7 +203,7 @@ pub fn set_transform(
         gl.uniform_matrix_4_f32_slice(
             Some(&location),
             false,
-            transform.as_ref()
+            transform.as_ref(),
         );
     }
 }
