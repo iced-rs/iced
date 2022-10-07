@@ -25,12 +25,12 @@ impl SolidUniformData {
             color_location: unsafe {
                 gl.get_uniform_location(program, "color")
             }
-                .expect("Solid - Color uniform location."),
+            .expect("Solid - Get color."),
             transform: Transformation::identity(),
             transform_location: unsafe {
                 gl.get_uniform_location(program, "u_Transform")
             }
-                .expect("Get transform location."),
+            .expect("Solid - Get u_Transform."),
         }
     }
 }
@@ -74,10 +74,13 @@ impl SolidProgram {
         }
     }
 
-    pub fn use_program(&mut self, gl: &Context, color: &Color, transform: &Transformation) {
-        unsafe {
-            gl.use_program(Some(self.program))
-        }
+    pub fn use_program(
+        &mut self,
+        gl: &Context,
+        color: &Color,
+        transform: &Transformation,
+    ) {
+        unsafe { gl.use_program(Some(self.program)) }
         self.write_uniforms(gl, color, transform)
     }
 }

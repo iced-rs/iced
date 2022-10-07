@@ -50,6 +50,7 @@ impl DynamicBufferType {
     }
 }
 
+/// A dynamic buffer is any type of buffer which does not have a static offset.
 pub(crate) struct DynamicBuffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
     cpu: DynamicBufferType,
@@ -124,13 +125,15 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
     /// Write a new value to the CPU buffer with proper alignment. Stores the returned offset value
     /// in the buffer for future use.
     pub fn push(&mut self, value: &T) {
-        //this write operation on the buffer will adjust for uniform alignment requirements
+        //this write operation on the cpu buffer will adjust for uniform alignment requirements
         let offset = self.cpu.write(value);
         self.offsets.push(offset as u32);
     }
 
     /// Resize buffer contents if necessary. This will re-create the GPU buffer if current size is
     /// less than the newly computed size from the CPU buffer.
+    ///
+    /// If the gpu buffer is resized, its bind group will need to be recreated!
     pub fn resize(&mut self, device: &wgpu::Device) -> bool {
         let new_size = self.cpu.get_ref().len() as u64;
 
@@ -144,7 +147,6 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
                 }
             };
 
-            //Re-create the GPU buffer since it needs to be resized.
             self.gpu = DynamicBuffer::<T>::create_gpu_buffer(
                 device, self.label, usages, new_size,
             );

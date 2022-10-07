@@ -10,13 +10,13 @@ use iced_graphics::Transformation;
 
 pub struct SolidPipeline {
     pipeline: wgpu::RenderPipeline,
-    pub(crate) buffer: DynamicBuffer<SolidUniforms>,
+    pub(super) buffer: DynamicBuffer<SolidUniforms>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
 #[derive(Debug, Clone, Copy, ShaderType)]
-pub struct SolidUniforms {
+pub(super) struct SolidUniforms {
     transform: glam::Mat4,
     color: Vec4,
 }

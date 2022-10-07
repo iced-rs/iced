@@ -3,8 +3,7 @@ mod linear;
 
 pub use crate::gradient::linear::Linear;
 use crate::widget::canvas::frame::Transform;
-use crate::Point;
-use iced_native::Color;
+use crate::{Point, Color};
 
 #[derive(Debug, Clone, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),

@@ -12,9 +12,9 @@ use crate::triangle::solid::SolidPipeline;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 use layer::mesh;
 
+mod solid;
 mod gradient;
 mod msaa;
-mod solid;
 
 /// Triangle pipeline for all mesh layers in a [`iced_graphics::Canvas`] widget.
 #[derive(Debug)]
@@ -60,7 +60,7 @@ impl TrianglePipelines {
 }
 
 impl Pipeline {
-    /// Creates supported GL programs, listed in [TrianglePipelines].
+    /// Creates supported pipelines, listed in [TrianglePipelines].
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,

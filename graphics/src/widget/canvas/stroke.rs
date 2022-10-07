@@ -1,4 +1,4 @@
-//! Create lines from a [crate::widget::canvas::Path] and render with various attributes/styles.
+//! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
 
 use iced_native::Color;
 use crate::gradient::Gradient;
@@ -60,7 +60,7 @@ impl<'a> Default for Stroke<'a> {
     }
 }
 
-/// The color or gradient of a [`Stroke`].
+/// The style of a [`Stroke`].
 #[derive(Debug, Clone, Copy)]
 pub enum Style<'a> {
     /// A solid color

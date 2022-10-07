@@ -1,4 +1,3 @@
-// uniforms
 struct SolidUniforms {
     transform: mat4x4<f32>,
     color: vec4<f32>

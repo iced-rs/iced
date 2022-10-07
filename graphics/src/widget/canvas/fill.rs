@@ -42,7 +42,7 @@ impl<'a> From<Color> for Fill<'a> {
     }
 }
 
-/// The color or gradient of a [`Fill`].
+/// The style of a [`Fill`].
 #[derive(Debug, Clone)]
 pub enum Style<'a> {
     /// A solid color

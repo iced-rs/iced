@@ -88,7 +88,7 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
         let bytes = bytemuck::cast_slice(content);
         let bytes_size = bytes.len() as u64;
 
-        if let Some(buffer_size) = wgpu::BufferSize::new(bytes_size as u64) {
+        if let Some(buffer_size) = wgpu::BufferSize::new(bytes_size) {
             let mut buffer = staging_belt.write_buffer(
                 encoder,
                 &self.gpu,

@@ -22,8 +22,7 @@ pub struct GradientUniformData {
 struct GradientUniformLocations {
     gradient_direction_location: <Context as HasContext>::UniformLocation,
     color_stops_size_location: <Context as HasContext>::UniformLocation,
-    //currently the maximum number of stops is 64 due to needing to allocate the
-    //memory for the array of stops with a const value in GLSL
+    //currently the maximum number of stops is 16 due to lack of SSBO in GL2.1
     color_stops_location: <Context as HasContext>::UniformLocation,
     transform_location: <Context as HasContext>::UniformLocation,
 }
@@ -140,7 +139,7 @@ impl GradientUniformData {
 
         let transform_location =
             unsafe { gl.get_uniform_location(program, "u_Transform") }
-                .expect("Get transform location.");
+                .expect("Gradient - Get u_Transform.");
 
         GradientUniformData {
             gradient: Gradient::Linear(Linear {

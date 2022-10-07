@@ -26,7 +26,7 @@ pub(super) struct GradientUniforms {
     transform: glam::Mat4,
     //xy = start, zw = end
     direction: Vec4,
-    //x = start, y = end, zw = padding
+    //x = start stop, y = end stop, zw = padding
     stop_range: IVec4,
 }
 
@@ -55,7 +55,7 @@ impl GradientPipeline {
         );
 
         //Note: with a WASM target storage buffers are not supported. Will need to use UBOs & static
-        // sized array (eg like the 64-sized array on OpenGL side right now) to make gradients work
+        // sized array (eg like the 32-sized array on OpenGL side right now) to make gradients work
         let storage_buffer = DynamicBuffer::storage(
             device,
             "iced_wgpu::triangle [GRADIENT] storage",

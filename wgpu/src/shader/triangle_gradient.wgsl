@@ -1,9 +1,8 @@
-// uniforms
 struct GradientUniforms {
     transform: mat4x4<f32>,
     //xy = start, wz = end
     position: vec4<f32>,
-    //x = start, y = end, zw = padding
+    //x = start stop, y = end stop, zw = padding
     stop_range: vec4<i32>,
 }
 
@@ -32,6 +31,7 @@ fn vs_main(@location(0) input: vec2<f32>) -> VertexOutput {
     return output;
 }
 
+//TODO: rewrite without branching
 @fragment
 fn fs_gradient(input: VertexOutput) -> @location(0) vec4<f32> {
     let start = uniforms.position.xy;
