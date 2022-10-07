@@ -11,7 +11,7 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke, Fill, fill, Gradient, stroke};
+use iced::widget::canvas::{Cursor, Path, Stroke, Fill, fill, Gradient, stroke, gradient::Position};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
@@ -19,7 +19,6 @@ use iced::{
 };
 
 use std::time::Instant;
-use crate::canvas::Position;
 
 pub fn main() -> iced::Result {
     SolarSystem::run(Settings {

@@ -1,5 +1,5 @@
 use iced::widget::canvas::{
-    self, Cache, Canvas, Cursor, Frame, Geometry, Gradient, Position, Location
+    self, Cache, Canvas, Cursor, Frame, Geometry, Gradient, gradient::Position, gradient::Location
 };
 use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
