@@ -27,27 +27,33 @@ void main() {
     vec2 current_vec = vec2(raw_position.xy - start);
     vec2 unit = normalize(gradient_vec);
     float coord_offset = dot(unit, current_vec) / length(gradient_vec);
+    //if a gradient has a start/end stop that is identical, the mesh will have a transparent fill
+    fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+
+    float min_offset = color_stops[1].x;
+    float max_offset = color_stops[color_stops_size - 1].x;
 
     for (uint i = 0; i < color_stops_size - 2; i += 2) {
-        vec4 color = color_stops[i];
-        float offset = color_stops[i+1].x;
-
-        vec4 next_color = color_stops[i+2];
+        float curr_offset = color_stops[i+1].x;
         float next_offset = color_stops[i+3].x;
 
-        if (offset <= coord_offset && coord_offset <= next_offset) {
-            fragColor = mix(color, next_color, smoothstep(
-                offset,
+        if (coord_offset <= min_offset) {
+            //current coordinate is before the first defined offset, set it to the start color
+            fragColor = color_stops[0];
+        }
+
+        if (curr_offset <= coord_offset && coord_offset <= next_offset) {
+            //current fragment is between the current offset processing & the next one, interpolate colors
+            fragColor = mix(color_stops[i], color_stops[i+2], smoothstep(
+                curr_offset,
                 next_offset,
                 coord_offset
             ));
-        } else if (coord_offset < color_stops[1].x) {
-            fragColor = color_stops[0];
-        } else if (coord_offset > color_stops[color_stops_size - 1].x) {
+        }
+
+        if (coord_offset >= max_offset) {
+            //current coordinate is before the last defined offset, set it to the last color
             fragColor = color_stops[color_stops_size - 2];
-        } else {
-            //This use case can happen if a gradient's start & end position are the same
-            fragColor = vec4(0.0, 0.0, 0.0, 0.0);
         }
     }
 }
