@@ -115,6 +115,16 @@ where
 
             let show_controls = bounds.contains(cursor_position);
 
+            self.body.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                theme,
+                style,
+                body_layout,
+                cursor_position,
+                viewport,
+            );
+
             title_bar.draw(
                 &tree.children[1],
                 renderer,
@@ -124,16 +134,6 @@ where
                 cursor_position,
                 viewport,
                 show_controls,
-            );
-
-            self.body.as_widget().draw(
-                &tree.children[0],
-                renderer,
-                theme,
-                style,
-                body_layout,
-                cursor_position,
-                viewport,
             );
         } else {
             self.body.as_widget().draw(
