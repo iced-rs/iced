@@ -16,6 +16,7 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+use crate::wgpu::CompositeAlphaMode;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
@@ -119,6 +120,7 @@ pub fn main() {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: wgpu::PresentMode::AutoVsync,
+            alpha_mode: CompositeAlphaMode::Auto,
         },
     );
 
@@ -213,6 +215,7 @@ pub fn main() {
                             width: size.width,
                             height: size.height,
                             present_mode: wgpu::PresentMode::AutoVsync,
+                            alpha_mode: CompositeAlphaMode::Auto
                         },
                     );
 

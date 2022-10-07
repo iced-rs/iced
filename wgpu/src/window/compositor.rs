@@ -4,9 +4,10 @@ use futures::stream::{self, StreamExt};
 
 use iced_graphics::compositor;
 use iced_native::futures;
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::marker::PhantomData;
+use wgpu::CompositeAlphaMode;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
@@ -27,7 +28,7 @@ impl<Theme> Compositor<Theme> {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request<W: HasRawWindowHandle>(
+    pub async fn request<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Settings,
         compatible_window: Option<&W>,
     ) -> Option<Self> {
@@ -123,7 +124,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     type Renderer = Renderer<Theme>;
     type Surface = wgpu::Surface;
 
-    fn new<W: HasRawWindowHandle>(
+    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error> {
@@ -138,7 +139,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
         Ok((compositor, Renderer::new(backend)))
     }
 
-    fn create_surface<W: HasRawWindowHandle>(
+    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,
     ) -> wgpu::Surface {
@@ -162,6 +163,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 present_mode: self.settings.present_mode,
                 width,
                 height,
+                alpha_mode: CompositeAlphaMode::Auto,
             },
         );
     }

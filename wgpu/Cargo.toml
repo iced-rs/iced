@@ -28,10 +28,10 @@ spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 
 [dependencies]
-wgpu = "0.13"
-wgpu_glyph = "0.17"
+wgpu = "0.14"
+wgpu_glyph = "0.18"
 glyph_brush = "0.7"
-raw-window-handle = "0.4"
+raw-window-handle = "0.5.0"
 log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
