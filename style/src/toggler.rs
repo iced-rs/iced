@@ -2,7 +2,7 @@
 use iced_core::Color;
 
 /// The appearance of a toggler.
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct Appearance {
     pub background: Color,
     pub background_border: Option<Color>,

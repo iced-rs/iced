@@ -204,6 +204,7 @@ fn view_controls<'a>(
 
 mod grid {
     use crate::Preset;
+    use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{
@@ -423,6 +424,19 @@ mod grid {
             };
 
             match event {
+                Event::Touch(touch::Event::FingerMoved { .. }) => {
+                    let message = {
+                        *interaction = if is_populated {
+                            Interaction::Erasing
+                        } else {
+                            Interaction::Drawing
+                        };
+
+                        populate.or(unpopulate)
+                    };
+
+                    (event::Status::Captured, message)
+                }
                 Event::Mouse(mouse_event) => match mouse_event {
                     mouse::Event::ButtonPressed(button) => {
                         let message = match button {

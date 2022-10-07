@@ -72,6 +72,7 @@ members = [
     "examples/integration_opengl",
     "examples/integration_wgpu",
     "examples/modern_art",
+    "examples/multitouch",
     "examples/pane_grid",
     "examples/pick_list",
     "examples/pokedex",
