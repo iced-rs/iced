@@ -100,11 +100,11 @@ where
     let final_size = Size {
         width: match width {
             Length::Shrink => f32::min(raw_size.width, full_size.width),
-            _ => raw_size.width,
+            _ => full_size.width,
         },
         height: match height {
             Length::Shrink => f32::min(raw_size.height, full_size.height),
-            _ => raw_size.height,
+            _ => full_size.height,
         },
     };
 
