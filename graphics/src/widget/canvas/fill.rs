@@ -67,13 +67,9 @@ impl<'a> Style<'a> {
             Style::Solid(color) => {
                 mesh::Style::Solid(*color)
             },
-            Style::Gradient(gradient) => {
-                let mut gradient = (*gradient).clone();
-                let coordinates = gradient.coords();
-                transform.transform_point(coordinates.0);
-                transform.transform_point(coordinates.1);
-                mesh::Style::Gradient(gradient)
-            }
+            Style::Gradient(gradient) => mesh::Style::Gradient(
+                transform.transform_gradient((*gradient).clone()),
+            ),
         }
     }
 }

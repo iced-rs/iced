@@ -1,9 +1,9 @@
 //! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
 
-use iced_native::Color;
 use crate::gradient::Gradient;
 use crate::layer::mesh;
 use crate::widget::canvas::frame::Transform;
+use iced_native::Color;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]
@@ -73,16 +73,10 @@ impl<'a> Style<'a> {
     /// Converts a fill's [Style] to a [mesh::Style] for use in the renderer's shader.
     pub(crate) fn as_mesh_style(&self, transform: &Transform) -> mesh::Style {
         match self {
-            Style::Solid(color) => {
-                mesh::Style::Solid(*color)
-            },
-            Style::Gradient(gradient) => {
-                let mut gradient = (*gradient).clone();
-                let coordinates = gradient.coords();
-                transform.transform_point(coordinates.0);
-                transform.transform_point(coordinates.1);
-                mesh::Style::Gradient(gradient)
-            }
+            Style::Solid(color) => mesh::Style::Solid(*color),
+            Style::Gradient(gradient) => mesh::Style::Gradient(
+                transform.transform_gradient((*gradient).clone()),
+            ),
         }
     }
 }

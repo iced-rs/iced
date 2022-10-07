@@ -3,12 +3,13 @@ use std::borrow::Cow;
 
 use iced_native::{Point, Rectangle, Size, Vector};
 
+use crate::gradient::Gradient;
+use crate::layer::mesh;
 use crate::triangle;
+use crate::triangle::Vertex2D;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
 use crate::Primitive;
 
-use crate::layer::mesh;
-use crate::triangle::Vertex2D;
 use lyon::tessellation;
 
 /// The frame of a [`Canvas`].
@@ -38,11 +39,23 @@ pub(crate) struct Transform {
 
 impl Transform {
     /// Transforms the given [Point] by the transformation matrix.
-    pub(crate) fn transform_point(&self, point: &mut Point) {
+    fn transform_point(&self, point: &mut Point) {
         let transformed =
             self.raw.transform_point(Point2D::new(point.x, point.y));
         point.x = transformed.x;
         point.y = transformed.y;
+    }
+
+    pub(crate) fn transform_gradient(
+        &self,
+        mut gradient: Gradient,
+    ) -> Gradient {
+        let coords = match &mut gradient {
+            Gradient::Linear(linear) => (&mut linear.start, &mut linear.end),
+        };
+        self.transform_point(coords.0);
+        self.transform_point(coords.1);
+        gradient
     }
 }
 

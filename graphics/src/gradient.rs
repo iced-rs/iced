@@ -2,7 +2,7 @@
 mod linear;
 
 pub use crate::gradient::linear::{Linear, Location, Position};
-use crate::{Color, Point};
+use crate::Color;
 
 #[derive(Debug, Clone, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
@@ -26,11 +26,5 @@ impl Gradient {
     /// Creates a new linear [`linear::Builder`].
     pub fn linear(position: impl Into<Position>) -> linear::Builder {
         linear::Builder::new(position.into())
-    }
-
-    pub(crate) fn coords(&mut self) -> (&mut Point, &mut Point) {
-        match self {
-            Gradient::Linear(gradient) => (&mut gradient.start, &mut gradient.end)
-        }
     }
 }
