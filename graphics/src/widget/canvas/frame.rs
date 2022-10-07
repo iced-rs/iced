@@ -38,12 +38,11 @@ pub(crate) struct Transform {
 
 impl Transform {
     /// Transforms the given [Point] by the transformation matrix.
-    pub(crate) fn transform_point(&self, mut point: Point) -> Point {
+    pub(crate) fn transform_point(&self, point: &mut Point) {
         let transformed =
             self.raw.transform_point(Point2D::new(point.x, point.y));
         point.x = transformed.x;
         point.y = transformed.y;
-        point
     }
 }
 

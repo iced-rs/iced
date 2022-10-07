@@ -11,7 +11,7 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke, Fill, fill, Gradient, stroke, gradient::Position};
+use iced::widget::canvas::{Cursor, Path, Stroke, Gradient, stroke, gradient::Position};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
@@ -212,13 +212,7 @@ impl<Message> canvas::Program<Message> for State {
                 .build()
                 .unwrap();
 
-                frame.fill(
-                    &earth,
-                    Fill {
-                        style: fill::Style::Gradient(&earth_fill),
-                        ..Default::default()
-                    },
-                );
+                frame.fill(&earth, &earth_fill);
 
                 frame.with_save(|frame| {
                     frame.rotate(rotation * 10.0);

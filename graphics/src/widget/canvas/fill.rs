@@ -42,6 +42,15 @@ impl<'a> From<Color> for Fill<'a> {
     }
 }
 
+impl<'a> Into<Fill<'a>> for &'a Gradient {
+    fn into(self) -> Fill<'a> {
+        Fill {
+            style: Style::Gradient(self),
+            ..Default::default()
+        }
+    }
+}
+
 /// The style of a [`Fill`].
 #[derive(Debug, Clone)]
 pub enum Style<'a> {
@@ -59,7 +68,11 @@ impl<'a> Style<'a> {
                 mesh::Style::Solid(*color)
             },
             Style::Gradient(gradient) => {
-                mesh::Style::Gradient((*gradient).clone().transform(transform))
+                let mut gradient = (*gradient).clone();
+                let coordinates = gradient.coords();
+                transform.transform_point(coordinates.0);
+                transform.transform_point(coordinates.1);
+                mesh::Style::Gradient(gradient)
             }
         }
     }
