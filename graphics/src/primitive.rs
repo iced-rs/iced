@@ -2,11 +2,10 @@ use iced_native::image;
 use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
-use crate::{alignment, layer};
+use crate::{alignment, layer::mesh};
 use crate::triangle;
 
 use std::sync::Arc;
-use layer::mesh;
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]

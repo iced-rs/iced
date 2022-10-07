@@ -45,6 +45,9 @@ void main() {
             fragColor = color_stops[0];
         } else if (coord_offset > color_stops[color_stops_size - 1].x) {
             fragColor = color_stops[color_stops_size - 2];
+        } else {
+            //This use case can happen if a gradient's start & end position are the same
+            fragColor = vec4(0.0, 0.0, 0.0, 0.0);
         }
     }
 }

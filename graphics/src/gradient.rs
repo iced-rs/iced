@@ -1,9 +1,10 @@
 //! For creating a Gradient.
 mod linear;
 
-pub use crate::gradient::linear::Linear;
+pub use crate::gradient::linear::{Linear, Position, Location};
 use crate::widget::canvas::frame::Transform;
-use crate::{Point, Color};
+use crate::Color;
+use crate::widget::canvas::{Fill, fill};
 
 #[derive(Debug, Clone, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
@@ -25,18 +26,27 @@ pub struct ColorStop {
 
 impl Gradient {
     /// Creates a new linear [`linear::Builder`].
-    pub fn linear(start: Point, end: Point) -> linear::Builder {
-        linear::Builder::new(start, end)
+    pub fn linear(position: impl Into<Position>) -> linear::Builder {
+        linear::Builder::new(position.into())
     }
 
     /// Modifies the start & end stops of the gradient to have a proper transform value.
     pub(crate) fn transform(mut self, transform: &Transform) -> Self {
         match &mut self {
             Gradient::Linear(linear) => {
-                linear.start = transform.apply_to(linear.start);
-                linear.end = transform.apply_to(linear.end);
+                linear.start = transform.transform_point(linear.start);
+                linear.end = transform.transform_point(linear.end);
             }
         }
         self
+    }
+}
+
+impl<'a> Into<Fill<'a>> for &'a Gradient {
+    fn into(self) -> Fill<'a> {
+        Fill {
+            style: fill::Style::Gradient(self),
+            .. Default::default()
+        }
     }
 }

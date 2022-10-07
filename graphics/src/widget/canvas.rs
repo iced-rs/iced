@@ -28,7 +28,7 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use text::Text;
 
 use crate::{Backend, Primitive, Renderer};
-pub use crate::gradient::Gradient;
+pub use crate::gradient::{Gradient, Position, Location};
 
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;

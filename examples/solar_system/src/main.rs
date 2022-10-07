@@ -19,6 +19,7 @@ use iced::{
 };
 
 use std::time::Instant;
+use crate::canvas::Position;
 
 pub fn main() -> iced::Result {
     SolarSystem::run(Settings {
@@ -202,8 +203,10 @@ impl<Message> canvas::Program<Message> for State {
                 let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
 
                 let earth_fill = Gradient::linear(
-                    Point::new(-Self::EARTH_RADIUS, 0.0),
-                    Point::new(Self::EARTH_RADIUS, 0.0),
+                    Position::Absolute {
+                        start: Point::new(-Self::EARTH_RADIUS, 0.0),
+                        end: Point::new(Self::EARTH_RADIUS, 0.0)
+                    }
                 )
                 .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
                 .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))

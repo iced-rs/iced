@@ -1,5 +1,5 @@
 use iced::widget::canvas::{
-    self, fill, Cache, Canvas, Cursor, Fill, Frame, Geometry, Gradient,
+    self, Cache, Canvas, Cursor, Frame, Geometry, Gradient, Position, Location
 };
 use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
@@ -76,6 +76,20 @@ impl<Message> canvas::Program<Message> for ModernArt {
     }
 }
 
+fn random_direction() -> Location {
+    match thread_rng().gen_range(0..8) {
+        0 => Location::TopLeft,
+        1 => Location::Top,
+        2 => Location::TopRight,
+        3 => Location::Right,
+        4 => Location::BottomRight,
+        5 => Location::Bottom,
+        6 => Location::BottomLeft,
+        7 => Location::Left,
+        _ => Location::TopLeft
+    }
+}
+
 fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
     let solid = rand::random::<bool>();
 
@@ -87,8 +101,13 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
         )
     };
 
-    let gradient = |top_left: Point, bottom_right: Point| -> Gradient {
-        let mut builder = Gradient::linear(top_left, bottom_right);
+    let gradient = |top_left: Point, size: Size| -> Gradient {
+        let mut builder = Gradient::linear(Position::Relative {
+            top_left,
+            size,
+            start: random_direction(),
+            end: random_direction()
+        });
         let stops = thread_rng().gen_range(1..15u32);
 
         let mut i = 0;
@@ -114,25 +133,13 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
         frame.fill_rectangle(
             top_left,
             size,
-            Fill {
-                style: fill::Style::Solid(random_color()),
-                ..Default::default()
-            },
+            random_color(),
         );
     } else {
         frame.fill_rectangle(
             top_left,
             size,
-            Fill {
-                style: fill::Style::Gradient(&gradient(
-                    top_left,
-                    Point::new(
-                        top_left.x + size.width,
-                        top_left.y + size.height,
-                    ),
-                )),
-                ..Default::default()
-            },
+            &gradient(top_left, size),
         );
     };
 
