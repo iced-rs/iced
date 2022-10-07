@@ -50,11 +50,11 @@ impl Transform {
         &self,
         mut gradient: Gradient,
     ) -> Gradient {
-        let coords = match &mut gradient {
+        let (start, end) = match &mut gradient {
             Gradient::Linear(linear) => (&mut linear.start, &mut linear.end),
         };
-        self.transform_point(coords.0);
-        self.transform_point(coords.1);
+        self.transform_point(start);
+        self.transform_point(end);
         gradient
     }
 }
