@@ -624,6 +624,9 @@ pub fn run_command<A, E>(
                         height,
                     });
                 }
+                window::Action::Maximize(value) => {
+                    window.set_maximized(value);
+                }
                 window::Action::Move { x, y } => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
                         x,
@@ -636,6 +639,9 @@ pub fn run_command<A, E>(
                         window.primary_monitor(),
                         mode,
                     ));
+                }
+                window::Action::ToggleMaximize => {
+                    window.set_maximized(!window.is_maximized())
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {

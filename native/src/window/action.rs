@@ -18,6 +18,8 @@ pub enum Action<T> {
         /// The new logical height of the window
         height: u32,
     },
+    /// Sets the window to maximized or back
+    Maximize(bool),
     /// Move the window.
     ///
     /// Unsupported on Wayland.
@@ -29,6 +31,8 @@ pub enum Action<T> {
     },
     /// Set the [`Mode`] of the window.
     SetMode(Mode),
+    /// Sets the window to maximized or back
+    ToggleMaximize,
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
 }
@@ -45,8 +49,10 @@ impl<T> Action<T> {
         match self {
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
+            Self::Maximize(bool) => Action::Maximize(bool),
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
+            Self::ToggleMaximize => Action::ToggleMaximize,
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
         }
     }
@@ -61,10 +67,12 @@ impl<T> fmt::Debug for Action<T> {
                 "Action::Resize {{ widget: {}, height: {} }}",
                 width, height
             ),
+            Self::Maximize(value) => write!(f, "Action::Maximize({})", value),
             Self::Move { x, y } => {
                 write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
+            Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
         }
     }
