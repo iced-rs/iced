@@ -90,10 +90,8 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::animation;
-use crate::Animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
-use std::any::Any;
 use iced_core::time::Instant;
 
 /// A component that displays information and allows interaction.
@@ -171,7 +169,7 @@ where
     ///
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
-    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+    fn interp(&mut self, _state: &mut tree::State, _app_start: &Instant) -> animation::Request {
         animation::Request::None
     }
 
@@ -184,7 +182,7 @@ where
     fn diff(&self, _tree: &mut Tree) {}
 
     /// See [`diff`], a mutable version
-    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree, app_start: &Instant) -> animation::Request {acc}
+    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree, _app_start: &Instant) -> animation::Request {acc}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(

@@ -10,7 +10,7 @@ use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Background, Clipboard, Color, Command, Element, Layout, Length, Point,
-    Rectangle, Shell, Size, Vector, Widget, Animation,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::{f32, u32};

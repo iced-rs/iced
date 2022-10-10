@@ -171,7 +171,7 @@ where
         &self,
         _renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         let limits =
             limits.width(self.width).height(Length::Units(self.height));

@@ -5,7 +5,6 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::animation;
 use crate::widget;
 use crate::widget::{Operation, Tree};
 use crate::{

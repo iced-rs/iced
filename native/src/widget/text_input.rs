@@ -24,7 +24,7 @@ use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget, Animation,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
@@ -220,7 +220,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         layout(renderer, limits, self.width, self.padding, self.size)
     }

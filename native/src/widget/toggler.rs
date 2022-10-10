@@ -8,7 +8,7 @@ use crate::text;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
-    Shell, Widget, Animation,
+    Shell, Widget,
 };
 
 pub use iced_style::toggler::{Appearance, StyleSheet};

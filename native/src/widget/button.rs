@@ -7,12 +7,11 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
-use crate::animation;
 use crate::widget::tree::{self, Tree};
 use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget, Ease
+    Rectangle, Shell, Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};

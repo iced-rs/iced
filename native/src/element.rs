@@ -7,7 +7,7 @@ use crate::widget;
 use crate::animation;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget, Animation,
+    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
 use std::borrow::{Borrow, BorrowMut};

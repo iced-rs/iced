@@ -4,7 +4,6 @@ use crate::Padding;
 use crate::widget::Id;
 
 use iced_core::time::{Instant, Duration};
-use std::fmt;
 
 /// A type for managing animations
 ///

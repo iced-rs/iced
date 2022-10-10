@@ -148,7 +148,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,

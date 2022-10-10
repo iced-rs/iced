@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget, Animation,
+    Widget,
 };
 
 use std::hash::Hash;
@@ -107,7 +107,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         let Size { width, height } = renderer.dimensions(&self.handle);
 

@@ -4,7 +4,7 @@ use crate::renderer;
 use crate::svg;
 use crate::widget::Tree;
 use crate::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget, Animation,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -81,7 +81,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.dimensions(&self.handle);

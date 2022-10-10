@@ -4,7 +4,7 @@ use crate::layout;
 use crate::renderer;
 use crate::text;
 use crate::widget::Tree;
-use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget, Animation};
+use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
 
 use std::borrow::Cow;
 
@@ -131,7 +131,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
+        _tree: &Tree,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
 

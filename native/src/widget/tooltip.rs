@@ -10,7 +10,7 @@ use crate::widget::overlay;
 use crate::widget::{Text, Tree};
 use crate::{
     Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget, Animation,
+    Shell, Size, Vector, Widget,
 };
 
 use std::borrow::Cow;
