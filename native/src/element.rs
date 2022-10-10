@@ -11,6 +11,7 @@ use crate::{
 };
 
 use std::borrow::{Borrow, BorrowMut};
+use iced_core::time::Instant;
 
 /// A generic [`Widget`].
 ///
@@ -496,8 +497,8 @@ where
         self.element.widget.layout(renderer, limits, tree)
     }
 
-    fn step_state(&mut self, state: &mut tree::State, now: usize) -> animation::Request {
-        self.element.widget.step_state(state, now)
+    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+        self.element.widget.interp(state, app_start)
     }
 
     fn operate(

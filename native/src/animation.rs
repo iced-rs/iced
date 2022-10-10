@@ -1,5 +1,6 @@
 //! State management and calculation for widget state animations
 use crate::Length;
+use crate::Padding;
 use crate::widget::Id;
 
 use iced_core::time::{Instant, Duration};
@@ -18,11 +19,11 @@ use std::fmt;
 /// A keyframe is also used to describe the current state of the widget. This
 /// is to guarentee that the curret tracked state is the same as what
 /// animatable traits are available via the iced API.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Animation {
     id: Id,
     keyframes: Vec<Keyframe>,
-    at: Option<Keyframe>,
+    playhead: Option<Keyframe>,
     again: Again,
     message: bool //TODO: add a message to be sent on animation completion
 }
@@ -32,7 +33,7 @@ impl std::default::Default for Animation {
         Animation {
             id: Id::unique(),
             keyframes: Vec::new(),
-            at: None,
+            playhead: None,
             again: Again::Never,
             message: false,
         }
@@ -78,17 +79,95 @@ impl Animation {
         self
     }
 
+    /// Get the current width of the animated widget.
+    pub fn width(&self) -> Length {
+        self.playhead.as_ref()
+            .expect("Width should never be called before an animation's first `interp()`")
+            .width
+            .expect("Width should never be called before an animation's first `interp()`")
+    }
+
+    /// Get the current height of the animated widget
+    pub fn height(&self) -> Length {
+        self.playhead.as_ref()
+            .expect("Height should never be called before an animation's first `interp()`")
+            .height
+            .expect("Height should never be called before an animation's first `interp()`")
+    }
+
+    /// Generate a new frame given the keyframes, requested [`Again`] type, and set the playhead
+    /// to the newly generated value.
+    /// Default are the default values that a widget may have. Each widget can choose what it's
+    /// default state should be. The default value should then be modified by the the widget
+    /// for the given start values of a widget. For example the [`row::width`] method on an
+    /// unanimated [`row`] is also the default width that should be passed here.
+    /// The default should be `None` for values that are never animatable for the widget.
+    pub fn interp(&mut self, app_start: &Instant, default: Keyframe) -> Request {
+        if let Some(playhead) = &self.playhead {
+
+            if let Some(width) = &playhead.width {
+                /*
+                let lower_bound_iter = self.keyframes.iter().peekable();
+                let lower_bound = loop {
+                    if let Some(keyframe) = lower_bound_iter.next() {
+                        if let Some(next_keyframe) = lower_bound_iter.peek() {
+                            if keyframe.after < playhead.after && next_keyframe.after > playhead.after {
+                                break keyframe.after
+                            }
+                        }
+                    } else {break Duration::ZERO}
+                };
+                // THIS IS BAD
+                let upper_bound = match self.keyframes.iter().find(|&&keyframe| keyframe.width.is_some() /* && keyframe.after > app_start */) {
+                    Some(keyframe) => *keyframe,
+                    None => match self.keyframes.last() {
+                        Some(frame) => *frame,
+                        None => default
+                    }
+                }.after;
+                */
+                match playhead.ease {
+                    Ease::Linear => {
+                        println!("calculate linear animation");
+                    }
+                }
+            }
+
+            if let Some(height) = playhead.height {
+                // TODO
+            }
+
+            if let Some(padding) = playhead.padding {
+                // TODO
+            }
+
+            if let Some(spacing) = playhead.spacing {
+                // TODO
+            }
+
+        } else {
+            // This is the first interp on the animation. Set the playhead at the beginning.
+            self.playhead = Some(default);
+        }
+        Request::AnimationFrame
+    }
+
 }
 
-/// A point in time that can trigger animation start. The time doesn't have to match exactly.
-/// Any time after the keyframe's start will trigger a step in the [`Transition`].
-/// start is the time from when the animation is created.
-#[derive(Debug)]
+/// The requested values to a widget to have `after`
+/// the given [`Duration`] is equal to the duration since
+/// the animation was created.
+/// A keyframe can animate many different widget types.
+/// Widgets are not guarenteed to use all values. Extra
+/// assignemnts will be ignored when animating.
+#[derive(Debug, Clone)]
 pub struct Keyframe {
     id: Id,
-    delay: Duration,
+    after: Duration,
     width: Option<Length>,
     height: Option<Length>,
+    spacing: Option<u16>,
+    padding: Option<Padding>,
     ease: Ease,
 }
 
@@ -96,9 +175,11 @@ impl std::default::Default for Keyframe {
     fn default() -> Self {
         Keyframe {
             id: Id::unique(),
-            delay: Duration::ZERO,
+            after: Duration::ZERO,
             width: None,
             height: None,
+            spacing: Some(0),
+            padding: Some(0.into()),
             ease: Ease::Linear,
         }
     }
@@ -139,8 +220,8 @@ impl Keyframe {
 
     /// Set the the time after animation creation that the widget animation
     /// will have values set in the keyframe.
-    pub fn after(mut self, delay: Duration) -> Self {
-        self.delay = delay;
+    pub fn after(mut self, after: Duration) -> Self {
+        self.after = after;
         self
     }
 }
@@ -167,21 +248,23 @@ pub enum Again {
     Bounce,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 /// The time that a widget requests to be redrawn.
 ///
-/// Widgets that implement a [`widget::step_state`] return this value.
+/// Widgets that implement a [`widget::interp`] return this value.
 /// It is a signal to the iced runtime when the widget should be redrawn.
 /// Iced will only listen to the shortest time returned from all of the widgets
 /// in the view. Because the widget will then be able to return its requested time
-/// the next time its [`widget::step_state`] is called because of the widget that
+/// the next time its [`widget::interp`] is called because of the widget that
 /// required rerender sooner.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum Request {
     /// Similar to javascript's requestAnimationFrame, This is a request to render "as soon as possible".
     /// Though for iced's runtime and most custom implementations that will be as soon as the refresh rate
     /// of the monitor.
     AnimationFrame,
     /// Request some time in the future. That isn't tied to any other value.
+    /// For For times shorter than or equal to the user's monitor's refresh rate, it is preferable to use
+    /// Request::AnimationFrame.
     Timeout(Instant),
     /// The widget doesn't need to reanimate. It is either done animating, or static.
     None,

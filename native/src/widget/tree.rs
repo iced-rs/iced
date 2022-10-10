@@ -5,6 +5,7 @@ use crate::animation;
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
+use iced_core::time::Instant;
 
 /// A persistent state widget tree.
 ///
@@ -77,13 +78,14 @@ impl Tree {
         &mut self,
         mut acc: animation::Request,
         mut new: impl BorrowMut<dyn Widget<Message, Renderer> + 'a>,
+        app_start: &Instant,
     ) -> animation::Request
     where
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow_mut().tag() {
-            acc = acc.min(new.borrow_mut().step_state(&mut self.state, 500));
-            new.borrow_mut().diff_mut(acc, self)
+            acc = acc.min(new.borrow_mut().interp(&mut self.state, app_start));
+            new.borrow_mut().diff_mut(acc, self, app_start)
         } else {
             *self = Self::new(new);
             acc
@@ -110,6 +112,7 @@ impl Tree {
         &mut self,
         acc: animation::Request,
         new_children: &mut [impl BorrowMut<dyn Widget<Message, Renderer> + 'a>],
+        app_start: &Instant,
     ) -> animation::Request
     where
         Renderer: crate::Renderer,
@@ -117,7 +120,7 @@ impl Tree {
         self.diff_children_custom_mut(
             acc,
             new_children,
-            |tree, widget| tree.diff_mut(acc, widget.borrow_mut()),
+            |tree, widget| tree.diff_mut(acc, widget.borrow_mut(), app_start),
             |widget| Self::new(widget.borrow_mut()),
         )
     }

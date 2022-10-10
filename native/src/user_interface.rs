@@ -97,11 +97,12 @@ where
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
+        app_start: &Instant,
     ) -> Self {
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut());
+        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut(), app_start);
 
         let base =
             renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
@@ -532,8 +533,8 @@ where
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
-    pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
+    pub fn relayout(self, bounds: Size, renderer: &mut Renderer, app_start: &Instant) -> Self {
+        Self::build(self.root, bounds, Cache { state: self.state }, renderer, app_start)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the

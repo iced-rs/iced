@@ -187,6 +187,7 @@ where
 
     let redraw_tracker = Rc::new(RefCell::new(None));
     let redraw_t = redraw_tracker.clone();
+    let app_start = Instant::now();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
         application,
@@ -197,6 +198,7 @@ where
         debug,
         receiver,
         redraw_tracker,
+        app_start,
         init_command,
         window,
         settings.exit_on_close_request,
@@ -235,6 +237,9 @@ where
                 task::Poll::Pending => {
                     let mut timeout = redraw_t.borrow_mut();
                     let wait_type = match *timeout {
+                        // TODO: Winit docs say that ControlFlow::Poll should be used
+                        // with vsync if the `instant` is shorter than the refresh rate
+                        // https://docs.rs/winit/latest/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil
                         Some(instant) => ControlFlow::WaitUntil(instant),
                         None => ControlFlow::Wait,
                     };
@@ -256,6 +261,7 @@ async fn run_instance<A, E, C>(
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
     redraw_tracker: Rc<RefCell<Option<Instant>>>,
+    app_start: Instant,
     init_command: Command<A::Message>,
     window: winit::window::Window,
     exit_on_close_request: bool,
@@ -295,6 +301,7 @@ async fn run_instance<A, E, C>(
         &mut debug,
         &window,
         || compositor.fetch_information(),
+        &app_start,
     );
     runtime.track(application.subscription());
 
@@ -305,6 +312,7 @@ async fn run_instance<A, E, C>(
         &mut renderer,
         state.logical_size(),
         &mut debug,
+        &app_start
     ));
 
     let mut mouse_interaction = mouse::Interaction::default();
@@ -359,6 +367,7 @@ async fn run_instance<A, E, C>(
                         &mut messages,
                         &window,
                         || compositor.fetch_information(),
+                        &app_start,
                     );
 
                     // Update window
@@ -373,6 +382,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         state.logical_size(),
                         &mut debug,
+                        &app_start
                     ));
 
                     if should_exit {
@@ -434,7 +444,7 @@ async fn run_instance<A, E, C>(
                     debug.layout_started();
                     user_interface = ManuallyDrop::new(
                         ManuallyDrop::into_inner(user_interface)
-                            .relayout(logical_size, &mut renderer),
+                            .relayout(logical_size, &mut renderer, &app_start),
                     );
                     debug.layout_finished();
 
@@ -555,6 +565,7 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
+    app_start: &Instant,
 ) -> UserInterface<'a, A::Message, A::Renderer>
 where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -564,7 +575,7 @@ where
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer, app_start);
     debug.layout_finished();
 
     user_interface
@@ -584,6 +595,7 @@ pub fn update<A: Application, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
+    app_start: &Instant,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
@@ -606,6 +618,7 @@ pub fn update<A: Application, E: Executor>(
             debug,
             window,
             graphics_info,
+            app_start,
         );
     }
 
@@ -626,6 +639,7 @@ pub fn run_command<A, E>(
     debug: &mut Debug,
     window: &winit::window::Window,
     _graphics_info: impl FnOnce() -> compositor::Information + Copy,
+    app_start: &Instant,
 ) where
     A: Application,
     E: Executor,
@@ -727,6 +741,7 @@ pub fn run_command<A, E>(
                     renderer,
                     state.logical_size(),
                     debug,
+                    &app_start,
                 );
 
                 while let Some(mut operation) = current_operation.take() {

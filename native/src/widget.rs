@@ -94,6 +94,7 @@ use crate::Animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 use std::any::Any;
+use iced_core::time::Instant;
 
 /// A component that displays information and allows interaction.
 ///
@@ -164,10 +165,15 @@ where
         tree::State::None
     }
 
-    /// Replaces the widget's state with some other widget's state.
+    /// Requests the widget replace its state with some other state.
     /// This can be used to take state from the [`UserInterface`]'s cache
     /// and replace the new interface with a cache's state.
-    fn step_state(&mut self, state: &mut tree::State, time: usize) -> animation::Request {animation::Request::None}
+    ///
+    /// This is called interp as it is intended location for widgets to
+    /// interpolate between current and requested state. I.E. animations.
+    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+        animation::Request::None
+    }
 
     /// Returns the state [`Tree`] of the children of the [`Widget`].
     fn children(&self) -> Vec<Tree> {
@@ -178,7 +184,7 @@ where
     fn diff(&self, _tree: &mut Tree) {}
 
     /// See [`diff`], a mutable version
-    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree) -> animation::Request {acc}
+    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree, app_start: &Instant) -> animation::Request {acc}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(

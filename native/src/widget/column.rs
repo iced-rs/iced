@@ -12,6 +12,7 @@ use crate::{
 };
 
 use std::u32;
+use iced_core::time::Instant;
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
@@ -115,8 +116,8 @@ where
         tree.diff_children(&self.children);
     }
 
-    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree) -> animation::Request {
-        tree.diff_children_mut(acc, &mut self.children)
+    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree, app_start: &Instant) -> animation::Request {
+        tree.diff_children_mut(acc, &mut self.children, app_start)
     }
 
     fn width(&self) -> Length {

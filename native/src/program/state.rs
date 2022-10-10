@@ -3,7 +3,8 @@ use crate::event::{self, Event};
 use crate::mouse;
 use crate::renderer;
 use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Point, Program, Size};
+use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
+use iced_core::time::Instant;
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -31,6 +32,7 @@ where
         bounds: Size,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
+        app_start: &Instant,
     ) -> Self {
         let user_interface = build_user_interface(
             &mut program,
@@ -38,6 +40,7 @@ where
             renderer,
             bounds,
             debug,
+            app_start,
         );
 
         let cache = Some(user_interface.into_cache());
@@ -102,6 +105,7 @@ where
             renderer,
             bounds,
             debug,
+            app_start,
         );
 
         debug.event_processing_started();
@@ -160,6 +164,7 @@ where
                 renderer,
                 bounds,
                 debug,
+                app_start,
             );
 
             debug.draw_started();
@@ -182,6 +187,7 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
+    app_start: &Instant,
 ) -> UserInterface<'a, P::Message, P::Renderer>
 where
     <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
@@ -191,7 +197,7 @@ where
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer, app_start);
     debug.layout_finished();
 
     user_interface

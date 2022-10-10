@@ -1,14 +1,19 @@
 //! Distribute content horizontally.
+//!
+//! A [`row`] may have some local [`state`] if an animation is applied.
 use crate::event::{self, Event};
 use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::widget::{Operation, Tree};
+use crate::animation;
+use crate::widget::Operation;
+use crate::widget::tree::{self, Tree};
 use crate::{
     Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
-    Widget,
+    Widget, Animation,
 };
+use iced_core::time::Instant;
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
@@ -18,6 +23,7 @@ pub struct Row<'a, Message, Renderer> {
     width: Length,
     height: Length,
     align_items: Alignment,
+    animation: Option<Animation>,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
@@ -37,6 +43,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
             width: Length::Shrink,
             height: Length::Shrink,
             align_items: Alignment::Start,
+            animation: None,
             children,
         }
     }
@@ -69,6 +76,12 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         self
     }
 
+    /// Set the animation of the [`Row`]
+    pub fn animation(mut self, animation: Animation) -> Self {
+        self.animation = Some(animation);
+        self
+    }
+
     /// Sets the vertical alignment of the contents of the [`Row`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
@@ -96,12 +109,33 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
+    fn tag(&self) -> tree::Tag {
+        match self.animation {
+            Some(_) => tree::Tag::of::<State>(),
+            None => tree::Tag::stateless()
+        }
+    }
+
+    fn state(&self) -> tree::State {
+        match &self.animation {
+            Some(animation) => tree::State::new(State::new((*animation).clone())),
+            None => tree::State::None,
+        }
+    }
     fn children(&self) -> Vec<Tree> {
         self.children.iter().map(Tree::new).collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(&self.children)
+    }
+
+    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree, app_start: &Instant) -> animation::Request {
+        tree.diff_children_mut(acc, &mut self.children, app_start)
+    }
+
+    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+        state.downcast_mut::<State>().interp(app_start)
     }
 
     fn width(&self) -> Length {
@@ -248,5 +282,26 @@ where
 {
     fn from(row: Row<'a, Message, Renderer>) -> Self {
         Self::new(row)
+    }
+}
+
+/// The local state of a [`Row`].
+#[derive(Debug)]
+pub struct State {
+    animation: Animation,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new(animation: Animation) -> State {
+        State {
+            animation,
+        }
+    }
+
+    /// Applies animation to a [`row`] called from [`row::interp`]
+    /// See `interp` in the widget trait for more information.
+    pub fn interp(&mut self, app_start: &Instant) -> animation::Request {
+        self.animation.interp(app_start, animation::Keyframe::new().width(Length::Shrink).height(Length::Shrink))
     }
 }

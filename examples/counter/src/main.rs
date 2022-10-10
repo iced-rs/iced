@@ -1,4 +1,4 @@
-use iced::widget::{button, column, text, container};
+use iced::widget::{button, column, text, container, row};
 use iced::{Alignment, Element, Sandbox, Settings, Length, Ease};
 use iced::animation::{Animation, Keyframe};
 use iced::animation;
@@ -51,7 +51,14 @@ impl Sandbox for Counter {
             button("Increment").on_press(Message::IncrementPressed).width(Length::Units(100)),
             text(self.value).size(50),
             // button("Decrement").on_press(Message::DecrementPressed).animate_width(Length::Units(10), Length::Units(100), 1000, Ease::Linear)
-            container(button("Decrement").on_press(Message::DecrementPressed).width(Length::Units(100))),
+            row![button("Decrement").on_press(Message::DecrementPressed).width(Length::Units(100))]
+                .height(Length::Units(10))
+                .animation(Animation::new()
+                           .push(animation::Keyframe::new()
+                                 .after(Duration::from_secs(1))
+                                 .height(Length::Units(100))
+                           )
+                ),
         ]
         .padding(20)
         .align_items(Alignment::Center)
