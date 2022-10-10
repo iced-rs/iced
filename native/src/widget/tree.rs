@@ -84,9 +84,11 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow_mut().tag() {
+            println!("about to interp");
             acc = acc.min(new.borrow_mut().interp(&mut self.state, app_start));
             new.borrow_mut().diff_mut(acc, self, app_start)
         } else {
+            println!("creating new tree");
             *self = Self::new(new);
             acc
         }

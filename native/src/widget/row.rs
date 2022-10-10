@@ -135,6 +135,7 @@ where
     }
 
     fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+        println!("interp called");
         state.downcast_mut::<State>().interp(app_start)
     }
 
@@ -152,14 +153,27 @@ where
         limits: &layout::Limits,
         tree: &Tree,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let (limits, padding, spacing) = match &self.animation {
+            Some(animation) => {
+                (limits.width(animation.width()).height(self.height()),
+                 animation.padding(),
+                 animation.spacing(),
+                )
+            }
+            None => {
+                (limits.width(self.width).height(self.height),
+                 self.padding,
+                 self.spacing,
+                )
+            }
+        };
 
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             &limits,
-            self.padding,
-            self.spacing as f32,
+            padding,
+            spacing as f32,
             self.align_items,
             &self.children,
             &tree.children,

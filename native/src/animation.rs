@@ -94,6 +94,22 @@ impl Animation {
             .expect("Height should never be called before an animation's first `interp()`")
     }
 
+    /// Get the current padding of the animated widget
+    pub fn padding(&self) -> Padding {
+        self.playhead.as_ref()
+            .expect("Padding should never be called before an animation's first `interp()`")
+            .padding
+            .expect("Padding should never be called before an animation's first `interp()`")
+    }
+
+    /// Get the current spacing of the animated widget
+    pub fn spacing(&self) -> u16 {
+        self.playhead.as_ref()
+            .expect("Spacing should never be called before an animation's first `interp()`")
+            .spacing
+            .expect("Spacing should never be called before an animation's first `interp()`")
+    }
+
     /// Generate a new frame given the keyframes, requested [`Again`] type, and set the playhead
     /// to the newly generated value.
     /// Default are the default values that a widget may have. Each widget can choose what it's
@@ -103,6 +119,7 @@ impl Animation {
     /// The default should be `None` for values that are never animatable for the widget.
     pub fn interp(&mut self, app_start: &Instant, default: Keyframe) -> Request {
         if let Some(playhead) = &self.playhead {
+            println!("not adding playhead");
 
             if let Some(width) = &playhead.width {
                 /*
@@ -146,9 +163,10 @@ impl Animation {
 
         } else {
             // This is the first interp on the animation. Set the playhead at the beginning.
+            println!("should set the default as the playhead");
             self.playhead = Some(default);
         }
-        Request::AnimationFrame
+        Request::None
     }
 
 }
