@@ -62,7 +62,6 @@ impl Tree {
     ) where
         Renderer: crate::Renderer,
     {
-        println!("state check {:?}", self.state);
         if self.tag == new.borrow().tag() {
             new.borrow().diff(self)
         } else {
@@ -84,11 +83,9 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow_mut().tag() {
-            println!("about to interp");
             acc = acc.min(new.borrow_mut().interp(&mut self.state, app_start));
             new.borrow_mut().diff_mut(acc, self, app_start)
         } else {
-            println!("creating new tree");
             *self = Self::new(new);
             acc
         }
@@ -122,6 +119,7 @@ impl Tree {
         self.diff_children_custom_mut(
             acc,
             new_children,
+            app_start,
             |tree, widget| tree.diff_mut(acc, widget.borrow_mut(), app_start),
             |widget| Self::new(widget.borrow_mut()),
         )
@@ -157,6 +155,7 @@ impl Tree {
         &mut self,
         mut acc: animation::Request,
         new_children: &mut [T],
+        app_start: &Instant,
         diff_mut: impl Fn(&mut Tree, &mut T) -> animation::Request,
         new_state: impl Fn(&mut T) -> Self,
     ) -> animation::Request {
@@ -164,7 +163,10 @@ impl Tree {
             self.children.truncate(new_children.len());
         }
 
-        acc = acc.min(self.children.iter_mut().zip(new_children.iter_mut()).fold(acc, |accu, (child_state, new)| accu.min(diff_mut(child_state, new))));
+        acc = acc.min(self.children.iter_mut()
+                      .zip(new_children.iter_mut())
+                      .fold(acc, |accu, (child_state, new)| accu.min(diff_mut(child_state, new)))
+        );
 
         if self.children.len() < new_children.len() {
             self.children.extend(

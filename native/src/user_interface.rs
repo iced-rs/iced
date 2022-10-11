@@ -99,16 +99,13 @@ where
         renderer: &mut Renderer,
         app_start: &Instant,
     ) -> Self {
-        println!("before build");
         let mut root = root.into();
 
         let Cache { mut state } = cache;
         let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut(), app_start);
-        println!("middle");
 
         let base =
             renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
-        println!("after build");
 
         UserInterface {
             root,

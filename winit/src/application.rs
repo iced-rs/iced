@@ -20,6 +20,7 @@ use iced_graphics::window;
 use iced_native::program::Program;
 use iced_native::user_interface::{self, UserInterface};
 use iced_native::time::Instant;
+use std::time::Duration;
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
@@ -240,10 +241,11 @@ where
                         // TODO: Winit docs say that ControlFlow::Poll should be used
                         // with vsync if the `instant` is shorter than the refresh rate
                         // https://docs.rs/winit/latest/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil
-                        Some(instant) => ControlFlow::WaitUntil(instant),
+                        Some(instant) => {
+                            ControlFlow::WaitUntil(instant)
+                        }
                         None => ControlFlow::Wait,
                     };
-                    *timeout = None;
                     wait_type
                 }
                 task::Poll::Ready(_) => ControlFlow::Exit,
@@ -325,6 +327,7 @@ async fn run_instance<A, E, C>(
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
+                println!("main events cleared");
                 if events.is_empty() && messages.is_empty() && !user_interface.is_dirty() {
                     continue;
                 }
@@ -409,9 +412,9 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                if let Some(timeout) = user_interface.get_redraw_timeout() {
-                    *redraw_tracker.borrow_mut() = Some(timeout);
-                }
+                // if let Some(timeout) = user_interface.get_redraw_timeout() {
+                //     *redraw_tracker.borrow_mut() = Some(timeout);
+                // }
                 window.request_redraw();
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
@@ -426,9 +429,11 @@ async fn run_instance<A, E, C>(
                 ));
             }
             event::Event::UserEvent(message) => {
+                println!("user event");
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
+                println!("redraw requested {:?}", Instant::now());
                 let physical_size = state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
@@ -488,6 +493,9 @@ async fn run_instance<A, E, C>(
 
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
+                        if let Some(timeout) = user_interface.get_redraw_timeout() {
+                            *redraw_tracker.borrow_mut() = Some(timeout);
+                        }
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
@@ -502,13 +510,12 @@ async fn run_instance<A, E, C>(
                         }
                     },
                 }
-                // TODO: REMOVE THIS THIS IS A TOTAL HACK!
-                window.request_redraw();
             }
             event::Event::WindowEvent {
                 event: window_event,
                 ..
             } => {
+                println!("window event");
                 if requests_exit(&window_event, state.modifiers())
                     && exit_on_close_request
                 {

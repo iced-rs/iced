@@ -15,6 +15,11 @@ use crate::{
 };
 use iced_core::time::Instant;
 
+const DEFAULT_WIDTH: Length = Length::Shrink;
+const DEFAULT_HEIGHT: Length = Length::Shrink;
+const DEFAULT_PADDING: Padding = Padding::ZERO;
+const DEFAULT_SPACING: u16 = 0;
+
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Renderer> {
@@ -38,10 +43,10 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Row {
-            spacing: 0,
-            padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            spacing: DEFAULT_SPACING,
+            padding: DEFAULT_PADDING,
+            width: DEFAULT_WIDTH,
+            height: DEFAULT_HEIGHT,
             align_items: Alignment::Start,
             animation: None,
             children,
@@ -135,8 +140,7 @@ where
     }
 
     fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
-        println!("interp called");
-        state.downcast_mut::<State>().interp(app_start)
+        state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing)
     }
 
     fn width(&self) -> Length {
@@ -155,9 +159,9 @@ where
     ) -> layout::Node {
         let (limits, padding, spacing) = match &self.animation {
             Some(animation) => {
-                (limits.width(animation.width()).height(self.height()),
-                 animation.padding(),
-                 animation.spacing(),
+                (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(self.height()),
+                 animation.padding().unwrap_or(DEFAULT_PADDING),
+                 animation.spacing().unwrap_or(DEFAULT_SPACING),
                 )
             }
             None => {
@@ -315,7 +319,17 @@ impl State {
 
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
-    pub fn interp(&mut self, app_start: &Instant) -> animation::Request {
-        self.animation.interp(app_start, animation::Keyframe::new().width(Length::Shrink).height(Length::Shrink))
+    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> animation::Request {
+        self.animation.interp(app_start,
+                              // TODO: This currently assumes that if a value is the default, then there is no animation requested.
+                              // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
+                              // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
+                              // sizes to percise ones, such as Length::Fill to Length::Units(100)
+                              animation::Keyframe::new()
+                              .width(width)
+                              .height(height)
+                              .spacing(spacing)
+                              .padding(padding)
+        )
     }
 }

@@ -21,6 +21,7 @@ use iced_core::time::{Instant, Duration};
 #[derive(Debug, Clone)]
 pub struct Animation {
     id: Id,
+    start: Instant,
     keyframes: Vec<Keyframe>,
     playhead: Option<Keyframe>,
     again: Again,
@@ -31,6 +32,7 @@ impl std::default::Default for Animation {
     fn default() -> Self {
         Animation {
             id: Id::unique(),
+            start: Instant::now(),
             keyframes: Vec::new(),
             playhead: None,
             again: Again::Never,
@@ -79,35 +81,23 @@ impl Animation {
     }
 
     /// Get the current width of the animated widget.
-    pub fn width(&self) -> Length {
-        self.playhead.as_ref()
-            .expect("Width should never be called before an animation's first `interp()`")
-            .width
-            .expect("Width should never be called before an animation's first `interp()`")
+    pub fn width(&self) -> Option<Length> {
+        self.playhead.as_ref().and_then(|p| p.width)
     }
 
     /// Get the current height of the animated widget
-    pub fn height(&self) -> Length {
-        self.playhead.as_ref()
-            .expect("Height should never be called before an animation's first `interp()`")
-            .height
-            .expect("Height should never be called before an animation's first `interp()`")
+    pub fn height(&self) -> Option<Length> {
+        self.playhead.as_ref().and_then(|p| p.height)
     }
 
     /// Get the current padding of the animated widget
-    pub fn padding(&self) -> Padding {
-        self.playhead.as_ref()
-            .expect("Padding should never be called before an animation's first `interp()`")
-            .padding
-            .expect("Padding should never be called before an animation's first `interp()`")
+    pub fn padding(&self) -> Option<Padding> {
+        self.playhead.as_ref().and_then(|p| p.padding)
     }
 
     /// Get the current spacing of the animated widget
-    pub fn spacing(&self) -> u16 {
-        self.playhead.as_ref()
-            .expect("Spacing should never be called before an animation's first `interp()`")
-            .spacing
-            .expect("Spacing should never be called before an animation's first `interp()`")
+    pub fn spacing(&self) -> Option<u16> {
+        self.playhead.as_ref().and_then(|p| p.spacing)
     }
 
     /// Generate a new frame given the keyframes, requested [`Again`] type, and set the playhead
@@ -117,13 +107,13 @@ impl Animation {
     /// for the given start values of a widget. For example the [`row::width`] method on an
     /// unanimated [`row`] is also the default width that should be passed here.
     /// The default should be `None` for values that are never animatable for the widget.
-    pub fn interp(&mut self, app_start: &Instant, default: Keyframe) -> Request {
-        if let Some(playhead) = &self.playhead {
-            println!("not adding playhead");
+    pub fn interp(&mut self, app_start: &Instant, mut default: Keyframe) -> Request {
+        if let Some(playhead) = &mut self.playhead {
+            playhead.after = Instant::now().duration_since(self.start);
+            //println!("not adding playhead");
 
             if let Some(width) = &playhead.width {
-                /*
-                let lower_bound_iter = self.keyframes.iter().peekable();
+                let mut lower_bound_iter = self.keyframes.iter().peekable();
                 let lower_bound = loop {
                     if let Some(keyframe) = lower_bound_iter.next() {
                         if let Some(next_keyframe) = lower_bound_iter.peek() {
@@ -133,18 +123,18 @@ impl Animation {
                         }
                     } else {break Duration::ZERO}
                 };
+                //println!("lower bound at {:?}, playhead at {:?}", lower_bound, playhead.after);
                 // THIS IS BAD
-                let upper_bound = match self.keyframes.iter().find(|&&keyframe| keyframe.width.is_some() /* && keyframe.after > app_start */) {
-                    Some(keyframe) => *keyframe,
-                    None => match self.keyframes.last() {
-                        Some(frame) => *frame,
-                        None => default
-                    }
-                }.after;
-                */
+                //let upper_bound = match self.keyframes.iter().find(|&&keyframe| keyframe.width.is_some() /* && keyframe.after > app_start */) {
+                //    Some(keyframe) => *keyframe,
+                //    None => match self.keyframes.last() {
+                //        Some(frame) => *frame,
+                //        None => default
+                //    }
+                //}.after;
                 match playhead.ease {
                     Ease::Linear => {
-                        println!("calculate linear animation");
+                        //println!("calculate linear animation");
                     }
                 }
             }
@@ -163,10 +153,12 @@ impl Animation {
 
         } else {
             // This is the first interp on the animation. Set the playhead at the beginning.
-            println!("should set the default as the playhead");
+            //println!("setting playhead as default");
+            default.after = Instant::now().duration_since(self.start);
             self.playhead = Some(default);
         }
-        Request::None
+        Request::Timeout(*app_start + Duration::from_secs(3))
+        //Request::None
     }
 
 }
@@ -229,6 +221,18 @@ impl Keyframe {
         self
     }
 
+    /// Set the desired padding by the time the keyframe's delay.
+    pub fn spacing(mut self, spacing: u16) -> Self {
+        self.spacing = Some(spacing);
+        self
+    }
+
+    /// Set the desired padding by the time the keyframe's delay.
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.padding = Some(padding);
+        self
+    }
+
     /// Set the easing algorithm for the values changed by this keyframe.
     pub fn ease(mut self, ease: Ease) -> Self {
         self.ease = ease;
@@ -279,7 +283,7 @@ pub enum Request {
     /// Though for iced's runtime and most custom implementations that will be as soon as the refresh rate
     /// of the monitor.
     AnimationFrame,
-    /// Request some time in the future. That isn't tied to any other value.
+    /// Request some time in the future.
     /// For For times shorter than or equal to the user's monitor's refresh rate, it is preferable to use
     /// Request::AnimationFrame.
     Timeout(Instant),
