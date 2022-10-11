@@ -627,6 +627,9 @@ pub fn run_command<A, E>(
                 window::Action::Maximize(value) => {
                     window.set_maximized(value);
                 }
+                window::Action::Minimize(value) => {
+                    window.set_minimized(value);
+                }
                 window::Action::Move { x, y } => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
                         x,

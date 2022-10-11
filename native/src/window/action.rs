@@ -20,6 +20,8 @@ pub enum Action<T> {
     },
     /// Sets the window to maximized or back
     Maximize(bool),
+    /// Set the window to minimized or back
+    Minimize(bool),
     /// Move the window.
     ///
     /// Unsupported on Wayland.
@@ -50,6 +52,7 @@ impl<T> Action<T> {
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
             Self::Maximize(bool) => Action::Maximize(bool),
+            Self::Minimize(bool) => Action::Minimize(bool),
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
             Self::ToggleMaximize => Action::ToggleMaximize,
@@ -68,6 +71,7 @@ impl<T> fmt::Debug for Action<T> {
                 width, height
             ),
             Self::Maximize(value) => write!(f, "Action::Maximize({})", value),
+            Self::Minimize(value) => write!(f, "Action::Minimize({}", value),
             Self::Move { x, y } => {
                 write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
             }
