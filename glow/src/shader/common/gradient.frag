@@ -1,14 +1,14 @@
 #ifdef GL_ES
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
+    #ifdef GL_FRAGMENT_PRECISION_HIGH
+        precision highp float;
+    #else
+        precision mediump float;
+    #endif
 #endif
 
 #ifdef HIGHER_THAN_300
-layout (location = 0) out vec4 fragColor;
-#define gl_FragColor fragColor
+    layout (location = 0) out vec4 fragColor;
+    #define gl_FragColor fragColor
 #endif
 
 in vec2 raw_position;
@@ -31,11 +31,11 @@ void main() {
     fragColor = vec4(0.0, 0.0, 0.0, 0.0);
 
     float min_offset = color_stops[1].x;
-    float max_offset = color_stops[color_stops_size - 1].x;
+    float max_offset = color_stops[color_stops_size - 1u].x;
 
-    for (uint i = 0; i < color_stops_size - 2; i += 2) {
-        float curr_offset = color_stops[i+1].x;
-        float next_offset = color_stops[i+3].x;
+    for (uint i = 0u; i < color_stops_size - 2u; i += 2u) {
+        float curr_offset = color_stops[i+1u].x;
+        float next_offset = color_stops[i+3u].x;
 
         if (coord_offset <= min_offset) {
             //current coordinate is before the first defined offset, set it to the start color
@@ -44,7 +44,7 @@ void main() {
 
         if (curr_offset <= coord_offset && coord_offset <= next_offset) {
             //current fragment is between the current offset processing & the next one, interpolate colors
-            fragColor = mix(color_stops[i], color_stops[i+2], smoothstep(
+            fragColor = mix(color_stops[i], color_stops[i+2u], smoothstep(
                 curr_offset,
                 next_offset,
                 coord_offset
@@ -53,7 +53,7 @@ void main() {
 
         if (coord_offset >= max_offset) {
             //current coordinate is before the last defined offset, set it to the last color
-            fragColor = color_stops[color_stops_size - 2];
+            fragColor = color_stops[color_stops_size - 2u];
         }
     }
 }
