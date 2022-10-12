@@ -38,6 +38,7 @@ impl Sandbox for Counter {
     fn update(&mut self, message: Message) {
         match message {
             Message::IncrementPressed => {
+                println!("############ value = {}", self.value);
                 self.value += 1;
             }
             Message::DecrementPressed => {

@@ -214,7 +214,7 @@ where
             return;
         }
 
-        let event = match event {
+        let mut event = match event {
             winit::event::Event::WindowEvent {
                 event:
                     winit::event::WindowEvent::ScaleFactorChanged {
@@ -226,6 +226,7 @@ where
                 event: winit::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
+            winit::event::Event::RedrawEventsCleared => None,
             _ => event.to_static(),
         };
 
@@ -239,13 +240,12 @@ where
                     let mut timeout = redraw_t.borrow_mut();
                     let wait_type = match *timeout {
                         // TODO: Winit docs say that ControlFlow::Poll should be used
-                        // with vsync if the `instant` is shorter than the refresh rate
+                        // with vsync if the `instant` is shorter than the monitor's refresh rate
                         // https://docs.rs/winit/latest/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil
-                        Some(instant) => {
-                            ControlFlow::WaitUntil(instant)
-                        }
+                        Some(instant) => ControlFlow::WaitUntil(instant),
                         None => ControlFlow::Wait,
                     };
+                    //*timeout = None;
                     wait_type
                 }
                 task::Poll::Ready(_) => ControlFlow::Exit,
@@ -275,6 +275,8 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
+    
+    let mut wait_canceled = false;
 
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
@@ -307,7 +309,6 @@ async fn run_instance<A, E, C>(
     );
     runtime.track(application.subscription());
 
-    println!("first user interface build");
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
         cache,
@@ -322,12 +323,10 @@ async fn run_instance<A, E, C>(
     let mut messages = Vec::new();
 
     debug.startup_finished();
-    println!("run instalnce");
 
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                println!("main events cleared");
                 if events.is_empty() && messages.is_empty() && !user_interface.is_dirty() {
                     continue;
                 }
@@ -378,7 +377,6 @@ async fn run_instance<A, E, C>(
 
                     let should_exit = application.should_exit();
 
-                    println!("build interface in the loop");
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &application,
                         cache,
@@ -415,7 +413,9 @@ async fn run_instance<A, E, C>(
                 // if let Some(timeout) = user_interface.get_redraw_timeout() {
                 //     *redraw_tracker.borrow_mut() = Some(timeout);
                 // }
-                window.request_redraw();
+                if !wait_canceled {
+                    window.request_redraw();
+                }
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
@@ -429,11 +429,9 @@ async fn run_instance<A, E, C>(
                 ));
             }
             event::Event::UserEvent(message) => {
-                println!("user event");
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
-                println!("redraw requested {:?}", Instant::now());
                 let physical_size = state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
@@ -494,7 +492,7 @@ async fn run_instance<A, E, C>(
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
                         if let Some(timeout) = user_interface.get_redraw_timeout() {
-                            *redraw_tracker.borrow_mut() = Some(timeout);
+                             *redraw_tracker.borrow_mut() = Some(timeout);
                         }
                     }
                     Err(error) => match error {
@@ -515,7 +513,6 @@ async fn run_instance<A, E, C>(
                 event: window_event,
                 ..
             } => {
-                println!("window event");
                 if requests_exit(&window_event, state.modifiers())
                     && exit_on_close_request
                 {
@@ -532,7 +529,13 @@ async fn run_instance<A, E, C>(
                     events.push(event);
                 }
             }
-            _ => {}
+            event::Event::NewEvents(start_cause) => {
+                wait_canceled = match start_cause {
+                    winit::event::StartCause::WaitCancelled { .. } => true,
+                    _ => false,
+                }
+            }
+            _ => { wait_canceled = false; }
         }
     }
 
@@ -741,7 +744,6 @@ pub fn run_command<A, E>(
                 let mut current_cache = std::mem::take(cache);
                 let mut current_operation = Some(action.into_operation());
 
-                println!("build user interface from event");
                 let mut user_interface = build_user_interface(
                     application,
                     current_cache,

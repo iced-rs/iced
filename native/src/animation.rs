@@ -157,7 +157,7 @@ impl Animation {
             default.after = Instant::now().duration_since(self.start);
             self.playhead = Some(default);
         }
-        Request::Timeout(*app_start + Duration::from_secs(3))
+        Request::Timeout(Instant::now() + Duration::from_secs(3))
         //Request::None
     }
 
@@ -275,7 +275,7 @@ pub enum Again {
 /// It is a signal to the iced runtime when the widget should be redrawn.
 /// Iced will only listen to the shortest time returned from all of the widgets
 /// in the view. Because the widget will then be able to return its requested time
-/// the next time its [`widget::interp`] is called because of the widget that
+/// the next time it's [`widget::interp`] is called because of the widget that
 /// required rerender sooner.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 pub enum Request {
@@ -286,6 +286,9 @@ pub enum Request {
     /// Request some time in the future.
     /// For For times shorter than or equal to the user's monitor's refresh rate, it is preferable to use
     /// Request::AnimationFrame.
+    /// Widgets are expected to return `Instant::now() + Duration::from_/* arbitrary duration*/` for a
+    /// requested time in the future. Widgets may want `app_start + Duration` if they want to animate 
+    /// on a consistant multiple like a blinking cursor.
     Timeout(Instant),
     /// The widget doesn't need to reanimate. It is either done animating, or static.
     None,
