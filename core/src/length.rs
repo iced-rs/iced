@@ -34,6 +34,20 @@ impl Length {
             Length::Units(_) => 0,
         }
     }
+    
+    /// Returns the relative units for known values
+    ///
+    /// Like [`fill_factor`], but returns for both FillPortion
+    /// and Units. It is only meant to be used by the animation
+    /// engine.
+    pub fn as_u16(&self) -> Option<u16> {
+        match self {
+            Length::Fill => None,
+            Length::FillPortion(factor) => Some(*factor),
+            Length::Shrink => None,
+            Length::Units(units) => Some(*units)
+        }
+    }
 }
 
 impl From<u16> for Length {

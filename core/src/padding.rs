@@ -33,7 +33,7 @@ use crate::Size;
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// let widget = Widget::new().padding([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
-#[derive(Debug, Hash, Copy, Clone)]
+#[derive(Debug, Hash, Copy, Clone, PartialEq)]
 pub struct Padding {
     /// Top padding
     pub top: u16,

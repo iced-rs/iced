@@ -140,7 +140,9 @@ where
     }
 
     fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
-        state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing)
+        let (animation, request) = state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing);
+        self.animation = Some(animation);
+        request
     }
 
     fn width(&self) -> Length {
@@ -159,7 +161,8 @@ where
     ) -> layout::Node {
         let (limits, padding, spacing) = match &self.animation {
             Some(animation) => {
-                (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(self.height()),
+                println!("animation height = {:?}", animation.height());
+                (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(animation.height().unwrap_or(DEFAULT_HEIGHT)),
                  animation.padding().unwrap_or(DEFAULT_PADDING),
                  animation.spacing().unwrap_or(DEFAULT_SPACING),
                 )
@@ -319,17 +322,32 @@ impl State {
 
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
-    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> animation::Request {
-        self.animation.interp(app_start,
+    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> (animation::Animation, animation::Request) {
+        let keyframe = {
+            let mut k = animation::Keyframe::new();
+            
+            if width != DEFAULT_WIDTH {
+                k = k.width(width)
+            }
+            if height != DEFAULT_HEIGHT {
+                k = k.height(height)
+            }
+            if padding != DEFAULT_PADDING {
+                k = k.padding(padding)
+            }
+            if spacing != DEFAULT_SPACING {
+                k = k.spacing(spacing)
+            }
+            k
+        };
+        
+        let request = self.animation.interp(app_start,
                               // TODO: This currently assumes that if a value is the default, then there is no animation requested.
                               // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
                               // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
                               // sizes to percise ones, such as Length::Fill to Length::Units(100)
-                              animation::Keyframe::new()
-                              .width(width)
-                              .height(height)
-                              .spacing(spacing)
-                              .padding(padding)
-        )
+                              keyframe
+        );
+        (self.animation.clone(), request) 
     }
 }

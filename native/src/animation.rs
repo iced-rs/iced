@@ -109,37 +109,59 @@ impl Animation {
     /// The default should be `None` for values that are never animatable for the widget.
     pub fn interp(&mut self, app_start: &Instant, mut default: Keyframe) -> Request {
         if let Some(playhead) = &mut self.playhead {
+            
+            if playhead.after > self.keyframes.last().unwrap().after {
+                return Request::None
+            }
+            
             playhead.after = Instant::now().duration_since(self.start);
-            //println!("not adding playhead");
 
-            if let Some(width) = &playhead.width {
+            if let Some(height) = &playhead.height {
                 let mut lower_bound_iter = self.keyframes.iter().peekable();
                 let lower_bound = loop {
                     if let Some(keyframe) = lower_bound_iter.next() {
                         if let Some(next_keyframe) = lower_bound_iter.peek() {
                             if keyframe.after < playhead.after && next_keyframe.after > playhead.after {
-                                break keyframe.after
+                                break keyframe
                             }
                         }
-                    } else {break Duration::ZERO}
+                    } else {break &default}
                 };
-                //println!("lower bound at {:?}, playhead at {:?}", lower_bound, playhead.after);
-                // THIS IS BAD
-                //let upper_bound = match self.keyframes.iter().find(|&&keyframe| keyframe.width.is_some() /* && keyframe.after > app_start */) {
-                //    Some(keyframe) => *keyframe,
-                //    None => match self.keyframes.last() {
-                //        Some(frame) => *frame,
-                //        None => default
-                //    }
-                //}.after;
+                
+                let upper_bound = match self.keyframes.iter().find(|&keyframe| keyframe.height.is_some() && keyframe.after > playhead.after ) {
+                    Some(keyframe) => &keyframe,
+                    None => match self.keyframes.last() {
+                        Some(frame) => &frame,
+                        None => &default
+                    }
+                };
+                
                 match playhead.ease {
+                    
                     Ease::Linear => {
-                        //println!("calculate linear animation");
+                        let lb = lower_bound.height.unwrap().as_u16();
+                        let ub = upper_bound.height.unwrap().as_u16();
+                        
+                        if lb.is_some() && ub.is_some() {
+                            let percent_done = (playhead.after - lower_bound.after).as_millis() as f64 / ( upper_bound.after - lower_bound.after).as_millis() as f64;
+                            let delta = (i32::from(ub.unwrap()) - i32::from(lb.unwrap())) as f64;
+                            let value = (percent_done * delta + (lb.unwrap() as f64)) as u16;
+                            
+                            playhead.height = Some(Length::Units(
+                                if ub.unwrap() > lb.unwrap() {
+                                    ub.unwrap().min(value)
+                                } else {
+                                    ub.unwrap().max(value)    
+                                }
+                            ));
+                        } else {
+                            playhead.height = lower_bound.height;
+                        }
                     }
                 }
             }
 
-            if let Some(height) = playhead.height {
+            if let Some(width) = playhead.width {
                 // TODO
             }
 
@@ -150,15 +172,20 @@ impl Animation {
             if let Some(spacing) = playhead.spacing {
                 // TODO
             }
+            
+            if playhead.after < self.keyframes.last().unwrap().after {
+                Request::AnimationFrame
+            } else {
+                Request::None
+            }
 
         } else {
             // This is the first interp on the animation. Set the playhead at the beginning.
-            //println!("setting playhead as default");
             default.after = Instant::now().duration_since(self.start);
             self.playhead = Some(default);
+            Request::AnimationFrame
         }
-        Request::Timeout(Instant::now() + Duration::from_secs(3))
-        //Request::None
+        
     }
 
 }
