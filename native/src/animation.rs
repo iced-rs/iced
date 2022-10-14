@@ -117,7 +117,7 @@ impl Animation {
             playhead.after = Instant::now().duration_since(self.start);
 
             if let Some(height) = &playhead.height {
-                let mut lower_bound_iter = self.keyframes.iter().peekable();
+                let mut lower_bound_iter = self.keyframes.iter().filter(|keyframe| keyframe.height.is_some()).peekable();
                 let lower_bound = loop {
                     if let Some(keyframe) = lower_bound_iter.next() {
                         if let Some(next_keyframe) = lower_bound_iter.peek() {
