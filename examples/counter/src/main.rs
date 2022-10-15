@@ -55,18 +55,22 @@ impl Sandbox for Counter {
             // button("Decrement").on_press(Message::DecrementPressed).animate_width(Length::Units(10), Length::Units(100), 1000, Ease::Linear)
             row![button("Decrement").on_press(Message::DecrementPressed).height(Length::Fill).width(Length::Units(100))]
                 .height(Length::Units(10))
+                .width(Length::Units(10))
                 .animation(Animation::new()
                            .push(animation::Keyframe::new()
                                  .after(Duration::from_secs(3))
                                  .height(Length::Units(100))
+                                 .width(Length::Units(100))
                            )
                            .push(animation::Keyframe::new()
                                  .after(Duration::from_secs(6))
                                  .height(Length::Units(10))
+                                 .width(Length::Units(10))
                            )
                            .push(animation::Keyframe::new()
                                  .after(Duration::from_secs(9))
                                  .height(Length::Units(100))
+                                 .width(Length::Units(100))
                            )
                 ),
         ]

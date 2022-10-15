@@ -99,6 +99,57 @@ impl Animation {
     pub fn spacing(&self) -> Option<u16> {
         self.playhead.as_ref().and_then(|p| p.spacing)
     }
+    
+    fn bounds<'a>(&'a self, playhead: &Keyframe, default: &'a Keyframe, modifier: fn(&Keyframe) -> Option<Length>) -> (&Keyframe, &Keyframe) {
+        let mut lower_bound_iter = self.keyframes.iter().filter(|keyframe| modifier(keyframe).is_some()).peekable();
+        let lower_bound = loop {
+            if let Some(keyframe) = lower_bound_iter.next() {
+                if let Some(next_keyframe) = lower_bound_iter.peek() {
+                    if keyframe.after < playhead.after && next_keyframe.after > playhead.after {
+                        break keyframe
+                    }
+                }
+            } else {break &default}
+        };
+        
+        let upper_bound = match self.keyframes.iter().find(|&keyframe| modifier(keyframe).is_some() && keyframe.after > playhead.after ) {
+            Some(keyframe) => keyframe,
+            None => match self.keyframes.last() {
+                Some(frame) => frame,
+                None => &default
+            }
+        };
+        
+        (lower_bound, upper_bound)
+    }
+    
+    fn calc_linear(&self, now: &Duration, lower_bound: &Keyframe, upper_bound: &Keyframe, modifier: fn(&Keyframe) -> Option<Length>) -> Option<Length> {
+        println!("linear");
+        let lb = modifier(lower_bound).unwrap().as_u16();
+        let ub = modifier(upper_bound).unwrap().as_u16();
+        println!("lb = {:?}, up = {:?}", lb, ub);
+        
+        if lb.is_some() && ub.is_some() {
+            let percent_done = (*now - lower_bound.after).as_millis() as f64 / ( upper_bound.after - lower_bound.after).as_millis() as f64;
+            let delta = (i32::from(ub.unwrap()) - i32::from(lb.unwrap())) as f64;
+            let value = (percent_done * delta + (lb.unwrap() as f64)) as u16;
+            println!("value = {:?}", value);
+            
+            Some(Length::Units(
+                if ub.unwrap() > lb.unwrap() {
+                    ub.unwrap().min(value)
+                } else {
+                    ub.unwrap().max(value)    
+                }
+            ))
+        } else {
+            println!("in error");
+            // TODO HACK This probabbly needs more thought. Error cases include mismatched `Length`s
+            // if there is one upper and not a lower or vice versa, that should probably
+            // fail in some way. Not sure
+            lower_bound.height
+        }
+    }
 
     /// Generate a new frame given the keyframes, requested [`Again`] type, and set the playhead
     /// to the newly generated value.
@@ -108,84 +159,57 @@ impl Animation {
     /// unanimated [`row`] is also the default width that should be passed here.
     /// The default should be `None` for values that are never animatable for the widget.
     pub fn interp(&mut self, app_start: &Instant, mut default: Keyframe) -> Request {
-        if let Some(playhead) = &mut self.playhead {
-            
-            if playhead.after > self.keyframes.last().unwrap().after {
-                return Request::None
-            }
-            
-            playhead.after = Instant::now().duration_since(self.start);
-
-            if let Some(height) = &playhead.height {
-                let mut lower_bound_iter = self.keyframes.iter().filter(|keyframe| keyframe.height.is_some()).peekable();
-                let lower_bound = loop {
-                    if let Some(keyframe) = lower_bound_iter.next() {
-                        if let Some(next_keyframe) = lower_bound_iter.peek() {
-                            if keyframe.after < playhead.after && next_keyframe.after > playhead.after {
-                                break keyframe
+        
+        let now = Instant::now().duration_since(self.start);
+        
+        let (mut new_playhead, request) = match &self.playhead {
+                Some(playhead) => {
+                    
+                    if playhead.after <= self.keyframes.last().unwrap().after {
+                    
+                        if let Some(width) = playhead.width {
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.width);
+                            
+                            match playhead.ease {
+                                Ease::Linear => {
+                                    default.width = self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.width);
+                                }
                             }
                         }
-                    } else {break &default}
-                };
-                
-                let upper_bound = match self.keyframes.iter().find(|&keyframe| keyframe.height.is_some() && keyframe.after > playhead.after ) {
-                    Some(keyframe) => &keyframe,
-                    None => match self.keyframes.last() {
-                        Some(frame) => &frame,
-                        None => &default
-                    }
-                };
-                
-                match playhead.ease {
-                    
-                    Ease::Linear => {
-                        let lb = lower_bound.height.unwrap().as_u16();
-                        let ub = upper_bound.height.unwrap().as_u16();
                         
-                        if lb.is_some() && ub.is_some() {
-                            let percent_done = (playhead.after - lower_bound.after).as_millis() as f64 / ( upper_bound.after - lower_bound.after).as_millis() as f64;
-                            let delta = (i32::from(ub.unwrap()) - i32::from(lb.unwrap())) as f64;
-                            let value = (percent_done * delta + (lb.unwrap() as f64)) as u16;
+                        if let Some(height) = playhead.height {
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.height);
                             
-                            playhead.height = Some(Length::Units(
-                                if ub.unwrap() > lb.unwrap() {
-                                    ub.unwrap().min(value)
-                                } else {
-                                    ub.unwrap().max(value)    
+                            match playhead.ease {
+                                Ease::Linear => {
+                                    default.height = self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.height);
                                 }
-                            ));
-                        } else {
-                            playhead.height = lower_bound.height;
+                            }
                         }
+                        
+                        if let Some(padding) = playhead.padding {
+                            
+                        }
+                        
+                        if let Some(spacing) = playhead.spacing {
+                            
+                        }
+                        
+                        default.after = now - Duration::from_millis(1);
+                        (Some(default), Request::AnimationFrame)
+                    } else {
+                        // TODO HACK, there should be some way to do this without a clone
+                        (Some(playhead.clone()), Request::None)
                     }
                 }
-            }
-
-            if let Some(width) = playhead.width {
-                // TODO
-            }
-
-            if let Some(padding) = playhead.padding {
-                // TODO
-            }
-
-            if let Some(spacing) = playhead.spacing {
-                // TODO
-            }
-            
-            if playhead.after < self.keyframes.last().unwrap().after {
-                Request::AnimationFrame
-            } else {
-                Request::None
-            }
-
-        } else {
-            // This is the first interp on the animation. Set the playhead at the beginning.
-            default.after = Instant::now().duration_since(self.start);
-            self.playhead = Some(default);
-            Request::AnimationFrame
-        }
+                None => {
+                    default.after = Instant::now().duration_since(self.start);
+                    (Some(default), Request::AnimationFrame)
+                }
+        };
         
+        std::mem::swap(&mut self.playhead, &mut new_playhead);
+        request
     }
 
 }
