@@ -721,6 +721,43 @@ where
                 state.keyboard_modifiers = modifiers;
             }
         }
+        Event::Keyboard(keyboard::Event::IMECommit(text)) => {
+            let state = state();
+            if state.is_focused
+                && state.is_pasting.is_none()
+                && !state.keyboard_modifiers.command()
+            {
+                let mut editor = Editor::new(value, &mut state.cursor);
+                for ch in text.chars() {
+                    editor.insert(ch);
+                }
+                let message = (on_change)(editor.contents());
+                shell.publish(message);
+                state.is_ime_editing = false;
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
+            let state = state();
+            let cursor_offset = state.cursor.start(value);
+            let mut editor = Editor::new(value, &mut state.cursor);
+            if state.is_ime_editing {
+                editor.delete();
+            }
+            state.is_ime_editing = true;
+            let mut chars_count = 0;
+
+            for ch in text.chars() {
+                editor.insert(ch);
+                chars_count += 1;
+            }
+            let message = (on_change)(editor.contents());
+            state
+                .cursor
+                .select_range(cursor_offset, cursor_offset + chars_count);
+            shell.publish(message);
+            return event::Status::Captured;
+        }
         _ => {}
     }
 
@@ -920,7 +957,7 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    // TODO: Add stateful horizontal scrolling offset
+    is_ime_editing: bool, // TODO: Add stateful horizontal scrolling offset
 }
 
 impl State {
@@ -935,6 +972,7 @@ impl State {
             is_focused: true,
             is_dragging: false,
             is_pasting: None,
+            is_ime_editing: false,
             last_click: None,
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
