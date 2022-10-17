@@ -119,8 +119,9 @@ where
             .queued_events
             .iter()
             .zip(event_statuses)
-            .filter_map(|(event, status)| {
-                matches!(status, event::Status::Ignored).then_some(event)
+            .filter_map(|(event, status)| match status {
+                event::Status::Ignored => Some(event),
+                _ => None,
             })
             .cloned()
             .collect();
