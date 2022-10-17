@@ -341,6 +341,7 @@ where
                         cursor_position,
                         viewport,
                         renderer,
+                        self.on_drag.is_some(),
                     )
                 })
                 .max()
@@ -648,7 +649,7 @@ pub fn mouse_interaction(
     resize_leeway: Option<u16>,
 ) -> Option<mouse::Interaction> {
     if action.picked_pane().is_some() {
-        return Some(mouse::Interaction::Grab);
+        return Some(mouse::Interaction::Grabbing);
     }
 
     let resize_axis =
