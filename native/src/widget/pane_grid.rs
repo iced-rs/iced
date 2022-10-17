@@ -757,7 +757,12 @@ pub fn draw<Renderer, T>(
         cursor_position
     };
 
-    for ((id, pane), layout) in elements.zip(layout.children()) {
+    // Render picked pane last
+    let mut elements = elements.zip(layout.children()).collect::<Vec<_>>();
+    elements
+        .sort_by_key(|((id, _), _)| picked_pane.map(|(id, _)| id) == Some(*id));
+
+    for ((id, pane), layout) in elements {
         match picked_pane {
             Some((dragging, origin)) if id == dragging => {
                 let bounds = layout.bounds();
