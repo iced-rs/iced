@@ -121,7 +121,7 @@ where
             context.get_proc_address(address)
         })?
     };
-
+    context.window().set_ime_allowed(true);
     let (mut sender, receiver) = mpsc::unbounded();
 
     let mut instance = Box::pin(run_instance::<A, E, C>(
@@ -138,7 +138,6 @@ where
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
-
     let _ = event_loop.run_return(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
 
