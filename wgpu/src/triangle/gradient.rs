@@ -1,28 +1,25 @@
-use crate::buffers::dynamic::DynamicBuffer;
+use crate::buffers::dynamic;
 use crate::settings;
-use crate::triangle::{
-    default_fragment_target, default_multisample_state,
-    default_triangle_primitive_state, vertex_buffer_layout,
-};
+use crate::triangle;
 use encase::ShaderType;
 use glam::{IVec4, Vec4};
 use iced_graphics::gradient::Gradient;
 use iced_graphics::Transformation;
 
-pub struct GradientPipeline {
+pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    pub(super) uniform_buffer: DynamicBuffer<GradientUniforms>,
-    pub(super) storage_buffer: DynamicBuffer<GradientStorage>,
+    pub(super) uniform_buffer: dynamic::Buffer<Uniforms>,
+    pub(super) storage_buffer: dynamic::Buffer<Storage>,
     color_stop_offset: i32,
     //Need to store these and then write them all at once
     //or else they will be padded to 256 and cause gaps in the storage buffer
-    color_stops_pending_write: GradientStorage,
+    color_stops_pending_write: Storage,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
 #[derive(Debug, ShaderType)]
-pub(super) struct GradientUniforms {
+pub(super) struct Uniforms {
     transform: glam::Mat4,
     //xy = start, zw = end
     direction: Vec4,
@@ -37,33 +34,33 @@ pub(super) struct ColorStop {
 }
 
 #[derive(ShaderType)]
-pub(super) struct GradientStorage {
+pub(super) struct Storage {
     #[size(runtime)]
     pub color_stops: Vec<ColorStop>,
 }
 
-impl GradientPipeline {
-    /// Creates a new [GradientPipeline] using `triangle_gradient.wgsl` shader.
+impl Pipeline {
+    /// Creates a new [GradientPipeline] using `gradient.wgsl` shader.
     pub(super) fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Self {
-        let uniform_buffer = DynamicBuffer::uniform(
+        let uniform_buffer = dynamic::Buffer::uniform(
             device,
-            "iced_wgpu::triangle [GRADIENT] uniforms",
+            "iced_wgpu::triangle::gradient uniforms",
         );
 
         //Note: with a WASM target storage buffers are not supported. Will need to use UBOs & static
         // sized array (eg like the 32-sized array on OpenGL side right now) to make gradients work
-        let storage_buffer = DynamicBuffer::storage(
+        let storage_buffer = dynamic::Buffer::storage(
             device,
-            "iced_wgpu::triangle [GRADIENT] storage",
+            "iced_wgpu::triangle::gradient storage",
         );
 
         let bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::triangle [GRADIENT] bind group layout"),
+                label: Some("iced_wgpu::triangle::gradient bind group layout"),
                 entries: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -71,7 +68,7 @@ impl GradientPipeline {
                         ty: wgpu::BindingType::Buffer {
                             ty: wgpu::BufferBindingType::Uniform,
                             has_dynamic_offset: true,
-                            min_binding_size: Some(GradientUniforms::min_size()),
+                            min_binding_size: Some(Uniforms::min_size()),
                         },
                         count: None,
                     },
@@ -83,14 +80,14 @@ impl GradientPipeline {
                                 read_only: true,
                             },
                             has_dynamic_offset: false,
-                            min_binding_size: Some(GradientStorage::min_size()),
+                            min_binding_size: Some(Storage::min_size()),
                         },
                         count: None,
                     },
                 ],
             });
 
-        let bind_group = GradientPipeline::bind_group(
+        let bind_group = Pipeline::bind_group(
             device,
             uniform_buffer.raw(),
             storage_buffer.raw(),
@@ -99,7 +96,7 @@ impl GradientPipeline {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu::triangle [GRADIENT] pipeline layout"),
+                label: Some("iced_wgpu::triangle::gradient pipeline layout"),
                 bind_group_layouts: &[&bind_group_layout],
                 push_constant_ranges: &[],
             });
@@ -107,30 +104,30 @@ impl GradientPipeline {
         let shader =
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some(
-                    "iced_wgpu::triangle [GRADIENT] create shader module",
+                    "iced_wgpu::triangle::gradient create shader module",
                 ),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    include_str!("../shader/triangle_gradient.wgsl"),
+                    include_str!("../shader/gradient.wgsl"),
                 )),
             });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu::triangle [GRADIENT] pipeline"),
+                label: Some("iced_wgpu::triangle::gradient pipeline"),
                 layout: Some(&layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[vertex_buffer_layout()],
+                    buffers: &[triangle::vertex_buffer_layout()],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
-                    entry_point: "fs_gradient",
-                    targets: &[default_fragment_target(format)],
+                    entry_point: "fs_main",
+                    targets: &[triangle::fragment_target(format)],
                 }),
-                primitive: default_triangle_primitive_state(),
+                primitive: triangle::primitive_state(),
                 depth_stencil: None,
-                multisample: default_multisample_state(antialiasing),
+                multisample: triangle::multisample_state(antialiasing),
                 multiview: None,
             });
 
@@ -139,7 +136,7 @@ impl GradientPipeline {
             uniform_buffer,
             storage_buffer,
             color_stop_offset: 0,
-            color_stops_pending_write: GradientStorage {
+            color_stops_pending_write: Storage {
                 color_stops: vec![],
             },
             bind_group_layout,
@@ -155,7 +152,7 @@ impl GradientPipeline {
                 let end_offset =
                     (linear.color_stops.len() as i32) + start_offset - 1;
 
-                self.uniform_buffer.push(&GradientUniforms {
+                self.uniform_buffer.push(&Uniforms {
                     transform: transform.into(),
                     direction: Vec4::new(
                         linear.start.x,
@@ -194,7 +191,7 @@ impl GradientPipeline {
         layout: &wgpu::BindGroupLayout,
     ) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::triangle [GRADIENT] bind group"),
+            label: Some("iced_wgpu::triangle::gradient bind group"),
             layout,
             entries: &[
                 wgpu::BindGroupEntry {
@@ -203,7 +200,7 @@ impl GradientPipeline {
                         wgpu::BufferBinding {
                             buffer: uniform_buffer,
                             offset: 0,
-                            size: Some(GradientUniforms::min_size()),
+                            size: Some(Uniforms::min_size()),
                         },
                     ),
                 },
@@ -232,7 +229,7 @@ impl GradientPipeline {
 
         if uniforms_resized || storage_resized {
             //recreate bind groups if any buffers were resized
-            self.bind_group = GradientPipeline::bind_group(
+            self.bind_group = Pipeline::bind_group(
                 device,
                 self.uniform_buffer.raw(),
                 self.storage_buffer.raw(),

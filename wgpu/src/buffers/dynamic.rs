@@ -4,23 +4,23 @@ use encase::ShaderType;
 use std::marker::PhantomData;
 
 // Currently supported dynamic buffers.
-enum DynamicBufferType {
+enum BufferType {
     Uniform(encase::DynamicUniformBuffer<Vec<u8>>),
     Storage(encase::DynamicStorageBuffer<Vec<u8>>),
 }
 
-impl DynamicBufferType {
+impl BufferType {
     /// Writes the current value to its CPU buffer with proper alignment.
     pub(super) fn write<T: ShaderType + WriteInto>(
         &mut self,
         value: &T,
     ) -> wgpu::DynamicOffset {
         match self {
-            DynamicBufferType::Uniform(buf) => buf
+            BufferType::Uniform(buf) => buf
                 .write(value)
                 .expect("Error when writing to dynamic uniform buffer.")
                 as u32,
-            DynamicBufferType::Storage(buf) => buf
+            BufferType::Storage(buf) => buf
                 .write(value)
                 .expect("Error when writing to dynamic storage buffer.")
                 as u32,
@@ -30,19 +30,19 @@ impl DynamicBufferType {
     /// Returns bytearray of aligned CPU buffer.
     pub(super) fn get_ref(&self) -> &Vec<u8> {
         match self {
-            DynamicBufferType::Uniform(buf) => buf.as_ref(),
-            DynamicBufferType::Storage(buf) => buf.as_ref(),
+            BufferType::Uniform(buf) => buf.as_ref(),
+            BufferType::Storage(buf) => buf.as_ref(),
         }
     }
 
     /// Resets the CPU buffer.
     pub(super) fn clear(&mut self) {
         match self {
-            DynamicBufferType::Uniform(buf) => {
+            BufferType::Uniform(buf) => {
                 buf.as_mut().clear();
                 buf.set_offset(0);
             }
-            DynamicBufferType::Storage(buf) => {
+            BufferType::Storage(buf) => {
                 buf.as_mut().clear();
                 buf.set_offset(0);
             }
@@ -51,21 +51,21 @@ impl DynamicBufferType {
 }
 
 /// A dynamic buffer is any type of buffer which does not have a static offset.
-pub(crate) struct DynamicBuffer<T: ShaderType> {
+pub(crate) struct Buffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
-    cpu: DynamicBufferType,
+    cpu: BufferType,
     gpu: wgpu::Buffer,
     label: &'static str,
     size: u64,
     _data: PhantomData<T>,
 }
 
-impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
+impl<T: ShaderType + WriteInto> Buffer<T> {
     /// Creates a new dynamic uniform buffer.
     pub fn uniform(device: &wgpu::Device, label: &'static str) -> Self {
-        DynamicBuffer::new(
+        Buffer::new(
             device,
-            DynamicBufferType::Uniform(encase::DynamicUniformBuffer::new(
+            BufferType::Uniform(encase::DynamicUniformBuffer::new(
                 Vec::new(),
             )),
             label,
@@ -75,9 +75,9 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
 
     /// Creates a new dynamic storage buffer.
     pub fn storage(device: &wgpu::Device, label: &'static str) -> Self {
-        DynamicBuffer::new(
+        Buffer::new(
             device,
-            DynamicBufferType::Storage(encase::DynamicStorageBuffer::new(
+            BufferType::Storage(encase::DynamicStorageBuffer::new(
                 Vec::new(),
             )),
             label,
@@ -87,7 +87,7 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
 
     fn new(
         device: &wgpu::Device,
-        dynamic_buffer_type: DynamicBufferType,
+        dynamic_buffer_type: BufferType,
         label: &'static str,
         usage: wgpu::BufferUsages,
     ) -> Self {
@@ -96,7 +96,7 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
         Self {
             offsets: Vec::new(),
             cpu: dynamic_buffer_type,
-            gpu: DynamicBuffer::<T>::create_gpu_buffer(
+            gpu: Buffer::<T>::create_gpu_buffer(
                 device,
                 label,
                 usage,
@@ -139,15 +139,15 @@ impl<T: ShaderType + WriteInto> DynamicBuffer<T> {
 
         if self.size < new_size {
             let usages = match self.cpu {
-                DynamicBufferType::Uniform(_) => {
+                BufferType::Uniform(_) => {
                     wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
                 }
-                DynamicBufferType::Storage(_) => {
+                BufferType::Storage(_) => {
                     wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST
                 }
             };
 
-            self.gpu = DynamicBuffer::<T>::create_gpu_buffer(
+            self.gpu = Buffer::<T>::create_gpu_buffer(
                 device, self.label, usages, new_size,
             );
             self.size = new_size;

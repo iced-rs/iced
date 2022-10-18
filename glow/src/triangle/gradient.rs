@@ -1,25 +1,25 @@
 use crate::program::Version;
-use crate::triangle::{set_transform, simple_triangle_program};
+use crate::triangle;
 use glow::{Context, HasContext, NativeProgram};
 use iced_graphics::gradient::Gradient;
 use iced_graphics::gradient::Linear;
 use iced_graphics::Transformation;
 
 #[derive(Debug)]
-pub struct GradientProgram {
+pub struct Program {
     pub program: <Context as HasContext>::Program,
-    pub uniform_data: GradientUniformData,
+    pub uniform_data: UniformData,
 }
 
 #[derive(Debug)]
-pub struct GradientUniformData {
+pub struct UniformData {
     gradient: Gradient,
     transform: Transformation,
-    uniform_locations: GradientUniformLocations,
+    uniform_locations: UniformLocations,
 }
 
 #[derive(Debug)]
-struct GradientUniformLocations {
+struct UniformLocations {
     gradient_direction_location: <Context as HasContext>::UniformLocation,
     color_stops_size_location: <Context as HasContext>::UniformLocation,
     //currently the maximum number of stops is 16 due to lack of SSBO in GL2.1
@@ -27,9 +27,9 @@ struct GradientUniformLocations {
     transform_location: <Context as HasContext>::UniformLocation,
 }
 
-impl GradientProgram {
+impl Program {
     pub fn new(gl: &Context, shader_version: &Version) -> Self {
-        let program = simple_triangle_program(
+        let program = triangle::program(
             gl,
             shader_version,
             include_str!("../shader/common/gradient.frag"),
@@ -37,7 +37,7 @@ impl GradientProgram {
 
         Self {
             program,
-            uniform_data: GradientUniformData::new(gl, program),
+            uniform_data: UniformData::new(gl, program),
         }
     }
 
@@ -48,7 +48,7 @@ impl GradientProgram {
         transform: &Transformation,
     ) {
         if transform != &self.uniform_data.transform {
-            set_transform(
+            triangle::set_transform(
                 gl,
                 self.uniform_data.uniform_locations.transform_location,
                 *transform,
@@ -117,12 +117,11 @@ impl GradientProgram {
         transform: &Transformation,
     ) {
         unsafe { gl.use_program(Some(self.program)) }
-
         self.write_uniforms(gl, gradient, transform);
     }
 }
 
-impl GradientUniformData {
+impl UniformData {
     fn new(gl: &Context, program: NativeProgram) -> Self {
         let gradient_direction_location =
             unsafe { gl.get_uniform_location(program, "gradient_direction") }
@@ -141,14 +140,14 @@ impl GradientUniformData {
             unsafe { gl.get_uniform_location(program, "u_Transform") }
                 .expect("Gradient - Get u_Transform.");
 
-        GradientUniformData {
+        Self {
             gradient: Gradient::Linear(Linear {
                 start: Default::default(),
                 end: Default::default(),
                 color_stops: vec![],
             }),
             transform: Transformation::identity(),
-            uniform_locations: GradientUniformLocations {
+            uniform_locations: UniformLocations {
                 gradient_direction_location,
                 color_stops_size_location,
                 color_stops_location,

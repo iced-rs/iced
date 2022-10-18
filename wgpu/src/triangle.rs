@@ -3,12 +3,10 @@ use crate::{settings, Transformation};
 use core::fmt;
 use std::fmt::Formatter;
 
-use iced_graphics::layer::{Mesh, mesh, mesh::attribute_count_of};
+use iced_graphics::layer::{Mesh, mesh};
 use iced_graphics::Size;
 
 use crate::buffers::StaticBuffer;
-use crate::triangle::gradient::GradientPipeline;
-use crate::triangle::solid::SolidPipeline;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 mod solid;
@@ -22,22 +20,22 @@ pub(crate) struct Pipeline {
     vertex_buffer: StaticBuffer<Vertex2D>,
     index_buffer: StaticBuffer<u32>,
     index_strides: Vec<u32>,
-    pipelines: TrianglePipelines,
+    pipelines: PipelineList,
 }
 
 /// Supported triangle pipelines for different fills.
-pub(crate) struct TrianglePipelines {
-    solid: SolidPipeline,
-    gradient: GradientPipeline,
+pub(crate) struct PipelineList {
+    solid: solid::Pipeline,
+    gradient: gradient::Pipeline,
 }
 
-impl fmt::Debug for TrianglePipelines {
+impl fmt::Debug for PipelineList {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("TrianglePipelines").finish()
     }
 }
 
-impl TrianglePipelines {
+impl PipelineList {
     /// Resets each pipeline's buffers.
     fn clear(&mut self) {
         self.solid.buffer.clear();
@@ -78,9 +76,9 @@ impl Pipeline {
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             ),
             index_strides: Vec::new(),
-            pipelines: TrianglePipelines {
-                solid: SolidPipeline::new(device, format, antialiasing),
-                gradient: GradientPipeline::new(device, format, antialiasing),
+            pipelines: PipelineList {
+                solid: solid::Pipeline::new(device, format, antialiasing),
+                gradient: gradient::Pipeline::new(device, format, antialiasing),
             },
         }
     }
@@ -98,7 +96,7 @@ impl Pipeline {
         meshes: &[Mesh<'_>],
     ) {
         //count the total amount of vertices & indices we need to handle
-        let (total_vertices, total_indices) = attribute_count_of(meshes);
+        let (total_vertices, total_indices) = mesh::attribute_count_of(meshes);
 
         // Then we ensure the current attribute buffers are big enough, resizing if necessary.
 
@@ -107,8 +105,8 @@ impl Pipeline {
         //the majority of use cases. Therefore we will write GPU data every frame (for now).
         let _ = self
             .vertex_buffer
-            .recreate_if_needed(device, total_vertices);
-        let _ = self.index_buffer.recreate_if_needed(device, total_indices);
+            .resize(device, total_vertices);
+        let _ = self.index_buffer.resize(device, total_indices);
 
         //prepare dynamic buffers & data store for writing
         self.index_strides.clear();
@@ -258,7 +256,7 @@ fn vertex_buffer_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
     }
 }
 
-fn default_fragment_target(
+fn fragment_target(
     texture_format: wgpu::TextureFormat,
 ) -> Option<wgpu::ColorTargetState> {
     Some(wgpu::ColorTargetState {
@@ -268,7 +266,7 @@ fn default_fragment_target(
     })
 }
 
-fn default_triangle_primitive_state() -> wgpu::PrimitiveState {
+fn primitive_state() -> wgpu::PrimitiveState {
     wgpu::PrimitiveState {
         topology: wgpu::PrimitiveTopology::TriangleList,
         front_face: wgpu::FrontFace::Cw,
@@ -276,7 +274,7 @@ fn default_triangle_primitive_state() -> wgpu::PrimitiveState {
     }
 }
 
-fn default_multisample_state(
+fn multisample_state(
     antialiasing: Option<settings::Antialiasing>,
 ) -> wgpu::MultisampleState {
     wgpu::MultisampleState {

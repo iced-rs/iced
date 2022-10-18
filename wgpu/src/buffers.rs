@@ -56,7 +56,7 @@ impl<T: Pod + Zeroable> StaticBuffer<T> {
 
     /// Returns whether or not the buffer needs to be recreated. This can happen whenever mesh data
     /// changes & a redraw is requested.
-    pub fn recreate_if_needed(
+    pub fn resize(
         &mut self,
         device: &wgpu::Device,
         new_count: usize,

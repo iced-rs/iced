@@ -1,24 +1,23 @@
 use crate::program::Version;
-use crate::triangle::{set_transform, simple_triangle_program};
-use crate::Color;
+use crate::{triangle, Color};
 use glow::{Context, HasContext, NativeProgram};
 use iced_graphics::Transformation;
 
 #[derive(Debug)]
-pub struct SolidProgram {
+pub struct Program {
     program: <Context as HasContext>::Program,
-    uniform_data: SolidUniformData,
+    uniform_data: UniformData,
 }
 
 #[derive(Debug)]
-struct SolidUniformData {
+struct UniformData {
     pub color: Color,
     pub color_location: <Context as HasContext>::UniformLocation,
     pub transform: Transformation,
     pub transform_location: <Context as HasContext>::UniformLocation,
 }
 
-impl SolidUniformData {
+impl UniformData {
     fn new(gl: &Context, program: NativeProgram) -> Self {
         Self {
             color: Color::TRANSPARENT,
@@ -35,9 +34,9 @@ impl SolidUniformData {
     }
 }
 
-impl SolidProgram {
+impl Program {
     pub fn new(gl: &Context, shader_version: &Version) -> Self {
-        let program = simple_triangle_program(
+        let program = triangle::program(
             gl,
             shader_version,
             include_str!("../shader/common/triangle.frag"),
@@ -45,7 +44,7 @@ impl SolidProgram {
 
         Self {
             program,
-            uniform_data: SolidUniformData::new(gl, program),
+            uniform_data: UniformData::new(gl, program),
         }
     }
 
@@ -56,7 +55,11 @@ impl SolidProgram {
         transform: &Transformation,
     ) {
         if transform != &self.uniform_data.transform {
-            set_transform(gl, self.uniform_data.transform_location, *transform)
+            triangle::set_transform(
+                gl,
+                self.uniform_data.transform_location,
+                *transform,
+            )
         }
 
         if color != &self.uniform_data.color {

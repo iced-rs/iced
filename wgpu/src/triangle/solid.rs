@@ -1,27 +1,24 @@
-use crate::buffers::dynamic::DynamicBuffer;
-use crate::triangle::{
-    default_fragment_target, default_multisample_state,
-    default_triangle_primitive_state, vertex_buffer_layout,
-};
+use crate::buffers::dynamic;
+use crate::triangle;
 use crate::{settings, Color};
 use encase::ShaderType;
 use glam::Vec4;
 use iced_graphics::Transformation;
 
-pub struct SolidPipeline {
+pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    pub(super) buffer: DynamicBuffer<SolidUniforms>,
+    pub(super) buffer: dynamic::Buffer<Uniforms>,
     bind_group_layout: wgpu::BindGroupLayout,
     bind_group: wgpu::BindGroup,
 }
 
 #[derive(Debug, Clone, Copy, ShaderType)]
-pub(super) struct SolidUniforms {
+pub(super) struct Uniforms {
     transform: glam::Mat4,
     color: Vec4,
 }
 
-impl SolidUniforms {
+impl Uniforms {
     pub fn new(transform: Transformation, color: Color) -> Self {
         Self {
             transform: transform.into(),
@@ -30,34 +27,34 @@ impl SolidUniforms {
     }
 }
 
-impl SolidPipeline {
-    /// Creates a new [SolidPipeline] using `triangle_solid.wgsl` shader.
+impl Pipeline {
+    /// Creates a new [SolidPipeline] using `solid.wgsl` shader.
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         antialiasing: Option<settings::Antialiasing>,
     ) -> Self {
-        let buffer = DynamicBuffer::uniform(
+        let buffer = dynamic::Buffer::uniform(
             device,
-            "iced_wgpu::triangle [SOLID] uniforms",
+            "iced_wgpu::triangle::solid uniforms",
         );
 
         let bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::triangle [SOLID] bind group layout"),
+                label: Some("iced_wgpu::triangle::solid bind group layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: true,
-                        min_binding_size: Some(SolidUniforms::min_size()),
+                        min_binding_size: Some(Uniforms::min_size()),
                     },
                     count: None,
                 }],
             });
 
-        let bind_group = SolidPipeline::bind_group(
+        let bind_group = Pipeline::bind_group(
             device,
             &buffer.raw(),
             &bind_group_layout,
@@ -65,36 +62,36 @@ impl SolidPipeline {
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu::triangle [SOLID] pipeline layout"),
+                label: Some("iced_wgpu::triangle::solid pipeline layout"),
                 bind_group_layouts: &[&bind_group_layout],
                 push_constant_ranges: &[],
             });
 
         let shader =
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu::triangle [SOLID] create shader module"),
+                label: Some("iced_wgpu::triangle::solid create shader module"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    include_str!("../shader/triangle_solid.wgsl"),
+                    include_str!("../shader/solid.wgsl"),
                 )),
             });
 
         let pipeline =
             device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu::triangle [SOLID] pipeline"),
+                label: Some("iced_wgpu::triangle::solid pipeline"),
                 layout: Some(&layout),
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[vertex_buffer_layout()],
+                    buffers: &[triangle::vertex_buffer_layout()],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
-                    entry_point: "fs_solid",
-                    targets: &[default_fragment_target(format)],
+                    entry_point: "fs_main",
+                    targets: &[triangle::fragment_target(format)],
                 }),
-                primitive: default_triangle_primitive_state(),
+                primitive: triangle::primitive_state(),
                 depth_stencil: None,
-                multisample: default_multisample_state(antialiasing),
+                multisample: triangle::multisample_state(antialiasing),
                 multiview: None,
             });
 
@@ -112,14 +109,14 @@ impl SolidPipeline {
         layout: &wgpu::BindGroupLayout,
     ) -> wgpu::BindGroup {
         device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::triangle [SOLID] bind group"),
+            label: Some("iced_wgpu::triangle::solid bind group"),
             layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: wgpu::BindingResource::Buffer(wgpu::BufferBinding {
                     buffer,
                     offset: 0,
-                    size: Some(SolidUniforms::min_size()),
+                    size: Some(Uniforms::min_size()),
                 }),
             }],
         })
@@ -127,7 +124,7 @@ impl SolidPipeline {
 
     /// Pushes a new solid uniform to the CPU buffer.
     pub fn push(&mut self, transform: Transformation, color: &Color) {
-        self.buffer.push(&SolidUniforms::new(transform, *color));
+        self.buffer.push(&Uniforms::new(transform, *color));
     }
 
     /// Writes the contents of the solid CPU buffer to the GPU buffer, resizing the GPU buffer
@@ -141,7 +138,7 @@ impl SolidPipeline {
         let uniforms_resized = self.buffer.resize(device);
 
         if uniforms_resized {
-            self.bind_group = SolidPipeline::bind_group(
+            self.bind_group = Pipeline::bind_group(
                 device,
                 self.buffer.raw(),
                 &self.bind_group_layout,

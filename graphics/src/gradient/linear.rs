@@ -134,10 +134,13 @@ impl Builder {
     ///
     /// `offset` must be between `0.0` and `1.0` or the gradient cannot be built.
     ///
-    /// Note: when using the [Glow] backend, any color stop added after the 16th
+    /// Note: when using the [`glow`] backend, any color stop added after the 16th
     /// will not be displayed.
     ///
-    /// On [backend::Wgpu] backend this limitation does not exist (technical limit is 524,288 stops).
+    /// On the [`wgpu`] backend this limitation does not exist (technical limit is 524,288 stops).
+    ///
+    /// [`glow`]: https://docs.rs/iced_glow
+    /// [`wgpu`]: https://docs.rs/iced_wgpu
     pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
         if offset.is_finite() && (0.0..=1.0).contains(&offset) {
             match self.stops.binary_search_by(|stop| {

@@ -4,11 +4,9 @@ mod solid;
 
 use crate::{program, Transformation};
 use glow::HasContext;
-use iced_graphics::layer::{mesh, mesh::attribute_count_of, Mesh};
+use iced_graphics::layer::{mesh, Mesh};
 use std::marker::PhantomData;
 
-use crate::triangle::gradient::GradientProgram;
-use crate::triangle::solid::SolidProgram;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 #[derive(Debug)]
@@ -16,13 +14,13 @@ pub(crate) struct Pipeline {
     vertex_array: <glow::Context as HasContext>::VertexArray,
     vertices: Buffer<Vertex2D>,
     indices: Buffer<u32>,
-    programs: TrianglePrograms,
+    programs: ProgramList,
 }
 
 #[derive(Debug)]
-struct TrianglePrograms {
-    solid: SolidProgram,
-    gradient: GradientProgram,
+struct ProgramList {
+    solid: solid::Program,
+    gradient: gradient::Program,
 }
 
 impl Pipeline {
@@ -65,9 +63,9 @@ impl Pipeline {
             vertex_array,
             vertices,
             indices,
-            programs: TrianglePrograms {
-                solid: SolidProgram::new(gl, shader_version),
-                gradient: GradientProgram::new(gl, shader_version),
+            programs: ProgramList {
+                solid: solid::Program::new(gl, shader_version),
+                gradient: gradient::Program::new(gl, shader_version),
             },
         }
     }
@@ -87,7 +85,7 @@ impl Pipeline {
         }
 
         //count the total amount of vertices & indices we need to handle
-        let (total_vertices, total_indices) = attribute_count_of(meshes);
+        let (total_vertices, total_indices) = mesh::attribute_count_of(meshes);
 
         // Then we ensure the current attribute buffers are big enough, resizing if necessary
         unsafe {
@@ -171,7 +169,7 @@ impl Pipeline {
 
 /// A simple shader program. Uses [`triangle.vert`] for its vertex shader and only binds position
 /// attribute location.
-pub(super) fn simple_triangle_program(
+pub(super) fn program(
     gl: &glow::Context,
     shader_version: &program::Version,
     fragment_shader: &'static str,
