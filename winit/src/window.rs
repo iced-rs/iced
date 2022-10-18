@@ -30,3 +30,17 @@ pub fn fetch_mode<Message>(
         Box::new(f),
     )))
 }
+
+/// Set IME allowed on the window
+pub fn set_ime_allowed<Message>(allow: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::SetIMEAllow(allow)))
+}
+
+/// Set IME candidate position of the window.
+///
+/// position is logical position.
+pub fn set_ime_position<Message>(x: i32, y: i32) -> Command<Message> {
+    Command::single(command::Action::Window(
+        window::Action::MoveIMECandidateWindow { x, y },
+    ))
+}
