@@ -22,11 +22,11 @@ use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
+use crate::window::Action;
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
-
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// A field that can be filled with text.
@@ -747,6 +747,12 @@ where
             state.is_ime_editing = true;
             let mut chars_count = 0;
 
+            let action: Action<()> = Action::MoveIMECandidateWindow {
+                x: cursor_position.x as i32,
+                y: cursor_position.y as i32,
+            };
+            let action = crate::command::Action::Window(action);
+            let command = crate::command::Command::single(action);
             for ch in text.chars() {
                 editor.insert(ch);
                 chars_count += 1;
