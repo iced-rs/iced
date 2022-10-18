@@ -138,11 +138,9 @@ pub fn window_event(
         WindowEvent::Ime(ime) => match ime {
             winit::event::Ime::Enabled => None,
             winit::event::Ime::Preedit(text, _) => {
-                //Some(Event::Keyboard(keyboard::Event::CharacterReceived(())))
                 Some(Event::Keyboard(keyboard::Event::IMEPreedit(text.clone())))
             }
             winit::event::Ime::Commit(text) => {
-                //Some(Event::Keyboard(keyboard::Event::CharacterReceived(())))
                 Some(Event::Keyboard(keyboard::Event::IMECommit(text.clone())))
             }
             winit::event::Ime::Disabled => None,
