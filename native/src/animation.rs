@@ -100,8 +100,8 @@ impl Animation {
         self.playhead.as_ref().and_then(|p| p.spacing)
     }
     
-    fn bounds<'a>(&'a self, playhead: &Keyframe, default: &'a Keyframe, modifier: fn(&Keyframe) -> Option<Length>) -> (&Keyframe, &Keyframe) {
-        let mut lower_bound_iter = self.keyframes.iter().filter(|keyframe| modifier(keyframe).is_some()).peekable();
+    fn bounds<'a>(&'a self, playhead: &Keyframe, default: &'a Keyframe, modifier: fn(&Keyframe) -> bool) -> (&Keyframe, &Keyframe) {
+        let mut lower_bound_iter = self.keyframes.iter().filter(|keyframe| modifier(keyframe)).peekable();
         let lower_bound = loop {
             if let Some(keyframe) = lower_bound_iter.next() {
                 if let Some(next_keyframe) = lower_bound_iter.peek() {
@@ -112,7 +112,7 @@ impl Animation {
             } else {break &default}
         };
         
-        let upper_bound = match self.keyframes.iter().find(|&keyframe| modifier(keyframe).is_some() && keyframe.after > playhead.after ) {
+        let upper_bound = match self.keyframes.iter().find(|&keyframe| modifier(keyframe) && keyframe.after > playhead.after ) {
             Some(keyframe) => keyframe,
             None => match self.keyframes.last() {
                 Some(frame) => frame,
@@ -123,10 +123,10 @@ impl Animation {
         (lower_bound, upper_bound)
     }
     
-    fn calc_linear(&self, now: &Duration, lower_bound: &Keyframe, upper_bound: &Keyframe, modifier: fn(&Keyframe) -> Option<Length>) -> Option<Length> {
+    fn calc_linear(&self, now: &Duration, lower_bound: &Keyframe, upper_bound: &Keyframe, modifier: fn(&Keyframe) -> Option<u16>) -> Option<u16> {
         println!("linear");
-        let lb = modifier(lower_bound).unwrap().as_u16();
-        let ub = modifier(upper_bound).unwrap().as_u16();
+        let lb = modifier(lower_bound);
+        let ub = modifier(upper_bound);
         println!("lb = {:?}, up = {:?}", lb, ub);
         
         if lb.is_some() && ub.is_some() {
@@ -135,19 +135,19 @@ impl Animation {
             let value = (percent_done * delta + (lb.unwrap() as f64)) as u16;
             println!("value = {:?}", value);
             
-            Some(Length::Units(
+            Some(
                 if ub.unwrap() > lb.unwrap() {
                     ub.unwrap().min(value)
                 } else {
                     ub.unwrap().max(value)    
                 }
-            ))
+            )
         } else {
             println!("in error");
             // TODO HACK This probabbly needs more thought. Error cases include mismatched `Length`s
             // if there is one upper and not a lower or vice versa, that should probably
             // fail in some way. Not sure
-            lower_bound.height
+            modifier(lower_bound)
         }
     }
 
@@ -168,31 +168,48 @@ impl Animation {
                     if playhead.after <= self.keyframes.last().unwrap().after {
                     
                         if let Some(width) = playhead.width {
-                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.width);
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.width.is_some());
                             
                             match playhead.ease {
                                 Ease::Linear => {
-                                    default.width = self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.width);
+                                    default.width = Some(Length::Units(self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.width.unwrap().as_u16()).unwrap()));
                                 }
                             }
                         }
                         
                         if let Some(height) = playhead.height {
-                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.height);
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.height.is_some());
                             
                             match playhead.ease {
                                 Ease::Linear => {
-                                    default.height = self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.height);
+                                    default.height = Some(Length::Units(self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.height.unwrap().as_u16()).unwrap()));
                                 }
                             }
                         }
                         
                         if let Some(padding) = playhead.padding {
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.padding.is_some());
                             
+                            match playhead.ease {
+                                Ease::Linear => {
+                                    default.padding = Some([
+                                        self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| Some(keyframe.padding.unwrap().top)).unwrap(),
+                                        self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| Some(keyframe.padding.unwrap().right)).unwrap(),
+                                        self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| Some(keyframe.padding.unwrap().bottom)).unwrap(),
+                                        self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| Some(keyframe.padding.unwrap().left)).unwrap(),
+                                        ].into());
+                                }
+                            }
                         }
                         
                         if let Some(spacing) = playhead.spacing {
+                            let (lower_bound, upper_bound) = self.bounds(playhead, &default, |keyframe: &Keyframe| keyframe.spacing.is_some());
                             
+                            match playhead.ease {
+                                Ease::Linear => {
+                                    default.spacing = self.calc_linear(&now, lower_bound, upper_bound, |keyframe: &Keyframe| keyframe.spacing);
+                                }
+                            }
                         }
                         
                         default.after = now - Duration::from_millis(1);
