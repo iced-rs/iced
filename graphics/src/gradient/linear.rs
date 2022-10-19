@@ -103,7 +103,7 @@ pub struct Builder {
     start: Point,
     end: Point,
     stops: Vec<ColorStop>,
-    valid: bool,
+    error: Option<BuilderError>
 }
 
 impl Builder {
@@ -126,7 +126,7 @@ impl Builder {
             start,
             end,
             stops: vec![],
-            valid: true,
+            error: None
         }
     }
 
@@ -147,35 +147,43 @@ impl Builder {
                 stop.offset.partial_cmp(&offset).unwrap()
             }) {
                 Ok(_) => {
-                    //the offset already exists in the gradient
-                    self.valid = false;
-                }
+                    self.error = Some(BuilderError::DuplicateOffset(offset))
+                },
                 Err(index) => {
-                    self.stops.insert(index, ColorStop { offset, color })
+                    self.stops.insert(index, ColorStop { offset, color });
                 }
             }
         } else {
-            self.valid = false;
-        }
+            self.error = Some(BuilderError::InvalidOffset(offset))
+        };
+
         self
     }
 
     /// Builds the linear [`Gradient`] of this [`Builder`].
     ///
-    /// Returns `Err` if no stops were added to the builder or
-    /// if stops not between 0.0 and 1.0 were added.
-    pub fn build(self) -> Result<Gradient, &'static str> {
-        if self.stops.is_empty() || !self.valid {
-            return Err("Valid gradient conditions: \
-            1) Must contain at least one color stop. \
-             2) Every color stop offset must be unique. \
-             3) Every color stop must be within the range of 0.0..=1.0");
+    /// Returns `BuilderError` if gradient in invalid.
+    pub fn build(self) -> Result<Gradient, BuilderError> {
+        if self.stops.is_empty() {
+            Err(BuilderError::MissingColorStop)
+        } else if let Some(error) = self.error {
+            Err(error)
+        } else {
+            Ok(Gradient::Linear(Linear {
+                start: self.start,
+                end: self.end,
+                color_stops: self.stops,
+            }))
         }
-
-        Ok(Gradient::Linear(Linear {
-            start: self.start,
-            end: self.end,
-            color_stops: self.stops,
-        }))
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum BuilderError {
+    #[error("Gradients must contain at least one color stop.")]
+    MissingColorStop,
+    #[error("Offset {0} must be a unique, finite number.")]
+    DuplicateOffset(f32),
+    #[error("Offset {0} must be within 0.0..=1.0.")]
+    InvalidOffset(f32),
 }
