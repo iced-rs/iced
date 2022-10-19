@@ -28,7 +28,6 @@ use crate::{
     Rectangle, Shell, Size, Vector, Widget,
 };
 pub use iced_style::text_input::{Appearance, StyleSheet};
-
 /// A field that can be filled with text.
 ///
 /// # Example
@@ -739,25 +738,50 @@ where
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
             let state = state();
-            let cursor_offset = state.cursor.start(value);
-            let mut editor = Editor::new(value, &mut state.cursor);
-            if state.is_ime_editing {
-                editor.delete();
-            }
-            state.is_ime_editing = true;
-            let mut chars_count = 0;
 
-            let action: Action<()> = Action::MoveIMECandidateWindow {
-                x: cursor_position.x as i32,
-                y: cursor_position.y as i32,
+            let cursor_offset = state.cursor.start(value);
+
+            // limit borrow life time.
+            let mut chars_count = 0;
+            let message = {
+                let mut editor = Editor::new(value, &mut state.cursor);
+                if state.is_ime_editing {
+                    editor.delete();
+                }
+                state.is_ime_editing = true;
+
+                for ch in text.chars() {
+                    editor.insert(ch);
+                    chars_count += 1;
+                }
+                (on_change)(editor.contents())
+            };
+            // calcurate where we need to place candidate window.
+            let text_bounds = layout.children().next().unwrap().bounds();
+            let size = size.unwrap_or_else(|| renderer.default_size());
+            let position = match state.cursor.state(value) {
+                cursor::State::Index(position) => position,
+                cursor::State::Selection { start, end } => end.max(start),
+            };
+            let position = measure_cursor_and_scroll_offset(
+                renderer,
+                text_bounds,
+                &value,
+                size,
+                position,
+                font.clone(),
+            );
+            println!(
+                "Place candidate window to ({},{}),text_bound {:#?}",
+                position.0, position.1, text_bounds
+            );
+            let action: Action<()> = Action::MoveIMECandidateWindowTo {
+                x: (text_bounds.x + position.0) as i32,
+                y: (text_bounds.y) as i32,
             };
             let action = crate::command::Action::Window(action);
             let command = crate::command::Command::single(action);
-            for ch in text.chars() {
-                editor.insert(ch);
-                chars_count += 1;
-            }
-            let message = (on_change)(editor.contents());
+
             state
                 .cursor
                 .select_range(cursor_offset, cursor_offset + chars_count);

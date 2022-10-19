@@ -645,7 +645,7 @@ pub fn run_command<A, E>(
                         .send_event(tag(mode))
                         .expect("Send message to event loop");
                 }
-                window::Action::MoveIMECandidateWindow { x, y } => window
+                window::Action::MoveIMECandidateWindowTo { x, y } => window
                     .set_ime_position(winit::dpi::LogicalPosition { x, y }),
                 window::Action::SetIMEAllow(allow) => {
                     window.set_ime_allowed(allow)
