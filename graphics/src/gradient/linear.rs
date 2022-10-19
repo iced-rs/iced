@@ -181,9 +181,12 @@ impl Builder {
 #[derive(Debug, thiserror::Error)]
 pub enum BuilderError {
     #[error("Gradients must contain at least one color stop.")]
+    /// Gradients must contain at least one color stop.
     MissingColorStop,
     #[error("Offset {0} must be a unique, finite number.")]
+    /// Offsets in a gradient must all be unique & finite.
     DuplicateOffset(f32),
-    #[error("Offset {0} must be within 0.0..=1.0.")]
+    #[error("Offset {0} must be between 0.0..=1.0.")]
+    /// Offsets in a gradient must be between 0.0..=1.0.
     InvalidOffset(f32),
 }
