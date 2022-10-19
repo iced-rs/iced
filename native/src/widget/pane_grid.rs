@@ -762,7 +762,7 @@ pub fn draw<Renderer, T>(
     for ((id, pane), layout) in elements.zip(layout.children()) {
         match picked_pane {
             Some((dragging, origin)) if id == dragging => {
-                render_picked_pane = Some((pane, origin, layout.bounds()));
+                render_picked_pane = Some((pane, origin, layout));
             }
             _ => {
                 draw_pane(
@@ -778,7 +778,9 @@ pub fn draw<Renderer, T>(
     }
 
     // Render picked pane last
-    if let Some((pane, origin, bounds)) = render_picked_pane {
+    if let Some((pane, origin, layout)) = render_picked_pane {
+        let bounds = layout.bounds();
+
         renderer.with_translation(
             cursor_position
                 - Point::new(bounds.x + origin.x, bounds.y + origin.y),
