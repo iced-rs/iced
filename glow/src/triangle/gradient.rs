@@ -81,8 +81,7 @@ impl Program {
 
                         let mut stops = [0.0; 128];
 
-                        for (index, stop) in linear.color_stops.iter().enumerate() {
-                            if index == 16 { break; }
+                        for (index, stop) in linear.color_stops.iter().enumerate().take(16) {
                             stops[index*8] = stop.color.r;
                             stops[(index*8)+1] = stop.color.g;
                             stops[(index*8)+2] = stop.color.b;
