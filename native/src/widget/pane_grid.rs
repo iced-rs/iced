@@ -757,32 +757,12 @@ pub fn draw<Renderer, T>(
         cursor_position
     };
 
-    // Render picked pane last
-    let mut elements = elements.zip(layout.children()).collect::<Vec<_>>();
-    elements
-        .sort_by_key(|((id, _), _)| picked_pane.map(|(id, _)| id) == Some(*id));
+    let mut render_picked_pane = None;
 
-    for ((id, pane), layout) in elements {
+    for ((id, pane), layout) in elements.zip(layout.children()) {
         match picked_pane {
             Some((dragging, origin)) if id == dragging => {
-                let bounds = layout.bounds();
-
-                renderer.with_translation(
-                    cursor_position
-                        - Point::new(bounds.x + origin.x, bounds.y + origin.y),
-                    |renderer| {
-                        renderer.with_layer(bounds, |renderer| {
-                            draw_pane(
-                                pane,
-                                renderer,
-                                default_style,
-                                layout,
-                                pane_cursor_position,
-                                viewport,
-                            );
-                        });
-                    },
-                );
+                render_picked_pane = Some((pane, origin, layout.bounds()));
             }
             _ => {
                 draw_pane(
@@ -796,6 +776,26 @@ pub fn draw<Renderer, T>(
             }
         }
     }
+
+    // Render picked pane last
+    if let Some((pane, origin, bounds)) = render_picked_pane {
+        renderer.with_translation(
+            cursor_position
+                - Point::new(bounds.x + origin.x, bounds.y + origin.y),
+            |renderer| {
+                renderer.with_layer(bounds, |renderer| {
+                    draw_pane(
+                        pane,
+                        renderer,
+                        default_style,
+                        layout,
+                        pane_cursor_position,
+                        viewport,
+                    );
+                });
+            },
+        );
+    };
 
     if let Some((axis, split_region, is_picked)) = picked_split {
         let highlight = if is_picked {
