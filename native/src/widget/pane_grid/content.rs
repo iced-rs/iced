@@ -238,6 +238,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
         renderer: &Renderer,
+        drag_enabled: bool,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
@@ -247,7 +248,7 @@ where
                 let is_over_pick_area = title_bar
                     .is_over_pick_area(title_bar_layout, cursor_position);
 
-                if is_over_pick_area {
+                if is_over_pick_area && drag_enabled {
                     return mouse::Interaction::Grab;
                 }
 

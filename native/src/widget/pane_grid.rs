@@ -341,6 +341,7 @@ where
                         cursor_position,
                         viewport,
                         renderer,
+                        self.on_drag.is_some(),
                     )
                 })
                 .max()
@@ -648,7 +649,7 @@ pub fn mouse_interaction(
     resize_leeway: Option<u16>,
 ) -> Option<mouse::Interaction> {
     if action.picked_pane().is_some() {
-        return Some(mouse::Interaction::Grab);
+        return Some(mouse::Interaction::Grabbing);
     }
 
     let resize_axis =
@@ -756,27 +757,12 @@ pub fn draw<Renderer, T>(
         cursor_position
     };
 
+    let mut render_picked_pane = None;
+
     for ((id, pane), layout) in elements.zip(layout.children()) {
         match picked_pane {
             Some((dragging, origin)) if id == dragging => {
-                let bounds = layout.bounds();
-
-                renderer.with_translation(
-                    cursor_position
-                        - Point::new(bounds.x + origin.x, bounds.y + origin.y),
-                    |renderer| {
-                        renderer.with_layer(bounds, |renderer| {
-                            draw_pane(
-                                pane,
-                                renderer,
-                                default_style,
-                                layout,
-                                pane_cursor_position,
-                                viewport,
-                            );
-                        });
-                    },
-                );
+                render_picked_pane = Some((pane, origin, layout));
             }
             _ => {
                 draw_pane(
@@ -790,6 +776,28 @@ pub fn draw<Renderer, T>(
             }
         }
     }
+
+    // Render picked pane last
+    if let Some((pane, origin, layout)) = render_picked_pane {
+        let bounds = layout.bounds();
+
+        renderer.with_translation(
+            cursor_position
+                - Point::new(bounds.x + origin.x, bounds.y + origin.y),
+            |renderer| {
+                renderer.with_layer(bounds, |renderer| {
+                    draw_pane(
+                        pane,
+                        renderer,
+                        default_style,
+                        layout,
+                        pane_cursor_position,
+                        viewport,
+                    );
+                });
+            },
+        );
+    };
 
     if let Some((axis, split_region, is_picked)) = picked_split {
         let highlight = if is_picked {
