@@ -10,6 +10,7 @@ use iced_winit::application;
 use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
+use iced_winit::ime::IME;
 use iced_winit::renderer;
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
@@ -194,7 +195,7 @@ async fn run_instance<A, E, C>(
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
-
+    let mut ime = IME::connect(context.window());
     let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
@@ -208,6 +209,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &ime,
         &mut proxy,
         &mut debug,
         context.window(),
@@ -244,6 +246,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
@@ -270,6 +273,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &ime,
                         &mut proxy,
                         &mut debug,
                         &mut messages,
@@ -339,6 +343,7 @@ async fn run_instance<A, E, C>(
                         context = context
                             .make_current()
                             .expect("Make OpenGL context current");
+                        ime = IME::connect(context.window());
                     }
                 }
 

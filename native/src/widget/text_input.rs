@@ -771,7 +771,7 @@ where
             let position = measure_cursor_and_scroll_offset(
                 renderer,
                 text_bounds,
-                &value,
+                value,
                 size,
                 position,
                 font.clone(),

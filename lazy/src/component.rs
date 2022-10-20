@@ -1,11 +1,11 @@
 //! Build and reuse custom widgets using The Elm Architecture.
-use iced_native::event;
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::widget;
 use iced_native::widget::tree::{self, Tree};
+use iced_native::{event, IME};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
@@ -178,6 +178,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -191,6 +192,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 &mut local_shell,
             )
         });
@@ -455,6 +457,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> iced_native::event::Status {
         let mut local_messages = Vec::new();
@@ -468,6 +471,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     &mut local_shell,
                 )
             })

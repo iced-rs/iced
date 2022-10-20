@@ -30,9 +30,9 @@ pub use text::Text;
 use crate::{Backend, Primitive, Renderer};
 
 use iced_native::layout::{self, Layout};
-use iced_native::mouse;
 use iced_native::renderer;
 use iced_native::widget::tree::{self, Tree};
+use iced_native::{mouse, IME};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
@@ -165,6 +165,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer<B, T>,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();

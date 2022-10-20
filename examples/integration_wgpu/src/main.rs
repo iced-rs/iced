@@ -6,8 +6,8 @@ use scene::Scene;
 
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{
-    conversion, futures, program, renderer, winit, Clipboard, Color, Debug,
-    Size,
+    conversion, futures, ime::IME, program, renderer, winit, Clipboard, Color,
+    Debug, Size,
 };
 
 use winit::{
@@ -147,7 +147,8 @@ pub fn main() {
     event_loop.run(move |event, _, control_flow| {
         // You should change this if you want to render continuosly
         *control_flow = ControlFlow::Wait;
-
+        let ime = IME::connect(&window);
+        ime.set_ime_allowed(true);
         match event {
             Event::WindowEvent { event, .. } => {
                 match event {
@@ -189,6 +190,7 @@ pub fn main() {
                         &iced_wgpu::Theme::Dark,
                         &renderer::Style { text_color: Color::WHITE },
                         &mut clipboard,
+                        & ime,
                         &mut debug,
                     );
 

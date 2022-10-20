@@ -2,6 +2,7 @@ mod controls;
 mod scene;
 
 use controls::Controls;
+use iced_glutin::ime::IME;
 use scene::Scene;
 
 use glow::*;
@@ -77,7 +78,7 @@ pub fn main() {
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
-
+        let ime = IME::connect(windowed_context.window());
         match event {
             Event::WindowEvent { event, .. } => {
                 match event {
@@ -130,6 +131,7 @@ pub fn main() {
                             text_color: Color::WHITE,
                         },
                         &mut clipboard,
+                        &ime,
                         &mut debug,
                     );
 

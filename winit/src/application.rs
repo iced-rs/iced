@@ -238,14 +238,11 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
-    #[cfg(target_arch = "wasm32")]
-    let window = std::rc::Rc::new(window);
-    #[cfg(not(target_arch = "wasm32"))]
-    let window = std::sync::Arc::new(window);
+
     let mut clipboard = Clipboard::connect(&window);
-    let ime = IME::connect(window.clone());
+    let ime = IME::connect(&window);
     let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(window.as_ref());
+    let mut surface = compositor.create_surface(&window);
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -542,14 +539,14 @@ where
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
-pub fn update<A: Application, E: Executor>(
+pub fn update<'a, A: Application, E: Executor>(
     application: &mut A,
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    ime: &IME,
+    ime: &IME<'a>,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
@@ -586,7 +583,7 @@ pub fn update<A: Application, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<A, E>(
+pub fn run_command<'a, A, E>(
     application: &A,
     cache: &mut user_interface::Cache,
     state: &State<A>,
@@ -594,7 +591,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    ime: &IME,
+    ime: &IME<'a>,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
