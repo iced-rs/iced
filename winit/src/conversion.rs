@@ -136,7 +136,9 @@ pub fn window_event(
             Some(Event::Window(window::Event::Moved { x, y }))
         }
         WindowEvent::Ime(ime) => match ime {
-            winit::event::Ime::Enabled => None,
+            winit::event::Ime::Enabled => {
+                Some(Event::Keyboard(keyboard::Event::IMEEnabled))
+            }
             winit::event::Ime::Preedit(text, _) => {
                 Some(Event::Keyboard(keyboard::Event::IMEPreedit(text.clone())))
             }

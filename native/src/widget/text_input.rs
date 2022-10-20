@@ -738,6 +738,28 @@ where
                 return event::Status::Captured;
             }
         }
+        Event::Keyboard(keyboard::Event::IMEEnabled) => {
+            let state = state();
+            let position = state.cursor.start(value);
+
+            // calcurate where we need to place candidate window.
+            let text_bounds = layout.children().next().unwrap().bounds();
+            let size = size.unwrap_or_else(|| renderer.default_size());
+
+            let position = measure_cursor_and_scroll_offset(
+                renderer,
+                text_bounds,
+                value,
+                size,
+                position,
+                font.clone(),
+            );
+            let position = (
+                (text_bounds.x + position.0) as i32,
+                (text_bounds.y) as i32 + size as i32,
+            );
+            ime.set_ime_position(position.0, position.1);
+        }
         Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
             let state = state();
 
