@@ -11,7 +11,6 @@ pub use value::Value;
 
 use editor::Editor;
 
-use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
@@ -22,13 +21,12 @@ use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
-use crate::window::Action;
+use crate::{alignment, IME};
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
 pub use iced_style::text_input::{Appearance, StyleSheet};
-
 /// A field that can be filled with text.
 ///
 /// # Example
@@ -243,6 +241,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(
@@ -251,6 +250,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
             &mut self.value,
             self.size,
@@ -369,6 +369,7 @@ pub fn update<'a, Message, Renderer>(
     cursor_position: Point,
     renderer: &Renderer,
     clipboard: &mut dyn Clipboard,
+    ime: &dyn IME,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<u16>,
@@ -739,28 +740,48 @@ where
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
             let state = state();
-            let cursor_offset = state.cursor.start(value);
-            let mut editor = Editor::new(value, &mut state.cursor);
-            if state.is_ime_editing {
-                editor.delete();
-            }
-            state.is_ime_editing = true;
-            let mut chars_count = 0;
 
-            let action: Action<()> = Action::MoveIMECandidateWindow {
-                x: cursor_position.x as i32,
-                y: cursor_position.y as i32,
+            let cursor_offset = state.cursor.start(value);
+
+            // limit borrow life time.
+            let mut chars_count = 0;
+            let message = {
+                let mut editor = Editor::new(value, &mut state.cursor);
+                if state.is_ime_editing {
+                    editor.delete();
+                }
+                state.is_ime_editing = true;
+
+                for ch in text.chars() {
+                    editor.insert(ch);
+                    chars_count += 1;
+                }
+                (on_change)(editor.contents())
             };
-            let action = crate::command::Action::Window(action);
-            let command = crate::command::Command::single(action);
-            for ch in text.chars() {
-                editor.insert(ch);
-                chars_count += 1;
-            }
-            let message = (on_change)(editor.contents());
             state
                 .cursor
                 .select_range(cursor_offset, cursor_offset + chars_count);
+            // calcurate where we need to place candidate window.
+            let text_bounds = layout.children().next().unwrap().bounds();
+            let size = size.unwrap_or_else(|| renderer.default_size());
+            let position = match state.cursor.state(value) {
+                cursor::State::Index(position) => position,
+                cursor::State::Selection { start, end } => start.min(end),
+            };
+            let position = measure_cursor_and_scroll_offset(
+                renderer,
+                text_bounds,
+                value,
+                size,
+                position,
+                font.clone(),
+            );
+            let position = (
+                (text_bounds.x + position.0) as i32,
+                (text_bounds.y) as i32 + size as i32,
+            );
+            ime.set_ime_position(position.0, position.1);
+
             shell.publish(message);
             return event::Status::Captured;
         }
@@ -963,7 +984,8 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    is_ime_editing: bool, // TODO: Add stateful horizontal scrolling offset
+    is_ime_editing: bool,
+    // TODO: Add stateful horizontal scrolling offset
 }
 
 impl State {

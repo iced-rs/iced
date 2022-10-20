@@ -1,10 +1,10 @@
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::Tree;
+use crate::{layout, IME};
 use crate::{
     Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
@@ -265,6 +265,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut children = layout.children();
@@ -289,6 +290,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         } else {
@@ -303,6 +305,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         } else {

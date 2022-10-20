@@ -7,11 +7,11 @@ pub use element::Element;
 pub use menu::Menu;
 
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
+use crate::{layout, IME};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
@@ -91,6 +91,7 @@ where
         _cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         event::Status::Ignored
