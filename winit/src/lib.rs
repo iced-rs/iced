@@ -49,7 +49,7 @@ pub mod window;
 pub mod system;
 
 mod error;
-mod position;
+mod icon;
 mod proxy;
 
 #[cfg(feature = "application")]
@@ -58,8 +58,9 @@ pub use application::Application;
 pub use application::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
-pub use position::Position;
+pub use icon::Icon;
 pub use proxy::Proxy;
 pub use settings::Settings;
 
 pub use iced_graphics::Viewport;
+pub use iced_native::window::Position;

@@ -31,7 +31,8 @@ pub fn main() {
             .unwrap();
 
         unsafe {
-            let windowed_context = windowed_context.make_current(todo!("derezzedex")).unwrap();
+            let windowed_context =
+                windowed_context.make_current(todo!("derezzedex")).unwrap();
 
             let gl = glow::Context::from_loader_function(|s| {
                 windowed_context.get_proc_address(s) as *const _

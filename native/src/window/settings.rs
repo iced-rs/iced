@@ -50,21 +50,3 @@ impl Default for Settings {
         }
     }
 }
-
-impl From<Settings> for iced_winit::settings::Window {
-    fn from(settings: Settings) -> Self {
-        Self {
-            size: settings.size,
-            position: iced_winit::Position::from(settings.position),
-            min_size: settings.min_size,
-            max_size: settings.max_size,
-            visible: settings.visible,
-            resizable: settings.resizable,
-            decorations: settings.decorations,
-            transparent: settings.transparent,
-            always_on_top: settings.always_on_top,
-            icon: settings.icon.map(Icon::into),
-            platform_specific: Default::default(),
-        }
-    }
-}

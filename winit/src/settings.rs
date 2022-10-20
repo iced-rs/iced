@@ -22,6 +22,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
+use crate::Icon;
 use crate::Position;
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
@@ -197,6 +198,26 @@ impl Default for Window {
             transparent: false,
             always_on_top: false,
             icon: None,
+            platform_specific: Default::default(),
+        }
+    }
+}
+
+impl From<iced_native::window::Settings> for Window {
+    fn from(settings: iced_native::window::Settings) -> Self {
+        Self {
+            size: settings.size,
+            position: Position::from(settings.position),
+            min_size: settings.min_size,
+            max_size: settings.max_size,
+            visible: settings.visible,
+            resizable: settings.resizable,
+            decorations: settings.decorations,
+            transparent: settings.transparent,
+            always_on_top: settings.always_on_top,
+            icon: settings.icon.and_then(|icon| {
+                Icon::try_from(icon).map(winit::window::Icon::from).ok()
+            }),
             platform_specific: Default::default(),
         }
     }

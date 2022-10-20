@@ -120,7 +120,9 @@ where
 
         #[allow(unsafe_code)]
         unsafe {
-            context.make_current(todo!()).expect("Make OpenGL context current")
+            context
+                .make_current(todo!())
+                .expect("Make OpenGL context current")
         }
     };
 

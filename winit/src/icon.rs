@@ -7,7 +7,7 @@ use std::path::Path;
 
 /// The icon of a window.
 #[derive(Debug, Clone)]
-pub struct Icon(iced_winit::winit::window::Icon);
+pub struct Icon(winit::window::Icon);
 
 impl Icon {
     /// Creates an icon from 32bpp RGBA data.
@@ -16,8 +16,7 @@ impl Icon {
         width: u32,
         height: u32,
     ) -> Result<Self, Error> {
-        let raw =
-            iced_winit::winit::window::Icon::from_rgba(rgba, width, height)?;
+        let raw = winit::window::Icon::from_rgba(rgba, width, height)?;
 
         Ok(Icon(raw))
     }
@@ -91,9 +90,9 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<iced_winit::winit::window::BadIcon> for Error {
-    fn from(error: iced_winit::winit::window::BadIcon) -> Self {
-        use iced_winit::winit::window::BadIcon;
+impl From<winit::window::BadIcon> for Error {
+    fn from(error: winit::window::BadIcon) -> Self {
+        use winit::window::BadIcon;
 
         match error {
             BadIcon::ByteCountNotDivisibleBy4 { byte_count } => {
@@ -114,7 +113,7 @@ impl From<iced_winit::winit::window::BadIcon> for Error {
     }
 }
 
-impl From<Icon> for iced_winit::winit::window::Icon {
+impl From<Icon> for winit::window::Icon {
     fn from(icon: Icon) -> Self {
         icon.0
     }
@@ -168,5 +167,13 @@ impl fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         Some(self)
+    }
+}
+
+impl TryFrom<iced_native::window::Icon> for Icon {
+    type Error = Error;
+
+    fn try_from(icon: iced_native::window::Icon) -> Result<Self, Self::Error> {
+        Icon::from_rgba(icon.rgba, icon.width, icon.height)
     }
 }
