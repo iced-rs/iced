@@ -32,6 +32,9 @@ pub enum Event {
     /// The keyboard modifiers have changed.
     ModifiersChanged(Modifiers),
 
+    /// IME enabled.
+    IMEEnabled,
+
     /// selecting input.
     IMEPreedit(String),
 
