@@ -675,6 +675,11 @@ pub fn run_command<A, E>(
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
+                window::Action::Spawn { .. } | window::Action::Close => {
+                    log::info!(
+                        "This is only available on `multi_window::Application`"
+                    )
+                }
                 window::Action::Resize { width, height } => {
                     window.set_inner_size(winit::dpi::LogicalSize {
                         width,

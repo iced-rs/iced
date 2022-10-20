@@ -855,41 +855,52 @@ pub fn run_command<A, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(id, action) => {
-                let window = windows.get(&id).expect("No window found");
-
-                match action {
-                    window::Action::Resize { width, height } => {
-                        window.set_inner_size(winit::dpi::LogicalSize {
-                            width,
-                            height,
-                        });
-                    }
-                    window::Action::Move { x, y } => {
-                        window.set_outer_position(
-                            winit::dpi::LogicalPosition { x, y },
-                        );
-                    }
-                    window::Action::SetMode(mode) => {
-                        window.set_visible(conversion::visible(mode));
-                        window.set_fullscreen(conversion::fullscreen(
-                            window.primary_monitor(),
-                            mode,
-                        ));
-                    }
-                    window::Action::FetchMode(tag) => {
-                        let mode = if window.is_visible().unwrap_or(true) {
-                            conversion::mode(window.fullscreen())
-                        } else {
-                            window::Mode::Hidden
-                        };
-
-                        proxy
-                            .send_event(Event::Application(tag(mode)))
-                            .expect("Send message to event loop");
-                    }
+            command::Action::Window(id, action) => match action {
+                window::Action::Spawn { settings } => {
+                    proxy
+                        .send_event(Event::NewWindow(id, settings.into()))
+                        .expect("Send message to event loop");
                 }
-            }
+                window::Action::Close => {
+                    proxy
+                        .send_event(Event::CloseWindow(id))
+                        .expect("Send message to event loop");
+                }
+                window::Action::Resize { width, height } => {
+                    let window = windows.get(&id).expect("No window found");
+                    window.set_inner_size(winit::dpi::LogicalSize {
+                        width,
+                        height,
+                    });
+                }
+                window::Action::Move { x, y } => {
+                    let window = windows.get(&id).expect("No window found");
+                    window.set_outer_position(winit::dpi::LogicalPosition {
+                        x,
+                        y,
+                    });
+                }
+                window::Action::SetMode(mode) => {
+                    let window = windows.get(&id).expect("No window found");
+                    window.set_visible(conversion::visible(mode));
+                    window.set_fullscreen(conversion::fullscreen(
+                        window.primary_monitor(),
+                        mode,
+                    ));
+                }
+                window::Action::FetchMode(tag) => {
+                    let window = windows.get(&id).expect("No window found");
+                    let mode = if window.is_visible().unwrap_or(true) {
+                        conversion::mode(window.fullscreen())
+                    } else {
+                        window::Mode::Hidden
+                    };
+
+                    proxy
+                        .send_event(Event::Application(tag(mode)))
+                        .expect("Send message to event loop");
+                }
+            },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
                     #[cfg(feature = "system")]

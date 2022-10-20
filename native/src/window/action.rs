@@ -1,4 +1,4 @@
-use crate::window::{Mode, UserAttention};
+use crate::window::{self, Mode, UserAttention};
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -13,6 +13,11 @@ pub enum Action<T> {
     /// There’s no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     Drag,
+    /// TODO(derezzedex)
+    Spawn {
+        /// TODO(derezzedex)
+        settings: window::Settings,
+    },
     /// Resize the window.
     Resize {
         /// The new logical width of the window
@@ -34,9 +39,9 @@ pub enum Action<T> {
         y: i32,
     },
     /// Set the [`Mode`] of the window.
-    SetMode(Mode),
+    SetMode(window::Mode),
     /// Fetch the current [`Mode`] of the window.
-    FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
+    FetchMode(Box<dyn FnOnce(window::Mode) -> T + 'static>),
     /// Sets the window to maximized or back
     ToggleMaximize,
     /// Toggles whether window has decorations
@@ -81,6 +86,7 @@ impl<T> Action<T> {
         T: 'static,
     {
         match self {
+            Self::Spawn { settings } => Action::Spawn { settings },
             Self::Close => Action::Close,
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
@@ -104,6 +110,9 @@ impl<T> fmt::Debug for Action<T> {
         match self {
             Self::Close => write!(f, "Action::Close"),
             Self::Drag => write!(f, "Action::Drag"),
+            Self::Spawn { settings } => {
+                write!(f, "Action::Spawn {{ settings: {:?} }}", settings)
+            }
             Self::Resize { width, height } => write!(
                 f,
                 "Action::Resize {{ widget: {}, height: {} }}",
