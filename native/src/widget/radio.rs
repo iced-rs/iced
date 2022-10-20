@@ -1,5 +1,4 @@
 //! Create choices using radio buttons.
-use crate::alignment;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
@@ -7,6 +6,7 @@ use crate::renderer;
 use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
+use crate::{alignment, IME};
 use crate::{
     Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Widget,
@@ -182,6 +182,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {

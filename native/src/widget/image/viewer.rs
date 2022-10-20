@@ -1,10 +1,10 @@
 //! Zoom and pan on an image.
 use crate::event::{self, Event};
-use crate::image;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget::tree::{self, Tree};
+use crate::{image, IME};
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
@@ -147,6 +147,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();

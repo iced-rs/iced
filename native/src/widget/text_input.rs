@@ -11,7 +11,6 @@ pub use value::Value;
 
 use editor::Editor;
 
-use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
@@ -22,7 +21,7 @@ use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
-use crate::window::Action;
+use crate::{alignment, IME};
 use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Size, Vector, Widget,
@@ -242,6 +241,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(
@@ -250,6 +250,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
             &mut self.value,
             self.size,
@@ -368,6 +369,7 @@ pub fn update<'a, Message, Renderer>(
     cursor_position: Point,
     renderer: &Renderer,
     clipboard: &mut dyn Clipboard,
+    ime: &dyn IME,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<u16>,
@@ -756,12 +758,15 @@ where
                 }
                 (on_change)(editor.contents())
             };
+            state
+                .cursor
+                .select_range(cursor_offset, cursor_offset + chars_count);
             // calcurate where we need to place candidate window.
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
             let position = match state.cursor.state(value) {
                 cursor::State::Index(position) => position,
-                cursor::State::Selection { start, end } => end.max(start),
+                cursor::State::Selection { start, end } => start.min(end),
             };
             let position = measure_cursor_and_scroll_offset(
                 renderer,
@@ -771,20 +776,12 @@ where
                 position,
                 font.clone(),
             );
-            println!(
-                "Place candidate window to ({},{}),text_bound {:#?}",
-                position.0, position.1, text_bounds
+            let position = (
+                (text_bounds.x + position.0) as i32,
+                (text_bounds.y) as i32 + size as i32,
             );
-            let action: Action<()> = Action::MoveIMECandidateWindowTo {
-                x: (text_bounds.x + position.0) as i32,
-                y: (text_bounds.y) as i32,
-            };
-            let action = crate::command::Action::Window(action);
-            let command = crate::command::Command::single(action);
+            ime.set_ime_position(position.0, position.1);
 
-            state
-                .cursor
-                .select_range(cursor_offset, cursor_offset + chars_count);
             shell.publish(message);
             return event::Status::Captured;
         }
@@ -987,7 +984,8 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    is_ime_editing: bool, // TODO: Add stateful horizontal scrolling offset
+    is_ime_editing: bool,
+    // TODO: Add stateful horizontal scrolling offset
 }
 
 impl State {

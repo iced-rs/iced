@@ -5,6 +5,7 @@ pub use state::State;
 
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
+use crate::ime::IME;
 use crate::mouse;
 use crate::renderer;
 use crate::widget::operation;
@@ -237,10 +238,14 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
-
+    #[cfg(target_arch = "wasm32")]
+    let window = std::rc::Rc::new(window);
+    #[cfg(not(target_arch = "wasm32"))]
+    let window = std::sync::Arc::new(window);
     let mut clipboard = Clipboard::connect(&window);
+    let ime = IME::connect(window.clone());
     let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(&window);
+    let mut surface = compositor.create_surface(window.as_ref());
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -261,6 +266,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &ime,
         &mut proxy,
         &mut debug,
         &window,
@@ -296,6 +302,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
@@ -322,6 +329,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &ime,
                         &mut proxy,
                         &mut debug,
                         &mut messages,
@@ -541,6 +549,7 @@ pub fn update<A: Application, E: Executor>(
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
@@ -564,6 +573,7 @@ pub fn update<A: Application, E: Executor>(
             command,
             runtime,
             clipboard,
+            ime,
             proxy,
             debug,
             window,
@@ -584,6 +594,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
@@ -612,6 +623,14 @@ pub fn run_command<A, E>(
                 }
                 clipboard::Action::Write(contents) => {
                     clipboard.write(contents);
+                }
+            },
+            command::Action::IME(action) => match action {
+                iced_native::ime::Action::Allow(allow) => {
+                    ime.set_ime_allowed(allow);
+                }
+                iced_native::ime::Action::Position(x, y) => {
+                    ime.set_ime_position(x, y);
                 }
             },
             command::Action::Window(action) => match action {
@@ -644,11 +663,6 @@ pub fn run_command<A, E>(
                     proxy
                         .send_event(tag(mode))
                         .expect("Send message to event loop");
-                }
-                window::Action::MoveIMECandidateWindowTo { x, y } => window
-                    .set_ime_position(winit::dpi::LogicalPosition { x, y }),
-                window::Action::SetIMEAllow(allow) => {
-                    window.set_ime_allowed(allow)
                 }
             },
             command::Action::System(action) => match action {

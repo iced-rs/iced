@@ -25,15 +25,6 @@ pub enum Action<T> {
     SetMode(Mode),
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
-    /// Move IME candidate window
-    MoveIMECandidateWindowTo {
-        /// The new logical x location of the ime candidate window
-        x: i32,
-        /// The new logical x location of the ime candidate window
-        y: i32,
-    },
-    /// Set IME allow
-    SetIMEAllow(bool),
 }
 
 impl<T> Action<T> {
@@ -50,10 +41,6 @@ impl<T> Action<T> {
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
-            Self::SetIMEAllow(allow) => Action::SetIMEAllow(allow),
-            Self::MoveIMECandidateWindowTo { x, y } => {
-                Action::MoveIMECandidateWindowTo { x, y }
-            }
         }
     }
 }
@@ -71,16 +58,6 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
-            Self::MoveIMECandidateWindowTo { x, y } => {
-                write!(
-                    f,
-                    "Action::MoveIMECandidateWindow {{ x: {}, y: {} }}",
-                    x, y
-                )
-            }
-            Self::SetIMEAllow(allow) => {
-                write!(f, "Action::SetIMEAllow {{ allow : {} }}", allow)
-            }
         }
     }
 }

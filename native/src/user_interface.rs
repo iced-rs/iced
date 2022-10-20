@@ -1,10 +1,10 @@
 //! Implement your own event loop to drive a user interface.
-use crate::application;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
+use crate::{application, IME};
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -184,6 +184,7 @@ where
         cursor_position: Point,
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
@@ -212,6 +213,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                 );
 
@@ -282,6 +284,7 @@ where
                     base_cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                 );
 

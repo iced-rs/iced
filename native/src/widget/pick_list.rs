@@ -1,5 +1,4 @@
 //! Display a dropdown list of selectable values.
-use crate::alignment;
 use crate::event::{self, Event};
 use crate::keyboard;
 use crate::layout;
@@ -10,6 +9,7 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::tree::{self, Tree};
+use crate::{alignment, IME};
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
     Widget,
@@ -157,6 +157,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(

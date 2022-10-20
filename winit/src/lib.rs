@@ -39,6 +39,7 @@ pub use winit;
 pub mod application;
 pub mod clipboard;
 pub mod conversion;
+pub mod ime;
 pub mod settings;
 pub mod window;
 

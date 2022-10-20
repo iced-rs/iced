@@ -2,11 +2,11 @@
 //!
 //! A [`Slider`] has some local [`State`].
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
+use crate::{layout, IME};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Size, Widget,
@@ -188,6 +188,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(

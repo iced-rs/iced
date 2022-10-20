@@ -1,8 +1,8 @@
-use crate::application;
 use crate::event::{self, Event};
 use crate::mouse;
 use crate::renderer;
 use crate::user_interface::{self, UserInterface};
+use crate::{application, IME};
 use crate::{Clipboard, Command, Debug, Point, Program, Size};
 
 /// The execution state of a [`Program`]. It leverages caching, event
@@ -94,6 +94,7 @@ where
         theme: &<P::Renderer as crate::Renderer>::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
@@ -112,6 +113,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             &mut messages,
         );
 

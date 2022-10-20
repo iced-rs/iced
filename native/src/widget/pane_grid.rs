@@ -33,13 +33,13 @@ pub use title_bar::TitleBar;
 pub use iced_style::pane_grid::{Line, StyleSheet};
 
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::widget::container;
 use crate::widget::tree::{self, Tree};
+use crate::{layout, IME};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
     Vector, Widget,
@@ -272,6 +272,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let action = tree.state.downcast_mut::<state::Action>();
@@ -306,6 +307,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     shell,
                     is_picked,
                 )
