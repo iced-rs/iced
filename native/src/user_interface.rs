@@ -366,6 +366,7 @@ where
     ///         cursor_position,
     ///         &mut renderer,
     ///         &mut clipboard,
+    ///         &ime,
     ///         &mut messages
     ///     );
     ///
