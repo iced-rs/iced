@@ -394,6 +394,7 @@ where
 
             if is_clicked {
                 let text_layout = layout.children().next().unwrap();
+                let text_bounds = text_layout.bounds();
                 let target = cursor_position.x - text_layout.bounds().x;
 
                 let click =
@@ -420,7 +421,23 @@ where
                         } else {
                             None
                         };
-
+                        if let Some(position) = position {
+                            let size =
+                                size.unwrap_or_else(|| renderer.default_size());
+                            let position = measure_cursor_and_scroll_offset(
+                                renderer,
+                                text_bounds,
+                                value,
+                                size,
+                                position,
+                                font.clone(),
+                            );
+                            let position = (
+                                (text_bounds.x + position.0) as i32,
+                                (text_bounds.y) as i32 + size as i32,
+                            );
+                            ime.set_ime_position(position.0, position.1);
+                        }
                         state.cursor.move_to(position.unwrap_or(0));
                         state.is_dragging = true;
                     }
@@ -438,11 +455,27 @@ where
                                 target,
                             )
                             .unwrap_or(0);
-
                             state.cursor.select_range(
                                 value.previous_start_of_word(position),
                                 value.next_end_of_word(position),
                             );
+
+                            // set ime candidate window position.
+                            let size =
+                                size.unwrap_or_else(|| renderer.default_size());
+                            let position = measure_cursor_and_scroll_offset(
+                                renderer,
+                                text_bounds,
+                                value,
+                                size,
+                                state.cursor.start(value),
+                                font.clone(),
+                            );
+                            let position = (
+                                (text_bounds.x + position.0) as i32,
+                                (text_bounds.y) as i32 + size as i32,
+                            );
+                            ime.set_ime_position(position.0, position.1);
                         }
 
                         state.is_dragging = false;
@@ -759,6 +792,7 @@ where
                 (text_bounds.y) as i32 + size as i32,
             );
             ime.set_ime_position(position.0, position.1);
+            return event::Status::Captured;
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
             let state = state();
