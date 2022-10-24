@@ -311,6 +311,7 @@ where
 /// The local state of a [`Row`].
 #[derive(Debug)]
 pub struct State {
+    playhead: Option<animation::Handle>,
     animation: Rc<Animation>,
 }
 
@@ -318,6 +319,7 @@ impl State {
     /// Creates a new [`State`].
     pub fn new(animation: Rc<Animation>) -> State {
         State {
+            playhead: None,
             animation,
         }
     }
@@ -325,22 +327,28 @@ impl State {
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
     pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> animation::Request {
-        let keyframe = {
-            let mut k = Keyframe::default();
-            
-            if width != DEFAULT_WIDTH {
-                k = k.width(width)
+        let playhead = {
+            if let Some(playhead) = &mut self.playhead {
+                playhead
+            } else {
+                let mut k = Keyframe::default();
+                
+                if width != DEFAULT_WIDTH {
+                    k = k.width(width)
+                }
+                if height != DEFAULT_HEIGHT {
+                    k = k.height(height)
+                }
+                if padding != DEFAULT_PADDING {
+                    k = k.padding(padding)
+                }
+                if spacing != DEFAULT_SPACING {
+                    k = k.spacing(spacing)
+                }
+                self.playhead = Some(k.into());
+                
+                self.playhead.as_mut().unwrap()
             }
-            if height != DEFAULT_HEIGHT {
-                k = k.height(height)
-            }
-            if padding != DEFAULT_PADDING {
-                k = k.padding(padding)
-            }
-            if spacing != DEFAULT_SPACING {
-                k = k.spacing(spacing)
-            }
-            k
         };
         
         let animation: &animation::Animation = self.animation.borrow();
@@ -349,10 +357,8 @@ impl State {
                               // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
                               // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
                               // sizes to percise ones, such as Length::Fill to Length::Units(100)
-                              keyframe
+                              playhead
         );
-        // TODO uncomment
-        //(self.animation.clone(), request) 
         animation::Request::AnimationFrame
     }
 }
@@ -363,19 +369,22 @@ impl State {
 /// modifiers:
 /// [0] = width,
 /// [1] = height,
-/// [2] = padding,
-/// [3] = spacing,
+/// [2] = spacing,
+/// [3] = padding - top,
+/// [4] = padding - right,
+/// [5] = padding - bottom,
+/// [6] = padding - left,
 #[derive(Debug, Clone)]
 pub struct Keyframe {
     after: Duration,
-    modifiers: Vec<Vec<Option<(animation::Ease, usize)>>>,
+    modifiers: Vec<Option<(animation::Ease, usize)>>,
 }
 
 impl std::default::Default for Keyframe {
     fn default() -> Self {
         Keyframe {
             after: Duration::ZERO,
-            modifiers: vec![vec![None], vec![None], vec![None], vec![None]],
+            modifiers: [None; 7].into(),
         }
     }
 }
@@ -385,7 +394,7 @@ impl animation::Keyframe for Keyframe {
         self.after
     }
 
-    fn modifiers(&self) -> &Vec<Vec<Option<(animation::Ease, usize)>>> {
+    fn modifiers(&self) -> &Vec<Option<(animation::Ease, usize)>> {
         &self.modifiers
     }
 }
@@ -406,25 +415,28 @@ impl Keyframe {
     
     /// Set the Row;s width at the Keyframe's time.
     pub fn width(mut self, width: Length) -> Self {
-        self.modifiers[0] = vec![Some((EASE, width.as_u16().unwrap().into()))];
+        self.modifiers[0] = Some((EASE, width.as_u16().unwrap().into()));
         self
     }
     
     /// Set the Row;s height at the Keyframe's time.
     pub fn height(mut self, height: Length) -> Self {
-        self.modifiers[1] = vec![Some((EASE, height.as_u16().unwrap().into()))];
-        self
-    }
-    
-    /// Set the Row;s padding at the Keyframe's time.
-    pub fn padding(mut self, padding: Padding) -> Self {
-        self.modifiers[2] = vec![ Some((EASE, padding.top.into())), Some((EASE, padding.right.into())), Some((EASE, padding.bottom.into())), Some((EASE, padding.left.into()))];
+        self.modifiers[1] = Some((EASE, height.as_u16().unwrap().into()));
         self
     }
     
     /// Set the Row;s spacing at the Keyframe's time.
     pub fn spacing(mut self, units: u16) -> Self {
-        self.modifiers[3] = vec![Some((EASE, units.into()))];
+        self.modifiers[2] = Some((EASE, units.into()));
+        self
+    }
+    
+    /// Set the Row;s padding at the Keyframe's time.
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.modifiers[3] = Some((EASE, padding.top.into()));
+        self.modifiers[4] = Some((EASE, padding.right.into()));
+        self.modifiers[5] = Some((EASE, padding.bottom.into()));
+        self.modifiers[6] = Some((EASE, padding.left.into()));
         self
     }
 }

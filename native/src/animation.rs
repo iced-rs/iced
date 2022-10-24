@@ -23,7 +23,6 @@ pub struct Animation {
     id: Id,
     start: Instant,
     keyframes: Vec<Handle>,
-    playhead: Option<Handle>,
     again: Again,
     message: bool //TODO: add a message to be sent on animation completion
 }
@@ -34,7 +33,6 @@ impl std::default::Default for Animation {
             id: Id::unique(),
             start: Instant::now(),
             keyframes: Vec::new(),
-            playhead: None,
             again: Again::Never,
             message: false,
         }
@@ -81,7 +79,9 @@ impl Animation {
     }
     
     /// placeholder for now
-    pub fn interp(&self,_app_start: &Instant, _keyframe: impl Into<Handle> ) {}
+    pub fn interp(&self,_app_start: &Instant, _playhead: &mut Handle ) {
+        
+    }
 
 }
 
@@ -99,7 +99,8 @@ pub trait Keyframe: std::fmt::Debug {
     ///
     /// TODO is it possible to use arrays for this? Would be nice to store this on stack rather than heap.
     /// The size is known for each widget, but not for the trait.
-    fn modifiers(&self) -> &Vec<Vec<Option<(Ease, usize)>>>;
+    //fn modifiers(&self) -> &Vec<Vec<Option<(Ease, usize)>>>;
+    fn modifiers(&self) -> &Vec<Option<(Ease, usize)>>;
 }
 
 /// A handle to the Keyframe trait to help make rustc happy.
