@@ -14,6 +14,9 @@ use crate::{
     Widget, Animation,
 };
 use iced_core::time::Instant;
+use iced_core::time::Duration;
+use std::rc::Rc;
+use std::borrow::Borrow;
 
 const DEFAULT_WIDTH: Length = Length::Shrink;
 const DEFAULT_HEIGHT: Length = Length::Shrink;
@@ -28,7 +31,7 @@ pub struct Row<'a, Message, Renderer> {
     width: Length,
     height: Length,
     align_items: Alignment,
-    animation: Option<Animation>,
+    animation: Option<Rc<Animation>>,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
@@ -83,7 +86,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 
     /// Set the animation of the [`Row`]
     pub fn animation(mut self, animation: Animation) -> Self {
-        self.animation = Some(animation);
+        self.animation = Some(Rc::new(animation));
         self
     }
 
@@ -115,7 +118,7 @@ where
     Renderer: crate::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        match self.animation {
+        match self.animation.borrow() {
             Some(_) => tree::Tag::of::<State>(),
             None => tree::Tag::stateless()
         }
@@ -123,7 +126,7 @@ where
 
     fn state(&self) -> tree::State {
         match &self.animation {
-            Some(animation) => tree::State::new(State::new((*animation).clone())),
+            Some(animation) => tree::State::new(State::new(animation.clone())),
             None => tree::State::None,
         }
     }
@@ -140,9 +143,7 @@ where
     }
 
     fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
-        let (animation, request) = state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing);
-        self.animation = Some(animation);
-        request
+        state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing)
     }
 
     fn width(&self) -> Length {
@@ -160,14 +161,15 @@ where
         tree: &Tree,
     ) -> layout::Node {
         let (limits, padding, spacing) = match &self.animation {
-            Some(animation) => {
-                println!("animation height = {:?}", animation.height());
-                (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(animation.height().unwrap_or(DEFAULT_HEIGHT)),
-                 animation.padding().unwrap_or(DEFAULT_PADDING),
-                 animation.spacing().unwrap_or(DEFAULT_SPACING),
-                )
-            }
-            None => {
+            // TODO fix for generic API
+            // Some(animation) => {
+            //     (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(animation.height().unwrap_or(DEFAULT_HEIGHT)),
+            //      animation.padding().unwrap_or(DEFAULT_PADDING),
+            //      animation.spacing().unwrap_or(DEFAULT_SPACING),
+            //     )
+            // }
+            // None => {
+            _ => {
                 (limits.width(self.width).height(self.height),
                  self.padding,
                  self.spacing,
@@ -309,12 +311,12 @@ where
 /// The local state of a [`Row`].
 #[derive(Debug)]
 pub struct State {
-    animation: Animation,
+    animation: Rc<Animation>,
 }
 
 impl State {
     /// Creates a new [`State`].
-    pub fn new(animation: Animation) -> State {
+    pub fn new(animation: Rc<Animation>) -> State {
         State {
             animation,
         }
@@ -322,9 +324,9 @@ impl State {
 
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
-    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> (animation::Animation, animation::Request) {
+    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> animation::Request {
         let keyframe = {
-            let mut k = animation::Keyframe::new();
+            let mut k = Keyframe::default();
             
             if width != DEFAULT_WIDTH {
                 k = k.width(width)
@@ -341,13 +343,96 @@ impl State {
             k
         };
         
-        let request = self.animation.interp(app_start,
+        let animation: &animation::Animation = self.animation.borrow();
+        let request = animation.interp(app_start,
                               // TODO: This currently assumes that if a value is the default, then there is no animation requested.
                               // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
                               // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
                               // sizes to percise ones, such as Length::Fill to Length::Units(100)
                               keyframe
         );
-        (self.animation.clone(), request) 
+        // TODO uncomment
+        //(self.animation.clone(), request) 
+        animation::Request::AnimationFrame
+    }
+}
+
+/// An animatable keyframe for a Row.
+///
+/// For iced internal devs:
+/// modifiers:
+/// [0] = width,
+/// [1] = height,
+/// [2] = padding,
+/// [3] = spacing,
+#[derive(Debug, Clone)]
+pub struct Keyframe {
+    after: Duration,
+    modifiers: Vec<Vec<Option<(animation::Ease, usize)>>>,
+}
+
+impl std::default::Default for Keyframe {
+    fn default() -> Self {
+        Keyframe {
+            after: Duration::ZERO,
+            modifiers: vec![vec![None], vec![None], vec![None], vec![None]],
+        }
+    }
+}
+
+impl animation::Keyframe for Keyframe {
+    fn after(&self) -> Duration {
+        self.after
+    }
+
+    fn modifiers(&self) -> &Vec<Vec<Option<(animation::Ease, usize)>>> {
+        &self.modifiers
+    }
+}
+
+// TODO remove this. This is a temp value
+const EASE: animation::Ease = animation::Ease::Linear;
+
+impl Keyframe {
+    /// Create a new Row Keyframe
+    /// Requires the time that the animation state should be equal to keyframe values.
+    /// The time is passed as a `Duration` since the start of the animation.
+    pub fn new(after: Duration) -> Self {
+        Keyframe{
+            after, 
+            ..Keyframe::default()
+        }
+    }
+    
+    /// Set the Row;s width at the Keyframe's time.
+    pub fn width(mut self, width: Length) -> Self {
+        self.modifiers[0] = vec![Some((EASE, width.as_u16().unwrap().into()))];
+        self
+    }
+    
+    /// Set the Row;s height at the Keyframe's time.
+    pub fn height(mut self, height: Length) -> Self {
+        self.modifiers[1] = vec![Some((EASE, height.as_u16().unwrap().into()))];
+        self
+    }
+    
+    /// Set the Row;s padding at the Keyframe's time.
+    pub fn padding(mut self, padding: Padding) -> Self {
+        self.modifiers[2] = vec![ Some((EASE, padding.top.into())), Some((EASE, padding.right.into())), Some((EASE, padding.bottom.into())), Some((EASE, padding.left.into()))];
+        self
+    }
+    
+    /// Set the Row;s spacing at the Keyframe's time.
+    pub fn spacing(mut self, units: u16) -> Self {
+        self.modifiers[3] = vec![Some((EASE, units.into()))];
+        self
+    }
+}
+
+impl std::convert::From<Keyframe> for animation::Handle {
+    fn from(keyframe: Keyframe) -> animation::Handle {
+        animation::Handle {
+            keyframe: Box::new(keyframe)
+        }
     }
 }

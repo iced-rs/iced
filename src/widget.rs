@@ -3,13 +3,21 @@ pub use iced_native::widget::helpers::*;
 
 pub use iced_native::{column, row};
 
+pub use iced_native::widget::row::Keyframe;
+
 /// A container that distributes its contents vertically.
 pub type Column<'a, Message, Renderer = crate::Renderer> =
     iced_native::widget::Column<'a, Message, Renderer>;
 
 /// A container that distributes its contents horizontally.
-pub type Row<'a, Message, Renderer = crate::Renderer> =
-    iced_native::widget::Row<'a, Message, Renderer>;
+pub mod row {
+    /// A keyframe for animating a row
+    pub use iced_native::widget::row::Keyframe;
+    
+    /// The Container
+    pub type Row<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::Row<'a, Message, Renderer>;
+}
 
 pub mod text {
     //! Write some text for your users to read.

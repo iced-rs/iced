@@ -1,6 +1,7 @@
 use iced::widget::{button, column, text, container, row};
 use iced::{Alignment, Element, Sandbox, Settings, Length, Ease};
-use iced::animation::{Animation, Keyframe};
+use iced::widget::row::Keyframe as rowk;
+use iced::animation::Animation;
 use iced::animation;
 use iced::Color;
 
@@ -57,18 +58,15 @@ impl Sandbox for Counter {
                 .height(Length::Units(10))
                 .width(Length::Units(10))
                 .animation(Animation::new()
-                           .push(animation::Keyframe::new()
-                                 .after(Duration::from_secs(3))
+                           .push(rowk::new(Duration::from_secs(3))
                                  .height(Length::Units(100))
                                  .width(Length::Units(100))
                            )
-                           .push(animation::Keyframe::new()
-                                 .after(Duration::from_secs(6))
+                           .push(rowk::new(Duration::from_secs(3))
                                  .height(Length::Units(10))
                                  .width(Length::Units(10))
                            )
-                           .push(animation::Keyframe::new()
-                                 .after(Duration::from_secs(9))
+                           .push(rowk::new(Duration::from_secs(3))
                                  .height(Length::Units(100))
                                  .width(Length::Units(100))
                            )
