@@ -24,6 +24,8 @@
 pub use glow;
 
 mod backend;
+#[cfg(any(feature = "image_rs", feature = "svg"))]
+mod image;
 mod program;
 mod quad;
 mod text;
