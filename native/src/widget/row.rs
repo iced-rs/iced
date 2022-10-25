@@ -393,9 +393,17 @@ impl animation::Keyframe for Keyframe {
     fn after(&self) -> Duration {
         self.after
     }
+    
+    fn set_after(&mut self, after: Duration) {
+        self.after = after;
+    }
 
     fn modifiers(&self) -> &Vec<Option<(animation::Ease, usize)>> {
         &self.modifiers
+    }
+    
+    fn modifiers_mut(&mut self) -> &mut Vec<Option<(animation::Ease, usize)>> {
+        &mut self.modifiers
     }
 }
 

@@ -78,9 +78,38 @@ impl Animation {
         self
     }
     
-    /// placeholder for now
-    pub fn interp(&self,_app_start: &Instant, _playhead: &mut Handle ) {
+    fn bounds<'a>(&'a self, now: &'a Duration, i: usize) -> (&'a Handle, &'a Handle) {
+        let mut lower_bound_iter = self.keyframes.iter().filter(|handle| handle.keyframe.modifiers()[i].is_some()).peekable();
+        let lower_bound = loop {
+            let handle = lower_bound_iter.next().unwrap();
+            if let Some(next_handle) = lower_bound_iter.peek() {
+                if handle.keyframe.after() < *now && next_handle.keyframe.after() > *now {
+                    break handle
+                }
+            }
+        };
         
+        let upper_bound = match self.keyframes.iter().find(|&handle| handle.keyframe.modifiers()[i].is_some() && handle.keyframe.after() > *now ) {
+            Some(handle) => handle,
+            None => self.keyframes.last().unwrap(),
+        };
+        
+        (lower_bound, upper_bound)
+    }    
+    
+    /// Interpolate values for animation.
+    pub fn interp(&self,_app_start: &Instant, playhead: &mut Handle ) {
+        
+        
+        let now = Instant::now().duration_since(self.start);
+        if playhead.keyframe.after() <= self.keyframes.last().unwrap().keyframe.after() {
+            playhead.keyframe.modifiers_mut().iter_mut().enumerate().map(| (i, val) | {
+                let (lower_bound, upper_bound) = self.bounds(&now, i);                
+            });
+        }
+        
+        // TODO: Should set playhead.after to `now`
+        // or maybe playhead doesn't need to hold now?
     }
 
 }
@@ -94,6 +123,9 @@ pub trait Keyframe: std::fmt::Debug {
     /// At this time it's modifiers will have its requested value.
     fn after(&self) -> Duration;
     
+    /// Set new duration.
+    fn set_after(&mut self, after: Duration);
+    
     /// This is a Vec of modifiers. The data type needs to be as such, so the animation
     /// calculations can be generalized across any widget type.
     ///
@@ -101,6 +133,9 @@ pub trait Keyframe: std::fmt::Debug {
     /// The size is known for each widget, but not for the trait.
     //fn modifiers(&self) -> &Vec<Vec<Option<(Ease, usize)>>>;
     fn modifiers(&self) -> &Vec<Option<(Ease, usize)>>;
+    
+    /// A mutable verseion of `modifiers`
+    fn modifiers_mut(&mut self) -> &mut Vec<Option<(Ease, usize)>>;
 }
 
 /// A handle to the Keyframe trait to help make rustc happy.
