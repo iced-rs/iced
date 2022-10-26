@@ -6,7 +6,7 @@ use bitflags::bitflags;
 
 #[derive(Debug)]
 pub enum Memory {
-    Host(::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>),
+    Host(::image_rs::ImageBuffer<::image_rs::Rgba<u8>, Vec<u8>>),
     Device(atlas::Entry),
     NotFound,
     Invalid,
@@ -53,7 +53,7 @@ impl Cache {
                         })
                         .unwrap_or_else(Operation::empty);
 
-                    Memory::Host(operation.perform(image.to_bgra8()))
+                    Memory::Host(operation.perform(image.to_rgba8()))
                 } else {
                     Memory::NotFound
                 }
@@ -65,12 +65,12 @@ impl Cache {
                             .ok()
                             .unwrap_or_else(Operation::empty);
 
-                    Memory::Host(operation.perform(image.to_bgra8()))
+                    Memory::Host(operation.perform(image.to_rgba8()))
                 } else {
                     Memory::Invalid
                 }
             }
-            image::Data::Pixels {
+            image::Data::Rgba {
                 width,
                 height,
                 pixels,

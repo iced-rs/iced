@@ -21,12 +21,12 @@ impl Handle {
     }
 
     /// Creates an image [`Handle`] containing the image pixels directly. This
-    /// function expects the input data to be provided as a `Vec<u8>` of BGRA
+    /// function expects the input data to be provided as a `Vec<u8>` of RGBA
     /// pixels.
     ///
     /// This is useful if you have already decoded your image.
-    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
-        Self::from_data(Data::Pixels {
+    pub fn from_rgba(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
+        Self::from_data(Data::Rgba {
             width,
             height,
             pixels,
@@ -88,8 +88,8 @@ pub enum Data {
     /// In-memory data
     Bytes(Vec<u8>),
 
-    /// Decoded image pixels in BGRA format.
-    Pixels {
+    /// Decoded image pixels in RGBA format.
+    Rgba {
         /// The width of the image.
         width: u32,
         /// The height of the image.
@@ -104,8 +104,8 @@ impl std::fmt::Debug for Data {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
             Data::Bytes(_) => write!(f, "Bytes(...)"),
-            Data::Pixels { width, height, .. } => {
-                write!(f, "Pixels({} * {})", width, height)
+            Data::Rgba { width, height, .. } => {
+                write!(f, "Rgba({} * {})", width, height)
             }
         }
     }

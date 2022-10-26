@@ -122,13 +122,10 @@ impl Cache {
                     img.as_mut(),
                 )?;
 
-                let mut rgba = img.take();
-                rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
-
                 let allocation = texture_atlas.upload(
                     width,
                     height,
-                    bytemuck::cast_slice(rgba.as_slice()),
+                    bytemuck::cast_slice(img.data()),
                     device,
                     encoder,
                 )?;

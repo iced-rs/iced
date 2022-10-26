@@ -52,7 +52,7 @@ path = "../graphics"
 features = ["font-fallback", "font-icons"]
 
 [dependencies.image_rs]
-version = "0.23"
+version = "0.24"
 package = "image"
 default-features = false
 optional = true

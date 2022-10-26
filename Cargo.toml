@@ -104,7 +104,7 @@ iced_glow = { version = "0.3", path = "glow", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]
-version = "0.23"
+version = "0.24"
 package = "image"
 optional = true
 
