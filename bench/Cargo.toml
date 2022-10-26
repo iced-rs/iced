@@ -1,0 +1,26 @@
+[package]
+name = "iced_bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+iced = { path = "..", features = ["image"] }
+iced_glow = { path = "../glow" }
+iced_glutin = { path = "../glutin" }
+iced_graphics = { path = "../graphics" }
+iced_native = { path = "../native" }
+iced_wgpu = { path = "../wgpu" }
+
+[dependencies.image_rs]
+version = "0.23"
+package = "image"
+features = ["png"]
+default-features = false
+
+[dev-dependencies]
+criterion = "0.4.0"
+rand = "0.8.5"
+
+[[bench]]
+name = "renderer_bench"
+harness = false
