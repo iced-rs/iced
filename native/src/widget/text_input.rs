@@ -350,15 +350,21 @@ where
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
 
-    let limits = limits
+    let text_limits = limits
         .pad(padding)
         .width(width)
         .height(Length::Units(text_size));
+    let limits = limits.width(width).height(Length::Shrink);
 
-    let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+    let mut text = layout::Node::new(text_limits.resolve(Size::ZERO));
+
+    let padding = padding.constrain(text.size(), limits.max());
+
     text.move_to(Point::new(padding.left.into(), padding.top.into()));
 
-    layout::Node::with_children(text.size().pad(padding), vec![text])
+    let size = limits.pad(padding).resolve(text.size()).pad(padding);
+
+    layout::Node::with_children(size, vec![text])
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`TextInput`]
