@@ -1,18 +1,18 @@
 //! Distribute content vertically.
+use crate::animation;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::animation;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Widget,
 };
 
-use std::u32;
 use iced_core::time::Instant;
+use std::u32;
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
@@ -116,7 +116,12 @@ where
         tree.diff_children(&self.children);
     }
 
-    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree, app_start: &Instant) -> animation::Request {
+    fn diff_mut(
+        &mut self,
+        acc: animation::Request,
+        tree: &mut Tree,
+        app_start: &Instant,
+    ) -> animation::Request {
         tree.diff_children_mut(acc, &mut self.children, app_start)
     }
 

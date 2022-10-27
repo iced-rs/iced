@@ -1,22 +1,22 @@
 //! Distribute content horizontally.
 //!
 //! A [`row`] may have some local [`state`] if an animation is applied.
+use crate::animation;
 use crate::event::{self, Event};
 use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::animation;
-use crate::widget::Operation;
 use crate::widget::tree::{self, Tree};
+use crate::widget::Operation;
 use crate::{
-    Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
-    Widget, Animation,
+    Alignment, Animation, Clipboard, Element, Length, Padding, Point,
+    Rectangle, Shell, Widget,
 };
-use iced_core::time::Instant;
 use iced_core::time::Duration;
-use std::rc::Rc;
+use iced_core::time::Instant;
 use std::borrow::Borrow;
+use std::rc::Rc;
 
 const DEFAULT_WIDTH: Length = Length::Shrink;
 const DEFAULT_HEIGHT: Length = Length::Shrink;
@@ -91,7 +91,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         // TODO this is duplicated code. Need a better solution
         // for detecting if value are not default.
         let mut k = Keyframe::default();
-        
+
         if self.width != DEFAULT_WIDTH {
             k = k.width(self.width)
         }
@@ -138,7 +138,7 @@ where
     fn tag(&self) -> tree::Tag {
         match self.animation.borrow() {
             Some(_) => tree::Tag::of::<State>(),
-            None => tree::Tag::stateless()
+            None => tree::Tag::stateless(),
         }
     }
 
@@ -156,12 +156,27 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree, app_start: &Instant) -> animation::Request {
+    fn diff_mut(
+        &mut self,
+        acc: animation::Request,
+        tree: &mut Tree,
+        app_start: &Instant,
+    ) -> animation::Request {
         tree.diff_children_mut(acc, &mut self.children, app_start)
     }
 
-    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
-        let (playhead, request) = state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing);
+    fn interp(
+        &mut self,
+        state: &mut tree::State,
+        app_start: &Instant,
+    ) -> animation::Request {
+        let (playhead, request) = state.downcast_mut::<State>().interp(
+            app_start,
+            self.width,
+            self.height,
+            self.padding,
+            self.spacing,
+        );
         self.playhead = Some(playhead);
         request
     }
@@ -184,28 +199,36 @@ where
             // TODO fix for generic API
             Some(playhead) => {
                 let playhead = &playhead.keyframe.modifiers();
-                
-                let width = Length::Units(playhead[0].unwrap_or((animation::Ease::Linear, 0)).1 as u16);
-                let height = Length::Units(playhead[1].unwrap_or((animation::Ease::Linear, 0)).1 as u16);
-                let spacing = playhead[2].unwrap_or((animation::Ease::Linear, 0)).1 as u16;
+
+                let width = Length::Units(
+                    playhead[0].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
+                );
+                let height = Length::Units(
+                    playhead[1].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
+                );
+                let spacing = playhead[2]
+                    .unwrap_or((animation::Ease::Linear, 0))
+                    .1 as u16;
                 let padding = Padding::from([
-                    playhead[3].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
-                    playhead[4].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
-                    playhead[5].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
-                    playhead[6].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
+                    playhead[3].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
+                    playhead[4].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
+                    playhead[5].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
+                    playhead[6].unwrap_or((animation::Ease::Linear, 0)).1
+                        as u16,
                 ]);
-                
-                (limits.width(width).height(height),
-                 padding,
-                 spacing,
-                )
+
+                (limits.width(width).height(height), padding, spacing)
             }
-            None => {
-                (limits.width(self.width).height(self.height),
-                 self.padding,
-                 self.spacing,
-                )
-            }
+            None => (
+                limits.width(self.width).height(self.height),
+                self.padding,
+                self.spacing,
+            ),
         };
 
         layout::flex::resolve(
@@ -348,18 +371,23 @@ pub struct State {
 impl State {
     /// Creates a new [`State`].
     pub fn new(animation: Rc<Animation>) -> State {
-        State {
-            animation,
-        }
+        State { animation }
     }
 
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
-    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> (animation::Handle, animation::Request) {
+    pub fn interp(
+        &mut self,
+        app_start: &Instant,
+        width: Length,
+        height: Length,
+        padding: Padding,
+        spacing: u16,
+    ) -> (animation::Handle, animation::Request) {
         let mut playhead: animation::Handle = {
             // TODO this is duplicated code. Needs a better solution
             let mut k = Keyframe::default();
-            
+
             if width != DEFAULT_WIDTH {
                 k = k.width(width)
             }
@@ -374,14 +402,15 @@ impl State {
             }
             k.into()
         };
-        
+
         let animation: &animation::Animation = self.animation.borrow();
-        let request = animation.interp(app_start,
-                              // TODO: This currently assumes that if a value is the default, then there is no animation requested.
-                              // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
-                              // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
-                              // sizes to percise ones, such as Length::Fill to Length::Units(100)
-                              &mut playhead
+        let request = animation.interp(
+            app_start,
+            // TODO: This currently assumes that if a value is the default, then there is no animation requested.
+            // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
+            // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
+            // sizes to percise ones, such as Length::Fill to Length::Units(100)
+            &mut playhead,
         );
         (playhead, animation::Request::AnimationFrame)
     }
@@ -417,7 +446,7 @@ impl animation::Keyframe for Keyframe {
     fn after(&self) -> Duration {
         self.after
     }
-    
+
     fn set_after(&mut self, after: Duration) {
         self.after = after;
     }
@@ -425,7 +454,7 @@ impl animation::Keyframe for Keyframe {
     fn modifiers(&self) -> &Vec<Option<(animation::Ease, isize)>> {
         &self.modifiers
     }
-    
+
     fn modifiers_mut(&mut self) -> &mut Vec<Option<(animation::Ease, isize)>> {
         &mut self.modifiers
     }
@@ -439,31 +468,30 @@ impl Keyframe {
     /// Requires the time that the animation state should be equal to keyframe values.
     /// The time is passed as a `Duration` since the start of the animation.
     pub fn new(after: Duration) -> Self {
-        Keyframe{
-            after, 
+        Keyframe {
+            after,
             ..Keyframe::default()
         }
     }
-    
+
     /// Set the Row;s width at the Keyframe's time.
     pub fn width(mut self, width: Length) -> Self {
         self.modifiers[0] = Some((EASE, width.as_u16().unwrap() as isize));
         self
     }
-    
+
     /// Set the Row;s height at the Keyframe's time.
     pub fn height(mut self, height: Length) -> Self {
         self.modifiers[1] = Some((EASE, height.as_u16().unwrap() as isize));
         self
     }
-    
+
     /// Set the Row;s spacing at the Keyframe's time.
     pub fn spacing(mut self, units: u16) -> Self {
         self.modifiers[2] = Some((EASE, units as isize));
         self
     }
-    
-    
+
     /// Set the Row;s padding at the Keyframe's time.
     pub fn padding(mut self, padding: Padding) -> Self {
         self.modifiers[3] = Some((EASE, padding.top as isize));
@@ -477,7 +505,7 @@ impl Keyframe {
 impl std::convert::From<Keyframe> for animation::Handle {
     fn from(keyframe: Keyframe) -> animation::Handle {
         animation::Handle {
-            keyframe: Box::new(keyframe)
+            keyframe: Box::new(keyframe),
         }
     }
 }

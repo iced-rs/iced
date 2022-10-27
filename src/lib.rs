@@ -193,8 +193,8 @@ use iced_wgpu as renderer;
 #[cfg(feature = "glow")]
 use iced_glow as renderer;
 
-pub use iced_native::theme;
 pub use iced_native::animation;
+pub use iced_native::theme;
 pub use runtime::event;
 pub use runtime::subscription;
 

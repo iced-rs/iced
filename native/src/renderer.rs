@@ -5,8 +5,8 @@ mod null;
 pub use null::Null;
 
 use crate::layout;
-use crate::{Background, Color, Element, Rectangle, Vector};
 use crate::widget::Tree;
+use crate::{Background, Color, Element, Rectangle, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {

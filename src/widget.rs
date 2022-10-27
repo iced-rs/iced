@@ -13,7 +13,7 @@ pub type Column<'a, Message, Renderer = crate::Renderer> =
 pub mod row {
     /// A keyframe for animating a row
     pub use iced_native::widget::row::Keyframe;
-    
+
     /// The Container
     pub type Row<'a, Message, Renderer = crate::Renderer> =
         iced_native::widget::Row<'a, Message, Renderer>;
@@ -48,7 +48,7 @@ pub mod checkbox {
 
 pub mod container {
     //! Decorate content and apply alignment.
-    pub use iced_native::widget::container::{Appearance, StyleSheet, Id};
+    pub use iced_native::widget::container::{Appearance, Id, StyleSheet};
 
     /// An element decorating some content.
     pub type Container<'a, Message, Renderer = crate::Renderer> =

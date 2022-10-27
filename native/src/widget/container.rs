@@ -8,8 +8,8 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::{Operation, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget, Animation,
+    Animation, Background, Clipboard, Color, Element, Layout, Length, Padding,
+    Point, Rectangle, Shell, Widget,
 };
 
 use std::u32;

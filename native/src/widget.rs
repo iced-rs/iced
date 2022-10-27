@@ -58,9 +58,9 @@ pub use progress_bar::ProgressBar;
 #[doc(no_inline)]
 pub use radio::Radio;
 #[doc(no_inline)]
-pub use row::Row;
-#[doc(no_inline)]
 pub use row::Keyframe;
+#[doc(no_inline)]
+pub use row::Row;
 #[doc(no_inline)]
 pub use rule::Rule;
 #[doc(no_inline)]
@@ -86,12 +86,12 @@ pub use action::Action;
 pub use id::Id;
 pub use operation::Operation;
 
+use crate::animation;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::animation;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
 use iced_core::time::Instant;
@@ -171,7 +171,11 @@ where
     ///
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
-    fn interp(&mut self, _state: &mut tree::State, _app_start: &Instant) -> animation::Request {
+    fn interp(
+        &mut self,
+        _state: &mut tree::State,
+        _app_start: &Instant,
+    ) -> animation::Request {
         animation::Request::None
     }
 
@@ -184,7 +188,14 @@ where
     fn diff(&self, _tree: &mut Tree) {}
 
     /// See [`diff`], a mutable version
-    fn diff_mut(&mut self, acc: animation::Request, _tree: &mut Tree, _app_start: &Instant) -> animation::Request {acc}
+    fn diff_mut(
+        &mut self,
+        acc: animation::Request,
+        _tree: &mut Tree,
+        _app_start: &Instant,
+    ) -> animation::Request {
+        acc
+    }
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(

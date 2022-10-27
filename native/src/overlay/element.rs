@@ -52,7 +52,12 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(&self, renderer: &Renderer, bounds: Size, tree: &Tree) -> layout::Node {
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        tree: &Tree,
+    ) -> layout::Node {
         self.overlay.layout(renderer, bounds, self.position, tree)
     }
 
@@ -138,7 +143,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
-        tree: &Tree
+        tree: &Tree,
     ) -> layout::Node {
         self.content.layout(renderer, bounds, position, tree)
     }

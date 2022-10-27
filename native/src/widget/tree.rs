@@ -1,11 +1,11 @@
 //! Store internal widget state in a state tree to ensure continuity.
-use crate::Widget;
 use crate::animation;
+use crate::Widget;
 
+use iced_core::time::Instant;
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
-use iced_core::time::Instant;
 
 /// A persistent state widget tree.
 ///
@@ -163,14 +163,20 @@ impl Tree {
             self.children.truncate(new_children.len());
         }
 
-        acc = acc.min(self.children.iter_mut()
-                      .zip(new_children.iter_mut())
-                      .fold(acc, |accu, (child_state, new)| accu.min(diff_mut(child_state, new)))
+        acc = acc.min(
+            self.children
+                .iter_mut()
+                .zip(new_children.iter_mut())
+                .fold(acc, |accu, (child_state, new)| {
+                    accu.min(diff_mut(child_state, new))
+                }),
         );
 
         if self.children.len() < new_children.len() {
             self.children.extend(
-                new_children[self.children.len()..].iter_mut().map(new_state),
+                new_children[self.children.len()..]
+                    .iter_mut()
+                    .map(new_state),
             );
         }
         acc

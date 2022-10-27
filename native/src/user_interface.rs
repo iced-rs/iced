@@ -1,11 +1,11 @@
 //! Implement your own event loop to drive a user interface.
+use crate::animation;
 use crate::application;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::animation;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 use iced_core::time::Instant;
@@ -30,7 +30,7 @@ pub struct UserInterface<'a, Message, Renderer> {
     state: widget::Tree,
     overlay: Option<layout::Node>,
     bounds: Size,
-    request_animation: animation::Request
+    request_animation: animation::Request,
 }
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
@@ -102,10 +102,17 @@ where
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut(), app_start);
+        let request_animation = state.diff_mut(
+            animation::Request::None,
+            root.as_widget_mut(),
+            app_start,
+        );
 
-        let base =
-            renderer.layout(&root, &state, &layout::Limits::new(Size::ZERO, bounds));
+        let base = renderer.layout(
+            &root,
+            &state,
+            &layout::Limits::new(Size::ZERO, bounds),
+        );
 
         UserInterface {
             root,
@@ -533,8 +540,19 @@ where
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
-    pub fn relayout(self, bounds: Size, renderer: &mut Renderer, app_start: &Instant) -> Self {
-        Self::build(self.root, bounds, Cache { state: self.state }, renderer, app_start)
+    pub fn relayout(
+        self,
+        bounds: Size,
+        renderer: &mut Renderer,
+        app_start: &Instant,
+    ) -> Self {
+        Self::build(
+            self.root,
+            bounds,
+            Cache { state: self.state },
+            renderer,
+            app_start,
+        )
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the
@@ -550,7 +568,7 @@ where
         match self.request_animation {
             animation::Request::None => None,
             animation::Request::AnimationFrame => Some(Instant::now()),
-            animation::Request::Timeout(timeout) => Some(timeout)
+            animation::Request::Timeout(timeout) => Some(timeout),
         }
     }
 
@@ -558,7 +576,7 @@ where
     pub fn is_dirty(&self) -> bool {
         match self.request_animation {
             animation::Request::None => false,
-            _ => true
+            _ => true,
         }
     }
 }

@@ -204,7 +204,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
-        tree: &Tree
+        tree: &Tree,
     ) -> layout::Node {
         let space_below = bounds.height - (position.y + self.target_height);
         let space_above = position.y;

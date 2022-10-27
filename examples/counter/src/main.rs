@@ -1,9 +1,9 @@
-use iced::widget::{button, column, text, container, row};
-use iced::{Alignment, Element, Sandbox, Settings, Length, Ease};
-use iced::widget::row::Keyframe as rowk;
-use iced::animation::Animation;
 use iced::animation;
+use iced::animation::Animation;
+use iced::widget::row::Keyframe as rowk;
+use iced::widget::{button, column, container, row, text};
 use iced::Color;
+use iced::{Alignment, Ease, Element, Length, Sandbox, Settings};
 
 use lazy_static::lazy_static;
 use std::time::Duration;
@@ -51,26 +51,35 @@ impl Sandbox for Counter {
 
     fn view(&self) -> Element<Message> {
         let content: Element<_> = column![
-            button("Increment").on_press(Message::IncrementPressed).width(Length::Units(100)),
+            button("Increment")
+                .on_press(Message::IncrementPressed)
+                .width(Length::Units(100)),
             text(self.value).size(50),
             // button("Decrement").on_press(Message::DecrementPressed).animate_width(Length::Units(10), Length::Units(100), 1000, Ease::Linear)
-            row![button("Decrement").on_press(Message::DecrementPressed).height(Length::Fill).width(Length::Units(100))]
-                .height(Length::Units(10))
-                .width(Length::Units(10))
-                .animation(Animation::new()
-                           .push(rowk::new(Duration::from_secs(3))
-                                 .height(Length::Units(100))
-                                 .width(Length::Units(100))
-                           )
-                           .push(rowk::new(Duration::from_secs(6))
-                                 .height(Length::Units(10))
-                                 .width(Length::Units(10))
-                           )
-                           .push(rowk::new(Duration::from_secs(9))
-                                 .height(Length::Units(100))
-                                 .width(Length::Units(100))
-                           )
-                ),
+            row![button("Decrement")
+                .on_press(Message::DecrementPressed)
+                .height(Length::Fill)
+                .width(Length::Units(100))]
+            .height(Length::Units(10))
+            .width(Length::Units(10))
+            .animation(
+                Animation::new()
+                    .push(
+                        rowk::new(Duration::from_secs(3))
+                            .height(Length::Units(100))
+                            .width(Length::Units(100))
+                    )
+                    .push(
+                        rowk::new(Duration::from_secs(6))
+                            .height(Length::Units(10))
+                            .width(Length::Units(10))
+                    )
+                    .push(
+                        rowk::new(Duration::from_secs(9))
+                            .height(Length::Units(100))
+                            .width(Length::Units(100))
+                    )
+            ),
         ]
         .padding(20)
         .align_items(Alignment::Center)

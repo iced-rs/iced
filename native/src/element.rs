@@ -1,17 +1,17 @@
+use crate::animation;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::animation;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
-use std::borrow::{Borrow, BorrowMut};
 use iced_core::time::Instant;
+use std::borrow::{Borrow, BorrowMut};
 
 /// A generic [`Widget`].
 ///
@@ -308,7 +308,7 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: & Tree,
+        tree: &Tree,
     ) -> layout::Node {
         self.widget.layout(renderer, limits, tree)
     }
@@ -497,7 +497,11 @@ where
         self.element.widget.layout(renderer, limits, tree)
     }
 
-    fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
+    fn interp(
+        &mut self,
+        state: &mut tree::State,
+        app_start: &Instant,
+    ) -> animation::Request {
         self.element.widget.interp(state, app_start)
     }
 

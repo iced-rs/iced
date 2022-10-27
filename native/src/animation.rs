@@ -1,9 +1,9 @@
 //! State management and calculation for widget state animations
+use crate::widget::Id;
 use crate::Length;
 use crate::Padding;
-use crate::widget::Id;
 
-use iced_core::time::{Instant, Duration};
+use iced_core::time::{Duration, Instant};
 
 /// A type for managing animations
 ///
@@ -24,7 +24,7 @@ pub struct Animation {
     start: Instant,
     keyframes: Vec<Handle>,
     again: Again,
-    message: bool //TODO: add a message to be sent on animation completion
+    message: bool, //TODO: add a message to be sent on animation completion
 }
 
 impl std::default::Default for Animation {
@@ -41,7 +41,7 @@ impl std::default::Default for Animation {
 
 impl Animation {
     /// Create a new animation to be attached to a widget.
-    pub fn new() -> Self{
+    pub fn new() -> Self {
         Animation::default()
     }
 
@@ -57,7 +57,7 @@ impl Animation {
 
     /// Create an animation with an Id. This is useful if keyframes or transitions need to be modified,
     /// appended, deleted, etc before the animation is complete.
-    pub fn with_id(id: Id) -> Self{
+    pub fn with_id(id: Id) -> Self {
         Animation {
             id,
             ..Animation::default()
@@ -69,10 +69,10 @@ impl Animation {
         self.keyframes.push(keyframe.into());
         self
     }
-    
+
     /// For iced internal use only.
     /// Not intended for end user.
-    /// 
+    ///
     /// Insert a starting keyframe. Used to allow widgets to animate
     /// from specified widget layout then into animation, without requiring
     /// the end user to manually write out the initial widget layout again.
@@ -88,88 +88,122 @@ impl Animation {
         self.again = again;
         self
     }
-    
-    fn bounds<'a>(&'a self, now: &'a Duration, i: usize) -> (Option<&'a Handle>, &'a Handle) {
-        let mut lower_bound_iter = self.keyframes.iter().filter(|handle| handle.keyframe.modifiers()[i].is_some()).peekable();
+
+    fn bounds<'a>(
+        &'a self,
+        now: &'a Duration,
+        i: usize,
+    ) -> (Option<&'a Handle>, &'a Handle) {
+        let mut lower_bound_iter = self
+            .keyframes
+            .iter()
+            .filter(|handle| handle.keyframe.modifiers()[i].is_some())
+            .peekable();
         let mut lower_bound = lower_bound_iter.next();
         if let Some(lb) = lower_bound {
             lower_bound = loop {
                 if let Some(handle) = lower_bound_iter.next() {
                     if let Some(next_handle) = lower_bound_iter.peek() {
-                        if handle.keyframe.after() < *now && next_handle.keyframe.after() > *now {
-                            break Some(handle)
+                        if handle.keyframe.after() < *now
+                            && next_handle.keyframe.after() > *now
+                        {
+                            break Some(handle);
                         }
                     }
-                } else {break lower_bound}
+                } else {
+                    break lower_bound;
+                }
             };
         }
         println!("lower bound = {:?}", lower_bound);
-        
-        let upper_bound = match self.keyframes.iter().find(|&handle| handle.keyframe.modifiers()[i].is_some() && handle.keyframe.after() > *now ) {
+
+        let upper_bound = match self.keyframes.iter().find(|&handle| {
+            handle.keyframe.modifiers()[i].is_some()
+                && handle.keyframe.after() > *now
+        }) {
             Some(handle) => handle,
             None => self.keyframes.last().unwrap(),
         };
         println!("upper bound = {:?}", upper_bound);
-        
+
         (lower_bound, upper_bound)
-    }    
-    
-    fn calc_linear(&self, now: &Duration, lower_bound: &Handle, upper_bound: &Handle, i: usize) -> isize {
+    }
+
+    fn calc_linear(
+        &self,
+        now: &Duration,
+        lower_bound: &Handle,
+        upper_bound: &Handle,
+        i: usize,
+    ) -> isize {
         let (lease, lb) = lower_bound.keyframe.modifiers()[i].unwrap();
         let (uease, ub) = upper_bound.keyframe.modifiers()[i].unwrap();
 
-        let percent_done = (*now - lower_bound.keyframe.after()).as_millis() as f64 / ( upper_bound.keyframe.after() - lower_bound.keyframe.after()).as_millis() as f64;
+        let percent_done = (*now - lower_bound.keyframe.after()).as_millis()
+            as f64
+            / (upper_bound.keyframe.after() - lower_bound.keyframe.after())
+                .as_millis() as f64;
         let delta = (ub - lb) as f64;
         let value = (percent_done * delta + (lb as f64)) as isize;
 
         if ub > lb {
             ub.min(value.into())
         } else {
-            ub.max(value.into())    
+            ub.max(value.into())
         }
     }
-    
+
     /// Interpolate values for animation.
-    pub fn interp(&self,_app_start: &Instant, playhead: &mut Handle ) {
-        
+    pub fn interp(&self, _app_start: &Instant, playhead: &mut Handle) {
         let now = Instant::now().duration_since(self.start);
-        if playhead.keyframe.after() <= self.keyframes.last().unwrap().keyframe.after() {
-            playhead.keyframe.modifiers_mut().iter_mut().enumerate().for_each(| (i, playhead) | {
-                if let Some((ease, val)) = playhead {
-                    // TODO handle mismatched lower/upper_bounds. If one exists and one not, what do we do?
-                    let (lower_bound, upper_bound) = self.bounds(&now, i);                
-                    
-                    // TODO this needs to be changed up the upper_bound's ease
-                    if lower_bound.is_some() /* && upper_bound.is_some() */ {
-                        *val = match ease {
-                            Ease::Linear => {
-                                self.calc_linear(&now, lower_bound.unwrap(), upper_bound, i)
-                            }                
-                        };
+        if playhead.keyframe.after()
+            <= self.keyframes.last().unwrap().keyframe.after()
+        {
+            playhead
+                .keyframe
+                .modifiers_mut()
+                .iter_mut()
+                .enumerate()
+                .for_each(|(i, playhead)| {
+                    if let Some((ease, val)) = playhead {
+                        // TODO handle mismatched lower/upper_bounds. If one exists and one not, what do we do?
+                        let (lower_bound, upper_bound) = self.bounds(&now, i);
+
+                        // TODO this needs to be changed up the upper_bound's ease
+                        if lower_bound.is_some()
+                        /* && upper_bound.is_some() */
+                        {
+                            *val = match ease {
+                                Ease::Linear => self.calc_linear(
+                                    &now,
+                                    lower_bound.unwrap(),
+                                    upper_bound,
+                                    i,
+                                ),
+                            };
+                        }
                     }
-                }
-            });
+                });
         }
         playhead.keyframe.set_after(now);
-        
+
         // TODO: Should set playhead.after to `now`
         // or maybe playhead doesn't need to hold now?
     }
-
 }
 
 /// A trait so widgets can easily animate their own values,
 /// without having to manage all of the calculations.
 pub trait Keyframe: std::fmt::Debug {
     //fn new() -> Self;
-    
+
     /// Get the time the ketframe is pinned to "after" the start of the animation.
     /// At this time it's modifiers will have its requested value.
     fn after(&self) -> Duration;
-    
+
     /// Set new duration.
     fn set_after(&mut self, after: Duration);
-    
+
     /// This is a Vec of modifiers. The data type needs to be as such, so the animation
     /// calculations can be generalized across any widget type.
     ///
@@ -177,7 +211,7 @@ pub trait Keyframe: std::fmt::Debug {
     /// The size is known for each widget, but not for the trait.
     //fn modifiers(&self) -> &Vec<Vec<Option<(Ease, isize)>>>;
     fn modifiers(&self) -> &Vec<Option<(Ease, isize)>>;
-    
+
     /// A mutable verseion of `modifiers`
     fn modifiers_mut(&mut self) -> &mut Vec<Option<(Ease, isize)>>;
 }
@@ -186,7 +220,7 @@ pub trait Keyframe: std::fmt::Debug {
 #[derive(Debug)]
 pub struct Handle {
     /// keyframe
-    pub keyframe: Box<dyn Keyframe>
+    pub keyframe: Box<dyn Keyframe>,
 }
 
 /// The function used to transition between given values.
@@ -229,7 +263,7 @@ pub enum Request {
     /// For For times shorter than or equal to the user's monitor's refresh rate, it is preferable to use
     /// Request::AnimationFrame.
     /// Widgets are expected to return `Instant::now() + Duration::from_/* arbitrary duration*/` for a
-    /// requested time in the future. Widgets may want `app_start + Duration` if they want to animate 
+    /// requested time in the future. Widgets may want `app_start + Duration` if they want to animate
     /// on a consistant multiple like a blinking cursor.
     Timeout(Instant),
     /// The widget doesn't need to reanimate. It is either done animating, or static.

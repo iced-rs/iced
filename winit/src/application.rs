@@ -18,14 +18,14 @@ use iced_futures::futures::channel::mpsc;
 use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
-use iced_native::user_interface::{self, UserInterface};
 use iced_native::time::Instant;
+use iced_native::user_interface::{self, UserInterface};
 use std::time::Duration;
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
-use std::mem::ManuallyDrop;
 use std::cell::RefCell;
+use std::mem::ManuallyDrop;
 use std::rc::Rc;
 
 /// An interactive, native cross-platform application.
@@ -275,7 +275,7 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
-    
+
     let mut wait_canceled = false;
 
     let mut clipboard = Clipboard::connect(&window);
@@ -315,7 +315,7 @@ async fn run_instance<A, E, C>(
         &mut renderer,
         state.logical_size(),
         &mut debug,
-        &app_start
+        &app_start,
     ));
 
     let mut mouse_interaction = mouse::Interaction::default();
@@ -327,7 +327,10 @@ async fn run_instance<A, E, C>(
     while let Some(event) = receiver.next().await {
         match event {
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() && !user_interface.is_dirty() {
+                if events.is_empty()
+                    && messages.is_empty()
+                    && !user_interface.is_dirty()
+                {
                     continue;
                 }
 
@@ -351,7 +354,8 @@ async fn run_instance<A, E, C>(
                     || matches!(
                         interface_state,
                         user_interface::State::Outdated,
-                    ) || user_interface.is_dirty()
+                    )
+                    || user_interface.is_dirty()
                 {
                     let mut cache =
                         ManuallyDrop::into_inner(user_interface).into_cache();
@@ -383,7 +387,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         state.logical_size(),
                         &mut debug,
-                        &app_start
+                        &app_start,
                     ));
 
                     if should_exit {
@@ -446,8 +450,11 @@ async fn run_instance<A, E, C>(
 
                     debug.layout_started();
                     user_interface = ManuallyDrop::new(
-                        ManuallyDrop::into_inner(user_interface)
-                            .relayout(logical_size, &mut renderer, &app_start),
+                        ManuallyDrop::into_inner(user_interface).relayout(
+                            logical_size,
+                            &mut renderer,
+                            &app_start,
+                        ),
                     );
                     debug.layout_finished();
 
@@ -491,8 +498,10 @@ async fn run_instance<A, E, C>(
 
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
-                        if let Some(timeout) = user_interface.get_redraw_timeout() {
-                             *redraw_tracker.borrow_mut() = Some(timeout);
+                        if let Some(timeout) =
+                            user_interface.get_redraw_timeout()
+                        {
+                            *redraw_tracker.borrow_mut() = Some(timeout);
                         }
                     }
                     Err(error) => match error {
@@ -535,7 +544,9 @@ async fn run_instance<A, E, C>(
                     _ => false,
                 }
             }
-            _ => { wait_canceled = false; }
+            _ => {
+                wait_canceled = false;
+            }
         }
     }
 
@@ -585,7 +596,8 @@ where
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface = UserInterface::build(view, size, cache, renderer, app_start);
+    let user_interface =
+        UserInterface::build(view, size, cache, renderer, app_start);
     debug.layout_finished();
 
     user_interface

@@ -34,7 +34,7 @@ impl Length {
             Length::Units(_) => 0,
         }
     }
-    
+
     /// Returns the relative units for known values
     ///
     /// Like [`fill_factor`], but returns for both FillPortion
@@ -45,7 +45,7 @@ impl Length {
             Length::Fill => None,
             Length::FillPortion(factor) => Some(*factor),
             Length::Shrink => None,
-            Length::Units(units) => Some(*units)
+            Length::Units(units) => Some(*units),
         }
     }
 }
