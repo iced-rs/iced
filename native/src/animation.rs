@@ -69,6 +69,17 @@ impl Animation {
         self.keyframes.push(keyframe.into());
         self
     }
+    
+    /// For iced internal use only.
+    /// Not intended for end user.
+    /// 
+    /// Insert a starting keyframe. Used to allow widgets to animate
+    /// from specified widget layout then into animation, without requiring
+    /// the end user to manually write out the initial widget layout again.
+    pub fn insert(mut self, keyframe: impl Into<Handle>) -> Self {
+        self.keyframes.insert(0, keyframe.into());
+        self
+    }
 
     /// What the animation should do after it has completed.
     /// Read as a sentance,
@@ -78,35 +89,68 @@ impl Animation {
         self
     }
     
-    fn bounds<'a>(&'a self, now: &'a Duration, i: usize) -> (&'a Handle, &'a Handle) {
+    fn bounds<'a>(&'a self, now: &'a Duration, i: usize) -> (Option<&'a Handle>, &'a Handle) {
         let mut lower_bound_iter = self.keyframes.iter().filter(|handle| handle.keyframe.modifiers()[i].is_some()).peekable();
-        let lower_bound = loop {
-            let handle = lower_bound_iter.next().unwrap();
-            if let Some(next_handle) = lower_bound_iter.peek() {
-                if handle.keyframe.after() < *now && next_handle.keyframe.after() > *now {
-                    break handle
-                }
-            }
-        };
+        let mut lower_bound = lower_bound_iter.next();
+        if let Some(lb) = lower_bound {
+            lower_bound = loop {
+                if let Some(handle) = lower_bound_iter.next() {
+                    if let Some(next_handle) = lower_bound_iter.peek() {
+                        if handle.keyframe.after() < *now && next_handle.keyframe.after() > *now {
+                            break Some(handle)
+                        }
+                    }
+                } else {break lower_bound}
+            };
+        }
+        println!("lower bound = {:?}", lower_bound);
         
         let upper_bound = match self.keyframes.iter().find(|&handle| handle.keyframe.modifiers()[i].is_some() && handle.keyframe.after() > *now ) {
             Some(handle) => handle,
             None => self.keyframes.last().unwrap(),
         };
+        println!("upper bound = {:?}", upper_bound);
         
         (lower_bound, upper_bound)
     }    
     
+    fn calc_linear(&self, now: &Duration, lower_bound: &Handle, upper_bound: &Handle, i: usize) -> isize {
+        let (lease, lb) = lower_bound.keyframe.modifiers()[i].unwrap();
+        let (uease, ub) = upper_bound.keyframe.modifiers()[i].unwrap();
+
+        let percent_done = (*now - lower_bound.keyframe.after()).as_millis() as f64 / ( upper_bound.keyframe.after() - lower_bound.keyframe.after()).as_millis() as f64;
+        let delta = (ub - lb) as f64;
+        let value = (percent_done * delta + (lb as f64)) as isize;
+
+        if ub > lb {
+            ub.min(value.into())
+        } else {
+            ub.max(value.into())    
+        }
+    }
+    
     /// Interpolate values for animation.
     pub fn interp(&self,_app_start: &Instant, playhead: &mut Handle ) {
         
-        
         let now = Instant::now().duration_since(self.start);
         if playhead.keyframe.after() <= self.keyframes.last().unwrap().keyframe.after() {
-            playhead.keyframe.modifiers_mut().iter_mut().enumerate().map(| (i, val) | {
-                let (lower_bound, upper_bound) = self.bounds(&now, i);                
+            playhead.keyframe.modifiers_mut().iter_mut().enumerate().for_each(| (i, playhead) | {
+                if let Some((ease, val)) = playhead {
+                    // TODO handle mismatched lower/upper_bounds. If one exists and one not, what do we do?
+                    let (lower_bound, upper_bound) = self.bounds(&now, i);                
+                    
+                    // TODO this needs to be changed up the upper_bound's ease
+                    if lower_bound.is_some() /* && upper_bound.is_some() */ {
+                        *val = match ease {
+                            Ease::Linear => {
+                                self.calc_linear(&now, lower_bound.unwrap(), upper_bound, i)
+                            }                
+                        };
+                    }
+                }
             });
         }
+        playhead.keyframe.set_after(now);
         
         // TODO: Should set playhead.after to `now`
         // or maybe playhead doesn't need to hold now?
@@ -131,11 +175,11 @@ pub trait Keyframe: std::fmt::Debug {
     ///
     /// TODO is it possible to use arrays for this? Would be nice to store this on stack rather than heap.
     /// The size is known for each widget, but not for the trait.
-    //fn modifiers(&self) -> &Vec<Vec<Option<(Ease, usize)>>>;
-    fn modifiers(&self) -> &Vec<Option<(Ease, usize)>>;
+    //fn modifiers(&self) -> &Vec<Vec<Option<(Ease, isize)>>>;
+    fn modifiers(&self) -> &Vec<Option<(Ease, isize)>>;
     
     /// A mutable verseion of `modifiers`
-    fn modifiers_mut(&mut self) -> &mut Vec<Option<(Ease, usize)>>;
+    fn modifiers_mut(&mut self) -> &mut Vec<Option<(Ease, isize)>>;
 }
 
 /// A handle to the Keyframe trait to help make rustc happy.

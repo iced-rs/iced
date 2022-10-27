@@ -117,7 +117,6 @@ where
     }
 
     fn diff_mut(&mut self, acc: animation::Request, tree: &mut Tree, app_start: &Instant) -> animation::Request {
-        println!("column diff mut, children: {}", self.children.len());
         tree.diff_children_mut(acc, &mut self.children, app_start)
     }
 

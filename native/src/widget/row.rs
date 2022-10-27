@@ -32,6 +32,7 @@ pub struct Row<'a, Message, Renderer> {
     height: Length,
     align_items: Alignment,
     animation: Option<Rc<Animation>>,
+    playhead: Option<animation::Handle>,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
@@ -52,6 +53,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
             height: DEFAULT_HEIGHT,
             align_items: Alignment::Start,
             animation: None,
+            playhead: None,
             children,
         }
     }
@@ -86,7 +88,23 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
 
     /// Set the animation of the [`Row`]
     pub fn animation(mut self, animation: Animation) -> Self {
-        self.animation = Some(Rc::new(animation));
+        // TODO this is duplicated code. Need a better solution
+        // for detecting if value are not default.
+        let mut k = Keyframe::default();
+        
+        if self.width != DEFAULT_WIDTH {
+            k = k.width(self.width)
+        }
+        if self.height != DEFAULT_HEIGHT {
+            k = k.height(self.height)
+        }
+        if self.padding != DEFAULT_PADDING {
+            k = k.padding(self.padding)
+        }
+        if self.spacing != DEFAULT_SPACING {
+            k = k.spacing(self.spacing)
+        }
+        self.animation = Some(Rc::new(animation.insert(k)));
         self
     }
 
@@ -143,7 +161,9 @@ where
     }
 
     fn interp(&mut self, state: &mut tree::State, app_start: &Instant) -> animation::Request {
-        state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing)
+        let (playhead, request) = state.downcast_mut::<State>().interp(app_start, self.width, self.height, self.padding, self.spacing);
+        self.playhead = Some(playhead);
+        request
     }
 
     fn width(&self) -> Length {
@@ -160,16 +180,27 @@ where
         limits: &layout::Limits,
         tree: &Tree,
     ) -> layout::Node {
-        let (limits, padding, spacing) = match &self.animation {
+        let (limits, padding, spacing) = match &self.playhead {
             // TODO fix for generic API
-            // Some(animation) => {
-            //     (limits.width(animation.width().unwrap_or(DEFAULT_WIDTH)).height(animation.height().unwrap_or(DEFAULT_HEIGHT)),
-            //      animation.padding().unwrap_or(DEFAULT_PADDING),
-            //      animation.spacing().unwrap_or(DEFAULT_SPACING),
-            //     )
-            // }
-            // None => {
-            _ => {
+            Some(playhead) => {
+                let playhead = &playhead.keyframe.modifiers();
+                
+                let width = Length::Units(playhead[0].unwrap_or((animation::Ease::Linear, 0)).1 as u16);
+                let height = Length::Units(playhead[1].unwrap_or((animation::Ease::Linear, 0)).1 as u16);
+                let spacing = playhead[2].unwrap_or((animation::Ease::Linear, 0)).1 as u16;
+                let padding = Padding::from([
+                    playhead[3].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
+                    playhead[4].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
+                    playhead[5].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
+                    playhead[6].unwrap_or((animation::Ease::Linear, 0)).1 as u16,
+                ]);
+                
+                (limits.width(width).height(height),
+                 padding,
+                 spacing,
+                )
+            }
+            None => {
                 (limits.width(self.width).height(self.height),
                  self.padding,
                  self.spacing,
@@ -311,7 +342,6 @@ where
 /// The local state of a [`Row`].
 #[derive(Debug)]
 pub struct State {
-    playhead: Option<animation::Handle>,
     animation: Rc<Animation>,
 }
 
@@ -319,36 +349,30 @@ impl State {
     /// Creates a new [`State`].
     pub fn new(animation: Rc<Animation>) -> State {
         State {
-            playhead: None,
             animation,
         }
     }
 
     /// Applies animation to a [`row`] called from [`row::interp`]
     /// See `interp` in the widget trait for more information.
-    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> animation::Request {
-        let playhead = {
-            if let Some(playhead) = &mut self.playhead {
-                playhead
-            } else {
-                let mut k = Keyframe::default();
-                
-                if width != DEFAULT_WIDTH {
-                    k = k.width(width)
-                }
-                if height != DEFAULT_HEIGHT {
-                    k = k.height(height)
-                }
-                if padding != DEFAULT_PADDING {
-                    k = k.padding(padding)
-                }
-                if spacing != DEFAULT_SPACING {
-                    k = k.spacing(spacing)
-                }
-                self.playhead = Some(k.into());
-                
-                self.playhead.as_mut().unwrap()
+    pub fn interp(&mut self, app_start: &Instant, width: Length, height: Length, padding: Padding, spacing: u16) -> (animation::Handle, animation::Request) {
+        let mut playhead: animation::Handle = {
+            // TODO this is duplicated code. Needs a better solution
+            let mut k = Keyframe::default();
+            
+            if width != DEFAULT_WIDTH {
+                k = k.width(width)
             }
+            if height != DEFAULT_HEIGHT {
+                k = k.height(height)
+            }
+            if padding != DEFAULT_PADDING {
+                k = k.padding(padding)
+            }
+            if spacing != DEFAULT_SPACING {
+                k = k.spacing(spacing)
+            }
+            k.into()
         };
         
         let animation: &animation::Animation = self.animation.borrow();
@@ -357,9 +381,9 @@ impl State {
                               // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
                               // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
                               // sizes to percise ones, such as Length::Fill to Length::Units(100)
-                              playhead
+                              &mut playhead
         );
-        animation::Request::AnimationFrame
+        (playhead, animation::Request::AnimationFrame)
     }
 }
 
@@ -377,7 +401,7 @@ impl State {
 #[derive(Debug, Clone)]
 pub struct Keyframe {
     after: Duration,
-    modifiers: Vec<Option<(animation::Ease, usize)>>,
+    modifiers: Vec<Option<(animation::Ease, isize)>>,
 }
 
 impl std::default::Default for Keyframe {
@@ -398,11 +422,11 @@ impl animation::Keyframe for Keyframe {
         self.after = after;
     }
 
-    fn modifiers(&self) -> &Vec<Option<(animation::Ease, usize)>> {
+    fn modifiers(&self) -> &Vec<Option<(animation::Ease, isize)>> {
         &self.modifiers
     }
     
-    fn modifiers_mut(&mut self) -> &mut Vec<Option<(animation::Ease, usize)>> {
+    fn modifiers_mut(&mut self) -> &mut Vec<Option<(animation::Ease, isize)>> {
         &mut self.modifiers
     }
 }
@@ -423,28 +447,29 @@ impl Keyframe {
     
     /// Set the Row;s width at the Keyframe's time.
     pub fn width(mut self, width: Length) -> Self {
-        self.modifiers[0] = Some((EASE, width.as_u16().unwrap().into()));
+        self.modifiers[0] = Some((EASE, width.as_u16().unwrap() as isize));
         self
     }
     
     /// Set the Row;s height at the Keyframe's time.
     pub fn height(mut self, height: Length) -> Self {
-        self.modifiers[1] = Some((EASE, height.as_u16().unwrap().into()));
+        self.modifiers[1] = Some((EASE, height.as_u16().unwrap() as isize));
         self
     }
     
     /// Set the Row;s spacing at the Keyframe's time.
     pub fn spacing(mut self, units: u16) -> Self {
-        self.modifiers[2] = Some((EASE, units.into()));
+        self.modifiers[2] = Some((EASE, units as isize));
         self
     }
     
+    
     /// Set the Row;s padding at the Keyframe's time.
     pub fn padding(mut self, padding: Padding) -> Self {
-        self.modifiers[3] = Some((EASE, padding.top.into()));
-        self.modifiers[4] = Some((EASE, padding.right.into()));
-        self.modifiers[5] = Some((EASE, padding.bottom.into()));
-        self.modifiers[6] = Some((EASE, padding.left.into()));
+        self.modifiers[3] = Some((EASE, padding.top as isize));
+        self.modifiers[4] = Some((EASE, padding.right as isize));
+        self.modifiers[5] = Some((EASE, padding.bottom as isize));
+        self.modifiers[6] = Some((EASE, padding.left as isize));
         self
     }
 }
