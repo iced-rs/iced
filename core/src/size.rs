@@ -34,6 +34,22 @@ impl Size {
             height: self.height + padding.vertical() as f32,
         }
     }
+
+    /// Returns the minimum of each component of this size and another
+    pub fn min(self, other: Self) -> Self {
+        Size {
+            width: self.width.min(other.width),
+            height: self.height.min(other.height),
+        }
+    }
+
+    /// Returns the maximum of each component of this size and another
+    pub fn max(self, other: Self) -> Self {
+        Size {
+            width: self.width.max(other.width),
+            height: self.height.max(other.height),
+        }
+    }
 }
 
 impl From<[f32; 2]> for Size {
@@ -66,5 +82,16 @@ impl From<Size> for [f32; 2] {
 impl From<Size> for Vector<f32> {
     fn from(size: Size) -> Self {
         Vector::new(size.width, size.height)
+    }
+}
+
+impl std::ops::Sub for Size {
+    type Output = Size;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Size {
+            width: self.width - rhs.width,
+            height: self.height - rhs.height,
+        }
     }
 }

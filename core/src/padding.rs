@@ -1,3 +1,5 @@
+use crate::Size;
+
 /// An amount of space to pad for each side of a box
 ///
 /// You can leverage the `From` trait to build [`Padding`] conveniently:
@@ -70,6 +72,18 @@ impl Padding {
     /// Returns the total amount of horizontal [`Padding`].
     pub fn horizontal(self) -> u16 {
         self.left + self.right
+    }
+
+    /// Constrains the padding to fit between the inner & outer [`Size`]
+    pub fn constrain(self, inner: Size, outer: Size) -> Self {
+        let available = (outer - inner).max(Size::ZERO);
+
+        Padding {
+            top: self.top.min((available.height / 2.0) as u16),
+            right: self.right.min((available.width / 2.0) as u16),
+            bottom: self.bottom.min((available.height / 2.0) as u16),
+            left: self.left.min((available.width / 2.0) as u16),
+        }
     }
 }
 
