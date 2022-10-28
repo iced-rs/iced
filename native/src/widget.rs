@@ -136,7 +136,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node;
 
     /// Draws the [`Widget`] using the associated `Renderer`.

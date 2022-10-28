@@ -150,7 +150,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         let mut row = Row::<(), Renderer>::new()
             .width(self.width)
@@ -176,7 +175,7 @@ where
                 .height(Length::Units(self.size)),
         );
 
-        row.layout(renderer, limits, tree)
+        row.layout(renderer, limits)
     }
 
     fn on_event(

@@ -210,31 +210,34 @@ where
             ));
 
         let (base_cursor, overlay_statuses) = if manual_overlay.is_some() {
-            // TODO: fix overlay implementation, disabling for animation testing.
-            (cursor_position, vec![event::Status::Ignored; events.len()])
+            let bounds = self.bounds;
 
-            //let bounds = self.bounds;
+            let mut overlay = manual_overlay.as_mut().unwrap();
+            let mut layout = overlay.layout(renderer, bounds);
+            let mut event_statuses = Vec::new();
 
-            //let mut overlay = manual_overlay.as_mut().unwrap();
-            //let mut layout = overlay.layout(renderer, bounds, &self.state);
-            //let mut event_statuses = Vec::new();
+            for event in events.iter().cloned() {
+               let mut shell = Shell::new(messages);
 
-            //for event in events.iter().cloned() {
-            //    let mut shell = Shell::new(messages);
+               let event_status = overlay.on_event(
+                   event,
+                   Layout::new(&layout),
+                   cursor_position,
+                   renderer,
+                   clipboard,
+                   &mut shell,
+               );
 
-            //    let event_status = overlay.on_event(
-            //        event,
-            //        Layout::new(&layout),
-            //        cursor_position,
-            //        renderer,
-            //        clipboard,
-            //        &mut shell,
-            //    );
+               event_statuses.push(event_status);
 
-            //    event_statuses.push(event_status);
+               if shell.is_layout_invalid() {
+                   let _ = ManuallyDrop::into_inner(manual_overlay);
 
-            //    if shell.is_layout_invalid() {
-            //        let _ = ManuallyDrop::into_inner(manual_overlay);
+                   self.base = renderer.layout(
+                       &self.root,
+                       &self.state,
+                       &layout::Limits::new(Size::ZERO, self.bounds),
+                   );
 
                     manual_overlay =
                         ManuallyDrop::new(self.root.as_widget_mut().overlay(
@@ -242,45 +245,33 @@ where
                             Layout::new(&self.base),
                             renderer,
                         ));
-            //        self.base = renderer.layout(
-            //            &self.root,
-            //            &self.state,
-            //            &layout::Limits::new(Size::ZERO, self.bounds),
-            //        );
 
-            //        manual_overlay =
-            //            ManuallyDrop::new(self.root.as_widget().overlay(
-            //                &mut self.state,
-            //                Layout::new(&self.base),
-            //                renderer,
-            //            ));
+                   if manual_overlay.is_none() {
+                       break;
+                   }
 
-            //        if manual_overlay.is_none() {
-            //            break;
-            //        }
+                   overlay = manual_overlay.as_mut().unwrap();
 
-            //        overlay = manual_overlay.as_mut().unwrap();
+                   shell.revalidate_layout(|| {
+                       layout = overlay.layout(renderer, bounds);
+                   });
+               }
 
-            //        shell.revalidate_layout(|| {
-            //            layout = overlay.layout(renderer, bounds, &self.state);
-            //        });
-            //    }
+               if shell.are_widgets_invalid() {
+                   state = State::Outdated;
+               }
+            }
 
-            //    if shell.are_widgets_invalid() {
-            //        state = State::Outdated;
-            //    }
-            //}
+            let base_cursor = if layout.bounds().contains(cursor_position) {
+               // TODO: Type-safe cursor availability
+               Point::new(-1.0, -1.0)
+            } else {
+               cursor_position
+            };
 
-            //let base_cursor = if layout.bounds().contains(cursor_position) {
-            //    // TODO: Type-safe cursor availability
-            //    Point::new(-1.0, -1.0)
-            //} else {
-            //    cursor_position
-            //};
+            self.overlay = Some(layout);
 
-            //self.overlay = Some(layout);
-
-            //(base_cursor, event_statuses)
+            (base_cursor, event_statuses)
         } else {
             (cursor_position, vec![event::Status::Ignored; events.len()])
         };
@@ -424,23 +415,21 @@ where
             Layout::new(&self.base),
             renderer,
         ) {
-            // TODO: renable overlay, disabled for animation testing
-            cursor_position
-            //let overlay_layout = self
-            //    .overlay
-            //    .take()
-            //    .unwrap_or_else(|| overlay.layout(renderer, self.bounds, &self.state));
+            let overlay_layout = self
+               .overlay
+               .take()
+               .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
 
-            //let new_cursor_position =
-            //    if overlay_layout.bounds().contains(cursor_position) {
-            //        Point::new(-1.0, -1.0)
-            //    } else {
-            //        cursor_position
-            //    };
+            let new_cursor_position =
+               if overlay_layout.bounds().contains(cursor_position) {
+                   Point::new(-1.0, -1.0)
+               } else {
+                   cursor_position
+               };
 
-            //self.overlay = Some(overlay_layout);
+            self.overlay = Some(overlay_layout);
 
-            //new_cursor_position
+            new_cursor_position
         } else {
             cursor_position
         };

@@ -137,7 +137,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         let limits = limits
             .max_width(self.max_width)
@@ -152,7 +151,6 @@ where
             self.spacing as f32,
             self.align_items,
             &self.children,
-            &tree.children,
         )
     }
 

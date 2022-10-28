@@ -81,7 +81,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        _tree: &Tree,
     ) -> layout::Node {
         // The raw w/h of the underlying image
         let Size { width, height } = renderer.dimensions(&self.handle);

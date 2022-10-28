@@ -126,9 +126,8 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits, tree)
+        self.content.as_widget().layout(renderer, limits)
     }
 
     fn on_event(
@@ -179,12 +178,6 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        // TODO: FIX tooltip,
-        // is will be possible to pass state into draw() to that a tooltip
-        // can have access to the layout, but not yet. Disabling for now.
-        // Having access to the sate in the draw is probably necessary to
-        // animate widget style as well.
-        return ();
         self.content.as_widget().draw(
             &tree.children[0],
             renderer,
@@ -295,8 +288,6 @@ pub fn draw<Renderer>(
     Renderer: crate::Renderer,
     Renderer::Theme: container::StyleSheet,
 {
-    // TODO see draw() impl for tooltip
-    return ();
     use container::StyleSheet;
 
     let bounds = layout.bounds();

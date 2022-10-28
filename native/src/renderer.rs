@@ -23,8 +23,7 @@ pub trait Renderer: Sized {
         tree: &Tree,
         limits: &layout::Limits,
     ) -> layout::Node {
-        println!("called layout");
-        element.as_widget().layout(self, limits, tree)
+        element.as_widget().layout(self, limits)
     }
 
     /// Draws the primitives recorded in the given closure in a new layer.

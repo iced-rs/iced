@@ -177,7 +177,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,
@@ -190,7 +189,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits, tree)
+                self.content.as_widget().layout(renderer, limits)
             },
         )
     }

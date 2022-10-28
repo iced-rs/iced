@@ -152,7 +152,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         if let Some(title_bar) = &self.title_bar {
             let max_size = limits.max();
@@ -160,7 +159,6 @@ where
             let title_bar_layout = title_bar.layout(
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
-                tree,
             );
 
             let title_bar_size = title_bar_layout.size();
@@ -174,7 +172,6 @@ where
                         max_size.height - title_bar_size.height,
                     ),
                 ),
-                tree,
             );
 
             body_layout.move_to(Point::new(0.0, title_bar_size.height));
@@ -184,7 +181,7 @@ where
                 vec![title_bar_layout, body_layout],
             )
         } else {
-            self.body.as_widget().layout(renderer, limits, tree)
+            self.body.as_widget().layout(renderer, limits)
         }
     }
 

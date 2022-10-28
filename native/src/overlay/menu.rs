@@ -204,7 +204,6 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
-        tree: &Tree,
     ) -> layout::Node {
         let space_below = bounds.height - (position.y + self.target_height);
         let space_above = position.y;
@@ -222,7 +221,7 @@ where
         )
         .width(Length::Units(self.width));
 
-        let mut node = self.container.layout(renderer, &limits, tree);
+        let mut node = self.container.layout(renderer, &limits);
 
         node.move_to(if space_below > space_above {
             position + Vector::new(0.0, self.target_height)
@@ -338,7 +337,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         use std::f32;
 

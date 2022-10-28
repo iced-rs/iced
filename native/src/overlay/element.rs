@@ -52,15 +52,10 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(
-        &self,
-        renderer: &Renderer,
-        bounds: Size,
-        tree: &Tree,
-    ) -> layout::Node {
-        self.overlay.layout(renderer, bounds, self.position, tree)
+    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.overlay.layout(renderer, bounds, self.position)
     }
-
+    
     /// Processes a runtime [`Event`].
     pub fn on_event(
         &mut self,
@@ -143,9 +138,8 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
-        tree: &Tree,
     ) -> layout::Node {
-        self.content.layout(renderer, bounds, position, tree)
+        self.content.layout(renderer, bounds, position)
     }
 
     fn operate(

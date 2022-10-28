@@ -60,7 +60,7 @@ where
         tree: &Tree,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.as_widget().layout(self, limits, tree);
+        let layout = element.as_widget().layout(self, limits);
 
         self.backend.trim_measurements();
 

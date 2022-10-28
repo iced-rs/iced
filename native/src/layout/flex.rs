@@ -67,7 +67,6 @@ pub fn resolve<Message, Renderer>(
     spacing: f32,
     align_items: Alignment,
     items: &[Element<'_, Message, Renderer>],
-    tree: &Vec<Tree>,
 ) -> Node
 where
     Renderer: crate::Renderer,
@@ -86,40 +85,29 @@ where
     if align_items == Alignment::Fill {
         let mut fill_cross = axis.cross(limits.min());
 
-        items
-            .iter()
-            .zip(tree.iter())
-            .for_each(|(child, child_tree)| {
-                let cross_fill_factor = match axis {
-                    Axis::Horizontal => child.as_widget().height(),
-                    Axis::Vertical => child.as_widget().width(),
-                }
-                .fill_factor();
+        items.iter().for_each(|child| {
+            let cross_fill_factor = match axis {
+                Axis::Horizontal => child.as_widget().height(),
+                Axis::Vertical => child.as_widget().width(),
+            }
+            .fill_factor();
 
-                if cross_fill_factor == 0 {
-                    let (max_width, max_height) =
-                        axis.pack(available, max_cross);
+            if cross_fill_factor == 0 {
+                let (max_width, max_height) = axis.pack(available, max_cross);
 
-                    let child_limits = Limits::new(
-                        Size::ZERO,
-                        Size::new(max_width, max_height),
-                    );
+                let child_limits =
+                    Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                    let layout = child.as_widget().layout(
-                        renderer,
-                        &child_limits,
-                        child_tree,
-                    );
-                    let size = layout.size();
+                let layout = child.as_widget().layout(renderer, &child_limits);
+                let size = layout.size();
 
-                    fill_cross = fill_cross.max(axis.cross(size));
-                }
-            });
-
+                fill_cross = fill_cross.max(axis.cross(size));
+            }
+        });
         cross = fill_cross;
     }
 
-    for (i, (child, child_tree)) in items.iter().zip(tree.iter()).enumerate() {
+    for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.as_widget().width(),
             Axis::Vertical => child.as_widget().height(),
@@ -144,10 +132,7 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout =
-                child
-                    .as_widget()
-                    .layout(renderer, &child_limits, child_tree);
+            let layout = child.as_widget().layout(renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -164,7 +149,7 @@ where
 
     let remaining = available.max(0.0);
 
-    for (i, (child, child_tree)) in items.iter().zip(tree.iter()).enumerate() {
+    for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.as_widget().width(),
             Axis::Vertical => child.as_widget().height(),
@@ -196,11 +181,8 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout =
-                child
-                    .as_widget()
-                    .layout(renderer, &child_limits, child_tree);
-
+            let layout = child.as_widget().layout(renderer, &child_limits);
+            
             if align_items != Alignment::Fill {
                 cross = cross.max(axis.cross(layout.size()));
             }

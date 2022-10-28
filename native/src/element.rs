@@ -308,9 +308,8 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
-        self.widget.layout(renderer, limits, tree)
+        self.widget.layout(renderer, limits)
     }
 
     fn operate(
@@ -492,9 +491,8 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
-        self.element.widget.layout(renderer, limits, tree)
+        self.element.widget.layout(renderer, limits)
     }
 
     fn interp(

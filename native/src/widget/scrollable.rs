@@ -147,7 +147,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         layout(
             renderer,
@@ -156,7 +155,7 @@ where
             self.height,
             u32::MAX,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits, tree)
+                self.content.as_widget().layout(renderer, limits)
             },
         )
     }

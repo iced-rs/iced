@@ -107,7 +107,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        _tree: &Tree,
     ) -> layout::Node {
         let Size { width, height } = renderer.dimensions(&self.handle);
 

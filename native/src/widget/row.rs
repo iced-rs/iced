@@ -193,10 +193,9 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         let (limits, padding, spacing) = match &self.playhead {
-            // TODO fix for generic API
+            
             Some(playhead) => {
                 let playhead = &playhead.keyframe.modifiers();
 
@@ -239,7 +238,6 @@ where
             spacing as f32,
             self.align_items,
             &self.children,
-            &tree.children,
         )
     }
 

@@ -158,7 +158,6 @@ where
         &self,
         renderer: &Renderer,
         limits: &layout::Limits,
-        tree: &Tree,
     ) -> layout::Node {
         Row::<(), Renderer>::new()
             .width(self.width)
@@ -172,7 +171,7 @@ where
             .push(Text::new(&self.label).width(self.width).size(
                 self.text_size.unwrap_or_else(|| renderer.default_size()),
             ))
-            .layout(renderer, limits, tree)
+            .layout(renderer, limits)
     }
 
     fn on_event(
