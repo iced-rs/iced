@@ -36,7 +36,7 @@ pub enum Event {
     IMEEnabled,
 
     /// selecting input.
-    IMEPreedit(String),
+    IMEPreedit(String, Option<(usize, usize)>),
 
     /// enter input.
     IMECommit(String),

@@ -139,8 +139,12 @@ pub fn window_event(
             winit::event::Ime::Enabled => {
                 Some(Event::Keyboard(keyboard::Event::IMEEnabled))
             }
-            winit::event::Ime::Preedit(text, _) => {
-                Some(Event::Keyboard(keyboard::Event::IMEPreedit(text.clone())))
+            winit::event::Ime::Preedit(text, range) => {
+                // range parameter is used to mark converting position.
+                Some(Event::Keyboard(keyboard::Event::IMEPreedit(
+                    text.clone(),
+                    range.clone(),
+                )))
             }
             winit::event::Ime::Commit(text) => {
                 Some(Event::Keyboard(keyboard::Event::IMECommit(text.clone())))

@@ -1,10 +1,10 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-mod editor;
-mod value;
-
 pub mod cursor;
+mod editor;
+mod ime_range;
+mod value;
 
 pub use cursor::Cursor;
 pub use value::Value;
@@ -27,6 +27,8 @@ use crate::{
     Rectangle, Shell, Size, Vector, Widget,
 };
 pub use iced_style::text_input::{Appearance, StyleSheet};
+
+use self::ime_range::IMERange;
 /// A field that can be filled with text.
 ///
 /// # Example
@@ -768,6 +770,7 @@ where
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
                 state.is_ime_editing = false;
+                state.ime_range = IMERange::default();
                 return event::Status::Captured;
             }
         }
@@ -791,18 +794,25 @@ where
                 (text_bounds.x + position.0) as i32,
                 (text_bounds.y) as i32 + size as i32,
             );
+            let text = value.to_string();
+
             ime.set_ime_position(position.0, position.1);
+            state.ime_range = IMERange::default();
+            state.ime_range.set_offset_bytes(text.len());
             return event::Status::Captured;
         }
-        Event::Keyboard(keyboard::Event::IMEPreedit(text)) => {
+        Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
             let state = state();
-
+            if !state.is_focused {
+                return event::Status::Ignored;
+            }
             let cursor_offset = state.cursor.start(value);
 
             // limit borrow life time.
             let mut chars_count = 0;
             let message = {
                 let mut editor = Editor::new(value, &mut state.cursor);
+
                 if state.is_ime_editing {
                     editor.delete();
                 }
@@ -817,6 +827,7 @@ where
             state
                 .cursor
                 .select_range(cursor_offset, cursor_offset + chars_count);
+            state.ime_range.set_range(range);
             // calcurate where we need to place candidate window.
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
@@ -987,8 +998,47 @@ pub fn draw<Renderer>(
     );
 
     let render = |renderer: &mut Renderer| {
-        if let Some((cursor, color)) = cursor {
-            renderer.fill_quad(cursor, color);
+        // ime mode should not paint selection.
+        if !state.is_ime_editing {
+            if let Some((cursor, color)) = cursor {
+                renderer.fill_quad(cursor, color);
+            }
+        }
+
+        // draw underline
+        if state.is_ime_editing {
+            let text =
+                text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
+            let text = std::str::from_utf8(text).unwrap();
+            let splits = state.ime_range.split_to_pieces(text);
+
+            let offset = if let Some((quad, _)) = cursor {
+                quad.bounds.x - offset
+            } else {
+                0.0
+            };
+            let _ =
+                splits.iter().enumerate().fold(offset, |offset, (idx, t)| {
+                    if let Some(t) = t {
+                        let width =
+                            renderer.measure_width(t, size, font.clone());
+                        let quad = renderer::Quad {
+                            bounds: Rectangle {
+                                x: offset,
+                                y: text_bounds.y + size as f32,
+                                width,
+                                height: if idx == 1 { 3.0 } else { 1.0 },
+                            },
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::default(),
+                        };
+                        renderer.fill_quad(quad, theme.value_color(style));
+                        width + offset
+                    } else {
+                        offset
+                    }
+                });
         }
 
         renderer.fill_text(Text {
@@ -1041,6 +1091,7 @@ pub struct State {
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
     is_ime_editing: bool,
+    ime_range: IMERange,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1060,6 +1111,7 @@ impl State {
             last_click: None,
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
+            ime_range: IMERange::default(),
         }
     }
 
