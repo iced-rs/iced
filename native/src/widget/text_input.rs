@@ -712,6 +712,8 @@ where
                 }
 
                 return event::Status::Captured;
+            } else {
+                state.is_pasting = None;
             }
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
