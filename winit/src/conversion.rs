@@ -143,7 +143,7 @@ pub fn window_event(
                 // range parameter is used to mark converting position.
                 Some(Event::Keyboard(keyboard::Event::IMEPreedit(
                     text.clone(),
-                    range.clone(),
+                    *range,
                 )))
             }
             winit::event::Ime::Commit(text) => {
