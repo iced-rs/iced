@@ -717,9 +717,7 @@ where
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
             let state = state();
 
-            if state.is_focused {
-                state.keyboard_modifiers = modifiers;
-            }
+            state.keyboard_modifiers = modifiers;
         }
         _ => {}
     }
