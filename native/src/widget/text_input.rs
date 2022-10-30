@@ -1013,7 +1013,8 @@ pub fn draw<Renderer>(
         }
 
         // draw underline
-        if state.is_ime_editing {
+        if state.is_ime_editing && (text.len() > state.ime_range.offset_bytes())
+        {
             let text =
                 text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
             let text = std::str::from_utf8(text).unwrap();
