@@ -1018,35 +1018,39 @@ pub fn draw<Renderer>(
             let text =
                 text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
             let text = std::str::from_utf8(text).unwrap();
-            let splits = state.ime_range.split_to_pieces(text);
+            if state.ime_range.is_safe_to_split_text(text) {
+                let splits = state.ime_range.split_to_pieces(text);
 
-            let offset = if let Some((quad, _)) = cursor {
-                quad.bounds.x - offset
-            } else {
-                0.0
-            };
-            let _ =
-                splits.iter().enumerate().fold(offset, |offset, (idx, t)| {
-                    if let Some(t) = t {
-                        let width =
-                            renderer.measure_width(t, size, font.clone());
-                        let quad = renderer::Quad {
-                            bounds: Rectangle {
-                                x: offset,
-                                y: text_bounds.y + size as f32,
-                                width,
-                                height: if idx == 1 { 3.0 } else { 1.0 },
-                            },
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::default(),
-                        };
-                        renderer.fill_quad(quad, theme.value_color(style));
-                        width + offset
-                    } else {
-                        offset
-                    }
-                });
+                let offset = if let Some((quad, _)) = cursor {
+                    quad.bounds.x - offset
+                } else {
+                    0.0
+                };
+                let _ = splits.iter().enumerate().fold(
+                    offset,
+                    |offset, (idx, t)| {
+                        if let Some(t) = t {
+                            let width =
+                                renderer.measure_width(t, size, font.clone());
+                            let quad = renderer::Quad {
+                                bounds: Rectangle {
+                                    x: offset,
+                                    y: text_bounds.y + size as f32,
+                                    width,
+                                    height: if idx == 1 { 3.0 } else { 1.0 },
+                                },
+                                border_radius: 0.0,
+                                border_width: 0.0,
+                                border_color: Color::default(),
+                            };
+                            renderer.fill_quad(quad, theme.value_color(style));
+                            width + offset
+                        } else {
+                            offset
+                        }
+                    },
+                );
+            }
         }
 
         renderer.fill_text(Text {
