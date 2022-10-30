@@ -748,14 +748,14 @@ where
                 }
 
                 return event::Status::Captured;
+            } else {
+                state.is_pasting = None;
             }
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
             let state = state();
 
-            if state.is_focused {
-                state.keyboard_modifiers = modifiers;
-            }
+            state.keyboard_modifiers = modifiers;
         }
         Event::Keyboard(keyboard::Event::IMECommit(text)) => {
             let state = state();
