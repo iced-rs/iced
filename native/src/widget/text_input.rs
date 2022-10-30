@@ -771,6 +771,8 @@ where
                 shell.publish(message);
                 state.is_ime_editing = false;
                 state.ime_range = IMERange::default();
+                let offset_bytes = value.to_string().len();
+                state.ime_range.set_offset_bytes(offset_bytes);
                 return event::Status::Captured;
             }
         }
@@ -829,18 +831,23 @@ where
                 .select_range(cursor_offset, cursor_offset + chars_count);
             state.ime_range.set_range(range);
             // calcurate where we need to place candidate window.
+
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
-            let position = match state.cursor.state(value) {
-                cursor::State::Index(position) => position,
-                cursor::State::Selection { start, end } => start.min(end),
+
+            // we should place candidate window near current converting point.
+            let candidate_offset = if let Some((start, _)) = range {
+                text[0..start].chars().count()
+            } else {
+                0
             };
+
             let position = measure_cursor_and_scroll_offset(
                 renderer,
                 text_bounds,
                 value,
                 size,
-                position,
+                cursor_offset + candidate_offset,
                 font.clone(),
             );
             let position = (
