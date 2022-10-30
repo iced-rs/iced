@@ -1012,7 +1012,7 @@ pub fn draw<Renderer>(
             }
         }
 
-        // draw underline
+        // draw underline and cursor for ime enabled platform.
         if state.is_ime_editing && (text.len() > state.ime_range.offset_bytes())
         {
             let text =
@@ -1023,6 +1023,25 @@ pub fn draw<Renderer>(
             } else {
                 0.0
             };
+
+            if let Some(text) = state.ime_range.before_cursor_text(text) {
+                let width = renderer.measure_width(text, size, font.clone());
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: Rectangle {
+                            x: offset + width,
+                            y: text_bounds.y,
+                            width: 1.0,
+                            height: size as f32,
+                        },
+                        border_radius: 0.0,
+                        border_width: 0.0,
+                        border_color: Color::default(),
+                    },
+                    theme.value_color(style),
+                );
+            }
+
             if state.ime_range.is_safe_to_split_text(text) {
                 let splits = state.ime_range.split_to_pieces(text);
 
