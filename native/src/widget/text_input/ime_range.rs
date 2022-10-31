@@ -4,8 +4,15 @@
 pub struct IMERange {
     ///n bytes inserted before IME editing text.
     offset_bytes: usize,
-    ///byte wise indexed.
-    bold_line_range: Option<(usize, usize)>,
+
+    candidate_indicator: Option<CandidateIndicator>,
+}
+#[derive(Debug, Clone, Copy)]
+enum CandidateIndicator {
+    // indicate like Windows
+    BoldLine(usize, usize),
+    // indicate like IBus-MOZC
+    Cursor(usize),
 }
 
 impl IMERange {
@@ -16,7 +23,15 @@ impl IMERange {
         self.offset_bytes = offset_bytes;
     }
     pub fn set_range(&mut self, range: Option<(usize, usize)>) {
-        self.bold_line_range = range
+        self.candidate_indicator = range.map(|(start, end)| {
+            if start == end {
+                CandidateIndicator::Cursor(start)
+            } else {
+                let left = start.min(end);
+                let right = end.max(start);
+                CandidateIndicator::BoldLine(left, right)
+            }
+        })
     }
     /// split text to three section of texts.
 
@@ -24,41 +39,45 @@ impl IMERange {
     /// * 2nd section = bold line text section.
     /// * 3rd section = light line text section that after 2nd section.
     pub fn split_to_pieces(self, text: &str) -> [Option<&str>; 3] {
-        match self.bold_line_range {
-            Some((start, end)) => {
-                if end == text.len() {
-                    if start == 0 {
-                        [None, Some(text), None]
-                    } else {
-                        let (first, second) = text.split_at(start);
-                        [Some(first), Some(second), None]
-                    }
+        match self.candidate_indicator {
+            Some(CandidateIndicator::BoldLine(start, end)) => {
+                //split to three section.
+
+                let (first, second_and_third) = if start < text.len() {
+                    text.split_at(start)
                 } else {
-                    let third_section_offset = end - start;
-                    let (first, second_third) = text.split_at(start);
-                    let (second, third) =
-                        second_third.split_at(third_section_offset);
-                    [Some(first), Some(second), Some(third)]
-                }
+                    (text, "")
+                };
+
+                let (second, third) = if end < text.len() {
+                    second_and_third.split_at(end - start)
+                } else {
+                    (second_and_third, "")
+                };
+                [Some(first), Some(second), Some(third)]
             }
-            None => [None, Some(text), None],
+            _ => [Some(text), None, None],
         }
     }
     pub fn is_safe_to_split_text(self, text: &str) -> bool {
-        if let Some((start, end)) = self.bold_line_range {
-            (text.len() > start) && (text.len() > end)
+        if let Some(indicator) = self.candidate_indicator {
+            match indicator {
+                CandidateIndicator::BoldLine(start, end) => {
+                    (text.len() > start) && (text.len() > end)
+                }
+                CandidateIndicator::Cursor(postition) => text.len() > postition,
+            }
         } else {
             true
         }
     }
     pub fn before_cursor_text(self, text: &str) -> Option<&str> {
-        if let Some((start, end)) = self.bold_line_range {
-            if end == text.len() {
-                Some(text)
-            } else if end == start {
-                Some(text.split_at(end).0)
-            } else {
-                Some(text)
+        if let Some(indicator) = self.candidate_indicator {
+            match indicator {
+                CandidateIndicator::BoldLine(_, _) => Some(text),
+                CandidateIndicator::Cursor(position) => {
+                    Some(text.split_at(position).0)
+                }
             }
         } else {
             None
