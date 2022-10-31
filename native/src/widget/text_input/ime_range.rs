@@ -56,7 +56,8 @@ impl IMERange {
                 };
                 [Some(first), Some(second), Some(third)]
             }
-            _ => [Some(text), None, None],
+            Some(CandidateIndicator::Cursor(_)) => [Some(text), None, None],
+            None => [None, None, None],
         }
     }
     pub fn is_safe_to_split_text(self, text: &str) -> bool {
