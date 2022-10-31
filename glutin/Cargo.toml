@@ -20,9 +20,9 @@ multi_window = ["iced_winit/multi_window"]
 version = "0.4"
 
 [dependencies.glutin]
-version = "0.29"
+version = "0.30"
 git = "https://github.com/derezzedex/glutin"
-rev = "e72ea919f95106cfdfdce3e7dcfdbf71a432840a"
+rev = "2a2a97209c49929027beced68e1989b8486bdec9"
 
 [dependencies.iced_native]
 version = "0.7"
