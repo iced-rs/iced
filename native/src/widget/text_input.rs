@@ -771,6 +771,8 @@ where
                 shell.publish(message);
                 state.is_ime_editing = false;
                 state.ime_range = IMERange::default();
+                let offset_bytes = value.to_string().len();
+                state.ime_range.set_offset_bytes(offset_bytes);
                 return event::Status::Captured;
             }
         }
@@ -829,18 +831,23 @@ where
                 .select_range(cursor_offset, cursor_offset + chars_count);
             state.ime_range.set_range(range);
             // calcurate where we need to place candidate window.
+
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
-            let position = match state.cursor.state(value) {
-                cursor::State::Index(position) => position,
-                cursor::State::Selection { start, end } => start.min(end),
+
+            // we should place candidate window near current converting point.
+            let candidate_offset = if let Some((start, _)) = range {
+                text[0..start].chars().count()
+            } else {
+                0
             };
+
             let position = measure_cursor_and_scroll_offset(
                 renderer,
                 text_bounds,
                 value,
                 size,
-                position,
+                cursor_offset + candidate_offset,
                 font.clone(),
             );
             let position = (
@@ -1005,40 +1012,78 @@ pub fn draw<Renderer>(
             }
         }
 
-        // draw underline
-        if state.is_ime_editing {
+        // draw underline and cursor for ime enabled platform.
+        if state.is_ime_editing && (text.len() > state.ime_range.offset_bytes())
+        {
             let text =
                 text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
             let text = std::str::from_utf8(text).unwrap();
-            let splits = state.ime_range.split_to_pieces(text);
-
             let offset = if let Some((quad, _)) = cursor {
-                quad.bounds.x - offset
+                quad.bounds.x
             } else {
                 0.0
             };
-            let _ =
-                splits.iter().enumerate().fold(offset, |offset, (idx, t)| {
-                    if let Some(t) = t {
-                        let width =
-                            renderer.measure_width(t, size, font.clone());
-                        let quad = renderer::Quad {
-                            bounds: Rectangle {
-                                x: offset,
-                                y: text_bounds.y + size as f32,
-                                width,
-                                height: if idx == 1 { 3.0 } else { 1.0 },
-                            },
-                            border_radius: 0.0,
-                            border_width: 0.0,
-                            border_color: Color::default(),
-                        };
-                        renderer.fill_quad(quad, theme.value_color(style));
-                        width + offset
-                    } else {
-                        offset
-                    }
-                });
+
+            if let Some(text) = state.ime_range.before_cursor_text(text) {
+                let width = renderer.measure_width(text, size, font.clone());
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: Rectangle {
+                            x: offset + width,
+                            y: text_bounds.y,
+                            width: 1.0,
+                            height: size as f32,
+                        },
+                        border_radius: 0.0,
+                        border_width: 0.0,
+                        border_color: Color::default(),
+                    },
+                    theme.value_color(style),
+                );
+            }
+
+            if state.ime_range.is_safe_to_split_text(text) {
+                let splits = state.ime_range.split_to_pieces(text);
+
+                let _ = splits.iter().enumerate().fold(
+                    offset,
+                    |offset, (idx, t)| {
+                        if let Some(t) = t {
+                            let width =
+                                renderer.measure_width(t, size, font.clone());
+                            let quad = renderer::Quad {
+                                bounds: Rectangle {
+                                    x: offset,
+                                    y: text_bounds.y + size as f32,
+                                    width,
+                                    height: if idx == 1 { 3.0 } else { 1.0 },
+                                },
+                                border_radius: 0.0,
+                                border_width: 0.0,
+                                border_color: Color::default(),
+                            };
+                            renderer.fill_quad(quad, theme.value_color(style));
+                            width + offset
+                        } else {
+                            offset
+                        }
+                    },
+                );
+            } else {
+                let width = renderer.measure_width(text, size, font.clone());
+                let quad = renderer::Quad {
+                    bounds: Rectangle {
+                        x: offset,
+                        y: text_bounds.y + size as f32,
+                        width,
+                        height: 1.0,
+                    },
+                    border_radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Color::default(),
+                };
+                renderer.fill_quad(quad, theme.value_color(style))
+            }
         }
 
         renderer.fill_text(Text {

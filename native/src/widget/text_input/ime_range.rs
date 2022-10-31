@@ -44,4 +44,24 @@ impl IMERange {
             None => [None, Some(text), None],
         }
     }
+    pub fn is_safe_to_split_text(self, text: &str) -> bool {
+        if let Some((start, end)) = self.bold_line_range {
+            (text.len() > start) && (text.len() > end)
+        } else {
+            true
+        }
+    }
+    pub fn before_cursor_text(self, text: &str) -> Option<&str> {
+        if let Some((start, end)) = self.bold_line_range {
+            if end == text.len() {
+                Some(text)
+            } else if end == start {
+                Some(text.split_at(end).0)
+            } else {
+                Some(text)
+            }
+        } else {
+            None
+        }
+    }
 }
