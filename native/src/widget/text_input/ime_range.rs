@@ -77,7 +77,12 @@ impl IMERange {
             match indicator {
                 CandidateIndicator::BoldLine(_, _) => Some(text),
                 CandidateIndicator::Cursor(position) => {
-                    Some(text.split_at(position).0)
+                    let (a, b) = text.split_at(position);
+                    if a == "" {
+                        Some(b)
+                    } else {
+                        Some(a)
+                    }
                 }
             }
         } else {
