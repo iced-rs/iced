@@ -1,10 +1,10 @@
 mod atlas;
 
 #[cfg(feature = "image_rs")]
-mod raster;
+use iced_graphics::image::raster;
 
 #[cfg(feature = "svg")]
-mod vector;
+use iced_graphics::image::vector;
 
 use crate::Transformation;
 use atlas::Atlas;
@@ -25,9 +25,9 @@ use iced_native::svg;
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image_rs")]
-    raster_cache: RefCell<raster::Cache>,
+    raster_cache: RefCell<raster::Cache<Atlas>>,
     #[cfg(feature = "svg")]
-    vector_cache: RefCell<vector::Cache>,
+    vector_cache: RefCell<vector::Cache<Atlas>>,
 
     pipeline: wgpu::RenderPipeline,
     uniforms: wgpu::Buffer,
@@ -243,10 +243,10 @@ impl Pipeline {
 
         Pipeline {
             #[cfg(feature = "image_rs")]
-            raster_cache: RefCell::new(raster::Cache::new()),
+            raster_cache: RefCell::new(raster::Cache::default()),
 
             #[cfg(feature = "svg")]
-            vector_cache: RefCell::new(vector::Cache::new()),
+            vector_cache: RefCell::new(vector::Cache::default()),
 
             pipeline,
             uniforms: uniforms_buffer,
@@ -302,8 +302,7 @@ impl Pipeline {
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
-                        device,
-                        encoder,
+                        &mut (device, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -325,8 +324,7 @@ impl Pipeline {
                         handle,
                         size,
                         _scale,
-                        device,
-                        encoder,
+                        &mut (device, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -446,12 +444,20 @@ impl Pipeline {
         }
     }
 
-    pub fn trim_cache(&mut self) {
+    pub fn trim_cache(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
         #[cfg(feature = "image_rs")]
-        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
+        self.raster_cache
+            .borrow_mut()
+            .trim(&mut self.texture_atlas, &mut (device, encoder));
 
         #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
+        self.vector_cache
+            .borrow_mut()
+            .trim(&mut self.texture_atlas, &mut (device, encoder));
     }
 }
 

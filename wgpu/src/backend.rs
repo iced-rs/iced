@@ -99,7 +99,7 @@ impl Backend {
         }
 
         #[cfg(any(feature = "image_rs", feature = "svg"))]
-        self.image_pipeline.trim_cache();
+        self.image_pipeline.trim_cache(device, encoder);
     }
 
     fn flush(

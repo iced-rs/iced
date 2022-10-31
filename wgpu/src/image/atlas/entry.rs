@@ -1,4 +1,5 @@
 use crate::image::atlas;
+use iced_graphics::image::TextureStoreEntry;
 
 #[derive(Debug)]
 pub enum Entry {
@@ -9,9 +10,8 @@ pub enum Entry {
     },
 }
 
-impl Entry {
-    #[cfg(feature = "image_rs")]
-    pub fn size(&self) -> (u32, u32) {
+impl TextureStoreEntry for Entry {
+    fn size(&self) -> (u32, u32) {
         match self {
             Entry::Contiguous(allocation) => allocation.size(),
             Entry::Fragmented { size, .. } => *size,
