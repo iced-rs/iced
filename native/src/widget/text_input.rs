@@ -1024,7 +1024,7 @@ pub fn draw<Renderer>(
                 } else {
                     0.0
                 };
-
+                //render cursor.
                 if let Some(text) = state.ime_range.before_cursor_text(text) {
                     let width =
                         renderer.measure_width(text, size, font.clone());
@@ -1041,7 +1041,7 @@ pub fn draw<Renderer>(
                             border_color: Color::default(),
                         },
                         theme.value_color(style),
-                    );
+                    )
                 }
 
                 if state.ime_range.is_safe_to_split_text(text) {

@@ -81,7 +81,7 @@ impl IMERange {
                 }
             }
         } else {
-            None
+            Some(text)
         }
     }
 }
