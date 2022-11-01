@@ -7,7 +7,6 @@ use iced_native::futures;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::marker::PhantomData;
-use wgpu::CompositeAlphaMode;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
@@ -163,7 +162,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 present_mode: self.settings.present_mode,
                 width,
                 height,
-                alpha_mode: CompositeAlphaMode::Auto,
+                alpha_mode: wgpu::CompositeAlphaMode::Auto,
             },
         );
     }
