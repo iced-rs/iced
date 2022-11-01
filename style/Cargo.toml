@@ -18,5 +18,5 @@ features = ["palette"]
 [dependencies.palette]
 version = "0.6"
 
-[dependencies.lazy_static]
-version = "1.4"
+[dependencies.once_cell]
+version = "1.15"

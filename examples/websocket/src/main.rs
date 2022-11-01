@@ -8,6 +8,7 @@ use iced::widget::{
 use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
+use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
     WebSocket::run(Settings::default())
@@ -165,6 +166,4 @@ impl Default for State {
     }
 }
 
-lazy_static::lazy_static! {
-    static ref MESSAGE_LOG: scrollable::Id = scrollable::Id::unique();
-}
+static MESSAGE_LOG: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);

@@ -1,6 +1,6 @@
 use iced_core::Color;
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use palette::{FromColor, Hsl, Mix, RelativeContrast, Srgb};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -66,11 +66,10 @@ pub struct Extended {
     pub danger: Danger,
 }
 
-lazy_static! {
-    pub static ref EXTENDED_LIGHT: Extended =
-        Extended::generate(Palette::LIGHT);
-    pub static ref EXTENDED_DARK: Extended = Extended::generate(Palette::DARK);
-}
+pub static EXTENDED_LIGHT: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::LIGHT));
+pub static EXTENDED_DARK: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::DARK));
 
 impl Extended {
     pub fn generate(palette: Palette) -> Self {
