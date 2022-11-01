@@ -7,3 +7,4 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["debug"] }
+lazy_static = "1.4"

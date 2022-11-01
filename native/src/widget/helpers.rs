@@ -62,19 +62,6 @@ pub fn row<Message, Renderer>(
     widget::Row::with_children(children)
 }
 
-/// Creates a new [`Scrollable`] with the provided content.
-///
-/// [`Scrollable`]: widget::Scrollable
-pub fn scrollable<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> widget::Scrollable<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-    Renderer::Theme: widget::scrollable::StyleSheet,
-{
-    widget::Scrollable::new(content)
-}
-
 /// Creates a new [`Button`] with the provided content.
 ///
 /// [`Button`]: widget::Button

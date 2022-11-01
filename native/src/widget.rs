@@ -62,8 +62,6 @@ pub use row::Row;
 #[doc(no_inline)]
 pub use rule::Rule;
 #[doc(no_inline)]
-pub use scrollable::Scrollable;
-#[doc(no_inline)]
 pub use slider::Slider;
 #[doc(no_inline)]
 pub use space::Space;

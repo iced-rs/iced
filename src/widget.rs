@@ -99,13 +99,18 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        snap_to, style::Scrollbar, style::Scroller, Id, StyleSheet,
+        snap_to, style::Scrollbar, style::Scroller, Id, StyleSheet, vertical, horizontal
     };
 
     /// A widget that can vertically display an infinite amount of content
     /// with a scrollbar.
-    pub type Scrollable<'a, Message, Renderer = crate::Renderer> =
-        iced_native::widget::Scrollable<'a, Message, Renderer>;
+    pub type Vertical<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::scrollable::Vertical<'a, Message, Renderer>;
+
+    /// A widget that can horizontally display an infinite amount of content
+    /// with a scrollbar.
+    pub type Horizontal<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::scrollable::Horizontal<'a, Message, Renderer>;
 }
 
 pub mod toggler {
@@ -150,7 +155,6 @@ pub use pick_list::PickList;
 pub use progress_bar::ProgressBar;
 pub use radio::Radio;
 pub use rule::Rule;
-pub use scrollable::Scrollable;
 pub use slider::Slider;
 pub use text::Text;
 pub use text_input::TextInput;

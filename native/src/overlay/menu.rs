@@ -8,7 +8,7 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container::{self, Container};
-use crate::widget::scrollable::{self, Scrollable};
+use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
@@ -171,7 +171,7 @@ where
             style,
         } = menu;
 
-        let container = Container::new(Scrollable::new(List {
+        let container = Container::new(scrollable::vertical(List {
             options,
             hovered_option,
             last_selection,
