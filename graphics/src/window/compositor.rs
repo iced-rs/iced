@@ -2,7 +2,7 @@
 //! surfaces.
 use crate::{Color, Error, Viewport};
 
-use raw_window_handle::HasRawWindowHandle;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
@@ -17,7 +17,7 @@ pub trait Compositor: Sized {
     type Surface;
 
     /// Creates a new [`Compositor`].
-    fn new<W: HasRawWindowHandle>(
+    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error>;
@@ -25,7 +25,7 @@ pub trait Compositor: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: HasRawWindowHandle>(
+    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,
     ) -> Self::Surface;
