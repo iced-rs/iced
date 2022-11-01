@@ -9,7 +9,7 @@ publish = false
 iced = { path = "../..", features = ["tokio", "debug"] }
 iced_native = { path = "../../native" }
 iced_futures = { path = "../../futures" }
-once_cell = "1.15.0"
+once_cell = "1.15"
 
 [dependencies.async-tungstenite]
 version = "0.16"
