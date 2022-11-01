@@ -13,9 +13,9 @@ pub use iced_style::scrollable::StyleSheet;
 pub use vertical::Vertical;
 
 pub mod style {
-    //! The styles of a [`Scrollable`].
+    //! The styles of a [`scrollable`].
     //!
-    //! [`Scrollable`]: crate::widget::Scrollable
+    //! [`scrollable`]: crate::widget::scrollable
     pub use iced_style::scrollable::{Scrollbar, Scroller};
 }
 
@@ -903,7 +903,7 @@ pub fn draw<Renderer>(
     }
 }
 
-/// Computes the current [`mouse::Interaction`] of a [`Scrollable`].
+/// Computes the current [`mouse::Interaction`] of a scrollable.
 pub fn mouse_interaction(
     direction: &Direction,
     state: &State,
