@@ -15,11 +15,30 @@ use iced_winit::renderer;
 use iced_winit::settings;
 use iced_winit::user_interface;
 use iced_winit::window;
+use iced_winit::winit;
 use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
 
-use glutin::window::Window;
+use glutin::config::{
+    Config, ConfigSurfaceTypes, ConfigTemplateBuilder, GlConfig,
+};
+use glutin::context::{
+    ContextApi, ContextAttributesBuilder, NotCurrentContext,
+    NotCurrentGlContextSurfaceAccessor,
+    PossiblyCurrentContextGlSurfaceAccessor, PossiblyCurrentGlContext,
+};
+use glutin::display::{Display, DisplayApiPreference, GlDisplay};
+use glutin::surface::{
+    GlSurface, Surface, SurfaceAttributesBuilder, WindowSurface,
+};
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+
 use std::collections::HashMap;
+use std::ffi::CString;
 use std::mem::ManuallyDrop;
+use std::num::NonZeroU32;
+
+#[allow(unsafe_code)]
+const ONE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
@@ -35,9 +54,8 @@ where
 {
     use futures::task;
     use futures::Future;
-    use glutin::event_loop::EventLoopBuilder;
-    use glutin::platform::run_return::EventLoopExtRunReturn;
-    use glutin::ContextBuilder;
+    use winit::event_loop::EventLoopBuilder;
+    use winit::platform::run_return::EventLoopExtRunReturn;
 
     let mut debug = Debug::new();
     debug.startup_started();
@@ -58,80 +76,215 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let (context, window) = {
-        let builder = settings.window.into_builder(
-            &application.title(),
-            event_loop.primary_monitor(),
-            settings.id,
-        );
+    let builder = settings.window.into_builder(
+        &application.title(),
+        event_loop.primary_monitor(),
+        settings.id,
+    );
 
-        log::info!("Window builder: {:#?}", builder);
+    log::info!("Window builder: {:#?}", builder);
 
-        let opengl_builder = ContextBuilder::new()
-            .with_vsync(true)
-            .with_multisampling(C::sample_count(&compositor_settings) as u16);
+    #[allow(unsafe_code)]
+    let (display, window, configuration, surface, context) = unsafe {
+        struct Configuration(Config);
+        use std::fmt;
+        impl fmt::Debug for Configuration {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                let config = &self.0;
 
-        let opengles_builder = opengl_builder.clone().with_gl(
-            glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)),
-        );
+                f.debug_struct("Configuration")
+                    .field("raw", &config)
+                    .field("samples", &config.num_samples())
+                    .field("buffer_type", &config.color_buffer_type())
+                    .field("surface_type", &config.config_surface_types())
+                    .field("depth", &config.depth_size())
+                    .field("alpha", &config.alpha_size())
+                    .field("stencil", &config.stencil_size())
+                    .field("float_pixels", &config.float_pixels())
+                    .field("srgb", &config.srgb_capable())
+                    .field("api", &config.api())
+                    .finish()
+            }
+        }
 
-        let (first_builder, second_builder) = if settings.try_opengles_first {
-            (opengles_builder, opengl_builder)
-        } else {
-            (opengl_builder, opengles_builder)
+        impl AsRef<Config> for Configuration {
+            fn as_ref(&self) -> &Config {
+                &self.0
+            }
+        }
+
+        let display_handle = event_loop.raw_display_handle();
+
+        #[cfg(all(
+            any(windows, target_os = "macos"),
+            not(target_arch = "wasm32")
+        ))]
+        let (window, window_handle) = {
+            let window = builder
+                .build(&event_loop)
+                .map_err(Error::WindowCreationFailed)?;
+
+            let handle = window.raw_window_handle();
+
+            (window, handle)
         };
 
-        log::info!("Trying first builder: {:#?}", first_builder);
+        #[cfg(target_arch = "wasm32")]
+        let preference = Err(Error::GraphicsCreationFailed(
+            iced_graphics::Error::BackendError(format!(
+                "target not supported by backend"
+            )),
+        ))?;
 
-        let context = first_builder
-            .build_windowed(builder.clone(), &event_loop)
-            .or_else(|_| {
-                log::info!("Trying second builder: {:#?}", second_builder);
-                second_builder.build_windowed(builder, &event_loop)
-            })
-            .map_err(|error| {
-                use glutin::CreationError;
-                use iced_graphics::Error as ContextError;
+        #[cfg(all(windows, not(target_arch = "wasm32")))]
+        let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
 
-                match error {
-                    CreationError::Window(error) => {
-                        Error::WindowCreationFailed(error)
-                    }
-                    CreationError::OpenGlVersionNotSupported => {
-                        Error::GraphicsCreationFailed(
-                            ContextError::VersionNotSupported,
-                        )
-                    }
-                    CreationError::NoAvailablePixelFormat => {
-                        Error::GraphicsCreationFailed(
-                            ContextError::NoAvailablePixelFormat,
-                        )
-                    }
-                    error => Error::GraphicsCreationFailed(
-                        ContextError::BackendError(error.to_string()),
-                    ),
-                }
+        #[cfg(all(target_os = "macos", not(target_arch = "wasm32")))]
+        let preference = DisplayApiPreference::Cgl;
+
+        #[cfg(all(
+            unix,
+            not(target_os = "macos"),
+            not(target_arch = "wasm32")
+        ))]
+        let preference = DisplayApiPreference::GlxThenEgl(Box::new(
+            winit::platform::unix::register_xlib_error_hook,
+        ));
+
+        let display =
+            Display::new(display_handle, preference).map_err(|error| {
+                Error::GraphicsCreationFailed(
+                    iced_graphics::Error::BackendError(format!(
+                        "failed to create display: {error}"
+                    )),
+                )
             })?;
 
-        #[allow(unsafe_code)]
-        unsafe {
-            let (context, window) = context.split();
+        log::debug!("Display: {}", display.version_string());
 
-            (
-                context
-                    .make_current(&window)
-                    .expect("Make OpenGL context current"),
-                window,
-            )
+        let samples = C::sample_count(&compositor_settings) as u8;
+        let mut template = ConfigTemplateBuilder::new()
+            .with_surface_type(ConfigSurfaceTypes::WINDOW);
+
+        if samples != 0 {
+            template = template.with_multisampling(samples);
         }
+
+        #[cfg(all(windows, not(target_arch = "wasm32")))]
+        let template = template.compatible_with_native_window(window_handle);
+
+        log::debug!("Searching for display configurations");
+        let configuration = display
+            .find_configs(template.build())
+            .map_err(|_| {
+                Error::GraphicsCreationFailed(
+                    iced_graphics::Error::NoAvailablePixelFormat,
+                )
+            })?
+            .map(Configuration)
+            .inspect(|config| {
+                log::trace!("{config:#?}");
+            })
+            .min_by_key(|config| {
+                config.as_ref().num_samples().saturating_sub(samples)
+            })
+            .ok_or(Error::GraphicsCreationFailed(
+                iced_graphics::Error::NoAvailablePixelFormat,
+            ))?;
+
+        log::debug!("Selected: {configuration:#?}");
+
+        #[cfg(all(
+            unix,
+            not(target_os = "macos"),
+            not(target_arch = "wasm32")
+        ))]
+        let (window, window_handle) = {
+            use glutin::platform::x11::X11GlConfigExt;
+            let builder =
+                if let Some(visual) = configuration.as_ref().x11_visual() {
+                    use winit::platform::unix::WindowBuilderExtUnix;
+                    builder.with_x11_visual(visual.into_raw())
+                } else {
+                    builder
+                };
+
+            let window = builder
+                .build(&event_loop)
+                .map_err(Error::WindowCreationFailed)?;
+
+            let handle = window.raw_window_handle();
+
+            (window, handle)
+        };
+
+        let attributes =
+            ContextAttributesBuilder::new().build(Some(window_handle));
+        let fallback_attributes = ContextAttributesBuilder::new()
+            .with_context_api(ContextApi::Gles(None))
+            .build(Some(window_handle));
+
+        let context = display
+            .create_context(configuration.as_ref(), &attributes)
+            .or_else(|_| {
+                display.create_context(
+                    configuration.as_ref(),
+                    &fallback_attributes,
+                )
+            })
+            .map_err(|error| {
+                Error::GraphicsCreationFailed(
+                    iced_graphics::Error::BackendError(format!(
+                        "failed to create context: {error}"
+                    )),
+                )
+            })?;
+
+        let (width, height) = window.inner_size().into();
+        let surface_attributes =
+            SurfaceAttributesBuilder::<WindowSurface>::new()
+                .with_srgb(Some(true))
+                .build(
+                    window_handle,
+                    NonZeroU32::new(width).unwrap_or(ONE),
+                    NonZeroU32::new(height).unwrap_or(ONE),
+                );
+
+        let surface = display
+            .create_window_surface(configuration.as_ref(), &surface_attributes)
+            .map_err(|error| {
+                Error::GraphicsCreationFailed(
+                    iced_graphics::Error::BackendError(format!(
+                        "failed to create surface: {error}"
+                    )),
+                )
+            })?;
+
+        let context = {
+            context
+                .make_current(&surface)
+                .expect("make context current")
+        };
+
+        if let Err(error) = surface.set_swap_interval(
+            &context,
+            glutin::surface::SwapInterval::Wait(ONE),
+        ) {
+            log::error!("set swap interval failed: {}", error);
+        }
+
+        (display, window, configuration.0, surface, context)
     };
 
     #[allow(unsafe_code)]
     let (compositor, renderer) = unsafe {
         C::new(compositor_settings, |address| {
-            context.get_proc_address(address)
+            let address = CString::new(address).expect("address error");
+            display.get_proc_address(address.as_c_str())
         })?
     };
+
+    let context = { context.make_not_current().expect("make context current") };
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -143,8 +296,11 @@ where
         proxy,
         debug,
         receiver,
-        context,
+        display,
         window,
+        configuration,
+        surface,
+        context,
         init_command,
         settings.exit_on_close_request,
     ));
@@ -152,25 +308,25 @@ where
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
     let _ = event_loop.run_return(move |event, event_loop, control_flow| {
-        use glutin::event_loop::ControlFlow;
+        use winit::event_loop::ControlFlow;
 
         if let ControlFlow::ExitWithCode(_) = control_flow {
             return;
         }
 
         let event = match event {
-            glutin::event::Event::WindowEvent {
+            winit::event::Event::WindowEvent {
                 event:
-                    glutin::event::WindowEvent::ScaleFactorChanged {
+                    winit::event::WindowEvent::ScaleFactorChanged {
                         new_inner_size,
                         ..
                     },
                 window_id,
-            } => Some(glutin::event::Event::WindowEvent {
-                event: glutin::event::WindowEvent::Resized(*new_inner_size),
+            } => Some(winit::event::Event::WindowEvent {
+                event: winit::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
-            glutin::event::Event::UserEvent(Event::NewWindow(id, settings)) => {
+            winit::event::Event::UserEvent(Event::NewWindow(id, settings)) => {
                 // TODO(derezzedex)
                 let window = settings
                     .into_builder(
@@ -181,7 +337,7 @@ where
                     .build(event_loop)
                     .expect("Failed to build window");
 
-                Some(glutin::event::Event::UserEvent(Event::WindowCreated(
+                Some(winit::event::Event::UserEvent(Event::WindowCreated(
                     id, window,
                 )))
             }
@@ -208,13 +364,16 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
-    mut proxy: glutin::event_loop::EventLoopProxy<Event<A::Message>>,
+    mut proxy: winit::event_loop::EventLoopProxy<Event<A::Message>>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<
-        glutin::event::Event<'_, Event<A::Message>>,
+        winit::event::Event<'_, Event<A::Message>>,
     >,
-    mut context: glutin::RawContext<glutin::PossiblyCurrent>,
-    window: Window,
+    display: Display,
+    window: winit::window::Window,
+    configuration: Config,
+    surface: Surface<WindowSurface>,
+    context: NotCurrentContext,
     init_command: Command<A::Message>,
     _exit_on_close_request: bool,
 ) where
@@ -223,8 +382,14 @@ async fn run_instance<A, E, C>(
     C: iced_graphics::window::GLCompositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
-    use glutin::event;
     use iced_winit::futures::stream::StreamExt;
+    use winit::event;
+
+    let context = {
+        context
+            .make_current(&surface)
+            .expect("make context current")
+    };
 
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
@@ -241,6 +406,7 @@ async fn run_instance<A, E, C>(
     let mut current_context_window = window.id();
     let mut window_ids = HashMap::from([(window.id(), window::Id::MAIN)]);
     let mut windows = HashMap::from([(window::Id::MAIN, window)]);
+    let mut surfaces = HashMap::from([(window::Id::MAIN, surface)]);
     let mut states = HashMap::from([(window::Id::MAIN, state)]);
     let mut interfaces =
         ManuallyDrop::new(HashMap::from([(window::Id::MAIN, user_interface)]));
@@ -419,10 +585,32 @@ async fn run_instance<A, E, C>(
                         id,
                     );
 
+                    let window_handle = window.raw_window_handle();
+                    let (width, height) = window.inner_size().into();
+                    let surface_attributes =
+                        SurfaceAttributesBuilder::<WindowSurface>::new()
+                            .with_srgb(Some(true))
+                            .build(
+                                window_handle,
+                                NonZeroU32::new(width).unwrap_or(ONE),
+                                NonZeroU32::new(height).unwrap_or(ONE),
+                            );
+
+                    #[allow(unsafe_code)]
+                    let surface = unsafe {
+                        display
+                            .create_window_surface(
+                                &configuration,
+                                &surface_attributes,
+                            )
+                            .expect("failed to create surface")
+                    };
+
                     let _ = states.insert(id, state);
                     let _ = interfaces.insert(id, user_interface);
                     let _ = window_ids.insert(window.id(), id);
                     let _ = windows.insert(id, window);
+                    let _ = surfaces.insert(id, surface);
                 }
                 Event::CloseWindow(id) => {
                     // TODO(derezzedex): log errors
@@ -436,6 +624,9 @@ async fn run_instance<A, E, C>(
                     }
                     if interfaces.remove(&id).is_none() {
                         println!("Failed to remove from `interfaces`!");
+                    }
+                    if surfaces.remove(&id).is_none() {
+                        println!("Failed to remove from `surfaces`!")
                     }
                     if windows.remove(&id).is_none() {
                         println!("Failed to remove from `windows`!")
@@ -455,17 +646,19 @@ async fn run_instance<A, E, C>(
                 let window =
                     window_ids.get(&id).and_then(|id| windows.get(id)).unwrap();
 
+                let surface = window_ids
+                    .get(&id)
+                    .and_then(|id| surfaces.get(id))
+                    .unwrap();
+
                 debug.render_started();
 
-                #[allow(unsafe_code)]
-                unsafe {
-                    if current_context_window != id {
-                        context = context
-                            .make_current(window)
-                            .expect("Make OpenGL context current");
+                if current_context_window != id {
+                    context
+                        .make_current(&surface)
+                        .expect("Make OpenGL context current");
 
-                        current_context_window = id;
-                    }
+                    current_context_window = id;
                 }
 
                 if state.viewport_changed() {
@@ -501,10 +694,11 @@ async fn run_instance<A, E, C>(
                         mouse_interaction = new_mouse_interaction;
                     }
 
-                    context.resize(glutin::dpi::PhysicalSize::new(
-                        physical_size.width,
-                        physical_size.height,
-                    ));
+                    surface.resize(
+                        &context,
+                        NonZeroU32::new(physical_size.width).unwrap_or(ONE),
+                        NonZeroU32::new(physical_size.height).unwrap_or(ONE),
+                    );
 
                     compositor.resize_viewport(physical_size);
 
@@ -519,7 +713,7 @@ async fn run_instance<A, E, C>(
                     &debug.overlay(),
                 );
 
-                context.swap_buffers(window).expect("Swap buffers");
+                surface.swap_buffers(&context).expect("Swap buffers");
 
                 debug.render_finished();
 
@@ -595,7 +789,7 @@ pub enum Event<Message> {
     /// TODO(derezzedex)
     CloseWindow(window::Id),
     /// TODO(derezzedex)
-    WindowCreated(window::Id, glutin::window::Window),
+    WindowCreated(window::Id, winit::window::Window),
 }
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
@@ -607,10 +801,10 @@ pub fn update<A: Application, E: Executor>(
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
-    proxy: &mut glutin::event_loop::EventLoopProxy<Event<A::Message>>,
+    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
-    windows: &HashMap<window::Id, glutin::window::Window>,
+    windows: &HashMap<window::Id, winit::window::Window>,
     graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
 ) where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
@@ -650,9 +844,9 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
-    proxy: &mut glutin::event_loop::EventLoopProxy<Event<A::Message>>,
+    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
     debug: &mut Debug,
-    windows: &HashMap<window::Id, glutin::window::Window>,
+    windows: &HashMap<window::Id, winit::window::Window>,
     _graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
 ) where
     A: Application,
@@ -695,14 +889,14 @@ pub fn run_command<A, E>(
                 }
                 window::Action::Resize { width, height } => {
                     let window = windows.get(&id).expect("No window found");
-                    window.set_inner_size(glutin::dpi::LogicalSize {
+                    window.set_inner_size(winit::dpi::LogicalSize {
                         width,
                         height,
                     });
                 }
                 window::Action::Move { x, y } => {
                     let window = windows.get(&id).expect("No window found");
-                    window.set_outer_position(glutin::dpi::LogicalPosition {
+                    window.set_outer_position(winit::dpi::LogicalPosition {
                         x,
                         y,
                     });

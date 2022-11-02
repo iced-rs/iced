@@ -4,9 +4,11 @@ use crate::multi_window::{Application, Event};
 use crate::window;
 use crate::{Color, Debug, Point, Size, Viewport};
 
-use glutin::event::{Touch, WindowEvent};
-use glutin::event_loop::EventLoopProxy;
-use glutin::window::Window;
+use iced_winit::winit;
+use winit::event::{Touch, WindowEvent};
+use winit::event_loop::EventLoopProxy;
+use winit::window::Window;
+
 use std::collections::HashMap;
 use std::marker::PhantomData;
 
@@ -20,8 +22,8 @@ where
     scale_factor: f64,
     viewport: Viewport,
     viewport_changed: bool,
-    cursor_position: glutin::dpi::PhysicalPosition<f64>,
-    modifiers: glutin::event::ModifiersState,
+    cursor_position: winit::dpi::PhysicalPosition<f64>,
+    modifiers: winit::event::ModifiersState,
     theme: <A::Renderer as crate::Renderer>::Theme,
     appearance: iced_winit::application::Appearance,
     application: PhantomData<A>,
@@ -53,8 +55,8 @@ where
             viewport,
             viewport_changed: false,
             // TODO: Encode cursor availability in the type-system
-            cursor_position: glutin::dpi::PhysicalPosition::new(-1.0, -1.0),
-            modifiers: glutin::event::ModifiersState::default(),
+            cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
+            modifiers: winit::event::ModifiersState::default(),
             theme,
             appearance,
             application: PhantomData,
@@ -95,7 +97,7 @@ where
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
-    pub fn modifiers(&self) -> glutin::event::ModifiersState {
+    pub fn modifiers(&self) -> winit::event::ModifiersState {
         self.modifiers
     }
 
@@ -156,7 +158,7 @@ where
             WindowEvent::CursorLeft { .. } => {
                 // TODO: Encode cursor availability in the type-system
                 self.cursor_position =
-                    glutin::dpi::PhysicalPosition::new(-1.0, -1.0);
+                    winit::dpi::PhysicalPosition::new(-1.0, -1.0);
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = *new_modifiers;
