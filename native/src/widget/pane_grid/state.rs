@@ -4,9 +4,9 @@
 use crate::widget::pane_grid::{
     Axis, Configuration, Direction, Node, Pane, Split,
 };
-use crate::{Point, Rectangle, Size};
+use crate::{Point, Size};
 
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 /// The state of a [`PaneGrid`].
 ///
@@ -31,6 +31,9 @@ pub struct State<T> {
     ///
     /// [`PaneGrid`]: crate::widget::PaneGrid
     pub internal: Internal,
+
+    /// The maximized [`Pane`] of the [`PaneGrid`]
+    pub(super) maximized: Option<Pane>,
 }
 
 impl<T> State<T> {
@@ -52,7 +55,11 @@ impl<T> State<T> {
         let internal =
             Internal::from_configuration(&mut panes, config.into(), 0);
 
-        State { panes, internal }
+        State {
+            panes,
+            internal,
+            maximized: None,
+        }
     }
 
     /// Returns the total amount of panes in the [`State`].
@@ -194,11 +201,27 @@ impl<T> State<T> {
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
     pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
+        if self.maximized == Some(*pane) {
+            let _ = self.maximized.take();
+        }
+
         if let Some(sibling) = self.internal.layout.remove(pane) {
             self.panes.remove(pane).map(|state| (state, sibling))
         } else {
             None
         }
+    }
+
+    /// Maximize the given [`Pane`]. Only this pane will be rendered by the
+    /// [`PaneGrid`] until [`Self::restore()`] is called.
+    pub fn maximize(&mut self, pane: &Pane) {
+        self.maximized = Some(*pane);
+    }
+
+    /// Restore the currently maximized [`Pane`] to it's normal size. All panes
+    /// will be rendered by the [`PaneGrid`]
+    pub fn restore(&mut self) {
+        let _ = self.maximized.take();
     }
 }
 
@@ -226,11 +249,13 @@ impl Internal {
                 let Internal {
                     layout: a,
                     last_id: next_id,
+                    ..
                 } = Self::from_configuration(panes, *a, next_id);
 
                 let Internal {
                     layout: b,
                     last_id: next_id,
+                    ..
                 } = Self::from_configuration(panes, *b, next_id);
 
                 (
@@ -304,25 +329,8 @@ impl Action {
 }
 
 impl Internal {
-    /// Calculates the current [`Pane`] regions from the [`PaneGrid`] layout.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn pane_regions(
-        &self,
-        spacing: f32,
-        size: Size,
-    ) -> BTreeMap<Pane, Rectangle> {
-        self.layout.pane_regions(spacing, size)
-    }
-
-    /// Calculates the current [`Split`] regions from the [`PaneGrid`] layout.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn split_regions(
-        &self,
-        spacing: f32,
-        size: Size,
-    ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
-        self.layout.split_regions(spacing, size)
+    /// The layout [`Node`] of the [`Internal`] state
+    pub fn layout(&self) -> &Node {
+        &self.layout
     }
 }

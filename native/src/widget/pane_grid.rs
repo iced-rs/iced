@@ -101,7 +101,7 @@ where
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     state: &'a state::Internal,
-    elements: Vec<(Pane, Content<'a, Message, Renderer>)>,
+    elements: Elements<Content<'a, Message, Renderer>>,
     width: Length,
     height: Length,
     spacing: u16,
@@ -119,17 +119,30 @@ where
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
     /// The view function will be called to display each [`Pane`] present in the
-    /// [`State`].
+    /// [`State`]. [`bool`] is set if the pane is maximized.
     pub fn new<T>(
         state: &'a State<T>,
-        view: impl Fn(Pane, &'a T) -> Content<'a, Message, Renderer>,
+        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Renderer>,
     ) -> Self {
-        let elements = {
-            state
-                .panes
-                .iter()
-                .map(|(pane, pane_state)| (*pane, view(*pane, pane_state)))
-                .collect()
+        let elements = if let Some((pane, pane_state)) =
+            state.maximized.and_then(|pane| {
+                state.panes.get(&pane).map(|pane_state| (pane, pane_state))
+            }) {
+            Elements::Maximized(
+                pane,
+                view(pane, pane_state, true),
+                Node::Pane(pane),
+            )
+        } else {
+            Elements::Normal(
+                state
+                    .panes
+                    .iter()
+                    .map(|(pane, pane_state)| {
+                        (*pane, view(*pane, pane_state, false))
+                    })
+                    .collect(),
+            )
         };
 
         Self {
@@ -232,11 +245,18 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children_custom(
-            &self.elements,
-            |state, (_, content)| content.diff(state),
-            |(_, content)| content.state(),
-        )
+        match &self.elements {
+            Elements::Normal(elements) => tree.diff_children_custom(
+                elements,
+                |state, (_, content)| content.diff(state),
+                |(_, content)| content.state(),
+            ),
+            Elements::Maximized(_, content, _) => tree.diff_children_custom(
+                &[content],
+                |state, content| content.diff(state),
+                |content| content.state(),
+            ),
+        }
     }
 
     fn width(&self) -> Length {
@@ -255,11 +275,11 @@ where
         layout(
             renderer,
             limits,
-            self.state,
+            self.elements.node(self.state),
             self.width,
             self.height,
             self.spacing,
-            self.elements.iter().map(|(pane, content)| (*pane, content)),
+            self.elements.iter(),
             |element, renderer, limits| element.layout(renderer, limits),
         )
     }
@@ -278,13 +298,13 @@ where
 
         let event_status = update(
             action,
-            self.state,
+            self.elements.node(self.state),
             &event,
             layout,
             cursor_position,
             shell,
             self.spacing,
-            self.elements.iter().map(|(pane, content)| (*pane, content)),
+            self.elements.iter(),
             &self.on_click,
             &self.on_drag,
             &self.on_resize,
@@ -297,7 +317,7 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
             .map(|(((pane, content), tree), layout)| {
-                let is_picked = picked_pane == Some(*pane);
+                let is_picked = picked_pane == Some(pane);
 
                 content.on_event(
                     tree,
@@ -323,7 +343,7 @@ where
     ) -> mouse::Interaction {
         mouse_interaction(
             tree.state.downcast_ref(),
-            self.state,
+            self.elements.node(self.state),
             layout,
             cursor_position,
             self.spacing,
@@ -361,7 +381,7 @@ where
     ) {
         draw(
             tree.state.downcast_ref(),
-            self.state,
+            self.elements.node(self.state),
             layout,
             cursor_position,
             renderer,
@@ -374,7 +394,7 @@ where
             self.elements
                 .iter()
                 .zip(&tree.children)
-                .map(|((pane, content), tree)| (*pane, (content, tree))),
+                .map(|((pane, content), tree)| (pane, (content, tree))),
             |(content, tree),
              renderer,
              style,
@@ -429,7 +449,7 @@ where
 pub fn layout<Renderer, T>(
     renderer: &Renderer,
     limits: &layout::Limits,
-    state: &state::Internal,
+    node: &Node,
     width: Length,
     height: Length,
     spacing: u16,
@@ -439,7 +459,7 @@ pub fn layout<Renderer, T>(
     let limits = limits.width(width).height(height);
     let size = limits.resolve(Size::ZERO);
 
-    let regions = state.pane_regions(f32::from(spacing), size);
+    let regions = node.pane_regions(f32::from(spacing), size);
     let children = elements
         .filter_map(|(pane, element)| {
             let region = regions.get(&pane)?;
@@ -464,7 +484,7 @@ pub fn layout<Renderer, T>(
 /// accordingly.
 pub fn update<'a, Message, T: Draggable>(
     action: &mut state::Action,
-    state: &state::Internal,
+    node: &Node,
     event: &Event,
     layout: Layout<'_>,
     cursor_position: Point,
@@ -492,7 +512,7 @@ pub fn update<'a, Message, T: Draggable>(
                             cursor_position.y - bounds.y,
                         );
 
-                        let splits = state.split_regions(
+                        let splits = node.split_regions(
                             f32::from(spacing),
                             Size::new(bounds.width, bounds.height),
                         );
@@ -570,7 +590,7 @@ pub fn update<'a, Message, T: Draggable>(
                 if let Some((split, _)) = action.picked_split() {
                     let bounds = layout.bounds();
 
-                    let splits = state.split_regions(
+                    let splits = node.split_regions(
                         f32::from(spacing),
                         Size::new(bounds.width, bounds.height),
                     );
@@ -642,7 +662,7 @@ fn click_pane<'a, Message, T>(
 /// Returns the current [`mouse::Interaction`] of a [`PaneGrid`].
 pub fn mouse_interaction(
     action: &state::Action,
-    state: &state::Internal,
+    node: &Node,
     layout: Layout<'_>,
     cursor_position: Point,
     spacing: u16,
@@ -658,7 +678,7 @@ pub fn mouse_interaction(
                 let bounds = layout.bounds();
 
                 let splits =
-                    state.split_regions(f32::from(spacing), bounds.size());
+                    node.split_regions(f32::from(spacing), bounds.size());
 
                 let relative_cursor = Point::new(
                     cursor_position.x - bounds.x,
@@ -687,7 +707,7 @@ pub fn mouse_interaction(
 /// Draws a [`PaneGrid`].
 pub fn draw<Renderer, T>(
     action: &state::Action,
-    state: &state::Internal,
+    node: &Node,
     layout: Layout<'_>,
     cursor_position: Point,
     renderer: &mut Renderer,
@@ -717,7 +737,7 @@ pub fn draw<Renderer, T>(
         .and_then(|(split, axis)| {
             let bounds = layout.bounds();
 
-            let splits = state.split_regions(f32::from(spacing), bounds.size());
+            let splits = node.split_regions(f32::from(spacing), bounds.size());
 
             let (_axis, region, ratio) = splits.get(&split)?;
 
@@ -736,7 +756,7 @@ pub fn draw<Renderer, T>(
                 );
 
                 let splits =
-                    state.split_regions(f32::from(spacing), bounds.size());
+                    node.split_regions(f32::from(spacing), bounds.size());
 
                 let (_split, axis, region) = hovered_split(
                     splits.iter(),
@@ -896,4 +916,49 @@ fn hovered_split<'a>(
             }
         })
         .next()
+}
+
+/// TODO
+#[derive(Debug)]
+pub enum Elements<T> {
+    /// TODO
+    Normal(Vec<(Pane, T)>),
+    /// TODO
+    Maximized(Pane, T, Node),
+}
+
+impl<T> Elements<T> {
+    /// TODO
+    pub fn iter(&self) -> Box<dyn Iterator<Item = (Pane, &T)> + '_> {
+        match self {
+            Elements::Normal(elements) => Box::new(
+                elements.iter().map(|(pane, content)| (*pane, content)),
+            ),
+            Elements::Maximized(pane, content, _) => {
+                Box::new(std::iter::once((*pane, content)))
+            }
+        }
+    }
+
+    /// TODO
+    pub fn iter_mut(
+        &mut self,
+    ) -> Box<dyn Iterator<Item = (Pane, &mut T)> + '_> {
+        match self {
+            Elements::Normal(elements) => Box::new(
+                elements.iter_mut().map(|(pane, content)| (*pane, content)),
+            ),
+            Elements::Maximized(pane, content, _) => {
+                Box::new(std::iter::once((*pane, content)))
+            }
+        }
+    }
+
+    /// TODO
+    pub fn node<'a>(&'a self, state: &'a state::Internal) -> &'a Node {
+        match self {
+            Elements::Normal(_) => state.layout(),
+            Elements::Maximized(_, _, node) => node,
+        }
+    }
 }
