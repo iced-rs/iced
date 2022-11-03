@@ -71,6 +71,7 @@ members = [
     "examples/game_of_life",
     "examples/integration_opengl",
     "examples/integration_wgpu",
+    "examples/lazy",
     "examples/modern_art",
     "examples/multitouch",
     "examples/pane_grid",

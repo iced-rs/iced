@@ -115,6 +115,16 @@ where
 
             let show_controls = bounds.contains(cursor_position);
 
+            self.body.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                theme,
+                style,
+                body_layout,
+                cursor_position,
+                viewport,
+            );
+
             title_bar.draw(
                 &tree.children[1],
                 renderer,
@@ -124,16 +134,6 @@ where
                 cursor_position,
                 viewport,
                 show_controls,
-            );
-
-            self.body.as_widget().draw(
-                &tree.children[0],
-                renderer,
-                theme,
-                style,
-                body_layout,
-                cursor_position,
-                viewport,
             );
         } else {
             self.body.as_widget().draw(
@@ -238,6 +238,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
         renderer: &Renderer,
+        drag_enabled: bool,
     ) -> mouse::Interaction {
         let (body_layout, title_bar_interaction) =
             if let Some(title_bar) = &self.title_bar {
@@ -247,7 +248,7 @@ where
                 let is_over_pick_area = title_bar
                     .is_over_pick_area(title_bar_layout, cursor_position);
 
-                if is_over_pick_area {
+                if is_over_pick_area && drag_enabled {
                     return mouse::Interaction::Grab;
                 }
 
