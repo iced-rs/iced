@@ -1,15 +1,14 @@
-use lyon::geom::euclid::Point2D;
-use std::borrow::Cow;
-
-use iced_native::{Point, Rectangle, Size, Vector};
-
 use crate::gradient::Gradient;
 use crate::triangle;
 use crate::triangle::Vertex2D;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
 use crate::Primitive;
 
+use iced_native::{Point, Rectangle, Size, Vector};
+
+use lyon::geom::euclid;
 use lyon::tessellation;
+use std::borrow::Cow;
 
 /// The frame of a [`Canvas`].
 ///
@@ -67,8 +66,9 @@ pub(crate) struct Transform {
 impl Transform {
     /// Transforms the given [Point] by the transformation matrix.
     fn transform_point(&self, point: &mut Point) {
-        let transformed =
-            self.raw.transform_point(Point2D::new(point.x, point.y));
+        let transformed = self
+            .raw
+            .transform_point(euclid::Point2D::new(point.x, point.y));
         point.x = transformed.x;
         point.y = transformed.y;
     }
