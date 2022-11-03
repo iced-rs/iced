@@ -281,6 +281,15 @@ impl Internal {
     }
 }
 
+/// The scoped internal state of the [`PaneGrid`]
+#[derive(Debug)]
+pub enum Scoped<'a> {
+    /// The state when all panes are visible
+    All(&'a Internal),
+    /// The state when a pane is maximized
+    Maximized(Node),
+}
+
 /// The current action of a [`PaneGrid`].
 ///
 /// [`PaneGrid`]: crate::widget::PaneGrid
@@ -328,9 +337,12 @@ impl Action {
     }
 }
 
-impl Internal {
-    /// The layout [`Node`] of the [`Internal`] state
+impl<'a> Scoped<'a> {
+    /// The layout [`Node`] of the [`Scope`] state
     pub fn layout(&self) -> &Node {
-        &self.layout
+        match self {
+            Scoped::All(Internal { layout, .. }) => layout,
+            Scoped::Maximized(layout) => layout,
+        }
     }
 }
