@@ -115,7 +115,8 @@ impl Sandbox for App {
                 )
                 .on_submit(Message::AddOption(self.input.clone())),
             ]
-            .spacing(20),
+            .spacing(20)
+            .padding(20),
         )
         .into()
     }
