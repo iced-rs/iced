@@ -228,6 +228,13 @@ impl<T> State<T> {
     pub fn restore(&mut self) {
         let _ = self.maximized.take();
     }
+
+    /// Returns the maximized [`Pane`] of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
+    pub fn maximized(&self) -> Option<Pane> {
+        self.maximized
+    }
 }
 
 /// The internal state of a [`PaneGrid`].
