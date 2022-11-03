@@ -2,15 +2,14 @@
 mod gradient;
 mod solid;
 
-use crate::{program, Transformation};
+use crate::program;
+use crate::Transformation;
 
 use iced_graphics::layer::mesh::{self, Mesh};
-use iced_graphics::triangle;
+use iced_graphics::triangle::{self, Vertex2D};
 
 use glow::HasContext;
 use std::marker::PhantomData;
-
-pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {

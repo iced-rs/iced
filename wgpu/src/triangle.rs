@@ -1,18 +1,18 @@
 //! Draw meshes of triangles.
-use crate::{settings, Transformation};
-use core::fmt;
-use std::fmt::Formatter;
-
-use iced_graphics::layer::mesh::{self, Mesh};
-use iced_graphics::triangle;
-use iced_graphics::Size;
-
-use crate::buffer::r#static::Buffer;
-pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-
 mod gradient;
 mod msaa;
 mod solid;
+
+use crate::buffer::r#static::Buffer;
+use crate::settings;
+use crate::Transformation;
+
+use iced_graphics::layer::mesh::{self, Mesh};
+use iced_graphics::triangle::{self, Vertex2D};
+use iced_graphics::Size;
+
+use core::fmt;
+use std::fmt::Formatter;
 
 /// Triangle pipeline for all mesh layers in a [`iced_graphics::Canvas`] widget.
 #[derive(Debug)]
