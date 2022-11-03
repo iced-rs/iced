@@ -25,18 +25,19 @@ use iced_core::{Background, Color};
 pub enum Theme {
     Light,
     Dark,
-    Custom {
-        palette: Box<Palette>,
-        extended: Box<Extended>,
-    }
+    Custom(Custom),
 }
 
 impl Theme {
+    pub fn custom(palette: Palette) -> Self {
+        Self::Custom(Custom::new(palette))
+    }
+
     pub fn palette(self) -> Palette {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
-            Self::Custom { palette, .. } => *palette
+            Self::Custom(custom) => custom.palette,
         }
     }
 
@@ -44,7 +45,7 @@ impl Theme {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
-            Self::Custom { extended, .. } => extended,
+            Self::Custom(custom) => &custom.extended,
         }
     }
 }
@@ -52,6 +53,21 @@ impl Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self::Light
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Custom {
+    palette: Palette,
+    extended: Extended,
+}
+
+impl Custom {
+    pub fn new(palette: Palette) -> Self {
+        Self {
+            palette,
+            extended: Extended::generate(palette),
+        }
     }
 }
 
