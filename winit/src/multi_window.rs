@@ -68,9 +68,6 @@ where
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Send;
 
-    /// TODO(derezzedex)
-    fn windows(&self) -> Vec<(window::Id, settings::Window)>;
-
     /// Handles a __message__ and updates the state of the [`Program`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
@@ -459,7 +456,7 @@ async fn run_instance<A, E, C>(
                         );
 
                         // Update window
-                        state.synchronize(&application, &windows, &proxy);
+                        state.synchronize(&application, &windows);
 
                         let should_exit = application.should_exit();
 

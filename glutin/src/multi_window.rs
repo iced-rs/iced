@@ -515,7 +515,7 @@ async fn run_instance<A, E, C>(
                         );
 
                         // Update window
-                        state.synchronize(&application, &windows, &proxy);
+                        state.synchronize(&application, &windows);
 
                         let should_exit = application.should_exit();
 

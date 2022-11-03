@@ -131,6 +131,7 @@ impl Application for Example {
             }
             WindowMessage::CloseWindow => {
                 let _ = self.windows.remove(&id);
+                return window::close(id);
             }
             WindowMessage::Resized(pane_grid::ResizeEvent { split, ratio }) => {
                 let window = self.windows.get_mut(&id).unwrap();
@@ -173,8 +174,9 @@ impl Application for Example {
                         title: format!("New window ({})", self.windows.len()),
                     };
 
-                    self.windows
-                        .insert(window::Id::new(self.windows.len()), window);
+                    let window_id = window::Id::new(self.windows.len());
+                    self.windows.insert(window_id, window);
+                    return window::spawn(window_id, Default::default());
                 }
             }
             WindowMessage::Dragged(pane_grid::DragEvent::Dropped {
@@ -241,13 +243,6 @@ impl Application for Example {
                 _ => None,
             }
         })
-    }
-
-    fn windows(&self) -> Vec<(window::Id, iced::window::Settings)> {
-        self.windows
-            .iter()
-            .map(|(&id, _window)| (id, iced::window::Settings::default()))
-            .collect()
     }
 
     fn close_requested(&self, window: window::Id) -> Self::Message {

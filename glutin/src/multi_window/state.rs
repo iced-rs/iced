@@ -1,12 +1,11 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
-use crate::multi_window::{Application, Event};
+use crate::multi_window::Application;
 use crate::window;
 use crate::{Color, Debug, Point, Size, Viewport};
 
 use iced_winit::winit;
 use winit::event::{Touch, WindowEvent};
-use winit::event_loop::EventLoopProxy;
 use winit::window::Window;
 
 use std::collections::HashMap;
@@ -189,28 +188,7 @@ where
         &mut self,
         application: &A,
         windows: &HashMap<window::Id, Window>,
-        proxy: &EventLoopProxy<Event<A::Message>>,
     ) {
-        let new_windows = application.windows();
-
-        // Check for windows to close
-        for window_id in windows.keys() {
-            if !new_windows.iter().any(|(id, _)| id == window_id) {
-                proxy
-                    .send_event(Event::CloseWindow(*window_id))
-                    .expect("Failed to send message");
-            }
-        }
-
-        // Check for windows to spawn
-        for (id, settings) in new_windows {
-            if !windows.contains_key(&id) {
-                proxy
-                    .send_event(Event::NewWindow(id, settings))
-                    .expect("Failed to send message");
-            }
-        }
-
         let window = windows.values().next().expect("No window found");
 
         // Update window title

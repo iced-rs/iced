@@ -46,9 +46,6 @@ pub trait Application: Sized {
     /// title of your application when necessary.
     fn title(&self) -> String;
 
-    /// TODO(derezzedex)
-    fn windows(&self) -> Vec<(window::Id, window::Settings)>;
-
     /// Handles a __message__ and updates the state of the [`Application`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
@@ -168,16 +165,6 @@ where
 
     fn title(&self) -> String {
         self.0.title()
-    }
-
-    fn windows(&self) -> Vec<(window::Id, iced_winit::settings::Window)> {
-        self.0
-            .windows()
-            .into_iter()
-            .map(|(id, settings)| {
-                (id, iced_winit::settings::Window::from(settings))
-            })
-            .collect()
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
