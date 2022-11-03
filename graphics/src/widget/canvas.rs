@@ -3,17 +3,16 @@
 //! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
 //! [`Frame`]. It can be used for animation, data visualization, game graphics,
 //! and more!
-
 pub mod event;
+pub mod fill;
 pub mod path;
+pub mod stroke;
 
 mod cache;
 mod cursor;
-pub mod fill;
-pub(crate) mod frame;
+mod frame;
 mod geometry;
 mod program;
-pub mod stroke;
 mod text;
 
 pub use cache::Cache;
