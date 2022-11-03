@@ -72,6 +72,7 @@ members = [
     "examples/geometry",
     "examples/integration_opengl",
     "examples/integration_wgpu",
+    "examples/lazy",
     "examples/multitouch",
     "examples/pane_grid",
     "examples/pick_list",

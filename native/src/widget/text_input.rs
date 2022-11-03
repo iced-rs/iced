@@ -92,7 +92,7 @@ where
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
-            padding: Padding::ZERO,
+            padding: Padding::new(5),
             size: None,
             on_change: Box::new(on_change),
             on_paste: None,
