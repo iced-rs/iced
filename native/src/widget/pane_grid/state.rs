@@ -214,12 +214,16 @@ impl<T> State<T> {
 
     /// Maximize the given [`Pane`]. Only this pane will be rendered by the
     /// [`PaneGrid`] until [`Self::restore()`] is called.
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub fn maximize(&mut self, pane: &Pane) {
         self.maximized = Some(*pane);
     }
 
     /// Restore the currently maximized [`Pane`] to it's normal size. All panes
-    /// will be rendered by the [`PaneGrid`]
+    /// will be rendered by the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub fn restore(&mut self) {
         let _ = self.maximized.take();
     }
@@ -282,6 +286,8 @@ impl Internal {
 }
 
 /// The scoped internal state of the [`PaneGrid`]
+///
+/// [`PaneGrid`]: crate::widget::PaneGrid
 #[derive(Debug)]
 pub enum Scoped<'a> {
     /// The state when all panes are visible
@@ -338,7 +344,7 @@ impl Action {
 }
 
 impl<'a> Scoped<'a> {
-    /// The layout [`Node`] of the [`Scope`] state
+    /// The layout [`Node`] of the [`Scoped`] state
     pub fn layout(&self) -> &Node {
         match self {
             Scoped::All(Internal { layout, .. }) => layout,
