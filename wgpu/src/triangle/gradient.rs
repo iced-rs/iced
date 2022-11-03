@@ -245,6 +245,13 @@ impl Pipeline {
         self.color_stops_pending_write.color_stops.clear();
     }
 
+    pub fn set_render_pass_pipeline<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        render_pass.set_pipeline(&self.pipeline);
+    }
+
     /// Configures the current render pass to draw the gradient at its offset stored in the
     /// [DynamicBuffer] at [index].
     pub fn configure_render_pass<'a>(
@@ -252,7 +259,6 @@ impl Pipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
         count: usize,
     ) {
-        render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(
             0,
             &self.bind_group,

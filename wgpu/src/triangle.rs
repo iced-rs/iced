@@ -186,6 +186,7 @@ impl Pipeline {
 
             let mut num_solids = 0;
             let mut num_gradients = 0;
+            let mut last_is_solid = None;
 
             for (index, mesh) in meshes.iter().enumerate() {
                 let clip_bounds = (mesh.clip_bounds * scale_factor).snap();
@@ -199,17 +200,35 @@ impl Pipeline {
 
                 match mesh.style {
                     mesh::Style::Solid(_) => {
+                        if !last_is_solid.unwrap_or(false) {
+                            self.pipelines
+                                .solid
+                                .set_render_pass_pipeline(&mut render_pass);
+
+                            last_is_solid = Some(true);
+                        }
+
                         self.pipelines.solid.configure_render_pass(
                             &mut render_pass,
                             num_solids,
                         );
+
                         num_solids += 1;
                     }
                     mesh::Style::Gradient(_) => {
+                        if last_is_solid.unwrap_or(true) {
+                            self.pipelines
+                                .gradient
+                                .set_render_pass_pipeline(&mut render_pass);
+
+                            last_is_solid = Some(false);
+                        }
+
                         self.pipelines.gradient.configure_render_pass(
                             &mut render_pass,
                             num_gradients,
                         );
+
                         num_gradients += 1;
                     }
                 };
