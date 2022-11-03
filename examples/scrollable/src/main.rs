@@ -14,9 +14,15 @@ struct ScrollableDemo {
     variants: Vec<Variant>,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum ThemeType {
+    Light,
+    Dark,
+}
+
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(Theme),
+    ThemeChanged(ThemeType),
     ScrollToTop(usize),
     ScrollToBottom(usize),
     Scrolled(usize, f32),
@@ -45,7 +51,10 @@ impl Application for ScrollableDemo {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::ThemeChanged(theme) => {
-                self.theme = theme;
+                self.theme = match theme {
+                    ThemeType::Light => Theme::Light,
+                    ThemeType::Dark => Theme::Dark,
+                };
 
                 Command::none()
             }
@@ -78,17 +87,15 @@ impl Application for ScrollableDemo {
     }
 
     fn view(&self) -> Element<Message> {
-        let ScrollableDemo {
-            theme, variants, ..
-        } = self;
+        let ScrollableDemo { variants, .. } = self;
 
-        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
+        let choose_theme = [ThemeType::Light, ThemeType::Dark].iter().fold(
             column!["Choose a theme:"].spacing(10),
             |column, option| {
                 column.push(radio(
                     format!("{:?}", option),
                     *option,
-                    Some(*theme),
+                    Some(*option),
                     Message::ThemeChanged,
                 ))
             },
@@ -198,7 +205,7 @@ impl Application for ScrollableDemo {
     }
 
     fn theme(&self) -> Theme {
-        self.theme
+        self.theme.clone()
     }
 }
 

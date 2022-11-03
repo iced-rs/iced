@@ -1,5 +1,6 @@
 pub mod palette;
 
+use self::palette::Extended;
 pub use self::palette::Palette;
 
 use crate::application;
@@ -20,17 +21,23 @@ use crate::toggler;
 
 use iced_core::{Background, Color};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Theme {
     Light,
     Dark,
+    Custom(Box<Custom>),
 }
 
 impl Theme {
-    pub fn palette(self) -> Palette {
+    pub fn custom(palette: Palette) -> Self {
+        Self::Custom(Box::new(Custom::new(palette)))
+    }
+
+    pub fn palette(&self) -> Palette {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
+            Self::Custom(custom) => custom.palette,
         }
     }
 
@@ -38,6 +45,7 @@ impl Theme {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
+            Self::Custom(custom) => &custom.extended,
         }
     }
 }
@@ -45,6 +53,21 @@ impl Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self::Light
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Custom {
+    palette: Palette,
+    extended: Extended,
+}
+
+impl Custom {
+    pub fn new(palette: Palette) -> Self {
+        Self {
+            palette,
+            extended: Extended::generate(palette),
+        }
     }
 }
 
@@ -71,7 +94,7 @@ impl application::StyleSheet for Theme {
                 background_color: palette.background.base.color,
                 text_color: palette.background.base.text,
             },
-            Application::Custom(f) => f(*self),
+            Application::Custom(f) => f(self.clone()),
         }
     }
 }
