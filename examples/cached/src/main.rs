@@ -12,25 +12,6 @@ pub fn main() -> iced::Result {
     App::run(Settings::default())
 }
 
-#[derive(Hash)]
-enum SortOrder {
-    Ascending,
-    Descending,
-}
-
-impl std::fmt::Display for SortOrder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Ascending => "Ascending",
-                Self::Descending => "Descending",
-            }
-        )
-    }
-}
-
 struct App {
     options: HashSet<String>,
     input: String,
@@ -137,5 +118,24 @@ impl Sandbox for App {
             .spacing(20),
         )
         .into()
+    }
+}
+
+#[derive(Debug, Hash)]
+enum SortOrder {
+    Ascending,
+    Descending,
+}
+
+impl std::fmt::Display for SortOrder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Ascending => "Ascending",
+                Self::Descending => "Descending",
+            }
+        )
     }
 }
