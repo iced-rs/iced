@@ -1,5 +1,4 @@
 //! A collection of triangle primitives.
-
 use crate::gradient::Gradient;
 use crate::{triangle, Color, Point, Rectangle};
 
