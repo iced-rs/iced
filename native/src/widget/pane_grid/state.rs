@@ -160,6 +160,7 @@ impl<T> State<T> {
         node.split(new_split, axis, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
+        let _ = self.maximized.take();
 
         Some((new_pane, new_split))
     }
