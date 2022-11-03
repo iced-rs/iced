@@ -63,13 +63,15 @@ impl Program {
         }
 
         if color != &self.uniform_data.color {
+            let [r, g, b, a] = color.into_linear();
+
             unsafe {
                 gl.uniform_4_f32(
                     Some(&self.uniform_data.color_location),
-                    color.r,
-                    color.g,
-                    color.b,
-                    color.a,
+                    r,
+                    g,
+                    b,
+                    a,
                 );
             }
 

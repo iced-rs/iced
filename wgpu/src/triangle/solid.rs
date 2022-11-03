@@ -20,9 +20,11 @@ pub(super) struct Uniforms {
 
 impl Uniforms {
     pub fn new(transform: Transformation, color: Color) -> Self {
+        let [r, g, b, a] = color.into_linear();
+
         Self {
             transform: transform.into(),
-            color: Vec4::new(color.r, color.g, color.b, color.a),
+            color: Vec4::new(r, g, b, a),
         }
     }
 }
