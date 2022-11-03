@@ -85,7 +85,7 @@ use crate::{
 /// let (mut state, _) = pane_grid::State::new(PaneState::SomePane);
 ///
 /// let pane_grid =
-///     PaneGrid::new(&state, |pane, state| {
+///     PaneGrid::new(&state, |pane, state, is_maximized| {
 ///         pane_grid::Content::new(match state {
 ///             PaneState::SomePane => text("This is some pane"),
 ///             PaneState::AnotherKindOfPane => text("This is another kind of pane"),
@@ -302,10 +302,11 @@ where
     ) -> event::Status {
         let action = tree.state.downcast_mut::<state::Action>();
 
-        let on_drag = self
-            .drag_enabled()
-            .then_some(&self.on_drag)
-            .unwrap_or(&None);
+        let on_drag = if self.drag_enabled() {
+            &self.on_drag
+        } else {
+            &None
+        };
 
         let event_status = update(
             action,
