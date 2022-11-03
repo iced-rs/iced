@@ -15,14 +15,14 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 
 #[allow(missing_debug_implementations)]
-pub struct Cached<'a, Message, Renderer, Dependency, View> {
+pub struct Lazy<'a, Message, Renderer, Dependency, View> {
     dependency: Dependency,
     view: Box<dyn Fn() -> View + 'a>,
     element: RefCell<Option<Rc<RefCell<Element<'static, Message, Renderer>>>>>,
 }
 
 impl<'a, Message, Renderer, Dependency, View>
-    Cached<'a, Message, Renderer, Dependency, View>
+    Lazy<'a, Message, Renderer, Dependency, View>
 where
     Dependency: Hash + 'a,
     View: Into<Element<'static, Message, Renderer>>,
@@ -56,7 +56,7 @@ struct Internal<Message, Renderer> {
 }
 
 impl<'a, Message, Renderer, Dependency, View> Widget<Message, Renderer>
-    for Cached<'a, Message, Renderer, Dependency, View>
+    for Lazy<'a, Message, Renderer, Dependency, View>
 where
     View: Into<Element<'static, Message, Renderer>> + 'static,
     Dependency: Hash + 'a,
@@ -237,7 +237,7 @@ where
 
 #[self_referencing]
 struct Overlay<'a, 'b, Message, Renderer, Dependency, View> {
-    cached: &'a Cached<'b, Message, Renderer, Dependency, View>,
+    cached: &'a Lazy<'b, Message, Renderer, Dependency, View>,
     tree: &'a mut Tree,
     types: PhantomData<(Message, Dependency, View)>,
 
@@ -348,7 +348,7 @@ where
 }
 
 impl<'a, Message, Renderer, Dependency, View>
-    From<Cached<'a, Message, Renderer, Dependency, View>>
+    From<Lazy<'a, Message, Renderer, Dependency, View>>
     for Element<'a, Message, Renderer>
 where
     View: Into<Element<'static, Message, Renderer>> + 'static,
@@ -356,7 +356,7 @@ where
     Message: 'static,
     Dependency: Hash + 'a,
 {
-    fn from(cached: Cached<'a, Message, Renderer, Dependency, View>) -> Self {
-        Self::new(cached)
+    fn from(lazy: Lazy<'a, Message, Renderer, Dependency, View>) -> Self {
+        Self::new(lazy)
     }
 }

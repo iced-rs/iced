@@ -3,7 +3,7 @@ use iced::widget::{
     button, column, horizontal_space, row, scrollable, text, text_input,
 };
 use iced::{Element, Length, Sandbox, Settings};
-use iced_lazy::Cached;
+use iced_lazy::lazy;
 
 use std::collections::HashSet;
 
@@ -71,38 +71,35 @@ impl Sandbox for App {
     }
 
     fn view(&self) -> Element<Message> {
-        let options =
-            Cached::new((&self.sort_order, self.options.len()), || {
-                let mut options: Vec<_> = self.options.iter().collect();
+        let options = lazy((&self.sort_order, self.options.len()), || {
+            let mut options: Vec<_> = self.options.iter().collect();
 
-                options.sort_by(|a, b| match self.sort_order {
-                    SortOrder::Ascending => {
-                        a.to_lowercase().cmp(&b.to_lowercase())
-                    }
-                    SortOrder::Descending => {
-                        b.to_lowercase().cmp(&a.to_lowercase())
-                    }
-                });
-
-                column(
-                    options
-                        .into_iter()
-                        .map(|option| {
-                            row![
-                                text(option),
-                                horizontal_space(Length::Fill),
-                                button("Delete")
-                                    .on_press(Message::DeleteOption(
-                                        option.to_string(),
-                                    ),)
-                                    .style(theme::Button::Destructive)
-                            ]
-                            .into()
-                        })
-                        .collect(),
-                )
-                .spacing(10)
+            options.sort_by(|a, b| match self.sort_order {
+                SortOrder::Ascending => a.to_lowercase().cmp(&b.to_lowercase()),
+                SortOrder::Descending => {
+                    b.to_lowercase().cmp(&a.to_lowercase())
+                }
             });
+
+            column(
+                options
+                    .into_iter()
+                    .map(|option| {
+                        row![
+                            text(option),
+                            horizontal_space(Length::Fill),
+                            button("Delete")
+                                .on_press(Message::DeleteOption(
+                                    option.to_string(),
+                                ),)
+                                .style(theme::Button::Destructive)
+                        ]
+                        .into()
+                    })
+                    .collect(),
+            )
+            .spacing(10)
+        });
 
         column![
             scrollable(options).height(Length::Fill),
