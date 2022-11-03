@@ -45,12 +45,16 @@ use std::marker::PhantomData;
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// // First, we define the data we need for drawing
-/// use iced_graphics::{Color, Rectangle};
-/// use iced_graphics::widget::Canvas;
-/// use iced_graphics::widget::canvas::{Cursor, Frame, Geometry, Path, Program};
-/// use iced_style::Theme;
+/// # mod iced {
+/// #     pub mod widget {
+/// #         pub use iced_graphics::widget::canvas;
+/// #     }
+/// #     pub use iced_native::{Color, Rectangle, Theme};
+/// # }
+/// use iced::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// use iced::{Color, Rectangle, Theme};
 ///
+/// // First, we define the data we need for drawing
 /// #[derive(Debug)]
 /// struct Circle {
 ///     radius: f32,
