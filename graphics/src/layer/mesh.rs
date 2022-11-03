@@ -1,6 +1,6 @@
 //! A collection of triangle primitives.
-use crate::gradient::Gradient;
-use crate::{triangle, Color, Point, Rectangle};
+use crate::triangle;
+use crate::{Point, Rectangle};
 
 /// A mesh of triangles.
 #[derive(Debug, Clone, Copy)]
@@ -15,22 +15,7 @@ pub struct Mesh<'a> {
     pub clip_bounds: Rectangle<f32>,
 
     /// The shader of the [`Mesh`].
-    pub style: &'a Style,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-/// Supported shaders for primitives.
-pub enum Style {
-    /// Fill a primitive with a solid color.
-    Solid(Color),
-    /// Fill a primitive with an interpolated color.
-    Gradient(Gradient),
-}
-
-impl From<Gradient> for Style {
-    fn from(gradient: Gradient) -> Self {
-        Self::Gradient(gradient)
-    }
+    pub style: &'a triangle::Style,
 }
 
 /// Returns the number of total vertices & total indices of all [`Mesh`]es.

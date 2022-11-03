@@ -133,7 +133,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
     if solid {
         frame.fill_rectangle(top_left, size, random_color());
     } else {
-        frame.fill_rectangle(top_left, size, &gradient(top_left, size));
+        frame.fill_rectangle(top_left, size, gradient(top_left, size));
     };
 
     solid

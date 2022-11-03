@@ -1,8 +1,6 @@
 //! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
+pub use crate::triangle::Style;
 
-use crate::gradient::Gradient;
-use crate::layer::mesh;
-use crate::widget::canvas::frame::Transform;
 use iced_native::Color;
 
 /// The style of a stroke.
@@ -11,7 +9,7 @@ pub struct Stroke<'a> {
     /// The color or gradient of the stroke.
     ///
     /// By default, it is set to [`StrokeStyle::Solid`] `BLACK`.
-    pub style: Style<'a>,
+    pub style: Style,
     /// The distance between the two edges of the stroke.
     pub width: f32,
     /// The shape to be used at the end of open subpaths when they are stroked.
@@ -56,27 +54,6 @@ impl<'a> Default for Stroke<'a> {
             line_cap: LineCap::default(),
             line_join: LineJoin::default(),
             line_dash: LineDash::default(),
-        }
-    }
-}
-
-/// The style of a [`Stroke`].
-#[derive(Debug, Clone, Copy)]
-pub enum Style<'a> {
-    /// A solid color
-    Solid(Color),
-    /// A color gradient
-    Gradient(&'a Gradient),
-}
-
-impl<'a> Style<'a> {
-    /// Converts a fill's [Style] to a [mesh::Style] for use in the renderer's shader.
-    pub(crate) fn as_mesh_style(&self, transform: &Transform) -> mesh::Style {
-        match self {
-            Style::Solid(color) => mesh::Style::Solid(*color),
-            Style::Gradient(gradient) => mesh::Style::Gradient(
-                transform.transform_gradient((*gradient).clone()),
-            ),
         }
     }
 }

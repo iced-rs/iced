@@ -3,8 +3,11 @@ mod gradient;
 mod solid;
 
 use crate::{program, Transformation};
+
+use iced_graphics::layer::mesh::{self, Mesh};
+use iced_graphics::triangle;
+
 use glow::HasContext;
-use iced_graphics::layer::{mesh, Mesh};
 use std::marker::PhantomData;
 
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
@@ -136,10 +139,10 @@ impl Pipeline {
                 );
 
                 match mesh.style {
-                    mesh::Style::Solid(color) => {
+                    triangle::Style::Solid(color) => {
                         self.programs.solid.use_program(gl, color, &transform);
                     }
-                    mesh::Style::Gradient(gradient) => {
+                    triangle::Style::Gradient(gradient) => {
                         self.programs
                             .gradient
                             .use_program(gl, gradient, &transform);

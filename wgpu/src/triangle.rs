@@ -3,7 +3,8 @@ use crate::{settings, Transformation};
 use core::fmt;
 use std::fmt::Formatter;
 
-use iced_graphics::layer::{mesh, Mesh};
+use iced_graphics::layer::mesh::{self, Mesh};
+use iced_graphics::triangle;
 use iced_graphics::Size;
 
 use crate::buffer::r#static::Buffer;
@@ -141,10 +142,10 @@ impl Pipeline {
 
             //push uniform data to CPU buffers
             match mesh.style {
-                mesh::Style::Solid(color) => {
+                triangle::Style::Solid(color) => {
                     self.pipelines.solid.push(transform, color);
                 }
-                mesh::Style::Gradient(gradient) => {
+                triangle::Style::Gradient(gradient) => {
                     self.pipelines.gradient.push(transform, gradient);
                 }
             }
@@ -199,7 +200,7 @@ impl Pipeline {
                 );
 
                 match mesh.style {
-                    mesh::Style::Solid(_) => {
+                    triangle::Style::Solid(_) => {
                         if !last_is_solid.unwrap_or(false) {
                             self.pipelines
                                 .solid
@@ -215,7 +216,7 @@ impl Pipeline {
 
                         num_solids += 1;
                     }
-                    mesh::Style::Gradient(_) => {
+                    triangle::Style::Gradient(_) => {
                         if last_is_solid.unwrap_or(true) {
                             self.pipelines
                                 .gradient

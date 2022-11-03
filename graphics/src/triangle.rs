@@ -1,4 +1,6 @@
 //! Draw geometry using meshes of triangles.
+use crate::{Color, Gradient};
+
 use bytemuck::{Pod, Zeroable};
 
 /// A set of [`Vertex2D`] and indices representing a list of triangles.
@@ -18,4 +20,25 @@ pub struct Mesh2D {
 pub struct Vertex2D {
     /// The vertex position in 2D space.
     pub position: [f32; 2],
+}
+
+#[derive(Debug, Clone, PartialEq)]
+/// Supported shaders for triangle primitives.
+pub enum Style {
+    /// Fill a primitive with a solid color.
+    Solid(Color),
+    /// Fill a primitive with an interpolated color.
+    Gradient(Gradient),
+}
+
+impl From<Color> for Style {
+    fn from(color: Color) -> Self {
+        Self::Solid(color)
+    }
+}
+
+impl From<Gradient> for Style {
+    fn from(gradient: Gradient) -> Self {
+        Self::Gradient(gradient)
+    }
 }

@@ -213,7 +213,7 @@ impl<Message> canvas::Program<Message> for State {
                     .build()
                     .expect("Build Earth fill gradient");
 
-                frame.fill(&earth, &earth_fill);
+                frame.fill(&earth, earth_fill);
 
                 frame.with_save(|frame| {
                     frame.rotate(rotation * 10.0);

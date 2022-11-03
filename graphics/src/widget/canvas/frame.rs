@@ -4,7 +4,6 @@ use std::borrow::Cow;
 use iced_native::{Point, Rectangle, Size, Vector};
 
 use crate::gradient::Gradient;
-use crate::layer::mesh;
 use crate::triangle;
 use crate::triangle::Vertex2D;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
@@ -26,7 +25,7 @@ pub struct Frame {
 }
 
 struct BufferStack {
-    stack: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, mesh::Style)>,
+    stack: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, triangle::Style)>,
 }
 
 impl BufferStack {
@@ -36,7 +35,7 @@ impl BufferStack {
 
     fn get(
         &mut self,
-        mesh_style: mesh::Style,
+        mesh_style: triangle::Style,
     ) -> tessellation::BuffersBuilder<'_, Vertex2D, u32, Vertex2DBuilder> {
         match self.stack.last_mut() {
             Some((_, current_style)) if current_style == &mesh_style => {}
@@ -72,6 +71,15 @@ impl Transform {
             self.raw.transform_point(Point2D::new(point.x, point.y));
         point.x = transformed.x;
         point.y = transformed.y;
+    }
+
+    fn transform_style(&self, style: triangle::Style) -> triangle::Style {
+        match style {
+            triangle::Style::Solid(color) => triangle::Style::Solid(color),
+            triangle::Style::Gradient(gradient) => {
+                triangle::Style::Gradient(self.transform_gradient(gradient))
+            }
+        }
     }
 
     pub(crate) fn transform_gradient(
@@ -135,12 +143,12 @@ impl Frame {
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
-    pub fn fill<'a>(&mut self, path: &Path, fill: impl Into<Fill<'a>>) {
+    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
         let Fill { style, rule } = fill.into();
 
         let mut buffer = self
             .buffers
-            .get(style.as_mesh_style(&self.transforms.current));
+            .get(self.transforms.current.transform_style(style));
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
@@ -165,17 +173,17 @@ impl Frame {
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
     /// its `Size` on the [`Frame`] by filling it with the provided style.
-    pub fn fill_rectangle<'a>(
+    pub fn fill_rectangle(
         &mut self,
         top_left: Point,
         size: Size,
-        fill: impl Into<Fill<'a>>,
+        fill: impl Into<Fill>,
     ) {
         let Fill { style, rule } = fill.into();
 
         let mut buffer = self
             .buffers
-            .get(style.as_mesh_style(&self.transforms.current));
+            .get(self.transforms.current.transform_style(style));
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -206,7 +214,7 @@ impl Frame {
 
         let mut buffer = self
             .buffers
-            .get(stroke.style.as_mesh_style(&self.transforms.current));
+            .get(self.transforms.current.transform_style(stroke.style));
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;

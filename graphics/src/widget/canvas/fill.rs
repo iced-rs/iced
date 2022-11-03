@@ -1,17 +1,15 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
+use crate::{Color, Gradient};
 
-use crate::gradient::Gradient;
-use crate::layer::mesh;
-use crate::widget::canvas::frame::Transform;
-use iced_native::Color;
+pub use crate::triangle::Style;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
-pub struct Fill<'a> {
+pub struct Fill {
     /// The color or gradient of the fill.
     ///
     /// By default, it is set to [`FillStyle::Solid`] `BLACK`.
-    pub style: Style<'a>,
+    pub style: Style,
 
     /// The fill rule defines how to determine what is inside and what is
     /// outside of a shape.
@@ -24,17 +22,17 @@ pub struct Fill<'a> {
     pub rule: FillRule,
 }
 
-impl<'a> Default for Fill<'a> {
-    fn default() -> Fill<'a> {
-        Fill {
+impl Default for Fill {
+    fn default() -> Self {
+        Self {
             style: Style::Solid(Color::BLACK),
             rule: FillRule::NonZero,
         }
     }
 }
 
-impl<'a> From<Color> for Fill<'a> {
-    fn from(color: Color) -> Fill<'a> {
+impl From<Color> for Fill {
+    fn from(color: Color) -> Fill {
         Fill {
             style: Style::Solid(color),
             ..Fill::default()
@@ -42,32 +40,11 @@ impl<'a> From<Color> for Fill<'a> {
     }
 }
 
-impl<'a> From<&'a Gradient> for Fill<'a> {
-    fn from(gradient: &'a Gradient) -> Self {
+impl From<Gradient> for Fill {
+    fn from(gradient: Gradient) -> Self {
         Fill {
             style: Style::Gradient(gradient),
             ..Default::default()
-        }
-    }
-}
-
-/// The style of a [`Fill`].
-#[derive(Debug, Clone)]
-pub enum Style<'a> {
-    /// A solid color
-    Solid(Color),
-    /// A color gradient
-    Gradient(&'a Gradient),
-}
-
-impl<'a> Style<'a> {
-    /// Converts a fill's [Style] to a [mesh::Style] for use in the renderer's shader.
-    pub(crate) fn as_mesh_style(&self, transform: &Transform) -> mesh::Style {
-        match self {
-            Style::Solid(color) => mesh::Style::Solid(*color),
-            Style::Gradient(gradient) => mesh::Style::Gradient(
-                transform.transform_gradient((*gradient).clone()),
-            ),
         }
     }
 }
