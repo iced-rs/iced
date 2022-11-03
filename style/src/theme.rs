@@ -21,7 +21,7 @@ use crate::toggler;
 
 use iced_core::{Background, Color};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Theme {
     Light,
     Dark,
@@ -56,7 +56,7 @@ impl Default for Theme {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Custom {
     palette: Palette,
     extended: Extended,

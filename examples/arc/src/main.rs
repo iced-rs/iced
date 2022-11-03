@@ -80,7 +80,7 @@ impl<Message> canvas::Program<Message> for Arc {
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let geometry = self.cache.draw(bounds.size(), |frame| {
-            let palette = theme.clone().palette();
+            let palette = theme.palette();
 
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 5.0;

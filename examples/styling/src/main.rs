@@ -159,6 +159,6 @@ impl Sandbox for Styling {
     }
 
     fn theme(&self) -> Theme {
-        self.theme.clone()
+        self.theme
     }
 }
