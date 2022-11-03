@@ -180,8 +180,8 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
         let offset = self
             .offsets
             .get(index)
-            .expect("Index not found in offsets.")
-            .clone();
+            .copied()
+            .expect("Index not found in offsets.");
 
         offset
     }

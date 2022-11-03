@@ -137,12 +137,12 @@ impl Pipeline {
 
                 match mesh.style {
                     mesh::Style::Solid(color) => {
-                        self.programs.solid.use_program(gl, &color, &transform);
+                        self.programs.solid.use_program(gl, color, &transform);
                     }
                     mesh::Style::Gradient(gradient) => {
                         self.programs
                             .gradient
-                            .use_program(gl, &gradient, &transform);
+                            .use_program(gl, gradient, &transform);
                     }
                 }
 

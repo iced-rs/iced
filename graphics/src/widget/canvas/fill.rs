@@ -42,10 +42,10 @@ impl<'a> From<Color> for Fill<'a> {
     }
 }
 
-impl<'a> Into<Fill<'a>> for &'a Gradient {
-    fn into(self) -> Fill<'a> {
+impl<'a> From<&'a Gradient> for Fill<'a> {
+    fn from(gradient: &'a Gradient) -> Self {
         Fill {
-            style: Style::Gradient(self),
+            style: Style::Gradient(gradient),
             ..Default::default()
         }
     }

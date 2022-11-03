@@ -28,13 +28,9 @@ pub enum Style {
     Gradient(Gradient),
 }
 
-impl<'a> Into<Style> for Gradient {
-    fn into(self) -> Style {
-        match self {
-            Gradient::Linear(linear) => {
-                Style::Gradient(Gradient::Linear(linear))
-            }
-        }
+impl From<Gradient> for Style {
+    fn from(gradient: Gradient) -> Self {
+        Self::Gradient(gradient)
     }
 }
 

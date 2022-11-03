@@ -134,8 +134,8 @@ impl Pipeline {
                 &mesh.buffers.indices,
             );
 
-            vertex_offset = vertex_offset + new_vertex_offset;
-            index_offset = index_offset + new_index_offset;
+            vertex_offset += new_vertex_offset;
+            index_offset += new_index_offset;
 
             self.index_strides.push(mesh.buffers.indices.len() as u32);
 

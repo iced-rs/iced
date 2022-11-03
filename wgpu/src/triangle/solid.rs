@@ -57,7 +57,7 @@ impl Pipeline {
             });
 
         let bind_group =
-            Pipeline::bind_group(device, &buffer.raw(), &bind_group_layout);
+            Pipeline::bind_group(device, buffer.raw(), &bind_group_layout);
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {

@@ -36,12 +36,9 @@ pub enum Position {
     },
 }
 
-impl Into<Position> for (Point, Point) {
-    fn into(self) -> Position {
-        Position::Absolute {
-            start: self.0,
-            end: self.1,
-        }
+impl From<(Point, Point)> for Position {
+    fn from((start, end): (Point, Point)) -> Self {
+        Self::Absolute { start, end }
     }
 }
 

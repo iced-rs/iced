@@ -52,8 +52,8 @@ impl From<Transformation> for [f32; 16] {
     }
 }
 
-impl Into<Mat4> for Transformation {
-    fn into(self) -> Mat4 {
-        self.0
+impl From<Transformation> for Mat4 {
+    fn from(transformation: Transformation) -> Self {
+        transformation.0
     }
 }
