@@ -97,12 +97,14 @@ where
 
             let element = (self.view)().into();
             current.element = Rc::new(RefCell::new(element));
-        }
 
-        (*self.element.borrow_mut()) = Some(current.element.clone());
-        tree.diff_children(std::slice::from_ref(
-            &self.element.borrow().as_ref().unwrap().borrow().as_widget(),
-        ));
+            (*self.element.borrow_mut()) = Some(current.element.clone());
+            tree.diff_children(std::slice::from_ref(
+                &self.element.borrow().as_ref().unwrap().borrow().as_widget(),
+            ));
+        } else {
+            (*self.element.borrow_mut()) = Some(current.element.clone());
+        }
     }
 
     fn width(&self) -> Length {
