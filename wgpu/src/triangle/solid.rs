@@ -1,4 +1,4 @@
-use crate::buffers::dynamic;
+use crate::buffer::dynamic;
 use crate::triangle;
 use crate::{settings, Color};
 use encase::ShaderType;

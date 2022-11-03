@@ -3,57 +3,10 @@ use encase::private::WriteInto;
 use encase::ShaderType;
 use std::marker::PhantomData;
 
-// Currently supported dynamic buffers.
-enum BufferType {
-    Uniform(encase::DynamicUniformBuffer<Vec<u8>>),
-    Storage(encase::DynamicStorageBuffer<Vec<u8>>),
-}
-
-impl BufferType {
-    /// Writes the current value to its CPU buffer with proper alignment.
-    pub(super) fn write<T: ShaderType + WriteInto>(
-        &mut self,
-        value: &T,
-    ) -> wgpu::DynamicOffset {
-        match self {
-            BufferType::Uniform(buf) => buf
-                .write(value)
-                .expect("Error when writing to dynamic uniform buffer.")
-                as u32,
-            BufferType::Storage(buf) => buf
-                .write(value)
-                .expect("Error when writing to dynamic storage buffer.")
-                as u32,
-        }
-    }
-
-    /// Returns bytearray of aligned CPU buffer.
-    pub(super) fn get_ref(&self) -> &Vec<u8> {
-        match self {
-            BufferType::Uniform(buf) => buf.as_ref(),
-            BufferType::Storage(buf) => buf.as_ref(),
-        }
-    }
-
-    /// Resets the CPU buffer.
-    pub(super) fn clear(&mut self) {
-        match self {
-            BufferType::Uniform(buf) => {
-                buf.as_mut().clear();
-                buf.set_offset(0);
-            }
-            BufferType::Storage(buf) => {
-                buf.as_mut().clear();
-                buf.set_offset(0);
-            }
-        }
-    }
-}
-
 /// A dynamic buffer is any type of buffer which does not have a static offset.
 pub(crate) struct Buffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
-    cpu: BufferType,
+    cpu: Internal,
     gpu: wgpu::Buffer,
     label: &'static str,
     size: u64,
@@ -65,7 +18,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn uniform(device: &wgpu::Device, label: &'static str) -> Self {
         Buffer::new(
             device,
-            BufferType::Uniform(encase::DynamicUniformBuffer::new(Vec::new())),
+            Internal::Uniform(encase::DynamicUniformBuffer::new(Vec::new())),
             label,
             wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         )
@@ -75,7 +28,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn storage(device: &wgpu::Device, label: &'static str) -> Self {
         Buffer::new(
             device,
-            BufferType::Storage(encase::DynamicStorageBuffer::new(Vec::new())),
+            Internal::Storage(encase::DynamicStorageBuffer::new(Vec::new())),
             label,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         )
@@ -83,7 +36,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
 
     fn new(
         device: &wgpu::Device,
-        dynamic_buffer_type: BufferType,
+        dynamic_buffer_type: Internal,
         label: &'static str,
         usage: wgpu::BufferUsages,
     ) -> Self {
@@ -135,10 +88,10 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
 
         if self.size < new_size {
             let usages = match self.cpu {
-                BufferType::Uniform(_) => {
+                Internal::Uniform(_) => {
                     wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
                 }
-                BufferType::Storage(_) => {
+                Internal::Storage(_) => {
                     wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST
                 }
             };
@@ -195,5 +148,52 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn clear(&mut self) {
         self.offsets.clear();
         self.cpu.clear();
+    }
+}
+
+// Currently supported dynamic buffers.
+enum Internal {
+    Uniform(encase::DynamicUniformBuffer<Vec<u8>>),
+    Storage(encase::DynamicStorageBuffer<Vec<u8>>),
+}
+
+impl Internal {
+    /// Writes the current value to its CPU buffer with proper alignment.
+    pub(super) fn write<T: ShaderType + WriteInto>(
+        &mut self,
+        value: &T,
+    ) -> wgpu::DynamicOffset {
+        match self {
+            Internal::Uniform(buf) => buf
+                .write(value)
+                .expect("Error when writing to dynamic uniform buffer.")
+                as u32,
+            Internal::Storage(buf) => buf
+                .write(value)
+                .expect("Error when writing to dynamic storage buffer.")
+                as u32,
+        }
+    }
+
+    /// Returns bytearray of aligned CPU buffer.
+    pub(super) fn get_ref(&self) -> &Vec<u8> {
+        match self {
+            Internal::Uniform(buf) => buf.as_ref(),
+            Internal::Storage(buf) => buf.as_ref(),
+        }
+    }
+
+    /// Resets the CPU buffer.
+    pub(super) fn clear(&mut self) {
+        match self {
+            Internal::Uniform(buf) => {
+                buf.as_mut().clear();
+                buf.set_offset(0);
+            }
+            Internal::Storage(buf) => {
+                buf.as_mut().clear();
+                buf.set_offset(0);
+            }
+        }
     }
 }

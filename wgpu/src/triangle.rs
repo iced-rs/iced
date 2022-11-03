@@ -6,7 +6,7 @@ use std::fmt::Formatter;
 use iced_graphics::layer::{mesh, Mesh};
 use iced_graphics::Size;
 
-use crate::buffers::StaticBuffer;
+use crate::buffer::r#static::Buffer;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
 mod gradient;
@@ -17,8 +17,8 @@ mod solid;
 #[derive(Debug)]
 pub(crate) struct Pipeline {
     blit: Option<msaa::Blit>,
-    vertex_buffer: StaticBuffer<Vertex2D>,
-    index_buffer: StaticBuffer<u32>,
+    vertex_buffer: Buffer<Vertex2D>,
+    index_buffer: Buffer<u32>,
     index_strides: Vec<u32>,
     pipelines: PipelineList,
 }
@@ -65,12 +65,12 @@ impl Pipeline {
     ) -> Pipeline {
         Pipeline {
             blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
-            vertex_buffer: StaticBuffer::new(
+            vertex_buffer: Buffer::new(
                 device,
                 "iced_wgpu::triangle vertex buffer",
                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             ),
-            index_buffer: StaticBuffer::new(
+            index_buffer: Buffer::new(
                 device,
                 "iced_wgpu::triangle vertex buffer",
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,

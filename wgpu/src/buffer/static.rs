@@ -1,6 +1,3 @@
-//! Utilities for buffer operations.
-pub mod dynamic;
-
 use bytemuck::{Pod, Zeroable};
 use std::marker::PhantomData;
 use std::mem;
@@ -11,7 +8,7 @@ const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 128;
 /// A generic buffer struct useful for items which have no alignment requirements
 /// (e.g. Vertex, Index buffers) & no dynamic offsets.
 #[derive(Debug)]
-pub(crate) struct StaticBuffer<T> {
+pub(crate) struct Buffer<T> {
     //stored sequentially per mesh iteration; refers to the offset index in the GPU buffer
     offsets: Vec<wgpu::BufferAddress>,
     label: &'static str,
@@ -21,7 +18,7 @@ pub(crate) struct StaticBuffer<T> {
     _data: PhantomData<T>,
 }
 
-impl<T: Pod + Zeroable> StaticBuffer<T> {
+impl<T: Pod + Zeroable> Buffer<T> {
     /// Initialize a new static buffer.
     pub fn new(
         device: &wgpu::Device,
