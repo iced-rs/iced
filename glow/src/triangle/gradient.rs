@@ -86,10 +86,12 @@ impl Program {
                     for (index, stop) in
                         linear.color_stops.iter().enumerate().take(16)
                     {
-                        stops[index * 8] = stop.color.r;
-                        stops[(index * 8) + 1] = stop.color.g;
-                        stops[(index * 8) + 2] = stop.color.b;
-                        stops[(index * 8) + 3] = stop.color.a;
+                        let [r, g, b, a] = stop.color.into_linear();
+
+                        stops[index * 8] = r;
+                        stops[(index * 8) + 1] = g;
+                        stops[(index * 8) + 2] = b;
+                        stops[(index * 8) + 3] = a;
                         stops[(index * 8) + 4] = stop.offset;
                         stops[(index * 8) + 5] = 0.;
                         stops[(index * 8) + 6] = 0.;

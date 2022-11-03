@@ -168,14 +168,13 @@ impl Pipeline {
                 let stops: Vec<ColorStop> = linear
                     .color_stops
                     .iter()
-                    .map(|stop| ColorStop {
-                        offset: stop.offset,
-                        color: Vec4::new(
-                            stop.color.r,
-                            stop.color.g,
-                            stop.color.b,
-                            stop.color.a,
-                        ),
+                    .map(|stop| {
+                        let [r, g, b, a] = stop.color.into_linear();
+
+                        ColorStop {
+                            offset: stop.offset,
+                            color: Vec4::new(r, g, b, a),
+                        }
                     })
                     .collect();
 
