@@ -1,9 +1,8 @@
+use iced::theme;
 use iced::widget::{
-    button, column, horizontal_rule, horizontal_space, row, scrollable, text,
-    text_input,
+    button, column, horizontal_space, row, scrollable, text, text_input,
 };
-use iced::{Element, Sandbox};
-use iced::{Length, Settings};
+use iced::{Element, Length, Sandbox, Settings};
 use iced_lazy::Cached;
 
 use std::collections::HashSet;
@@ -74,7 +73,8 @@ impl Sandbox for App {
     fn view(&self) -> Element<Message> {
         let options =
             Cached::new((&self.sort_order, self.options.len()), || {
-                let mut options = self.options.iter().collect::<Vec<_>>();
+                let mut options: Vec<_> = self.options.iter().collect();
+
                 options.sort_by(|a, b| match self.sort_order {
                     SortOrder::Ascending => {
                         a.to_lowercase().cmp(&b.to_lowercase())
@@ -84,40 +84,45 @@ impl Sandbox for App {
                     }
                 });
 
-                options.into_iter().fold(
-                    column![horizontal_rule(1)],
-                    |column, option| {
-                        column
-                            .push(row![
+                column(
+                    options
+                        .into_iter()
+                        .map(|option| {
+                            row![
                                 text(option),
                                 horizontal_space(Length::Fill),
-                                button("Delete").on_press(
-                                    Message::DeleteOption(option.to_string(),),
-                                )
-                            ])
-                            .push(horizontal_rule(1))
-                    },
+                                button("Delete")
+                                    .on_press(Message::DeleteOption(
+                                        option.to_string(),
+                                    ),)
+                                    .style(theme::Button::Destructive)
+                            ]
+                            .into()
+                        })
+                        .collect(),
                 )
+                .spacing(10)
             });
 
-        scrollable(
-            column![
-                button(text(format!(
-                    "Toggle Sort Order ({})",
-                    self.sort_order
-                )))
-                .on_press(Message::ToggleSortOrder),
-                options,
+        column![
+            scrollable(options).height(Length::Fill),
+            row![
                 text_input(
                     "Add a new option",
                     &self.input,
                     Message::InputChanged,
                 )
                 .on_submit(Message::AddOption(self.input.clone())),
+                button(text(format!(
+                    "Toggle Sort Order ({})",
+                    self.sort_order
+                )))
+                .on_press(Message::ToggleSortOrder)
             ]
-            .spacing(20)
-            .padding(20),
-        )
+            .spacing(10)
+        ]
+        .spacing(20)
+        .padding(20)
         .into()
     }
 }
