@@ -1,7 +1,7 @@
 //! A collection of triangle primitives.
 
-use crate::{Color, Point, Rectangle, triangle};
 use crate::gradient::Gradient;
+use crate::{triangle, Color, Point, Rectangle};
 
 /// A mesh of triangles.
 #[derive(Debug, Clone, Copy)]
@@ -19,16 +19,16 @@ pub struct Mesh<'a> {
     pub style: &'a Style,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 /// Supported shaders for primitives.
 pub enum Style {
     /// Fill a primitive with a solid color.
     Solid(Color),
     /// Fill a primitive with an interpolated color.
-    Gradient(Gradient)
+    Gradient(Gradient),
 }
 
-impl <'a> Into<Style> for Gradient {
+impl<'a> Into<Style> for Gradient {
     fn into(self) -> Style {
         match self {
             Gradient::Linear(linear) => {

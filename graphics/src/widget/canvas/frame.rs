@@ -18,11 +18,39 @@ use lyon::tessellation;
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
-    buffers: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, mesh::Style)>,
+    buffers: BufferStack,
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
     stroke_tessellator: tessellation::StrokeTessellator,
+}
+
+struct BufferStack {
+    stack: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, mesh::Style)>,
+}
+
+impl BufferStack {
+    fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    fn get(
+        &mut self,
+        mesh_style: mesh::Style,
+    ) -> tessellation::BuffersBuilder<'_, Vertex2D, u32, Vertex2DBuilder> {
+        match self.stack.last_mut() {
+            Some((_, current_style)) if current_style == &mesh_style => {}
+            _ => {
+                self.stack
+                    .push((tessellation::VertexBuffers::new(), mesh_style));
+            }
+        };
+
+        tessellation::BuffersBuilder::new(
+            &mut self.stack.last_mut().unwrap().0,
+            Vertex2DBuilder,
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -67,7 +95,7 @@ impl Frame {
     pub fn new(size: Size) -> Frame {
         Frame {
             size,
-            buffers: Vec::new(),
+            buffers: BufferStack::new(),
             primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
@@ -110,10 +138,9 @@ impl Frame {
     pub fn fill<'a>(&mut self, path: &Path, fill: impl Into<Fill<'a>>) {
         let Fill { style, rule } = fill.into();
 
-        let mut buf = tessellation::VertexBuffers::new();
-
-        let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
+        let mut buffer = self
+            .buffers
+            .get(style.as_mesh_style(&self.transforms.current));
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
@@ -122,7 +149,7 @@ impl Frame {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -130,13 +157,10 @@ impl Frame {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         }
         .expect("Tessellate path.");
-
-        self.buffers
-            .push((buf, style.as_mesh_style(&self.transforms.current)));
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -149,10 +173,9 @@ impl Frame {
     ) {
         let Fill { style, rule } = fill.into();
 
-        let mut buf = tessellation::VertexBuffers::new();
-
-        let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
+        let mut buffer = self
+            .buffers
+            .get(style.as_mesh_style(&self.transforms.current));
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -171,12 +194,9 @@ impl Frame {
             .tessellate_rectangle(
                 &lyon::math::Box2D::new(top_left, top_left + size),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
             .expect("Fill rectangle");
-
-        self.buffers
-            .push((buf, style.as_mesh_style(&self.transforms.current)));
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
@@ -184,10 +204,9 @@ impl Frame {
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
-        let mut buf = tessellation::VertexBuffers::new();
-
-        let mut buffers =
-            tessellation::BuffersBuilder::new(&mut buf, Vertex2DBuilder);
+        let mut buffer = self
+            .buffers
+            .get(stroke.style.as_mesh_style(&self.transforms.current));
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -205,7 +224,7 @@ impl Frame {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -213,13 +232,10 @@ impl Frame {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         }
         .expect("Stroke path");
-
-        self.buffers
-            .push((buf, stroke.style.as_mesh_style(&self.transforms.current)))
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -361,7 +377,7 @@ impl Frame {
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
-        for (buffer, style) in self.buffers {
+        for (buffer, style) in self.buffers.stack {
             if !buffer.indices.is_empty() {
                 self.primitives.push(Primitive::Mesh2D {
                     buffers: triangle::Mesh2D {

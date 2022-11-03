@@ -2,8 +2,8 @@
 
 use crate::gradient::Gradient;
 use crate::layer::mesh;
-use iced_native::Color;
 use crate::widget::canvas::frame::Transform;
+use iced_native::Color;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
@@ -64,9 +64,7 @@ impl<'a> Style<'a> {
     /// Converts a fill's [Style] to a [mesh::Style] for use in the renderer's shader.
     pub(crate) fn as_mesh_style(&self, transform: &Transform) -> mesh::Style {
         match self {
-            Style::Solid(color) => {
-                mesh::Style::Solid(*color)
-            },
+            Style::Solid(color) => mesh::Style::Solid(*color),
             Style::Gradient(gradient) => mesh::Style::Gradient(
                 transform.transform_gradient((*gradient).clone()),
             ),
