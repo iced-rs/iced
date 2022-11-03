@@ -221,6 +221,12 @@ where
         self.style = style.into();
         self
     }
+
+    fn drag_enabled(&self) -> bool {
+        (!self.elements.is_maximized())
+            .then(|| self.on_drag.is_some())
+            .unwrap_or_default()
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -296,6 +302,11 @@ where
     ) -> event::Status {
         let action = tree.state.downcast_mut::<state::Action>();
 
+        let on_drag = self
+            .drag_enabled()
+            .then_some(&self.on_drag)
+            .unwrap_or(&None);
+
         let event_status = update(
             action,
             self.elements.node(self.state),
@@ -306,7 +317,7 @@ where
             self.spacing,
             self.elements.iter(),
             &self.on_click,
-            &self.on_drag,
+            on_drag,
             &self.on_resize,
         );
 
@@ -361,7 +372,7 @@ where
                         cursor_position,
                         viewport,
                         renderer,
-                        self.on_drag.is_some(),
+                        self.drag_enabled(),
                     )
                 })
                 .max()
@@ -960,5 +971,10 @@ impl<T> Elements<T> {
             Elements::Normal(_) => state.layout(),
             Elements::Maximized(_, _, node) => node,
         }
+    }
+
+    /// TODO
+    pub fn is_maximized(&self) -> bool {
+        matches!(self, Self::Maximized(..))
     }
 }
