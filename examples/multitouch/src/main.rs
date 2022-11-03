@@ -2,7 +2,8 @@
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
 use iced::widget::canvas::event;
-use iced::widget::canvas::{self, Canvas, Cursor, Geometry, Stroke};
+use iced::widget::canvas::stroke::{self, Stroke};
+use iced::widget::canvas::{self, Canvas, Cursor, Geometry};
 use iced::{
     executor, touch, window, Application, Color, Command, Element, Length,
     Point, Rectangle, Settings, Subscription, Theme,
@@ -186,7 +187,7 @@ impl canvas::Program<Message> for State {
                 frame.stroke(
                     &path,
                     Stroke {
-                        color: Color::BLACK,
+                        style: stroke::Style::Solid(Color::BLACK),
                         width: 3.0,
                         ..Stroke::default()
                     },
