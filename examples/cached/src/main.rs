@@ -14,7 +14,7 @@ pub fn main() -> iced::Result {
 struct App {
     options: HashSet<String>,
     input: String,
-    sort_order: SortOrder,
+    order: Order,
 }
 
 impl Default for App {
@@ -25,7 +25,7 @@ impl Default for App {
                 .map(ToString::to_string)
                 .collect(),
             input: Default::default(),
-            sort_order: SortOrder::Ascending,
+            order: Order::Ascending,
         }
     }
 }
@@ -33,7 +33,7 @@ impl Default for App {
 #[derive(Debug, Clone)]
 enum Message {
     InputChanged(String),
-    ToggleSortOrder,
+    ToggleOrder,
     DeleteOption(String),
     AddOption(String),
 }
@@ -54,10 +54,10 @@ impl Sandbox for App {
             Message::InputChanged(input) => {
                 self.input = input;
             }
-            Message::ToggleSortOrder => {
-                self.sort_order = match self.sort_order {
-                    SortOrder::Ascending => SortOrder::Descending,
-                    SortOrder::Descending => SortOrder::Ascending,
+            Message::ToggleOrder => {
+                self.order = match self.order {
+                    Order::Ascending => Order::Descending,
+                    Order::Descending => Order::Ascending,
                 }
             }
             Message::AddOption(option) => {
@@ -71,14 +71,12 @@ impl Sandbox for App {
     }
 
     fn view(&self) -> Element<Message> {
-        let options = lazy((&self.sort_order, self.options.len()), || {
+        let options = lazy((&self.order, self.options.len()), || {
             let mut options: Vec<_> = self.options.iter().collect();
 
-            options.sort_by(|a, b| match self.sort_order {
-                SortOrder::Ascending => a.to_lowercase().cmp(&b.to_lowercase()),
-                SortOrder::Descending => {
-                    b.to_lowercase().cmp(&a.to_lowercase())
-                }
+            options.sort_by(|a, b| match self.order {
+                Order::Ascending => a.to_lowercase().cmp(&b.to_lowercase()),
+                Order::Descending => b.to_lowercase().cmp(&a.to_lowercase()),
             });
 
             column(
@@ -110,11 +108,8 @@ impl Sandbox for App {
                     Message::InputChanged,
                 )
                 .on_submit(Message::AddOption(self.input.clone())),
-                button(text(format!(
-                    "Toggle Sort Order ({})",
-                    self.sort_order
-                )))
-                .on_press(Message::ToggleSortOrder)
+                button(text(format!("Toggle Order ({})", self.order)))
+                    .on_press(Message::ToggleOrder)
             ]
             .spacing(10)
         ]
@@ -125,12 +120,12 @@ impl Sandbox for App {
 }
 
 #[derive(Debug, Hash)]
-enum SortOrder {
+enum Order {
     Ascending,
     Descending,
 }
 
-impl std::fmt::Display for SortOrder {
+impl std::fmt::Display for Order {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
