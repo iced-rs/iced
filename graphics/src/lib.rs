@@ -40,6 +40,7 @@ pub mod window;
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use error::Error;
+pub use gradient::Gradient;
 pub use layer::Layer;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
