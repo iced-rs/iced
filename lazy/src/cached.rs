@@ -4,8 +4,9 @@ use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
 use iced_native::widget::tree::{self, Tree};
+use iced_native::widget::{self, Widget};
+use iced_native::Element;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
-use iced_native::{Element, Widget};
 
 use ouroboros::self_referencing;
 use std::cell::{Ref, RefCell, RefMut};
@@ -123,6 +124,21 @@ where
         self.with_element(|element| {
             element.as_widget().layout(renderer, limits)
         })
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.with_element(|element| {
+            element.as_widget().operate(
+                &mut tree.children[0],
+                layout,
+                operation,
+            );
+        });
     }
 
     fn on_event(
