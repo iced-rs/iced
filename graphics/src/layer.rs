@@ -1,14 +1,16 @@
 //! Organize rendering primitives into a flattened list of layers.
 mod image;
-pub mod mesh;
 mod quad;
 mod text;
 
+pub mod mesh;
+
+pub use image::Image;
+pub use mesh::Mesh;
+pub use quad::Quad;
+pub use text::Text;
+
 use crate::alignment;
-pub use crate::layer::image::Image;
-pub use crate::layer::mesh::Mesh;
-pub use crate::layer::quad::Quad;
-pub use crate::layer::text::Text;
 use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
