@@ -1,6 +1,6 @@
 //! Linear gradient builder & definition.
-use crate::gradient::{ColorStop, Gradient};
-use crate::{Color, Point, Size};
+use crate::gradient::{ColorStop, Gradient, Position};
+use crate::{Color, Point};
 
 /// A linear gradient that can be used in the style of [`super::Fill`] or [`super::Stroke`].
 #[derive(Debug, Clone, PartialEq)]
@@ -11,87 +11,6 @@ pub struct Linear {
     pub end: Point,
     /// [`ColorStop`]s along the linear gradient path.
     pub color_stops: Vec<ColorStop>,
-}
-
-#[derive(Debug)]
-/// The position of the gradient within its bounds.
-pub enum Position {
-    /// The gradient will be positioned with respect to two points.
-    Absolute {
-        /// The starting point of the gradient.
-        start: Point,
-        /// The ending point of the gradient.
-        end: Point,
-    },
-    /// The gradient will be positioned relative to the provided bounds.
-    Relative {
-        /// The top left position of the bounds.
-        top_left: Point,
-        /// The width & height of the bounds.
-        size: Size,
-        /// The start [Location] of the gradient.
-        start: Location,
-        /// The end [Location] of the gradient.
-        end: Location,
-    },
-}
-
-impl From<(Point, Point)> for Position {
-    fn from((start, end): (Point, Point)) -> Self {
-        Self::Absolute { start, end }
-    }
-}
-
-#[derive(Debug)]
-/// The location of a relatively-positioned gradient.
-pub enum Location {
-    /// Top left.
-    TopLeft,
-    /// Top.
-    Top,
-    /// Top right.
-    TopRight,
-    /// Right.
-    Right,
-    /// Bottom right.
-    BottomRight,
-    /// Bottom.
-    Bottom,
-    /// Bottom left.
-    BottomLeft,
-    /// Left.
-    Left,
-}
-
-impl Location {
-    fn to_absolute(&self, top_left: Point, size: Size) -> Point {
-        match self {
-            Location::TopLeft => top_left,
-            Location::Top => {
-                Point::new(top_left.x + size.width / 2.0, top_left.y)
-            }
-            Location::TopRight => {
-                Point::new(top_left.x + size.width, top_left.y)
-            }
-            Location::Right => Point::new(
-                top_left.x + size.width,
-                top_left.y + size.height / 2.0,
-            ),
-            Location::BottomRight => {
-                Point::new(top_left.x + size.width, top_left.y + size.height)
-            }
-            Location::Bottom => Point::new(
-                top_left.x + size.width / 2.0,
-                top_left.y + size.height,
-            ),
-            Location::BottomLeft => {
-                Point::new(top_left.x, top_left.y + size.height)
-            }
-            Location::Left => {
-                Point::new(top_left.x, top_left.y + size.height / 2.0)
-            }
-        }
-    }
 }
 
 /// A [`Linear`] builder.
@@ -175,6 +94,7 @@ impl Builder {
     }
 }
 
+/// An error that happened when building a [`Linear`] gradient.
 #[derive(Debug, thiserror::Error)]
 pub enum BuilderError {
     #[error("Gradients must contain at least one color stop.")]
