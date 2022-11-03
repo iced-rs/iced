@@ -94,8 +94,7 @@ impl Backend {
                 staging_belt,
                 encoder,
                 frame,
-                target_size.width,
-                target_size.height,
+                target_size,
             );
         }
 
@@ -112,8 +111,7 @@ impl Backend {
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        target_width: u32,
-        target_height: u32,
+        target_size: Size<u32>,
     ) {
         let bounds = (layer.bounds * scale_factor).snap();
 
@@ -143,8 +141,7 @@ impl Backend {
                 staging_belt,
                 encoder,
                 target,
-                target_width,
-                target_height,
+                target_size,
                 scaled,
                 scale_factor,
                 &layer.meshes,

@@ -1,66 +1,32 @@
 //! Draw meshes of triangles.
-use crate::program::{self, Shader};
+mod gradient;
+mod solid;
+
+use crate::program;
 use crate::Transformation;
+
+use iced_graphics::layer::mesh::{self, Mesh};
+use iced_graphics::triangle::{self, Vertex2D};
+
 use glow::HasContext;
-use iced_graphics::layer;
 use std::marker::PhantomData;
-
-pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
-
-const VERTEX_BUFFER_SIZE: usize = 10_000;
-const INDEX_BUFFER_SIZE: usize = 10_000;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
-    program: <glow::Context as HasContext>::Program,
     vertex_array: <glow::Context as HasContext>::VertexArray,
     vertices: Buffer<Vertex2D>,
     indices: Buffer<u32>,
-    transform_location: <glow::Context as HasContext>::UniformLocation,
-    current_transform: Transformation,
+    programs: ProgramList,
+}
+
+#[derive(Debug)]
+struct ProgramList {
+    solid: solid::Program,
+    gradient: gradient::Program,
 }
 
 impl Pipeline {
-    pub fn new(
-        gl: &glow::Context,
-        shader_version: &program::Version,
-    ) -> Pipeline {
-        let program = unsafe {
-            let vertex_shader = Shader::vertex(
-                gl,
-                shader_version,
-                include_str!("shader/common/triangle.vert"),
-            );
-            let fragment_shader = Shader::fragment(
-                gl,
-                shader_version,
-                include_str!("shader/common/triangle.frag"),
-            );
-
-            program::create(
-                gl,
-                &[vertex_shader, fragment_shader],
-                &[(0, "i_Position"), (1, "i_Color")],
-            )
-        };
-
-        let transform_location =
-            unsafe { gl.get_uniform_location(program, "u_Transform") }
-                .expect("Get transform location");
-
-        unsafe {
-            gl.use_program(Some(program));
-
-            let transform: [f32; 16] = Transformation::identity().into();
-            gl.uniform_matrix_4_f32_slice(
-                Some(&transform_location),
-                false,
-                &transform,
-            );
-
-            gl.use_program(None);
-        }
-
+    pub fn new(gl: &glow::Context, shader_version: &program::Version) -> Self {
         let vertex_array =
             unsafe { gl.create_vertex_array().expect("Create vertex array") };
 
@@ -73,7 +39,7 @@ impl Pipeline {
                 gl,
                 glow::ARRAY_BUFFER,
                 glow::DYNAMIC_DRAW,
-                VERTEX_BUFFER_SIZE,
+                std::mem::size_of::<Vertex2D>() as usize,
             )
         };
 
@@ -82,7 +48,7 @@ impl Pipeline {
                 gl,
                 glow::ELEMENT_ARRAY_BUFFER,
                 glow::DYNAMIC_DRAW,
-                INDEX_BUFFER_SIZE,
+                std::mem::size_of::<u32>() as usize,
             )
         };
 
@@ -92,83 +58,63 @@ impl Pipeline {
             gl.enable_vertex_attrib_array(0);
             gl.vertex_attrib_pointer_f32(0, 2, glow::FLOAT, false, stride, 0);
 
-            gl.enable_vertex_attrib_array(1);
-            gl.vertex_attrib_pointer_f32(
-                1,
-                4,
-                glow::FLOAT,
-                false,
-                stride,
-                4 * 2,
-            );
-
             gl.bind_vertex_array(None);
-        }
+        };
 
-        Pipeline {
-            program,
+        Self {
             vertex_array,
             vertices,
             indices,
-            transform_location,
-            current_transform: Transformation::identity(),
+            programs: ProgramList {
+                solid: solid::Program::new(gl, shader_version),
+                gradient: gradient::Program::new(gl, shader_version),
+            },
         }
     }
 
     pub fn draw(
         &mut self,
+        meshes: &[Mesh<'_>],
         gl: &glow::Context,
         target_height: u32,
         transformation: Transformation,
         scale_factor: f32,
-        meshes: &[layer::Mesh<'_>],
     ) {
         unsafe {
             gl.enable(glow::MULTISAMPLE);
             gl.enable(glow::SCISSOR_TEST);
-            gl.use_program(Some(self.program));
-            gl.bind_vertex_array(Some(self.vertex_array));
+            gl.bind_vertex_array(Some(self.vertex_array))
         }
 
-        // This looks a bit crazy, but we are just counting how many vertices
-        // and indices we will need to handle.
-        // TODO: Improve readability
-        let (total_vertices, total_indices) = meshes
-            .iter()
-            .map(|layer::Mesh { buffers, .. }| {
-                (buffers.vertices.len(), buffers.indices.len())
-            })
-            .fold((0, 0), |(total_v, total_i), (v, i)| {
-                (total_v + v, total_i + i)
-            });
+        //count the total amount of vertices & indices we need to handle
+        let (total_vertices, total_indices) = mesh::attribute_count_of(meshes);
 
-        // Then we ensure the current buffers are big enough, resizing if
-        // necessary
+        // Then we ensure the current attribute buffers are big enough, resizing if necessary
         unsafe {
             self.vertices.bind(gl, total_vertices);
             self.indices.bind(gl, total_indices);
         }
 
         // We upload all the vertices and indices upfront
-        let mut last_vertex = 0;
-        let mut last_index = 0;
+        let mut vertex_offset = 0;
+        let mut index_offset = 0;
 
-        for layer::Mesh { buffers, .. } in meshes {
+        for mesh in meshes {
             unsafe {
                 gl.buffer_sub_data_u8_slice(
                     glow::ARRAY_BUFFER,
-                    (last_vertex * std::mem::size_of::<Vertex2D>()) as i32,
-                    bytemuck::cast_slice(&buffers.vertices),
+                    (vertex_offset * std::mem::size_of::<Vertex2D>()) as i32,
+                    bytemuck::cast_slice(&mesh.buffers.vertices),
                 );
 
                 gl.buffer_sub_data_u8_slice(
                     glow::ELEMENT_ARRAY_BUFFER,
-                    (last_index * std::mem::size_of::<u32>()) as i32,
-                    bytemuck::cast_slice(&buffers.indices),
+                    (index_offset * std::mem::size_of::<u32>()) as i32,
+                    bytemuck::cast_slice(&mesh.buffers.indices),
                 );
 
-                last_vertex += buffers.vertices.len();
-                last_index += buffers.indices.len();
+                vertex_offset += mesh.buffers.vertices.len();
+                index_offset += mesh.buffers.indices.len();
             }
         }
 
@@ -176,29 +122,13 @@ impl Pipeline {
         let mut last_vertex = 0;
         let mut last_index = 0;
 
-        for layer::Mesh {
-            buffers,
-            origin,
-            clip_bounds,
-        } in meshes
-        {
-            let transform =
-                transformation * Transformation::translate(origin.x, origin.y);
+        for mesh in meshes {
+            let transform = transformation
+                * Transformation::translate(mesh.origin.x, mesh.origin.y);
 
-            let clip_bounds = (*clip_bounds * scale_factor).snap();
+            let clip_bounds = (mesh.clip_bounds * scale_factor).snap();
 
             unsafe {
-                if self.current_transform != transform {
-                    let matrix: [f32; 16] = transform.into();
-                    gl.uniform_matrix_4_f32_slice(
-                        Some(&self.transform_location),
-                        false,
-                        &matrix,
-                    );
-
-                    self.current_transform = transform;
-                }
-
                 gl.scissor(
                     clip_bounds.x as i32,
                     (target_height - (clip_bounds.y + clip_bounds.height))
@@ -207,50 +137,74 @@ impl Pipeline {
                     clip_bounds.height as i32,
                 );
 
+                match mesh.style {
+                    triangle::Style::Solid(color) => {
+                        self.programs.solid.use_program(gl, color, &transform);
+                    }
+                    triangle::Style::Gradient(gradient) => {
+                        self.programs
+                            .gradient
+                            .use_program(gl, gradient, &transform);
+                    }
+                }
+
                 gl.draw_elements_base_vertex(
                     glow::TRIANGLES,
-                    buffers.indices.len() as i32,
+                    mesh.buffers.indices.len() as i32,
                     glow::UNSIGNED_INT,
                     (last_index * std::mem::size_of::<u32>()) as i32,
                     last_vertex as i32,
                 );
 
-                last_vertex += buffers.vertices.len();
-                last_index += buffers.indices.len();
+                last_vertex += mesh.buffers.vertices.len();
+                last_index += mesh.buffers.indices.len();
             }
         }
 
         unsafe {
             gl.bind_vertex_array(None);
-            gl.use_program(None);
             gl.disable(glow::SCISSOR_TEST);
             gl.disable(glow::MULTISAMPLE);
         }
     }
 }
 
-#[repr(C)]
-#[derive(Debug, Clone, Copy)]
-struct Uniforms {
-    transform: [f32; 16],
-}
+/// A simple shader program. Uses [`triangle.vert`] for its vertex shader and only binds position
+/// attribute location.
+pub(super) fn program(
+    gl: &glow::Context,
+    shader_version: &program::Version,
+    fragment_shader: &'static str,
+) -> <glow::Context as HasContext>::Program {
+    unsafe {
+        let vertex_shader = program::Shader::vertex(
+            gl,
+            shader_version,
+            include_str!("shader/common/triangle.vert"),
+        );
 
-unsafe impl bytemuck::Zeroable for Uniforms {}
-unsafe impl bytemuck::Pod for Uniforms {}
+        let fragment_shader =
+            program::Shader::fragment(gl, shader_version, fragment_shader);
 
-impl Default for Uniforms {
-    fn default() -> Self {
-        Self {
-            transform: *Transformation::identity().as_ref(),
-        }
+        program::create(
+            gl,
+            &[vertex_shader, fragment_shader],
+            &[(0, "i_Position")],
+        )
     }
 }
 
-impl From<Transformation> for Uniforms {
-    fn from(transformation: Transformation) -> Uniforms {
-        Self {
-            transform: transformation.into(),
-        }
+pub fn set_transform(
+    gl: &glow::Context,
+    location: <glow::Context as HasContext>::UniformLocation,
+    transform: Transformation,
+) {
+    unsafe {
+        gl.uniform_matrix_4_f32_slice(
+            Some(&location),
+            false,
+            transform.as_ref(),
+        );
     }
 }
 

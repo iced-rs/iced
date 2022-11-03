@@ -70,11 +70,10 @@ impl Pipeline {
         unsafe {
             gl.use_program(Some(program));
 
-            let matrix: [f32; 16] = Transformation::identity().into();
             gl.uniform_matrix_4_f32_slice(
                 Some(&transform_location),
                 false,
-                &matrix,
+                Transformation::identity().as_ref(),
             );
 
             gl.uniform_1_f32(Some(&scale_location), 1.0);
@@ -139,11 +138,10 @@ impl Pipeline {
 
         if transformation != self.current_transform {
             unsafe {
-                let matrix: [f32; 16] = transformation.into();
                 gl.uniform_matrix_4_f32_slice(
                     Some(&self.transform_location),
                     false,
-                    &matrix,
+                    transformation.as_ref(),
                 );
 
                 self.current_transform = transformation;

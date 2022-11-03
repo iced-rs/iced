@@ -88,6 +88,9 @@ pub enum Primitive {
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
+
+        /// The shader of the mesh
+        style: triangle::Style,
     },
     /// A cached primitive.
     ///
