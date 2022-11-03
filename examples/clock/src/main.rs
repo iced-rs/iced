@@ -1,6 +1,6 @@
 use iced::executor;
 use iced::widget::canvas::{
-    Cache, Cursor, Geometry, LineCap, Path, Stroke, stroke,
+    stroke, Cache, Cursor, Geometry, LineCap, Path, Stroke,
 };
 use iced::widget::{canvas, container};
 use iced::{

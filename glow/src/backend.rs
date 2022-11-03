@@ -1,6 +1,6 @@
-use crate::{program, triangle};
 use crate::quad;
 use crate::text;
+use crate::{program, triangle};
 use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;

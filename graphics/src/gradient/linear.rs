@@ -103,7 +103,7 @@ pub struct Builder {
     start: Point,
     end: Point,
     stops: Vec<ColorStop>,
-    error: Option<BuilderError>
+    error: Option<BuilderError>,
 }
 
 impl Builder {
@@ -126,7 +126,7 @@ impl Builder {
             start,
             end,
             stops: vec![],
-            error: None
+            error: None,
         }
     }
 
@@ -148,7 +148,7 @@ impl Builder {
             }) {
                 Ok(_) => {
                     self.error = Some(BuilderError::DuplicateOffset(offset))
-                },
+                }
                 Err(index) => {
                     self.stops.insert(index, ColorStop { offset, color });
                 }

@@ -29,13 +29,13 @@ mod viewport;
 
 pub mod backend;
 pub mod font;
+pub mod gradient;
 pub mod layer;
 pub mod overlay;
 pub mod renderer;
 pub mod triangle;
 pub mod widget;
 pub mod window;
-pub mod gradient;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;

@@ -26,7 +26,11 @@ impl<Theme> iced_graphics::window::GLCompositor for Compositor<Theme> {
         log::info!("{:#?}", settings);
 
         let version = gl.version();
-        log::info!("OpenGL version: {:?} (Embedded: {})", version, version.is_embedded);
+        log::info!(
+            "OpenGL version: {:?} (Embedded: {})",
+            version,
+            version.is_embedded
+        );
 
         let renderer = gl.get_parameter_string(glow::RENDERER);
         log::info!("Renderer: {}", renderer);

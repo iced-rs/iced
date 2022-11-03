@@ -42,8 +42,8 @@ pub mod settings;
 pub mod triangle;
 pub mod window;
 
-mod buffers;
 mod backend;
+mod buffers;
 mod quad;
 mod text;
 

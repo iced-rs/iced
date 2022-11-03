@@ -94,7 +94,7 @@ impl Backend {
                 staging_belt,
                 encoder,
                 frame,
-                target_size
+                target_size,
             );
         }
 

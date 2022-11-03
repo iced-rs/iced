@@ -3,15 +3,15 @@ use crate::{settings, Transformation};
 use core::fmt;
 use std::fmt::Formatter;
 
-use iced_graphics::layer::{Mesh, mesh};
+use iced_graphics::layer::{mesh, Mesh};
 use iced_graphics::Size;
 
 use crate::buffers::StaticBuffer;
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 
-mod solid;
 mod gradient;
 mod msaa;
+mod solid;
 
 /// Triangle pipeline for all mesh layers in a [`iced_graphics::Canvas`] widget.
 #[derive(Debug)]
@@ -103,9 +103,7 @@ impl Pipeline {
         //We are not currently using the return value of these functions as we have no system in
         //place to calculate mesh diff, or to know whether or not that would be more performant for
         //the majority of use cases. Therefore we will write GPU data every frame (for now).
-        let _ = self
-            .vertex_buffer
-            .resize(device, total_vertices);
+        let _ = self.vertex_buffer.resize(device, total_vertices);
         let _ = self.index_buffer.resize(device, total_indices);
 
         //prepare dynamic buffers & data store for writing

@@ -57,52 +57,55 @@ impl Program {
 
         if &self.uniform_data.gradient != gradient {
             match gradient {
-                Gradient::Linear(linear) => {
-                    unsafe {
-                        gl.uniform_4_f32(
-                            Some(
-                                &self.uniform_data.uniform_locations.gradient_direction_location
-                            ),
-                            linear.start.x,
-                            linear.start.y,
-                            linear.end.x,
-                            linear.end.y
-                        );
+                Gradient::Linear(linear) => unsafe {
+                    gl.uniform_4_f32(
+                        Some(
+                            &self
+                                .uniform_data
+                                .uniform_locations
+                                .gradient_direction_location,
+                        ),
+                        linear.start.x,
+                        linear.start.y,
+                        linear.end.x,
+                        linear.end.y,
+                    );
 
-                        gl.uniform_1_u32(
-                            Some(
-                                &self
-                                    .uniform_data
-                                    .uniform_locations
-                                    .color_stops_size_location,
-                            ),
-                            (linear.color_stops.len() * 2) as u32,
-                        );
+                    gl.uniform_1_u32(
+                        Some(
+                            &self
+                                .uniform_data
+                                .uniform_locations
+                                .color_stops_size_location,
+                        ),
+                        (linear.color_stops.len() * 2) as u32,
+                    );
 
-                        let mut stops = [0.0; 128];
+                    let mut stops = [0.0; 128];
 
-                        for (index, stop) in linear.color_stops.iter().enumerate().take(16) {
-                            stops[index*8] = stop.color.r;
-                            stops[(index*8)+1] = stop.color.g;
-                            stops[(index*8)+2] = stop.color.b;
-                            stops[(index*8)+3] = stop.color.a;
-                            stops[(index*8)+4] = stop.offset;
-                            stops[(index*8)+5] = 0.;
-                            stops[(index*8)+6] = 0.;
-                            stops[(index*8)+7] = 0.;
-                        }
-
-                        gl.uniform_4_f32_slice(
-                            Some(
-                                &self
-                                    .uniform_data
-                                    .uniform_locations
-                                    .color_stops_location,
-                            ),
-                            &stops,
-                        );
+                    for (index, stop) in
+                        linear.color_stops.iter().enumerate().take(16)
+                    {
+                        stops[index * 8] = stop.color.r;
+                        stops[(index * 8) + 1] = stop.color.g;
+                        stops[(index * 8) + 2] = stop.color.b;
+                        stops[(index * 8) + 3] = stop.color.a;
+                        stops[(index * 8) + 4] = stop.offset;
+                        stops[(index * 8) + 5] = 0.;
+                        stops[(index * 8) + 6] = 0.;
+                        stops[(index * 8) + 7] = 0.;
                     }
-                }
+
+                    gl.uniform_4_f32_slice(
+                        Some(
+                            &self
+                                .uniform_data
+                                .uniform_locations
+                                .color_stops_location,
+                        ),
+                        &stops,
+                    );
+                },
             }
 
             self.uniform_data.gradient = gradient.clone();

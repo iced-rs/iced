@@ -11,7 +11,9 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke, Gradient, stroke, gradient::Position};
+use iced::widget::canvas::{
+    gradient::Position, stroke, Cursor, Gradient, Path, Stroke,
+};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
@@ -201,12 +203,10 @@ impl<Message> canvas::Program<Message> for State {
 
                 let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
 
-                let earth_fill = Gradient::linear(
-                    Position::Absolute {
-                        start: Point::new(-Self::EARTH_RADIUS, 0.0),
-                        end: Point::new(Self::EARTH_RADIUS, 0.0)
-                    }
-                )
+                let earth_fill = Gradient::linear(Position::Absolute {
+                    start: Point::new(-Self::EARTH_RADIUS, 0.0),
+                    end: Point::new(Self::EARTH_RADIUS, 0.0),
+                })
                 .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
                 .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
                 .build()

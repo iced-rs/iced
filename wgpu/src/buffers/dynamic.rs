@@ -65,9 +65,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn uniform(device: &wgpu::Device, label: &'static str) -> Self {
         Buffer::new(
             device,
-            BufferType::Uniform(encase::DynamicUniformBuffer::new(
-                Vec::new(),
-            )),
+            BufferType::Uniform(encase::DynamicUniformBuffer::new(Vec::new())),
             label,
             wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         )
@@ -77,9 +75,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn storage(device: &wgpu::Device, label: &'static str) -> Self {
         Buffer::new(
             device,
-            BufferType::Storage(encase::DynamicStorageBuffer::new(
-                Vec::new(),
-            )),
+            BufferType::Storage(encase::DynamicStorageBuffer::new(Vec::new())),
             label,
             wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST,
         )

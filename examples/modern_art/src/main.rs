@@ -1,9 +1,10 @@
 use iced::widget::canvas::{
-    self, Cache, Canvas, Cursor, Frame, Geometry, Gradient, gradient::Position, gradient::Location
+    self, gradient::Location, gradient::Position, Cache, Canvas, Cursor, Frame,
+    Geometry, Gradient,
 };
 use iced::{
     executor, Application, Color, Command, Element, Length, Point, Rectangle,
-    Renderer, Size, Theme, Settings
+    Renderer, Settings, Size, Theme,
 };
 use rand::{thread_rng, Rng};
 
@@ -86,7 +87,7 @@ fn random_direction() -> Location {
         5 => Location::Bottom,
         6 => Location::BottomLeft,
         7 => Location::Left,
-        _ => Location::TopLeft
+        _ => Location::TopLeft,
     }
 }
 
@@ -106,7 +107,7 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
             top_left,
             size,
             start: random_direction(),
-            end: random_direction()
+            end: random_direction(),
         });
         let stops = thread_rng().gen_range(1..15u32);
 
@@ -130,17 +131,9 @@ fn generate_box(frame: &mut Frame, bounds: Size) -> bool {
     );
 
     if solid {
-        frame.fill_rectangle(
-            top_left,
-            size,
-            random_color(),
-        );
+        frame.fill_rectangle(top_left, size, random_color());
     } else {
-        frame.fill_rectangle(
-            top_left,
-            size,
-            &gradient(top_left, size),
-        );
+        frame.fill_rectangle(top_left, size, &gradient(top_left, size));
     };
 
     solid

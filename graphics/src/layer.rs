@@ -1,17 +1,17 @@
 //! Organize rendering primitives into a flattened list of layers.
+mod image;
 pub mod mesh;
 mod quad;
 mod text;
-mod image;
 
 use crate::alignment;
-use crate::{
-    Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
-};
 pub use crate::layer::image::Image;
 pub use crate::layer::mesh::Mesh;
 pub use crate::layer::quad::Quad;
 pub use crate::layer::text::Text;
+use crate::{
+    Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
+};
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -178,14 +178,12 @@ impl<'a> Layer<'a> {
 
                 // Only draw visible content
                 if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(
-                        Mesh {
-                            origin: Point::new(translation.x, translation.y),
-                            buffers,
-                            clip_bounds,
-                            style,
-                        }
-                    );
+                    layer.meshes.push(Mesh {
+                        origin: Point::new(translation.x, translation.y),
+                        buffers,
+                        clip_bounds,
+                        style,
+                    });
                 }
             }
             Primitive::Clip { bounds, content } => {

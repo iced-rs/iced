@@ -2,8 +2,8 @@ use iced_native::image;
 use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
-use crate::{alignment, layer::mesh};
 use crate::triangle;
+use crate::{alignment, layer::mesh};
 
 use std::sync::Arc;
 

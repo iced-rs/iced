@@ -1,5 +1,5 @@
-use iced_native::{image, svg};
 use crate::Rectangle;
+use iced_native::{image, svg};
 
 /// A raster or vector image.
 #[derive(Debug, Clone)]
