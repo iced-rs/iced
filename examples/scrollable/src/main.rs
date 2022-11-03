@@ -87,9 +87,7 @@ impl Application for ScrollableDemo {
     }
 
     fn view(&self) -> Element<Message> {
-        let ScrollableDemo {
-            variants, ..
-        } = self;
+        let ScrollableDemo { variants, .. } = self;
 
         let choose_theme = [ThemeType::Light, ThemeType::Dark].iter().fold(
             column!["Choose a theme:"].spacing(10),
