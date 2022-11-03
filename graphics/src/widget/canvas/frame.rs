@@ -58,7 +58,7 @@ struct Transforms {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct Transform {
+struct Transform {
     raw: lyon::math::Transform,
     is_identity: bool,
 }
@@ -82,10 +82,7 @@ impl Transform {
         }
     }
 
-    pub(crate) fn transform_gradient(
-        &self,
-        mut gradient: Gradient,
-    ) -> Gradient {
+    fn transform_gradient(&self, mut gradient: Gradient) -> Gradient {
         let (start, end) = match &mut gradient {
             Gradient::Linear(linear) => (&mut linear.start, &mut linear.end),
         };
