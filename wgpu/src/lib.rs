@@ -43,6 +43,7 @@ pub mod triangle;
 pub mod window;
 
 mod backend;
+mod buffer;
 mod quad;
 mod text;
 

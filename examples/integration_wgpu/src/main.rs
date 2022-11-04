@@ -119,6 +119,7 @@ pub fn main() {
             width: physical_size.width,
             height: physical_size.height,
             present_mode: wgpu::PresentMode::AutoVsync,
+            alpha_mode: wgpu::CompositeAlphaMode::Auto,
         },
     );
 
@@ -215,6 +216,7 @@ pub fn main() {
                             width: size.width,
                             height: size.height,
                             present_mode: wgpu::PresentMode::AutoVsync,
+                            alpha_mode: wgpu::CompositeAlphaMode::Auto
                         },
                     );
 

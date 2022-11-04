@@ -11,12 +11,10 @@ use iced::window;
 use iced::{Application, Element};
 use iced::{Color, Command, Font, Length, Settings, Subscription};
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-lazy_static! {
-    static ref INPUT_ID: text_input::Id = text_input::Id::unique();
-}
+static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 pub fn main() -> iced::Result {
     Todos::run(Settings {

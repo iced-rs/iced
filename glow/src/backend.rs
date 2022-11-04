@@ -1,7 +1,6 @@
-use crate::program;
 use crate::quad;
 use crate::text;
-use crate::triangle;
+use crate::{program, triangle};
 use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
@@ -105,11 +104,11 @@ impl Backend {
                 * Transformation::scale(scale_factor, scale_factor);
 
             self.triangle_pipeline.draw(
+                &layer.meshes,
                 gl,
                 target_height,
                 scaled,
                 scale_factor,
-                &layer.meshes,
             );
         }
 
