@@ -26,26 +26,15 @@ impl Handle {
     /// pixels.
     ///
     /// This is useful if you have already decoded your image.
-    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
-        Self::from_data(Data::Pixels {
-            width,
-            height,
-            pixels: Cow::Owned(pixels),
-        })
-    }
-
-    /// Like [`Handle::from_pixels`], but from static pixel data.
-    ///
-    /// Useful for images included in binary, for instance with [`include_bytes!`].
-    pub fn from_static_pixels(
+    pub fn from_pixels(
         width: u32,
         height: u32,
-        pixels: &'static [u8],
+        pixels: impl Into<Cow<'static, [u8]>>,
     ) -> Handle {
         Self::from_data(Data::Pixels {
             width,
             height,
-            pixels: Cow::Borrowed(pixels),
+            pixels: pixels.into(),
         })
     }
 
@@ -55,15 +44,8 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: Vec<u8>) -> Handle {
-        Self::from_data(Data::Bytes(Cow::Owned(bytes)))
-    }
-
-    /// Like [`Handle::from_memory`], but from static image data.
-    ///
-    /// Useful for images included in binary, for instance with [`include_bytes!`].
-    pub fn from_static_memory(bytes: &'static [u8]) -> Handle {
-        Self::from_data(Data::Bytes(Cow::Borrowed(bytes)))
+    pub fn from_memory(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
+        Self::from_data(Data::Bytes(bytes.into()))
     }
 
     fn from_data(data: Data) -> Handle {
