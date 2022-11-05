@@ -67,6 +67,9 @@ impl IMERange {
                 }
                 CandidateIndicator::Cursor(postition) => text.len() > postition,
             }
+        } else {
+            true
+        }
     }
     pub fn before_cursor_text(self, text: &str) -> Option<&str> {
         if let Some(indicator) = self.candidate_indicator {
