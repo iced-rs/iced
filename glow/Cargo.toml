@@ -9,8 +9,7 @@ repository = "https://github.com/iced-rs/iced"
 
 [features]
 svg = ["iced_graphics/svg"]
-image = ["image_rs", "iced_graphics/image", "png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
-image_rs = ["iced_graphics/image_rs"]
+image = ["iced_graphics/image"]
 png = ["iced_graphics/png"]
 jpeg = ["iced_graphics/jpeg"]
 jpeg_rayon = ["iced_graphics/jpeg_rayon"]

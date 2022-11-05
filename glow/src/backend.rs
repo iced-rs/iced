@@ -1,4 +1,4 @@
-#[cfg(any(feature = "image_rs", feature = "svg"))]
+#[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 use crate::quad;
 use crate::text;
@@ -17,7 +17,7 @@ use iced_native::{Font, Size};
 /// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Backend {
-    #[cfg(any(feature = "image_rs", feature = "svg"))]
+    #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
@@ -36,13 +36,13 @@ impl Backend {
 
         let shader_version = program::Version::new(gl);
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        #[cfg(any(feature = "image", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(gl, &shader_version);
         let quad_pipeline = quad::Pipeline::new(gl, &shader_version);
         let triangle_pipeline = triangle::Pipeline::new(gl, &shader_version);
 
         Self {
-            #[cfg(any(feature = "image_rs", feature = "svg"))]
+            #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
             quad_pipeline,
             text_pipeline,
@@ -79,7 +79,7 @@ impl Backend {
             );
         }
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache(gl);
     }
 
@@ -123,7 +123,7 @@ impl Backend {
             );
         }
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        #[cfg(any(feature = "image", feature = "svg"))]
         if !layer.images.is_empty() {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
@@ -256,7 +256,7 @@ impl backend::Text for Backend {
     }
 }
 
-#[cfg(feature = "image_rs")]
+#[cfg(feature = "image")]
 impl backend::Image for Backend {
     fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)

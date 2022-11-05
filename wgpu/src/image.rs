@@ -1,6 +1,6 @@
 mod atlas;
 
-#[cfg(feature = "image_rs")]
+#[cfg(feature = "image")]
 use iced_graphics::image::raster;
 
 #[cfg(feature = "svg")]
@@ -17,7 +17,7 @@ use std::mem;
 
 use bytemuck::{Pod, Zeroable};
 
-#[cfg(feature = "image_rs")]
+#[cfg(feature = "image")]
 use iced_native::image;
 
 #[cfg(feature = "svg")]
@@ -25,7 +25,7 @@ use iced_native::svg;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    #[cfg(feature = "image_rs")]
+    #[cfg(feature = "image")]
     raster_cache: RefCell<raster::Cache<Atlas>>,
     #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache<Atlas>>,
@@ -243,7 +243,7 @@ impl Pipeline {
         });
 
         Pipeline {
-            #[cfg(feature = "image_rs")]
+            #[cfg(feature = "image")]
             raster_cache: RefCell::new(raster::Cache::default()),
 
             #[cfg(feature = "svg")]
@@ -262,7 +262,7 @@ impl Pipeline {
         }
     }
 
-    #[cfg(feature = "image_rs")]
+    #[cfg(feature = "image")]
     pub fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
         let mut cache = self.raster_cache.borrow_mut();
         let memory = cache.load(handle);
@@ -291,7 +291,7 @@ impl Pipeline {
     ) {
         let instances: &mut Vec<Instance> = &mut Vec::new();
 
-        #[cfg(feature = "image_rs")]
+        #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
 
         #[cfg(feature = "svg")]
@@ -299,7 +299,7 @@ impl Pipeline {
 
         for image in images {
             match &image {
-                #[cfg(feature = "image_rs")]
+                #[cfg(feature = "image")]
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         handle,
@@ -314,7 +314,7 @@ impl Pipeline {
                         );
                     }
                 }
-                #[cfg(not(feature = "image_rs"))]
+                #[cfg(not(feature = "image"))]
                 layer::Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
@@ -450,7 +450,7 @@ impl Pipeline {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
     ) {
-        #[cfg(feature = "image_rs")]
+        #[cfg(feature = "image")]
         self.raster_cache
             .borrow_mut()
             .trim(&mut self.texture_atlas, &mut (device, encoder));

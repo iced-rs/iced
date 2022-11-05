@@ -7,7 +7,7 @@ pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
 use crate::program::{self, Shader};
 use crate::Transformation;
 
-#[cfg(feature = "image_rs")]
+#[cfg(feature = "image")]
 use iced_graphics::image::raster;
 
 #[cfg(feature = "svg")]
@@ -27,7 +27,7 @@ pub(crate) struct Pipeline {
     vertex_buffer: <glow::Context as HasContext>::Buffer,
     transform_location: <glow::Context as HasContext>::UniformLocation,
     storage: Storage,
-    #[cfg(feature = "image_rs")]
+    #[cfg(feature = "image")]
     raster_cache: RefCell<raster::Cache<Storage>>,
     #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache<Storage>>,
@@ -115,14 +115,14 @@ impl Pipeline {
             vertex_buffer,
             transform_location,
             storage: Storage::default(),
-            #[cfg(feature = "image_rs")]
+            #[cfg(feature = "image")]
             raster_cache: RefCell::new(raster::Cache::default()),
             #[cfg(feature = "svg")]
             vector_cache: RefCell::new(vector::Cache::default()),
         }
     }
 
-    #[cfg(feature = "image_rs")]
+    #[cfg(feature = "image")]
     pub fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         self.raster_cache.borrow_mut().load(handle).dimensions()
     }
@@ -151,7 +151,7 @@ impl Pipeline {
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
         }
 
-        #[cfg(feature = "image_rs")]
+        #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
 
         #[cfg(feature = "svg")]
@@ -159,12 +159,12 @@ impl Pipeline {
 
         for image in images {
             let (entry, bounds) = match &image {
-                #[cfg(feature = "image_rs")]
+                #[cfg(feature = "image")]
                 layer::Image::Raster { handle, bounds } => (
                     raster_cache.upload(handle, &mut gl, &mut self.storage),
                     bounds,
                 ),
-                #[cfg(not(feature = "image_rs"))]
+                #[cfg(not(feature = "image"))]
                 layer::Image::Raster { handle: _, bounds } => (None, bounds),
 
                 #[cfg(feature = "svg")]
@@ -217,7 +217,7 @@ impl Pipeline {
     }
 
     pub fn trim_cache(&mut self, mut gl: &glow::Context) {
-        #[cfg(feature = "image_rs")]
+        #[cfg(feature = "image")]
         self.raster_cache
             .borrow_mut()
             .trim(&mut self.storage, &mut gl);
