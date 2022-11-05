@@ -33,8 +33,6 @@ glyph_brush = "0.7"
 euclid = "0.22"
 bytemuck = "1.4"
 log = "0.4"
-kamadak-exif = "0.5"
-bitflags = "1.2"
 
 [dependencies.iced_native]
 version = "0.5"
