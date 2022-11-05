@@ -4,7 +4,6 @@
 pub struct IMERange {
     ///n bytes inserted before IME editing text.
     offset_bytes: usize,
-
     candidate_indicator: Option<CandidateIndicator>,
 }
 #[derive(Debug, Clone, Copy)]
@@ -68,9 +67,6 @@ impl IMERange {
                 }
                 CandidateIndicator::Cursor(postition) => text.len() > postition,
             }
-        } else {
-            true
-        }
     }
     pub fn before_cursor_text(self, text: &str) -> Option<&str> {
         if let Some(indicator) = self.candidate_indicator {

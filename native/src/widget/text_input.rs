@@ -1017,7 +1017,6 @@ pub fn draw<Renderer>(
         {
             let text =
                 text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
-
             if let Some(text) = std::str::from_utf8(text).ok() {
                 let offset = if let Some((quad, _)) = cursor {
                     quad.bounds.x
@@ -1088,6 +1087,7 @@ pub fn draw<Renderer>(
                             y: text_bounds.y + size as f32,
                             width,
                             height: 1.0,
+
                         },
                         border_radius: 0.0,
                         border_width: 0.0,
@@ -1095,6 +1095,7 @@ pub fn draw<Renderer>(
                     };
                     renderer.fill_quad(quad, theme.value_color(style))
                 }
+
             }
         }
 

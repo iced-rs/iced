@@ -1,4 +1,3 @@
-use iced_native::event;
 use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
@@ -6,6 +5,7 @@ use iced_native::renderer;
 use iced_native::widget::tree::{self, Tree};
 use iced_native::widget::{self, Widget};
 use iced_native::Element;
+use iced_native::{event, IME};
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
 
 use ouroboros::self_referencing;
@@ -149,6 +149,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.with_element_mut(|mut element| {
@@ -159,6 +160,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         })
@@ -331,6 +333,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.with_overlay_mut_maybe(|overlay| {
@@ -340,6 +343,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         })
