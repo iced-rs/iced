@@ -1017,72 +1017,85 @@ pub fn draw<Renderer>(
         {
             let text =
                 text.as_bytes().split_at(state.ime_range.offset_bytes()).1;
-            let text = std::str::from_utf8(text).unwrap();
-            let offset = if let Some((quad, _)) = cursor {
-                quad.bounds.x
-            } else {
-                0.0
-            };
+            if let Some(text) = std::str::from_utf8(text).ok() {
+                let offset = if let Some((quad, _)) = cursor {
+                    quad.bounds.x
+                } else {
+                    0.0
+                };
+                //render cursor.
+                if let Some(text) = state.ime_range.before_cursor_text(text) {
+                    let width =
+                        renderer.measure_width(text, size, font.clone());
+                    renderer.fill_quad(
+                        renderer::Quad {
+                            bounds: Rectangle {
+                                x: offset + width,
+                                y: text_bounds.y,
+                                width: 1.0,
+                                height: size as f32,
+                            },
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::default(),
+                        },
+                        theme.value_color(style),
+                    )
+                }
 
-            if let Some(text) = state.ime_range.before_cursor_text(text) {
-                let width = renderer.measure_width(text, size, font.clone());
-                renderer.fill_quad(
-                    renderer::Quad {
+                if state.ime_range.is_safe_to_split_text(text) {
+                    let splits = state.ime_range.split_to_pieces(text);
+
+                    let _ = splits.iter().enumerate().fold(
+                        offset,
+                        |offset, (idx, t)| {
+                            if let Some(t) = t {
+                                let width = renderer.measure_width(
+                                    t,
+                                    size,
+                                    font.clone(),
+                                );
+                                let quad = renderer::Quad {
+                                    bounds: Rectangle {
+                                        x: offset,
+                                        y: text_bounds.y + size as f32,
+                                        width,
+                                        height: if idx == 1 {
+                                            3.0
+                                        } else {
+                                            1.0
+                                        },
+                                    },
+                                    border_radius: 0.0,
+                                    border_width: 0.0,
+                                    border_color: Color::default(),
+                                };
+                                renderer
+                                    .fill_quad(quad, theme.value_color(style));
+                                width + offset
+                            } else {
+                                offset
+                            }
+                        },
+                    );
+                } else {
+                    let width =
+                        renderer.measure_width(text, size, font.clone());
+                    let quad = renderer::Quad {
                         bounds: Rectangle {
-                            x: offset + width,
-                            y: text_bounds.y,
-                            width: 1.0,
-                            height: size as f32,
+                            x: offset,
+                            y: text_bounds.y + size as f32,
+                            width,
+                            height: 1.0,
+
                         },
                         border_radius: 0.0,
                         border_width: 0.0,
                         border_color: Color::default(),
-                    },
-                    theme.value_color(style),
-                );
-            }
+                    };
+                    renderer.fill_quad(quad, theme.value_color(style))
+                }
 
-            if state.ime_range.is_safe_to_split_text(text) {
-                let splits = state.ime_range.split_to_pieces(text);
-
-                let _ = splits.iter().enumerate().fold(
-                    offset,
-                    |offset, (idx, t)| {
-                        if let Some(t) = t {
-                            let width =
-                                renderer.measure_width(t, size, font.clone());
-                            let quad = renderer::Quad {
-                                bounds: Rectangle {
-                                    x: offset,
-                                    y: text_bounds.y + size as f32,
-                                    width,
-                                    height: if idx == 1 { 3.0 } else { 1.0 },
-                                },
-                                border_radius: 0.0,
-                                border_width: 0.0,
-                                border_color: Color::default(),
-                            };
-                            renderer.fill_quad(quad, theme.value_color(style));
-                            width + offset
-                        } else {
-                            offset
-                        }
-                    },
-                );
-            } else {
-                let width = renderer.measure_width(text, size, font.clone());
-                let quad = renderer::Quad {
-                    bounds: Rectangle {
-                        x: offset,
-                        y: text_bounds.y + size as f32,
-                        width,
-                        height: 1.0,
-                    },
-                    border_radius: 0.0,
-                    border_width: 0.0,
-                    border_color: Color::default(),
-                };
-                renderer.fill_quad(quad, theme.value_color(style))
             }
         }
 

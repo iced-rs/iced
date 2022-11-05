@@ -138,6 +138,9 @@ where
         runtime.enter(|| A::new(flags))
     };
 
+    #[cfg(target_arch = "wasm32")]
+    let target = settings.window.platform_specific.target.clone();
+
     let builder = settings.window.into_builder(
         &application.title(),
         event_loop.primary_monitor(),
@@ -160,9 +163,20 @@ where
         let document = window.document().unwrap();
         let body = document.body().unwrap();
 
-        let _ = body
-            .append_child(&canvas)
-            .expect("Append canvas to HTML body");
+        let target = target.and_then(|target| {
+            body.query_selector(&format!("#{}", target))
+                .ok()
+                .unwrap_or(None)
+        });
+
+        let _ = match target {
+            Some(node) => node
+                .replace_child(&canvas, &node)
+                .expect(&format!("Could not replace #{}", node.id())),
+            None => body
+                .append_child(&canvas)
+                .expect("Append canvas to HTML body"),
+        };
     }
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;

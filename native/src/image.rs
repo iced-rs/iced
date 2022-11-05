@@ -1,6 +1,7 @@
 //! Load and draw raster graphics.
 use crate::{Hasher, Rectangle};
 
+use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -25,11 +26,15 @@ impl Handle {
     /// pixels.
     ///
     /// This is useful if you have already decoded your image.
-    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
+    pub fn from_pixels(
+        width: u32,
+        height: u32,
+        pixels: impl Into<Cow<'static, [u8]>>,
+    ) -> Handle {
         Self::from_data(Data::Pixels {
             width,
             height,
-            pixels,
+            pixels: pixels.into(),
         })
     }
 
@@ -39,8 +44,8 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: Vec<u8>) -> Handle {
-        Self::from_data(Data::Bytes(bytes))
+    pub fn from_memory(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
+        Self::from_data(Data::Bytes(bytes.into()))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -86,7 +91,7 @@ pub enum Data {
     Path(PathBuf),
 
     /// In-memory data
-    Bytes(Vec<u8>),
+    Bytes(Cow<'static, [u8]>),
 
     /// Decoded image pixels in BGRA format.
     Pixels {
@@ -95,7 +100,7 @@ pub enum Data {
         /// The height of the image.
         height: u32,
         /// The pixels.
-        pixels: Vec<u8>,
+        pixels: Cow<'static, [u8]>,
     },
 }
 
