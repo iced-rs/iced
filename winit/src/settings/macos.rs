@@ -1,4 +1,3 @@
-#![cfg(target_os = "macos")]
 //! Platform specific settings for macOS.
 
 /// The platform specific window settings of an application.
