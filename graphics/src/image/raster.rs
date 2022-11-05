@@ -80,7 +80,7 @@ impl<T: Storage> Cache<T> {
                     Memory::Invalid
                 }
             }
-            image::Data::Pixels {
+            image::Data::Rgba {
                 width,
                 height,
                 pixels,

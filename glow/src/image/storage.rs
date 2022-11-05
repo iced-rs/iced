@@ -27,7 +27,7 @@ impl image::Storage for Storage {
                 width as i32,
                 height as i32,
                 0,
-                glow::BGRA,
+                glow::RGBA,
                 glow::UNSIGNED_BYTE,
                 Some(data),
             );
