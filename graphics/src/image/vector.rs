@@ -1,46 +1,45 @@
-use crate::image::atlas::{self, Atlas};
+//! Vector image loading and caching
+use crate::image::Storage;
 
 use iced_native::svg;
+use iced_native::Size;
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
+/// Entry in cache corresponding to an svg handle
 pub enum Svg {
+    /// Parsed svg
     Loaded(usvg::Tree),
+    /// Svg not found or failed to parse
     NotFound,
 }
 
 impl Svg {
-    pub fn viewport_dimensions(&self) -> (u32, u32) {
+    /// Viewport width and height
+    pub fn viewport_dimensions(&self) -> Size<u32> {
         match self {
             Svg::Loaded(tree) => {
                 let size = tree.svg_node().size;
 
-                (size.width() as u32, size.height() as u32)
+                Size::new(size.width() as u32, size.height() as u32)
             }
-            Svg::NotFound => (1, 1),
+            Svg::NotFound => Size::new(1, 1),
         }
     }
 }
 
+/// Caches svg vector and raster data
 #[derive(Debug)]
-pub struct Cache {
+pub struct Cache<T: Storage> {
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32), atlas::Entry>,
+    rasterized: HashMap<(u64, u32, u32), T::Entry>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
 }
 
-impl Cache {
-    pub fn new() -> Self {
-        Self {
-            svgs: HashMap::new(),
-            rasterized: HashMap::new(),
-            svg_hits: HashSet::new(),
-            rasterized_hits: HashSet::new(),
-        }
-    }
-
+impl<T: Storage> Cache<T> {
+    /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
         if self.svgs.contains_key(&handle.id()) {
             return self.svgs.get(&handle.id()).unwrap();
@@ -73,15 +72,15 @@ impl Cache {
         self.svgs.get(&handle.id()).unwrap()
     }
 
+    /// Load svg and upload raster data
     pub fn upload(
         &mut self,
         handle: &svg::Handle,
         [width, height]: [f32; 2],
         scale: f32,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        texture_atlas: &mut Atlas,
-    ) -> Option<&atlas::Entry> {
+        state: &mut T::State<'_>,
+        storage: &mut T,
+    ) -> Option<&T::Entry> {
         let id = handle.id();
 
         let (width, height) = (
@@ -125,12 +124,11 @@ impl Cache {
                 let mut rgba = img.take();
                 rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
 
-                let allocation = texture_atlas.upload(
+                let allocation = storage.upload(
                     width,
                     height,
                     bytemuck::cast_slice(rgba.as_slice()),
-                    device,
-                    encoder,
+                    state,
                 )?;
                 log::debug!("allocating {} {}x{}", id, width, height);
 
@@ -144,7 +142,8 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self, atlas: &mut Atlas) {
+    /// Load svg and upload raster data
+    pub fn trim(&mut self, storage: &mut T, state: &mut T::State<'_>) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
@@ -153,13 +152,24 @@ impl Cache {
             let retain = rasterized_hits.contains(k);
 
             if !retain {
-                atlas.remove(entry);
+                storage.remove(entry, state);
             }
 
             retain
         });
         self.svg_hits.clear();
         self.rasterized_hits.clear();
+    }
+}
+
+impl<T: Storage> Default for Cache<T> {
+    fn default() -> Self {
+        Self {
+            svgs: HashMap::new(),
+            rasterized: HashMap::new(),
+            svg_hits: HashSet::new(),
+            rasterized_hits: HashSet::new(),
+        }
     }
 }
 

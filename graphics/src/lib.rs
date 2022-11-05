@@ -30,6 +30,7 @@ mod viewport;
 pub mod backend;
 pub mod font;
 pub mod gradient;
+pub mod image;
 pub mod layer;
 pub mod overlay;
 pub mod renderer;

@@ -56,7 +56,7 @@ pub use settings::Settings;
 
 pub(crate) use iced_graphics::Transformation;
 
-#[cfg(any(feature = "image_rs", feature = "svg"))]
+#[cfg(any(feature = "image", feature = "svg"))]
 mod image;
 
 /// A [`wgpu`] graphics renderer for [`iced`].

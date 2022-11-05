@@ -1,5 +1,5 @@
 //! Load and draw raster graphics.
-use crate::{Hasher, Rectangle};
+use crate::{Hasher, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
@@ -22,7 +22,7 @@ impl Handle {
     }
 
     /// Creates an image [`Handle`] containing the image pixels directly. This
-    /// function expects the input data to be provided as a `Vec<u8>` of BGRA
+    /// function expects the input data to be provided as a `Vec<u8>` of RGBA
     /// pixels.
     ///
     /// This is useful if you have already decoded your image.
@@ -31,7 +31,7 @@ impl Handle {
         height: u32,
         pixels: impl Into<Cow<'static, [u8]>>,
     ) -> Handle {
-        Self::from_data(Data::Pixels {
+        Self::from_data(Data::Rgba {
             width,
             height,
             pixels: pixels.into(),
@@ -93,8 +93,8 @@ pub enum Data {
     /// In-memory data
     Bytes(Cow<'static, [u8]>),
 
-    /// Decoded image pixels in BGRA format.
-    Pixels {
+    /// Decoded image pixels in RGBA format.
+    Rgba {
         /// The width of the image.
         width: u32,
         /// The height of the image.
@@ -109,7 +109,7 @@ impl std::fmt::Debug for Data {
         match self {
             Data::Path(path) => write!(f, "Path({:?})", path),
             Data::Bytes(_) => write!(f, "Bytes(...)"),
-            Data::Pixels { width, height, .. } => {
+            Data::Rgba { width, height, .. } => {
                 write!(f, "Pixels({} * {})", width, height)
             }
         }
@@ -126,7 +126,7 @@ pub trait Renderer: crate::Renderer {
     type Handle: Clone + Hash;
 
     /// Returns the dimensions of an image for the given [`Handle`].
-    fn dimensions(&self, handle: &Self::Handle) -> (u32, u32);
+    fn dimensions(&self, handle: &Self::Handle) -> Size<u32>;
 
     /// Draws an image with the given [`Handle`] and inside the provided
     /// `bounds`.
