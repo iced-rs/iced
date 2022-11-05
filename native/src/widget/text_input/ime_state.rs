@@ -1,9 +1,8 @@
 ///
 ///
-#[derive(Debug, Default, Clone, Copy)]
-pub struct IMERange {
-    ///n bytes inserted before IME editing text.
-    offset_bytes: usize,
+#[derive(Debug, Default, Clone)]
+pub struct IMEState {
+    preedit_text: String,
     candidate_indicator: Option<CandidateIndicator>,
 }
 #[derive(Debug, Clone, Copy)]
@@ -14,12 +13,9 @@ enum CandidateIndicator {
     Cursor(usize),
 }
 
-impl IMERange {
-    pub fn offset_bytes(&self) -> usize {
-        self.offset_bytes
-    }
-    pub fn set_offset_bytes(&mut self, offset_bytes: usize) {
-        self.offset_bytes = offset_bytes;
+impl IMEState {
+    pub fn set_preedit_text(&mut self, preedit_text: String) {
+        self.preedit_text = preedit_text;
     }
     pub fn set_range(&mut self, range: Option<(usize, usize)>) {
         self.candidate_indicator = range.map(|(start, end)| {
@@ -37,7 +33,8 @@ impl IMERange {
     /// * 1st section = light line text section.
     /// * 2nd section = bold line text section.
     /// * 3rd section = light line text section that after 2nd section.
-    pub fn split_to_pieces(self, text: &str) -> [Option<&str>; 3] {
+    pub fn split_to_pieces(&self) -> [Option<&str>; 3] {
+        let text = self.preedit_text.as_str();
         match self.candidate_indicator {
             Some(CandidateIndicator::BoldLine(start, end)) => {
                 //split to three section.
@@ -56,32 +53,31 @@ impl IMERange {
                 [Some(first), Some(second), Some(third)]
             }
             Some(CandidateIndicator::Cursor(_)) => [Some(text), None, None],
-            None => [None, None, None],
+            None => [Some(text), None, None],
         }
     }
-    pub fn is_safe_to_split_text(self, text: &str) -> bool {
+    pub fn is_safe_to_split_text(&self) -> bool {
+        let text = self.preedit_text.as_str();
         if let Some(indicator) = self.candidate_indicator {
             match indicator {
                 CandidateIndicator::BoldLine(start, end) => {
-                    (text.len() > start) && (text.len() > end)
+                    (text.len() > start) && (text.len() >= end)
                 }
-                CandidateIndicator::Cursor(postition) => text.len() > postition,
+                CandidateIndicator::Cursor(postition) => {
+                    text.len() >= postition
+                }
             }
         } else {
             true
         }
     }
-    pub fn before_cursor_text(self, text: &str) -> Option<&str> {
+    pub fn before_cursor_text(&self) -> Option<&str> {
+        let text = &self.preedit_text;
         if let Some(indicator) = self.candidate_indicator {
             match indicator {
                 CandidateIndicator::BoldLine(_, _) => Some(text),
                 CandidateIndicator::Cursor(position) => {
-                    let (a, b) = text.split_at(position);
-                    if a == "" {
-                        Some(b)
-                    } else {
-                        Some(a)
-                    }
+                    Some(text.split_at(position).0)
                 }
             }
         } else {
