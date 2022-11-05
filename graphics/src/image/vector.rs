@@ -121,15 +121,8 @@ impl<T: Storage> Cache<T> {
                     img.as_mut(),
                 )?;
 
-                let mut rgba = img.take();
-                rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
-
-                let allocation = storage.upload(
-                    width,
-                    height,
-                    bytemuck::cast_slice(rgba.as_slice()),
-                    state,
-                )?;
+                let allocation =
+                    storage.upload(width, height, img.data(), state)?;
                 log::debug!("allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
