@@ -79,7 +79,7 @@ impl<T: Storage> Cache<T> {
         [width, height]: [f32; 2],
         scale: f32,
         state: &mut T::State<'_>,
-        texture_store: &mut T,
+        storage: &mut T,
     ) -> Option<&T::Entry> {
         let id = handle.id();
 
@@ -124,7 +124,7 @@ impl<T: Storage> Cache<T> {
                 let mut rgba = img.take();
                 rgba.chunks_exact_mut(4).for_each(|rgba| rgba.swap(0, 2));
 
-                let allocation = texture_store.upload(
+                let allocation = storage.upload(
                     width,
                     height,
                     bytemuck::cast_slice(rgba.as_slice()),
@@ -143,7 +143,7 @@ impl<T: Storage> Cache<T> {
     }
 
     /// Load svg and upload raster data
-    pub fn trim(&mut self, texture_store: &mut T, state: &mut T::State<'_>) {
+    pub fn trim(&mut self, storage: &mut T, state: &mut T::State<'_>) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
@@ -152,7 +152,7 @@ impl<T: Storage> Cache<T> {
             let retain = rasterized_hits.contains(k);
 
             if !retain {
-                texture_store.remove(entry, state);
+                storage.remove(entry, state);
             }
 
             retain

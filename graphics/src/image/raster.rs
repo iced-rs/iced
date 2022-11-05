@@ -12,7 +12,7 @@ use std::collections::{HashMap, HashSet};
 pub enum Memory<T: Storage> {
     /// Image data on host
     Host(::image_rs::ImageBuffer<::image_rs::Rgba<u8>, Vec<u8>>),
-    /// Texture store entry
+    /// Storage entry
     Device(T::Entry),
     /// Image not found
     NotFound,
@@ -106,14 +106,14 @@ impl<T: Storage> Cache<T> {
         &mut self,
         handle: &image::Handle,
         state: &mut T::State<'_>,
-        store: &mut T,
+        storage: &mut T,
     ) -> Option<&T::Entry> {
         let memory = self.load(handle);
 
         if let Memory::Host(image) = memory {
             let (width, height) = image.dimensions();
 
-            let entry = store.upload(width, height, image, state)?;
+            let entry = storage.upload(width, height, image, state)?;
 
             *memory = Memory::Device(entry);
         }
@@ -126,7 +126,7 @@ impl<T: Storage> Cache<T> {
     }
 
     /// Trim cache misses from cache
-    pub fn trim(&mut self, store: &mut T, state: &mut T::State<'_>) {
+    pub fn trim(&mut self, storage: &mut T, state: &mut T::State<'_>) {
         let hits = &self.hits;
 
         self.map.retain(|k, memory| {
@@ -134,7 +134,7 @@ impl<T: Storage> Cache<T> {
 
             if !retain {
                 if let Memory::Device(entry) = memory {
-                    store.remove(entry, state);
+                    storage.remove(entry, state);
                 }
             }
 
