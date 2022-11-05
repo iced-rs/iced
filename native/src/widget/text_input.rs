@@ -1059,10 +1059,8 @@ pub fn draw<Renderer>(
                     },
                 );
             }
-        } else {
-            if let Some((cursor, color)) = cursor {
-                renderer.fill_quad(cursor, color);
-            }
+        } else if let Some((cursor, color)) = cursor {
+            renderer.fill_quad(cursor, color);
         }
 
         renderer.fill_text(Text {

@@ -148,7 +148,6 @@ pub fn window_event(
                 )))
             }
             winit::event::Ime::Commit(text) => {
-
                 Some(Event::Keyboard(keyboard::Event::IMECommit(text.clone())))
             }
             winit::event::Ime::Disabled => None,
