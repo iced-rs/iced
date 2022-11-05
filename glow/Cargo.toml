@@ -8,12 +8,22 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
+svg = ["iced_graphics/svg"]
+image = ["iced_graphics/image"]
+png = ["iced_graphics/png"]
+jpeg = ["iced_graphics/jpeg"]
+jpeg_rayon = ["iced_graphics/jpeg_rayon"]
+gif = ["iced_graphics/gif"]
+webp = ["iced_graphics/webp"]
+pnm = ["iced_graphics/pnm"]
+ico = ["iced_graphics/ico"]
+bmp = ["iced_graphics/bmp"]
+hdr = ["iced_graphics/hdr"]
+dds = ["iced_graphics/dds"]
+farbfeld = ["iced_graphics/farbfeld"]
 canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
-# Not supported yet!
-image = []
-svg = []
 
 [dependencies]
 glow = "0.11.1"
