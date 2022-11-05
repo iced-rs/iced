@@ -65,7 +65,7 @@ version = "0.10"
 optional = true
 
 [dependencies.image_rs]
-version = "0.23"
+version = "0.24"
 package = "image"
 default-features = false
 optional = true
