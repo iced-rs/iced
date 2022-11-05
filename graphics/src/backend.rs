@@ -66,11 +66,11 @@ pub trait Text {
 /// A graphics backend that supports image rendering.
 pub trait Image {
     /// Returns the dimensions of the provided image.
-    fn dimensions(&self, handle: &image::Handle) -> (u32, u32);
+    fn dimensions(&self, handle: &image::Handle) -> Size<u32>;
 }
 
 /// A graphics backend that supports SVG rendering.
 pub trait Svg {
     /// Returns the viewport dimensions of the provided SVG.
-    fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32);
+    fn viewport_dimensions(&self, handle: &svg::Handle) -> Size<u32>;
 }

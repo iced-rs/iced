@@ -15,9 +15,9 @@ resolver = "2"
 [features]
 default = ["wgpu"]
 # Enables the `Image` widget
-image = ["iced_wgpu/image", "image_rs"]
+image = ["iced_wgpu?/image", "iced_glow?/image", "image_rs"]
 # Enables the `Svg` widget
-svg = ["iced_wgpu/svg"]
+svg = ["iced_wgpu?/svg", "iced_glow?/svg"]
 # Enables the `Canvas` widget
 canvas = ["iced_graphics/canvas"]
 # Enables the `QRCode` widget
@@ -104,7 +104,7 @@ iced_glow = { version = "0.3", path = "glow", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]
-version = "0.23"
+version = "0.24"
 package = "image"
 optional = true
 
