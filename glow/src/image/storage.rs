@@ -1,16 +1,12 @@
+use iced_graphics::image;
+use iced_graphics::Size;
+
 use glow::HasContext;
-use iced_graphics::image::{TextureStore, TextureStoreEntry};
 
-#[derive(Debug)]
-pub struct Textures;
+#[derive(Debug, Default)]
+pub struct Storage;
 
-impl Textures {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl TextureStore for Textures {
+impl image::Storage for Storage {
     type Entry = Entry;
     type State<'a> = &'a glow::Context;
 
@@ -58,7 +54,7 @@ impl TextureStore for Textures {
             gl.bind_texture(glow::TEXTURE_2D, None);
 
             Some(Entry {
-                size: (width, height),
+                size: Size::new(width, height),
                 texture,
             })
         }
@@ -71,12 +67,12 @@ impl TextureStore for Textures {
 
 #[derive(Debug)]
 pub struct Entry {
-    size: (u32, u32),
-    pub texture: glow::NativeTexture,
+    size: Size<u32>,
+    pub(super) texture: glow::NativeTexture,
 }
 
-impl TextureStoreEntry for Entry {
-    fn size(&self) -> (u32, u32) {
+impl image::storage::Entry for Entry {
+    fn size(&self) -> Size<u32> {
         self.size
     }
 }

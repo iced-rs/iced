@@ -4,9 +4,6 @@ mod allocation;
 mod allocator;
 mod layer;
 
-use iced_graphics::image::TextureStore;
-use std::num::NonZeroU32;
-
 pub use allocation::Allocation;
 pub use entry::Entry;
 pub use layer::Layer;
@@ -14,6 +11,11 @@ pub use layer::Layer;
 use allocator::Allocator;
 
 pub const SIZE: u32 = 2048;
+
+use iced_graphics::image;
+use iced_graphics::Size;
+
+use std::num::NonZeroU32;
 
 #[derive(Debug)]
 pub struct Atlas {
@@ -112,7 +114,7 @@ impl Atlas {
             }
 
             return Some(Entry::Fragmented {
-                size: (width, height),
+                size: Size::new(width, height),
                 fragments,
             });
         }
@@ -192,7 +194,7 @@ impl Atlas {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let (x, y) = allocation.position();
-        let (width, height) = allocation.size();
+        let Size { width, height } = allocation.size();
         let layer = allocation.layer();
 
         let extent = wgpu::Extent3d {
@@ -297,7 +299,7 @@ impl Atlas {
     }
 }
 
-impl TextureStore for Atlas {
+impl image::Storage for Atlas {
     type Entry = Entry;
     type State<'a> = (&'a wgpu::Device, &'a mut wgpu::CommandEncoder);
 

@@ -1,15 +1,15 @@
-//! Raster image loading and caching
+//! Raster image loading and caching.
+use crate::image::Storage;
+use crate::Size;
 
 use iced_native::image;
-use std::collections::{HashMap, HashSet};
 
 use bitflags::bitflags;
-
-use super::{TextureStore, TextureStoreEntry};
+use std::collections::{HashMap, HashSet};
 
 /// Entry in cache corresponding to an image handle
 #[derive(Debug)]
-pub enum Memory<T: TextureStore> {
+pub enum Memory<T: Storage> {
     /// Image data on host
     Host(::image_rs::ImageBuffer<::image_rs::Rgba<u8>, Vec<u8>>),
     /// Texture store entry
@@ -20,26 +20,32 @@ pub enum Memory<T: TextureStore> {
     Invalid,
 }
 
-impl<T: TextureStore> Memory<T> {
+impl<T: Storage> Memory<T> {
     /// Width and height of image
-    pub fn dimensions(&self) -> (u32, u32) {
+    pub fn dimensions(&self) -> Size<u32> {
+        use crate::image::storage::Entry;
+
         match self {
-            Memory::Host(image) => image.dimensions(),
+            Memory::Host(image) => {
+                let (width, height) = image.dimensions();
+
+                Size::new(width, height)
+            }
             Memory::Device(entry) => entry.size(),
-            Memory::NotFound => (1, 1),
-            Memory::Invalid => (1, 1),
+            Memory::NotFound => Size::new(1, 1),
+            Memory::Invalid => Size::new(1, 1),
         }
     }
 }
 
 /// Caches image raster data
 #[derive(Debug)]
-pub struct Cache<T: TextureStore> {
+pub struct Cache<T: Storage> {
     map: HashMap<u64, Memory<T>>,
     hits: HashSet<u64>,
 }
 
-impl<T: TextureStore> Cache<T> {
+impl<T: Storage> Cache<T> {
     /// Load image
     pub fn load(&mut self, handle: &image::Handle) -> &mut Memory<T> {
         if self.contains(handle) {
@@ -153,7 +159,7 @@ impl<T: TextureStore> Cache<T> {
     }
 }
 
-impl<T: TextureStore> Default for Cache<T> {
+impl<T: Storage> Default for Cache<T> {
     fn default() -> Self {
         Self {
             map: HashMap::new(),

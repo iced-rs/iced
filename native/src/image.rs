@@ -1,5 +1,5 @@
 //! Load and draw raster graphics.
-use crate::{Hasher, Rectangle};
+use crate::{Hasher, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
@@ -126,7 +126,7 @@ pub trait Renderer: crate::Renderer {
     type Handle: Clone + Hash;
 
     /// Returns the dimensions of an image for the given [`Handle`].
-    fn dimensions(&self, handle: &Self::Handle) -> (u32, u32);
+    fn dimensions(&self, handle: &Self::Handle) -> Size<u32>;
 
     /// Draws an image with the given [`Handle`] and inside the provided
     /// `bounds`.

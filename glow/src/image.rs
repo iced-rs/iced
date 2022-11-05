@@ -1,11 +1,11 @@
-use crate::program::{self, Shader};
-use crate::Transformation;
-use glow::HasContext;
-use iced_graphics::layer;
-#[cfg(feature = "image_rs")]
-use std::cell::RefCell;
+mod storage;
+
+use storage::Storage;
 
 pub use iced_graphics::triangle::{Mesh2D, Vertex2D};
+
+use crate::program::{self, Shader};
+use crate::Transformation;
 
 #[cfg(feature = "image_rs")]
 use iced_graphics::image::raster;
@@ -13,8 +13,12 @@ use iced_graphics::image::raster;
 #[cfg(feature = "svg")]
 use iced_graphics::image::vector;
 
-mod textures;
-use textures::{Entry, Textures};
+use iced_graphics::layer;
+use iced_graphics::Size;
+
+use glow::HasContext;
+
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
@@ -22,11 +26,11 @@ pub(crate) struct Pipeline {
     vertex_array: <glow::Context as HasContext>::VertexArray,
     vertex_buffer: <glow::Context as HasContext>::Buffer,
     transform_location: <glow::Context as HasContext>::UniformLocation,
-    textures: Textures,
+    storage: Storage,
     #[cfg(feature = "image_rs")]
-    raster_cache: RefCell<raster::Cache<Textures>>,
+    raster_cache: RefCell<raster::Cache<Storage>>,
     #[cfg(feature = "svg")]
-    vector_cache: vector::Cache<Textures>,
+    vector_cache: RefCell<vector::Cache<Storage>>,
 }
 
 impl Pipeline {
@@ -110,20 +114,28 @@ impl Pipeline {
             vertex_array,
             vertex_buffer,
             transform_location,
-            textures: Textures::new(),
+            storage: Storage::default(),
             #[cfg(feature = "image_rs")]
             raster_cache: RefCell::new(raster::Cache::default()),
             #[cfg(feature = "svg")]
-            vector_cache: vector::Cache::default(),
+            vector_cache: RefCell::new(vector::Cache::default()),
         }
     }
 
     #[cfg(feature = "image_rs")]
-    pub fn dimensions(
-        &self,
-        handle: &iced_native::image::Handle,
-    ) -> (u32, u32) {
+    pub fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         self.raster_cache.borrow_mut().load(handle).dimensions()
+    }
+
+    #[cfg(feature = "svg")]
+    pub fn viewport_dimensions(
+        &self,
+        handle: &iced_native::svg::Handle,
+    ) -> Size<u32> {
+        let mut cache = self.vector_cache.borrow_mut();
+        let svg = cache.load(handle);
+
+        svg.viewport_dimensions()
     }
 
     pub fn draw(
@@ -141,11 +153,15 @@ impl Pipeline {
 
         #[cfg(feature = "image_rs")]
         let mut raster_cache = self.raster_cache.borrow_mut();
+
+        #[cfg(feature = "svg")]
+        let mut vector_cache = self.vector_cache.borrow_mut();
+
         for image in images {
             let (entry, bounds) = match &image {
                 #[cfg(feature = "image_rs")]
                 layer::Image::Raster { handle, bounds } => (
-                    raster_cache.upload(handle, &mut gl, &mut self.textures),
+                    raster_cache.upload(handle, &mut gl, &mut self.storage),
                     bounds,
                 ),
                 #[cfg(not(feature = "image_rs"))]
@@ -155,12 +171,12 @@ impl Pipeline {
                 layer::Image::Vector { handle, bounds } => {
                     let size = [bounds.width, bounds.height];
                     (
-                        self.vector_cache.upload(
+                        vector_cache.upload(
                             handle,
                             size,
                             _scale_factor,
                             &mut gl,
-                            &mut self.textures,
+                            &mut self.storage,
                         ),
                         bounds,
                     )
@@ -171,7 +187,7 @@ impl Pipeline {
             };
 
             unsafe {
-                if let Some(Entry { texture, .. }) = entry {
+                if let Some(storage::Entry { texture, .. }) = entry {
                     gl.bind_texture(glow::TEXTURE_2D, Some(*texture))
                 } else {
                     continue;
@@ -204,9 +220,11 @@ impl Pipeline {
         #[cfg(feature = "image_rs")]
         self.raster_cache
             .borrow_mut()
-            .trim(&mut self.textures, &mut gl);
+            .trim(&mut self.storage, &mut gl);
 
         #[cfg(feature = "svg")]
-        self.vector_cache.trim(&mut self.textures, &mut gl);
+        self.vector_cache
+            .borrow_mut()
+            .trim(&mut self.storage, &mut gl);
     }
 }

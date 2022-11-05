@@ -10,7 +10,8 @@ use crate::Transformation;
 use atlas::Atlas;
 
 use iced_graphics::layer;
-use iced_native::Rectangle;
+use iced_native::{Rectangle, Size};
+
 use std::cell::RefCell;
 use std::mem;
 
@@ -262,7 +263,7 @@ impl Pipeline {
     }
 
     #[cfg(feature = "image_rs")]
-    pub fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
+    pub fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
         let mut cache = self.raster_cache.borrow_mut();
         let memory = cache.load(handle);
 
@@ -270,7 +271,7 @@ impl Pipeline {
     }
 
     #[cfg(feature = "svg")]
-    pub fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
+    pub fn viewport_dimensions(&self, handle: &svg::Handle) -> Size<u32> {
         let mut cache = self.vector_cache.borrow_mut();
         let svg = cache.load(handle);
 
@@ -515,15 +516,18 @@ fn add_instances(
             add_instance(image_position, image_size, allocation, instances);
         }
         atlas::Entry::Fragmented { fragments, size } => {
-            let scaling_x = image_size[0] / size.0 as f32;
-            let scaling_y = image_size[1] / size.1 as f32;
+            let scaling_x = image_size[0] / size.width as f32;
+            let scaling_y = image_size[1] / size.height as f32;
 
             for fragment in fragments {
                 let allocation = &fragment.allocation;
 
                 let [x, y] = image_position;
                 let (fragment_x, fragment_y) = fragment.position;
-                let (fragment_width, fragment_height) = allocation.size();
+                let Size {
+                    width: fragment_width,
+                    height: fragment_height,
+                } = allocation.size();
 
                 let position = [
                     x + fragment_x as f32 * scaling_x,
@@ -549,7 +553,7 @@ fn add_instance(
     instances: &mut Vec<Instance>,
 ) {
     let (x, y) = allocation.position();
-    let (width, height) = allocation.size();
+    let Size { width, height } = allocation.size();
     let layer = allocation.layer();
 
     let instance = Instance {

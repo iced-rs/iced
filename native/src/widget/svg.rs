@@ -83,7 +83,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let (width, height) = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
@@ -120,7 +120,7 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let (width, height) = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         let bounds = layout.bounds();

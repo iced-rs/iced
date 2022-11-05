@@ -296,7 +296,7 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image_rs")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &iced_native::image::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)
     }
 }
@@ -306,7 +306,7 @@ impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
         handle: &iced_native::svg::Handle,
-    ) -> (u32, u32) {
+    ) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

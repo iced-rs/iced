@@ -1,11 +1,11 @@
 //! Vector image loading and caching
+use crate::image::Storage;
 
 use iced_native::svg;
+use iced_native::Size;
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-
-use super::TextureStore;
 
 /// Entry in cache corresponding to an svg handle
 pub enum Svg {
@@ -17,28 +17,28 @@ pub enum Svg {
 
 impl Svg {
     /// Viewport width and height
-    pub fn viewport_dimensions(&self) -> (u32, u32) {
+    pub fn viewport_dimensions(&self) -> Size<u32> {
         match self {
             Svg::Loaded(tree) => {
                 let size = tree.svg_node().size;
 
-                (size.width() as u32, size.height() as u32)
+                Size::new(size.width() as u32, size.height() as u32)
             }
-            Svg::NotFound => (1, 1),
+            Svg::NotFound => Size::new(1, 1),
         }
     }
 }
 
 /// Caches svg vector and raster data
 #[derive(Debug)]
-pub struct Cache<T: TextureStore> {
+pub struct Cache<T: Storage> {
     svgs: HashMap<u64, Svg>,
     rasterized: HashMap<(u64, u32, u32), T::Entry>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32)>,
 }
 
-impl<T: TextureStore> Cache<T> {
+impl<T: Storage> Cache<T> {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
         if self.svgs.contains_key(&handle.id()) {
@@ -162,7 +162,7 @@ impl<T: TextureStore> Cache<T> {
     }
 }
 
-impl<T: TextureStore> Default for Cache<T> {
+impl<T: Storage> Default for Cache<T> {
     fn default() -> Self {
         Self {
             svgs: HashMap::new(),
