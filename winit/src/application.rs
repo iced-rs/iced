@@ -138,6 +138,9 @@ where
         runtime.enter(|| A::new(flags))
     };
 
+    #[cfg(target_arch = "wasm32")]
+    let target = settings.window.platform_specific.target.clone();
+
     let builder = settings.window.into_builder(
         &application.title(),
         event_loop.primary_monitor(),
@@ -160,9 +163,20 @@ where
         let document = window.document().unwrap();
         let body = document.body().unwrap();
 
-        let _ = body
-            .append_child(&canvas)
-            .expect("Append canvas to HTML body");
+        let target = target.and_then(|target| {
+            body.query_selector(&format!("#{}", target))
+                .ok()
+                .unwrap_or(None)
+        });
+
+        let _ = match target {
+            Some(node) => node
+                .replace_child(&canvas, &node)
+                .expect(&format!("Could not replace #{}", node.id())),
+            None => body
+                .append_child(&canvas)
+                .expect("Append canvas to HTML body"),
+        };
     }
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
@@ -631,11 +645,20 @@ pub fn run_command<'a, A, E>(
                 }
             },
             command::Action::Window(action) => match action {
+                window::Action::Drag => {
+                    let _res = window.drag_window();
+                }
                 window::Action::Resize { width, height } => {
                     window.set_inner_size(winit::dpi::LogicalSize {
                         width,
                         height,
                     });
+                }
+                window::Action::Maximize(value) => {
+                    window.set_maximized(value);
+                }
+                window::Action::Minimize(value) => {
+                    window.set_minimized(value);
                 }
                 window::Action::Move { x, y } => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
@@ -649,6 +672,9 @@ pub fn run_command<'a, A, E>(
                         window.primary_monitor(),
                         mode,
                     ));
+                }
+                window::Action::ToggleMaximize => {
+                    window.set_maximized(!window.is_maximized())
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {

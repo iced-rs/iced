@@ -11,7 +11,9 @@ use iced::executor;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::canvas;
-use iced::widget::canvas::{Cursor, Path, Stroke};
+use iced::widget::canvas::gradient::{self, Gradient};
+use iced::widget::canvas::stroke::{self, Stroke};
+use iced::widget::canvas::{Cursor, Path};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Settings,
@@ -37,9 +39,9 @@ enum Message {
 }
 
 impl Application for SolarSystem {
+    type Executor = executor::Default;
     type Message = Message;
     type Theme = Theme;
-    type Executor = executor::Default;
     type Flags = ();
 
     fn new(_flags: ()) -> (Self, Command<Message>) {
@@ -65,10 +67,6 @@ impl Application for SolarSystem {
         Command::none()
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        time::every(std::time::Duration::from_millis(10)).map(Message::Tick)
-    }
-
     fn view(&self) -> Element<Message> {
         canvas(&self.state)
             .width(Length::Fill)
@@ -85,6 +83,10 @@ impl Application for SolarSystem {
             background_color: Color::BLACK,
             text_color: Color::WHITE,
         })
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        time::every(time::Duration::from_millis(10)).map(Message::Tick)
     }
 }
 
@@ -178,8 +180,10 @@ impl<Message> canvas::Program<Message> for State {
             frame.stroke(
                 &orbit,
                 Stroke {
+                    style: stroke::Style::Solid(Color::from_rgba8(
+                        0, 153, 255, 0.1,
+                    )),
                     width: 1.0,
-                    color: Color::from_rgba8(0, 153, 255, 0.1),
                     line_dash: canvas::LineDash {
                         offset: 0,
                         segments: &[3.0, 6.0],
@@ -198,15 +202,18 @@ impl<Message> canvas::Program<Message> for State {
                 frame.translate(Vector::new(Self::ORBIT_RADIUS, 0.0));
 
                 let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
-                let shadow = Path::rectangle(
-                    Point::new(0.0, -Self::EARTH_RADIUS),
-                    Size::new(
-                        Self::EARTH_RADIUS * 4.0,
-                        Self::EARTH_RADIUS * 2.0,
-                    ),
-                );
 
-                frame.fill(&earth, Color::from_rgb8(0x6B, 0x93, 0xD6));
+                let earth_fill =
+                    Gradient::linear(gradient::Position::Absolute {
+                        start: Point::new(-Self::EARTH_RADIUS, 0.0),
+                        end: Point::new(Self::EARTH_RADIUS, 0.0),
+                    })
+                    .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
+                    .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
+                    .build()
+                    .expect("Build Earth fill gradient");
+
+                frame.fill(&earth, earth_fill);
 
                 frame.with_save(|frame| {
                     frame.rotate(rotation * 10.0);
@@ -215,14 +222,6 @@ impl<Message> canvas::Program<Message> for State {
                     let moon = Path::circle(Point::ORIGIN, Self::MOON_RADIUS);
                     frame.fill(&moon, Color::WHITE);
                 });
-
-                frame.fill(
-                    &shadow,
-                    Color {
-                        a: 0.7,
-                        ..Color::BLACK
-                    },
-                );
             });
         });
 

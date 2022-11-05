@@ -1,6 +1,6 @@
 use iced_core::Color;
 
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 use palette::{FromColor, Hsl, Mix, RelativeContrast, Srgb};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -58,6 +58,7 @@ impl Palette {
     };
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Extended {
     pub background: Background,
     pub primary: Primary,
@@ -66,11 +67,10 @@ pub struct Extended {
     pub danger: Danger,
 }
 
-lazy_static! {
-    pub static ref EXTENDED_LIGHT: Extended =
-        Extended::generate(Palette::LIGHT);
-    pub static ref EXTENDED_DARK: Extended = Extended::generate(Palette::DARK);
-}
+pub static EXTENDED_LIGHT: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::LIGHT));
+pub static EXTENDED_DARK: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::DARK));
 
 impl Extended {
     pub fn generate(palette: Palette) -> Self {
@@ -96,7 +96,7 @@ impl Extended {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pair {
     pub color: Color,
     pub text: Color,
@@ -111,6 +111,7 @@ impl Pair {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Background {
     pub base: Pair,
     pub weak: Pair,
@@ -130,6 +131,7 @@ impl Background {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Primary {
     pub base: Pair,
     pub weak: Pair,
@@ -149,6 +151,7 @@ impl Primary {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Secondary {
     pub base: Pair,
     pub weak: Pair,
@@ -169,6 +172,7 @@ impl Secondary {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Success {
     pub base: Pair,
     pub weak: Pair,
@@ -188,6 +192,7 @@ impl Success {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Danger {
     pub base: Pair,
     pub weak: Pair,

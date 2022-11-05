@@ -29,6 +29,7 @@ path = "../native"
 [dependencies.iced_winit]
 version = "0.4"
 path = "../winit"
+features = ["application"]
 
 [dependencies.iced_graphics]
 version = "0.3"

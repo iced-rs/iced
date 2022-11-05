@@ -19,8 +19,8 @@ font-icons = []
 opengl = []
 
 [dependencies]
-glam = "0.10"
-raw-window-handle = "0.4"
+glam = "0.21.3"
+raw-window-handle = "0.5"
 thiserror = "1.0"
 
 [dependencies.bytemuck]

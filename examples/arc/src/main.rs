@@ -2,7 +2,7 @@ use std::{f32::consts::PI, time::Instant};
 
 use iced::executor;
 use iced::widget::canvas::{
-    self, Cache, Canvas, Cursor, Geometry, Path, Stroke,
+    self, stroke, Cache, Canvas, Cursor, Geometry, Path, Stroke,
 };
 use iced::{
     Application, Command, Element, Length, Point, Rectangle, Settings,
@@ -52,11 +52,6 @@ impl Application for Arc {
         Command::none()
     }
 
-    fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(10))
-            .map(|_| Message::Tick)
-    }
-
     fn view(&self) -> Element<Message> {
         Canvas::new(self)
             .width(Length::Fill)
@@ -66,6 +61,11 @@ impl Application for Arc {
 
     fn theme(&self) -> Theme {
         Theme::Dark
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        iced::time::every(std::time::Duration::from_millis(10))
+            .map(|_| Message::Tick)
     }
 }
 
@@ -114,7 +114,7 @@ impl<Message> canvas::Program<Message> for Arc {
             frame.stroke(
                 &path,
                 Stroke {
-                    color: palette.text,
+                    style: stroke::Style::Solid(palette.text),
                     width: 10.0,
                     ..Stroke::default()
                 },

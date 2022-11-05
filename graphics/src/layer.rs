@@ -1,15 +1,22 @@
 //! Organize rendering primitives into a flattened list of layers.
+mod image;
+mod quad;
+mod text;
+
+pub mod mesh;
+
+pub use image::Image;
+pub use mesh::Mesh;
+pub use quad::Quad;
+pub use text::Text;
+
 use crate::alignment;
-use crate::triangle;
 use crate::{
     Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
 };
 
-use iced_native::image;
-use iced_native::svg;
-
 /// A group of primitives that should be clipped together.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Layer<'a> {
     /// The clipping bounds of the [`Layer`].
     pub bounds: Rectangle,
@@ -159,7 +166,11 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D { buffers, size } => {
+            Primitive::Mesh2D {
+                buffers,
+                size,
+                style,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
@@ -173,6 +184,7 @@ impl<'a> Layer<'a> {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
                         clip_bounds,
+                        style,
                     });
                 }
             }
@@ -233,93 +245,3 @@ impl<'a> Layer<'a> {
         }
     }
 }
-
-/// A colored rectangle with a border.
-///
-/// This type can be directly uploaded to GPU memory.
-#[derive(Debug, Clone, Copy)]
-#[repr(C)]
-pub struct Quad {
-    /// The position of the [`Quad`].
-    pub position: [f32; 2],
-
-    /// The size of the [`Quad`].
-    pub size: [f32; 2],
-
-    /// The color of the [`Quad`], in __linear RGB__.
-    pub color: [f32; 4],
-
-    /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: [f32; 4],
-
-    /// The border radius of the [`Quad`].
-    pub border_radius: f32,
-
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
-}
-
-/// A mesh of triangles.
-#[derive(Debug, Clone, Copy)]
-pub struct Mesh<'a> {
-    /// The origin of the vertices of the [`Mesh`].
-    pub origin: Point,
-
-    /// The vertex and index buffers of the [`Mesh`].
-    pub buffers: &'a triangle::Mesh2D,
-
-    /// The clipping bounds of the [`Mesh`].
-    pub clip_bounds: Rectangle<f32>,
-}
-
-/// A paragraph of text.
-#[derive(Debug, Clone, Copy)]
-pub struct Text<'a> {
-    /// The content of the [`Text`].
-    pub content: &'a str,
-
-    /// The layout bounds of the [`Text`].
-    pub bounds: Rectangle,
-
-    /// The color of the [`Text`], in __linear RGB_.
-    pub color: [f32; 4],
-
-    /// The size of the [`Text`].
-    pub size: f32,
-
-    /// The font of the [`Text`].
-    pub font: Font,
-
-    /// The horizontal alignment of the [`Text`].
-    pub horizontal_alignment: alignment::Horizontal,
-
-    /// The vertical alignment of the [`Text`].
-    pub vertical_alignment: alignment::Vertical,
-}
-
-/// A raster or vector image.
-#[derive(Debug, Clone)]
-pub enum Image {
-    /// A raster image.
-    Raster {
-        /// The handle of a raster image.
-        handle: image::Handle,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-    },
-    /// A vector image.
-    Vector {
-        /// The handle of a vector image.
-        handle: svg::Handle,
-
-        /// The bounds of the image.
-        bounds: Rectangle,
-    },
-}
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Zeroable for Quad {}
-
-#[allow(unsafe_code)]
-unsafe impl bytemuck::Pod for Quad {}

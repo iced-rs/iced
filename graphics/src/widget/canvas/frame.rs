@@ -1,13 +1,14 @@
-use std::borrow::Cow;
+use crate::gradient::Gradient;
+use crate::triangle;
+use crate::triangle::Vertex2D;
+use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
+use crate::Primitive;
 
 use iced_native::{Point, Rectangle, Size, Vector};
 
-use crate::triangle;
-use crate::widget::canvas::path;
-use crate::widget::canvas::{Fill, Geometry, Path, Stroke, Text};
-use crate::Primitive;
-
+use lyon::geom::euclid;
 use lyon::tessellation;
+use std::borrow::Cow;
 
 /// The frame of a [`Canvas`].
 ///
@@ -15,11 +16,39 @@ use lyon::tessellation;
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
-    buffers: lyon::tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+    buffers: BufferStack,
     primitives: Vec<Primitive>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
     stroke_tessellator: tessellation::StrokeTessellator,
+}
+
+struct BufferStack {
+    stack: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, triangle::Style)>,
+}
+
+impl BufferStack {
+    fn new() -> Self {
+        Self { stack: Vec::new() }
+    }
+
+    fn get(
+        &mut self,
+        mesh_style: triangle::Style,
+    ) -> tessellation::BuffersBuilder<'_, Vertex2D, u32, Vertex2DBuilder> {
+        match self.stack.last_mut() {
+            Some((_, current_style)) if current_style == &mesh_style => {}
+            _ => {
+                self.stack
+                    .push((tessellation::VertexBuffers::new(), mesh_style));
+            }
+        };
+
+        tessellation::BuffersBuilder::new(
+            &mut self.stack.last_mut().unwrap().0,
+            Vertex2DBuilder,
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -34,6 +63,35 @@ struct Transform {
     is_identity: bool,
 }
 
+impl Transform {
+    /// Transforms the given [Point] by the transformation matrix.
+    fn transform_point(&self, point: &mut Point) {
+        let transformed = self
+            .raw
+            .transform_point(euclid::Point2D::new(point.x, point.y));
+        point.x = transformed.x;
+        point.y = transformed.y;
+    }
+
+    fn transform_style(&self, style: triangle::Style) -> triangle::Style {
+        match style {
+            triangle::Style::Solid(color) => triangle::Style::Solid(color),
+            triangle::Style::Gradient(gradient) => {
+                triangle::Style::Gradient(self.transform_gradient(gradient))
+            }
+        }
+    }
+
+    fn transform_gradient(&self, mut gradient: Gradient) -> Gradient {
+        let (start, end) = match &mut gradient {
+            Gradient::Linear(linear) => (&mut linear.start, &mut linear.end),
+        };
+        self.transform_point(start);
+        self.transform_point(end);
+        gradient
+    }
+}
+
 impl Frame {
     /// Creates a new empty [`Frame`] with the given dimensions.
     ///
@@ -42,7 +100,7 @@ impl Frame {
     pub fn new(size: Size) -> Frame {
         Frame {
             size,
-            buffers: lyon::tessellation::VertexBuffers::new(),
+            buffers: BufferStack::new(),
             primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
@@ -83,21 +141,20 @@ impl Frame {
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Fill { color, rule } = fill.into();
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let mut buffer = self
+            .buffers
+            .get(self.transforms.current.transform_style(style));
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
 
-        let result = if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -105,11 +162,10 @@ impl Frame {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
-        };
-
-        result.expect("Tessellate path");
+        }
+        .expect("Tessellate path.");
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -120,12 +176,11 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let Fill { color, rule } = fill.into();
+        let Fill { style, rule } = fill.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            FillVertex(color.into_linear()),
-        );
+        let mut buffer = self
+            .buffers
+            .get(self.transforms.current.transform_style(style));
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -144,7 +199,7 @@ impl Frame {
             .tessellate_rectangle(
                 &lyon::math::Box2D::new(top_left, top_left + size),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
             .expect("Fill rectangle");
     }
@@ -154,10 +209,9 @@ impl Frame {
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let stroke = stroke.into();
 
-        let mut buffers = tessellation::BuffersBuilder::new(
-            &mut self.buffers,
-            StrokeVertex(stroke.color.into_linear()),
-        );
+        let mut buffer = self
+            .buffers
+            .get(self.transforms.current.transform_style(stroke.style));
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -171,11 +225,11 @@ impl Frame {
             Cow::Owned(path::dashed(path, stroke.line_dash))
         };
 
-        let result = if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -183,11 +237,10 @@ impl Frame {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffers,
+                &mut buffer,
             )
-        };
-
-        result.expect("Stroke path");
+        }
+        .expect("Stroke path");
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -206,8 +259,6 @@ impl Frame {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub fn fill_text(&mut self, text: impl Into<Text>) {
-        use std::f32;
-
         let text = text.into();
 
         let position = if self.transforms.current.is_identity {
@@ -304,7 +355,7 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Applies a rotation to the current transform of the [`Frame`].
+    /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
         self.transforms.current.raw = self
@@ -331,52 +382,44 @@ impl Frame {
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
-        if !self.buffers.indices.is_empty() {
-            self.primitives.push(Primitive::Mesh2D {
-                buffers: triangle::Mesh2D {
-                    vertices: self.buffers.vertices,
-                    indices: self.buffers.indices,
-                },
-                size: self.size,
-            });
+        for (buffer, style) in self.buffers.stack {
+            if !buffer.indices.is_empty() {
+                self.primitives.push(Primitive::Mesh2D {
+                    buffers: triangle::Mesh2D {
+                        vertices: buffer.vertices,
+                        indices: buffer.indices,
+                    },
+                    size: self.size,
+                    style,
+                })
+            }
         }
 
         self.primitives
     }
 }
 
-struct FillVertex([f32; 4]);
+struct Vertex2DBuilder;
 
-impl lyon::tessellation::FillVertexConstructor<triangle::Vertex2D>
-    for FillVertex
-{
-    fn new_vertex(
-        &mut self,
-        vertex: lyon::tessellation::FillVertex<'_>,
-    ) -> triangle::Vertex2D {
+impl tessellation::FillVertexConstructor<Vertex2D> for Vertex2DBuilder {
+    fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> Vertex2D {
         let position = vertex.position();
 
-        triangle::Vertex2D {
+        Vertex2D {
             position: [position.x, position.y],
-            color: self.0,
         }
     }
 }
 
-struct StrokeVertex([f32; 4]);
-
-impl lyon::tessellation::StrokeVertexConstructor<triangle::Vertex2D>
-    for StrokeVertex
-{
+impl tessellation::StrokeVertexConstructor<Vertex2D> for Vertex2DBuilder {
     fn new_vertex(
         &mut self,
-        vertex: lyon::tessellation::StrokeVertex<'_, '_>,
-    ) -> triangle::Vertex2D {
+        vertex: tessellation::StrokeVertex<'_, '_>,
+    ) -> Vertex2D {
         let position = vertex.position();
 
-        triangle::Vertex2D {
+        Vertex2D {
             position: [position.x, position.y],
-            color: self.0,
         }
     }
 }
