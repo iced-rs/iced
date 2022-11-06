@@ -14,19 +14,37 @@ enum CandidateIndicator {
 }
 
 impl IMEState {
-    pub fn set_preedit_text(&mut self, preedit_text: String) {
+    pub fn set_event(
+        &mut self,
+        preedit_text: String,
+        range: Option<(usize, usize)>,
+    ) {
         self.preedit_text = preedit_text;
-    }
-    pub fn set_range(&mut self, range: Option<(usize, usize)>) {
-        self.candidate_indicator = range.map(|(start, end)| {
-            if start == end {
-                CandidateIndicator::Cursor(start)
-            } else {
-                let left = start.min(end);
-                let right = end.max(start);
-                CandidateIndicator::BoldLine(left, right)
+        // first we need to align to char boundary.
+        //
+        // ibus report incorrect charboundary for japanese input
+
+        self.candidate_indicator = range.and_then(|(start, end)| {
+            // utf-8 is 1 to 4 byte variable length encoding so we try +3 byte.
+            let start_byte = (start..start + 3)
+                .find(|index| self.preedit_text.is_char_boundary(*index));
+            let end_byte = (end..end + 3)
+                .find(|index| self.preedit_text.is_char_boundary(*index));
+            match (start_byte, end_byte) {
+                (None, None) => None,
+                (None, Some(_)) => None,
+                (Some(_), None) => None,
+                (Some(start), Some(end)) => Some({
+                    if start == end {
+                        CandidateIndicator::Cursor(start)
+                    } else {
+                        let left = start.min(end);
+                        let right = end.max(start);
+                        CandidateIndicator::BoldLine(left, right)
+                    }
+                }),
             }
-        })
+        });
     }
     /// split text to three section of texts.
 

@@ -838,8 +838,7 @@ where
                 0
             };
             if let Some(ime_state) = state.ime_state.as_mut() {
-                ime_state.set_preedit_text(text);
-                ime_state.set_range(range);
+                ime_state.set_event(text, range);
             }
 
             let position = measure_cursor_and_scroll_offset(
