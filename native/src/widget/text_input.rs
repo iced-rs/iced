@@ -769,8 +769,7 @@ where
                 }
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
-                state.is_ime_editing = false;
-                state.ime_state = IMEState::default();
+                state.ime_state = None;
 
                 return event::Status::Captured;
             }
@@ -796,8 +795,8 @@ where
                 (text_bounds.y) as i32 + size as i32,
             );
 
+            let _ = state.ime_state.replace(IMEState::default());
             ime.set_ime_position(position.0, position.1);
-            state.ime_state = IMEState::default();
 
             return event::Status::Captured;
         }
@@ -812,12 +811,11 @@ where
             let mut chars_count = 0;
             let message = {
                 let mut editor = Editor::new(value, &mut state.cursor);
-
-                if state.is_ime_editing {
+                if state.ime_state.is_some() {
                     editor.delete();
+                } else {
+                    let _ = state.ime_state.replace(IMEState::default());
                 }
-                state.is_ime_editing = true;
-
                 for ch in text.chars() {
                     editor.insert(ch);
                     chars_count += 1;
@@ -827,7 +825,6 @@ where
             state
                 .cursor
                 .select_range(cursor_offset, cursor_offset + chars_count);
-            state.ime_state.set_range(range);
 
             // calcurate where we need to place candidate window.
 
@@ -840,7 +837,11 @@ where
             } else {
                 0
             };
-            state.ime_state.set_preedit_text(text);
+            if let Some(ime_state) = state.ime_state.as_mut() {
+                ime_state.set_preedit_text(text);
+                ime_state.set_range(range);
+            }
+
             let position = measure_cursor_and_scroll_offset(
                 renderer,
                 text_bounds,
@@ -1005,7 +1006,7 @@ pub fn draw<Renderer>(
 
     let render = |renderer: &mut Renderer| {
         // ime mode should not paint selection.
-        if state.is_ime_editing {
+        if let Some(ime_state) = state.ime_state.as_ref() {
             let offset = if let Some((quad, _)) = cursor {
                 quad.bounds.x
             } else {
@@ -1013,8 +1014,8 @@ pub fn draw<Renderer>(
             };
 
             //render cursor.
-            if let Some(text) = state.ime_state.before_cursor_text() {
-                let width = renderer.measure_width(&text, size, font.clone());
+            if let Some(text) = ime_state.before_cursor_text() {
+                let width = renderer.measure_width(text, size, font.clone());
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
@@ -1031,8 +1032,8 @@ pub fn draw<Renderer>(
                 );
             }
             // draw under line.
-            if state.ime_state.is_safe_to_split_text() {
-                let splits = state.ime_state.split_to_pieces();
+            if ime_state.is_safe_to_split_text() {
+                let splits = ime_state.split_to_pieces();
 
                 let _ = splits.iter().enumerate().fold(
                     offset,
@@ -1112,8 +1113,7 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    is_ime_editing: bool,
-    ime_state: IMEState,
+    ime_state: Option<IMEState>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1129,11 +1129,10 @@ impl State {
             is_focused: true,
             is_dragging: false,
             is_pasting: None,
-            is_ime_editing: false,
             last_click: None,
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
-            ime_state: IMEState::default(),
+            ime_state: None,
         }
     }
 
