@@ -27,13 +27,12 @@ impl IMEState {
         self.candidate_indicator = range.map(|(start, end)| {
             // utf-8 is 1 to 4 byte variable length encoding so we try +3 byte.
             let left = start.min(end);
-            let right = end.max(start);
+            let right = end.max(start).min(self.preedit_text.len());
             let start_byte = (0..left + 1)
                 .rfind(|index| self.preedit_text.is_char_boundary(*index));
             let end_byte = (right..right + 4)
                 .find(|index| self.preedit_text.is_char_boundary(*index));
             if let Some((start, end)) = start_byte.zip(end_byte) {
-                println!("rounded boundary {},{}", start, end);
                 if start == end {
                     CandidateIndicator::Cursor(start)
                 } else {
@@ -72,21 +71,7 @@ impl IMEState {
             None => [Some(text), None, None],
         }
     }
-    pub fn is_safe_to_split_text(&self) -> bool {
-        let text = self.preedit_text.as_str();
-        if let Some(indicator) = self.candidate_indicator {
-            match indicator {
-                CandidateIndicator::BoldLine(start, end) => {
-                    (text.len() > start) && (text.len() >= end)
-                }
-                CandidateIndicator::Cursor(postition) => {
-                    text.len() >= postition
-                }
-            }
-        } else {
-            true
-        }
-    }
+
     pub fn before_cursor_text(&self) -> Option<&str> {
         let text = &self.preedit_text;
         if let Some(indicator) = self.candidate_indicator {

@@ -1031,34 +1031,31 @@ pub fn draw<Renderer>(
                 );
             }
             // draw under line.
-            if ime_state.is_safe_to_split_text() {
-                let splits = ime_state.split_to_pieces();
 
-                let _ = splits.iter().enumerate().fold(
-                    offset,
-                    |offset, (idx, t)| {
-                        if let Some(t) = t {
-                            let width =
-                                renderer.measure_width(t, size, font.clone());
-                            let quad = renderer::Quad {
-                                bounds: Rectangle {
-                                    x: offset,
-                                    y: text_bounds.y + size as f32,
-                                    width,
-                                    height: if idx == 1 { 3.0 } else { 1.0 },
-                                },
-                                border_radius: 0.0,
-                                border_width: 0.0,
-                                border_color: Color::default(),
-                            };
-                            renderer.fill_quad(quad, theme.value_color(style));
-                            width + offset
-                        } else {
-                            offset
-                        }
-                    },
-                );
-            }
+            let splits = ime_state.split_to_pieces();
+
+            let _ =
+                splits.iter().enumerate().fold(offset, |offset, (idx, t)| {
+                    if let Some(t) = t {
+                        let width =
+                            renderer.measure_width(t, size, font.clone());
+                        let quad = renderer::Quad {
+                            bounds: Rectangle {
+                                x: offset,
+                                y: text_bounds.y + size as f32,
+                                width,
+                                height: if idx == 1 { 3.0 } else { 1.0 },
+                            },
+                            border_radius: 0.0,
+                            border_width: 0.0,
+                            border_color: Color::default(),
+                        };
+                        renderer.fill_quad(quad, theme.value_color(style));
+                        width + offset
+                    } else {
+                        offset
+                    }
+                });
         } else if let Some((cursor, color)) = cursor {
             renderer.fill_quad(cursor, color);
         }
