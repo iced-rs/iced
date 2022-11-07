@@ -24,25 +24,23 @@ impl IMEState {
         //
         // ibus report incorrect charboundary for japanese input
 
-        self.candidate_indicator = range.and_then(|(start, end)| {
+        self.candidate_indicator = range.map(|(start, end)| {
             // utf-8 is 1 to 4 byte variable length encoding so we try +3 byte.
-            let start_byte = (start..start + 3)
+            let left = start.min(end);
+            let right = end.max(start);
+            let start_byte = (0..left + 1)
+                .rfind(|index| self.preedit_text.is_char_boundary(*index));
+            let end_byte = (right..right + 4)
                 .find(|index| self.preedit_text.is_char_boundary(*index));
-            let end_byte = (end..end + 3)
-                .find(|index| self.preedit_text.is_char_boundary(*index));
-            match (start_byte, end_byte) {
-                (None, None) => None,
-                (None, Some(_)) => None,
-                (Some(_), None) => None,
-                (Some(start), Some(end)) => Some({
-                    if start == end {
-                        CandidateIndicator::Cursor(start)
-                    } else {
-                        let left = start.min(end);
-                        let right = end.max(start);
-                        CandidateIndicator::BoldLine(left, right)
-                    }
-                }),
+            if let Some((start, end)) = start_byte.zip(end_byte) {
+                println!("rounded boundary {},{}", start, end);
+                if start == end {
+                    CandidateIndicator::Cursor(start)
+                } else {
+                    CandidateIndicator::BoldLine(start, end)
+                }
+            } else {
+                CandidateIndicator::Cursor(self.preedit_text.len())
             }
         });
     }
