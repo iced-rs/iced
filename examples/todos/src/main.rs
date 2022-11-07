@@ -22,9 +22,6 @@ pub fn main() -> iced::Result {
             size: (500, 800),
             ..window::Settings::default()
         },
-        default_font: Some(include_bytes!(
-            "../../todos/fonts/NotoSerifCJKjp-Black.otf"
-        )),
         ..Settings::default()
     })
 }
