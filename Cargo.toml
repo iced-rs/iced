@@ -10,7 +10,6 @@ documentation = "https://docs.rs/iced"
 readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
-resolver = "2"
 
 [features]
 default = ["wgpu"]
@@ -25,11 +24,9 @@ qr_code = ["iced_graphics/qr_code"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
 # Enables using system fonts
-default_system_font = ["iced_wgpu/default_system_font"]
+default_system_font = ["iced_wgpu?/default_system_font", "iced_glow?/default_system_font"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
 glow = ["iced_glow", "iced_glutin"]
-# Enables using system fonts for `iced_glow`
-glow_default_system_font = ["iced_glow/default_system_font"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
