@@ -71,14 +71,14 @@ impl Program {
                         linear.end.y,
                     );
 
-                    gl.uniform_1_u32(
+                    gl.uniform_1_i32(
                         Some(
                             &self
                                 .uniform_data
                                 .uniform_locations
                                 .color_stops_size_location,
                         ),
-                        (linear.color_stops.len() * 2) as u32,
+                        (linear.color_stops.len() * 2) as i32,
                     );
 
                     let mut stops = [0.0; 128];
