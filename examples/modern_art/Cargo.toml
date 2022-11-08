@@ -8,3 +8,4 @@ publish = false
 [dependencies]
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 rand = "0.8.5"
+env_logger = "0.9"
