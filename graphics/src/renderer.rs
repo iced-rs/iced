@@ -109,7 +109,7 @@ where
         self.primitives.push(Primitive::Quad {
             bounds: quad.bounds,
             background: background.into(),
-            border_radius: quad.border_radius.to_array(),
+            border_radius: quad.border_radius.into(),
             border_width: quad.border_width,
             border_color: quad.border_color,
         });

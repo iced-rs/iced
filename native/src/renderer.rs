@@ -50,7 +50,7 @@ pub struct Quad {
     pub bounds: Rectangle,
 
     /// The border radius of the [`Quad`].
-    pub border_radius: QuadBorderRadius,
+    pub border_radius: BorderRadius,
 
     /// The border width of the [`Quad`].
     pub border_width: f32,
@@ -59,27 +59,26 @@ pub struct Quad {
     pub border_color: Color,
 }
 
-/// The border radi for the corners of a [`Quad`] in the order:
+/// The border radi for the corners of a graphics primitive in the order:
 /// top-left, top-right, bottom-right, bottom-left.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct QuadBorderRadius([f32; 4]);
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct BorderRadius([f32; 4]);
 
-impl QuadBorderRadius {
-    /// Convert the corners of the Quad into an array [top_left, top_right, bottom_left, bottom_right].
-    pub fn to_array(self) -> [f32; 4] {
-        self.0
-    }
-}
-
-impl From<f32> for QuadBorderRadius {
+impl From<f32> for BorderRadius {
     fn from(w: f32) -> Self {
         Self([w; 4])
     }
 }
 
-impl From<[f32; 4]> for QuadBorderRadius {
+impl From<[f32; 4]> for BorderRadius {
     fn from(radi: [f32; 4]) -> Self {
         Self(radi)
+    }
+}
+
+impl From<BorderRadius> for [f32; 4] {
+    fn from(radi: BorderRadius) -> Self {
+        radi.0
     }
 }
 
