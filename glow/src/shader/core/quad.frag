@@ -53,7 +53,7 @@ void main() {
 
     vec2 fragCoord = vec2(gl_FragCoord.x, u_ScreenHeight - gl_FragCoord.y);
 
-    float borderRadius = selectBorderRadius(
+    float border_radius = selectBorderRadius(
         v_BorderRadius,
         fragCoord,
         (v_Pos + v_Scale * 0.5).xy
@@ -61,7 +61,7 @@ void main() {
 
     // TODO: Remove branching (?)
     if(v_BorderWidth > 0.0) {
-        float internal_border = max(borderRadius - v_BorderWidth, 0.0);
+        float internal_border = max(border_radius - v_BorderWidth, 0.0);
 
         float internal_distance = fDistance(
             fragCoord,
@@ -85,11 +85,11 @@ void main() {
         fragCoord,
         v_Pos,
         v_Scale,
-        borderRadius
+        border_radius
     );
 
     float radius_alpha =
-        1.0 - smoothstep(max(borderRadius - 0.5, 0.0), borderRadius + 0.5, d);
+        1.0 - smoothstep(max(border_radius - 0.5, 0.0), border_radius + 0.5, d);
 
     gl_FragColor = vec4(mixed_color.xyz, mixed_color.w * radius_alpha);
 }
