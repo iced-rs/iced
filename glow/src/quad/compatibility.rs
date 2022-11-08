@@ -325,7 +325,7 @@ impl Vertex {
             size: quad.size,
             color: quad.color,
             border_color: quad.color,
-            border_radius: [quad.border_radius[0]; 4],
+            border_radius: quad.border_radius,
             border_width: quad.border_width,
             q_position: [0.0, 0.0],
         };
