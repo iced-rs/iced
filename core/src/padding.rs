@@ -87,7 +87,7 @@ impl Padding {
     }
 }
 
-impl std::convert::From<u16> for Padding {
+impl From<u16> for Padding {
     fn from(p: u16) -> Self {
         Padding {
             top: p,
@@ -98,7 +98,7 @@ impl std::convert::From<u16> for Padding {
     }
 }
 
-impl std::convert::From<[u16; 2]> for Padding {
+impl From<[u16; 2]> for Padding {
     fn from(p: [u16; 2]) -> Self {
         Padding {
             top: p[0],
@@ -109,7 +109,7 @@ impl std::convert::From<[u16; 2]> for Padding {
     }
 }
 
-impl std::convert::From<[u16; 4]> for Padding {
+impl From<[u16; 4]> for Padding {
     fn from(p: [u16; 4]) -> Self {
         Padding {
             top: p[0],
