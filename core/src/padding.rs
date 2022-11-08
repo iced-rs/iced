@@ -79,10 +79,10 @@ impl Padding {
         let available = (outer - inner).max(Size::ZERO);
 
         Padding {
-            top: self.top.min((available.height / 2.0) as u16),
-            right: self.right.min((available.width / 2.0) as u16),
-            bottom: self.bottom.min((available.height / 2.0) as u16),
-            left: self.left.min((available.width / 2.0) as u16),
+            top: self.top.min((available.height as u16) / 2),
+            right: self.right.min((available.width as u16) / 2),
+            bottom: self.bottom.min((available.height as u16) / 2),
+            left: self.left.min((available.width as u16) / 2),
         }
     }
 }
