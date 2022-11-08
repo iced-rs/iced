@@ -293,11 +293,11 @@ pub fn layout<Renderer>(
         .max_width(max_width)
         .max_height(max_height)
         .width(width)
-        .height(height)
-        .pad(padding);
+        .height(height);
 
-    let mut content = layout_content(renderer, &limits.loose());
-    let size = limits.resolve(content.size());
+    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let padding = padding.fit(content.size(), limits.max());
+    let size = limits.pad(padding).resolve(content.size());
 
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
     content.align(
