@@ -296,9 +296,7 @@ pub fn layout<Renderer>(
         .height(height);
 
     let mut content = layout_content(renderer, &limits.pad(padding).loose());
-
     let padding = padding.fit(content.size(), limits.max());
-
     let size = limits.pad(padding).resolve(content.size());
 
     content.move_to(Point::new(padding.left.into(), padding.top.into()));

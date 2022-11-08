@@ -429,12 +429,10 @@ pub fn layout<Renderer>(
     let limits = limits.width(width).height(height);
 
     let mut content = layout_content(renderer, &limits.pad(padding));
-
     let padding = padding.fit(content.size(), limits.max());
+    let size = limits.pad(padding).resolve(content.size()).pad(padding);
 
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
-
-    let size = limits.pad(padding).resolve(content.size()).pad(padding);
 
     layout::Node::with_children(size, vec![content])
 }
