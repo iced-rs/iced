@@ -74,8 +74,8 @@ impl Padding {
         self.left + self.right
     }
 
-    /// Constrains the padding to fit between the inner & outer [`Size`]
-    pub fn constrain(self, inner: Size, outer: Size) -> Self {
+    /// Fits the [`Padding`] between the provided `inner` and `outer` [`Size`].
+    pub fn fit(self, inner: Size, outer: Size) -> Self {
         let available = (outer - inner).max(Size::ZERO);
 
         Padding {

@@ -358,7 +358,7 @@ where
 
     let mut text = layout::Node::new(text_limits.resolve(Size::ZERO));
 
-    let padding = padding.constrain(text.size(), limits.max());
+    let padding = padding.fit(text.size(), limits.max());
 
     text.move_to(Point::new(padding.left.into(), padding.top.into()));
 

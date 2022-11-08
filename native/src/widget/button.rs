@@ -430,7 +430,7 @@ pub fn layout<Renderer>(
 
     let mut content = layout_content(renderer, &limits.pad(padding));
 
-    let padding = padding.constrain(content.size(), limits.max());
+    let padding = padding.fit(content.size(), limits.max());
 
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
 
