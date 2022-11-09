@@ -88,7 +88,7 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = theme.style(self.style);
+        let style = theme.appearance(&self.style);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)

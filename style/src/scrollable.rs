@@ -22,16 +22,16 @@ pub struct Scroller {
 
 /// A set of rules that dictate the style of a scrollable.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
     /// Produces the style of an active scrollbar.
-    fn active(&self, style: Self::Style) -> Scrollbar;
+    fn active(&self, style: &Self::Style) -> Scrollbar;
 
     /// Produces the style of an hovered scrollbar.
-    fn hovered(&self, style: Self::Style) -> Scrollbar;
+    fn hovered(&self, style: &Self::Style) -> Scrollbar;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self, style: Self::Style) -> Scrollbar {
+    fn dragging(&self, style: &Self::Style) -> Scrollbar {
         self.hovered(style)
     }
 }

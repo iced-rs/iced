@@ -231,7 +231,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             theme,
-            self.style,
+            &self.style,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -361,7 +361,7 @@ pub fn draw<'a, Renderer: crate::Renderer>(
     style_sheet: &dyn StyleSheet<
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where

@@ -13,7 +13,7 @@ pub struct Appearance {
 }
 
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default + Clone;
 
-    fn appearance(&self, style: Self::Style) -> Appearance;
+    fn appearance(&self, style: &Self::Style) -> Appearance;
 }

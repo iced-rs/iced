@@ -178,7 +178,7 @@ where
             font,
             text_size,
             padding,
-            style,
+            style: style.clone(),
         }));
 
         state.tree.diff(&container as &dyn Widget<_, _>);
@@ -288,7 +288,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        let appearance = theme.appearance(self.style);
+        let appearance = theme.appearance(&self.style);
         let bounds = layout.bounds();
 
         renderer.fill_quad(
@@ -460,7 +460,7 @@ where
         _cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let appearance = theme.appearance(self.style);
+        let appearance = theme.appearance(&self.style);
         let bounds = layout.bounds();
 
         let text_size =

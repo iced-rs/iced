@@ -1,9 +1,5 @@
 use iced_core::{Background, Color};
 
-use crate::container;
-use crate::menu;
-use crate::scrollable;
-
 /// The appearance of a pick list.
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
@@ -17,13 +13,10 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet:
-    container::StyleSheet + menu::StyleSheet + scrollable::StyleSheet
-{
-    type Style: Default + Copy + Into<<Self as menu::StyleSheet>::Style>;
+pub trait StyleSheet {
+    type Style: Default + Clone;
 
-    fn active(&self, style: <Self as StyleSheet>::Style) -> Appearance;
+    fn active(&self, style: &<Self as StyleSheet>::Style) -> Appearance;
 
-    /// Produces the style of a container.
-    fn hovered(&self, style: <Self as StyleSheet>::Style) -> Appearance;
+    fn hovered(&self, style: &<Self as StyleSheet>::Style) -> Appearance;
 }

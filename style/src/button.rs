@@ -27,11 +27,11 @@ impl std::default::Default for Appearance {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
-    fn active(&self, style: Self::Style) -> Appearance;
+    fn active(&self, style: &Self::Style) -> Appearance;
 
-    fn hovered(&self, style: Self::Style) -> Appearance {
+    fn hovered(&self, style: &Self::Style) -> Appearance {
         let active = self.active(style);
 
         Appearance {
@@ -40,14 +40,14 @@ pub trait StyleSheet {
         }
     }
 
-    fn pressed(&self, style: Self::Style) -> Appearance {
+    fn pressed(&self, style: &Self::Style) -> Appearance {
         Appearance {
             shadow_offset: Vector::default(),
             ..self.active(style)
         }
     }
 
-    fn disabled(&self, style: Self::Style) -> Appearance {
+    fn disabled(&self, style: &Self::Style) -> Appearance {
         let active = self.active(style);
 
         Appearance {

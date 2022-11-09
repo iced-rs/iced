@@ -129,7 +129,7 @@ where
         use container::StyleSheet;
 
         let bounds = layout.bounds();
-        let style = theme.appearance(self.style);
+        let style = theme.appearance(&self.style);
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };

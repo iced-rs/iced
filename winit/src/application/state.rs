@@ -32,7 +32,7 @@ where
         let title = application.title();
         let scale_factor = application.scale_factor();
         let theme = application.theme();
-        let appearance = theme.appearance(application.style());
+        let appearance = theme.appearance(&application.style());
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -210,6 +210,6 @@ where
 
         // Update theme and appearance
         self.theme = application.theme();
-        self.appearance = self.theme.appearance(application.style());
+        self.appearance = self.theme.appearance(&application.style());
     }
 }

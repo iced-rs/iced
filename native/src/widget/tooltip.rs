@@ -201,7 +201,7 @@ where
             self.gap,
             self.padding,
             self.snap_within_viewport,
-            self.style,
+            &self.style,
             |renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
             },
@@ -275,7 +275,7 @@ pub fn draw<Renderer>(
     gap: u16,
     padding: u16,
     snap_within_viewport: bool,
-    style: <Renderer::Theme as container::StyleSheet>::Style,
+    style: &<Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
     draw_text: impl FnOnce(
         &mut Renderer,

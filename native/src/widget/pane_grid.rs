@@ -401,7 +401,7 @@ where
             viewport,
             self.spacing,
             self.on_resize.as_ref().map(|(leeway, _)| *leeway),
-            self.style,
+            &self.style,
             self.contents
                 .iter()
                 .zip(&tree.children)
@@ -727,7 +727,7 @@ pub fn draw<Renderer, T>(
     viewport: &Rectangle,
     spacing: u16,
     resize_leeway: Option<u16>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     contents: impl Iterator<Item = (Pane, T)>,
     draw_pane: impl Fn(
         T,

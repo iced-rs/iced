@@ -188,7 +188,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 }
@@ -284,7 +284,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 
@@ -746,7 +746,7 @@ pub fn draw<Renderer>(
     size: Option<u16>,
     font: &Renderer::Font,
     is_secure: bool,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
