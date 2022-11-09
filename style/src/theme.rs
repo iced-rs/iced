@@ -23,8 +23,9 @@ use iced_core::{Background, Color, Vector};
 
 use std::rc::Rc;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum Theme {
+    #[default]
     Light,
     Dark,
     Custom(Box<Custom>),
@@ -52,12 +53,6 @@ impl Theme {
     }
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Light
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Custom {
     palette: Palette,
@@ -73,15 +68,11 @@ impl Custom {
     }
 }
 
+#[derive(Default)]
 pub enum Application {
+    #[default]
     Default,
     Custom(Box<dyn application::StyleSheet<Style = Theme>>),
-}
-
-impl Default for Application {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 impl application::StyleSheet for Theme {
@@ -117,19 +108,15 @@ impl From<fn(&Theme) -> application::Appearance> for Application {
 /*
  * Button
  */
+#[derive(Default)]
 pub enum Button {
+    #[default]
     Primary,
     Secondary,
     Positive,
     Destructive,
     Text,
     Custom(Box<dyn button::StyleSheet<Style = Theme>>),
-}
-
-impl Default for Button {
-    fn default() -> Self {
-        Self::Primary
-    }
 }
 
 impl button::StyleSheet for Theme {
@@ -223,18 +210,14 @@ impl button::StyleSheet for Theme {
 /*
  * Checkbox
  */
+#[derive(Default)]
 pub enum Checkbox {
+    #[default]
     Primary,
     Secondary,
     Success,
     Danger,
     Custom(Box<dyn checkbox::StyleSheet<Style = Theme>>),
-}
-
-impl Default for Checkbox {
-    fn default() -> Self {
-        Self::Primary
-    }
 }
 
 impl checkbox::StyleSheet for Theme {
@@ -336,16 +319,12 @@ fn checkbox_appearance(
 /*
  * Container
  */
+#[derive(Default)]
 pub enum Container {
+    #[default]
     Transparent,
     Box,
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
-}
-
-impl Default for Container {
-    fn default() -> Self {
-        Self::Transparent
-    }
 }
 
 impl From<fn(&Theme) -> container::Appearance> for Container {
@@ -729,17 +708,13 @@ impl pane_grid::StyleSheet for Theme {
 /*
  * Progress Bar
  */
+#[derive(Default)]
 pub enum ProgressBar {
+    #[default]
     Primary,
     Success,
     Danger,
     Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
-}
-
-impl Default for ProgressBar {
-    fn default() -> Self {
-        Self::Primary
-    }
 }
 
 impl From<fn(&Theme) -> progress_bar::Appearance> for ProgressBar {
@@ -784,15 +759,11 @@ impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
 /*
  * Rule
  */
+#[derive(Default)]
 pub enum Rule {
+    #[default]
     Default,
     Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
-}
-
-impl Default for Rule {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 impl From<fn(&Theme) -> rule::Appearance> for Rule {
@@ -895,16 +866,11 @@ impl scrollable::StyleSheet for Theme {
 /*
  * Text
  */
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum Text {
+    #[default]
     Default,
     Color(Color),
-}
-
-impl Default for Text {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 impl From<Color> for Text {
