@@ -309,7 +309,7 @@ pub fn layout<Renderer>(
     layout::Node::with_children(size.pad(padding), vec![content])
 }
 
-/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
+/// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
     appearance: &Appearance,

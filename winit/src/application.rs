@@ -58,10 +58,10 @@ where
     /// title of your application when necessary.
     fn title(&self) -> String;
 
-    /// Returns the current [`Theme`] of the [`Application`].
+    /// Returns the current `Theme` of the [`Application`].
     fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
 
-    /// Returns the [`Style`] variation of the [`Theme`].
+    /// Returns the `Style` variation of the `Theme`.
     fn style(
         &self,
     ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {

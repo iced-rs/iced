@@ -165,7 +165,7 @@ where
     }
 
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`text_input::Value`] if provided.
+    /// [`Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(

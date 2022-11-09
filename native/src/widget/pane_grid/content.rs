@@ -87,7 +87,7 @@ where
 
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: iced_native::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         tree: &Tree,

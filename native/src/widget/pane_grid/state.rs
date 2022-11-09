@@ -32,7 +32,9 @@ pub struct State<T> {
     /// [`PaneGrid`]: crate::widget::PaneGrid
     pub internal: Internal,
 
-    /// The maximized [`Pane`] of the [`PaneGrid`]
+    /// The maximized [`Pane`] of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: crate::widget::PaneGrid
     pub(super) maximized: Option<Pane>,
 }
 

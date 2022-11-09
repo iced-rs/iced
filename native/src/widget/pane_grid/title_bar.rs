@@ -114,7 +114,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: iced_native::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         tree: &Tree,

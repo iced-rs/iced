@@ -11,7 +11,7 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::widget::tree::{self, Tree};
+use crate::widget::Tree;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
@@ -42,29 +42,7 @@ where
         cursor_position: Point,
     );
 
-    /// Returns the [`Tag`] of the [`Widget`].
-    ///
-    /// [`Tag`]: tree::Tag
-    fn tag(&self) -> tree::Tag {
-        tree::Tag::stateless()
-    }
-
-    /// Returns the [`State`] of the [`Widget`].
-    ///
-    /// [`State`]: tree::State
-    fn state(&self) -> tree::State {
-        tree::State::None
-    }
-
-    /// Returns the state [`Tree`] of the children of the [`Widget`].
-    fn children(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
-    /// Reconciliates the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
-
-    /// Applies an [`Operation`] to the [`Widget`].
+    /// Applies a [`widget::Operation`] to the [`Overlay`].
     fn operate(
         &self,
         _layout: Layout<'_>,

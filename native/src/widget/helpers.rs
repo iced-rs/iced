@@ -19,7 +19,7 @@ macro_rules! column {
     );
 }
 
-/// Creates a [Row`] with the given children.
+/// Creates a [`Row`] with the given children.
 ///
 /// [`Row`]: widget::Row
 #[macro_export]

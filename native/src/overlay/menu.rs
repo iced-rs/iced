@@ -9,7 +9,7 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
-use crate::widget::tree::{self, Tree};
+use crate::widget::Tree;
 use crate::{
     Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Size, Vector, Widget,
@@ -199,18 +199,6 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
-    fn tag(&self) -> tree::Tag {
-        self.container.tag()
-    }
-
-    fn state(&self) -> tree::State {
-        self.container.state()
-    }
-
-    fn children(&self) -> Vec<Tree> {
-        self.container.children()
-    }
-
     fn layout(
         &self,
         renderer: &Renderer,

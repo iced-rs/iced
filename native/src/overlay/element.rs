@@ -104,7 +104,7 @@ where
             .draw(renderer, theme, style, layout, cursor_position)
     }
 
-    /// Applies an [`Operation`] to the [`Element`].
+    /// Applies a [`widget::Operation`] to the [`Element`].
     pub fn operate(
         &self,
         layout: Layout<'_>,
