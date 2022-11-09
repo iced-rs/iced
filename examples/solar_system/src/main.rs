@@ -79,10 +79,14 @@ impl Application for SolarSystem {
     }
 
     fn style(&self) -> theme::Application {
-        theme::Application::Custom(|_theme| application::Appearance {
-            background_color: Color::BLACK,
-            text_color: Color::WHITE,
-        })
+        fn dark_background(_theme: &Theme) -> application::Appearance {
+            application::Appearance {
+                background_color: Color::BLACK,
+                text_color: Color::WHITE,
+            }
+        }
+
+        theme::Application::from(dark_background as fn(&Theme) -> _)
     }
 
     fn subscription(&self) -> Subscription<Message> {

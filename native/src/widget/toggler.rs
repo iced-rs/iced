@@ -260,9 +260,9 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(self.style, self.is_active)
+            theme.hovered(&self.style, self.is_active)
         } else {
-            theme.active(self.style, self.is_active)
+            theme.active(&self.style, self.is_active)
         };
 
         let border_radius = bounds.height as f32 / BORDER_RADIUS_RATIO;

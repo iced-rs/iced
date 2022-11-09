@@ -224,9 +224,9 @@ where
         let mut children = layout.children();
 
         let custom_style = if is_mouse_over {
-            theme.hovered(self.style, self.is_checked)
+            theme.hovered(&self.style, self.is_checked)
         } else {
-            theme.active(self.style, self.is_checked)
+            theme.active(&self.style, self.is_checked)
         };
 
         {

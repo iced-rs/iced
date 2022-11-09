@@ -25,8 +25,8 @@ impl std::default::Default for Appearance {
 
 /// A set of rules that dictate the [`Appearance`] of a container.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
     /// Produces the [`Appearance`] of a container.
-    fn appearance(&self, style: Self::Style) -> Appearance;
+    fn appearance(&self, style: &Self::Style) -> Appearance;
 }

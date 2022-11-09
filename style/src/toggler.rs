@@ -12,9 +12,9 @@ pub struct Appearance {
 
 /// A set of rules that dictate the style of a toggler.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
-    fn active(&self, style: Self::Style, is_active: bool) -> Appearance;
+    fn active(&self, style: &Self::Style, is_active: bool) -> Appearance;
 
-    fn hovered(&self, style: Self::Style, is_active: bool) -> Appearance;
+    fn hovered(&self, style: &Self::Style, is_active: bool) -> Appearance;
 }

@@ -26,14 +26,14 @@ pub enum HandleShape {
 
 /// A set of rules that dictate the style of a slider.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
     /// Produces the style of an active slider.
-    fn active(&self, style: Self::Style) -> Appearance;
+    fn active(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the style of an hovered slider.
-    fn hovered(&self, style: Self::Style) -> Appearance;
+    fn hovered(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the style of a slider that is being dragged.
-    fn dragging(&self, style: Self::Style) -> Appearance;
+    fn dragging(&self, style: &Self::Style) -> Appearance;
 }

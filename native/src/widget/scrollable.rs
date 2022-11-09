@@ -233,7 +233,7 @@ where
             self.scrollbar_width,
             self.scrollbar_margin,
             self.scroller_width,
-            self.style,
+            &self.style,
             |renderer, layout, cursor_position, viewport| {
                 self.content.as_widget().draw(
                     &tree.children[0],
@@ -627,7 +627,7 @@ pub fn draw<Renderer>(
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, Point, &Rectangle),
 ) where
     Renderer: crate::Renderer,

@@ -11,7 +11,7 @@ pub struct Appearance {
 
 /// A set of rules that dictate the style of a progress bar.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
-    fn appearance(&self, style: Self::Style) -> Appearance;
+    fn appearance(&self, style: &Self::Style) -> Appearance;
 }

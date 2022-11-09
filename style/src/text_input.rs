@@ -12,22 +12,22 @@ pub struct Appearance {
 
 /// A set of rules that dictate the style of a text input.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
     /// Produces the style of an active text input.
-    fn active(&self, style: Self::Style) -> Appearance;
+    fn active(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the style of a focused text input.
-    fn focused(&self, style: Self::Style) -> Appearance;
+    fn focused(&self, style: &Self::Style) -> Appearance;
 
-    fn placeholder_color(&self, style: Self::Style) -> Color;
+    fn placeholder_color(&self, style: &Self::Style) -> Color;
 
-    fn value_color(&self, style: Self::Style) -> Color;
+    fn value_color(&self, style: &Self::Style) -> Color;
 
-    fn selection_color(&self, style: Self::Style) -> Color;
+    fn selection_color(&self, style: &Self::Style) -> Color;
 
     /// Produces the style of an hovered text input.
-    fn hovered(&self, style: Self::Style) -> Appearance {
+    fn hovered(&self, style: &Self::Style) -> Appearance {
         self.focused(style)
     }
 }

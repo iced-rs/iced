@@ -1,9 +1,9 @@
 use iced_core::Color;
 
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    type Style: Default;
 
-    fn appearance(&self, style: Self::Style) -> Appearance;
+    fn appearance(&self, style: &Self::Style) -> Appearance;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
