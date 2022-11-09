@@ -85,4 +85,12 @@ where
     ) {
         self.operation.focusable(state, id);
     }
+
+    fn scrollable(
+        &mut self,
+        state: &mut dyn operation::Scrollable,
+        id: Option<&Id>,
+    ) {
+        self.operation.scrollable(state, id);
+    }
 }
