@@ -363,11 +363,11 @@ pub fn draw<T, R>(
     let is_mouse_over = bounds.contains(cursor_position);
 
     let style = if state.is_dragging {
-        style_sheet.dragging(&style)
+        style_sheet.dragging(style)
     } else if is_mouse_over {
-        style_sheet.hovered(&style)
+        style_sheet.hovered(style)
     } else {
-        style_sheet.active(&style)
+        style_sheet.active(style)
     };
 
     let rail_y = bounds.y + (bounds.height / 2.0).round();
