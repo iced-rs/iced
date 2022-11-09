@@ -97,7 +97,7 @@ pub fn scoped<T: 'static>(
     }
 
     ScopedOperation {
-        target: target.into(),
+        target,
         operation: Box::new(operation),
     }
 }
