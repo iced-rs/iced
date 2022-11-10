@@ -56,7 +56,7 @@ pub mod pane_grid {
     //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
     //! drag and drop, and hotkey support.
     //!
-    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.4/examples/pane_grid
+    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.5/examples/pane_grid
     pub use iced_native::widget::pane_grid::{
         Axis, Configuration, Direction, DragEvent, Line, Node, Pane,
         ResizeEvent, Split, State, StyleSheet,

@@ -155,7 +155,7 @@ where
 /// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
 /// connection open.
 ///
-/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.4/examples/websocket
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.5/examples/websocket
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,

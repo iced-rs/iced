@@ -18,8 +18,8 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 /// The [`integration_opengl`] & [`integration_wgpu`] examples use a
 /// [`UserInterface`] to integrate Iced in an existing graphical application.
 ///
-/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.4/examples/integration_opengl
-/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.4/examples/integration_wgpu
+/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.5/examples/integration_opengl
+/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.5/examples/integration_wgpu
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,

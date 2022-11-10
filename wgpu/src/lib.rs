@@ -16,7 +16,7 @@
 //! - Meshes of triangles, useful to draw geometry freely.
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.5/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
