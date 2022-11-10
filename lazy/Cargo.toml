@@ -1,6 +1,6 @@
 [package]
 name = "iced_lazy"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "Lazy widgets for Iced"
@@ -14,5 +14,5 @@ categories = ["gui"]
 ouroboros = "0.13"
 
 [dependencies.iced_native]
-version = "0.5"
+version = "0.6"
 path = "../native"
