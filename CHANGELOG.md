@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.5.0] - 2022-11-10
 ### Added
 - __[Stabilization of stateless widgets][stateless]__ (#1393)  
   The old widget API has been completely replaced by stateless widgets (introduced in #1284). Alongside the new API, there are a bunch of new helper functions and macros for easily describing view logic (like `row!` and `column!`).
@@ -286,7 +288,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/iced-rs/iced/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/iced-rs/iced/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/iced-rs/iced/compare/0.3.0...0.4.0
