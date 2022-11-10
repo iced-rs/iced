@@ -86,7 +86,6 @@ members = [
     "examples/todos",
     "examples/tooltip",
     "examples/tour",
-    "examples/url_handler",
     "examples/websocket",
 ]
 
