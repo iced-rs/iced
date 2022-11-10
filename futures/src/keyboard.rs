@@ -26,7 +26,7 @@ where
             status: event::Status::Ignored,
             ..
         } => f(key, modifiers),
-        _ => None,
+        subscription::Event::Interaction { .. } => None,
     })
 }
 
@@ -51,6 +51,6 @@ where
             status: event::Status::Ignored,
             ..
         } => f(key, modifiers),
-        _ => None,
+        subscription::Event::Interaction { .. } => None,
     })
 }

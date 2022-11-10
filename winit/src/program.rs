@@ -431,23 +431,6 @@ where
             );
         }
 
-        fn received_url(
-            &mut self,
-            event_loop: &winit::event_loop::ActiveEventLoop,
-            url: String,
-        ) {
-            self.process_event(
-                event_loop,
-                Event::EventLoopAwakened(
-                    winit::event::Event::PlatformSpecific(
-                        winit::event::PlatformSpecific::MacOS(
-                            winit::event::MacOS::ReceivedUrl(url),
-                        ),
-                    ),
-                ),
-            );
-        }
-
         fn about_to_wait(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
@@ -765,19 +748,6 @@ async fn run_instance<P, C>(
                         for (_id, window) in window_manager.iter_mut() {
                             window.raw.request_redraw();
                         }
-                    }
-                    event::Event::PlatformSpecific(
-                        event::PlatformSpecific::MacOS(
-                            event::MacOS::ReceivedUrl(url),
-                        ),
-                    ) => {
-                        runtime.broadcast(
-                            subscription::Event::PlatformSpecific(
-                                subscription::PlatformSpecific::MacOS(
-                                    subscription::MacOS::ReceivedUrl(url),
-                                ),
-                            ),
-                        );
                     }
                     event::Event::UserEvent(action) => {
                         run_action(

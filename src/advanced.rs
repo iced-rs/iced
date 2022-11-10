@@ -2,8 +2,7 @@
 pub mod subscription {
     //! Write your own subscriptions.
     pub use crate::runtime::futures::subscription::{
-        from_recipe, into_recipes, Event, EventStream, Hasher, MacOS,
-        PlatformSpecific, Recipe,
+        from_recipe, into_recipes, Event, EventStream, Hasher, Recipe,
     };
 }
 
