@@ -349,17 +349,6 @@ async fn run_instance<A, E, C>(
                 window.request_redraw();
                 redraw_pending = true;
             }
-            event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
-                event::MacOS::ReceivedUrl(url),
-            )) => {
-                use crate::core::event;
-
-                events.push(Event::PlatformSpecific(
-                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
-                        url,
-                    )),
-                ));
-            }
             event::Event::UserEvent(message) => {
                 messages.push(message);
             }
