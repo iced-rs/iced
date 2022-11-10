@@ -1,3 +1,4 @@
+//! Use the built-in theme and styles.
 pub mod palette;
 
 use self::palette::Extended;
@@ -23,19 +24,25 @@ use iced_core::{Background, Color, Vector};
 
 use std::rc::Rc;
 
+/// A built-in theme.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub enum Theme {
+    /// The built-in light variant.
     #[default]
     Light,
+    /// The built-in dark variant.
     Dark,
+    /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Box<Custom>),
 }
 
 impl Theme {
+    /// Creates a new custom [`Theme`] from the given [`Palette`].
     pub fn custom(palette: Palette) -> Self {
         Self::Custom(Box::new(Custom::new(palette)))
     }
 
+    /// Returns the [`Palette`] of the [`Theme`].
     pub fn palette(&self) -> Palette {
         match self {
             Self::Light => Palette::LIGHT,
@@ -44,6 +51,7 @@ impl Theme {
         }
     }
 
+    /// Returns the [`palette::Extended`] of the [`Theme`].
     pub fn extended_palette(&self) -> &palette::Extended {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
@@ -53,6 +61,7 @@ impl Theme {
     }
 }
 
+/// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Custom {
     palette: Palette,
@@ -60,6 +69,7 @@ pub struct Custom {
 }
 
 impl Custom {
+    /// Creates a [`Custom`] theme from the given [`Palette`].
     pub fn new(palette: Palette) -> Self {
         Self {
             palette,
@@ -68,10 +78,13 @@ impl Custom {
     }
 }
 
+/// The style of an application.
 #[derive(Default)]
 pub enum Application {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn application::StyleSheet<Style = Theme>>),
 }
 
@@ -105,17 +118,23 @@ impl From<fn(&Theme) -> application::Appearance> for Application {
     }
 }
 
-/*
- * Button
- */
+/// The style of a button.
 #[derive(Default)]
 pub enum Button {
+    /// The primary style.
     #[default]
     Primary,
+    /// The secondary style.
     Secondary,
+    /// The positive style.
     Positive,
+    /// The destructive style.
     Destructive,
+    /// The text style.
+    ///
+    /// Useful for links!
     Text,
+    /// A custom style.
     Custom(Box<dyn button::StyleSheet<Style = Theme>>),
 }
 
@@ -207,16 +226,19 @@ impl button::StyleSheet for Theme {
     }
 }
 
-/*
- * Checkbox
- */
+/// The style of a checkbox.
 #[derive(Default)]
 pub enum Checkbox {
+    /// The primary style.
     #[default]
     Primary,
+    /// The secondary style.
     Secondary,
+    /// The success style.
     Success,
+    /// The danger style.
     Danger,
+    /// A custom style.
     Custom(Box<dyn checkbox::StyleSheet<Style = Theme>>),
 }
 
@@ -316,14 +338,15 @@ fn checkbox_appearance(
     }
 }
 
-/*
- * Container
- */
+/// The style of a container.
 #[derive(Default)]
 pub enum Container {
+    /// No style.
     #[default]
     Transparent,
+    /// A simple box.
     Box,
+    /// A custom style.
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
@@ -363,13 +386,13 @@ impl container::StyleSheet for fn(&Theme) -> container::Appearance {
     }
 }
 
-/*
- * Slider
- */
+/// The style of a slider.
 #[derive(Default)]
 pub enum Slider {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn slider::StyleSheet<Style = Theme>>),
 }
 
@@ -444,13 +467,13 @@ impl slider::StyleSheet for Theme {
     }
 }
 
-/*
- * Menu
- */
+/// The style of a menu.
 #[derive(Clone, Default)]
 pub enum Menu {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Rc<dyn menu::StyleSheet<Style = Theme>>),
 }
 
@@ -486,13 +509,13 @@ impl From<PickList> for Menu {
     }
 }
 
-/*
- * Pick List
- */
+/// The style of a pick list.
 #[derive(Clone, Default)]
 pub enum PickList {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(
         Rc<dyn pick_list::StyleSheet<Style = Theme>>,
         Rc<dyn menu::StyleSheet<Style = Theme>>,
@@ -541,13 +564,13 @@ impl pick_list::StyleSheet for Theme {
     }
 }
 
-/*
- * Radio
- */
+/// The style of a radio button.
 #[derive(Default)]
 pub enum Radio {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn radio::StyleSheet<Style = Theme>>),
 }
 
@@ -596,13 +619,13 @@ impl radio::StyleSheet for Theme {
     }
 }
 
-/*
- * Toggler
- */
+/// The style of a toggler.
 #[derive(Default)]
 pub enum Toggler {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn toggler::StyleSheet<Style = Theme>>),
 }
 
@@ -663,13 +686,13 @@ impl toggler::StyleSheet for Theme {
     }
 }
 
-/*
- * Pane Grid
- */
+/// The style of a pane grid.
 #[derive(Default)]
 pub enum PaneGrid {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn pane_grid::StyleSheet<Style = Theme>>),
 }
 
@@ -705,15 +728,17 @@ impl pane_grid::StyleSheet for Theme {
     }
 }
 
-/*
- * Progress Bar
- */
+/// The style of a progress bar.
 #[derive(Default)]
 pub enum ProgressBar {
+    /// The primary style.
     #[default]
     Primary,
+    /// The success style.
     Success,
+    /// The danger style.
     Danger,
+    /// A custom style.
     Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
 }
 
@@ -756,13 +781,13 @@ impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
     }
 }
 
-/*
- * Rule
- */
+/// The style of a rule.
 #[derive(Default)]
 pub enum Rule {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
 }
 
@@ -798,13 +823,13 @@ impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
     }
 }
 
-/*
- * Scrollable
- */
+/// The style of a scrollable.
 #[derive(Default)]
 pub enum Scrollable {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn scrollable::StyleSheet<Style = Theme>>),
 }
 
@@ -863,13 +888,13 @@ impl scrollable::StyleSheet for Theme {
     }
 }
 
-/*
- * Text
- */
+/// The style of text.
 #[derive(Clone, Copy, Default)]
 pub enum Text {
+    /// The default style.
     #[default]
     Default,
+    /// Colored text.
     Color(Color),
 }
 
@@ -890,13 +915,13 @@ impl text::StyleSheet for Theme {
     }
 }
 
-/*
- * Text Input
- */
+/// The style of a text input.
 #[derive(Default)]
 pub enum TextInput {
+    /// The default style.
     #[default]
     Default,
+    /// A custom style.
     Custom(Box<dyn text_input::StyleSheet<Style = Theme>>),
 }
 

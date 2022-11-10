@@ -1,18 +1,26 @@
+//! Define the colors of a theme.
 use iced_core::Color;
 
 use once_cell::sync::Lazy;
 use palette::{FromColor, Hsl, Mix, RelativeContrast, Srgb};
 
+/// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Palette {
+    /// The background [`Color`] of the [`Palette`].
     pub background: Color,
+    /// The text [`Color`] of the [`Palette`].
     pub text: Color,
+    /// The primary [`Color`] of the [`Palette`].
     pub primary: Color,
+    /// The success [`Color`] of the [`Palette`].
     pub success: Color,
+    /// The danger [`Color`] of the [`Palette`].
     pub danger: Color,
 }
 
 impl Palette {
+    /// The built-in light variant of a [`Palette`].
     pub const LIGHT: Self = Self {
         background: Color::WHITE,
         text: Color::BLACK,
@@ -33,6 +41,7 @@ impl Palette {
         ),
     };
 
+    /// The built-in dark variant of a [`Palette`].
     pub const DARK: Self = Self {
         background: Color::from_rgb(
             0x20 as f32 / 255.0,
@@ -58,21 +67,31 @@ impl Palette {
     };
 }
 
+/// An extended set of colors generated from a [`Palette`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Extended {
+    /// The set of background colors.
     pub background: Background,
+    /// The set of primary colors.
     pub primary: Primary,
+    /// The set of secondary colors.
     pub secondary: Secondary,
+    /// The set of success colors.
     pub success: Success,
+    /// The set of danger colors.
     pub danger: Danger,
 }
 
+/// The built-in light variant of an [`Extended`] palette.
 pub static EXTENDED_LIGHT: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::LIGHT));
+
+/// The built-in dark variant of an [`Extended`] palette.
 pub static EXTENDED_DARK: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::DARK));
 
 impl Extended {
+    /// Generates an [`Extended`] palette from a simple [`Palette`].
     pub fn generate(palette: Palette) -> Self {
         Self {
             background: Background::new(palette.background, palette.text),
@@ -96,13 +115,22 @@ impl Extended {
     }
 }
 
+/// A pair of background and text colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Pair {
+    /// The background color.
     pub color: Color,
+
+    /// The text color.
+    ///
+    /// It's guaranteed to be readable on top of the background [`color`].
+    ///
+    /// [`color`]: Self::color
     pub text: Color,
 }
 
 impl Pair {
+    /// Creates a new [`Pair`] from a background [`Color`] and some text [`Color`].
     pub fn new(color: Color, text: Color) -> Self {
         Self {
             color,
@@ -111,14 +139,19 @@ impl Pair {
     }
 }
 
+/// A set of background colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Background {
+    /// The base background color.
     pub base: Pair,
+    /// A weaker version of the base background color.
     pub weak: Pair,
+    /// A stronger version of the base background color.
     pub strong: Pair,
 }
 
 impl Background {
+    /// Generates a set of [`Background`] colors from the base and text colors.
     pub fn new(base: Color, text: Color) -> Self {
         let weak = mix(base, text, 0.15);
         let strong = mix(base, text, 0.40);
@@ -131,14 +164,19 @@ impl Background {
     }
 }
 
+/// A set of primary colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Primary {
+    /// The base primary color.
     pub base: Pair,
+    /// A weaker version of the base primary color.
     pub weak: Pair,
+    /// A stronger version of the base primary color.
     pub strong: Pair,
 }
 
 impl Primary {
+    /// Generates a set of [`Primary`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);
@@ -151,14 +189,19 @@ impl Primary {
     }
 }
 
+/// A set of secondary colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Secondary {
+    /// The base secondary color.
     pub base: Pair,
+    /// A weaker version of the base secondary color.
     pub weak: Pair,
+    /// A stronger version of the base secondary color.
     pub strong: Pair,
 }
 
 impl Secondary {
+    /// Generates a set of [`Secondary`] colors from the base and text colors.
     pub fn generate(base: Color, text: Color) -> Self {
         let base = mix(base, text, 0.2);
         let weak = mix(base, text, 0.1);
@@ -172,14 +215,19 @@ impl Secondary {
     }
 }
 
+/// A set of success colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Success {
+    /// The base success color.
     pub base: Pair,
+    /// A weaker version of the base success color.
     pub weak: Pair,
+    /// A stronger version of the base success color.
     pub strong: Pair,
 }
 
 impl Success {
+    /// Generates a set of [`Success`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);
@@ -192,14 +240,19 @@ impl Success {
     }
 }
 
+/// A set of danger colors.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Danger {
+    /// The base danger color.
     pub base: Pair,
+    /// A weaker version of the base danger color.
     pub weak: Pair,
+    /// A stronger version of the base danger color.
     pub strong: Pair,
 }
 
 impl Danger {
+    /// Generates a set of [`Danger`] colors from the base, background, and text colors.
     pub fn generate(base: Color, background: Color, text: Color) -> Self {
         let weak = mix(base, background, 0.4);
         let strong = deviate(base, 0.1);

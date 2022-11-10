@@ -1,4 +1,4 @@
-//! Display a horizontal or vertical rule for dividing content.
+//! Change the appearance of a rule.
 use iced_core::Color;
 
 /// The appearance of a rule.
@@ -16,6 +16,7 @@ pub struct Appearance {
 
 /// A set of rules that dictate the style of a rule.
 pub trait StyleSheet {
+    /// The supported style of the [`StyleSheet`].
     type Style: Default;
 
     /// Produces the style of a rule.
