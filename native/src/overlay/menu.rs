@@ -8,7 +8,7 @@ use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
-use crate::widget::tree::{self, Tree};
+use crate::widget::tree::Tree;
 use crate::{alignment, IME};
 
 use crate::{
