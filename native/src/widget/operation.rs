@@ -58,3 +58,46 @@ where
         }
     }
 }
+
+/// Produces an [`Operation`] that applies the given [`Operation`] to the
+/// children of a container with the given [`Id`].
+pub fn scoped<T: 'static>(
+    target: Id,
+    operation: impl Operation<T> + 'static,
+) -> impl Operation<T> {
+    struct ScopedOperation<Message> {
+        target: Id,
+        operation: Box<dyn Operation<Message>>,
+    }
+
+    impl<Message: 'static> Operation<Message> for ScopedOperation<Message> {
+        fn container(
+            &mut self,
+            id: Option<&Id>,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Message>),
+        ) {
+            if id == Some(&self.target) {
+                operate_on_children(self.operation.as_mut());
+            } else {
+                operate_on_children(self);
+            }
+        }
+
+        fn finish(&self) -> Outcome<Message> {
+            match self.operation.finish() {
+                Outcome::Chain(next) => {
+                    Outcome::Chain(Box::new(ScopedOperation {
+                        target: self.target.clone(),
+                        operation: next,
+                    }))
+                }
+                outcome => outcome,
+            }
+        }
+    }
+
+    ScopedOperation {
+        target,
+        operation: Box::new(operation),
+    }
+}

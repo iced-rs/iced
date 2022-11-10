@@ -165,7 +165,7 @@ where
     }
 
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`text_input::Value`] if provided.
+    /// [`Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(
@@ -188,7 +188,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 }
@@ -286,7 +286,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 
@@ -352,15 +352,19 @@ where
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
 
-    let limits = limits
+    let text_limits = limits
         .pad(padding)
         .width(width)
         .height(Length::Units(text_size));
+    let limits = limits.width(width).height(Length::Shrink);
 
-    let mut text = layout::Node::new(limits.resolve(Size::ZERO));
+    let mut text = layout::Node::new(text_limits.resolve(Size::ZERO));
+    let padding = padding.fit(text.size(), limits.max());
+    let size = limits.pad(padding).resolve(text.size()).pad(padding);
+
     text.move_to(Point::new(padding.left.into(), padding.top.into()));
 
-    layout::Node::with_children(text.size().pad(padding), vec![text])
+    layout::Node::with_children(size, vec![text])
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`TextInput`]
@@ -879,7 +883,7 @@ pub fn draw<Renderer>(
     size: Option<u16>,
     font: &Renderer::Font,
     is_secure: bool,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,

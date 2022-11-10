@@ -2,7 +2,10 @@
 use crate::gradient::{ColorStop, Gradient, Position};
 use crate::{Color, Point};
 
-/// A linear gradient that can be used in the style of [`super::Fill`] or [`super::Stroke`].
+/// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
+///
+/// [`Fill`]: crate::widget::canvas::Fill
+/// [`Stroke`]: crate::widget::canvas::Stroke
 #[derive(Debug, Clone, PartialEq)]
 pub struct Linear {
     /// The point where the linear gradient begins.

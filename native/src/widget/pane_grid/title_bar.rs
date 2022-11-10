@@ -114,7 +114,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: iced_native::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -129,7 +129,7 @@ where
         use container::StyleSheet;
 
         let bounds = layout.bounds();
-        let style = theme.appearance(self.style);
+        let style = theme.appearance(&self.style);
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };

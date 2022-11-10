@@ -6,6 +6,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2022-11-10
+### Added
+- __[Stabilization of stateless widgets][stateless]__ (#1393)  
+  The old widget API has been completely replaced by stateless widgets (introduced in #1284). Alongside the new API, there are a bunch of new helper functions and macros for easily describing view logic (like `row!` and `column!`).
+
+- __[First-class theming][theming]__ (#1362)  
+  A complete overhaul of our styling primitives, introducing a `Theme` as a first-class concept of the library.
+
+- __[Widget operations][operations]__ (#1399)  
+  An abstraction that can be used to traverse (and operate on) the widget tree of an application in order to query or update some widget state.
+
+- __[`Lazy` widget][lazy]__ (#1400)  
+  A widget that can call some view logic lazily only when some data has changed. Thanks to @nicksenger!
+
+- __[Linear gradient support for `Canvas`][gradient]__ (#1448)  
+  The `Canvas` widget can draw linear gradients now. Thanks to @bungoboingo!
+
+- __[Touch support for `Canvas`][touch]__ (#1305)  
+  The `Canvas` widget now supports touch events. Thanks to @artursapek!
+
+- __[`Image` and `Svg` support for `iced_glow`][image]__ (#1485)  
+  Our OpenGL renderer now is capable of rendering both the `Image` and `Svg` widgets. Thanks to @ids1024!
+
+[stateless]: https://github.com/iced-rs/iced/pull/1393
+[theming]: https://github.com/iced-rs/iced/pull/1362
+[operations]: https://github.com/iced-rs/iced/pull/1399
+[lazy]: https://github.com/iced-rs/iced/pull/1400
+[gradient]: https://github.com/iced-rs/iced/pull/1448
+[touch]: https://github.com/iced-rs/iced/pull/1305
+[image]: https://github.com/iced-rs/iced/pull/1485
+
 ## [0.4.2] - 2022-05-03
 ### Fixed
 - `Padding` type not exposed in `iced`.
@@ -257,7 +288,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/iced-rs/iced/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/iced-rs/iced/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/iced-rs/iced/compare/0.3.0...0.4.0

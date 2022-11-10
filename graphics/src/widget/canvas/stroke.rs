@@ -8,7 +8,7 @@ use iced_native::Color;
 pub struct Stroke<'a> {
     /// The color or gradient of the stroke.
     ///
-    /// By default, it is set to [`StrokeStyle::Solid`] `BLACK`.
+    /// By default, it is set to a [`Style::Solid`] with [`Color::BLACK`].
     pub style: Style,
     /// The distance between the two edges of the stroke.
     pub width: f32,

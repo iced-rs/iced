@@ -233,7 +233,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             theme,
-            self.style,
+            &self.style,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -363,7 +363,7 @@ pub fn draw<'a, Renderer: crate::Renderer>(
     style_sheet: &dyn StyleSheet<
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where
@@ -428,12 +428,13 @@ pub fn layout<Renderer>(
     padding: Padding,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height).pad(padding);
+    let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits);
+    let mut content = layout_content(renderer, &limits.pad(padding));
+    let padding = padding.fit(content.size(), limits.max());
+    let size = limits.pad(padding).resolve(content.size()).pad(padding);
+
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
-
-    let size = limits.resolve(content.size()).pad(padding);
 
     layout::Node::with_children(size, vec![content])
 }

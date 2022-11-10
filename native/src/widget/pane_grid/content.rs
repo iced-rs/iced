@@ -87,7 +87,7 @@ where
 
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: iced_native::Renderer
+    /// [`Renderer`]: crate::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -103,7 +103,7 @@ where
         let bounds = layout.bounds();
 
         {
-            let style = theme.appearance(self.style);
+            let style = theme.appearance(&self.style);
 
             container::draw_background(renderer, &style, bounds);
         }

@@ -148,9 +148,8 @@ pub trait Application: Sized {
         Self::Theme::default()
     }
 
-    /// Returns the current [`Style`] of the [`Theme`].
+    /// Returns the current `Style` of the [`Theme`].
     ///
-    /// [`Style`]: <Self::Theme as StyleSheet>::Style
     /// [`Theme`]: Self::Theme
     fn style(&self) -> <Self::Theme as StyleSheet>::Style {
         <Self::Theme as StyleSheet>::Style::default()

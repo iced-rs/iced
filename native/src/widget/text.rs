@@ -74,7 +74,7 @@ where
         self
     }
 
-    /// Sets the [`Color`] of the [`Text`].
+    /// Sets the style of the [`Text`].
     pub fn style(
         mut self,
         style: impl Into<<Renderer::Theme as StyleSheet>::Style>,

@@ -8,6 +8,8 @@ use crate::overlay::menu::{self, Menu};
 use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
+use crate::widget::container;
+use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{alignment, IME};
 use crate::{
@@ -42,7 +44,12 @@ where
     T: ToString + Eq,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet
+        + scrollable::StyleSheet
+        + menu::StyleSheet
+        + container::StyleSheet,
+    <Renderer::Theme as menu::StyleSheet>::Style:
+        From<<Renderer::Theme as StyleSheet>::Style>,
 {
     /// The default padding of a [`PickList`].
     pub const DEFAULT_PADDING: Padding = Padding::new(5);
@@ -114,7 +121,12 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet
+        + scrollable::StyleSheet
+        + menu::StyleSheet
+        + container::StyleSheet,
+    <Renderer::Theme as menu::StyleSheet>::Style:
+        From<<Renderer::Theme as StyleSheet>::Style>,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<T>>()
@@ -203,7 +215,7 @@ where
             &self.font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
-            self.style,
+            &self.style,
         )
     }
 
@@ -222,7 +234,7 @@ where
             self.text_size,
             self.font.clone(),
             &self.options,
-            self.style,
+            self.style.clone(),
         )
     }
 }
@@ -234,7 +246,12 @@ where
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet
+        + scrollable::StyleSheet
+        + menu::StyleSheet
+        + container::StyleSheet,
+    <Renderer::Theme as menu::StyleSheet>::Style:
+        From<<Renderer::Theme as StyleSheet>::Style>,
 {
     fn from(pick_list: PickList<'a, T, Message, Renderer>) -> Self {
         Self::new(pick_list)
@@ -457,7 +474,12 @@ where
     T: Clone + ToString,
     Message: 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
+    Renderer::Theme: StyleSheet
+        + scrollable::StyleSheet
+        + menu::StyleSheet
+        + container::StyleSheet,
+    <Renderer::Theme as menu::StyleSheet>::Style:
+        From<<Renderer::Theme as StyleSheet>::Style>,
 {
     if state.is_open {
         let bounds = layout.bounds();
@@ -494,7 +516,7 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
