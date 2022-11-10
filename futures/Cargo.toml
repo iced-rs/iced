@@ -1,6 +1,6 @@
 [package]
 name = "iced_futures"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "Commands, subscriptions, and runtimes for Iced"
