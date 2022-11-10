@@ -11,7 +11,7 @@
 //! Additionally, a [`conversion`] module is available for users that decide to
 //! implement a custom event loop.
 //!
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.5/native
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`conversion`]: crate::conversion
 #![doc(
