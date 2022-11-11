@@ -255,7 +255,7 @@ where
                 cursor_position
             };
 
-            self.overlay = Some(layout);
+            self.overlay = None;
 
             (base_cursor, event_statuses)
         } else {
