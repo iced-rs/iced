@@ -167,3 +167,37 @@ pub fn focus_next<T>() -> impl Operation<T> {
 
     count(|count| FocusNext { count, current: 0 })
 }
+
+/// Produces an [`Operation`] that searches for the current focused widget
+/// and stores its ID. This ignores widgets that do not have an ID.
+pub fn find_focused() -> impl Operation<Id> {
+    struct FindFocused {
+        focused: Option<Id>,
+    }
+
+    impl Operation<Id> for FindFocused {
+        fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+            if state.is_focused() && id.is_some() {
+                self.focused = id.cloned();
+            }
+        }
+
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Id>),
+        ) {
+            operate_on_children(self)
+        }
+
+        fn finish(&self) -> Outcome<Id> {
+            if let Some(id) = &self.focused {
+                Outcome::Some(id.clone())
+            } else {
+                Outcome::None
+            }
+        }
+    }
+
+    FindFocused { focused: None }
+}
