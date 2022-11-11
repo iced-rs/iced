@@ -2,7 +2,7 @@
 use crate::animation;
 use crate::Widget;
 
-use iced_core::time::Instant;
+use iced_core::time::{Instant, Duration};
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
@@ -63,6 +63,9 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow().tag() {
+            if self.state.is_interp() {
+                let _ = new.borrow().interp(&mut self.state);
+            }
             new.borrow().diff(self)
         } else {
             *self = Self::new(new);
@@ -149,38 +152,6 @@ impl Tree {
             );
         }
     }
-
-    /// mutable version of diff_children_custom
-    pub fn diff_children_custom_mut<T>(
-        &mut self,
-        mut acc: animation::Request,
-        new_children: &mut [T],
-        app_start: &Instant,
-        diff_mut: impl Fn(&mut Tree, &mut T) -> animation::Request,
-        new_state: impl Fn(&mut T) -> Self,
-    ) -> animation::Request {
-        if self.children.len() > new_children.len() {
-            self.children.truncate(new_children.len());
-        }
-
-        acc = acc.min(
-            self.children
-                .iter_mut()
-                .zip(new_children.iter_mut())
-                .fold(acc, |accu, (child_state, new)| {
-                    accu.min(diff_mut(child_state, new))
-                }),
-        );
-
-        if self.children.len() < new_children.len() {
-            self.children.extend(
-                new_children[self.children.len()..]
-                    .iter_mut()
-                    .map(new_state),
-            );
-        }
-        acc
-    }
 }
 
 /// The identifier of some widget state.
@@ -205,10 +176,43 @@ impl Tag {
 /// The internal [`State`] of a widget.
 pub enum State {
     /// No meaningful internal state.
+    ///
+    /// Retuning a state of this type will *not* cause `interp` to be called on the widget the
+    /// following render
     None,
 
     /// Some meaningful internal state.
+    ///
+    /// Retuning a state of this type will *not* cause `interp` to be called on the widget the
+    /// following render
     Some(Box<dyn Any>),
+    
+    /// A `Some` state, but the state will be reused the
+    /// next render to to allow for values to be interpolated between redraws
+    /// `AnimationFrame` means the widget is requesting a redraw as soon as reasonably
+    /// possible (most likely at the time of the next monitor refresh).
+    ///
+    /// Retuning a state of this type will cause `interp` to be called on the widget the
+    /// following render
+    AnimationFrame(AnimationState, Box<dyn Any>),
+    
+    /// A `Some` state, but the state will be reused the
+    /// next render to to allow for values to be interpolated between redraws
+    /// `Timeout` means the widget is requesting a redraw in the given `Duration`
+    /// from widget interpolation.
+    ///
+    /// Retuning a state of this type will cause `interp` to be called on the widget the
+    /// following render
+    Timeout(AnimationState, Duration, Box<dyn Any>),
+    
+    /// A `Some` state, but the state will be reused the
+    /// next render to to allow for values to be cached for optimizations. This will not cause
+    /// iced to rerender, it just makes the data available the next render, that must be triggered
+    /// by some other event.
+    ///
+    /// Retuning a state of this type will will cause `interp` to be called on the widget the
+    /// following render
+    Anytime(Box<dyn Any>)
 }
 
 impl State {
@@ -218,6 +222,14 @@ impl State {
         T: 'static,
     {
         State::Some(Box::new(state))
+    }
+    
+    /// Creates a new [`State`].
+    pub fn newAnimationFrame<T>(hash:u64, state: T) -> Self
+    where
+        T: 'static,
+    {
+        State::AnimationFrame(AnimationState::new(hash), Box::new(state))
     }
 
     /// Downcasts the [`State`] to `T` and returns a reference to it.
@@ -232,6 +244,15 @@ impl State {
             State::None => panic!("Downcast on stateless state"),
             State::Some(state) => {
                 state.downcast_ref().expect("Downcast widget state")
+            }
+            State::Anytime(state) => {
+                state.downcast_ref().expect("Downcast widget state")
+            }
+            State::AnimationFrame(animation_state, widget_state) => {
+                widget_state.downcast_ref().expect("Downcast widget state")
+            }
+            State::Timeout(animation_state, timeout, widget_state) => {
+                widget_state.downcast_ref().expect("Downcast widget state")
             }
         }
     }
@@ -249,6 +270,23 @@ impl State {
             State::Some(state) => {
                 state.downcast_mut().expect("Downcast widget state")
             }
+            State::Anytime(state) => {
+                state.downcast_mut().expect("Downcast widget state")
+            }
+            State::AnimationFrame(animation_state, widget_state) => {
+                widget_state.downcast_mut().expect("Downcast widget state")
+            }
+            State::Timeout(animation_state, timeout, widget_state) => {
+                widget_state.downcast_mut().expect("Downcast widget state")
+            }
+        }
+    }
+    
+    fn is_interp(&self) -> bool {
+        match self {
+            State::AnimationFrame(_, _) => true,
+            State::Timeout(_, _, _) => true,
+            _ => false
         }
     }
 }
@@ -258,6 +296,35 @@ impl fmt::Debug for State {
         match self {
             Self::None => write!(f, "State::None"),
             Self::Some(_) => write!(f, "State::Some"),
+            Self::Anytime(_) => write!(f, "State::Anytime"),
+            Self::AnimationFrame(_, _) => write!(f, "State::AnimationFrame"),
+            Self::Timeout(_, timeout, _) => write!(f, "State::timeout {:?}", timeout),
+        }
+    }
+}
+
+/// Animation State
+///
+/// This is the data that is required to be held in a widget's state
+/// to be animatable. This is the data required to be held in
+/// tree::State::{AnimationFrame, Timeout}. When the hashs don't match
+/// it means that view() returned a different animation on the widget,
+/// so we need to start the new animation from the beginning, which is
+/// the same as setting the start time to the new animation's start time
+#[derive(Clone, Copy, Debug)]
+pub struct AnimationState {
+    /// The start time of the animation
+    pub start: Instant,
+    /// The hash of the animation. Used to check if the animation
+    /// has changed since the previous animation started.
+    pub hash: u64
+}
+
+impl AnimationState {
+    fn new(hash: u64) -> Self {
+        AnimationState {
+            start: Instant::now(),
+            hash,
         }
     }
 }

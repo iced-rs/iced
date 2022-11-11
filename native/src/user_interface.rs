@@ -97,33 +97,25 @@ where
         bounds: Size,
         cache: Cache,
         renderer: &mut Renderer,
-        app_start: &Instant,
     ) -> Self {
-        let mut root = root.into();
+        let root = root.into();
 
         let Cache { mut state } = cache;
-        let request_animation = state.diff_mut(
-            animation::Request::None,
-            root.as_widget_mut(),
-            app_start,
-        );
+        state.diff(root.as_widget());
 
-        let base = renderer.layout(
-            &root,
-            &state,
-            &layout::Limits::new(Size::ZERO, bounds),
-        );
+        let base =
+            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
 
+        // TODO add back the diff accumulator and return that value
         UserInterface {
             root,
             base,
             state,
             overlay: None,
             bounds,
-            request_animation,
+            request_animation: animation::Request::None,
         }
     }
-
     /// Updates the [`UserInterface`] by processing each provided [`Event`].
     ///
     /// It returns __messages__ that may have been produced as a result of user
@@ -235,7 +227,6 @@ where
 
                    self.base = renderer.layout(
                        &self.root,
-                       &self.state,
                        &layout::Limits::new(Size::ZERO, self.bounds),
                    );
 
@@ -306,7 +297,6 @@ where
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
                         &self.root,
-                        &self.state,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -533,14 +523,12 @@ where
         self,
         bounds: Size,
         renderer: &mut Renderer,
-        app_start: &Instant,
     ) -> Self {
         Self::build(
             self.root,
             bounds,
             Cache { state: self.state },
             renderer,
-            app_start,
         )
     }
 

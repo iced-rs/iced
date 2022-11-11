@@ -94,6 +94,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 
+use core::any::Any;
 use iced_core::time::Instant;
 
 /// A component that displays information and allows interaction.
@@ -171,12 +172,9 @@ where
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
     fn interp(
-        &mut self,
-        _state: &mut tree::State,
-        _app_start: &Instant,
-    ) -> animation::Request {
-        animation::Request::None
-    }
+        &self,
+        state: &mut tree::State,
+    ) {}
 
     /// Returns the state [`Tree`] of the children of the [`Widget`].
     fn children(&self) -> Vec<Tree> {

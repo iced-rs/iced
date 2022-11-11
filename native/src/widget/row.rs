@@ -16,7 +16,11 @@ use crate::{
 use iced_core::time::Duration;
 use iced_core::time::Instant;
 use std::borrow::Borrow;
-use std::rc::Rc;
+
+use core::any::Any;
+use std::hash::Hash;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::Hasher;
 
 const DEFAULT_WIDTH: Length = Length::Shrink;
 const DEFAULT_HEIGHT: Length = Length::Shrink;
@@ -31,7 +35,7 @@ pub struct Row<'a, Message, Renderer> {
     width: Length,
     height: Length,
     align_items: Alignment,
-    animation: Option<Rc<Animation>>,
+    animation: Option<Animation>,
     playhead: Option<animation::Handle>,
     children: Vec<Element<'a, Message, Renderer>>,
 }
@@ -104,7 +108,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         if self.spacing != DEFAULT_SPACING {
             k = k.spacing(self.spacing)
         }
-        self.animation = Some(Rc::new(animation.insert(k)));
+        self.animation = Some(animation.insert(k));
         self
     }
 
@@ -144,7 +148,11 @@ where
 
     fn state(&self) -> tree::State {
         match &self.animation {
-            Some(animation) => tree::State::new(State::new(animation.clone())),
+            Some(animation) => {
+                let mut s = DefaultHasher::new();
+                self.animation.hash(&mut s);
+                tree::State::newAnimationFrame(s.finish(), State::new())
+            }
             None => tree::State::None,
         }
     }
@@ -156,29 +164,37 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn diff_mut(
-        &mut self,
-        acc: animation::Request,
-        tree: &mut Tree,
-        app_start: &Instant,
-    ) -> animation::Request {
-        tree.diff_children_mut(acc, &mut self.children, app_start)
-    }
-
     fn interp(
-        &mut self,
+        &self,
         state: &mut tree::State,
-        app_start: &Instant,
-    ) -> animation::Request {
-        let (playhead, request) = state.downcast_mut::<State>().interp(
-            app_start,
-            self.width,
-            self.height,
-            self.padding,
-            self.spacing,
-        );
-        self.playhead = Some(playhead);
-        request
+    ) {
+        match state {
+            tree::State::AnimationFrame(animationState, _widgetState) |
+            tree::State::Timeout(animationState, _, _widgetState) => {
+                if let Some(animation) = &self.animation {
+                    let mut s = DefaultHasher::new();
+                    animation.hash(&mut s);
+                    let hash = s.finish();
+                    let start = if animationState.hash == hash {
+                        animationState.start
+                    } else {
+                        let now = Instant::now();
+                        animationState.hash = hash;
+                        animationState.start = now;
+                        now
+                    };
+                }
+            }
+            _ => {}
+        }
+        // let (playhead, request) = state.downcast_mut::<State>().interp(
+        //     self.width,
+        //     self.height,
+        //     self.padding,
+        //     self.spacing,
+        // );
+        // self.playhead = Some(playhead);
+        // request
     }
 
     fn width(&self) -> Length {
@@ -362,55 +378,15 @@ where
 
 /// The local state of a [`Row`].
 #[derive(Debug)]
-pub struct State {
-    animation: Rc<Animation>,
-}
+pub struct State;
 
 impl State {
     /// Creates a new [`State`].
-    pub fn new(animation: Rc<Animation>) -> State {
-        State { animation }
-    }
-
-    /// Applies animation to a [`row`] called from [`row::interp`]
-    /// See `interp` in the widget trait for more information.
-    pub fn interp(
-        &mut self,
-        app_start: &Instant,
-        width: Length,
-        height: Length,
-        padding: Padding,
-        spacing: u16,
-    ) -> (animation::Handle, animation::Request) {
-        let mut playhead: animation::Handle = {
-            // TODO this is duplicated code. Needs a better solution
-            let mut k = Keyframe::default();
-
-            if width != DEFAULT_WIDTH {
-                k = k.width(width)
-            }
-            if height != DEFAULT_HEIGHT {
-                k = k.height(height)
-            }
-            if padding != DEFAULT_PADDING {
-                k = k.padding(padding)
-            }
-            if spacing != DEFAULT_SPACING {
-                k = k.spacing(spacing)
-            }
-            k.into()
-        };
-
-        let animation: &animation::Animation = self.animation.borrow();
-        let request = animation.interp(
-            app_start,
-            // TODO: This currently assumes that if a value is the default, then there is no animation requested.
-            // This doesn't currently cause a problem as the default values arn't animatable, just Length::Units,
-            // and Length::FillPortion. Though it would be nice in the future to be able to animate from "non-percise"
-            // sizes to percise ones, such as Length::Fill to Length::Units(100)
-            &mut playhead,
-        );
-        (playhead, animation::Request::AnimationFrame)
+    /// This is an empty value to allow us to return
+    /// tree::State::AnimationFrame(animationState, ()) to be able to
+    /// tell the iced runtime to redraw to finish the row's animation
+    pub fn new() -> State {
+        State
     }
 }
 
@@ -425,7 +401,7 @@ impl State {
 /// [4] = padding - right,
 /// [5] = padding - bottom,
 /// [6] = padding - left,
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct Keyframe {
     after: Duration,
     modifiers: Vec<Option<(animation::Ease, isize)>>,

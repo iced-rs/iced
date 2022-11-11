@@ -57,7 +57,6 @@ where
     fn layout<'a, Message>(
         &mut self,
         element: &Element<'a, Message, Self>,
-        tree: &Tree,
         limits: &layout::Limits,
     ) -> layout::Node {
         let layout = element.as_widget().layout(self, limits);

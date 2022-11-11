@@ -10,6 +10,7 @@ use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
+use core::any::Any;
 use iced_core::time::Instant;
 use std::borrow::{Borrow, BorrowMut};
 
@@ -496,11 +497,10 @@ where
     }
 
     fn interp(
-        &mut self,
+        &self,
         state: &mut tree::State,
-        app_start: &Instant,
-    ) -> animation::Request {
-        self.element.widget.interp(state, app_start)
+    ) {
+        self.element.widget.interp(state)
     }
 
     fn operate(

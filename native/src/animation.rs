@@ -18,10 +18,8 @@ use iced_core::time::{Duration, Instant};
 /// A keyframe is also used to describe the current state of the widget. This
 /// is to guarentee that the curret tracked state is the same as what
 /// animatable traits are available via the iced API.
-#[derive(Debug)]
+#[derive(Debug, Hash)]
 pub struct Animation {
-    id: Id,
-    start: Instant,
     keyframes: Vec<Handle>,
     again: Again,
     message: bool, //TODO: add a message to be sent on animation completion
@@ -30,8 +28,6 @@ pub struct Animation {
 impl std::default::Default for Animation {
     fn default() -> Self {
         Animation {
-            id: Id::unique(),
-            start: Instant::now(),
             keyframes: Vec::new(),
             again: Again::Never,
             message: false,
@@ -51,15 +47,6 @@ impl Animation {
     pub fn with_keyframes(keyframes: Vec<Handle>) -> Self {
         Animation {
             keyframes,
-            ..Animation::default()
-        }
-    }
-
-    /// Create an animation with an Id. This is useful if keyframes or transitions need to be modified,
-    /// appended, deleted, etc before the animation is complete.
-    pub fn with_id(id: Id) -> Self {
-        Animation {
-            id,
             ..Animation::default()
         }
     }
@@ -154,8 +141,8 @@ impl Animation {
     }
 
     /// Interpolate values for animation.
-    pub fn interp(&self, _app_start: &Instant, playhead: &mut Handle) {
-        let now = Instant::now().duration_since(self.start);
+    pub fn interp(&self, playhead: &mut Handle, start: Instant) {
+        let now = Instant::now().duration_since(start);
         if playhead.keyframe.after()
             <= self.keyframes.last().unwrap().keyframe.after()
         {
@@ -223,8 +210,14 @@ pub struct Handle {
     pub keyframe: Box<dyn Keyframe>,
 }
 
+impl std::hash::Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.keyframe.modifiers().hash(state);
+    }
+}
+
 /// The function used to transition between given values.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ease {
     /// Animate linearly, animates at the same speed through the whole animation.
     Linear,
@@ -234,7 +227,7 @@ pub enum Ease {
 /// What the animation should do after it has completed.
 /// Assigned via `play()`, read as a sentance,
 /// "the animation should `play(Again::FromBeginning)`"
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Again {
     /// After the animation has finished, sit idle at the completed state.
     Never,
@@ -269,3 +262,4 @@ pub enum Request {
     /// The widget doesn't need to reanimate. It is either done animating, or static.
     None,
 }
+

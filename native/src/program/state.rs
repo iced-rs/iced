@@ -32,7 +32,6 @@ where
         bounds: Size,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
-        app_start: &Instant,
     ) -> Self {
         let user_interface = build_user_interface(
             &mut program,
@@ -40,7 +39,6 @@ where
             renderer,
             bounds,
             debug,
-            app_start,
         );
 
         let cache = Some(user_interface.into_cache());
@@ -105,7 +103,6 @@ where
             renderer,
             bounds,
             debug,
-            app_start,
         );
 
         debug.event_processing_started();
@@ -164,7 +161,6 @@ where
                 renderer,
                 bounds,
                 debug,
-                app_start,
             );
 
             debug.draw_started();
@@ -187,7 +183,6 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-    app_start: &Instant,
 ) -> UserInterface<'a, P::Message, P::Renderer>
 where
     <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
@@ -198,7 +193,7 @@ where
 
     debug.layout_started();
     let user_interface =
-        UserInterface::build(view, size, cache, renderer, app_start);
+        UserInterface::build(view, size, cache, renderer);
     debug.layout_finished();
 
     user_interface
