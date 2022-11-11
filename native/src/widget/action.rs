@@ -93,4 +93,12 @@ where
     ) {
         self.operation.scrollable(state, id);
     }
+
+    fn text_input(
+        &mut self,
+        state: &mut dyn operation::TextInput,
+        id: Option<&Id>,
+    ) {
+        self.operation.text_input(state, id);
+    }
 }
