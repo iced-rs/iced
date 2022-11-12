@@ -165,12 +165,18 @@ where
     }
 
     fn interp(
-        &self,
+        &mut self,
         state: &mut tree::State,
     ) {
         match state {
             tree::State::AnimationFrame(animationState, _widgetState) |
             tree::State::Timeout(animationState, _, _widgetState) => {
+                // This part here is mostly a hold over from my previous implementations,
+                // this shoudld be handled some other way in the final release
+                //
+                // but the idea is basically, get the time based on the hash
+                // then use animation type (maybe trait?) to do calculations
+                // then set the widget's current state to the calculated value
                 if let Some(animation) = &self.animation {
                     let mut s = DefaultHasher::new();
                     animation.hash(&mut s);
@@ -183,6 +189,53 @@ where
                         animationState.start = now;
                         now
                     };
+                    let mut playhead: animation::Handle = {
+                        // TODO this is duplicated code. Needs a better solution
+                        let mut k = Keyframe::default();
+
+                        if self.width != DEFAULT_WIDTH {
+                            k = k.width(self.width)
+                        }
+                        if self.height != DEFAULT_HEIGHT {
+                            k = k.height(self.height)
+                        }
+                        if self.padding != DEFAULT_PADDING {
+                            k = k.padding(self.padding)
+                        }
+                        if self.spacing != DEFAULT_SPACING {
+                            k = k.spacing(self.spacing)
+                        }
+                        k.into()
+                    };                    
+                    
+                    let request = animation.interp(
+                        &mut playhead,
+                        start,
+                    );
+                    let playhead = &playhead.keyframe.modifiers();
+
+                    self.width = Length::Units(
+                        playhead[0].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                    );
+                    self.height = Length::Units(
+                        playhead[1].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                    );
+                    self.spacing = playhead[2]
+                        .unwrap_or((animation::Ease::Linear, 0))
+                        .1 as u16;
+                    self.padding = Padding::from([
+                        playhead[3].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                        playhead[4].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                        playhead[5].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                        playhead[6].unwrap_or((animation::Ease::Linear, 0)).1
+                            as u16,
+                    ]);
+                    // end hold over bad part
                 }
             }
             _ => {}

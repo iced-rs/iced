@@ -98,10 +98,10 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut());
 
         let base =
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
@@ -113,7 +113,7 @@ where
             state,
             overlay: None,
             bounds,
-            request_animation: animation::Request::None,
+            request_animation,
         }
     }
     /// Updates the [`UserInterface`] by processing each provided [`Event`].

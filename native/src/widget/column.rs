@@ -115,6 +115,14 @@ where
     fn diff(&self, tree: &mut Tree) {
         tree.diff_children(&self.children);
     }
+    
+    fn diff_mut(
+        &mut self,
+        acc: animation::Request,
+        tree: &mut Tree,
+    ) -> animation::Request {
+        tree.diff_children_mut(acc, &mut self.children)
+    }
 
     fn width(&self) -> Length {
         self.width

@@ -63,9 +63,6 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow().tag() {
-            if self.state.is_interp() {
-                let _ = new.borrow().interp(&mut self.state);
-            }
             new.borrow().diff(self)
         } else {
             *self = Self::new(new);
@@ -85,9 +82,12 @@ impl Tree {
     where
         Renderer: crate::Renderer,
     {
-        if self.tag == new.borrow_mut().tag() {
-            acc = acc.min(new.borrow_mut().interp(&mut self.state, app_start));
-            new.borrow_mut().diff_mut(acc, self, app_start)
+        if self.tag == new.borrow().tag() {
+            if self.state.is_interp() {
+                new.borrow_mut().interp(&mut self.state);
+                acc = acc.min(self.state.as_acc())
+            }
+            acc.min(new.borrow_mut().diff_mut(acc, self))
         } else {
             *self = Self::new(new);
             acc
@@ -152,7 +152,37 @@ impl Tree {
             );
         }
     }
-}
+
+    /// mutable version of diff_children_custom
+    pub fn diff_children_custom_mut<T>(
+        &mut self,
+        mut acc: animation::Request,
+        new_children: &mut [T],
+        diff_mut: impl Fn(&mut Tree, &mut T) -> animation::Request,
+        new_state: impl Fn(&mut T) -> Self,
+    ) -> animation::Request {
+        if self.children.len() > new_children.len() {
+            self.children.truncate(new_children.len());
+        }
+
+        acc = acc.min(
+            self.children
+                .iter_mut()
+                .zip(new_children.iter_mut())
+                .fold(acc, |accu, (child_state, new)| {
+                    accu.min(diff_mut(child_state, new))
+                }),
+        );
+
+        if self.children.len() < new_children.len() {
+            self.children.extend(
+                new_children[self.children.len()..]
+                    .iter_mut()
+                    .map(new_state),
+            );
+        }
+        acc
+    }}
 
 /// The identifier of some widget state.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -203,7 +233,7 @@ pub enum State {
     ///
     /// Retuning a state of this type will cause `interp` to be called on the widget the
     /// following render
-    Timeout(AnimationState, Duration, Box<dyn Any>),
+    Timeout(AnimationState, Instant, Box<dyn Any>),
     
     /// A `Some` state, but the state will be reused the
     /// next render to to allow for values to be cached for optimizations. This will not cause
@@ -287,6 +317,16 @@ impl State {
             State::AnimationFrame(_, _) => true,
             State::Timeout(_, _, _) => true,
             _ => false
+        }
+    }
+    
+    fn as_acc(&self) -> animation::Request {
+        match self {
+            State::None => animation::Request::None,
+            State::Some(_) => animation::Request::None,
+            State::Anytime(_) => animation::Request::None,
+            State::AnimationFrame(_, _) => animation::Request::AnimationFrame,
+            State::Timeout(_, timeout, _) => animation::Request::Timeout(*timeout)
         }
     }
 }

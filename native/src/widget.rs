@@ -172,7 +172,7 @@ where
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
     fn interp(
-        &self,
+        &mut self,
         state: &mut tree::State,
     ) {}
 
@@ -189,7 +189,6 @@ where
         &mut self,
         acc: animation::Request,
         _tree: &mut Tree,
-        _app_start: &Instant,
     ) -> animation::Request {
         acc
     }

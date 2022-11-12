@@ -497,7 +497,7 @@ where
     }
 
     fn interp(
-        &self,
+        &mut self,
         state: &mut tree::State,
     ) {
         self.element.widget.interp(state)
