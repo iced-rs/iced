@@ -38,6 +38,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget;
 use crate::widget::container;
 use crate::widget::tree::{self, Tree};
 use crate::{
@@ -287,6 +288,23 @@ where
             self.contents.iter(),
             |content, renderer, limits| content.layout(renderer, limits),
         )
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        operation.container(None, &mut |operation| {
+            self.contents
+                .iter()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .for_each(|(((_pane, content), state), layout)| {
+                    content.operate(state, layout, operation);
+                })
+        });
     }
 
     fn on_event(
