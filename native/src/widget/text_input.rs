@@ -333,6 +333,12 @@ impl Id {
     }
 }
 
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
+    }
+}
+
 /// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
     Command::widget(operation::focusable::focus(id.0))

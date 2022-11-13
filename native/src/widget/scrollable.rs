@@ -334,6 +334,12 @@ impl Id {
     }
 }
 
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
+    }
+}
+
 /// Produces a [`Command`] that snaps the [`Scrollable`] with the given [`Id`]
 /// to the provided `percentage`.
 pub fn snap_to<Message: 'static>(id: Id, percentage: f32) -> Command<Message> {
