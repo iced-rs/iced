@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::{Draggable, TitleBar};
-use crate::widget::Tree;
+use crate::widget::{self, Tree};
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// The content of a [`Pane`].
@@ -181,6 +181,33 @@ where
         } else {
             self.body.as_widget().layout(renderer, limits)
         }
+    }
+
+    pub(crate) fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let body_layout = if let Some(title_bar) = &self.title_bar {
+            let mut children = layout.children();
+
+            title_bar.operate(
+                &mut tree.children[1],
+                children.next().unwrap(),
+                operation,
+            );
+
+            children.next().unwrap()
+        } else {
+            layout
+        };
+
+        self.body.as_widget().operate(
+            &mut tree.children[0],
+            body_layout,
+            operation,
+        );
     }
 
     pub(crate) fn on_event(

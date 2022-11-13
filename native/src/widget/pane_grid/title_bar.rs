@@ -4,7 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
-use crate::widget::Tree;
+use crate::widget::{self, Tree};
 use crate::{
     Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
@@ -255,6 +255,44 @@ where
         ));
 
         layout::Node::with_children(node.size().pad(self.padding), vec![node])
+    }
+
+    pub(crate) fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let mut children = layout.children();
+        let padded = children.next().unwrap();
+
+        let mut children = padded.children();
+        let title_layout = children.next().unwrap();
+        let mut show_title = true;
+
+        if let Some(controls) = &self.controls {
+            let controls_layout = children.next().unwrap();
+
+            if title_layout.bounds().width + controls_layout.bounds().width
+                > padded.bounds().width
+            {
+                show_title = false;
+            }
+
+            controls.as_widget().operate(
+                &mut tree.children[1],
+                controls_layout,
+                operation,
+            )
+        };
+
+        if show_title {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                title_layout,
+                operation,
+            )
+        }
     }
 
     pub(crate) fn on_event(
