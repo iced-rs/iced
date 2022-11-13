@@ -1,4 +1,4 @@
-use crate::widget::operation::{self, Operation};
+use crate::widget::operation::{self, Focusable, Operation, Scrollable};
 use crate::widget::Id;
 
 use iced_futures::MaybeSend;
@@ -66,6 +66,14 @@ where
                 operation.container(id, &mut |operation| {
                     operate_on_children(&mut MapRef { operation, f });
                 });
+            }
+
+            fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
+                self.operation.focusable(state, id);
             }
         }
 
