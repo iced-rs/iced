@@ -811,25 +811,6 @@ where
             }
             let cursor_offset = state.cursor.start(value);
 
-            // limit borrow life time.
-            let mut chars_count = 0;
-            let message = {
-                let mut editor = Editor::new(value, &mut state.cursor);
-                if state.ime_state.is_some() {
-                    editor.delete();
-                } else {
-                    let _ = state.ime_state.replace(IMEState::default());
-                }
-                for ch in text.chars() {
-                    editor.insert(ch);
-                    chars_count += 1;
-                }
-                (on_change)(editor.contents())
-            };
-            state
-                .cursor
-                .select_range(cursor_offset, cursor_offset + chars_count);
-
             // calcurate where we need to place candidate window.
 
             let text_bounds = layout.children().next().unwrap().bounds();
@@ -843,6 +824,10 @@ where
             };
             if let Some(ime_state) = state.ime_state.as_mut() {
                 ime_state.set_event(text, range);
+            } else {
+                let mut new_state = IMEState::default();
+                new_state.set_event(text, range);
+                let _ = state.ime_state.replace(new_state);
             }
 
             let position = measure_cursor_and_scroll_offset(
@@ -859,7 +844,6 @@ where
             );
             ime.set_ime_position(position.0, position.1);
 
-            shell.publish(message);
             return event::Status::Captured;
         }
         _ => {}
@@ -1009,20 +993,44 @@ pub fn draw<Renderer>(
 
     let render = |renderer: &mut Renderer| {
         // ime mode should not paint selection.
+        let color = if text.is_empty()
+            && state
+                .ime_state
+                .as_ref()
+                .map_or(true, |state| state.preedit_text().is_empty())
+        {
+            theme.placeholder_color(style)
+        } else {
+            theme.value_color(style)
+        };
+        let render_text = if let Some(ime_state) = state.ime_state.as_ref() {
+            text + ime_state.preedit_text()
+        } else if text.is_empty() {
+            placeholder.to_owned()
+        } else {
+            text
+        };
+        let fill_text = Text {
+            content: &render_text,
+            bounds: Rectangle {
+                y: text_bounds.center_y(),
+                width: f32::INFINITY,
+                ..text_bounds
+            },
+            size: f32::from(size),
+            color,
+            font: font.clone(),
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Center,
+        };
         if let Some(ime_state) = state.ime_state.as_ref() {
-            let offset = if let Some((quad, _)) = cursor {
-                quad.bounds.x
-            } else {
-                0.0
-            };
-
             //render cursor.
             if let Some(text) = ime_state.before_cursor_text() {
                 let width = renderer.measure_width(text, size, font.clone());
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
-                            x: offset + width,
+                            x: text_bounds.x + width,
                             y: text_bounds.y,
                             width: 1.0,
                             height: size as f32,
@@ -1038,15 +1046,20 @@ pub fn draw<Renderer>(
 
             let splits = ime_state.split_to_pieces();
 
-            let _ =
-                splits.iter().enumerate().fold(offset, |offset, (idx, t)| {
+            let _ = splits.iter().enumerate().fold(
+                text_bounds.x,
+                |offset, (idx, t)| {
                     if let Some(t) = t {
                         let width =
                             renderer.measure_width(t, size, font.clone());
                         let quad = renderer::Quad {
                             bounds: Rectangle {
                                 x: offset,
-                                y: text_bounds.y + size as f32,
+                                y: if idx == 1 {
+                                    text_bounds.y + size as f32 - 2.0
+                                } else {
+                                    text_bounds.y + size as f32
+                                },
                                 width,
                                 height: if idx == 1 { 3.0 } else { 1.0 },
                             },
@@ -1059,28 +1072,13 @@ pub fn draw<Renderer>(
                     } else {
                         offset
                     }
-                });
+                },
+            );
         } else if let Some((cursor, color)) = cursor {
             renderer.fill_quad(cursor, color);
         }
 
-        renderer.fill_text(Text {
-            content: if text.is_empty() { placeholder } else { &text },
-            color: if text.is_empty() {
-                theme.placeholder_color(style)
-            } else {
-                theme.value_color(style)
-            },
-            font: font.clone(),
-            bounds: Rectangle {
-                y: text_bounds.center_y(),
-                width: f32::INFINITY,
-                ..text_bounds
-            },
-            size: f32::from(size),
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-        });
+        renderer.fill_text(fill_text);
     };
 
     if text_width > text_bounds.width {

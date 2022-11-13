@@ -14,6 +14,9 @@ enum CandidateIndicator {
 }
 
 impl IMEState {
+    pub fn preedit_text(&self) -> &str {
+        &self.preedit_text
+    }
     pub fn set_event(
         &mut self,
         preedit_text: String,
