@@ -39,13 +39,13 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod settings;
-pub mod triangle;
 pub mod window;
 
 mod backend;
 mod buffer;
 mod quad;
 mod text;
+mod triangle;
 
 pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
 pub use iced_native::Theme;

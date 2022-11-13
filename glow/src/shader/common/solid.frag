@@ -11,8 +11,8 @@ out vec4 fragColor;
 #define gl_FragColor fragColor
 #endif
 
-uniform vec4 color;
+in vec4 v_Color;
 
 void main() {
-    gl_FragColor = color;
+    gl_FragColor = v_Color;
 }

@@ -1,7 +1,6 @@
 use crate::gradient::Gradient;
 use crate::triangle;
-use crate::triangle::Vertex2D;
-use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Text};
+use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Style, Text};
 use crate::Primitive;
 
 use iced_native::{Point, Rectangle, Size, Vector};
@@ -23,8 +22,16 @@ pub struct Frame {
     stroke_tessellator: tessellation::StrokeTessellator,
 }
 
+enum Buffer {
+    Solid(tessellation::VertexBuffers<triangle::ColoredVertex2D, u32>),
+    Gradient(
+        tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+        Gradient,
+    ),
+}
+
 struct BufferStack {
-    stack: Vec<(tessellation::VertexBuffers<Vertex2D, u32>, triangle::Style)>,
+    stack: Vec<Buffer>,
 }
 
 impl BufferStack {
@@ -32,22 +39,64 @@ impl BufferStack {
         Self { stack: Vec::new() }
     }
 
-    fn get(
-        &mut self,
-        mesh_style: triangle::Style,
-    ) -> tessellation::BuffersBuilder<'_, Vertex2D, u32, Vertex2DBuilder> {
-        match self.stack.last_mut() {
-            Some((_, current_style)) if current_style == &mesh_style => {}
-            _ => {
-                self.stack
-                    .push((tessellation::VertexBuffers::new(), mesh_style));
-            }
-        };
+    fn get_mut(&mut self, style: &Style) -> &mut Buffer {
+        match style {
+            Style::Solid(_) => match self.stack.last() {
+                Some(Buffer::Solid(_)) => {}
+                _ => {
+                    self.stack.push(Buffer::Solid(
+                        tessellation::VertexBuffers::new(),
+                    ));
+                }
+            },
+            Style::Gradient(gradient) => match self.stack.last() {
+                Some(Buffer::Gradient(_, last)) if gradient == last => {}
+                _ => {
+                    self.stack.push(Buffer::Gradient(
+                        tessellation::VertexBuffers::new(),
+                        gradient.clone(),
+                    ));
+                }
+            },
+        }
 
-        tessellation::BuffersBuilder::new(
-            &mut self.stack.last_mut().unwrap().0,
-            Vertex2DBuilder,
-        )
+        self.stack.last_mut().unwrap()
+    }
+
+    fn get_fill<'a>(
+        &'a mut self,
+        style: &Style,
+    ) -> Box<dyn tessellation::FillGeometryBuilder + 'a> {
+        match (style, self.get_mut(style)) {
+            (Style::Solid(color), Buffer::Solid(buffer)) => {
+                Box::new(tessellation::BuffersBuilder::new(
+                    buffer,
+                    TriangleVertex2DBuilder(color.into_linear()),
+                ))
+            }
+            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
+                tessellation::BuffersBuilder::new(buffer, Vertex2DBuilder),
+            ),
+            _ => unreachable!(),
+        }
+    }
+
+    fn get_stroke<'a>(
+        &'a mut self,
+        style: &Style,
+    ) -> Box<dyn tessellation::StrokeGeometryBuilder + 'a> {
+        match (style, self.get_mut(style)) {
+            (Style::Solid(color), Buffer::Solid(buffer)) => {
+                Box::new(tessellation::BuffersBuilder::new(
+                    buffer,
+                    TriangleVertex2DBuilder(color.into_linear()),
+                ))
+            }
+            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
+                tessellation::BuffersBuilder::new(buffer, Vertex2DBuilder),
+            ),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -73,12 +122,11 @@ impl Transform {
         point.y = transformed.y;
     }
 
-    fn transform_style(&self, style: triangle::Style) -> triangle::Style {
+    fn transform_style(&self, style: Style) -> Style {
         match style {
-            triangle::Style::Solid(color) => triangle::Style::Solid(color),
-            #[cfg(not(target_arch = "wasm32"))]
-            triangle::Style::Gradient(gradient) => {
-                triangle::Style::Gradient(self.transform_gradient(gradient))
+            Style::Solid(color) => Style::Solid(color),
+            Style::Gradient(gradient) => {
+                Style::Gradient(self.transform_gradient(gradient))
             }
         }
     }
@@ -146,7 +194,7 @@ impl Frame {
 
         let mut buffer = self
             .buffers
-            .get(self.transforms.current.transform_style(style));
+            .get_fill(&self.transforms.current.transform_style(style));
 
         let options =
             tessellation::FillOptions::default().with_fill_rule(rule.into());
@@ -155,7 +203,7 @@ impl Frame {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffer,
+                buffer.as_mut(),
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -163,7 +211,7 @@ impl Frame {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffer,
+                buffer.as_mut(),
             )
         }
         .expect("Tessellate path.");
@@ -181,7 +229,7 @@ impl Frame {
 
         let mut buffer = self
             .buffers
-            .get(self.transforms.current.transform_style(style));
+            .get_fill(&self.transforms.current.transform_style(style));
 
         let top_left =
             self.transforms.current.raw.transform_point(
@@ -200,7 +248,7 @@ impl Frame {
             .tessellate_rectangle(
                 &lyon::math::Box2D::new(top_left, top_left + size),
                 &options,
-                &mut buffer,
+                buffer.as_mut(),
             )
             .expect("Fill rectangle");
     }
@@ -212,7 +260,7 @@ impl Frame {
 
         let mut buffer = self
             .buffers
-            .get(self.transforms.current.transform_style(stroke.style));
+            .get_stroke(&self.transforms.current.transform_style(stroke.style));
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
@@ -230,7 +278,7 @@ impl Frame {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffer,
+                buffer.as_mut(),
             )
         } else {
             let path = path.transformed(&self.transforms.current.raw);
@@ -238,7 +286,7 @@ impl Frame {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
-                &mut buffer,
+                buffer.as_mut(),
             )
         }
         .expect("Stroke path");
@@ -383,16 +431,31 @@ impl Frame {
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
-        for (buffer, style) in self.buffers.stack {
-            if !buffer.indices.is_empty() {
-                self.primitives.push(Primitive::Mesh2D {
-                    buffers: triangle::Mesh2D {
-                        vertices: buffer.vertices,
-                        indices: buffer.indices,
-                    },
-                    size: self.size,
-                    style,
-                })
+        for buffer in self.buffers.stack {
+            match buffer {
+                Buffer::Solid(buffer) => {
+                    if !buffer.indices.is_empty() {
+                        self.primitives.push(Primitive::SolidMesh {
+                            buffers: triangle::Mesh2D {
+                                vertices: buffer.vertices,
+                                indices: buffer.indices,
+                            },
+                            size: self.size,
+                        })
+                    }
+                }
+                Buffer::Gradient(buffer, gradient) => {
+                    if !buffer.indices.is_empty() {
+                        self.primitives.push(Primitive::GradientMesh {
+                            buffers: triangle::Mesh2D {
+                                vertices: buffer.vertices,
+                                indices: buffer.indices,
+                            },
+                            size: self.size,
+                            gradient,
+                        })
+                    }
+                }
             }
         }
 
@@ -402,25 +465,66 @@ impl Frame {
 
 struct Vertex2DBuilder;
 
-impl tessellation::FillVertexConstructor<Vertex2D> for Vertex2DBuilder {
-    fn new_vertex(&mut self, vertex: tessellation::FillVertex<'_>) -> Vertex2D {
+impl tessellation::FillVertexConstructor<triangle::Vertex2D>
+    for Vertex2DBuilder
+{
+    fn new_vertex(
+        &mut self,
+        vertex: tessellation::FillVertex<'_>,
+    ) -> triangle::Vertex2D {
         let position = vertex.position();
 
-        Vertex2D {
+        triangle::Vertex2D {
             position: [position.x, position.y],
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<Vertex2D> for Vertex2DBuilder {
+impl tessellation::StrokeVertexConstructor<triangle::Vertex2D>
+    for Vertex2DBuilder
+{
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> Vertex2D {
+    ) -> triangle::Vertex2D {
         let position = vertex.position();
 
-        Vertex2D {
+        triangle::Vertex2D {
             position: [position.x, position.y],
+        }
+    }
+}
+
+struct TriangleVertex2DBuilder([f32; 4]);
+
+impl tessellation::FillVertexConstructor<triangle::ColoredVertex2D>
+    for TriangleVertex2DBuilder
+{
+    fn new_vertex(
+        &mut self,
+        vertex: tessellation::FillVertex<'_>,
+    ) -> triangle::ColoredVertex2D {
+        let position = vertex.position();
+
+        triangle::ColoredVertex2D {
+            position: [position.x, position.y],
+            color: self.0,
+        }
+    }
+}
+
+impl tessellation::StrokeVertexConstructor<triangle::ColoredVertex2D>
+    for TriangleVertex2DBuilder
+{
+    fn new_vertex(
+        &mut self,
+        vertex: tessellation::StrokeVertex<'_, '_>,
+    ) -> triangle::ColoredVertex2D {
+        let position = vertex.position();
+
+        triangle::ColoredVertex2D {
+            position: [position.x, position.y],
+            color: self.0,
         }
     }
 }
