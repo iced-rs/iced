@@ -255,7 +255,7 @@ where
                 cursor_position
             };
 
-            self.overlay = None;
+            self.overlay = Some(layout);
 
             (base_cursor, event_statuses)
         } else {
@@ -284,6 +284,10 @@ where
                     clipboard,
                     &mut shell,
                 );
+
+                if matches!(event_status, event::Status::Captured) {
+                    self.overlay = None;
+                }
 
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
