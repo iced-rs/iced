@@ -164,7 +164,7 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn interp(
+    fn repackage(
         &mut self,
         state: &mut tree::State,
     ) {

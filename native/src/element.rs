@@ -496,11 +496,11 @@ where
         self.element.widget.layout(renderer, limits)
     }
 
-    fn interp(
+    fn repackage(
         &mut self,
         state: &mut tree::State,
     ) {
-        self.element.widget.interp(state)
+        self.element.widget.repackage(state)
     }
 
     fn operate(

@@ -171,7 +171,7 @@ where
     ///
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
-    fn interp(
+    fn repackage(
         &mut self,
         state: &mut tree::State,
     ) {}

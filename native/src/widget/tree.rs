@@ -84,7 +84,7 @@ impl Tree {
     {
         if self.tag == new.borrow().tag() {
             if self.state.is_interp() {
-                new.borrow_mut().interp(&mut self.state);
+                new.borrow_mut().repackage(&mut self.state);
                 acc = acc.min(self.state.as_acc())
             }
             acc.min(new.borrow_mut().diff_mut(acc, self))
