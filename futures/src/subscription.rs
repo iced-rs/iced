@@ -125,9 +125,9 @@ impl<I, O, H> std::fmt::Debug for Subscription<I, O, H> {
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
 /// to listen to time.
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.4/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.4/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.4/examples/stopwatch
+/// [examples]: https://github.com/iced-rs/iced/tree/0.5/examples
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.5/examples/download_progress
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.5/examples/stopwatch
 pub trait Recipe<Hasher: std::hash::Hasher, Event> {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
