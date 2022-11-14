@@ -262,6 +262,14 @@ where
             ) {
                 self.operation.focusable(state, id);
             }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
         }
 
         self.with_element(|element| {

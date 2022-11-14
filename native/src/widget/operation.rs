@@ -1,9 +1,11 @@
 //! Query or update internal widget state.
 pub mod focusable;
 pub mod scrollable;
+pub mod text_input;
 
 pub use focusable::Focusable;
 pub use scrollable::Scrollable;
+pub use text_input::TextInput;
 
 use crate::widget::Id;
 
@@ -27,6 +29,9 @@ pub trait Operation<T> {
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(&mut self, _state: &mut dyn Scrollable, _id: Option<&Id>) {}
+
+    /// Operates on a widget that has text input.
+    fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
 
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {

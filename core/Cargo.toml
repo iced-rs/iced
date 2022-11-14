@@ -1,6 +1,6 @@
 [package]
 name = "iced_core"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "The essential concepts of Iced"
