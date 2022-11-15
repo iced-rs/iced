@@ -1,5 +1,7 @@
 //! Draw geometry using meshes of triangles.
-use crate::{Color, Gradient};
+use crate::Color;
+#[cfg(not(target_arch = "wasm32"))]
+use crate::Gradient;
 
 use bytemuck::{Pod, Zeroable};
 
@@ -27,6 +29,7 @@ pub struct Vertex2D {
 pub enum Style {
     /// Fill a primitive with a solid color.
     Solid(Color),
+    #[cfg(not(target_arch = "wasm32"))]
     /// Fill a primitive with an interpolated color.
     Gradient(Gradient),
 }
@@ -37,6 +40,7 @@ impl From<Color> for Style {
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl From<Gradient> for Style {
     fn from(gradient: Gradient) -> Self {
         Self::Gradient(gradient)

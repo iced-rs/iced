@@ -1,4 +1,5 @@
 //! Draw meshes of triangles.
+#[cfg(not(target_arch = "wasm32"))]
 mod gradient;
 mod msaa;
 mod solid;
@@ -27,6 +28,8 @@ pub(crate) struct Pipeline {
 /// Supported triangle pipelines for different fills.
 pub(crate) struct PipelineList {
     solid: solid::Pipeline,
+    /// Gradients are currently not supported on WASM targets due to their need of storage buffers.
+    #[cfg(not(target_arch = "wasm32"))]
     gradient: gradient::Pipeline,
 }
 
@@ -40,8 +43,11 @@ impl PipelineList {
     /// Resets each pipeline's buffers.
     fn clear(&mut self) {
         self.solid.buffer.clear();
-        self.gradient.uniform_buffer.clear();
-        self.gradient.storage_buffer.clear();
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.gradient.uniform_buffer.clear();
+            self.gradient.storage_buffer.clear();
+        }
     }
 
     /// Writes the contents of each pipeline's CPU buffer to the GPU, resizing the GPU buffer
@@ -53,6 +59,7 @@ impl PipelineList {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         self.solid.write(device, staging_belt, encoder);
+        #[cfg(not(target_arch = "wasm32"))]
         self.gradient.write(device, staging_belt, encoder);
     }
 }
@@ -79,6 +86,7 @@ impl Pipeline {
             index_strides: Vec::new(),
             pipelines: PipelineList {
                 solid: solid::Pipeline::new(device, format, antialiasing),
+                #[cfg(not(target_arch = "wasm32"))]
                 gradient: gradient::Pipeline::new(device, format, antialiasing),
             },
         }
@@ -145,6 +153,7 @@ impl Pipeline {
                 triangle::Style::Solid(color) => {
                     self.pipelines.solid.push(transform, color);
                 }
+                #[cfg(not(target_arch = "wasm32"))]
                 triangle::Style::Gradient(gradient) => {
                     self.pipelines.gradient.push(transform, gradient);
                 }
@@ -186,6 +195,7 @@ impl Pipeline {
                 });
 
             let mut num_solids = 0;
+            #[cfg(not(target_arch = "wasm32"))]
             let mut num_gradients = 0;
             let mut last_is_solid = None;
 
@@ -216,6 +226,7 @@ impl Pipeline {
 
                         num_solids += 1;
                     }
+                    #[cfg(not(target_arch = "wasm32"))]
                     triangle::Style::Gradient(_) => {
                         if last_is_solid.unwrap_or(true) {
                             self.pipelines
