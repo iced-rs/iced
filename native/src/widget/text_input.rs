@@ -807,7 +807,6 @@ where
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
                 state.ime_state = None;
-
                 return event::Status::Captured;
             }
         }
@@ -1037,11 +1036,11 @@ pub fn draw<Renderer>(
             theme.value_color(style)
         };
         let render_text = if let Some(ime_state) = state.ime_state.as_ref() {
-            text + ime_state.preedit_text()
+            text.clone() + ime_state.preedit_text()
         } else if text.is_empty() {
             placeholder.to_owned()
         } else {
-            text
+            text.clone()
         };
         let fill_text = Text {
             content: &render_text,
@@ -1058,29 +1057,41 @@ pub fn draw<Renderer>(
         };
         if let Some(ime_state) = state.ime_state.as_ref() {
             //render cursor.
-            if let Some(text) = ime_state.before_cursor_text() {
-                let width = renderer.measure_width(text, size, font.clone());
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds: Rectangle {
-                            x: text_bounds.x + width,
-                            y: text_bounds.y,
-                            width: 1.0,
-                            height: size as f32,
-                        },
-                        border_radius: 0.0,
-                        border_width: 0.0,
-                        border_color: Color::default(),
+
+            let before_preedit_text_width =
+                renderer.measure_width(&text, size, font.clone());
+
+            let preedit_before_cursor_text = ime_state.before_cursor_text();
+
+            let preedit_before_cursor_text_width = renderer.measure_width(
+                preedit_before_cursor_text,
+                size,
+                font.clone(),
+            );
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds: Rectangle {
+                        x: text_bounds.x
+                            + before_preedit_text_width
+                            + preedit_before_cursor_text_width,
+                        y: text_bounds.y,
+                        width: 1.0,
+                        height: size as f32,
                     },
-                    theme.value_color(style),
-                );
-            }
+                    border_radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Color::default(),
+                },
+                theme.value_color(style),
+            );
+
             // draw under line.
 
             let splits = ime_state.split_to_pieces();
 
             let _ = splits.iter().enumerate().fold(
-                text_bounds.x,
+                text_bounds.x + before_preedit_text_width,
                 |offset, (idx, t)| {
                     if let Some(t) = t {
                         let width =

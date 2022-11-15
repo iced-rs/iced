@@ -75,22 +75,22 @@ impl IMEState {
         }
     }
 
-    pub fn before_cursor_text(&self) -> Option<&str> {
+    pub fn before_cursor_text(&self) -> &str {
         let text = &self.preedit_text;
         if let Some(indicator) = self.candidate_indicator {
             match indicator {
-                CandidateIndicator::BoldLine(_, _) => Some(text),
+                CandidateIndicator::BoldLine(_, _) => text,
                 CandidateIndicator::Cursor(position) => {
                     let (a, b) = text.split_at(position);
                     if a.is_empty() {
-                        Some(b)
+                        b
                     } else {
-                        Some(a)
+                        a
                     }
                 }
             }
         } else {
-            Some(text)
+            text
         }
     }
 }
