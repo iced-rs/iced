@@ -9,6 +9,9 @@ use iced_graphics::triangle::{ColoredVertex2D, Vertex2D};
 use glow::HasContext;
 use std::marker::PhantomData;
 
+const DEFAULT_VERTICES: usize = 1_000;
+const DEFAULT_INDICES: usize = 1_000;
+
 #[derive(Debug)]
 pub(crate) struct Pipeline {
     indices: Buffer<u32>,
@@ -23,7 +26,7 @@ impl Pipeline {
                 gl,
                 glow::ELEMENT_ARRAY_BUFFER,
                 glow::DYNAMIC_DRAW,
-                1000,
+                DEFAULT_INDICES,
             )
         };
 
@@ -366,7 +369,7 @@ mod solid {
                     gl,
                     glow::ARRAY_BUFFER,
                     glow::DYNAMIC_DRAW,
-                    1000,
+                    super::DEFAULT_VERTICES,
                 )
             };
 
@@ -487,7 +490,7 @@ mod gradient {
                     gl,
                     glow::ARRAY_BUFFER,
                     glow::DYNAMIC_DRAW,
-                    1000,
+                    super::DEFAULT_VERTICES,
                 )
             };
 
