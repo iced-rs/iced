@@ -7,6 +7,8 @@ use iced_native::Size;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
+type Fill = Option<[u8; 4]>;
+
 /// Entry in cache corresponding to an svg handle
 pub enum Svg {
     /// Parsed svg
@@ -33,9 +35,9 @@ impl Svg {
 #[derive(Debug)]
 pub struct Cache<T: Storage> {
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32), T::Entry>,
+    rasterized: HashMap<(u64, u32, u32, Fill), T::Entry>,
     svg_hits: HashSet<u64>,
-    rasterized_hits: HashSet<(u64, u32, u32)>,
+    rasterized_hits: HashSet<(u64, u32, u32, Fill)>,
 }
 
 impl<T: Storage> Cache<T> {
@@ -88,15 +90,18 @@ impl<T: Storage> Cache<T> {
             (scale * height).ceil() as u32,
         );
 
+        let appearance = handle.appearance();
+        let fill = appearance.fill.map(crate::Color::into_rgba8);
+
         // TODO: Optimize!
         // We currently rerasterize the SVG when its size changes. This is slow
         // as heck. A GPU rasterizer like `pathfinder` may perform better.
         // It would be cool to be able to smooth resize the `svg` example.
-        if self.rasterized.contains_key(&(id, width, height)) {
+        if self.rasterized.contains_key(&(id, width, height, fill)) {
             let _ = self.svg_hits.insert(id);
-            let _ = self.rasterized_hits.insert((id, width, height));
+            let _ = self.rasterized_hits.insert((id, width, height, fill));
 
-            return self.rasterized.get(&(id, width, height));
+            return self.rasterized.get(&(id, width, height, fill));
         }
 
         match self.load(handle) {
@@ -121,15 +126,28 @@ impl<T: Storage> Cache<T> {
                     img.as_mut(),
                 )?;
 
-                let allocation =
-                    storage.upload(width, height, img.data(), state)?;
+                let mut rgba = img.take();
+
+                if let Some(color) = fill {
+                    rgba.chunks_exact_mut(4).for_each(|rgba| {
+                        if rgba[3] > 0 {
+                            rgba[0] = color[0];
+                            rgba[1] = color[1];
+                            rgba[2] = color[2];
+                        }
+                    });
+                }
+
+                let allocation = storage.upload(width, height, &rgba, state)?;
                 log::debug!("allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
-                let _ = self.rasterized_hits.insert((id, width, height));
-                let _ = self.rasterized.insert((id, width, height), allocation);
+                let _ = self.rasterized_hits.insert((id, width, height, fill));
+                let _ = self
+                    .rasterized
+                    .insert((id, width, height, fill), allocation);
 
-                self.rasterized.get(&(id, width, height))
+                self.rasterized.get(&(id, width, height, fill))
             }
             Svg::NotFound => None,
         }
