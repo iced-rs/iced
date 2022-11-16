@@ -82,6 +82,7 @@ members = [
     "examples/stopwatch",
     "examples/styling",
     "examples/svg",
+    "examples/svg_style",
     "examples/system_information",
     "examples/todos",
     "examples/tooltip",
