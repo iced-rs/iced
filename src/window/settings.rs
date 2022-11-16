@@ -3,6 +3,9 @@ use crate::window::{Icon, Position};
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
+    /// The size of the resize-enabled border.
+    pub border_size: u32,
+
     /// The initial size of the window.
     pub size: (u32, u32),
 
@@ -37,6 +40,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
+            border_size: 8,
             size: (1024, 768),
             position: Position::default(),
             min_size: None,
@@ -54,6 +58,7 @@ impl Default for Settings {
 impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {
+            border_size: settings.border_size,
             size: settings.size,
             position: iced_winit::Position::from(settings.position),
             min_size: settings.min_size,

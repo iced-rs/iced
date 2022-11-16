@@ -21,9 +21,8 @@ log = "0.4"
 thiserror = "1.0"
 
 [dependencies.winit]
-version = "0.27"
-git = "https://github.com/iced-rs/winit.git"
-rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
+git = "https://github.com/pop-os/winit.git"
+branch = "iced"
 
 [dependencies.iced_native]
 version = "0.7"

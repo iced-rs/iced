@@ -61,6 +61,9 @@ pub struct Settings<Flags> {
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Window {
+    /// The size of the resize-enabled border.
+    pub border_size: u32,
+
     /// The size of the window.
     pub size: (u32, u32),
 
@@ -183,6 +186,7 @@ impl Window {
 impl Default for Window {
     fn default() -> Window {
         Window {
+            border_size: 8,
             size: (1024, 768),
             position: Position::default(),
             min_size: None,
