@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::mouse;
 use crate::renderer;
 use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Event, Point, Program, Size};
+use crate::{Clipboard, Command, Debug, Point, Program, Size};
 use iced_core::time::Instant;
 
 /// The execution state of a [`Program`]. It leverages caching, event

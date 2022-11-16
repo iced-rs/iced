@@ -1048,6 +1048,7 @@ impl operation::TextInput for State {
     fn select_all(&mut self) {
         State::select_all(self)
     }
+}
 
 mod platform {
     use crate::keyboard;

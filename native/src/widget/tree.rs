@@ -77,7 +77,6 @@ impl Tree {
         &mut self,
         mut acc: animation::Request,
         mut new: impl BorrowMut<dyn Widget<Message, Renderer> + 'a>,
-        app_start: &Instant,
     ) -> animation::Request
     where
         Renderer: crate::Renderer,
@@ -114,7 +113,6 @@ impl Tree {
         &mut self,
         acc: animation::Request,
         new_children: &mut [impl BorrowMut<dyn Widget<Message, Renderer> + 'a>],
-        app_start: &Instant,
     ) -> animation::Request
     where
         Renderer: crate::Renderer,
@@ -122,8 +120,7 @@ impl Tree {
         self.diff_children_custom_mut(
             acc,
             new_children,
-            app_start,
-            |tree, widget| tree.diff_mut(acc, widget.borrow_mut(), app_start),
+            |tree, widget| tree.diff_mut(acc, widget.borrow_mut()),
             |widget| Self::new(widget.borrow_mut()),
         )
     }
