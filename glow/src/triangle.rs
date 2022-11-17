@@ -141,6 +141,7 @@ impl Pipeline {
                     triangle::Style::Solid(color) => {
                         self.programs.solid.use_program(gl, color, &transform);
                     }
+                    #[cfg(not(target_arch = "wasm32"))]
                     triangle::Style::Gradient(gradient) => {
                         self.programs
                             .gradient

@@ -76,6 +76,7 @@ impl Transform {
     fn transform_style(&self, style: triangle::Style) -> triangle::Style {
         match style {
             triangle::Style::Solid(color) => triangle::Style::Solid(color),
+            #[cfg(not(target_arch = "wasm32"))]
             triangle::Style::Gradient(gradient) => {
                 triangle::Style::Gradient(self.transform_gradient(gradient))
             }
