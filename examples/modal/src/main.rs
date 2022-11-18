@@ -25,6 +25,7 @@ enum Message {
     HideModal,
     Email(String),
     Password(String),
+    Submit,
     Event(Event),
 }
 
@@ -53,9 +54,7 @@ impl Application for App {
                 widget::focus_next()
             }
             Message::HideModal => {
-                self.show_modal = false;
-                self.email.clear();
-                self.password.clear();
+                self.hide_modal();
                 Command::none()
             }
             Message::Email(email) => {
@@ -66,21 +65,33 @@ impl Application for App {
                 self.password = password;
                 Command::none()
             }
-            Message::Event(event) => {
-                if let Event::Keyboard(keyboard::Event::KeyPressed {
+            Message::Submit => {
+                if !self.email.is_empty() && !self.password.is_empty() {
+                    self.hide_modal();
+                }
+
+                Command::none()
+            }
+            Message::Event(event) => match event {
+                Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code: keyboard::KeyCode::Tab,
                     modifiers,
-                }) = event
-                {
+                }) => {
                     if modifiers.shift() {
                         widget::focus_previous()
                     } else {
                         widget::focus_next()
                     }
-                } else {
+                }
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code: keyboard::KeyCode::Escape,
+                    ..
+                }) => {
+                    self.hide_modal();
                     Command::none()
                 }
-            }
+                _ => Command::none(),
+            },
         }
     }
 
@@ -127,12 +138,14 @@ impl Application for App {
                                 &self.email,
                                 Message::Email
                             )
+                            .on_submit(Message::Submit)
                             .padding(5),
                         ]
                         .spacing(5),
                         column![
                             text("Password").size(12),
                             text_input("", &self.password, Message::Password)
+                                .on_submit(Message::Submit)
                                 .password()
                                 .padding(5),
                         ]
@@ -153,6 +166,14 @@ impl Application for App {
         } else {
             content.into()
         }
+    }
+}
+
+impl App {
+    fn hide_modal(&mut self) {
+        self.show_modal = false;
+        self.email.clear();
+        self.password.clear();
     }
 }
 
