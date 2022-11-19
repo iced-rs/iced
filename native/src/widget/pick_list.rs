@@ -219,7 +219,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
