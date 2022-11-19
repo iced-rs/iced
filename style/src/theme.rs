@@ -925,6 +925,30 @@ impl scrollable::StyleSheet for Theme {
             Scrollable::Custom(custom) => custom.dragging(self),
         }
     }
+
+    fn active_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.active(style),
+            Scrollable::Custom(custom) => custom.active_horizontal(self),
+        }
+    }
+
+    fn hovered_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.hovered(style),
+            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
+        }
+    }
+
+    fn dragging_horizontal(
+        &self,
+        style: &Self::Style,
+    ) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.hovered_horizontal(style),
+            Scrollable::Custom(custom) => custom.dragging_horizontal(self),
+        }
+    }
 }
 
 /// The style of text.
