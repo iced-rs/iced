@@ -289,6 +289,10 @@ where
                     &mut shell,
                 );
 
+                if matches!(event_status, event::Status::Captured) {
+                    self.overlay = None;
+                }
+
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
                         &self.root,
