@@ -526,8 +526,14 @@ where
                 }
 
                 state.last_click = Some(click);
-
+                if is_secure {
+                    ime.set_ime_allowed(false);
+                } else {
+                    ime.set_ime_allowed(true);
+                }
                 return event::Status::Captured;
+            } else {
+                ime.set_ime_allowed(false);
             }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -796,13 +802,24 @@ where
         }
         Event::Keyboard(keyboard::Event::IMECommit(text)) => {
             let state = state();
-            if state.is_focused
-                && state.is_pasting.is_none()
+            if state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
+                && !is_secure
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
-                for ch in text.chars() {
-                    editor.insert(ch);
+                if text.is_empty() {
+                    if let Some(text) = state
+                        .ime_state
+                        .take()
+                        .as_ref()
+                        .map(|ime_state| ime_state.preedit_text())
+                    {
+                        text.chars().for_each(|ch| editor.insert(ch));
+                    }
+                } else {
+                    for ch in text.chars() {
+                        editor.insert(ch);
+                    }
                 }
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
@@ -838,11 +855,10 @@ where
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
             let state = state();
-            if !state.is_focused {
+            if !state.is_focused && is_secure {
                 return event::Status::Ignored;
             }
             let cursor_offset = state.cursor.start(value);
-
             // calcurate where we need to place candidate window.
 
             let text_bounds = layout.children().next().unwrap().bounds();
