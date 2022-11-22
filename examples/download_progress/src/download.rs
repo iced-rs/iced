@@ -21,7 +21,7 @@ pub struct Download<I: Display> {
 async fn download<I: Display>(
     id: I,
     state: State,
-) -> (Option<(I, Progress)>, State) {
+) -> Option<((I, Progress), State)> {
     match state {
         State::Ready(url) => {
             let response = reqwest::get(&url).await;
@@ -29,24 +29,24 @@ async fn download<I: Display>(
             match response {
                 Ok(response) => {
                     if let Some(total) = response.content_length() {
-                        (
-                            Some((id, Progress::Started)),
+                        Some((
+                            (id, Progress::Started),
                             State::Downloading {
                                 response,
                                 total,
                                 downloaded: 0,
                             },
-                        )
+                        ))
                     } else {
                         eprintln!("Download {} failure", id);
 
-                        (Some((id, Progress::Errored)), State::Finished)
+                        Some(((id, Progress::Errored), State::Finished))
                     }
                 }
                 Err(err) => {
                     eprintln!("Download {}: {}", id, err);
 
-                    (Some((id, Progress::Errored)), State::Finished)
+                    Some(((id, Progress::Errored), State::Finished))
                 }
             }
         }
@@ -60,22 +60,22 @@ async fn download<I: Display>(
 
                 let percentage = (downloaded as f32 / total as f32) * 100.0;
 
-                (
-                    Some((id, Progress::Advanced(percentage))),
+                Some((
+                    (id, Progress::Advanced(percentage)),
                     State::Downloading {
                         response,
                         total,
                         downloaded,
                     },
-                )
+                ))
             }
-            Ok(None) => (Some((id, Progress::Finished)), State::Finished),
-            Err(_) => (Some((id, Progress::Errored)), State::Finished),
+            Ok(None) => Some(((id, Progress::Finished), State::Finished)),
+            Err(_) => Some(((id, Progress::Errored), State::Finished)),
         },
         State::Finished => {
             println!("Download {} finished", id);
 
-            (None, State::Finished)
+            None
         }
     }
 }

@@ -158,7 +158,7 @@ where
 ///                 // Create channel
 ///                 let (sender, receiver) = mpsc::channel(100);
 ///
-///                 (Some(Event::Ready(sender)), State::Ready(receiver))
+///                 Some((Event::Ready(sender), State::Ready(receiver)))
 ///             }
 ///             State::Ready(mut receiver) => {
 ///                 use iced_native::futures::StreamExt;
@@ -172,7 +172,7 @@ where
 ///
 ///                         // Finally, we can optionally return a message to tell the
 ///                         // `Application` the work is done
-///                         (Some(Event::WorkFinished), State::Ready(receiver))
+///                         Some((Event::WorkFinished, State::Ready(receiver)))
 ///                     }
 ///                 }
 ///             }
@@ -188,22 +188,15 @@ where
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,
-    mut f: impl FnMut(T) -> Fut + MaybeSend + Sync + 'static,
+    f: impl FnMut(T) -> Fut + MaybeSend + Sync + 'static,
 ) -> Subscription<Message>
 where
     I: Hash + 'static,
     T: MaybeSend + 'static,
-    Fut: Future<Output = (Option<Message>, T)> + MaybeSend + 'static,
+    Fut: Future<Output = Option<(Message, T)>> + MaybeSend + 'static,
     Message: 'static + MaybeSend,
 {
-    use futures::future::{self, FutureExt};
-    use futures::stream::StreamExt;
-
-    run(
-        id,
-        futures::stream::unfold(initial, move |state| f(state).map(Some))
-            .filter_map(future::ready),
-    )
+    run(id, futures::stream::unfold(initial, f))
 }
 
 struct Runner<I, F, S, Message>
