@@ -170,12 +170,13 @@ impl Download {
             State::Idle => button("Start the download!")
                 .on_press(Message::Download(self.id))
                 .into(),
-            State::Finished => {
-                column!["Download finished!", button("Start again")]
-                    .spacing(10)
-                    .align_items(Alignment::Center)
-                    .into()
-            }
+            State::Finished => column![
+                "Download finished!",
+                button("Start again").on_press(Message::Download(self.id)),
+            ]
+            .spacing(10)
+            .align_items(Alignment::Center)
+            .into(),
             State::Downloading { .. } => {
                 text(format!("Downloading... {current_progress:.2}%")).into()
             }
