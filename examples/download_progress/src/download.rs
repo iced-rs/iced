@@ -1,9 +1,9 @@
 use iced_native::subscription;
 
-use std::hash::Hash;
+use std::{fmt::Display, hash::Hash};
 
 // Just a little utility function
-pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
+pub fn file<I: 'static + Hash + Copy + Display + Send + Sync, T: ToString>(
     id: I,
     url: T,
 ) -> iced::Subscription<(I, Progress)> {
@@ -13,12 +13,12 @@ pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
 }
 
 #[derive(Debug, Hash, Clone)]
-pub struct Download<I> {
+pub struct Download<I: Display> {
     id: I,
     url: String,
 }
 
-async fn download<I: Copy>(
+async fn download<I: Display>(
     id: I,
     state: State,
 ) -> (Option<(I, Progress)>, State) {
@@ -38,10 +38,16 @@ async fn download<I: Copy>(
                             },
                         )
                     } else {
+                        eprintln!("Download {} failure", id);
+
                         (Some((id, Progress::Errored)), State::Finished)
                     }
                 }
-                Err(_) => (Some((id, Progress::Errored)), State::Finished),
+                Err(err) => {
+                    eprintln!("Download {}: {}", id, err);
+
+                    (Some((id, Progress::Errored)), State::Finished)
+                }
             }
         }
         State::Downloading {
@@ -67,10 +73,9 @@ async fn download<I: Copy>(
             Err(_) => (Some((id, Progress::Errored)), State::Finished),
         },
         State::Finished => {
-            // We do not let the stream die, as it would start a
-            // new download repeatedly if the user is not careful
-            // in case of errors.
-            iced::futures::future::pending().await
+            println!("Download {} finished", id);
+
+            (None, State::Finished)
         }
     }
 }
