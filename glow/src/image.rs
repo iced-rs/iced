@@ -14,6 +14,7 @@ use iced_graphics::image::raster;
 use iced_graphics::image::vector;
 
 use iced_graphics::layer;
+use iced_graphics::Rectangle;
 use iced_graphics::Size;
 
 use glow::HasContext;
@@ -144,11 +145,13 @@ impl Pipeline {
         transformation: Transformation,
         _scale_factor: f32,
         images: &[layer::Image],
+        layer_bounds: Rectangle<u32>,
     ) {
         unsafe {
             gl.use_program(Some(self.program));
             gl.bind_vertex_array(Some(self.vertex_array));
             gl.bind_buffer(glow::ARRAY_BUFFER, Some(self.vertex_buffer));
+            gl.enable(glow::SCISSOR_TEST);
         }
 
         #[cfg(feature = "image")]
@@ -187,6 +190,13 @@ impl Pipeline {
             };
 
             unsafe {
+                gl.scissor(
+                    layer_bounds.x as i32,
+                    layer_bounds.y as i32,
+                    layer_bounds.width as i32,
+                    layer_bounds.height as i32,
+                );
+
                 if let Some(storage::Entry { texture, .. }) = entry {
                     gl.bind_texture(glow::TEXTURE_2D, Some(*texture))
                 } else {
@@ -213,6 +223,7 @@ impl Pipeline {
             gl.bind_buffer(glow::ARRAY_BUFFER, None);
             gl.bind_vertex_array(None);
             gl.use_program(None);
+            gl.disable(glow::SCISSOR_TEST);
         }
     }
 
