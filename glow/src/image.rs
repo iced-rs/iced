@@ -142,6 +142,7 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         mut gl: &glow::Context,
+        target_height: u32,
         transformation: Transformation,
         _scale_factor: f32,
         images: &[layer::Image],
@@ -192,7 +193,8 @@ impl Pipeline {
             unsafe {
                 gl.scissor(
                     layer_bounds.x as i32,
-                    layer_bounds.y as i32,
+                    (target_height - (layer_bounds.y + layer_bounds.height))
+                        as i32,
                     layer_bounds.width as i32,
                     layer_bounds.height as i32,
                 );

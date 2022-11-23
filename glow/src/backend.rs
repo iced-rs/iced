@@ -130,6 +130,7 @@ impl Backend {
 
             self.image_pipeline.draw(
                 gl,
+                target_height,
                 scaled,
                 scale_factor,
                 &layer.images,
