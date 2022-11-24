@@ -4,10 +4,10 @@ use iced_core::Color;
 /// The style sheet of some text.
 pub trait StyleSheet {
     /// The supported style of the [`StyleSheet`].
-    type Style: Default + Copy;
+    type Style: Default + Clone;
 
     /// Produces the [`Appearance`] of some text.
-    fn appearance(&self, style: Self::Style) -> Appearance;
+    fn appearance(&self, style: &Self::Style) -> Appearance;
 }
 
 /// The apperance of some text.

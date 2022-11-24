@@ -907,10 +907,10 @@ impl From<Color> for Text {
 impl text::StyleSheet for Theme {
     type Style = Text;
 
-    fn appearance(&self, style: Self::Style) -> text::Appearance {
+    fn appearance(&self, style: &Self::Style) -> text::Appearance {
         match style {
             Text::Default => Default::default(),
-            Text::Color(c) => text::Appearance { color: Some(c) },
+            Text::Color(c) => text::Appearance { color: Some(*c) },
         }
     }
 }

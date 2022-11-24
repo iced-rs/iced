@@ -163,7 +163,7 @@ where
             &self.content,
             self.size,
             self.font.clone(),
-            theme.appearance(self.style),
+            theme.appearance(&self.style),
             self.horizontal_alignment,
             self.vertical_alignment,
         );
@@ -243,7 +243,7 @@ where
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
             font: self.font.clone(),
-            style: self.style,
+            style: self.style.clone(),
         }
     }
 }
