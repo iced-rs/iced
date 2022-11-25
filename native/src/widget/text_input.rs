@@ -458,23 +458,7 @@ where
                         } else {
                             None
                         };
-                        if let Some(position) = position {
-                            let size =
-                                size.unwrap_or_else(|| renderer.default_size());
-                            let position = measure_cursor_and_scroll_offset(
-                                renderer,
-                                text_bounds,
-                                value,
-                                size,
-                                position,
-                                font.clone(),
-                            );
-                            let position = (
-                                (text_bounds.x + position.0) as i32,
-                                (text_bounds.y) as i32 + size as i32,
-                            );
-                            ime.set_ime_position(position.0, position.1);
-                        }
+
                         state.cursor.move_to(position.unwrap_or(0));
                         state.is_dragging = true;
                     }
@@ -496,23 +480,6 @@ where
                                 value.previous_start_of_word(position),
                                 value.next_end_of_word(position),
                             );
-
-                            // set ime candidate window position.
-                            let size =
-                                size.unwrap_or_else(|| renderer.default_size());
-                            let position = measure_cursor_and_scroll_offset(
-                                renderer,
-                                text_bounds,
-                                value,
-                                size,
-                                state.cursor.start(value),
-                                font.clone(),
-                            );
-                            let position = (
-                                (text_bounds.x + position.0) as i32,
-                                (text_bounds.y) as i32 + size as i32,
-                            );
-                            ime.set_ime_position(position.0, position.1);
                         }
 
                         state.is_dragging = false;
@@ -526,13 +493,45 @@ where
                 state.last_click = Some(click);
                 if is_secure {
                     ime.set_ime_allowed(false);
+                    state.ime_commit = true;
                 } else {
                     ime.set_ime_allowed(true);
+                    let position = state.cursor.start(value);
+
+                    // calcurate where we need to place candidate window.
+                    let size = size.unwrap_or_else(|| renderer.default_size());
+
+                    let position = measure_cursor_and_scroll_offset(
+                        renderer,
+                        text_bounds,
+                        value,
+                        size,
+                        position,
+                        font.clone(),
+                    );
+                    let position = (
+                        (text_bounds.x + position.0) as i32,
+                        (text_bounds.y) as i32 + size as i32,
+                    );
+
+                    let _ = state.ime_state.replace(IMEState::default());
+                    ime.set_ime_position(position.0, position.1);
+                    state.ime_commit = true;
                 }
-                return event::Status::Captured;
             } else {
                 ime.set_ime_allowed(false);
+                let mut editor = Editor::new(value, &mut state.cursor);
+                if let Some(text) = state
+                    .ime_state
+                    .take()
+                    .as_ref()
+                    .map(|ime_state| ime_state.preedit_text())
+                {
+                    text.chars().for_each(|ch| editor.insert(ch));
+                }
+                state.ime_commit = false;
             }
+            return event::Status::Captured;
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. })
@@ -805,69 +804,42 @@ where
                 && !is_secure
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
-                if text.is_empty() {
-                    if let Some(text) = state
-                        .ime_state
-                        .take()
-                        .as_ref()
-                        .map(|ime_state| ime_state.preedit_text())
-                    {
-                        text.chars().for_each(|ch| editor.insert(ch));
-                    }
-                } else {
-                    for ch in text.chars() {
-                        editor.insert(ch);
-                    }
+                if !state.ime_commit {
+                    return event::Status::Ignored;
                 }
+
+                for ch in text.chars() {
+                    editor.insert(ch);
+                }
+
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
                 state.ime_state = None;
                 return event::Status::Captured;
             }
         }
+
         Event::Keyboard(keyboard::Event::IMEEnabled) => {
             let state = state();
-            let position = state.cursor.start(value);
-
-            // calcurate where we need to place candidate window.
-            let text_bounds = layout.children().next().unwrap().bounds();
-            let size = size.unwrap_or_else(|| renderer.default_size());
-
-            let position = measure_cursor_and_scroll_offset(
-                renderer,
-                text_bounds,
-                value,
-                size,
-                position,
-                font.clone(),
-            );
-            let position = (
-                (text_bounds.x + position.0) as i32,
-                (text_bounds.y) as i32 + size as i32,
-            );
-
             let _ = state.ime_state.replace(IMEState::default());
-            ime.set_ime_position(position.0, position.1);
-
             return event::Status::Captured;
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
             let state = state();
-            if !state.is_focused && is_secure {
+            if !state.is_focused || is_secure {
                 return event::Status::Ignored;
             }
-            let cursor_offset = state.cursor.start(value);
             // calcurate where we need to place candidate window.
 
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
 
-            // we should place candidate window near current converting point.
-            let candidate_offset = if let Some((start, _)) = range {
-                text[0..start].chars().count()
-            } else {
-                0
-            };
+            let position = renderer.measure_width(
+                &(value.to_string() + &text),
+                size,
+                font.clone(),
+            );
+
             if let Some(ime_state) = state.ime_state.as_mut() {
                 ime_state.set_event(text, range);
             } else {
@@ -876,18 +848,11 @@ where
                 let _ = state.ime_state.replace(new_state);
             }
 
-            let position = measure_cursor_and_scroll_offset(
-                renderer,
-                text_bounds,
-                value,
-                size,
-                cursor_offset + candidate_offset,
-                font.clone(),
-            );
             let position = (
-                (text_bounds.x + position.0) as i32,
+                (text_bounds.x + position) as i32,
                 (text_bounds.y) as i32 + size as i32,
             );
+            println!("IME position x:{} y:{}", position.0, position.1);
             ime.set_ime_position(position.0, position.1);
 
             return event::Status::Captured;
@@ -1170,6 +1135,7 @@ pub struct State {
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
     ime_state: Option<IMEState>,
+    ime_commit: bool,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1189,6 +1155,7 @@ impl State {
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
             ime_state: None,
+            ime_commit: false,
         }
     }
 
