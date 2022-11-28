@@ -3,6 +3,7 @@ use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
+use crate::gradient::Gradient;
 use crate::triangle;
 
 use std::sync::Arc;
@@ -77,20 +78,32 @@ pub enum Primitive {
         /// The primitive to translate
         content: Box<Primitive>,
     },
-    /// A low-level primitive to render a mesh of triangles.
+    /// A low-level primitive to render a mesh of triangles with a solid color.
     ///
     /// It can be used to render many kinds of geometry freely.
-    Mesh2D {
-        /// The vertex and index buffers of the mesh
-        buffers: triangle::Mesh2D,
+    SolidMesh {
+        /// The vertices and indices of the mesh.
+        buffers: triangle::Mesh2D<triangle::ColoredVertex2D>,
+
+        /// The size of the drawable region of the mesh.
+        ///
+        /// Any geometry that falls out of this region will be clipped.
+        size: Size,
+    },
+    /// A low-level primitive to render a mesh of triangles with a gradient.
+    ///
+    /// It can be used to render many kinds of geometry freely.
+    GradientMesh {
+        /// The vertices and indices of the mesh.
+        buffers: triangle::Mesh2D<triangle::Vertex2D>,
 
         /// The size of the drawable region of the mesh.
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
 
-        /// The shader of the mesh
-        style: triangle::Style,
+        /// The [`Gradient`] to apply to the mesh.
+        gradient: Gradient,
     },
     /// A cached primitive.
     ///

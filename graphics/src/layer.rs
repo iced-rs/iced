@@ -166,10 +166,27 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::Mesh2D {
+            Primitive::SolidMesh { buffers, size } => {
+                let layer = &mut layers[current_layer];
+
+                let bounds = Rectangle::new(
+                    Point::new(translation.x, translation.y),
+                    *size,
+                );
+
+                // Only draw visible content
+                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
+                    layer.meshes.push(Mesh::Solid {
+                        origin: Point::new(translation.x, translation.y),
+                        buffers,
+                        clip_bounds,
+                    });
+                }
+            }
+            Primitive::GradientMesh {
                 buffers,
                 size,
-                style,
+                gradient,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -180,11 +197,11 @@ impl<'a> Layer<'a> {
 
                 // Only draw visible content
                 if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh {
+                    layer.meshes.push(Mesh::Gradient {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
                         clip_bounds,
-                        style,
+                        gradient,
                     });
                 }
             }
