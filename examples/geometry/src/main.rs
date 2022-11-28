@@ -20,12 +20,11 @@ mod rainbow {
         Element, Layout, Length, Point, Rectangle, Size, Vector,
     };
 
+    #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
 
-    impl Rainbow {
-        pub fn new() -> Self {
-            Self
-        }
+    pub fn rainbow() -> Rainbow {
+        Rainbow
     }
 
     impl<Message, B, T> Widget<Message, Renderer<B, T>> for Rainbow
@@ -164,7 +163,7 @@ mod rainbow {
 
 use iced::widget::{column, container, scrollable};
 use iced::{Element, Length, Sandbox, Settings};
-use rainbow::Rainbow;
+use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -187,7 +186,7 @@ impl Sandbox for Example {
 
     fn view(&self) -> Element<()> {
         let content = column![
-            Rainbow::new(),
+            rainbow(),
             "In this example we draw a custom widget Rainbow, using \
                  the Mesh2D primitive. This primitive supplies a list of \
                  triangles, expressed as vertices and indices.",
