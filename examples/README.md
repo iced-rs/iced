@@ -92,7 +92,6 @@ A bunch of simpler examples exist:
 - [`custom_widget`](custom_widget), a demonstration of how to build a custom widget that draws a circle.
 - [`download_progress`](download_progress), a basic application that asynchronously downloads a dummy file of 100 MB and tracks the download progress.
 - [`events`](events), a log of native events displayed using a conditional `Subscription`.
-- [`geometry`](geometry), a custom widget showcasing how to draw geometry with the `Mesh2D` primitive in [`iced_wgpu`](../wgpu).
 - [`integration_opengl`](integration_opengl), a demonstration of how to integrate Iced in an existing OpenGL application.
 - [`integration_wgpu`](integration_wgpu), a demonstration of how to integrate Iced in an existing [`wgpu`] application.
 - [`pane_grid`](pane_grid), a grid of panes that can be split, resized, and reorganized.
