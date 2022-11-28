@@ -182,7 +182,7 @@ where
             );
 
             let layout = child.as_widget().layout(renderer, &child_limits);
-            
+
             if align_items != Alignment::Fill {
                 cross = cross.max(axis.cross(layout.size()));
             }

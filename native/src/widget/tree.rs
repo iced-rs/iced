@@ -2,7 +2,7 @@
 use crate::animation;
 use crate::Widget;
 
-use iced_core::time::{Instant, Duration};
+use iced_core::time::{Duration, Instant};
 use std::any::{self, Any};
 use std::borrow::{Borrow, BorrowMut};
 use std::fmt;
@@ -179,7 +179,8 @@ impl Tree {
             );
         }
         acc
-    }}
+    }
+}
 
 /// The identifier of some widget state.
 #[derive(Debug, Clone, Copy, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -213,7 +214,7 @@ pub enum State {
     /// Retuning a state of this type will *not* cause `interp` to be called on the widget the
     /// following render
     Some(Box<dyn Any>),
-    
+
     /// A `Some` state, but the state will be reused the
     /// next render to to allow for values to be interpolated between redraws
     /// `AnimationFrame` means the widget is requesting a redraw as soon as reasonably
@@ -222,7 +223,7 @@ pub enum State {
     /// Retuning a state of this type will cause `interp` to be called on the widget the
     /// following render
     AnimationFrame(AnimationState, Box<dyn Any>),
-    
+
     /// A `Some` state, but the state will be reused the
     /// next render to to allow for values to be interpolated between redraws
     /// `Timeout` means the widget is requesting a redraw in the given `Duration`
@@ -231,7 +232,7 @@ pub enum State {
     /// Retuning a state of this type will cause `interp` to be called on the widget the
     /// following render
     Timeout(AnimationState, Instant, Box<dyn Any>),
-    
+
     /// A `Some` state, but the state will be reused the
     /// next render to to allow for values to be cached for optimizations. This will not cause
     /// iced to rerender, it just makes the data available the next render, that must be triggered
@@ -239,7 +240,7 @@ pub enum State {
     ///
     /// Retuning a state of this type will will cause `interp` to be called on the widget the
     /// following render
-    Anytime(Box<dyn Any>)
+    Anytime(Box<dyn Any>),
 }
 
 impl State {
@@ -250,9 +251,9 @@ impl State {
     {
         State::Some(Box::new(state))
     }
-    
+
     /// Creates a new [`State`].
-    pub fn newAnimationFrame<T>(hash:u64, state: T) -> Self
+    pub fn newAnimationFrame<T>(hash: u64, state: T) -> Self
     where
         T: 'static,
     {
@@ -308,22 +309,24 @@ impl State {
             }
         }
     }
-    
+
     fn is_interp(&self) -> bool {
         match self {
             State::AnimationFrame(_, _) => true,
             State::Timeout(_, _, _) => true,
-            _ => false
+            _ => false,
         }
     }
-    
+
     fn as_acc(&self) -> animation::Request {
         match self {
             State::None => animation::Request::None,
             State::Some(_) => animation::Request::None,
             State::Anytime(_) => animation::Request::None,
             State::AnimationFrame(_, _) => animation::Request::AnimationFrame,
-            State::Timeout(_, timeout, _) => animation::Request::Timeout(*timeout)
+            State::Timeout(_, timeout, _) => {
+                animation::Request::Timeout(*timeout)
+            }
         }
     }
 }
@@ -335,7 +338,9 @@ impl fmt::Debug for State {
             Self::Some(_) => write!(f, "State::Some"),
             Self::Anytime(_) => write!(f, "State::Anytime"),
             Self::AnimationFrame(_, _) => write!(f, "State::AnimationFrame"),
-            Self::Timeout(_, timeout, _) => write!(f, "State::timeout {:?}", timeout),
+            Self::Timeout(_, timeout, _) => {
+                write!(f, "State::timeout {:?}", timeout)
+            }
         }
     }
 }
@@ -354,7 +359,7 @@ pub struct AnimationState {
     pub start: Instant,
     /// The hash of the animation. Used to check if the animation
     /// has changed since the previous animation started.
-    pub hash: u64
+    pub hash: u64,
 }
 
 impl AnimationState {

@@ -18,8 +18,8 @@ use iced_core::time::Instant;
 use std::borrow::Borrow;
 
 use core::any::Any;
-use std::hash::Hash;
 use std::collections::hash_map::DefaultHasher;
+use std::hash::Hash;
 use std::hash::Hasher;
 
 const DEFAULT_WIDTH: Length = Length::Shrink;
@@ -164,13 +164,10 @@ where
         tree.diff_children(&self.children)
     }
 
-    fn repackage(
-        &mut self,
-        state: &mut tree::State,
-    ) {
+    fn repackage(&mut self, state: &mut tree::State) {
         match state {
-            tree::State::AnimationFrame(animationState, _widgetState) |
-            tree::State::Timeout(animationState, _, _widgetState) => {
+            tree::State::AnimationFrame(animationState, _widgetState)
+            | tree::State::Timeout(animationState, _, _widgetState) => {
                 // This part here is mostly a hold over from my previous implementations,
                 // this shoudld be handled some other way in the final release
                 //
@@ -206,12 +203,9 @@ where
                             k = k.spacing(self.spacing)
                         }
                         k.into()
-                    };                    
-                    
-                    let request = animation.interp(
-                        &mut playhead,
-                        start,
-                    );
+                    };
+
+                    let request = animation.interp(&mut playhead, start);
                     let playhead = &playhead.keyframe.modifiers();
 
                     self.width = Length::Units(
@@ -264,7 +258,6 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let (limits, padding, spacing) = match &self.playhead {
-            
             Some(playhead) => {
                 let playhead = &playhead.keyframe.modifiers();
 

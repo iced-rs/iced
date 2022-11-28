@@ -55,7 +55,7 @@ where
     pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
         self.overlay.layout(renderer, bounds, self.position)
     }
-    
+
     /// Processes a runtime [`Event`].
     pub fn on_event(
         &mut self,

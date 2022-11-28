@@ -192,8 +192,7 @@ where
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface =
-        UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer);
     debug.layout_finished();
 
     user_interface

@@ -496,10 +496,7 @@ where
         self.element.widget.layout(renderer, limits)
     }
 
-    fn repackage(
-        &mut self,
-        state: &mut tree::State,
-    ) {
+    fn repackage(&mut self, state: &mut tree::State) {
         self.element.widget.repackage(state)
     }
 

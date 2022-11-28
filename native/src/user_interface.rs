@@ -101,7 +101,8 @@ where
         let mut root = root.into();
 
         let Cache { mut state } = cache;
-        let request_animation = state.diff_mut(animation::Request::None, root.as_widget_mut());
+        let request_animation =
+            state.diff_mut(animation::Request::None, root.as_widget_mut());
 
         let base =
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
@@ -209,26 +210,26 @@ where
             let mut event_statuses = Vec::new();
 
             for event in events.iter().cloned() {
-               let mut shell = Shell::new(messages);
+                let mut shell = Shell::new(messages);
 
-               let event_status = overlay.on_event(
-                   event,
-                   Layout::new(&layout),
-                   cursor_position,
-                   renderer,
-                   clipboard,
-                   &mut shell,
-               );
+                let event_status = overlay.on_event(
+                    event,
+                    Layout::new(&layout),
+                    cursor_position,
+                    renderer,
+                    clipboard,
+                    &mut shell,
+                );
 
-               event_statuses.push(event_status);
+                event_statuses.push(event_status);
 
-               if shell.is_layout_invalid() {
-                   let _ = ManuallyDrop::into_inner(manual_overlay);
+                if shell.is_layout_invalid() {
+                    let _ = ManuallyDrop::into_inner(manual_overlay);
 
-                   self.base = renderer.layout(
-                       &self.root,
-                       &layout::Limits::new(Size::ZERO, self.bounds),
-                   );
+                    self.base = renderer.layout(
+                        &self.root,
+                        &layout::Limits::new(Size::ZERO, self.bounds),
+                    );
 
                     manual_overlay =
                         ManuallyDrop::new(self.root.as_widget_mut().overlay(
@@ -237,27 +238,27 @@ where
                             renderer,
                         ));
 
-                   if manual_overlay.is_none() {
-                       break;
-                   }
+                    if manual_overlay.is_none() {
+                        break;
+                    }
 
-                   overlay = manual_overlay.as_mut().unwrap();
+                    overlay = manual_overlay.as_mut().unwrap();
 
-                   shell.revalidate_layout(|| {
-                       layout = overlay.layout(renderer, bounds);
-                   });
-               }
+                    shell.revalidate_layout(|| {
+                        layout = overlay.layout(renderer, bounds);
+                    });
+                }
 
-               if shell.are_widgets_invalid() {
-                   state = State::Outdated;
-               }
+                if shell.are_widgets_invalid() {
+                    state = State::Outdated;
+                }
             }
 
             let base_cursor = if layout.bounds().contains(cursor_position) {
-               // TODO: Type-safe cursor availability
-               Point::new(-1.0, -1.0)
+                // TODO: Type-safe cursor availability
+                Point::new(-1.0, -1.0)
             } else {
-               cursor_position
+                cursor_position
             };
 
             self.overlay = Some(layout);
@@ -406,16 +407,16 @@ where
             renderer,
         ) {
             let overlay_layout = self
-               .overlay
-               .take()
-               .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
+                .overlay
+                .take()
+                .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
 
             let new_cursor_position =
-               if overlay_layout.bounds().contains(cursor_position) {
-                   Point::new(-1.0, -1.0)
-               } else {
-                   cursor_position
-               };
+                if overlay_layout.bounds().contains(cursor_position) {
+                    Point::new(-1.0, -1.0)
+                } else {
+                    cursor_position
+                };
 
             self.overlay = Some(overlay_layout);
 
@@ -519,17 +520,8 @@ where
 
     /// Relayouts and returns a new  [`UserInterface`] using the provided
     /// bounds.
-    pub fn relayout(
-        self,
-        bounds: Size,
-        renderer: &mut Renderer,
-    ) -> Self {
-        Self::build(
-            self.root,
-            bounds,
-            Cache { state: self.state },
-            renderer,
-        )
+    pub fn relayout(self, bounds: Size, renderer: &mut Renderer) -> Self {
+        Self::build(self.root, bounds, Cache { state: self.state }, renderer)
     }
 
     /// Extract the [`Cache`] of the [`UserInterface`], consuming it in the

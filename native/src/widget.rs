@@ -171,10 +171,7 @@ where
     ///
     /// This is called interp as it is intended location for widgets to
     /// interpolate between current and requested state. I.E. animations.
-    fn repackage(
-        &mut self,
-        state: &mut tree::State,
-    ) {}
+    fn repackage(&mut self, state: &mut tree::State) {}
 
     /// Returns the state [`Tree`] of the children of the [`Widget`].
     fn children(&self) -> Vec<Tree> {

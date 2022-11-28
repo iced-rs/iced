@@ -262,4 +262,3 @@ pub enum Request {
     /// The widget doesn't need to reanimate. It is either done animating, or static.
     None,
 }
-

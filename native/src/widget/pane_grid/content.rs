@@ -156,10 +156,8 @@ where
         if let Some(title_bar) = &self.title_bar {
             let max_size = limits.max();
 
-            let title_bar_layout = title_bar.layout(
-                renderer,
-                &layout::Limits::new(Size::ZERO, max_size),
-            );
+            let title_bar_layout = title_bar
+                .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
 
             let title_bar_size = title_bar_layout.size();
 

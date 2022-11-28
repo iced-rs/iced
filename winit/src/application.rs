@@ -443,10 +443,8 @@ async fn run_instance<A, E, C>(
 
                     debug.layout_started();
                     user_interface = ManuallyDrop::new(
-                        ManuallyDrop::into_inner(user_interface).relayout(
-                            logical_size,
-                            &mut renderer,
-                        ),
+                        ManuallyDrop::into_inner(user_interface)
+                            .relayout(logical_size, &mut renderer),
                     );
                     debug.layout_finished();
 
@@ -587,8 +585,7 @@ where
     debug.view_finished();
 
     debug.layout_started();
-    let user_interface =
-        UserInterface::build(view, size, cache, renderer);
+    let user_interface = UserInterface::build(view, size, cache, renderer);
     debug.layout_finished();
 
     user_interface
