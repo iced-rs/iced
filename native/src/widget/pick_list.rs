@@ -279,6 +279,7 @@ where
             &self.font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
+            &self.accessory_content,
             &self.style,
         )
     }
@@ -580,6 +581,7 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
+    accessory_content: &AccessoryContent<Renderer>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
