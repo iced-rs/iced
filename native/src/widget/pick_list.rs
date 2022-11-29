@@ -20,6 +20,60 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
+/// The content to the right side of the [`PickList`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AccessoryContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Default accessory content.
+    Default {
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// Custom accessory content.
+    Custom {
+        /// Font which will be used in the accessory content.
+        font: Renderer::Font,
+        /// Content which will be shown.
+        content: String,
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// No accessory content will be shown.
+    None,
+}
+
+impl<Renderer> Default for AccessoryContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn default() -> Self {
+        Self::Default { size: None }
+    }
+}
+
+impl<Renderer> AccessoryContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn content(&self) -> Option<(Renderer::Font, String, Option<u16>)> {
+        match self {
+            AccessoryContent::Default { size } => Some((
+                Renderer::ICON_FONT,
+                Renderer::ARROW_DOWN_ICON.to_string(),
+                *size,
+            )),
+            AccessoryContent::Custom {
+                font,
+                content,
+                size,
+            } => Some((font.clone(), content.clone(), *size)),
+            AccessoryContent::None => None,
+        }
+    }
+}
+
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
 pub struct PickList<'a, T, Message, Renderer>
@@ -36,6 +90,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
+    accessory_content: AccessoryContent<Renderer>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -67,9 +122,10 @@ where
             placeholder: None,
             selected,
             width: Length::Shrink,
-            text_size: None,
             padding: Self::DEFAULT_PADDING,
+            text_size: None,
             font: Default::default(),
+            accessory_content: Default::default(),
             style: Default::default(),
         }
     }
@@ -101,6 +157,15 @@ where
     /// Sets the font of the [`PickList`].
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the [`AccessoryContent`] of the [`PickList`].
+    pub fn accessory_content(
+        mut self,
+        accessory_content: AccessoryContent<Renderer>,
+    ) -> Self {
+        self.accessory_content = accessory_content;
         self
     }
 
@@ -541,19 +606,24 @@ pub fn draw<T, Renderer>(
         style.background,
     );
 
-    renderer.fill_text(Text {
-        content: &Renderer::ARROW_DOWN_ICON.to_string(),
-        font: Renderer::ICON_FONT,
-        size: bounds.height * style.icon_size,
-        bounds: Rectangle {
-            x: bounds.x + bounds.width - f32::from(padding.horizontal()),
-            y: bounds.center_y(),
-            ..bounds
-        },
-        color: style.text_color,
-        horizontal_alignment: alignment::Horizontal::Right,
-        vertical_alignment: alignment::Vertical::Center,
-    });
+    if let Some((font, content, size)) = accessory_content.content() {
+        let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
+
+        renderer.fill_text(Text {
+            content: &content,
+            size,
+            font,
+            color: style.text_color,
+            bounds: Rectangle {
+                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
+                y: bounds.center_y() - size / 2.0,
+                height: size,
+                ..bounds
+            },
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Top,
+        });
+    }
 
     let label = selected.map(ToString::to_string);
 

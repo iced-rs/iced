@@ -16,8 +16,6 @@ pub struct Appearance {
     pub border_width: f32,
     /// The border color of the pick list.
     pub border_color: Color,
-    /// The size of the arrow icon of the pick list.
-    pub icon_size: f32,
 }
 
 /// A set of rules that dictate the style of a container.
