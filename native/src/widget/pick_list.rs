@@ -615,7 +615,7 @@ pub fn draw<T, Renderer>(
             content: &content,
             size,
             font,
-            color: style.text_color,
+            color: style.accessory_content_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - f32::from(padding.horizontal()),
                 y: bounds.center_y() - size / 2.0,
