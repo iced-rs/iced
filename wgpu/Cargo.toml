@@ -8,24 +8,25 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-svg = ["iced_graphics/svg"]
+bmp = ["iced_graphics/bmp"]
+canvas = ["iced_graphics/canvas"]
+dds = ["iced_graphics/dds"]
+default_system_font = ["iced_graphics/font-source"]
+farbfeld = ["iced_graphics/farbfeld"]
+gif = ["iced_graphics/gif"]
+hdr = ["iced_graphics/hdr"]
+ico = ["iced_graphics/ico"]
 image = ["iced_graphics/image"]
-png = ["iced_graphics/png"]
 jpeg = ["iced_graphics/jpeg"]
 jpeg_rayon = ["iced_graphics/jpeg_rayon"]
-gif = ["iced_graphics/gif"]
-webp = ["iced_graphics/webp"]
+png = ["iced_graphics/png"]
 pnm = ["iced_graphics/pnm"]
-ico = ["iced_graphics/ico"]
-bmp = ["iced_graphics/bmp"]
-hdr = ["iced_graphics/hdr"]
-dds = ["iced_graphics/dds"]
-farbfeld = ["iced_graphics/farbfeld"]
-canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
-default_system_font = ["iced_graphics/font-source"]
 spirv = ["wgpu/spirv"]
+svg = ["iced_graphics/svg"]
+trace = ["iced_profiling"]
 webgl = ["wgpu/webgl"]
+webp = ["iced_graphics/webp"]
 
 [dependencies]
 wgpu = "0.14"
@@ -49,6 +50,11 @@ path = "../native"
 version = "0.5"
 path = "../graphics"
 features = ["font-fallback", "font-icons"]
+
+[dependencies.iced_profiling]
+version = "0.1.0"
+path = "../profiling"
+optional = true
 
 [dependencies.encase]
 version = "0.3.0"

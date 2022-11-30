@@ -8,6 +8,7 @@ publish = false
 [dependencies]
 iced_winit = { path = "../../winit" }
 iced_wgpu = { path = "../../wgpu", features = ["webgl"] }
+iced_profiling = { path = "../../profiling", features = ["tracing-chrome"]}
 env_logger = "0.8"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

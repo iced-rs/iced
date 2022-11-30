@@ -11,6 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+trace = ["iced_profiling"]
 debug = ["iced_native/debug"]
 system = ["sysinfo"]
 application = []
@@ -36,6 +37,11 @@ path = "../graphics"
 [dependencies.iced_futures]
 version = "0.5"
 path = "../futures"
+
+[dependencies.iced_profiling]
+version = "0.1.0"
+path = "../profiling"
+optional = true
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"

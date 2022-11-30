@@ -11,6 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+trace = ["iced_profiling/tracing-chrome"]
 debug = ["iced_winit/debug"]
 system = ["iced_winit/system"]
 
@@ -35,3 +36,8 @@ features = ["application"]
 version = "0.5"
 path = "../graphics"
 features = ["opengl"]
+
+[dependencies.iced_profiling]
+version = "0.1.0"
+path = "../profiling"
+optional = true

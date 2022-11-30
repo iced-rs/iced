@@ -21,6 +21,9 @@ use glow::HasContext;
 
 use std::cell::RefCell;
 
+#[cfg(feature = "trace")]
+use iced_profiling::info_span;
+
 #[derive(Debug)]
 pub(crate) struct Pipeline {
     program: <glow::Context as HasContext>::Program,
@@ -148,6 +151,9 @@ impl Pipeline {
         images: &[layer::Image],
         layer_bounds: Rectangle<u32>,
     ) {
+        #[cfg(feature = "trace")]
+        let _ = info_span!("Glow::Image", "DRAW").entered();
+
         unsafe {
             gl.use_program(Some(self.program));
             gl.bind_vertex_array(Some(self.vertex_array));

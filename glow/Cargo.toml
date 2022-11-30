@@ -8,6 +8,7 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
+trace = ["iced_profiling"]
 svg = ["iced_graphics/svg"]
 image = ["iced_graphics/image"]
 png = ["iced_graphics/png"]
@@ -41,6 +42,11 @@ path = "../native"
 version = "0.5"
 path = "../graphics"
 features = ["font-fallback", "font-icons", "opengl"]
+
+[dependencies.iced_profiling]
+version = "0.1.0"
+path = "../profiling"
+optional = true
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

@@ -6,6 +6,9 @@ use bytemuck::{Pod, Zeroable};
 use std::mem;
 use wgpu::util::DeviceExt;
 
+#[cfg(feature = "trace")]
+use iced_profiling::info_span;
+
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
@@ -173,6 +176,9 @@ impl Pipeline {
         bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
     ) {
+        #[cfg(feature = "trace")]
+        let _ = info_span!("Wgpu::Quad", "DRAW").entered();
+
         let uniforms = Uniforms::new(transformation, scale);
 
         {
@@ -206,6 +212,9 @@ impl Pipeline {
             );
 
             instance_buffer.copy_from_slice(instance_bytes);
+
+            #[cfg(feature = "trace")]
+            let _ = info_span!("Wgpu::Quad", "BEGIN_RENDER_PASS").enter();
 
             {
                 let mut render_pass =

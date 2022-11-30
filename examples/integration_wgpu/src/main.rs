@@ -16,6 +16,8 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
 };
 
+use iced_profiling::info_span;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
@@ -38,6 +40,9 @@ pub fn main() {
     };
     #[cfg(not(target_arch = "wasm32"))]
     env_logger::init();
+
+    // Initialize tracing
+    let _guard = iced_profiling::init();
 
     // Initialize winit
     let event_loop = EventLoop::new();
@@ -198,6 +203,8 @@ pub fn main() {
                 }
             }
             Event::RedrawRequested(_) => {
+                let _ = info_span!("Integration_WGPU", "DRAW").entered();
+
                 if resized {
                     let size = window.inner_size();
 
