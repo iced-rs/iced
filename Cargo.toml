@@ -69,6 +69,7 @@ members = [
     "examples/geometry",
     "examples/integration_opengl",
     "examples/integration_wgpu",
+    "examples/keyboard_navigation",
     "examples/lazy",
     "examples/modern_art",
     "examples/multitouch",

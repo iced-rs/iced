@@ -1,18 +1,77 @@
 //! Show toggle controls using checkboxes.
-use crate::alignment;
+use crate::{alignment, keyboard};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::touch;
-use crate::widget::{self, Row, Text, Tree};
+use crate::widget::tree::{self, Tree};
+use crate::widget::{self, Row, Text};
+use crate::widget::operation::{self, Operation};
 use crate::{
-    Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
+    Alignment, Clipboard, Command, Element, Layout, Length, Point, Rectangle, Shell,
     Widget,
 };
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
+
+
+/// The identifier of a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+/// The local state of a [`Checkbox`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct State {
+    is_focused: bool,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new() -> State {
+        State::default()
+    }
+
+    /// Creates a new [`State`], representing a focused [`Button`].
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+        }
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
+    }
+}
+
+
+
 
 /// A box that can be checked.
 ///
@@ -37,6 +96,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
+    id: Option<Id>,
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
@@ -59,6 +119,12 @@ where
     /// The default spacing of a [`Checkbox`].
     const DEFAULT_SPACING: u16 = 15;
 
+    /// Sets the [`Id`] of the [`Checkbox`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
+    }
+
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
@@ -72,6 +138,7 @@ where
         F: 'a + Fn(bool) -> Message,
     {
         Checkbox {
+            id: None,
             is_checked,
             on_toggle: Box::new(f),
             label: label.into(),
@@ -132,6 +199,11 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -166,9 +238,20 @@ where
             .layout(renderer, limits)
     }
 
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
     fn on_event(
         &mut self,
-        _tree: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -176,6 +259,8 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
+        let state = tree.state.downcast_mut::<State>();
+
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -186,6 +271,22 @@ where
 
                     return event::Status::Captured;
                 }
+            }
+            Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
+                if state.is_focused  {
+                    match key_code {
+                        keyboard::KeyCode::Enter
+                        | keyboard::KeyCode::NumpadEnter 
+                        | keyboard::KeyCode::Space => {
+                            shell.publish((self.on_toggle)(!self.is_checked));
+                            return event::Status::Captured;
+                        }
+                        _ => {
+                            return event::Status::Ignored;
+                        }
+                    }    
+                }
+                return event::Status::Ignored;
             }
             _ => {}
         }
@@ -210,7 +311,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -218,12 +319,14 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
+        let is_focused = is_mouse_over | state.is_focused();
 
         let mut children = layout.children();
 
-        let custom_style = if is_mouse_over {
+        let styling = if is_focused {
             theme.hovered(&self.style, self.is_checked)
         } else {
             theme.active(&self.style, self.is_checked)
@@ -236,11 +339,11 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: custom_style.border_radius,
-                    border_width: custom_style.border_width,
-                    border_color: custom_style.border_color,
+                    border_radius: styling.border_radius,
+                    border_width: styling.border_width,
+                    border_color: styling.border_color,
                 },
-                custom_style.background,
+                styling.background,
             );
 
             if self.is_checked {
@@ -253,7 +356,7 @@ where
                         y: bounds.center_y(),
                         ..bounds
                     },
-                    color: custom_style.checkmark_color,
+                    color: styling.checkmark_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
                 });
@@ -271,7 +374,7 @@ where
                 self.text_size,
                 self.font.clone(),
                 widget::text::Appearance {
-                    color: custom_style.text_color,
+                    color: styling.text_color,
                 },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
@@ -292,4 +395,10 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(checkbox)
     }
+}
+
+
+/// Produces a [`Command`] that focuses the [`Checkbox`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
 }

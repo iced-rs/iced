@@ -1,17 +1,77 @@
 //! Show toggle controls using togglers.
 use crate::alignment;
 use crate::event;
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::text;
-use crate::widget::{self, Row, Text, Tree};
+use crate::widget::tree::{self, Tree};
+use crate::widget::{self, Row, Text};
+use crate::widget::operation::{self, Operation};
 use crate::{
     Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
     Shell, Widget,
 };
 
 pub use iced_style::toggler::{Appearance, StyleSheet};
+
+
+
+
+/// The identifier of a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+/// The local state of a [`Checkbox`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct State {
+    is_focused: bool,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new() -> State {
+        State::default()
+    }
+
+    /// Creates a new [`State`], representing a focused [`Button`].
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+        }
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
+    }
+}
+
 
 /// A toggler widget.
 ///
@@ -34,6 +94,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     is_active: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
@@ -71,6 +132,7 @@ where
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
+            id: None,
             is_active,
             on_toggle: Box::new(f),
             label: label.into(),
@@ -82,6 +144,13 @@ where
             font: Renderer::Font::default(),
             style: Default::default(),
         }
+    }
+
+
+    /// Sets the [`Id`] of the [`Checkbox`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Sets the size of the [`Toggler`].
@@ -138,6 +207,10 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
+    fn state(&self) -> tree::State {
+        tree::State::new(State::new())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -178,9 +251,19 @@ where
         row.layout(renderer, limits)
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -188,6 +271,8 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
+        let state = tree.state.downcast_mut::<State>();
+        
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
@@ -199,6 +284,22 @@ where
                 } else {
                     event::Status::Ignored
                 }
+            }
+            Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
+                if state.is_focused  {
+                    match key_code {
+                        keyboard::KeyCode::Enter
+                        | keyboard::KeyCode::NumpadEnter 
+                        | keyboard::KeyCode::Space => {
+                            shell.publish((self.on_toggle)(!self.is_active));
+                            return event::Status::Captured;
+                        }
+                        _ => {
+                            return event::Status::Ignored;
+                        }
+                    }    
+                }
+                return event::Status::Ignored;
             }
             _ => event::Status::Ignored,
         }
@@ -221,7 +322,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -236,7 +337,12 @@ where
         /// between the background Quad and foreground Quad.
         const SPACE_RATIO: f32 = 0.05;
 
+        let state = tree.state.downcast_ref::<State>();
         let mut children = layout.children();
+        let toggler_layout = children.next().unwrap();
+        let bounds = toggler_layout.bounds();
+        let is_mouse_over = bounds.contains(cursor_position);
+        let is_focused = is_mouse_over | state.is_focused();
 
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
@@ -254,12 +360,7 @@ where
             );
         }
 
-        let toggler_layout = children.next().unwrap();
-        let bounds = toggler_layout.bounds();
-
-        let is_mouse_over = bounds.contains(cursor_position);
-
-        let style = if is_mouse_over {
+        let style = if is_focused {
             theme.hovered(&self.style, self.is_active)
         } else {
             theme.active(&self.style, self.is_active)

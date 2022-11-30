@@ -7,14 +7,20 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget;
+use crate::keyboard;
 use crate::widget::tree::{self, Tree};
-use crate::widget::Operation;
+use crate::widget::operation::{self, Operation};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
+    Background, Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
+
+/// The identifier of a [`Button`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -56,6 +62,7 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -69,9 +76,17 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+
+    /// Sets the [`Id`] of the [`TextInput`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
+    }
+    
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
+            id: None,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
@@ -124,6 +139,7 @@ where
     Renderer: 'a + crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
     }
@@ -171,6 +187,8 @@ where
         layout: Layout<'_>,
         operation: &mut dyn Operation<Message>,
     ) {
+        let state = tree.state.downcast_mut::<State>();
+
         operation.container(None, &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
@@ -178,6 +196,8 @@ where
                 operation,
             );
         });
+
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
     }
 
     fn on_event(
@@ -232,7 +252,7 @@ where
             self.on_press.is_some(),
             theme,
             &self.style,
-            || tree.state.downcast_ref::<State>(),
+            tree.state.downcast_ref::<State>(),
         );
 
         self.content.as_widget().draw(
@@ -288,6 +308,7 @@ where
 /// The local state of a [`Button`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
+    is_focused: bool,
     is_pressed: bool,
 }
 
@@ -296,7 +317,45 @@ impl State {
     pub fn new() -> State {
         State::default()
     }
+
+    /// Creates a new [`State`], representing a focused [`Button`].
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+            is_pressed: false,
+        }
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
 }
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
+    }
+}
+
 
 /// Processes the given [`Event`] and updates the [`State`] of a [`Button`]
 /// accordingly.
@@ -346,6 +405,52 @@ pub fn update<'a, Message: Clone>(
 
             state.is_pressed = false;
         }
+        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+            let state = state();
+
+            if state.is_focused {
+
+                match key_code {
+                    keyboard::KeyCode::Escape => {
+                        state.is_focused = false;
+                        state.is_pressed = false;
+                    }
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter 
+                    | keyboard::KeyCode::Space => {
+                        state.is_pressed = true;
+                    }
+                    _ => {
+                        return event::Status::Ignored;
+                    }
+                }
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+            let state = state();
+
+            if state.is_focused  && state.is_pressed {
+                match key_code {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter 
+                    | keyboard::KeyCode::Space => {
+                        if let Some(on_press) = on_press.clone() {
+                            println!("state {:?}", state);
+                            state.is_pressed = false;
+                            shell.publish(on_press);
+                            return event::Status::Captured;
+                        }
+                    }
+                    _ => {
+                        return event::Status::Ignored;
+                    }
+                }
+
+                return event::Status::Ignored;
+            }
+        }
         _ => {}
     }
 
@@ -362,18 +467,16 @@ pub fn draw<'a, Renderer: crate::Renderer>(
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    state: impl FnOnce() -> &'a State,
+    state: &State,
 ) -> Appearance
 where
     Renderer::Theme: StyleSheet,
 {
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_focused = bounds.contains(cursor_position) | state.is_focused();
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
-    } else if is_mouse_over {
-        let state = state();
-
+    } else if is_focused {
         if state.is_pressed {
             style_sheet.pressed(style)
         } else {
@@ -415,6 +518,12 @@ where
     }
 
     styling
+}
+
+
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
 }
 
 /// Computes the layout of a [`Button`].

@@ -1,0 +1,9 @@
+[package]
+name = "keyboard_navigation"
+version = "0.1.0"
+authors = ["Jason Aunkst <jaunkst@gmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["debug"] }

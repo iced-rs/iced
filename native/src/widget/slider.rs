@@ -2,11 +2,13 @@
 //!
 //! A [`Slider`] has some local [`State`].
 use crate::event::{self, Event};
-use crate::layout;
+use crate::{layout, keyboard};
 use crate::mouse;
 use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
+use crate::widget::{self, Row, Text};
+use crate::widget::operation::{self, Operation};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Size, Widget,
@@ -15,6 +17,65 @@ use crate::{
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
+
+
+
+/// The identifier of a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+/// The local state of a [`Checkbox`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct State {
+    is_focused: bool,
+    is_dragging: bool,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new() -> State {
+        State::default()
+    }
+
+    /// Creates a new [`State`], representing a focused [`Button`].
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+            is_dragging: false,
+        }
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
+    }
+}
+
+
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -48,6 +109,7 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     range: RangeInclusive<T>,
     step: T,
     value: T,
@@ -93,6 +155,7 @@ where
         };
 
         Slider {
+            id: None,
             value,
             range,
             step: T::from(1),
@@ -103,6 +166,14 @@ where
             style: Default::default(),
         }
     }
+
+
+   /// Sets the [`Id`] of the [`Checkbox`].
+   pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
+    }
+
 
     /// Sets the release message of the [`Slider`].
     /// This is called when the mouse is released from the slider.
@@ -178,6 +249,16 @@ where
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)
+    }
+
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
     }
 
     fn on_event(
@@ -338,6 +419,44 @@ where
                 return event::Status::Captured;
             }
         }
+        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
+            if state.is_focused  {
+                match key_code {
+                    keyboard::KeyCode::Escape => {
+                        state.is_focused = false;
+                        state.is_dragging = false;
+                    }
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter 
+                    | keyboard::KeyCode::Space => {
+                        state.is_dragging = !state.is_dragging;
+                        return event::Status::Captured;
+                    }
+                    keyboard::KeyCode::Left => {
+                        if(is_dragging) {
+                            let new_value = (*value).into() - step.into();
+                            if new_value >= (*range.start()).into() {
+                                *value = T::from_f64(new_value).unwrap();
+                                shell.publish((on_change)(*value));
+                            }
+                        }
+                    }
+                    keyboard::KeyCode::Right => {
+                        if(is_dragging) {
+                            let new_value = (*value).into() + step.into();
+                            if new_value <= (*range.end()).into() {
+                                *value = T::from_f64(new_value).unwrap();
+                                shell.publish((on_change)(*value));
+                            }
+                        }
+                    }
+                    _ => {
+                        return event::Status::Ignored;
+                    }
+                }    
+            }
+            return event::Status::Ignored;
+        }
         _ => {}
     }
 
@@ -361,10 +480,11 @@ pub fn draw<T, R>(
 {
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
+    let is_focused = is_mouse_over | state.is_focused();
 
     let style = if state.is_dragging {
         style_sheet.dragging(style)
-    } else if is_mouse_over {
+    } else if is_focused {
         style_sheet.hovered(style)
     } else {
         style_sheet.active(style)
@@ -452,7 +572,7 @@ pub fn mouse_interaction(
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
 
-    if state.is_dragging {
+    if state.is_dragging && !state.is_focused {
         mouse::Interaction::Grabbing
     } else if is_mouse_over {
         mouse::Interaction::Grab
@@ -461,15 +581,4 @@ pub fn mouse_interaction(
     }
 }
 
-/// The local state of a [`Slider`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct State {
-    is_dragging: bool,
-}
 
-impl State {
-    /// Creates a new [`State`].
-    pub fn new() -> State {
-        State::default()
-    }
-}

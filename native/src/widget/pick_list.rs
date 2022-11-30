@@ -10,8 +10,10 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container;
+use crate::widget::operation::{self, Operation};
 use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
+use crate::widget::{self};
 use crate::{
     Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
     Widget,
@@ -19,6 +21,10 @@ use crate::{
 use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
+
+/// The identifier of a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
@@ -28,6 +34,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     on_selected: Box<dyn Fn(T) -> Message + 'a>,
     options: Cow<'a, [T]>,
     placeholder: Option<String>,
@@ -62,6 +69,7 @@ where
         on_selected: impl Fn(T) -> Message + 'a,
     ) -> Self {
         Self {
+            id: None,
             on_selected: Box::new(on_selected),
             options: options.into(),
             placeholder: None,
@@ -72,6 +80,12 @@ where
             font: Default::default(),
             style: Default::default(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`Checkbox`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Sets the placeholder of the [`PickList`].
@@ -161,6 +175,16 @@ where
         )
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        _layout: Layout<'_>,
+        operation: &mut dyn Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State<T>>();
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+    }
+
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -196,7 +220,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,
@@ -209,6 +233,7 @@ where
             theme,
             layout,
             cursor_position,
+            tree.state.downcast_ref::<State<T>>(),
             self.padding,
             self.text_size,
             &self.font,
@@ -262,6 +287,7 @@ where
 pub struct State<T> {
     menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
+    is_focused: bool,
     is_open: bool,
     hovered_option: Option<usize>,
     last_selection: Option<T>,
@@ -273,10 +299,48 @@ impl<T> State<T> {
         Self {
             menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
+            is_focused: false,
             is_open: bool::default(),
             hovered_option: Option::default(),
             last_selection: Option::default(),
         }
+    }
+
+    /// Creates a new [`State`], representing a focused [`PickList`].
+    pub fn focused() -> Self {
+        Self {
+            is_focused: true,
+            ..Self::new()
+        }
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
+    }
+}
+
+impl<T> operation::Focusable for State<T> {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
 
@@ -440,6 +504,77 @@ where
 
             event::Status::Ignored
         }
+        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+            let state = state();
+
+            if state.is_open {
+                match key_code {
+                    keyboard::KeyCode::Up => {
+                        if let Some(hovered_option) = state.hovered_option {
+                            if hovered_option > 0 {
+                                state.hovered_option = Some(hovered_option - 1);
+                            }
+                        } else {
+                            state.hovered_option = Some(options.len() - 1);
+                        }
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::KeyCode::Down => {
+                        if let Some(hovered_option) = state.hovered_option {
+                            if hovered_option < options.len() - 1 {
+                                state.hovered_option = Some(hovered_option + 1);
+                            }
+                        } else {
+                            state.hovered_option = Some(0);
+                        }
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::KeyCode::Enter => {
+                        if let Some(hovered_option) = state.hovered_option {
+                            state.last_selection =
+                                Some(options[hovered_option].clone());
+
+                            if let Some(last_selection) = state.last_selection.clone()  {
+                                shell.publish((on_selected)(last_selection));
+                
+                                state.is_open = false;
+                
+                                return event::Status::Captured;
+                            } else {
+                                return event::Status::Ignored;
+                            }
+                
+                        }
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::KeyCode::Escape => {
+                        state.is_open = false;
+                        return event::Status::Captured;
+                    }
+                    _ => {
+                        return event::Status::Ignored;
+                    }
+                }
+            } else {
+                match key_code {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter
+                    | keyboard::KeyCode::Space => {
+                        if(!state.is_open && state.is_focused) {
+                            state.is_open = true;
+                            return event::Status::Captured;
+                        }
+                        return event::Status::Ignored;
+                    }
+                    _ => {
+                        return event::Status::Ignored;
+                    }
+                }
+            }
+        }
         _ => event::Status::Ignored,
     }
 }
@@ -510,6 +645,7 @@ pub fn draw<T, Renderer>(
     theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor_position: Point,
+    state: &State<T>,
     padding: Padding,
     text_size: Option<u16>,
     font: &Renderer::Font,
@@ -523,9 +659,10 @@ pub fn draw<T, Renderer>(
 {
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
+    let is_focused = is_mouse_over | state.is_focused();
     let is_selected = selected.is_some();
 
-    let style = if is_mouse_over {
+    let style = if is_focused {
         theme.hovered(style)
     } else {
         theme.active(style)
