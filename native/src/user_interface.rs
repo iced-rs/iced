@@ -401,11 +401,11 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) = self.root.as_widget().overlay(
-            &mut self.state,
-            Layout::new(&self.base),
-            renderer,
-        ) {
+        let base_cursor = if let Some(overlay) = self
+            .root
+            .as_widget_mut()
+            .overlay(&mut self.state, Layout::new(&self.base), renderer)
+        {
             let overlay_layout = self
                 .overlay
                 .take()
