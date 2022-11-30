@@ -106,7 +106,7 @@ where
 
     /// Applies a [`widget::Operation`] to the [`Element`].
     pub fn operate(
-        &self,
+        &mut self,
         layout: Layout<'_>,
         operation: &mut dyn widget::Operation<Message>,
     ) {
@@ -142,7 +142,7 @@ where
     }
 
     fn operate(
-        &self,
+        &mut self,
         layout: Layout<'_>,
         operation: &mut dyn widget::Operation<B>,
     ) {
