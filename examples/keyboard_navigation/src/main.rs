@@ -1,6 +1,6 @@
 use iced::widget::{
-    button, checkbox, container, pick_list, radio, slider, text, text_input,
-    toggler, Column, Row,
+    button, container, pick_list, radio, slider, text, text_input,
+    toggler, Column, checkbox,
 };
 use iced::{executor, keyboard, subscription, Subscription};
 use iced::{Application, Command, Element, Length, Settings, Theme};
@@ -132,7 +132,11 @@ impl Application for KeyboardNavigationDemo {
 
                 Command::none()
             }
-            Message::TextChanged(_) => Command::none(),
+            Message::TextChanged(value) => {
+                println!("Text changed!");
+                self.text_input_value = value;
+                Command::none()
+            },
             Message::ButtonPressed => {
                 println!("Button pressed!");
                 Command::none()
@@ -212,6 +216,15 @@ impl Application for KeyboardNavigationDemo {
         )
         .into();
 
+        let checkbox_example = container(
+            Column::with_children(vec![
+                checkbox("*", self.checkbox_value, Message::CheckboxToggled).into(),
+            ])
+            .width(Length::Fill)
+            .height(Length::Fill),
+        )
+        .into();
+
         let text_input_example = container(
             Column::with_children(vec![text_input(
                 "Text Input",
@@ -253,10 +266,13 @@ impl Application for KeyboardNavigationDemo {
         )
         .into();
 
+
+
         let content = Column::with_children(vec![
             radio_example,
             list_picker_example,
             button_example,
+            checkbox_example,
             text_input_example,
             toggler_example,
             slider_example
