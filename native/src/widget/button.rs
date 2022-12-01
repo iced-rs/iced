@@ -407,31 +407,32 @@ pub fn update<'a, Message: Clone>(
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
             let state = state();
+            if !state.is_focused() {
+                return event::Status::Ignored;
+            }
 
-            if state.is_focused {
-
-                match key_code {
-                    keyboard::KeyCode::Escape => {
-                        state.is_focused = false;
-                        state.is_pressed = false;
-                    }
-                    keyboard::KeyCode::Enter
-                    | keyboard::KeyCode::NumpadEnter 
-                    | keyboard::KeyCode::Space => {
-                        state.is_pressed = true;
-                    }
-                    _ => {
-                        return event::Status::Ignored;
-                    }
+            match key_code {
+                keyboard::KeyCode::Escape => {
+                    state.is_focused = false;
+                    state.is_pressed = false;
+                    return event::Status::Captured;
                 }
-
-                return event::Status::Captured;
+                keyboard::KeyCode::Enter
+                | keyboard::KeyCode::NumpadEnter 
+                | keyboard::KeyCode::Space => {
+                    state.is_pressed = true;
+                    return event::Status::Captured;
+                }
+                _ => {}
             }
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
             let state = state();
+            if !state.is_focused() {
+                return event::Status::Ignored;
+            }
 
-            if state.is_focused  && state.is_pressed {
+            if state.is_pressed {
                 match key_code {
                     keyboard::KeyCode::Enter
                     | keyboard::KeyCode::NumpadEnter 
@@ -443,12 +444,8 @@ pub fn update<'a, Message: Clone>(
                             return event::Status::Captured;
                         }
                     }
-                    _ => {
-                        return event::Status::Ignored;
-                    }
+                    _ => {}
                 }
-
-                return event::Status::Ignored;
             }
         }
         _ => {}

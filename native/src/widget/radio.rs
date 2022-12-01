@@ -248,7 +248,7 @@ where
     fn operate(
         &self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        _layout: Layout<'_>,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();
@@ -272,25 +272,23 @@ where
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if layout.bounds().contains(cursor_position) {
                     shell.publish(self.on_click.clone());
-
                     return event::Status::Captured;
                 }
             }
-            Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
-                if state.is_focused  {
-                    match key_code {
-                        keyboard::KeyCode::Enter
-                        | keyboard::KeyCode::NumpadEnter 
-                        | keyboard::KeyCode::Space => {
-                            shell.publish(self.on_click.clone());
-                            return event::Status::Captured;
-                        }
-                        _ => {
-                            return event::Status::Ignored;
-                        }
-                    }    
+            Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {   
+                if !state.is_focused() {
+                    return event::Status::Ignored;
                 }
-                return event::Status::Ignored;
+
+                match key_code {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter 
+                    | keyboard::KeyCode::Space => {
+                        shell.publish(self.on_click.clone());
+                        return event::Status::Captured;
+                    }
+                    _ => {}
+                }    
             }
             _ => {}
         }

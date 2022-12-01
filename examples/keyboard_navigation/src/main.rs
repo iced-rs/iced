@@ -1,8 +1,8 @@
-use iced::{executor, Subscription, subscription, keyboard};
 use iced::widget::{
-    button, column, container, horizontal_rule, progress_bar, radio,
-    scrollable, text, vertical_space, Row, text_input, checkbox, toggler, slider, pick_list,
+    button, checkbox, column, container, pick_list, radio, slider, text,
+    text_input, toggler, Row,
 };
+use iced::{executor, keyboard, subscription, Subscription};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
@@ -13,7 +13,6 @@ struct KeyboardNavigationDemo {
     theme: Theme,
     text_input_value: String,
     checkbox_value: bool,
-    radio_value: Option<bool>, 
     toggler_value: bool,
     slider_value: f32,
     selected_language: Option<Language>,
@@ -29,10 +28,6 @@ enum ThemeType {
 enum Message {
     ThemeChanged(ThemeType),
     TextChanged(String),
-    NavigateUp,
-    NavigateDown,
-    NavigateLeft,
-    NavigateRight,
     TabPressed,
     ButtonPressed,
     CheckboxToggled(bool),
@@ -53,11 +48,9 @@ impl Application for KeyboardNavigationDemo {
                 theme: Default::default(),
                 text_input_value: "Hello world!".to_string(),
                 checkbox_value: false,
-                radio_value: None,
                 toggler_value: false,
                 slider_value: 0.5,
                 selected_language: Language::ALL.first().cloned(),
-
             },
             Command::none(),
         )
@@ -72,7 +65,7 @@ impl Application for KeyboardNavigationDemo {
             (
                 iced::Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code: keyboard::KeyCode::Tab,
-                    modifiers,
+                    modifiers: _,
                     ..
                 }),
                 iced::event::Status::Ignored,
@@ -89,11 +82,9 @@ impl Application for KeyboardNavigationDemo {
                     ThemeType::Dark => Theme::Dark,
                 };
 
-                Command::none() 
-            }
-            Message::TextChanged(_) => {
                 Command::none()
             }
+            Message::TextChanged(_) => Command::none(),
             Message::ButtonPressed => {
                 println!("Button pressed!");
                 Command::none()
@@ -117,46 +108,27 @@ impl Application for KeyboardNavigationDemo {
                 println!("Language selected! {:?}", language);
                 self.selected_language = Some(language);
                 Command::none()
-            },
-            Message::NavigateUp => {
-                Command::none()
             }
-            Message::NavigateDown => {
-                Command::none()
-            }
-            Message::NavigateLeft => {
-                Command::none()
-            }
-            Message::NavigateRight => {
-                Command::none()
-            }
-            Message::TabPressed => {
-                // Command::widget(operation)
-                iced::widget::focus_next()
-            },
+            Message::TabPressed => iced::widget::focus_next(),
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme =
-            [ThemeType::Light, ThemeType::Dark]
-                .iter()
-                .fold(
-                    column![text("Choose a theme:")].spacing(10),
-                    |column, theme| {
-                        column.push(radio(
-                            format!("{:?}", theme),
-                            *theme,
-                            Some(match self.theme {
-                                Theme::Light => ThemeType::Light,
-                                Theme::Dark => ThemeType::Dark,
-                                Theme::Custom(_) => ThemeType::Dark,
-                            }),
-                            Message::ThemeChanged,
-                        ))
-                    },
-                );
-
+        let choose_theme = [ThemeType::Light, ThemeType::Dark].iter().fold(
+            column![text("Choose a theme:")].spacing(10),
+            |column, theme| {
+                column.push(radio(
+                    format!("{:?}", theme),
+                    *theme,
+                    Some(match self.theme {
+                        Theme::Light => ThemeType::Light,
+                        Theme::Dark => ThemeType::Dark,
+                        Theme::Custom(_) => ThemeType::Dark,
+                    }),
+                    Message::ThemeChanged,
+                ))
+            },
+        );
 
         let pick_list = pick_list(
             &Language::ALL[..],
@@ -165,35 +137,31 @@ impl Application for KeyboardNavigationDemo {
         )
         .placeholder("Choose a language...");
 
+        let row_1 = Row::with_children(vec![choose_theme.into()])
+            .spacing(20)
+            .width(Length::Fill)
+            .height(Length::Fill);
 
-        let row_1 = Row::with_children(
-            vec![
-                choose_theme.into(),
-            ]
-        )
-        .spacing(20)
-        .width(Length::Fill)
-        .height(Length::Fill);
-
-        let row_2 = Row::with_children(
-            vec![
-                button("*").on_press(Message::ButtonPressed).into(),
-                checkbox("*", self.checkbox_value, Message::CheckboxToggled).into(),
-                text_input("*", &self.text_input_value, Message::TextChanged).into(),
-                toggler("*".to_owned(), self.toggler_value, Message::TogglerToggled).into(),
-                slider(0.0..=1.0, self.slider_value,  Message::SliderChanged)
-                .step(0.01).into()
-            ]
-        )
+        let row_2 = Row::with_children(vec![
+            button("*").on_press(Message::ButtonPressed).into(),
+            checkbox("*", self.checkbox_value, Message::CheckboxToggled).into(),
+            text_input("*", &self.text_input_value, Message::TextChanged)
+                .into(),
+            toggler(
+                "*".to_owned(),
+                self.toggler_value,
+                Message::TogglerToggled,
+            )
+            .into(),
+            slider(0.0..=1.0, self.slider_value, Message::SliderChanged)
+                .step(0.25)
+                .into(),
+        ])
         .spacing(20)
         .width(Length::Fill)
         .height(Length::Shrink);
 
-
-        let content =
-            column![row_1,pick_list, row_2]
-                .spacing(20)
-                .padding(20);
+        let content = column![row_1, pick_list, row_2].spacing(20).padding(20);
 
         container(content)
             .width(Length::Fill)
@@ -207,9 +175,6 @@ impl Application for KeyboardNavigationDemo {
         self.theme.clone()
     }
 }
-
-
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Language {

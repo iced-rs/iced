@@ -18,7 +18,6 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 
 
 
-
 /// The identifier of a [`Checkbox`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Id(widget::Id);
@@ -254,7 +253,7 @@ where
     fn operate(
         &self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        _layout: Layout<'_>,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();
@@ -276,33 +275,30 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let mouse_over = layout.bounds().contains(cursor_position);
-
                 if mouse_over {
                     shell.publish((self.on_toggle)(!self.is_active));
 
-                    event::Status::Captured
-                } else {
-                    event::Status::Ignored
+                    return event::Status::Captured;
                 }
             }
             Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
-                if state.is_focused  {
-                    match key_code {
-                        keyboard::KeyCode::Enter
-                        | keyboard::KeyCode::NumpadEnter 
-                        | keyboard::KeyCode::Space => {
-                            shell.publish((self.on_toggle)(!self.is_active));
-                            return event::Status::Captured;
-                        }
-                        _ => {
-                            return event::Status::Ignored;
-                        }
-                    }    
+                if !state.is_focused() {
+                    return event::Status::Ignored;
                 }
-                return event::Status::Ignored;
+
+                match key_code {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter 
+                    | keyboard::KeyCode::Space => {
+                        shell.publish((self.on_toggle)(!self.is_active));
+                        return event::Status::Captured;
+                    }
+                    _ => {}
+                }    
             }
-            _ => event::Status::Ignored,
+            _ => {},
         }
+        event::Status::Ignored
     }
 
     fn mouse_interaction(

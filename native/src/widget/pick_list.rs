@@ -449,9 +449,9 @@ where
 
                 state.is_open = false;
 
-                event::Status::Captured
+                return event::Status::Captured
             } else {
-                event_status
+                return event_status
             }
         }
         Event::Mouse(mouse::Event::WheelScrolled {
@@ -492,20 +492,22 @@ where
                     shell.publish((on_selected)(next_option.clone()));
                 }
 
-                event::Status::Captured
-            } else {
-                event::Status::Ignored
+                return event::Status::Captured;
             }
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
             let state = state();
 
             state.keyboard_modifiers = modifiers;
-
-            event::Status::Ignored
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
             let state = state();
+            println!("is_focused {:?}", state.is_focused());
+            println!("is_open {:?}", state.is_open);
+
+            if !state.is_focused() {
+                return event::Status::Ignored;
+            }
 
             if state.is_open {
                 match key_code {
@@ -531,52 +533,48 @@ where
 
                         return event::Status::Captured;
                     }
-                    keyboard::KeyCode::Enter => {
+                    keyboard::KeyCode::Enter
+                    | keyboard::KeyCode::NumpadEnter
+                    | keyboard::KeyCode::Space => {
                         if let Some(hovered_option) = state.hovered_option {
                             state.last_selection =
                                 Some(options[hovered_option].clone());
 
                             if let Some(last_selection) = state.last_selection.clone()  {
                                 shell.publish((on_selected)(last_selection));
-                
                                 state.is_open = false;
-                
+        
                                 return event::Status::Captured;
-                            } else {
-                                return event::Status::Ignored;
                             }
-                
-                        }
+                        } else {
+                            state.is_open = false;
 
-                        return event::Status::Captured;
+                            return event::Status::Captured;
+                        }
                     }
                     keyboard::KeyCode::Escape => {
                         state.is_open = false;
                         return event::Status::Captured;
                     }
-                    _ => {
-                        return event::Status::Ignored;
-                    }
+                    _ => {}
                 }
             } else {
                 match key_code {
                     keyboard::KeyCode::Enter
                     | keyboard::KeyCode::NumpadEnter
                     | keyboard::KeyCode::Space => {
-                        if(!state.is_open && state.is_focused) {
+                        if !state.is_open {
                             state.is_open = true;
                             return event::Status::Captured;
                         }
-                        return event::Status::Ignored;
                     }
-                    _ => {
-                        return event::Status::Ignored;
-                    }
+                    _ => {}
                 }
             }
         }
-        _ => event::Status::Ignored,
+        _ => {},
     }
+    event::Status::Ignored
 }
 
 /// Returns the current [`mouse::Interaction`] of a [`PickList`].

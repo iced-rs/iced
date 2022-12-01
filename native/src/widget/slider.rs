@@ -2,13 +2,15 @@
 //!
 //! A [`Slider`] has some local [`State`].
 use crate::event::{self, Event};
-use crate::{layout, keyboard};
 use crate::mouse;
 use crate::renderer;
 use crate::touch;
-use crate::widget::tree::{self, Tree};
-use crate::widget::{self, Row, Text};
-use crate::widget::operation::{self, Operation};
+use crate::widget::{
+    self,
+    operation::{self, Operation},
+    tree::{self, Tree},
+};
+use crate::{keyboard, layout};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
     Shell, Size, Widget,
@@ -17,8 +19,6 @@ use crate::{
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
-
-
 
 /// The identifier of a [`Checkbox`].
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -74,8 +74,6 @@ impl operation::Focusable for State {
         State::unfocus(self)
     }
 }
-
-
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -167,13 +165,11 @@ where
         }
     }
 
-
-   /// Sets the [`Id`] of the [`Checkbox`].
-   pub fn id(mut self, id: Id) -> Self {
+    /// Sets the [`Id`] of the [`Checkbox`].
+    pub fn id(mut self, id: Id) -> Self {
         self.id = Some(id);
         self
     }
-
 
     /// Sets the release message of the [`Slider`].
     /// This is called when the mouse is released from the slider.
@@ -254,7 +250,7 @@ where
     fn operate(
         &self,
         tree: &mut Tree,
-        layout: Layout<'_>,
+        _layout: Layout<'_>,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();
@@ -419,43 +415,45 @@ where
                 return event::Status::Captured;
             }
         }
-        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {    
-            if state.is_focused  {
-                match key_code {
-                    keyboard::KeyCode::Escape => {
-                        state.is_focused = false;
-                        state.is_dragging = false;
-                    }
-                    keyboard::KeyCode::Enter
-                    | keyboard::KeyCode::NumpadEnter 
-                    | keyboard::KeyCode::Space => {
-                        state.is_dragging = !state.is_dragging;
+        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+            if !state.is_focused() {
+                return event::Status::Ignored;
+            }
+
+            match key_code {
+                keyboard::KeyCode::Escape => {
+                    state.is_focused = false;
+                    state.is_dragging = false;
+                    return event::Status::Captured;
+                }
+                keyboard::KeyCode::Enter
+                | keyboard::KeyCode::NumpadEnter
+                | keyboard::KeyCode::Space => {
+                    state.is_dragging = !state.is_dragging;
+                    return event::Status::Captured;
+                }
+                keyboard::KeyCode::Left => {
+                    if is_dragging {
+                        let new_value = (*value).into() - step.into();
+                        if new_value >= (*range.start()).into() {
+                            *value = T::from_f64(new_value).unwrap();
+                            shell.publish((on_change)(*value));
+                        }
                         return event::Status::Captured;
                     }
-                    keyboard::KeyCode::Left => {
-                        if(is_dragging) {
-                            let new_value = (*value).into() - step.into();
-                            if new_value >= (*range.start()).into() {
-                                *value = T::from_f64(new_value).unwrap();
-                                shell.publish((on_change)(*value));
-                            }
+                }
+                keyboard::KeyCode::Right => {
+                    if is_dragging {
+                        let new_value = (*value).into() + step.into();
+                        if new_value <= (*range.end()).into() {
+                            *value = T::from_f64(new_value).unwrap();
+                            shell.publish((on_change)(*value));
                         }
+                        return event::Status::Captured;
                     }
-                    keyboard::KeyCode::Right => {
-                        if(is_dragging) {
-                            let new_value = (*value).into() + step.into();
-                            if new_value <= (*range.end()).into() {
-                                *value = T::from_f64(new_value).unwrap();
-                                shell.publish((on_change)(*value));
-                            }
-                        }
-                    }
-                    _ => {
-                        return event::Status::Ignored;
-                    }
-                }    
+                }
+                _ => {}
             }
-            return event::Status::Ignored;
         }
         _ => {}
     }
@@ -580,5 +578,3 @@ pub fn mouse_interaction(
         mouse::Interaction::default()
     }
 }
-
-
