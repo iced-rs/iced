@@ -44,7 +44,7 @@ where
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
     fn operate(
-        &self,
+        &mut self,
         _layout: Layout<'_>,
         _operation: &mut dyn widget::Operation<Message>,
     ) {

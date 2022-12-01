@@ -496,14 +496,19 @@ where
             operation,
         );
 
-        if let Some(layout) = self.overlay.as_ref() {
-            if let Some(overlay) = self.root.as_widget_mut().overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-            ) {
-                overlay.operate(Layout::new(layout), operation);
+        if let Some(mut overlay) = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+        ) {
+            if self.overlay.is_none() {
+                self.overlay = Some(overlay.layout(renderer, self.bounds));
             }
+
+            overlay.operate(
+                Layout::new(self.overlay.as_ref().unwrap()),
+                operation,
+            );
         }
     }
 
