@@ -1,15 +1,6 @@
 # Keyboard Navigation
 All the example code is located in the __[`main`](src/main.rs)__ file.
 
-This was done very quickly. Its very ugly right now.
-I will create an RFC for this and cleanup the source.
-
-<!-- <div align="center">
-  <a href="screenshot.png">
-    <img src="screenshot.png" height="640px">
-  </a>
-</div> -->
-
 You can run it with `cargo run`:
 ```
 cargo run  --package keyboard_navigation
