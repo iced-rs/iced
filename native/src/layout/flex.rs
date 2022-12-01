@@ -81,6 +81,9 @@ where
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
+    let mut capped: Vec<bool> = Vec::with_capacity(items.len());
+    capped.resize(items.len(), false);
+
     if align_items == Alignment::Fill {
         let mut fill_cross = axis.cross(limits.min());
 
@@ -147,6 +150,54 @@ where
         }
     }
 
+    for (i, child) in items.iter().enumerate() {
+        let fill_factor = match axis {
+            Axis::Horizontal => child.as_widget().width(),
+            Axis::Vertical => child.as_widget().height(),
+        }
+        .fill_factor();
+
+        if fill_factor != 0 {
+            let max_main = available * fill_factor as f32 / fill_sum as f32;
+            let min_main = if max_main.is_infinite() {
+                0.0
+            } else {
+                max_main
+            };
+
+            let (min_width, min_height) = if align_items == Alignment::Fill {
+                axis.pack(min_main, cross)
+            } else {
+                axis.pack(min_main, axis.cross(limits.min()))
+            };
+
+            let (max_width, max_height) = if align_items == Alignment::Fill {
+                axis.pack(max_main, cross)
+            } else {
+                axis.pack(max_main, max_cross)
+            };
+
+            let child_limits = Limits::new(
+                Size::new(min_width, min_height),
+                Size::new(max_width, max_height),
+            );
+
+            let layout = child.as_widget().layout(renderer, &child_limits);
+            let size = layout.size();
+
+            let unused = match axis {
+                Axis::Horizontal => max_width - size.width,
+                Axis::Vertical => max_height - size.height,
+            };
+            if unused > 0.0 {
+                capped[i] = true;
+                fill_sum -= fill_factor;
+                available -= axis.main(size);
+                nodes[i] = layout;
+            }
+        }
+    }
+
     let remaining = available.max(0.0);
 
     for (i, child) in items.iter().enumerate() {
@@ -156,7 +207,7 @@ where
         }
         .fill_factor();
 
-        if fill_factor != 0 {
+        if fill_factor != 0 && !capped[i] {
             let max_main = remaining * fill_factor as f32 / fill_sum as f32;
             let min_main = if max_main.is_infinite() {
                 0.0
