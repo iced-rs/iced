@@ -559,7 +559,7 @@ impl pick_list::StyleSheet for Theme {
                     icon_size: 0.7,
                 }
             }
-            PickList::Custom(custom, _) => custom.active(self),
+            PickList::Custom(custom, _) => custom.hovered(self),
         }
     }
 }
