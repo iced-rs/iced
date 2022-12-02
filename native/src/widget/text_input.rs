@@ -852,7 +852,6 @@ where
                 (text_bounds.x + position) as i32,
                 (text_bounds.y) as i32 + size as i32,
             );
-            println!("IME position x:{} y:{}", position.0, position.1);
             ime.set_ime_position(position.0, position.1);
 
             return event::Status::Captured;
