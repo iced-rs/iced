@@ -86,6 +86,7 @@ struct Example {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(clippy::enum_variant_names)]
 enum Message {
     RadiusTopLeftChanged(f32),
     RadiusTopRightChanged(f32),
