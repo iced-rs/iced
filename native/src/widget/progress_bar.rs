@@ -129,7 +129,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
-                border_radius: style.border_radius,
+                border_radius: style.border_radius.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },
@@ -143,7 +143,7 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border_radius: style.border_radius,
+                    border_radius: style.border_radius.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

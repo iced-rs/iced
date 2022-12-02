@@ -801,7 +801,7 @@ pub fn draw<Renderer>(
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_radius: appearance.border_radius,
+            border_radius: appearance.border_radius.into(),
             border_width: appearance.border_width,
             border_color: appearance.border_color,
         },
@@ -833,7 +833,7 @@ pub fn draw<Renderer>(
                                 width: 1.0,
                                 height: text_bounds.height,
                             },
-                            border_radius: 0.0,
+                            border_radius: 0.0.into(),
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
@@ -877,7 +877,7 @@ pub fn draw<Renderer>(
                                 width,
                                 height: text_bounds.height,
                             },
-                            border_radius: 0.0,
+                            border_radius: 0.0.into(),
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },

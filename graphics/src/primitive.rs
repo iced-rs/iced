@@ -42,7 +42,7 @@ pub enum Primitive {
         /// The background of the quad
         background: Background,
         /// The border radius of the quad
-        border_radius: f32,
+        border_radius: [f32; 4],
         /// The border width of the quad
         border_width: f32,
         /// The border color of the quad

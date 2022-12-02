@@ -704,7 +704,7 @@ pub fn draw<Renderer>(
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.bounds,
-                            border_radius: style.border_radius,
+                            border_radius: style.border_radius.into(),
                             border_width: style.border_width,
                             border_color: style.border_color,
                         },
@@ -721,7 +721,7 @@ pub fn draw<Renderer>(
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.scroller.bounds,
-                            border_radius: style.scroller.border_radius,
+                            border_radius: style.scroller.border_radius.into(),
                             border_width: style.scroller.border_width,
                             border_color: style.scroller.border_color,
                         },
