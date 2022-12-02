@@ -316,6 +316,22 @@ where
             ) {
                 self.operation.focusable(state, id);
             }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
         }
 
         self.widget
@@ -389,7 +405,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -544,7 +560,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,

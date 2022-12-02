@@ -183,7 +183,7 @@ where
 {
     type Handle = image::Handle;
 
-    fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
         self.backend().dimensions(handle)
     }
 
@@ -196,7 +196,7 @@ impl<B, T> svg::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Svg,
 {
-    fn dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
     }
 

@@ -165,7 +165,7 @@ where
     }
 
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
-    /// [`text_input::Value`] if provided.
+    /// [`Value`] if provided.
     ///
     /// [`Renderer`]: text::Renderer
     pub fn draw(
@@ -188,7 +188,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 }
@@ -233,6 +233,7 @@ where
         let state = tree.state.downcast_mut::<State>();
 
         operation.focusable(state, self.id.as_ref().map(|id| &id.0));
+        operation.text_input(state, self.id.as_ref().map(|id| &id.0));
     }
 
     fn on_event(
@@ -284,7 +285,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.style,
+            &self.style,
         )
     }
 
@@ -332,9 +333,41 @@ impl Id {
     }
 }
 
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
+    }
+}
+
 /// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
     Command::widget(operation::focusable::focus(id.0))
+}
+
+/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// end.
+pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::text_input::move_cursor_to_end(id.0))
+}
+
+/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// front.
+pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::text_input::move_cursor_to_front(id.0))
+}
+
+/// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
+/// provided position.
+pub fn move_cursor_to<Message: 'static>(
+    id: Id,
+    position: usize,
+) -> Command<Message> {
+    Command::widget(operation::text_input::move_cursor_to(id.0, position))
+}
+
+/// Produces a [`Command`] that selects all the content of the [`TextInput`] with the given [`Id`].
+pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::text_input::select_all(id.0))
 }
 
 /// Computes the layout of a [`TextInput`].
@@ -349,6 +382,8 @@ where
     Renderer: text::Renderer,
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
+
+    let padding = padding.fit(Size::ZERO, limits.max());
 
     let limits = limits
         .pad(padding)
@@ -742,7 +777,7 @@ pub fn draw<Renderer>(
     size: Option<u16>,
     font: &Renderer::Font,
     is_secure: bool,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -994,6 +1029,24 @@ impl operation::Focusable for State {
 
     fn unfocus(&mut self) {
         State::unfocus(self)
+    }
+}
+
+impl operation::TextInput for State {
+    fn move_cursor_to_front(&mut self) {
+        State::move_cursor_to_front(self)
+    }
+
+    fn move_cursor_to_end(&mut self) {
+        State::move_cursor_to_end(self)
+    }
+
+    fn move_cursor_to(&mut self, position: usize) {
+        State::move_cursor_to(self, position)
+    }
+
+    fn select_all(&mut self) {
+        State::select_all(self)
     }
 }
 

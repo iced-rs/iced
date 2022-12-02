@@ -233,7 +233,7 @@ where
             self.scrollbar_width,
             self.scrollbar_margin,
             self.scroller_width,
-            self.style,
+            &self.style,
             |renderer, layout, cursor_position, viewport| {
                 self.content.as_widget().draw(
                     &tree.children[0],
@@ -276,13 +276,13 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content
-            .as_widget()
+            .as_widget_mut()
             .overlay(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
@@ -331,6 +331,12 @@ impl Id {
     /// This function produces a different [`Id`] every time it is called.
     pub fn unique() -> Self {
         Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
     }
 }
 
@@ -627,7 +633,7 @@ pub fn draw<Renderer>(
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, Point, &Rectangle),
 ) where
     Renderer: crate::Renderer,

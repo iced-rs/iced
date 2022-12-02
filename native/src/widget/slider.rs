@@ -222,7 +222,7 @@ where
             self.value,
             &self.range,
             theme,
-            self.style,
+            &self.style,
         )
     }
 
@@ -353,7 +353,7 @@ pub fn draw<T, R>(
     value: T,
     range: &RangeInclusive<T>,
     style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
-    style: <R::Theme as StyleSheet>::Style,
+    style: &<R::Theme as StyleSheet>::Style,
 ) where
     T: Into<f64> + Copy,
     R: crate::Renderer,

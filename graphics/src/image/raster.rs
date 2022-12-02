@@ -1,43 +1,53 @@
-use crate::image::atlas::{self, Atlas};
+//! Raster image loading and caching.
+use crate::image::Storage;
+use crate::Size;
+
 use iced_native::image;
-use std::collections::{HashMap, HashSet};
 
 use bitflags::bitflags;
+use std::collections::{HashMap, HashSet};
 
+/// Entry in cache corresponding to an image handle
 #[derive(Debug)]
-pub enum Memory {
-    Host(::image_rs::ImageBuffer<::image_rs::Bgra<u8>, Vec<u8>>),
-    Device(atlas::Entry),
+pub enum Memory<T: Storage> {
+    /// Image data on host
+    Host(::image_rs::ImageBuffer<::image_rs::Rgba<u8>, Vec<u8>>),
+    /// Storage entry
+    Device(T::Entry),
+    /// Image not found
     NotFound,
+    /// Invalid image data
     Invalid,
 }
 
-impl Memory {
-    pub fn dimensions(&self) -> (u32, u32) {
+impl<T: Storage> Memory<T> {
+    /// Width and height of image
+    pub fn dimensions(&self) -> Size<u32> {
+        use crate::image::storage::Entry;
+
         match self {
-            Memory::Host(image) => image.dimensions(),
+            Memory::Host(image) => {
+                let (width, height) = image.dimensions();
+
+                Size::new(width, height)
+            }
             Memory::Device(entry) => entry.size(),
-            Memory::NotFound => (1, 1),
-            Memory::Invalid => (1, 1),
+            Memory::NotFound => Size::new(1, 1),
+            Memory::Invalid => Size::new(1, 1),
         }
     }
 }
 
+/// Caches image raster data
 #[derive(Debug)]
-pub struct Cache {
-    map: HashMap<u64, Memory>,
+pub struct Cache<T: Storage> {
+    map: HashMap<u64, Memory<T>>,
     hits: HashSet<u64>,
 }
 
-impl Cache {
-    pub fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-            hits: HashSet::new(),
-        }
-    }
-
-    pub fn load(&mut self, handle: &image::Handle) -> &mut Memory {
+impl<T: Storage> Cache<T> {
+    /// Load image
+    pub fn load(&mut self, handle: &image::Handle) -> &mut Memory<T> {
         if self.contains(handle) {
             return self.get(handle).unwrap();
         }
@@ -53,7 +63,7 @@ impl Cache {
                         })
                         .unwrap_or_else(Operation::empty);
 
-                    Memory::Host(operation.perform(image.to_bgra8()))
+                    Memory::Host(operation.perform(image.to_rgba8()))
                 } else {
                     Memory::NotFound
                 }
@@ -65,12 +75,12 @@ impl Cache {
                             .ok()
                             .unwrap_or_else(Operation::empty);
 
-                    Memory::Host(operation.perform(image.to_bgra8()))
+                    Memory::Host(operation.perform(image.to_rgba8()))
                 } else {
                     Memory::Invalid
                 }
             }
-            image::Data::Pixels {
+            image::Data::Rgba {
                 width,
                 height,
                 pixels,
@@ -91,19 +101,19 @@ impl Cache {
         self.get(handle).unwrap()
     }
 
+    /// Load image and upload raster data
     pub fn upload(
         &mut self,
         handle: &image::Handle,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        atlas: &mut Atlas,
-    ) -> Option<&atlas::Entry> {
+        state: &mut T::State<'_>,
+        storage: &mut T,
+    ) -> Option<&T::Entry> {
         let memory = self.load(handle);
 
         if let Memory::Host(image) = memory {
             let (width, height) = image.dimensions();
 
-            let entry = atlas.upload(width, height, image, device, encoder)?;
+            let entry = storage.upload(width, height, image, state)?;
 
             *memory = Memory::Device(entry);
         }
@@ -115,7 +125,8 @@ impl Cache {
         }
     }
 
-    pub fn trim(&mut self, atlas: &mut Atlas) {
+    /// Trim cache misses from cache
+    pub fn trim(&mut self, storage: &mut T, state: &mut T::State<'_>) {
         let hits = &self.hits;
 
         self.map.retain(|k, memory| {
@@ -123,7 +134,7 @@ impl Cache {
 
             if !retain {
                 if let Memory::Device(entry) = memory {
-                    atlas.remove(entry);
+                    storage.remove(entry, state);
                 }
             }
 
@@ -133,18 +144,27 @@ impl Cache {
         self.hits.clear();
     }
 
-    fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory> {
+    fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory<T>> {
         let _ = self.hits.insert(handle.id());
 
         self.map.get_mut(&handle.id())
     }
 
-    fn insert(&mut self, handle: &image::Handle, memory: Memory) {
+    fn insert(&mut self, handle: &image::Handle, memory: Memory<T>) {
         let _ = self.map.insert(handle.id(), memory);
     }
 
     fn contains(&self, handle: &image::Handle) -> bool {
         self.map.contains_key(&handle.id())
+    }
+}
+
+impl<T: Storage> Default for Cache<T> {
+    fn default() -> Self {
+        Self {
+            map: HashMap::new(),
+            hits: HashSet::new(),
+        }
     }
 }
 

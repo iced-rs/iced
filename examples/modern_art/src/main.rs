@@ -9,6 +9,8 @@ use iced::{
 use rand::{thread_rng, Rng};
 
 fn main() -> iced::Result {
+    env_logger::builder().format_timestamp(None).init();
+
     ModernArt::run(Settings {
         antialiasing: true,
         ..Settings::default()

@@ -1,3 +1,5 @@
+use crate::Size;
+
 /// An amount of space to pad for each side of a box
 ///
 /// You can leverage the `From` trait to build [`Padding`] conveniently:
@@ -71,9 +73,21 @@ impl Padding {
     pub fn horizontal(self) -> u16 {
         self.left + self.right
     }
+
+    /// Fits the [`Padding`] between the provided `inner` and `outer` [`Size`].
+    pub fn fit(self, inner: Size, outer: Size) -> Self {
+        let available = (outer - inner).max(Size::ZERO);
+
+        Padding {
+            top: self.top.min((available.height as u16) / 2),
+            right: self.right.min((available.width as u16) / 2),
+            bottom: self.bottom.min((available.height as u16) / 2),
+            left: self.left.min((available.width as u16) / 2),
+        }
+    }
 }
 
-impl std::convert::From<u16> for Padding {
+impl From<u16> for Padding {
     fn from(p: u16) -> Self {
         Padding {
             top: p,
@@ -84,7 +98,7 @@ impl std::convert::From<u16> for Padding {
     }
 }
 
-impl std::convert::From<[u16; 2]> for Padding {
+impl From<[u16; 2]> for Padding {
     fn from(p: [u16; 2]) -> Self {
         Padding {
             top: p[0],
@@ -95,7 +109,7 @@ impl std::convert::From<[u16; 2]> for Padding {
     }
 }
 
-impl std::convert::From<[u16; 4]> for Padding {
+impl From<[u16; 4]> for Padding {
     fn from(p: [u16; 4]) -> Self {
         Padding {
             top: p[0],

@@ -29,6 +29,8 @@ enum Message {
     Dragged(pane_grid::DragEvent),
     Resized(pane_grid::ResizeEvent),
     TogglePin(pane_grid::Pane),
+    Maximize(pane_grid::Pane),
+    Restore,
     Close(pane_grid::Pane),
     CloseFocused,
 }
@@ -114,6 +116,10 @@ impl Application for Example {
                     *is_pinned = !*is_pinned;
                 }
             }
+            Message::Maximize(pane) => self.panes.maximize(&pane),
+            Message::Restore => {
+                self.panes.restore();
+            }
             Message::Close(pane) => {
                 if let Some((_, sibling)) = self.panes.close(&pane) {
                     self.focus = Some(sibling);
@@ -157,7 +163,7 @@ impl Application for Example {
         let focus = self.focus;
         let total_panes = self.panes.len();
 
-        let pane_grid = PaneGrid::new(&self.panes, |id, pane| {
+        let pane_grid = PaneGrid::new(&self.panes, |id, pane, is_maximized| {
             let is_focused = focus == Some(id);
 
             let pin_button = button(
@@ -178,7 +184,12 @@ impl Application for Example {
             .spacing(5);
 
             let title_bar = pane_grid::TitleBar::new(title)
-                .controls(view_controls(id, total_panes, pane.is_pinned))
+                .controls(view_controls(
+                    id,
+                    total_panes,
+                    pane.is_pinned,
+                    is_maximized,
+                ))
                 .padding(10)
                 .style(if is_focused {
                     style::title_bar_focused
@@ -314,16 +325,35 @@ fn view_controls<'a>(
     pane: pane_grid::Pane,
     total_panes: usize,
     is_pinned: bool,
+    is_maximized: bool,
 ) -> Element<'a, Message> {
-    let mut button = button(text("Close").size(14))
+    let mut row = row![].spacing(5);
+
+    if total_panes > 1 {
+        let toggle = {
+            let (content, message) = if is_maximized {
+                ("Restore", Message::Restore)
+            } else {
+                ("Maximize", Message::Maximize(pane))
+            };
+            button(text(content).size(14))
+                .style(theme::Button::Secondary)
+                .padding(3)
+                .on_press(message)
+        };
+
+        row = row.push(toggle);
+    }
+
+    let mut close = button(text("Close").size(14))
         .style(theme::Button::Destructive)
         .padding(3);
 
     if total_panes > 1 && !is_pinned {
-        button = button.on_press(Message::Close(pane));
+        close = close.on_press(Message::Close(pane));
     }
 
-    button.into()
+    row.push(close).into()
 }
 
 mod style {

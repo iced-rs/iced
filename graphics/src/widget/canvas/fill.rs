@@ -1,14 +1,14 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
 use crate::{Color, Gradient};
 
-pub use crate::triangle::Style;
+pub use crate::widget::canvas::Style;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
 pub struct Fill {
     /// The color or gradient of the fill.
     ///
-    /// By default, it is set to [`FillStyle::Solid`] `BLACK`.
+    /// By default, it is set to [`Style::Solid`] with [`Color::BLACK`].
     pub style: Style,
 
     /// The fill rule defines how to determine what is inside and what is

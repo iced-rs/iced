@@ -4,8 +4,6 @@ mod allocation;
 mod allocator;
 mod layer;
 
-use std::num::NonZeroU32;
-
 pub use allocation::Allocation;
 pub use entry::Entry;
 pub use layer::Layer;
@@ -13,6 +11,11 @@ pub use layer::Layer;
 use allocator::Allocator;
 
 pub const SIZE: u32 = 2048;
+
+use iced_graphics::image;
+use iced_graphics::Size;
+
+use std::num::NonZeroU32;
 
 #[derive(Debug)]
 pub struct Atlas {
@@ -35,7 +38,7 @@ impl Atlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
@@ -59,99 +62,6 @@ impl Atlas {
 
     pub fn layer_count(&self) -> usize {
         self.layers.len()
-    }
-
-    pub fn upload(
-        &mut self,
-        width: u32,
-        height: u32,
-        data: &[u8],
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-    ) -> Option<Entry> {
-        use wgpu::util::DeviceExt;
-
-        let entry = {
-            let current_size = self.layers.len();
-            let entry = self.allocate(width, height)?;
-
-            // We grow the internal texture after allocating if necessary
-            let new_layers = self.layers.len() - current_size;
-            self.grow(new_layers, device, encoder);
-
-            entry
-        };
-
-        log::info!("Allocated atlas entry: {:?}", entry);
-
-        // It is a webgpu requirement that:
-        //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
-        // So we calculate padded_width by rounding width up to the next
-        // multiple of wgpu::COPY_BYTES_PER_ROW_ALIGNMENT.
-        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
-        let padding = (align - (4 * width) % align) % align;
-        let padded_width = (4 * width + padding) as usize;
-        let padded_data_size = padded_width * height as usize;
-
-        let mut padded_data = vec![0; padded_data_size];
-
-        for row in 0..height as usize {
-            let offset = row * padded_width;
-
-            padded_data[offset..offset + 4 * width as usize].copy_from_slice(
-                &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
-            )
-        }
-
-        let buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::image staging buffer"),
-                contents: &padded_data,
-                usage: wgpu::BufferUsages::COPY_SRC,
-            });
-
-        match &entry {
-            Entry::Contiguous(allocation) => {
-                self.upload_allocation(
-                    &buffer, width, height, padding, 0, allocation, encoder,
-                );
-            }
-            Entry::Fragmented { fragments, .. } => {
-                for fragment in fragments {
-                    let (x, y) = fragment.position;
-                    let offset = (y * padded_width as u32 + 4 * x) as usize;
-
-                    self.upload_allocation(
-                        &buffer,
-                        width,
-                        height,
-                        padding,
-                        offset,
-                        &fragment.allocation,
-                        encoder,
-                    );
-                }
-            }
-        }
-
-        log::info!("Current atlas: {:?}", self);
-
-        Some(entry)
-    }
-
-    pub fn remove(&mut self, entry: &Entry) {
-        log::info!("Removing atlas entry: {:?}", entry);
-
-        match entry {
-            Entry::Contiguous(allocation) => {
-                self.deallocate(allocation);
-            }
-            Entry::Fragmented { fragments, .. } => {
-                for fragment in fragments {
-                    self.deallocate(&fragment.allocation);
-                }
-            }
-        }
     }
 
     fn allocate(&mut self, width: u32, height: u32) -> Option<Entry> {
@@ -204,7 +114,7 @@ impl Atlas {
             }
 
             return Some(Entry::Fragmented {
-                size: (width, height),
+                size: Size::new(width, height),
                 fragments,
             });
         }
@@ -284,7 +194,7 @@ impl Atlas {
         encoder: &mut wgpu::CommandEncoder,
     ) {
         let (x, y) = allocation.position();
-        let (width, height) = allocation.size();
+        let Size { width, height } = allocation.size();
         let layer = allocation.layer();
 
         let extent = wgpu::Extent3d {
@@ -336,7 +246,7 @@ impl Atlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Bgra8UnormSrgb,
+            format: wgpu::TextureFormat::Rgba8UnormSrgb,
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
@@ -386,5 +296,102 @@ impl Atlas {
                 dimension: Some(wgpu::TextureViewDimension::D2Array),
                 ..Default::default()
             });
+    }
+}
+
+impl image::Storage for Atlas {
+    type Entry = Entry;
+    type State<'a> = (&'a wgpu::Device, &'a mut wgpu::CommandEncoder);
+
+    fn upload(
+        &mut self,
+        width: u32,
+        height: u32,
+        data: &[u8],
+        (device, encoder): &mut Self::State<'_>,
+    ) -> Option<Self::Entry> {
+        use wgpu::util::DeviceExt;
+
+        let entry = {
+            let current_size = self.layers.len();
+            let entry = self.allocate(width, height)?;
+
+            // We grow the internal texture after allocating if necessary
+            let new_layers = self.layers.len() - current_size;
+            self.grow(new_layers, device, encoder);
+
+            entry
+        };
+
+        log::info!("Allocated atlas entry: {:?}", entry);
+
+        // It is a webgpu requirement that:
+        //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
+        // So we calculate padded_width by rounding width up to the next
+        // multiple of wgpu::COPY_BYTES_PER_ROW_ALIGNMENT.
+        let align = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
+        let padding = (align - (4 * width) % align) % align;
+        let padded_width = (4 * width + padding) as usize;
+        let padded_data_size = padded_width * height as usize;
+
+        let mut padded_data = vec![0; padded_data_size];
+
+        for row in 0..height as usize {
+            let offset = row * padded_width;
+
+            padded_data[offset..offset + 4 * width as usize].copy_from_slice(
+                &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
+            )
+        }
+
+        let buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("iced_wgpu::image staging buffer"),
+                contents: &padded_data,
+                usage: wgpu::BufferUsages::COPY_SRC,
+            });
+
+        match &entry {
+            Entry::Contiguous(allocation) => {
+                self.upload_allocation(
+                    &buffer, width, height, padding, 0, allocation, encoder,
+                );
+            }
+            Entry::Fragmented { fragments, .. } => {
+                for fragment in fragments {
+                    let (x, y) = fragment.position;
+                    let offset = (y * padded_width as u32 + 4 * x) as usize;
+
+                    self.upload_allocation(
+                        &buffer,
+                        width,
+                        height,
+                        padding,
+                        offset,
+                        &fragment.allocation,
+                        encoder,
+                    );
+                }
+            }
+        }
+
+        log::info!("Current atlas: {:?}", self);
+
+        Some(entry)
+    }
+
+    fn remove(&mut self, entry: &Entry, _: &mut Self::State<'_>) {
+        log::info!("Removing atlas entry: {:?}", entry);
+
+        match entry {
+            Entry::Contiguous(allocation) => {
+                self.deallocate(allocation);
+            }
+            Entry::Fragmented { fragments, .. } => {
+                for fragment in fragments {
+                    self.deallocate(&fragment.allocation);
+                }
+            }
+        }
     }
 }

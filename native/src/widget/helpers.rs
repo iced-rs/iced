@@ -1,4 +1,5 @@
 //! Helper functions to create pure widgets.
+use crate::overlay;
 use crate::widget;
 use crate::{Element, Length};
 
@@ -18,7 +19,7 @@ macro_rules! column {
     );
 }
 
-/// Creates a [Row`] with the given children.
+/// Creates a [`Row`] with the given children.
 ///
 /// [`Row`]: widget::Row
 #[macro_export]
@@ -84,6 +85,7 @@ pub fn button<'a, Message, Renderer>(
 where
     Renderer: crate::Renderer,
     Renderer::Theme: widget::button::StyleSheet,
+    <Renderer::Theme as widget::button::StyleSheet>::Style: Default,
 {
     widget::Button::new(content)
 }
@@ -208,7 +210,12 @@ where
     T: ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: crate::text::Renderer,
-    Renderer::Theme: widget::pick_list::StyleSheet,
+    Renderer::Theme: widget::pick_list::StyleSheet
+        + widget::scrollable::StyleSheet
+        + overlay::menu::StyleSheet
+        + widget::container::StyleSheet,
+    <Renderer::Theme as overlay::menu::StyleSheet>::Style:
+        From<<Renderer::Theme as widget::pick_list::StyleSheet>::Style>,
 {
     widget::PickList::new(options, selected, on_selected)
 }

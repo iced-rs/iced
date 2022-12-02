@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.4.2"
+version = "0.5.2"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
@@ -10,14 +10,13 @@ documentation = "https://docs.rs/iced"
 readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
-resolver = "2"
 
 [features]
 default = ["wgpu"]
 # Enables the `Image` widget
-image = ["iced_wgpu/image", "image_rs"]
+image = ["iced_wgpu?/image", "iced_glow?/image", "image_rs"]
 # Enables the `Svg` widget
-svg = ["iced_wgpu/svg"]
+svg = ["iced_wgpu?/svg", "iced_glow?/svg"]
 # Enables the `Canvas` widget
 canvas = ["iced_graphics/canvas"]
 # Enables the `QRCode` widget
@@ -25,11 +24,9 @@ qr_code = ["iced_graphics/qr_code"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
 # Enables using system fonts
-default_system_font = ["iced_wgpu/default_system_font"]
+default_system_font = ["iced_wgpu?/default_system_font", "iced_glow?/default_system_font"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
 glow = ["iced_glow", "iced_glutin"]
-# Enables using system fonts for `iced_glow`
-glow_default_system_font = ["iced_glow/default_system_font"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -58,61 +55,29 @@ members = [
     "style",
     "wgpu",
     "winit",
-    "examples/arc",
-    "examples/bezier_tool",
-    "examples/clock",
-    "examples/color_palette",
-    "examples/component",
-    "examples/counter",
-    "examples/custom_widget",
-    "examples/download_progress",
-    "examples/events",
-    "examples/exit",
-    "examples/game_of_life",
-    "examples/integration_opengl",
-    "examples/integration_wgpu",
-    "examples/lazy",
-    "examples/modern_art",
-    "examples/multitouch",
-    "examples/pane_grid",
-    "examples/pick_list",
-    "examples/pokedex",
-    "examples/progress_bar",
-    "examples/qr_code",
-    "examples/scrollable",
-    "examples/sierpinski_triangle",
-    "examples/solar_system",
-    "examples/stopwatch",
-    "examples/styling",
-    "examples/svg",
-    "examples/system_information",
-    "examples/todos",
-    "examples/tooltip",
-    "examples/tour",
-    "examples/url_handler",
-    "examples/websocket",
+    "examples/*",
 ]
 
 [dependencies]
-iced_core = { version = "0.5", path = "core" }
-iced_futures = { version = "0.4", path = "futures" }
-iced_native = { version = "0.5", path = "native" }
-iced_graphics = { version = "0.3", path = "graphics" }
-iced_winit = { version = "0.4", path = "winit", features = ["application"] }
-iced_glutin = { version = "0.3", path = "glutin", optional = true }
-iced_glow = { version = "0.3", path = "glow", optional = true }
+iced_core = { version = "0.6", path = "core" }
+iced_futures = { version = "0.5", path = "futures" }
+iced_native = { version = "0.6", path = "native" }
+iced_graphics = { version = "0.4", path = "graphics" }
+iced_winit = { version = "0.5", path = "winit", features = ["application"] }
+iced_glutin = { version = "0.4", path = "glutin", optional = true }
+iced_glow = { version = "0.4", path = "glow", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]
-version = "0.23"
+version = "0.24"
 package = "image"
 optional = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_wgpu = { version = "0.5", path = "wgpu", optional = true }
+iced_wgpu = { version = "0.6", path = "wgpu", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_wgpu = { version = "0.5", path = "wgpu", features = ["webgl"], optional = true }
+iced_wgpu = { version = "0.6", path = "wgpu", features = ["webgl"], optional = true }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

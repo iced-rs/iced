@@ -9,4 +9,4 @@ pub use position::Position;
 pub use settings::Settings;
 
 #[cfg(not(target_arch = "wasm32"))]
-pub use crate::runtime::window::{move_to, resize};
+pub use crate::runtime::window::*;

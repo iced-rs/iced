@@ -1,9 +1,11 @@
 //! Query or update internal widget state.
 pub mod focusable;
 pub mod scrollable;
+pub mod text_input;
 
 pub use focusable::Focusable;
 pub use scrollable::Scrollable;
+pub use text_input::TextInput;
 
 use crate::widget::Id;
 
@@ -27,6 +29,9 @@ pub trait Operation<T> {
 
     /// Operates on a widget that can be scrolled.
     fn scrollable(&mut self, _state: &mut dyn Scrollable, _id: Option<&Id>) {}
+
+    /// Operates on a widget that has text input.
+    fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
 
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {
@@ -56,5 +61,48 @@ where
             Self::Some(output) => write!(f, "Outcome::Some({:?})", output),
             Self::Chain(_) => write!(f, "Outcome::Chain(...)"),
         }
+    }
+}
+
+/// Produces an [`Operation`] that applies the given [`Operation`] to the
+/// children of a container with the given [`Id`].
+pub fn scoped<T: 'static>(
+    target: Id,
+    operation: impl Operation<T> + 'static,
+) -> impl Operation<T> {
+    struct ScopedOperation<Message> {
+        target: Id,
+        operation: Box<dyn Operation<Message>>,
+    }
+
+    impl<Message: 'static> Operation<Message> for ScopedOperation<Message> {
+        fn container(
+            &mut self,
+            id: Option<&Id>,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<Message>),
+        ) {
+            if id == Some(&self.target) {
+                operate_on_children(self.operation.as_mut());
+            } else {
+                operate_on_children(self);
+            }
+        }
+
+        fn finish(&self) -> Outcome<Message> {
+            match self.operation.finish() {
+                Outcome::Chain(next) => {
+                    Outcome::Chain(Box::new(ScopedOperation {
+                        target: self.target.clone(),
+                        operation: next,
+                    }))
+                }
+                outcome => outcome,
+            }
+        }
+    }
+
+    ScopedOperation {
+        target,
+        operation: Box::new(operation),
     }
 }

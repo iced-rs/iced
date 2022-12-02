@@ -228,7 +228,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        let style = theme.appearance(self.style);
+        let style = theme.appearance(&self.style);
 
         draw_background(renderer, &style, layout.bounds());
 
@@ -248,12 +248,12 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content.as_widget().overlay(
+        self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
@@ -293,11 +293,11 @@ pub fn layout<Renderer>(
         .max_width(max_width)
         .max_height(max_height)
         .width(width)
-        .height(height)
-        .pad(padding);
+        .height(height);
 
-    let mut content = layout_content(renderer, &limits.loose());
-    let size = limits.resolve(content.size());
+    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let padding = padding.fit(content.size(), limits.max());
+    let size = limits.pad(padding).resolve(content.size());
 
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
     content.align(
@@ -309,7 +309,7 @@ pub fn layout<Renderer>(
     layout::Node::with_children(size.pad(padding), vec![content])
 }
 
-/// Draws the background of a [`Container`] given its [`Style`] and its `bounds`.
+/// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
 pub fn draw_background<Renderer>(
     renderer: &mut Renderer,
     appearance: &Appearance,

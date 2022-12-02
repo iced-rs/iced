@@ -40,7 +40,7 @@ pub trait Compositor: Sized {
         height: u32,
     );
 
-    /// Returns [`GraphicsInformation`] used by this [`Compositor`].
+    /// Returns [`Information`] used by this [`Compositor`].
     fn fetch_information(&self) -> Information;
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].

@@ -1,6 +1,6 @@
 [package]
 name = "iced_wgpu"
-version = "0.5.1"
+version = "0.6.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A wgpu renderer for Iced"
@@ -8,19 +8,19 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-svg = ["resvg", "usvg", "tiny-skia"]
-image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
-png = ["image_rs/png"]
-jpeg = ["image_rs/jpeg"]
-jpeg_rayon = ["image_rs/jpeg_rayon"]
-gif = ["image_rs/gif"]
-webp = ["image_rs/webp"]
-pnm = ["image_rs/pnm"]
-ico = ["image_rs/ico"]
-bmp = ["image_rs/bmp"]
-hdr = ["image_rs/hdr"]
-dds = ["image_rs/dds"]
-farbfeld = ["image_rs/farbfeld"]
+svg = ["iced_graphics/svg"]
+image = ["iced_graphics/image"]
+png = ["iced_graphics/png"]
+jpeg = ["iced_graphics/jpeg"]
+jpeg_rayon = ["iced_graphics/jpeg_rayon"]
+gif = ["iced_graphics/gif"]
+webp = ["iced_graphics/webp"]
+pnm = ["iced_graphics/pnm"]
+ico = ["iced_graphics/ico"]
+bmp = ["iced_graphics/bmp"]
+hdr = ["iced_graphics/hdr"]
+dds = ["iced_graphics/dds"]
+farbfeld = ["iced_graphics/farbfeld"]
 canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
 default_system_font = ["iced_graphics/font-source"]
@@ -35,7 +35,6 @@ raw-window-handle = "0.5"
 log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
-kamadak-exif = "0.5"
 bitflags = "1.2"
 
 [dependencies.bytemuck]
@@ -43,31 +42,13 @@ version = "1.9"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.5"
+version = "0.6"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.3"
+version = "0.4"
 path = "../graphics"
 features = ["font-fallback", "font-icons"]
-
-[dependencies.image_rs]
-version = "0.23"
-package = "image"
-default-features = false
-optional = true
-
-[dependencies.resvg]
-version = "0.18"
-optional = true
-
-[dependencies.usvg]
-version = "0.18"
-optional = true
-
-[dependencies.tiny-skia]
-version = "0.6"
-optional = true
 
 [dependencies.encase]
 version = "0.3.0"

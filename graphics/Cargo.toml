@@ -1,6 +1,6 @@
 [package]
 name = "iced_graphics"
-version = "0.3.1"
+version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
@@ -11,28 +11,44 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+svg = ["resvg", "usvg", "tiny-skia"]
+image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
+png = ["image_rs/png"]
+jpeg = ["image_rs/jpeg"]
+jpeg_rayon = ["image_rs/jpeg_rayon"]
+gif = ["image_rs/gif"]
+webp = ["image_rs/webp"]
+pnm = ["image_rs/pnm"]
+ico = ["image_rs/ico"]
+bmp = ["image_rs/bmp"]
+hdr = ["image_rs/hdr"]
+dds = ["image_rs/dds"]
+farbfeld = ["image_rs/farbfeld"]
 canvas = ["lyon"]
 qr_code = ["qrcode", "canvas"]
 font-source = ["font-kit"]
 font-fallback = []
 font-icons = []
 opengl = []
+image_rs = ["kamadak-exif"]
 
 [dependencies]
 glam = "0.21.3"
+log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
+bitflags = "1.2"
 
 [dependencies.bytemuck]
 version = "1.4"
 features = ["derive"]
 
 [dependencies.iced_native]
-version = "0.5"
+version = "0.6"
 path = "../native"
 
 [dependencies.iced_style]
-version = "0.4"
+version = "0.5"
 path = "../style"
 
 [dependencies.lyon]
@@ -46,6 +62,28 @@ default-features = false
 
 [dependencies.font-kit]
 version = "0.10"
+optional = true
+
+[dependencies.image_rs]
+version = "0.24"
+package = "image"
+default-features = false
+optional = true
+
+[dependencies.resvg]
+version = "0.18"
+optional = true
+
+[dependencies.usvg]
+version = "0.18"
+optional = true
+
+[dependencies.tiny-skia]
+version = "0.6"
+optional = true
+
+[dependencies.kamadak-exif]
+version = "0.5"
 optional = true
 
 [package.metadata.docs.rs]

@@ -124,7 +124,7 @@ where
                 / (range_end - range_start)
         };
 
-        let style = theme.appearance(self.style);
+        let style = theme.appearance(&self.style);
 
         renderer.fill_quad(
             renderer::Quad {

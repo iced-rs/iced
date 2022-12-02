@@ -16,7 +16,7 @@
 //! - Meshes of triangles, useful to draw geometry freely.
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.4/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.5/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
@@ -39,13 +39,13 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
 pub mod settings;
-pub mod triangle;
 pub mod window;
 
 mod backend;
 mod buffer;
 mod quad;
 mod text;
+mod triangle;
 
 pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
 pub use iced_native::Theme;
@@ -56,7 +56,7 @@ pub use settings::Settings;
 
 pub(crate) use iced_graphics::Transformation;
 
-#[cfg(any(feature = "image_rs", feature = "svg"))]
+#[cfg(any(feature = "image", feature = "svg"))]
 mod image;
 
 /// A [`wgpu`] graphics renderer for [`iced`].

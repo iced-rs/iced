@@ -1,6 +1,6 @@
 [package]
 name = "iced_winit"
-version = "0.4.0"
+version = "0.5.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A winit runtime for Iced"
@@ -26,15 +26,15 @@ git = "https://github.com/iced-rs/winit.git"
 rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
 
 [dependencies.iced_native]
-version = "0.5"
+version = "0.6"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.3"
+version = "0.4"
 path = "../graphics"
 
 [dependencies.iced_futures]
-version = "0.4"
+version = "0.5"
 path = "../futures"
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
