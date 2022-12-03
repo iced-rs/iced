@@ -523,9 +523,7 @@ where
             }
             if focus_lost {
                 let mut editor = Editor::new(value, &mut state.cursor);
-                if let Some(old_ime_state) =
-                    state.ime_state.take().map(|ime_state| ime_state)
-                {
+                if let Some(old_ime_state) = state.ime_state.take() {
                     old_ime_state
                         .preedit_text()
                         .chars()
