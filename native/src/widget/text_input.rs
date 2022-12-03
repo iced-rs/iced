@@ -426,7 +426,9 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let state = state();
             let is_clicked = layout.bounds().contains(cursor_position);
-
+            // if gain focus enable ime
+            let focus_gained = !state.is_focused && is_clicked;
+            let focus_lost = state.is_focused && !is_clicked;
             state.is_focused = is_clicked;
 
             if is_clicked {
@@ -491,46 +493,53 @@ where
                 }
 
                 state.last_click = Some(click);
-                if is_secure {
+                if focus_gained {
+                    if is_secure {
+                        ime.set_ime_allowed(false);
+                        state.ime_commit = true;
+                    } else {
+                        ime.set_ime_allowed(true);
+                        let position = state.cursor.start(value);
+
+                        // calcurate where we need to place candidate window.
+                        let size =
+                            size.unwrap_or_else(|| renderer.default_size());
+
+                        let position = measure_cursor_and_scroll_offset(
+                            renderer,
+                            text_bounds,
+                            value,
+                            size,
+                            position,
+                            font.clone(),
+                        );
+                        let position = (
+                            (text_bounds.x + position.0) as i32,
+                            (text_bounds.y) as i32 + size as i32,
+                        );
+
+                        let _ = state.ime_state.replace(IMEState::default());
+                        ime.set_ime_position(position.0, position.1);
+                        state.ime_commit = true;
+                    }
+                }
+
+                if focus_lost {
                     ime.set_ime_allowed(false);
-                    state.ime_commit = true;
-                } else {
-                    ime.set_ime_allowed(true);
-                    let position = state.cursor.start(value);
+                    let mut editor = Editor::new(value, &mut state.cursor);
+                    if let Some(text) = state
+                        .ime_state
+                        .take()
+                        .as_ref()
+                        .map(|ime_state| ime_state.preedit_text())
+                    {
+                        text.chars().for_each(|ch| editor.insert(ch));
+                    }
 
-                    // calcurate where we need to place candidate window.
-                    let size = size.unwrap_or_else(|| renderer.default_size());
-
-                    let position = measure_cursor_and_scroll_offset(
-                        renderer,
-                        text_bounds,
-                        value,
-                        size,
-                        position,
-                        font.clone(),
-                    );
-                    let position = (
-                        (text_bounds.x + position.0) as i32,
-                        (text_bounds.y) as i32 + size as i32,
-                    );
-
-                    let _ = state.ime_state.replace(IMEState::default());
-                    ime.set_ime_position(position.0, position.1);
-                    state.ime_commit = true;
+                    state.ime_commit = false;
                 }
-            } else {
-                ime.set_ime_allowed(false);
-                let mut editor = Editor::new(value, &mut state.cursor);
-                if let Some(text) = state
-                    .ime_state
-                    .take()
-                    .as_ref()
-                    .map(|ime_state| ime_state.preedit_text())
-                {
-                    text.chars().for_each(|ch| editor.insert(ch));
-                }
-                state.ime_commit = false;
             }
+
             return event::Status::Captured;
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -802,6 +811,7 @@ where
             if state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
                 && !is_secure
+                && state.is_focused
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
                 if !state.ime_commit {
@@ -821,8 +831,10 @@ where
 
         Event::Keyboard(keyboard::Event::IMEEnabled) => {
             let state = state();
-            let _ = state.ime_state.replace(IMEState::default());
-            return event::Status::Captured;
+            if state.is_focused {
+                let _ = state.ime_state.replace(IMEState::default());
+                return event::Status::Captured;
+            }
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
             let state = state();
