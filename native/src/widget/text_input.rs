@@ -517,21 +517,21 @@ where
                             (text_bounds.y) as i32 + size as i32,
                         );
 
-                        let _ = state.ime_state.replace(IMEState::default());
                         ime.set_ime_position(position.0, position.1);
                     }
                 }
             }
             if focus_lost {
-                ime.set_ime_allowed(false);
                 let mut editor = Editor::new(value, &mut state.cursor);
-                if let Some(text) = state
-                    .ime_state
-                    .take()
-                    .as_ref()
-                    .map(|ime_state| ime_state.preedit_text())
+                if let Some(old_ime_state) =
+                    state.ime_state.take().map(|ime_state| ime_state)
                 {
-                    text.chars().for_each(|ch| editor.insert(ch));
+                    old_ime_state
+                        .preedit_text()
+                        .chars()
+                        .for_each(|ch| editor.insert(ch));
+                    let message = (on_change)(editor.contents());
+                    shell.publish(message);
                 }
             }
             return event::Status::Captured;
@@ -806,6 +806,7 @@ where
                 && !state.keyboard_modifiers.command()
                 && !is_secure
                 && state.is_focused
+                && state.ime_state.is_some()
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
 
@@ -833,7 +834,6 @@ where
                 return event::Status::Ignored;
             }
             // calcurate where we need to place candidate window.
-
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
 
