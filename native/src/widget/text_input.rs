@@ -496,7 +496,6 @@ where
                 if focus_gained {
                     if is_secure {
                         ime.set_ime_allowed(false);
-                        state.ime_commit = true;
                     } else {
                         ime.set_ime_allowed(true);
                         let position = state.cursor.start(value);
@@ -520,26 +519,21 @@ where
 
                         let _ = state.ime_state.replace(IMEState::default());
                         ime.set_ime_position(position.0, position.1);
-                        state.ime_commit = true;
                     }
-                }
-
-                if focus_lost {
-                    ime.set_ime_allowed(false);
-                    let mut editor = Editor::new(value, &mut state.cursor);
-                    if let Some(text) = state
-                        .ime_state
-                        .take()
-                        .as_ref()
-                        .map(|ime_state| ime_state.preedit_text())
-                    {
-                        text.chars().for_each(|ch| editor.insert(ch));
-                    }
-
-                    state.ime_commit = false;
                 }
             }
-
+            if focus_lost {
+                ime.set_ime_allowed(false);
+                let mut editor = Editor::new(value, &mut state.cursor);
+                if let Some(text) = state
+                    .ime_state
+                    .take()
+                    .as_ref()
+                    .map(|ime_state| ime_state.preedit_text())
+                {
+                    text.chars().for_each(|ch| editor.insert(ch));
+                }
+            }
             return event::Status::Captured;
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
@@ -814,9 +808,6 @@ where
                 && state.is_focused
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
-                if !state.ime_commit {
-                    return event::Status::Ignored;
-                }
 
                 for ch in text.chars() {
                     editor.insert(ch);
@@ -846,8 +837,19 @@ where
             let text_bounds = layout.children().next().unwrap().bounds();
             let size = size.unwrap_or_else(|| renderer.default_size());
 
+            let chars_from_left = state.cursor.start(value);
+
+            let before_preedit_text = value
+                .to_string()
+                .chars()
+                .take(chars_from_left)
+                .fold(String::new(), |mut buffer, ch| {
+                    buffer.push(ch);
+                    buffer
+                });
+
             let position = renderer.measure_width(
-                &(value.to_string() + &text),
+                &(before_preedit_text + &text),
                 size,
                 font.clone(),
             );
@@ -935,7 +937,6 @@ pub fn draw<Renderer>(
                         position,
                         font.clone(),
                     );
-
                 (
                     Some((
                         renderer::Quad {
@@ -1025,13 +1026,29 @@ pub fn draw<Renderer>(
         } else {
             theme.value_color(style)
         };
-        let render_text = if let Some(ime_state) = state.ime_state.as_ref() {
-            text.clone() + ime_state.preedit_text()
-        } else if text.is_empty() {
-            placeholder.to_owned()
-        } else {
-            text.clone()
-        };
+        let (render_text, before_preedit_text) =
+            if let Some(ime_state) = state.ime_state.as_ref() {
+                let mut text = text.clone();
+                let chars_from_left = state.cursor.start(value);
+                let before_preedit_text = text
+                    .chars()
+                    .take(chars_from_left)
+                    .fold(String::new(), |mut buffer, ch| {
+                        buffer.push(ch);
+                        buffer
+                    });
+
+                text.insert_str(
+                    before_preedit_text.len(),
+                    ime_state.preedit_text(),
+                );
+
+                (text, before_preedit_text)
+            } else if text.is_empty() {
+                (placeholder.to_owned(), String::new())
+            } else {
+                (text.clone(), text)
+            };
         let fill_text = Text {
             content: &render_text,
             bounds: Rectangle {
@@ -1048,8 +1065,11 @@ pub fn draw<Renderer>(
         if let Some(ime_state) = state.ime_state.as_ref() {
             //render cursor.
 
-            let before_preedit_text_width =
-                renderer.measure_width(&text, size, font.clone());
+            let before_preedit_text_width = renderer.measure_width(
+                &before_preedit_text,
+                size,
+                font.clone(),
+            );
 
             let preedit_before_cursor_text = ime_state.before_cursor_text();
 
@@ -1146,7 +1166,6 @@ pub struct State {
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
     ime_state: Option<IMEState>,
-    ime_commit: bool,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1166,7 +1185,6 @@ impl State {
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
             ime_state: None,
-            ime_commit: false,
         }
     }
 
