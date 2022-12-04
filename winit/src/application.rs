@@ -254,7 +254,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let mut clipboard = Clipboard::connect(&window);
-    let ime = IME::connect(&window);
+    let mut ime = IME::connect(&window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
 
@@ -313,7 +313,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
-                    &ime,
+                    &mut ime,
                     &mut messages,
                 );
 

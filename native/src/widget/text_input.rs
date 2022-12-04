@@ -254,6 +254,7 @@ where
             renderer,
             clipboard,
             ime,
+            self.id.clone(),
             shell,
             &mut self.value,
             self.size,
@@ -407,6 +408,7 @@ pub fn update<'a, Message, Renderer>(
     renderer: &Renderer,
     clipboard: &mut dyn Clipboard,
     ime: &dyn IME,
+    id: Option<Id>,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<u16>,
@@ -430,7 +432,7 @@ where
             let focus_gained = !state.is_focused && is_clicked;
             let focus_lost = state.is_focused && !is_clicked;
             state.is_focused = is_clicked;
-
+            let id = id.map(|id| id.0);
             if is_clicked {
                 let text_layout = layout.children().next().unwrap();
                 let text_bounds = text_layout.bounds();
@@ -495,9 +497,9 @@ where
                 state.last_click = Some(click);
                 if focus_gained {
                     if is_secure {
-                        ime.set_ime_allowed(false);
+                        ime.password_mode(id);
                     } else {
-                        ime.set_ime_allowed(true);
+                        ime.gain(id);
                         let position = state.cursor.start(value);
 
                         // calcurate where we need to place candidate window.
@@ -520,16 +522,19 @@ where
                         ime.set_ime_position(position.0, position.1);
                     }
                 }
-            }
-            if focus_lost {
-                let mut editor = Editor::new(value, &mut state.cursor);
-                if let Some(old_ime_state) = state.ime_state.take() {
-                    old_ime_state
-                        .preedit_text()
-                        .chars()
-                        .for_each(|ch| editor.insert(ch));
-                    let message = (on_change)(editor.contents());
-                    shell.publish(message);
+            } else {
+                ime.outside(id);
+                if focus_lost {
+                    let mut editor = Editor::new(value, &mut state.cursor);
+
+                    if let Some(old_ime_state) = state.ime_state.take() {
+                        old_ime_state
+                            .preedit_text()
+                            .chars()
+                            .for_each(|ch| editor.insert(ch));
+                        let message = (on_change)(editor.contents());
+                        shell.publish(message);
+                    }
                 }
             }
             return event::Status::Captured;

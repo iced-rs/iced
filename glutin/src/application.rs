@@ -195,7 +195,7 @@ async fn run_instance<A, E, C>(
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
-    let mut ime = IME::connect(context.window());
+    let ime = IME::connect(context.window());
     let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
@@ -233,6 +233,7 @@ async fn run_instance<A, E, C>(
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
+        let ime = IME::connect(context.window());
         match event {
             event::Event::MainEventsCleared => {
                 if events.is_empty() && messages.is_empty() {
@@ -343,7 +344,6 @@ async fn run_instance<A, E, C>(
                         context = context
                             .make_current()
                             .expect("Make OpenGL context current");
-                        ime = IME::connect(context.window());
                     }
                 }
 
