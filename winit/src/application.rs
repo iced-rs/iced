@@ -254,7 +254,7 @@ async fn run_instance<A, E, C>(
     use winit::event;
 
     let mut clipboard = Clipboard::connect(&window);
-    let mut ime = IME::connect(&window);
+
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
 
@@ -268,7 +268,7 @@ async fn run_instance<A, E, C>(
         physical_size.width,
         physical_size.height,
     );
-
+    let ime = IME::connect(&window);
     run_command(
         &application,
         &mut cache,
@@ -307,13 +307,13 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.event_processing_started();
-
+                let ime = IME::connect(&window);
                 let (interface_state, statuses) = user_interface.update(
                     &events,
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
-                    &mut ime,
+                    &ime,
                     &mut messages,
                 );
 

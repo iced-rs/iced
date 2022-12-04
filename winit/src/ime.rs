@@ -1,16 +1,15 @@
 //! Access to winit ime related things.
-use std::{collections::HashMap, sync::RwLock};
+use std::sync::RwLock;
 
 use crate::command::{self, Command};
 pub use iced_native::clipboard::Action;
-use iced_native::widget;
 
 use winit::window::Window;
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 enum RequestKind {
     Outside,
-    Gain,
+    Inside,
     Password,
 }
 
@@ -21,7 +20,7 @@ enum RequestKind {
 pub struct IME<'a> {
     window: &'a Window,
 
-    requests: RwLock<HashMap<widget::Id, RequestKind>>,
+    requests: RwLock<Vec<RequestKind>>,
 }
 
 impl<'a> IME<'a> {
@@ -29,7 +28,7 @@ impl<'a> IME<'a> {
     pub fn connect(window: &'a Window) -> Self {
         Self {
             window,
-            requests: RwLock::new(HashMap::new()),
+            requests: RwLock::new(Vec::new()),
         }
     }
 }
@@ -49,10 +48,9 @@ impl<'a> IME<'a> {
         if let Ok(allowed) = self.requests.read().map(|guard| {
             guard
                 .iter()
-                .map(|(_, request)| request)
                 .map(|request_kind| match request_kind {
                     RequestKind::Outside => false,
-                    RequestKind::Gain => true,
+                    RequestKind::Inside => true,
                     RequestKind::Password => false,
                 })
                 .fold(false, |or, this| or | this)
@@ -67,38 +65,29 @@ impl<'a> iced_native::ime::IME for IME<'a> {
         self.set_ime_position(x, y)
     }
 
-    /// id's widget will gain focus.
-    ///
-    /// enable IME will controlled.
-    fn gain(&self, id: Option<widget::Id>) {
-        if let Some(id) = id {
-            if let Ok(mut guard) = self.requests.write() {
-                let _ = guard.insert(id, RequestKind::Gain);
-            };
-        }
+    fn inside(&self) {
+        if let Ok(mut guard) = self.requests.write() {
+            let _ = guard.push(RequestKind::Inside);
+        };
+
         self.ime_disable_or_enable()
     }
 
-    /// need to call if clicked position is not widget's region.
-    ///
-    /// used to determine disable ime.
-    fn outside(&self, id: Option<widget::Id>) {
-        if let Some(id) = id {
-            if let Ok(mut guard) = self.requests.write() {
-                let _ = guard.insert(id, RequestKind::Outside);
-            };
-        }
+    fn outside(&self) {
+        if let Ok(mut guard) = self.requests.write() {
+            let _ = guard.push(RequestKind::Outside);
+        };
+
         self.ime_disable_or_enable()
     }
 
     /// disable IME.
     ///
-    fn password_mode(&self, id: Option<widget::Id>) {
-        if let Some(id) = id {
-            if let Ok(mut guard) = self.requests.write() {
-                let _ = guard.insert(id, RequestKind::Password);
-            };
-        }
+    fn password_mode(&self) {
+        if let Ok(mut guard) = self.requests.write() {
+            let _ = guard.push(RequestKind::Password);
+        };
+
         self.ime_disable_or_enable()
     }
 }
