@@ -67,7 +67,7 @@ impl<'a> iced_native::ime::IME for IME<'a> {
 
     fn inside(&self) {
         if let Ok(mut guard) = self.requests.write() {
-            let _ = guard.push(RequestKind::Inside);
+            guard.push(RequestKind::Inside);
         };
 
         self.ime_disable_or_enable()
@@ -75,7 +75,7 @@ impl<'a> iced_native::ime::IME for IME<'a> {
 
     fn outside(&self) {
         if let Ok(mut guard) = self.requests.write() {
-            let _ = guard.push(RequestKind::Outside);
+            guard.push(RequestKind::Outside);
         };
 
         self.ime_disable_or_enable()
@@ -85,7 +85,7 @@ impl<'a> iced_native::ime::IME for IME<'a> {
     ///
     fn password_mode(&self) {
         if let Ok(mut guard) = self.requests.write() {
-            let _ = guard.push(RequestKind::Password);
+            guard.push(RequestKind::Password);
         };
 
         self.ime_disable_or_enable()

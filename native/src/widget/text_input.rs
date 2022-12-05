@@ -940,7 +940,7 @@ pub fn draw<Renderer>(
     let (render_text, before_preedit_text) = if let Some(ime_state) =
         state.ime_state.as_ref()
     {
-        let mut text = text.clone();
+        let mut text = text;
         let chars_from_left = state.cursor.start(value);
         let before_preedit_text = text.chars().take(chars_from_left).fold(
             String::new(),
