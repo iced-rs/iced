@@ -1104,7 +1104,7 @@ pub fn draw<Renderer>(
                                 width,
                                 height: if idx == 1 { 3.0 } else { 1.0 },
                             },
-                            border_radius: 0.0,
+                            border_radius: 0.0.into(),
                             border_width: 0.0,
                             border_color: Color::default(),
                         };

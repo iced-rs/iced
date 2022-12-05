@@ -182,7 +182,7 @@ mod modal {
     use iced_native::widget::{self, Tree};
     use iced_native::{
         event, layout, mouse, overlay, renderer, Clipboard, Color, Element,
-        Event, Layout, Length, Point, Rectangle, Shell, Size, Widget,
+        Event, Layout, Length, Point, Rectangle, Shell, Size, Widget, IME,
     };
 
     /// A widget that centers a modal element over some base element
@@ -253,6 +253,7 @@ mod modal {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             self.base.as_widget_mut().on_event(
@@ -262,6 +263,7 @@ mod modal {
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         }
@@ -374,6 +376,7 @@ mod modal {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             let content_bounds = layout.children().next().unwrap().bounds();
@@ -397,6 +400,7 @@ mod modal {
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         }
