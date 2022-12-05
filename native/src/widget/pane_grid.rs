@@ -446,13 +446,13 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.contents
-            .iter()
+            .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
             .filter_map(|(((_, pane), tree), layout)| {
@@ -879,7 +879,7 @@ pub fn draw<Renderer, T>(
                             height: split_region.height,
                         },
                     },
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

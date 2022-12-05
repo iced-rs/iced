@@ -13,6 +13,7 @@ mod cursor;
 mod frame;
 mod geometry;
 mod program;
+mod style;
 mod text;
 
 pub use crate::gradient::{self, Gradient};
@@ -25,6 +26,7 @@ pub use geometry::Geometry;
 pub use path::Path;
 pub use program::Program;
 pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
+pub use style::Style;
 pub use text::Text;
 
 use crate::{Backend, Primitive, Renderer};

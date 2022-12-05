@@ -209,7 +209,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -218,12 +218,12 @@ where
             cached: self,
             tree: &mut tree.children[0],
             types: PhantomData,
-            element_ref_builder: |cached| cached.element.borrow(),
-            element_builder: |element_ref| {
-                element_ref.as_ref().unwrap().borrow()
-            },
-            overlay_builder: |element, tree| {
-                element.as_widget().overlay(tree, layout, renderer)
+            overlay_builder: |cached, tree| {
+                Rc::get_mut(cached.element.get_mut().as_mut().unwrap())
+                    .unwrap()
+                    .get_mut()
+                    .as_widget_mut()
+                    .overlay(tree, layout, renderer)
             },
         }
         .build();
@@ -239,20 +239,11 @@ where
 
 #[self_referencing]
 struct Overlay<'a, 'b, Message, Renderer, Dependency, View> {
-    cached: &'a Lazy<'b, Message, Renderer, Dependency, View>,
+    cached: &'a mut Lazy<'b, Message, Renderer, Dependency, View>,
     tree: &'a mut Tree,
     types: PhantomData<(Message, Dependency, View)>,
 
-    #[borrows(cached)]
-    #[covariant]
-    element_ref:
-        Ref<'this, Option<Rc<RefCell<Element<'static, Message, Renderer>>>>>,
-
-    #[borrows(element_ref)]
-    #[covariant]
-    element: Ref<'this, Element<'static, Message, Renderer>>,
-
-    #[borrows(element, mut tree)]
+    #[borrows(mut cached, mut tree)]
     #[covariant]
     overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }

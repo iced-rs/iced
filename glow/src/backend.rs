@@ -128,8 +128,14 @@ impl Backend {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
 
-            self.image_pipeline
-                .draw(gl, scaled, scale_factor, &layer.images);
+            self.image_pipeline.draw(
+                gl,
+                target_height,
+                scaled,
+                scale_factor,
+                &layer.images,
+                bounds,
+            );
         }
 
         if !layer.text.is_empty() {

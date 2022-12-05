@@ -1,0 +1,10 @@
+[package]
+name = "custom_quad"
+version = "0.1.0"
+authors = ["Robert Krahn"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../.." }
+iced_native = { path = "../../native" }

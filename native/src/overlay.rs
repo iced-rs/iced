@@ -45,7 +45,7 @@ where
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
     fn operate(
-        &self,
+        &mut self,
         _layout: Layout<'_>,
         _operation: &mut dyn widget::Operation<Message>,
     ) {
@@ -95,7 +95,7 @@ where
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
 pub fn from_children<'a, Message, Renderer>(
-    children: &'a [crate::Element<'_, Message, Renderer>],
+    children: &'a mut [crate::Element<'_, Message, Renderer>],
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
@@ -104,11 +104,11 @@ where
     Renderer: crate::Renderer,
 {
     children
-        .iter()
+        .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child.as_widget().overlay(state, layout, renderer)
+            child.as_widget_mut().overlay(state, layout, renderer)
         })
         .next()
 }

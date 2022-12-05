@@ -209,7 +209,7 @@ where
 
     /// Returns the overlay of the [`Widget`], if there is any.
     fn overlay<'a>(
-        &'a self,
+        &'a mut self,
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,

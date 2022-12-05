@@ -17,7 +17,7 @@ pub struct Quad {
     pub border_color: [f32; 4],
 
     /// The border radius of the [`Quad`].
-    pub border_radius: f32,
+    pub border_radius: [f32; 4],
 
     /// The border width of the [`Quad`].
     pub border_width: f32,

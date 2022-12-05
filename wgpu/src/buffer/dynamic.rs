@@ -1,10 +1,13 @@
 //! Utilities for uniform buffer operations.
 use encase::private::WriteInto;
 use encase::ShaderType;
+
+use std::fmt;
 use std::marker::PhantomData;
 
 /// A dynamic buffer is any type of buffer which does not have a static offset.
-pub(crate) struct Buffer<T: ShaderType> {
+#[derive(Debug)]
+pub struct Buffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
     cpu: Internal,
     gpu: wgpu::Buffer,
@@ -201,6 +204,16 @@ impl Internal {
                 buf.as_mut().clear();
                 buf.set_offset(0);
             }
+        }
+    }
+}
+
+impl fmt::Debug for Internal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Uniform(_) => write!(f, "Internal::Uniform(_)"),
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Storage(_) => write!(f, "Internal::Storage(_)"),
         }
     }
 }
