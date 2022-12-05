@@ -714,9 +714,8 @@ pub fn draw<Renderer>(
                     );
                 }
 
-                if is_mouse_over
-                    || state.is_scroller_grabbed()
-                    || is_scrollbar_visible
+                if (is_mouse_over || state.is_scroller_grabbed())
+                    && is_scrollbar_visible
                 {
                     renderer.fill_quad(
                         renderer::Quad {
