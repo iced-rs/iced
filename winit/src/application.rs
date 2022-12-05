@@ -152,7 +152,7 @@ where
     let window = builder
         .build(&event_loop)
         .map_err(Error::WindowCreationFailed)?;
-    window.set_ime_allowed(true);
+
     #[cfg(target_arch = "wasm32")]
     {
         use winit::platform::web::WindowExtWebSys;
