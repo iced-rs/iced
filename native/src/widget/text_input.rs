@@ -926,16 +926,67 @@ pub fn draw<Renderer>(
     let text = value.to_string();
     let size = size.unwrap_or_else(|| renderer.default_size());
 
+    let color = if text.is_empty()
+        && state
+            .ime_state
+            .as_ref()
+            .map_or(true, |state| state.preedit_text().is_empty())
+    {
+        theme.placeholder_color(style)
+    } else {
+        theme.value_color(style)
+    };
+
+    let (render_text, before_preedit_text) = if let Some(ime_state) =
+        state.ime_state.as_ref()
+    {
+        let mut text = text.clone();
+        let chars_from_left = state.cursor.start(value);
+        let before_preedit_text = text.chars().take(chars_from_left).fold(
+            String::new(),
+            |mut buffer, ch| {
+                buffer.push(ch);
+                buffer
+            },
+        );
+
+        text.insert_str(before_preedit_text.len(), ime_state.preedit_text());
+
+        (text, before_preedit_text)
+    } else if text.is_empty() {
+        (placeholder.to_owned(), String::new())
+    } else {
+        (text.clone(), text)
+    };
+    // display preedit text and exist text concated.
+    // cursor position need to concated also.
+
+    let (preedit_cursor_index, preedit_value) =
+        if let Some(ime_state) = state.ime_state.as_ref() {
+            (
+                ime_state.before_cursor_text().chars().count(),
+                Value::new(ime_state.preedit_text()),
+            )
+        } else {
+            (0, Value::new(""))
+        };
+
+    let mut value = value.clone();
+
+    value.insert_many(state.cursor.start(&value), preedit_value);
+
+    let text_width = renderer.measure_width(&render_text, size, font.clone());
+
     let (cursor, offset) = if state.is_focused() {
-        match state.cursor.state(value) {
+        match state.cursor.state(&value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        value,
+                        &value,
                         size,
-                        position,
+                        position + preedit_cursor_index,
                         font.clone(),
                     );
                 (
@@ -964,9 +1015,9 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        value,
+                        &value,
                         size,
-                        left,
+                        left + preedit_cursor_index,
                         font.clone(),
                     );
 
@@ -974,9 +1025,9 @@ pub fn draw<Renderer>(
                     measure_cursor_and_scroll_offset(
                         renderer,
                         text_bounds,
-                        value,
+                        &value,
                         size,
-                        right,
+                        right + preedit_cursor_index,
                         font.clone(),
                     );
 
@@ -1009,47 +1060,9 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = renderer.measure_width(
-        if text.is_empty() { placeholder } else { &text },
-        size,
-        font.clone(),
-    );
-
     let render = |renderer: &mut Renderer| {
         // ime mode should not paint selection.
-        let color = if text.is_empty()
-            && state
-                .ime_state
-                .as_ref()
-                .map_or(true, |state| state.preedit_text().is_empty())
-        {
-            theme.placeholder_color(style)
-        } else {
-            theme.value_color(style)
-        };
-        let (render_text, before_preedit_text) =
-            if let Some(ime_state) = state.ime_state.as_ref() {
-                let mut text = text.clone();
-                let chars_from_left = state.cursor.start(value);
-                let before_preedit_text = text
-                    .chars()
-                    .take(chars_from_left)
-                    .fold(String::new(), |mut buffer, ch| {
-                        buffer.push(ch);
-                        buffer
-                    });
 
-                text.insert_str(
-                    before_preedit_text.len(),
-                    ime_state.preedit_text(),
-                );
-
-                (text, before_preedit_text)
-            } else if text.is_empty() {
-                (placeholder.to_owned(), String::new())
-            } else {
-                (text.clone(), text)
-            };
         let fill_text = Text {
             content: &render_text,
             bounds: Rectangle {
@@ -1064,40 +1077,13 @@ pub fn draw<Renderer>(
             vertical_alignment: alignment::Vertical::Center,
         };
         if let Some(ime_state) = state.ime_state.as_ref() {
-            //render cursor.
+            // draw under line.
 
             let before_preedit_text_width = renderer.measure_width(
                 &before_preedit_text,
                 size,
                 font.clone(),
             );
-
-            let preedit_before_cursor_text = ime_state.before_cursor_text();
-
-            let preedit_before_cursor_text_width = renderer.measure_width(
-                preedit_before_cursor_text,
-                size,
-                font.clone(),
-            );
-
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: Rectangle {
-                        x: text_bounds.x
-                            + before_preedit_text_width
-                            + preedit_before_cursor_text_width,
-                        y: text_bounds.y,
-                        width: 1.0,
-                        height: size as f32,
-                    },
-                    border_radius: 0.0,
-                    border_width: 0.0,
-                    border_color: Color::default(),
-                },
-                theme.value_color(style),
-            );
-
-            // draw under line.
 
             let splits = ime_state.split_to_pieces();
 
@@ -1129,10 +1115,11 @@ pub fn draw<Renderer>(
                     }
                 },
             );
-        } else if let Some((cursor, color)) = cursor {
-            renderer.fill_quad(cursor, color);
         }
 
+        if let Some((cursor, color)) = cursor {
+            renderer.fill_quad(cursor, color);
+        }
         renderer.fill_text(fill_text);
     };
 
