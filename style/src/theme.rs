@@ -825,7 +825,7 @@ impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
 }
 
 /**
- * SVG
+ * Svg
  */
 #[derive(Default)]
 pub enum Svg {
