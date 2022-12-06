@@ -290,7 +290,7 @@ pub fn svg<Renderer>(
 ) -> widget::Svg<Renderer>
 where
     Renderer: crate::svg::Renderer,
-    Renderer::Theme: crate::svg::StyleSheet,
+    Renderer::Theme: widget::svg::StyleSheet,
 {
     widget::Svg::new(handle)
 }

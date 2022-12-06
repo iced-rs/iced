@@ -9,7 +9,8 @@ use crate::{
 
 use std::path::PathBuf;
 
-pub use svg::{Handle, StyleSheet};
+pub use iced_style::svg::{Appearance, StyleSheet};
+pub use svg::Handle;
 
 /// A vector graphics image.
 ///
@@ -17,7 +18,6 @@ pub use svg::{Handle, StyleSheet};
 ///
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
-#[derive(Clone)]
 #[allow(missing_debug_implementations)]
 pub struct Svg<Renderer>
 where
@@ -146,9 +146,6 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let mut handle = self.handle.clone();
-        handle.set_appearance(theme.appearance(self.style));
-
         let Size { width, height } = renderer.dimensions(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
@@ -167,7 +164,13 @@ where
                 ..bounds
             };
 
-            renderer.draw(handle, drawing_bounds + offset);
+            let appearance = theme.appearance(&self.style);
+
+            renderer.draw(
+                self.handle.clone(),
+                appearance.color,
+                drawing_bounds + offset,
+            );
         };
 
         if adjusted_fit.width > bounds.width

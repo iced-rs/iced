@@ -39,8 +39,8 @@ impl Sandbox for SvgStyleExample {
             "{}/resources/go-next-symbolic.svg",
             env!("CARGO_MANIFEST_DIR")
         )))
-        .style(theme::Svg::Custom(|_theme| Appearance {
-            fill: Some(Color {
+        .style(theme::Svg::custom_fn(|_theme| Appearance {
+            color: Some(Color {
                 r: 0.0,
                 g: 0.28627452,
                 b: 0.42745098,
@@ -55,8 +55,8 @@ impl Sandbox for SvgStyleExample {
             "{}/resources/go-next-symbolic.svg",
             env!("CARGO_MANIFEST_DIR")
         )))
-        .style(theme::Svg::Custom(|_theme| Appearance {
-            fill: Some(Color {
+        .style(theme::Svg::custom_fn(|_theme| Appearance {
+            color: Some(Color {
                 r: 0.5803922,
                 g: 0.92156863,
                 b: 0.92156863,

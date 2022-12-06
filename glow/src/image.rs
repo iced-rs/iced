@@ -172,11 +172,16 @@ impl Pipeline {
                 layer::Image::Raster { handle: _, bounds } => (None, bounds),
 
                 #[cfg(feature = "svg")]
-                layer::Image::Vector { handle, bounds } => {
+                layer::Image::Vector {
+                    handle,
+                    color,
+                    bounds,
+                } => {
                     let size = [bounds.width, bounds.height];
                     (
                         vector_cache.upload(
                             handle,
+                            *color,
                             size,
                             _scale_factor,
                             &mut gl,

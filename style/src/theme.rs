@@ -798,29 +798,6 @@ impl From<fn(&Theme) -> rule::Appearance> for Rule {
     }
 }
 
-/**
- * SVG
- */
-#[derive(Default, Clone, Copy)]
-pub enum Svg {
-    /// No filtering to the rendered SVG.
-    #[default]
-    Default,
-    /// Apply custom filtering to the SVG.
-    Custom(fn(&Theme) -> svg::Appearance),
-}
-
-impl svg::StyleSheet for Theme {
-    type Style = Svg;
-
-    fn appearance(&self, style: Self::Style) -> svg::Appearance {
-        match style {
-            Svg::Default => Default::default(),
-            Svg::Custom(appearance) => appearance(self),
-        }
-    }
-}
-
 impl rule::StyleSheet for Theme {
     type Style = Rule;
 
@@ -843,6 +820,44 @@ impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> rule::Appearance {
+        (self)(style)
+    }
+}
+
+/**
+ * SVG
+ */
+#[derive(Default)]
+pub enum Svg {
+    /// No filtering to the rendered SVG.
+    #[default]
+    Default,
+    /// A custom style.
+    Custom(Box<dyn svg::StyleSheet<Style = Theme>>),
+}
+
+impl Svg {
+    /// Creates a custom [`Svg`] style.
+    pub fn custom_fn(f: fn(&Theme) -> svg::Appearance) -> Self {
+        Self::Custom(Box::new(f))
+    }
+}
+
+impl svg::StyleSheet for Theme {
+    type Style = Svg;
+
+    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
+        match style {
+            Svg::Default => Default::default(),
+            Svg::Custom(custom) => custom.appearance(self),
+        }
+    }
+}
+
+impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
+    type Style = Theme;
+
+    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
         (self)(style)
     }
 }

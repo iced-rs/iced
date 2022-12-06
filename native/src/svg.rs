@@ -1,19 +1,16 @@
 //! Load and draw vector graphics.
-use crate::{Hasher, Rectangle, Size};
+use crate::{Color, Hasher, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-pub use iced_style::svg::{Appearance, StyleSheet};
-
 /// A handle of Svg data.
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
     data: Arc<Data>,
-    appearance: Appearance,
 }
 
 impl Handle {
@@ -39,7 +36,6 @@ impl Handle {
         Handle {
             id: hasher.finish(),
             data: Arc::new(data),
-            appearance: Appearance::default(),
         }
     }
 
@@ -51,16 +47,6 @@ impl Handle {
     /// Returns a reference to the SVG [`Data`].
     pub fn data(&self) -> &Data {
         &self.data
-    }
-
-    /// Returns the styling [`Appearance`] for the SVG.
-    pub fn appearance(&self) -> Appearance {
-        self.appearance
-    }
-
-    /// Set the [`Appearance`] for the SVG.
-    pub fn set_appearance(&mut self, appearance: Appearance) {
-        self.appearance = appearance;
     }
 }
 
@@ -98,6 +84,6 @@ pub trait Renderer: crate::Renderer {
     /// Returns the default dimensions of an SVG for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> Size<u32>;
 
-    /// Draws an SVG with the given [`Handle`] and inside the provided `bounds`.
-    fn draw(&mut self, handle: Handle, bounds: Rectangle);
+    /// Draws an SVG with the given [`Handle`], an optional [`Color`] filter, and inside the provided `bounds`.
+    fn draw(&mut self, handle: Handle, color: Option<Color>, bounds: Rectangle);
 }
