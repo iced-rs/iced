@@ -8,8 +8,6 @@ use iced_native::Size;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
-type Fill = Option<[u8; 4]>;
-
 /// Entry in cache corresponding to an svg handle
 pub enum Svg {
     /// Parsed svg
@@ -36,10 +34,12 @@ impl Svg {
 #[derive(Debug)]
 pub struct Cache<T: Storage> {
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32, Fill), T::Entry>,
+    rasterized: HashMap<(u64, u32, u32, ColorFilter), T::Entry>,
     svg_hits: HashSet<u64>,
-    rasterized_hits: HashSet<(u64, u32, u32, Fill)>,
+    rasterized_hits: HashSet<(u64, u32, u32, ColorFilter)>,
 }
+
+type ColorFilter = Option<[u8; 4]>;
 
 impl<T: Storage> Cache<T> {
     /// Load svg
