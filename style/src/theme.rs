@@ -16,6 +16,7 @@ use crate::radio;
 use crate::rule;
 use crate::scrollable;
 use crate::slider;
+use crate::svg;
 use crate::text;
 use crate::text_input;
 use crate::toggler;
@@ -819,6 +820,44 @@ impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> rule::Appearance {
+        (self)(style)
+    }
+}
+
+/**
+ * Svg
+ */
+#[derive(Default)]
+pub enum Svg {
+    /// No filtering to the rendered SVG.
+    #[default]
+    Default,
+    /// A custom style.
+    Custom(Box<dyn svg::StyleSheet<Style = Theme>>),
+}
+
+impl Svg {
+    /// Creates a custom [`Svg`] style.
+    pub fn custom_fn(f: fn(&Theme) -> svg::Appearance) -> Self {
+        Self::Custom(Box::new(f))
+    }
+}
+
+impl svg::StyleSheet for Theme {
+    type Style = Svg;
+
+    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
+        match style {
+            Svg::Default => Default::default(),
+            Svg::Custom(custom) => custom.appearance(self),
+        }
+    }
+}
+
+impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
+    type Style = Theme;
+
+    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
         (self)(style)
     }
 }

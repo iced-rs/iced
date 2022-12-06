@@ -194,7 +194,7 @@ pub use iced_graphics::widget::qr_code;
 pub mod svg {
     //! Display vector graphics in your application.
     pub use iced_native::svg::Handle;
-    pub use iced_native::widget::Svg;
+    pub use iced_native::widget::svg::{Appearance, StyleSheet, Svg};
 }
 
 #[cfg(feature = "canvas")]
