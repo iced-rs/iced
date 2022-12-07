@@ -260,12 +260,12 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content.as_widget().overlay(
+        self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
@@ -393,7 +393,7 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius,
+                    border_radius: styling.border_radius.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -404,7 +404,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius,
+                border_radius: styling.border_radius.into(),
                 border_width: styling.border_width,
                 border_color: styling.border_color,
             },

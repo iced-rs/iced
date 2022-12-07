@@ -1,10 +1,13 @@
 //! Utilities for uniform buffer operations.
 use encase::private::WriteInto;
 use encase::ShaderType;
+
+use std::fmt;
 use std::marker::PhantomData;
 
 /// A dynamic buffer is any type of buffer which does not have a static offset.
-pub(crate) struct Buffer<T: ShaderType> {
+#[derive(Debug)]
+pub struct Buffer<T: ShaderType> {
     offsets: Vec<wgpu::DynamicOffset>,
     cpu: Internal,
     gpu: wgpu::Buffer,
@@ -24,6 +27,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
         )
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     /// Creates a new dynamic storage buffer.
     pub fn storage(device: &wgpu::Device, label: &'static str) -> Self {
         Buffer::new(
@@ -91,6 +95,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
                 Internal::Uniform(_) => {
                     wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST
                 }
+                #[cfg(not(target_arch = "wasm32"))]
                 Internal::Storage(_) => {
                     wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_DST
                 }
@@ -154,6 +159,8 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
 // Currently supported dynamic buffers.
 enum Internal {
     Uniform(encase::DynamicUniformBuffer<Vec<u8>>),
+    #[cfg(not(target_arch = "wasm32"))]
+    //storage buffers are not supported on wgpu wasm target (yet)
     Storage(encase::DynamicStorageBuffer<Vec<u8>>),
 }
 
@@ -168,6 +175,7 @@ impl Internal {
                 .write(value)
                 .expect("Error when writing to dynamic uniform buffer.")
                 as u32,
+            #[cfg(not(target_arch = "wasm32"))]
             Internal::Storage(buf) => buf
                 .write(value)
                 .expect("Error when writing to dynamic storage buffer.")
@@ -179,6 +187,7 @@ impl Internal {
     pub(super) fn get_ref(&self) -> &Vec<u8> {
         match self {
             Internal::Uniform(buf) => buf.as_ref(),
+            #[cfg(not(target_arch = "wasm32"))]
             Internal::Storage(buf) => buf.as_ref(),
         }
     }
@@ -190,10 +199,21 @@ impl Internal {
                 buf.as_mut().clear();
                 buf.set_offset(0);
             }
+            #[cfg(not(target_arch = "wasm32"))]
             Internal::Storage(buf) => {
                 buf.as_mut().clear();
                 buf.set_offset(0);
             }
+        }
+    }
+}
+
+impl fmt::Debug for Internal {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Uniform(_) => write!(f, "Internal::Uniform(_)"),
+            #[cfg(not(target_arch = "wasm32"))]
+            Self::Storage(_) => write!(f, "Internal::Storage(_)"),
         }
     }
 }

@@ -219,7 +219,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
@@ -536,7 +536,7 @@ pub fn draw<T, Renderer>(
             bounds,
             border_color: style.border_color,
             border_width: style.border_width,
-            border_radius: style.border_radius,
+            border_radius: style.border_radius.into(),
         },
         style.background,
     );

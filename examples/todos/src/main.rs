@@ -131,7 +131,11 @@ impl Application for Todos {
                             task.update(task_message);
 
                             if should_focus {
-                                text_input::focus(Task::text_input_id(i))
+                                let id = Task::text_input_id(i);
+                                Command::batch(vec![
+                                    text_input::focus(id.clone()),
+                                    text_input::select_all(id),
+                                ])
                             } else {
                                 Command::none()
                             }

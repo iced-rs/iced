@@ -254,7 +254,7 @@ unsafe fn create_buffers(
     gl.enable_vertex_attrib_array(4);
     gl.vertex_attrib_pointer_f32(
         4,
-        1,
+        4,
         glow::FLOAT,
         false,
         stride,
@@ -268,7 +268,7 @@ unsafe fn create_buffers(
         glow::FLOAT,
         false,
         stride,
-        4 * (2 + 2 + 4 + 4 + 1),
+        4 * (2 + 2 + 4 + 4 + 4),
     );
 
     gl.enable_vertex_attrib_array(6);
@@ -278,7 +278,7 @@ unsafe fn create_buffers(
         glow::FLOAT,
         false,
         stride,
-        4 * (2 + 2 + 4 + 4 + 1 + 1),
+        4 * (2 + 2 + 4 + 4 + 4 + 1),
     );
 
     gl.bind_vertex_array(None);
@@ -307,7 +307,7 @@ pub struct Vertex {
     pub border_color: [f32; 4],
 
     /// The border radius of the [`Vertex`].
-    pub border_radius: f32,
+    pub border_radius: [f32; 4],
 
     /// The border width of the [`Vertex`].
     pub border_width: f32,

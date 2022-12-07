@@ -5,7 +5,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::container;
 use crate::widget::pane_grid::{Draggable, TitleBar};
-use crate::widget::Tree;
+use crate::widget::{self, Tree};
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
 /// The content of a [`Pane`].
@@ -183,6 +183,33 @@ where
         }
     }
 
+    pub(crate) fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let body_layout = if let Some(title_bar) = &self.title_bar {
+            let mut children = layout.children();
+
+            title_bar.operate(
+                &mut tree.children[1],
+                children.next().unwrap(),
+                operation,
+            );
+
+            children.next().unwrap()
+        } else {
+            layout
+        };
+
+        self.body.as_widget().operate(
+            &mut tree.children[0],
+            body_layout,
+            operation,
+        );
+    }
+
     pub(crate) fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -278,12 +305,12 @@ where
     }
 
     pub(crate) fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        if let Some(title_bar) = self.title_bar.as_ref() {
+        if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;
 
@@ -294,14 +321,14 @@ where
             match title_bar.overlay(title_bar_state, title_bar_layout, renderer)
             {
                 Some(overlay) => Some(overlay),
-                None => self.body.as_widget().overlay(
+                None => self.body.as_widget_mut().overlay(
                     body_state,
                     children.next()?,
                     renderer,
                 ),
             }
         } else {
-            self.body.as_widget().overlay(
+            self.body.as_widget_mut().overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,

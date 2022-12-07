@@ -324,6 +324,14 @@ where
             ) {
                 self.operation.scrollable(state, id);
             }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
         }
 
         self.widget
@@ -397,7 +405,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -511,7 +519,7 @@ where
                     bounds: layout.bounds(),
                     border_color: color,
                     border_width: 1.0,
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                 },
                 Color::TRANSPARENT,
             );
@@ -552,7 +560,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,

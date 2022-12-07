@@ -8,7 +8,7 @@ const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 128;
 /// A generic buffer struct useful for items which have no alignment requirements
 /// (e.g. Vertex, Index buffers) & no dynamic offsets.
 #[derive(Debug)]
-pub(crate) struct Buffer<T> {
+pub struct Buffer<T> {
     //stored sequentially per mesh iteration; refers to the offset index in the GPU buffer
     offsets: Vec<wgpu::BufferAddress>,
     label: &'static str,

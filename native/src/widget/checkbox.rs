@@ -236,7 +236,7 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: custom_style.border_radius,
+                    border_radius: custom_style.border_radius.into(),
                     border_width: custom_style.border_width,
                     border_color: custom_style.border_color,
                 },

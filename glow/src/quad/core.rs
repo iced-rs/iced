@@ -218,7 +218,7 @@ unsafe fn create_instance_buffer(
     gl.enable_vertex_attrib_array(4);
     gl.vertex_attrib_pointer_f32(
         4,
-        1,
+        4,
         glow::FLOAT,
         false,
         stride,
@@ -233,7 +233,7 @@ unsafe fn create_instance_buffer(
         glow::FLOAT,
         false,
         stride,
-        4 * (2 + 2 + 4 + 4 + 1),
+        4 * (2 + 2 + 4 + 4 + 4),
     );
     gl.vertex_attrib_divisor(5, 1);
 

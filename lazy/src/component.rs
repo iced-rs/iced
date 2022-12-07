@@ -11,7 +11,7 @@ use iced_native::{
 };
 
 use ouroboros::self_referencing;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::marker::PhantomData;
 
 /// A reusable, custom widget that uses The Elm Architecture.
@@ -260,6 +260,14 @@ where
             ) {
                 self.operation.focusable(state, id);
             }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
         }
 
         self.with_element(|element| {
@@ -314,25 +322,25 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         let overlay = OverlayBuilder {
             instance: self,
-            instance_ref_builder: |instance| instance.state.borrow(),
             tree,
             types: PhantomData,
             overlay_builder: |instance, tree| {
-                instance
-                    .as_ref()
-                    .unwrap()
-                    .borrow_element()
-                    .as_ref()
-                    .unwrap()
-                    .as_widget()
-                    .overlay(&mut tree.children[0], layout, renderer)
+                instance.state.get_mut().as_mut().unwrap().with_element_mut(
+                    move |element| {
+                        element.as_mut().unwrap().as_widget_mut().overlay(
+                            &mut tree.children[0],
+                            layout,
+                            renderer,
+                        )
+                    },
+                )
             },
         }
         .build();
@@ -354,15 +362,11 @@ where
 
 #[self_referencing]
 struct Overlay<'a, 'b, Message, Renderer, Event, S> {
-    instance: &'a Instance<'b, Message, Renderer, Event, S>,
+    instance: &'a mut Instance<'b, Message, Renderer, Event, S>,
     tree: &'a mut Tree,
     types: PhantomData<(Message, Event, S)>,
 
-    #[borrows(instance)]
-    #[covariant]
-    instance_ref: Ref<'this, Option<State<'a, Message, Renderer, Event, S>>>,
-
-    #[borrows(instance_ref, mut tree)]
+    #[borrows(mut instance, mut tree)]
     #[covariant]
     overlay: Option<overlay::Element<'this, Event, Renderer>>,
 }
@@ -506,7 +510,6 @@ where
             self.overlay = Some(
                 OverlayBuilder {
                     instance: overlay.instance,
-                    instance_ref_builder: |instance| instance.state.borrow(),
                     tree: overlay.tree,
                     types: PhantomData,
                     overlay_builder: |_, _| None,

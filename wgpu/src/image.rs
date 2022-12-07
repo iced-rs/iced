@@ -318,11 +318,16 @@ impl Pipeline {
                 layer::Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
-                layer::Image::Vector { handle, bounds } => {
+                layer::Image::Vector {
+                    handle,
+                    color,
+                    bounds,
+                } => {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = vector_cache.upload(
                         handle,
+                        *color,
                         size,
                         _scale,
                         &mut (device, encoder),

@@ -1,5 +1,5 @@
 //! Load and draw vector graphics.
-use crate::{Hasher, Rectangle, Size};
+use crate::{Color, Hasher, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
@@ -84,6 +84,6 @@ pub trait Renderer: crate::Renderer {
     /// Returns the default dimensions of an SVG for the given [`Handle`].
     fn dimensions(&self, handle: &Handle) -> Size<u32>;
 
-    /// Draws an SVG with the given [`Handle`] and inside the provided `bounds`.
-    fn draw(&mut self, handle: Handle, bounds: Rectangle);
+    /// Draws an SVG with the given [`Handle`], an optional [`Color`] filter, and inside the provided `bounds`.
+    fn draw(&mut self, handle: Handle, color: Option<Color>, bounds: Rectangle);
 }

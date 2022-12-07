@@ -18,8 +18,8 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 /// The [`integration_opengl`] & [`integration_wgpu`] examples use a
 /// [`UserInterface`] to integrate Iced in an existing graphical application.
 ///
-/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.5/examples/integration_opengl
-/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.5/examples/integration_wgpu
+/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.6/examples/integration_opengl
+/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.6/examples/integration_wgpu
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -190,7 +190,7 @@ where
 
         let mut state = State::Updated;
         let mut manual_overlay =
-            ManuallyDrop::new(self.root.as_widget().overlay(
+            ManuallyDrop::new(self.root.as_widget_mut().overlay(
                 &mut self.state,
                 Layout::new(&self.base),
                 renderer,
@@ -226,7 +226,7 @@ where
                     );
 
                     manual_overlay =
-                        ManuallyDrop::new(self.root.as_widget().overlay(
+                        ManuallyDrop::new(self.root.as_widget_mut().overlay(
                             &mut self.state,
                             Layout::new(&self.base),
                             renderer,
@@ -284,6 +284,10 @@ where
                     clipboard,
                     &mut shell,
                 );
+
+                if matches!(event_status, event::Status::Captured) {
+                    self.overlay = None;
+                }
 
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
@@ -391,11 +395,11 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) = self.root.as_widget().overlay(
-            &mut self.state,
-            Layout::new(&self.base),
-            renderer,
-        ) {
+        let base_cursor = if let Some(overlay) = self
+            .root
+            .as_widget_mut()
+            .overlay(&mut self.state, Layout::new(&self.base), renderer)
+        {
             let overlay_layout = self
                 .overlay
                 .take()
@@ -448,7 +452,7 @@ where
         overlay
             .as_ref()
             .and_then(|layout| {
-                root.as_widget()
+                root.as_widget_mut()
                     .overlay(&mut self.state, Layout::new(base), renderer)
                     .map(|overlay| {
                         let overlay_interaction = overlay.mouse_interaction(
@@ -492,14 +496,19 @@ where
             operation,
         );
 
-        if let Some(layout) = self.overlay.as_ref() {
-            if let Some(overlay) = self.root.as_widget().overlay(
-                &mut self.state,
-                Layout::new(&self.base),
-                renderer,
-            ) {
-                overlay.operate(Layout::new(layout), operation);
+        if let Some(mut overlay) = self.root.as_widget_mut().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+        ) {
+            if self.overlay.is_none() {
+                self.overlay = Some(overlay.layout(renderer, self.bounds));
             }
+
+            overlay.operate(
+                Layout::new(self.overlay.as_ref().unwrap()),
+                operation,
+            );
         }
     }
 
