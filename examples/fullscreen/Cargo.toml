@@ -1,0 +1,9 @@
+[package]
+name = "fullscreen"
+version = "0.1.0"
+authors = ["Dan <dansonlinepresence@gmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../.." }
