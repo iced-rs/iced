@@ -164,7 +164,11 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu", not(feature = "wayland")))]
+#[cfg(all(
+    not(feature = "glow"),
+    any(feature = "wgpu", feature = "softbuffer"),
+    not(feature = "wayland")
+))]
 pub mod application;
 
 mod element;
@@ -203,7 +207,7 @@ pub mod window;
 
 #[cfg(all(
     not(feature = "glow"),
-    feature = "wgpu",
+    any(feature = "wgpu", feature = "softbuffer"),
     not(feature = "wayland"),
     feature = "multi_window"
 ))]
@@ -214,7 +218,7 @@ use iced_sctk as runtime;
 
 #[cfg(all(
     not(feature = "glow"),
-    feature = "wgpu",
+    any(feature = "wgpu", feature = "softbuffer"),
     not(feature = "wayland")
 ))]
 use iced_winit as runtime;
@@ -227,6 +231,9 @@ use iced_wgpu as renderer;
 
 #[cfg(any(feature = "glow", feature = "wayland"))]
 use iced_glow as renderer;
+
+#[cfg(all(not(feature = "iced_glow"), feature = "softbuffer"))]
+use iced_softbuffer as renderer;
 
 pub use iced_native::theme;
 pub use runtime::event;

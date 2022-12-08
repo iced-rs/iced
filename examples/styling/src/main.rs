@@ -75,7 +75,7 @@ impl Sandbox for Styling {
             [ThemeType::Light, ThemeType::Dark, ThemeType::Custom]
                 .iter()
                 .fold(
-                    column![text("Choose a theme:")].spacing(10),
+                    column![text("Choose a theme: 😊")].spacing(10),
                     |column, theme| {
                         column.push(radio(
                             format!("{:?}", theme),
@@ -150,12 +150,17 @@ impl Sandbox for Styling {
         .padding(20)
         .max_width(600);
 
-        container(content)
+        let element: Element<_> = container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
-            .into()
+            .into();
+        if self.toggler_value {
+            element.explain(Color::BLACK)
+        } else {
+            element
+        }
     }
 
     fn theme(&self) -> Theme {

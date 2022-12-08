@@ -12,17 +12,19 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu", "winit"]
+default = ["softbuffer", "winit"]
 # Enables the `Image` widget
-image = ["iced_wgpu?/image", "iced_glow?/image", "image_rs"]
+image = ["iced_wgpu?/image", "iced_glow?/image", "iced_softbuffer?/image", "image_rs"]
 # Enables the `Svg` widget
-svg = ["iced_wgpu?/svg", "iced_glow?/svg"]
+svg = ["iced_wgpu?/svg", "iced_glow?/svg", "iced_softbuffer?/svg"]
 # Enables the `Canvas` widget
 canvas = ["iced_graphics/canvas"]
 # Enables the `QRCode` widget
 qr_code = ["iced_graphics/qr_code"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
+# Enables the `iced_softbuffer` renderer
+softbuffer = ["iced_softbuffer"]
 # Enables using system fonts
 default_system_font = ["iced_wgpu?/default_system_font", "iced_glow?/default_system_font"]
 # Enables the `iced_glow` renderer. Overrides `iced_wgpu`
@@ -55,6 +57,7 @@ members = [
     "glutin",
     "lazy",
     "native",
+    "softbuffer",
     "style",
     "wgpu",
     "winit",
@@ -71,6 +74,7 @@ iced_winit = { version = "0.6", path = "winit", features = ["application"], opti
 iced_glutin = { version = "0.5", path = "glutin", optional = true }
 iced_glow = { version = "0.5", path = "glow", optional = true }
 iced_sctk = { path = "./sctk", optional = true }
+iced_softbuffer = { version = "0.1", path = "softbuffer", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]
@@ -97,3 +101,4 @@ incremental = false
 opt-level = 3
 overflow-checks = false
 strip = "debuginfo"
+
