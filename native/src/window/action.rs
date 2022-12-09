@@ -70,6 +70,12 @@ pub enum Action<T> {
     ///
     /// - **Web / Wayland:** Unsupported.
     GainFocus,
+    /// Change whether or not the window will always be on top of other windows.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS / Android / Web / Wayland:** Unsupported.
+    AlwaysOnTop(bool),
 }
 
 impl<T> Action<T> {
@@ -96,6 +102,7 @@ impl<T> Action<T> {
                 Action::RequestUserAttention(attention_type)
             }
             Self::GainFocus => Action::GainFocus,
+            Self::AlwaysOnTop(bool) => Action::AlwaysOnTop(bool),
         }
     }
 }
@@ -122,6 +129,9 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RequestUserAttention")
             }
             Self::GainFocus => write!(f, "Action::GainFocus"),
+            Self::AlwaysOnTop(value) => {
+                write!(f, "Action::AlwaysOnTop({})", value)
+            }
         }
     }
 }
