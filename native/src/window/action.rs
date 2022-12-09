@@ -1,4 +1,4 @@
-use crate::window::Mode;
+use crate::window::{Mode, CursorGrabMode};
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -35,6 +35,8 @@ pub enum Action<T> {
     SetMode(Mode),
     /// Sets the window to maximized or back
     ToggleMaximize,
+    /// Set the [`CursorGrabMode`] on the cursor preventing it from leaving the window.
+    SetCursorGrabMode(CursorGrabMode),
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
 }
@@ -56,6 +58,7 @@ impl<T> Action<T> {
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
             Self::ToggleMaximize => Action::ToggleMaximize,
+            Self::SetCursorGrabMode(mode) => Action::SetCursorGrabMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
         }
     }
@@ -77,6 +80,9 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
+            Self::SetCursorGrabMode(_) => {
+                write!(f, "Action::SetCursorGrabMode")
+            }
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
         }
     }

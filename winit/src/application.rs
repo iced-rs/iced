@@ -660,6 +660,23 @@ pub fn run_command<A, E>(
                 window::Action::ToggleMaximize => {
                     window.set_maximized(!window.is_maximized())
                 }
+                window::Action::SetCursorGrabMode(mode) => match mode {
+                    window::CursorGrabMode::None => window
+                        .set_cursor_grab(winit::window::CursorGrabMode::None)
+                        .unwrap(),
+                    window::CursorGrabMode::Confined => {
+                        window
+                            .set_cursor_grab(
+                                winit::window::CursorGrabMode::Confined,
+                            )
+                            .or_else(|_e| {
+                                window.set_cursor_grab(
+                                    winit::window::CursorGrabMode::Locked,
+                                )
+                            })
+                            .unwrap();
+                    }
+                },
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
