@@ -2,9 +2,11 @@
 mod position;
 mod settings;
 
-pub mod icon;
+// pub mod icon;
 
-pub use icon::Icon;
+// pub use icon::Icon;
+pub use iced_native::window::Icon;
+
 pub use position::Position;
 pub use settings::Settings;
 

@@ -89,7 +89,7 @@ pub struct Window {
     pub always_on_top: bool,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<winit::window::Icon>,
+    pub icon: Option<crate::window::Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -113,7 +113,7 @@ impl Window {
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
-            .with_window_icon(self.icon)
+            .with_window_icon(self.icon.map(crate::window::Icon::into))
             .with_always_on_top(self.always_on_top)
             .with_visible(self.visible);
 

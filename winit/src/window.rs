@@ -4,6 +4,10 @@ use iced_native::window;
 
 pub use window::{Event, Mode};
 
+/// icon
+#[derive(Debug, Clone)]
+pub struct Icon(pub winit::window::Icon);
+
 /// Begins dragging the window while the left mouse button is held.
 pub fn drag<Message>() -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Drag))
@@ -49,4 +53,17 @@ pub fn fetch_mode<Message>(
     Command::single(command::Action::Window(window::Action::FetchMode(
         Box::new(f),
     )))
+}
+
+impl From<iced_native::window::Icon> for Icon {
+    fn from(value: iced_native::window::Icon) -> Self {
+        let (rgba, width, height) = value.get_icon();
+        Icon(winit::window::Icon::from_rgba(rgba, width, height).unwrap())
+    }
+}
+
+impl From<Icon> for winit::window::Icon {
+    fn from(value: Icon) -> Self {
+        value.0
+    }
 }

@@ -660,6 +660,9 @@ pub fn run_command<A, E>(
                 window::Action::ToggleMaximize => {
                     window.set_maximized(!window.is_maximized())
                 }
+                window::Action::SetWindowIcon(icon) => window.set_window_icon(
+                    icon.map(|i| crate::window::Icon::from(i).into()),
+                ),
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
