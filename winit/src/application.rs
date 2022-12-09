@@ -657,12 +657,6 @@ pub fn run_command<A, E>(
                         mode,
                     ));
                 }
-                window::Action::ToggleMaximize => {
-                    window.set_maximized(!window.is_maximized())
-                }
-                window::Action::ToggleDecorations => {
-                    window.set_decorations(!window.is_decorated())
-                }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
@@ -674,6 +668,22 @@ pub fn run_command<A, E>(
                         .send_event(tag(mode))
                         .expect("Send message to event loop");
                 }
+                window::Action::ToggleMaximize => {
+                    window.set_maximized(!window.is_maximized())
+                }
+                window::Action::ToggleDecorations => {
+                    window.set_decorations(!window.is_decorated())
+                }
+                window::Action::RequestUserAttention(attention_type) => window
+                    .request_user_attention(match attention_type {
+                        Some(window::UserAttention::Critical) => {
+                            Some(winit::window::UserAttentionType::Critical)
+                        }
+                        Some(window::UserAttention::Informational) => Some(
+                            winit::window::UserAttentionType::Informational,
+                        ),
+                        None => None,
+                    }),
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
