@@ -351,6 +351,13 @@ pub enum Container {
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
+impl Container {
+    /// Creates a custom [`Container`] style.
+    pub fn custom_fn(f: fn(&Theme) -> container::Appearance) -> Self {
+        Self::Custom(Box::new(f))
+    }
+}
+
 impl From<fn(&Theme) -> container::Appearance> for Container {
     fn from(f: fn(&Theme) -> container::Appearance) -> Self {
         Self::Custom(Box::new(f))
@@ -362,7 +369,7 @@ impl container::StyleSheet for Theme {
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         match style {
-            Container::Transparent => Default::default(),
+            Container::Transparent => container::Appearance::default(),
             Container::Box => {
                 let palette = self.extended_palette();
 
