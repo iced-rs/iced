@@ -192,7 +192,7 @@ impl Pipeline {
                 }
 
                 #[cfg(not(feature = "svg"))]
-                layer::Image::Vector { handle: _, bounds } => (None, bounds),
+                layer::Image::Vector { bounds, .. } => (None, bounds),
             };
 
             unsafe {
