@@ -16,10 +16,9 @@ use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
-/// An horizontal bar and a handle that selects a single value from a range of
-/// values.
+/// A bar and a handle that selects a single value from a range of values.
 ///
-/// A [`Slider`] will try to fill the horizontal space of its container.
+/// A [`Slider`] will try to fill the space of its container, based on its orientation.
 ///
 /// The [`Slider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
@@ -53,8 +52,9 @@ where
     value: T,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
-    width: Length,
-    height: u16,
+    width: Option<Length>,
+    height: Option<Length>,
+    orientation: Orientation,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -65,9 +65,6 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    /// The default height of a [`Slider`].
-    pub const DEFAULT_HEIGHT: u16 = 22;
-
     /// Creates a new [`Slider`].
     ///
     /// It expects:
@@ -98,8 +95,9 @@ where
             step: T::from(1),
             on_change: Box::new(on_change),
             on_release: None,
-            width: Length::Fill,
-            height: Self::DEFAULT_HEIGHT,
+            width: None,
+            height: None,
+            orientation: Default::default(),
             style: Default::default(),
         }
     }
@@ -117,13 +115,13 @@ where
 
     /// Sets the width of the [`Slider`].
     pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+        self.width = Some(width);
         self
     }
 
     /// Sets the height of the [`Slider`].
-    pub fn height(mut self, height: u16) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = Some(height);
         self
     }
 
@@ -139,6 +137,12 @@ where
     /// Sets the step size of the [`Slider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
+        self
+    }
+
+    /// Sets the orientation of the [`Slider`].
+    pub fn orientation(mut self, orientation: Orientation) -> Self {
+        self.orientation = orientation;
         self
     }
 }
@@ -160,11 +164,17 @@ where
     }
 
     fn width(&self) -> Length {
-        self.width
+        match self.orientation {
+            Orientation::Horizontal => self.width.unwrap_or(Length::Fill),
+            Orientation::Vertical => Length::Shrink,
+        }
     }
 
     fn height(&self) -> Length {
-        Length::Shrink
+        match self.orientation {
+            Orientation::Horizontal => Length::Shrink,
+            Orientation::Vertical => self.height.unwrap_or(Length::Fill),
+        }
     }
 
     fn layout(
@@ -172,9 +182,14 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits =
-            limits.width(self.width).height(Length::Units(self.height));
+        let width = self
+            .width
+            .unwrap_or_else(|| self.orientation.default_width());
+        let height = self
+            .height
+            .unwrap_or_else(|| self.orientation.default_height());
 
+        let limits = limits.width(width).height(height);
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)
@@ -201,6 +216,7 @@ where
             self.step,
             self.on_change.as_ref(),
             &self.on_release,
+            self.orientation,
         )
     }
 
@@ -223,6 +239,7 @@ where
             &self.range,
             theme,
             self.style,
+            self.orientation,
         )
     }
 
@@ -270,6 +287,7 @@ pub fn update<Message, T>(
     step: T,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
+    orientation: Orientation,
 ) -> event::Status
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
@@ -279,17 +297,40 @@ where
 
     let mut change = || {
         let bounds = layout.bounds();
-        let new_value = if cursor_position.x <= bounds.x {
+
+        let cursor_below_bounds = match orientation {
+            Orientation::Horizontal => cursor_position.x <= bounds.x,
+            Orientation::Vertical => {
+                cursor_position.y >= bounds.y + bounds.height
+            }
+        };
+
+        let cursor_above_bounds = match orientation {
+            Orientation::Horizontal => {
+                cursor_position.x >= bounds.x + bounds.width
+            }
+            Orientation::Vertical => cursor_position.y <= bounds.y,
+        };
+
+        let new_value = if cursor_below_bounds {
             *range.start()
-        } else if cursor_position.x >= bounds.x + bounds.width {
+        } else if cursor_above_bounds {
             *range.end()
         } else {
             let step = step.into();
             let start = (*range.start()).into();
             let end = (*range.end()).into();
 
-            let percent = f64::from(cursor_position.x - bounds.x)
-                / f64::from(bounds.width);
+            let percent = match orientation {
+                Orientation::Horizontal => {
+                    f64::from(cursor_position.x - bounds.x)
+                        / f64::from(bounds.width)
+                }
+                Orientation::Vertical => {
+                    1.00 - (f64::from(cursor_position.y - bounds.y)
+                        / f64::from(bounds.height))
+                }
+            };
 
             let steps = (percent * (end - start) / step).round();
             let value = steps * step + start;
@@ -354,6 +395,7 @@ pub fn draw<T, R>(
     range: &RangeInclusive<T>,
     style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
     style: <R::Theme as StyleSheet>::Style,
+    orientation: Orientation,
 ) where
     T: Into<f64> + Copy,
     R: crate::Renderer,
@@ -370,15 +412,26 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let rail_y = bounds.y + (bounds.height / 2.0).round();
+    let rail = match orientation {
+        Orientation::Horizontal => bounds.y + (bounds.height / 2.0).round(),
+        Orientation::Vertical => bounds.x + (bounds.width / 2.0).round(),
+    };
 
     renderer.fill_quad(
         renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y - 1.0,
-                width: bounds.width,
-                height: 2.0,
+            bounds: match orientation {
+                Orientation::Horizontal => Rectangle {
+                    x: bounds.x,
+                    y: rail - 1.0,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                Orientation::Vertical => Rectangle {
+                    x: rail - 1.0,
+                    y: bounds.y,
+                    width: 2.0,
+                    height: bounds.height,
+                },
             },
             border_radius: 0.0,
             border_width: 0.0,
@@ -389,11 +442,19 @@ pub fn draw<T, R>(
 
     renderer.fill_quad(
         renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y + 1.0,
-                width: bounds.width,
-                height: 2.0,
+            bounds: match orientation {
+                Orientation::Horizontal => Rectangle {
+                    x: bounds.x,
+                    y: rail + 1.0,
+                    width: bounds.width,
+                    height: 2.0,
+                },
+                Orientation::Vertical => Rectangle {
+                    x: rail + 1.0,
+                    y: bounds.y,
+                    width: 2.0,
+                    height: bounds.height,
+                },
             },
             border_radius: 0.0,
             border_width: 0.0,
@@ -410,7 +471,14 @@ pub fn draw<T, R>(
         HandleShape::Rectangle {
             width,
             border_radius,
-        } => (f32::from(width), bounds.height, border_radius),
+        } => {
+            let handle_height = match orientation {
+                Orientation::Horizontal => bounds.height,
+                Orientation::Vertical => bounds.width,
+            };
+
+            (f32::from(width), handle_height, border_radius)
+        }
     };
 
     let value = value.into() as f32;
@@ -423,17 +491,33 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.width * (value - range_start) / (range_end - range_start)
-            - handle_width / 2.0
+        match orientation {
+            Orientation::Horizontal => {
+                bounds.width * (value - range_start) / (range_end - range_start)
+                    - handle_width / 2.0
+            }
+            Orientation::Vertical => {
+                bounds.height * (value - range_end) / (range_start - range_end)
+                    - handle_width / 2.0
+            }
+        }
     };
 
     renderer.fill_quad(
         renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x + handle_offset.round(),
-                y: rail_y - handle_height / 2.0,
-                width: handle_width,
-                height: handle_height,
+            bounds: match orientation {
+                Orientation::Horizontal => Rectangle {
+                    x: bounds.x + handle_offset.round(),
+                    y: rail - handle_height / 2.0,
+                    width: handle_width,
+                    height: handle_height,
+                },
+                Orientation::Vertical => Rectangle {
+                    x: rail - (handle_height / 2.0),
+                    y: bounds.y + handle_offset.round(),
+                    width: handle_height,
+                    height: handle_width,
+                },
             },
             border_radius: handle_border_radius,
             border_width: style.handle.border_width,
@@ -471,5 +555,38 @@ impl State {
     /// Creates a new [`State`].
     pub fn new() -> State {
         State::default()
+    }
+}
+
+/// The orientation of a [`Slider`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Orientation {
+    #[default]
+    /// Default orientation.
+    /// Will fill the horizontal space of its container.
+    Horizontal,
+    /// Vertical orientation.
+    /// Will fill the vertical space of its container.
+    Vertical,
+}
+
+impl Orientation {
+    /// The default height of a [`Slider`] in horizontal orientation.
+    pub const DEFAULT_HEIGHT: Length = Length::Units(22);
+    /// The default width of a [`Slider`] in vertical orientation.
+    pub const DEFAULT_WIDTH: Length = Length::Units(22);
+
+    fn default_height(&self) -> Length {
+        match self {
+            Orientation::Horizontal => Self::DEFAULT_HEIGHT,
+            Orientation::Vertical => Length::Fill,
+        }
+    }
+
+    fn default_width(&self) -> Length {
+        match self {
+            Orientation::Horizontal => Length::Fill,
+            Orientation::Vertical => Self::DEFAULT_WIDTH,
+        }
     }
 }
