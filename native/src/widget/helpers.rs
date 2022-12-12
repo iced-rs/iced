@@ -311,3 +311,13 @@ where
 {
     widget::Svg::new(handle)
 }
+
+/// A container intercepting mouse events.
+pub fn mouse_listener<'a, Message, Renderer>(
+    widget: impl Into<Element<'a, Message, Renderer>>,
+) -> widget::MouseListener<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    widget::MouseListener::new(widget)
+}
