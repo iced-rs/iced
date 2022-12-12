@@ -38,7 +38,7 @@ pub enum Action<T> {
     /// Toggles whether window has decorations
     /// ## Platform-specific
     /// - **X11:** Not implemented.
-    /// - **iOS / Android / Web:** Unsupported.
+    /// - **Web:** Unsupported.
     ToggleDecorations,
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
