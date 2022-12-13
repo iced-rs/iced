@@ -143,12 +143,12 @@ pub fn main() {
         &mut renderer,
         &mut debug,
     );
-
+    let ime = IME::new();
     // Run event loop
     event_loop.run(move |event, _, control_flow| {
         // You should change this if you want to render continuosly
         *control_flow = ControlFlow::Wait;
-        let ime = IME::connect(&window);
+
         ime.set_ime_allowed(true);
         match event {
             Event::WindowEvent { event, .. } => {
@@ -198,6 +198,7 @@ pub fn main() {
                     // and request a redraw
                     window.request_redraw();
                 }
+                ime.apply_request(&window);
             }
             Event::RedrawRequested(_) => {
                 if resized {

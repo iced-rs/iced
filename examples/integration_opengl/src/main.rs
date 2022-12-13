@@ -76,9 +76,10 @@ pub fn main() {
 
     let scene = Scene::new(&gl, shader_version);
 
+    let ime = IME::new();
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
-        let ime = IME::connect(windowed_context.window());
+
         match event {
             Event::WindowEvent { event, .. } => {
                 match event {
@@ -138,6 +139,7 @@ pub fn main() {
                     // and request a redraw
                     windowed_context.window().request_redraw();
                 }
+                ime.apply_request(windowed_context.window());
             }
             Event::RedrawRequested(_) => {
                 if resized {
