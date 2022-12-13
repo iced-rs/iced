@@ -268,7 +268,7 @@ async fn run_instance<A, E, C>(
         physical_size.width,
         physical_size.height,
     );
-    let ime = IME::connect(&window);
+    let ime = IME::new();
     run_command(
         &application,
         &mut cache,
@@ -296,7 +296,6 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
-
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
@@ -307,7 +306,6 @@ async fn run_instance<A, E, C>(
                 }
 
                 debug.event_processing_started();
-                let ime = IME::connect(&window);
                 let (interface_state, statuses) = user_interface.update(
                     &events,
                     state.cursor_position(),
@@ -347,7 +345,6 @@ async fn run_instance<A, E, C>(
                         &window,
                         || compositor.fetch_information(),
                     );
-
                     // Update window
                     state.synchronize(&application, &window);
 
@@ -365,7 +362,7 @@ async fn run_instance<A, E, C>(
                         break;
                     }
                 }
-
+                ime.apply_request(&window);
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
@@ -553,14 +550,14 @@ where
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
-pub fn update<'a, A: Application, E: Executor>(
+pub fn update<A: Application, E: Executor>(
     application: &mut A,
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    ime: &IME<'a>,
+    ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
@@ -597,7 +594,7 @@ pub fn update<'a, A: Application, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<'a, A, E>(
+pub fn run_command<A, E>(
     application: &A,
     cache: &mut user_interface::Cache,
     state: &State<A>,
@@ -605,7 +602,7 @@ pub fn run_command<'a, A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    ime: &IME<'a>,
+    ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
@@ -642,6 +639,9 @@ pub fn run_command<'a, A, E>(
                 }
                 iced_native::ime::Action::Position(x, y) => {
                     ime.set_ime_position(x, y);
+                }
+                iced_native::ime::Action::Unlock => {
+                    ime.unlock_set_ime_allowed();
                 }
             },
             command::Action::Window(action) => match action {

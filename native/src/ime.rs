@@ -19,6 +19,14 @@ pub trait IME {
     /// disable IME.
     ///
     fn password_mode(&self);
+
+    /// force ime enabled or disabled.
+    ///
+    /// this will block request until unlock_set_ime_allowed.
+    fn force_set_ime_allowed(&self, allowed: bool);
+    /// remove request of force_set_ime_allowed
+    ///
+    fn unlock_set_ime_allowed(&self);
 }
 
 /// A null implementation of the [`IME`] trait.
@@ -33,6 +41,10 @@ impl IME for Null {
     fn password_mode(&self) {}
 
     fn inside(&self) {}
+
+    fn force_set_ime_allowed(&self, _: bool) {}
+
+    fn unlock_set_ime_allowed(&self) {}
 }
 
 /// A IME action to be performed by some [`Command`].
@@ -44,6 +56,8 @@ pub enum Action {
 
     ///
     Position(i32, i32),
+    ///
+    Unlock,
 }
 
 impl fmt::Debug for Action {
@@ -53,6 +67,7 @@ impl fmt::Debug for Action {
                 write!(f, "Action::Allow")
             }
             Action::Position(_, _) => write!(f, "Action::SetPosition"),
+            Action::Unlock => write!(f, "Action::Unlock"),
         }
     }
 }

@@ -195,7 +195,7 @@ async fn run_instance<A, E, C>(
 {
     use glutin::event;
     use iced_winit::futures::stream::StreamExt;
-    let ime = IME::connect(context.window());
+    let ime = IME::new();
     let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
@@ -229,11 +229,9 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
-
     debug.startup_finished();
 
     while let Some(event) = receiver.next().await {
-        let ime = IME::connect(context.window());
         match event {
             event::Event::MainEventsCleared => {
                 if events.is_empty() && messages.is_empty() {
@@ -319,7 +317,7 @@ async fn run_instance<A, E, C>(
 
                     mouse_interaction = new_mouse_interaction;
                 }
-
+                ime.apply_request(context.window());
                 context.window().request_redraw();
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
