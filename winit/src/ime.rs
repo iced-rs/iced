@@ -21,7 +21,7 @@ enum RequestKind {
 ///
 /// when application::update and UserInterface::update finished ,call change_ime_enabled_or_disable.
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct IME {
     requests: RwLock<Vec<RequestKind>>,
     force: RwLock<Option<bool>>,
@@ -31,11 +31,7 @@ pub struct IME {
 impl IME {
     /// create manager.
     pub fn new() -> Self {
-        Self {
-            requests: RwLock::new(Vec::new()),
-            force: RwLock::new(None),
-            position: RwLock::new(None),
-        }
+        Self::default()
     }
 
     /// Send IME enable or disable position update message to winit.
@@ -52,10 +48,7 @@ impl IME {
                         if !requests.is_empty() {
                             let allowed =
                                 requests.drain(..).fold(false, |sum, x| {
-                                    sum | match x {
-                                        RequestKind::Inside => true,
-                                        _ => false,
-                                    }
+                                    sum | matches!(x, RequestKind::Inside)
                                 });
                             window.set_ime_allowed(allowed);
                         }
