@@ -1,4 +1,4 @@
-use iced::widget::{column, container, slider, text};
+use iced::widget::{column, container, slider, text, vertical_slider};
 use iced::{Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
@@ -34,21 +34,15 @@ impl Sandbox for Slider {
     }
 
     fn view(&self) -> Element<Message> {
-        use slider::Orientation::{Horizontal, Vertical};
-
         let value = self.slider_value;
 
-        let h_slider = container(
-            slider(0..=100, value, Message::SliderChanged)
-                .orientation(Horizontal),
-        )
-        .width(Length::Units(250));
+        let h_slider =
+            container(slider(0..=100, value, Message::SliderChanged))
+                .width(Length::Units(250));
 
-        let v_slider = container(
-            slider(0..=100, value, Message::SliderChanged)
-                .orientation(Vertical),
-        )
-        .height(Length::Units(200));
+        let v_slider =
+            container(vertical_slider(0..=100, value, Message::SliderChanged))
+                .height(Length::Units(200));
 
         let text = text(format!("{value}"));
 

@@ -1,35 +1,31 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
-//! A [`Slider`] has some local [`State`].
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::touch;
-use crate::widget::tree::{self, Tree};
-use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Widget,
-};
-
+//! A [`VerticalSlider`] has some local [`State`].
 use std::ops::RangeInclusive;
 
 pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
-/// An horizontal bar and a handle that selects a single value from a range of
+use crate::event::{self, Event};
+use crate::widget::tree::{self, Tree};
+use crate::{
+    layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
+    Layout, Length, Point, Rectangle, Shell, Size, Widget,
+};
+
+/// An vertical bar and a handle that selects a single value from a range of
 /// values.
 ///
-/// A [`Slider`] will try to fill the horizontal space of its container.
+/// A [`VerticalSlider`] will try to fill the vertical space of its container.
 ///
-/// The [`Slider`] range of numeric values is generic and its step size defaults
+/// The [`VerticalSlider`] range of numeric values is generic and its step size defaults
 /// to 1 unit.
 ///
 /// # Example
 /// ```
-/// # use iced_native::widget::slider;
+/// # use iced_native::widget::vertical_slider;
 /// # use iced_native::renderer::Null;
 /// #
-/// # type Slider<'a, T, Message> = slider::Slider<'a, T, Message, Null>;
+/// # type VerticalSlider<'a, T, Message> = vertical_slider::VerticalSlider<'a, T, Message, Null>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {
@@ -38,12 +34,10 @@ pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 ///
 /// let value = 50.0;
 ///
-/// Slider::new(0.0..=100.0, value, Message::SliderChanged);
+/// VerticalSlider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
-///
-/// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Renderer>
+pub struct VerticalSlider<'a, T, Message, Renderer>
 where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
@@ -53,28 +47,28 @@ where
     value: T,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
-    width: Length,
-    height: u16,
+    width: u16,
+    height: Length,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+impl<'a, T, Message, Renderer> VerticalSlider<'a, T, Message, Renderer>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    /// The default height of a [`Slider`].
-    pub const DEFAULT_HEIGHT: u16 = 22;
+    /// The default width of a [`VerticalSlider`].
+    pub const DEFAULT_WIDTH: u16 = 22;
 
-    /// Creates a new [`Slider`].
+    /// Creates a new [`VerticalSlider`].
     ///
     /// It expects:
     ///   * an inclusive range of possible values
-    ///   * the current value of the [`Slider`]
-    ///   * a function that will be called when the [`Slider`] is dragged.
-    ///   It receives the new value of the [`Slider`] and must produce a
+    ///   * the current value of the [`VerticalSlider`]
+    ///   * a function that will be called when the [`VerticalSlider`] is dragged.
+    ///   It receives the new value of the [`VerticalSlider`] and must produce a
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
@@ -92,19 +86,19 @@ where
             *range.end()
         };
 
-        Slider {
+        VerticalSlider {
             value,
             range,
             step: T::from(1),
             on_change: Box::new(on_change),
             on_release: None,
-            width: Length::Fill,
-            height: Self::DEFAULT_HEIGHT,
+            width: Self::DEFAULT_WIDTH,
+            height: Length::Fill,
             style: Default::default(),
         }
     }
 
-    /// Sets the release message of the [`Slider`].
+    /// Sets the release message of the [`VerticalSlider`].
     /// This is called when the mouse is released from the slider.
     ///
     /// Typically, the user's interaction with the slider is finished when this message is produced.
@@ -115,19 +109,19 @@ where
         self
     }
 
-    /// Sets the width of the [`Slider`].
-    pub fn width(mut self, width: Length) -> Self {
+    /// Sets the width of the [`VerticalSlider`].
+    pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
 
-    /// Sets the height of the [`Slider`].
-    pub fn height(mut self, height: u16) -> Self {
+    /// Sets the height of the [`VerticalSlider`].
+    pub fn height(mut self, height: Length) -> Self {
         self.height = height;
         self
     }
 
-    /// Sets the style of the [`Slider`].
+    /// Sets the style of the [`VerticalSlider`].
     pub fn style(
         mut self,
         style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
@@ -136,7 +130,7 @@ where
         self
     }
 
-    /// Sets the step size of the [`Slider`].
+    /// Sets the step size of the [`VerticalSlider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
         self
@@ -144,7 +138,7 @@ where
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message, Renderer>
+    for VerticalSlider<'a, T, Message, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
@@ -160,11 +154,11 @@ where
     }
 
     fn width(&self) -> Length {
-        self.width
+        Length::Shrink
     }
 
     fn height(&self) -> Length {
-        Length::Shrink
+        self.height
     }
 
     fn layout(
@@ -173,7 +167,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits =
-            limits.width(self.width).height(Length::Units(self.height));
+            limits.width(Length::Units(self.width)).height(self.height);
 
         let size = limits.resolve(Size::ZERO);
 
@@ -242,7 +236,7 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
+impl<'a, T, Message, Renderer> From<VerticalSlider<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
@@ -251,13 +245,13 @@ where
     Renderer::Theme: StyleSheet,
 {
     fn from(
-        slider: Slider<'a, T, Message, Renderer>,
+        slider: VerticalSlider<'a, T, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(slider)
     }
 }
 
-/// Processes an [`Event`] and updates the [`State`] of a [`Slider`]
+/// Processes an [`Event`] and updates the [`State`] of a [`VerticalSlider`]
 /// accordingly.
 pub fn update<Message, T>(
     event: Event,
@@ -279,17 +273,18 @@ where
 
     let mut change = || {
         let bounds = layout.bounds();
-        let new_value = if cursor_position.x <= bounds.x {
+        let new_value = if cursor_position.y >= bounds.y + bounds.height {
             *range.start()
-        } else if cursor_position.x >= bounds.x + bounds.width {
+        } else if cursor_position.y <= bounds.y {
             *range.end()
         } else {
             let step = step.into();
             let start = (*range.start()).into();
             let end = (*range.end()).into();
 
-            let percent = f64::from(cursor_position.x - bounds.x)
-                / f64::from(bounds.width);
+            let percent = 1.0
+                - f64::from(cursor_position.y - bounds.y)
+                    / f64::from(bounds.height);
 
             let steps = (percent * (end - start) / step).round();
             let value = steps * step + start;
@@ -344,7 +339,7 @@ where
     event::Status::Ignored
 }
 
-/// Draws a [`Slider`].
+/// Draws a [`VerticalSlider`].
 pub fn draw<T, R>(
     renderer: &mut R,
     layout: Layout<'_>,
@@ -370,15 +365,15 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let rail_y = bounds.y + (bounds.height / 2.0).round();
+    let rail_x = bounds.x + (bounds.width / 2.0).round();
 
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y - 1.0,
-                width: bounds.width,
-                height: 2.0,
+                x: rail_x - 1.0,
+                y: bounds.y,
+                width: 2.0,
+                height: bounds.height,
             },
             border_radius: 0.0.into(),
             border_width: 0.0,
@@ -390,10 +385,10 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y + 1.0,
-                width: bounds.width,
-                height: 2.0,
+                x: rail_x + 1.0,
+                y: bounds.y,
+                width: 2.0,
+                height: bounds.height,
             },
             border_radius: 0.0.into(),
             border_width: 0.0,
@@ -410,7 +405,7 @@ pub fn draw<T, R>(
         HandleShape::Rectangle {
             width,
             border_radius,
-        } => (f32::from(width), bounds.height, border_radius),
+        } => (f32::from(width), bounds.width, border_radius),
     };
 
     let value = value.into() as f32;
@@ -423,17 +418,17 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.width * (value - range_start) / (range_end - range_start)
+        bounds.height * (value - range_end) / (range_start - range_end)
             - handle_width / 2.0
     };
 
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + handle_offset.round(),
-                y: rail_y - handle_height / 2.0,
-                width: handle_width,
-                height: handle_height,
+                x: rail_x - (handle_height / 2.0),
+                y: bounds.y + handle_offset.round(),
+                width: handle_height,
+                height: handle_width,
             },
             border_radius: handle_border_radius.into(),
             border_width: style.handle.border_width,
@@ -443,7 +438,7 @@ pub fn draw<T, R>(
     );
 }
 
-/// Computes the current [`mouse::Interaction`] of a [`Slider`].
+/// Computes the current [`mouse::Interaction`] of a [`VerticalSlider`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
     cursor_position: Point,
@@ -461,7 +456,7 @@ pub fn mouse_interaction(
     }
 }
 
-/// The local state of a [`Slider`].
+/// The local state of a [`VerticalSlider`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_dragging: bool,
