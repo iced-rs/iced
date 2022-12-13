@@ -10,7 +10,7 @@ use iced_graphics::{Primitive, Viewport};
 use iced_native::alignment;
 use iced_native::{Font, Size};
 
-#[cfg(any(feature = "image_rs", feature = "svg"))]
+#[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 
 /// A [`wgpu`] graphics backend for [`iced`].
@@ -23,7 +23,7 @@ pub struct Backend {
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
 
-    #[cfg(any(feature = "image_rs", feature = "svg"))]
+    #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
     default_text_size: u16,
@@ -47,7 +47,7 @@ impl Backend {
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        #[cfg(any(feature = "image", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(device, format);
 
         Self {
@@ -55,7 +55,7 @@ impl Backend {
             text_pipeline,
             triangle_pipeline,
 
-            #[cfg(any(feature = "image_rs", feature = "svg"))]
+            #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
 
             default_text_size: settings.default_text_size,
@@ -94,13 +94,12 @@ impl Backend {
                 staging_belt,
                 encoder,
                 frame,
-                target_size.width,
-                target_size.height,
+                target_size,
             );
         }
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
-        self.image_pipeline.trim_cache();
+        #[cfg(any(feature = "image", feature = "svg"))]
+        self.image_pipeline.trim_cache(device, encoder);
     }
 
     fn flush(
@@ -112,8 +111,7 @@ impl Backend {
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        target_width: u32,
-        target_height: u32,
+        target_size: Size<u32>,
     ) {
         let bounds = (layer.bounds * scale_factor).snap();
 
@@ -143,15 +141,14 @@ impl Backend {
                 staging_belt,
                 encoder,
                 target,
-                target_width,
-                target_height,
+                target_size,
                 scaled,
                 scale_factor,
                 &layer.meshes,
             );
         }
 
-        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        #[cfg(any(feature = "image", feature = "svg"))]
         {
             if !layer.images.is_empty() {
                 let scaled = transformation
@@ -297,9 +294,9 @@ impl backend::Text for Backend {
     }
 }
 
-#[cfg(feature = "image_rs")]
+#[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &iced_native::image::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)
     }
 }
@@ -309,7 +306,7 @@ impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
         handle: &iced_native::svg::Handle,
-    ) -> (u32, u32) {
+    ) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

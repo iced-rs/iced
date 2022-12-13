@@ -29,6 +29,8 @@ mod viewport;
 
 pub mod backend;
 pub mod font;
+pub mod gradient;
+pub mod image;
 pub mod layer;
 pub mod overlay;
 pub mod renderer;
@@ -39,6 +41,7 @@ pub mod window;
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use error::Error;
+pub use gradient::Gradient;
 pub use layer::Layer;
 pub use primitive::Primitive;
 pub use renderer::Renderer;

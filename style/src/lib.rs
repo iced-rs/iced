@@ -15,6 +15,7 @@
     clippy::new_without_default,
     clippy::useless_conversion
 )]
+#![deny(missing_docs, unused_results)]
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub use iced_core::{Background, Color};
@@ -31,6 +32,7 @@ pub mod radio;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
+pub mod svg;
 pub mod text;
 pub mod text_input;
 pub mod theme;

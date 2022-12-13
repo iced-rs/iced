@@ -54,7 +54,7 @@ pub trait GLCompositor: Sized {
     /// Resizes the viewport of the [`GLCompositor`].
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
-    /// Returns [`GraphicsInformation`] used by this [`Compositor`].
+    /// Returns [`Information`] used by this [`GLCompositor`].
     fn fetch_information(&self) -> Information;
 
     /// Presents the primitives of the [`Renderer`] to the next frame of the

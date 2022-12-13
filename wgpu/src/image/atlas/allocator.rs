@@ -46,10 +46,10 @@ impl Region {
         (rectangle.min.x as u32, rectangle.min.y as u32)
     }
 
-    pub fn size(&self) -> (u32, u32) {
+    pub fn size(&self) -> iced_graphics::Size<u32> {
         let size = self.allocation.rectangle.size();
 
-        (size.width as u32, size.height as u32)
+        iced_graphics::Size::new(size.width as u32, size.height as u32)
     }
 }
 

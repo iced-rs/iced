@@ -88,7 +88,7 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = theme.style(self.style);
+        let style = theme.appearance(&self.style);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)
@@ -123,7 +123,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: style.radius,
+                border_radius: style.radius.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
             },

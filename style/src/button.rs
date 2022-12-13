@@ -1,14 +1,20 @@
-//! Allow your users to perform actions by pressing a button.
+//! Change the apperance of a button.
 use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
+    /// The amount of offset to apply to the shadow of the button.
     pub shadow_offset: Vector,
+    /// The [`Background`] of the button.
     pub background: Option<Background>,
+    /// The border radius of the button.
     pub border_radius: f32,
+    /// The border width of the button.
     pub border_width: f32,
+    /// The border [`Color`] of the button.
     pub border_color: Color,
+    /// The text [`Color`] of the button.
     pub text_color: Color,
 }
 
@@ -27,11 +33,14 @@ impl std::default::Default for Appearance {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    /// The supported style of the [`StyleSheet`].
+    type Style: Default;
 
-    fn active(&self, style: Self::Style) -> Appearance;
+    /// Produces the active [`Appearance`] of a button.
+    fn active(&self, style: &Self::Style) -> Appearance;
 
-    fn hovered(&self, style: Self::Style) -> Appearance {
+    /// Produces the hovered [`Appearance`] of a button.
+    fn hovered(&self, style: &Self::Style) -> Appearance {
         let active = self.active(style);
 
         Appearance {
@@ -40,14 +49,16 @@ pub trait StyleSheet {
         }
     }
 
-    fn pressed(&self, style: Self::Style) -> Appearance {
+    /// Produces the pressed [`Appearance`] of a button.
+    fn pressed(&self, style: &Self::Style) -> Appearance {
         Appearance {
             shadow_offset: Vector::default(),
             ..self.active(style)
         }
     }
 
-    fn disabled(&self, style: Self::Style) -> Appearance {
+    /// Produces the disabled [`Appearance`] of a button.
+    fn disabled(&self, style: &Self::Style) -> Appearance {
         let active = self.active(style);
 
         Appearance {

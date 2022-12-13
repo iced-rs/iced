@@ -1,9 +1,10 @@
+use iced::theme::{self, Theme};
 use iced::widget::{
     button, checkbox, column, container, horizontal_rule, progress_bar, radio,
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
+use iced::{Alignment, Color, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     Styling::run(Settings::default())
@@ -18,9 +19,16 @@ struct Styling {
     toggler_value: bool,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+enum ThemeType {
+    Light,
+    Dark,
+    Custom,
+}
+
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(Theme),
+    ThemeChanged(ThemeType),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -41,7 +49,19 @@ impl Sandbox for Styling {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::ThemeChanged(theme) => self.theme = theme,
+            Message::ThemeChanged(theme) => {
+                self.theme = match theme {
+                    ThemeType::Light => Theme::Light,
+                    ThemeType::Dark => Theme::Dark,
+                    ThemeType::Custom => Theme::custom(theme::Palette {
+                        background: Color::from_rgb(1.0, 0.9, 1.0),
+                        text: Color::BLACK,
+                        primary: Color::from_rgb(0.5, 0.5, 0.0),
+                        success: Color::from_rgb(0.0, 1.0, 0.0),
+                        danger: Color::from_rgb(1.0, 0.0, 0.0),
+                    }),
+                }
+            }
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
             Message::SliderChanged(value) => self.slider_value = value,
@@ -51,17 +71,24 @@ impl Sandbox for Styling {
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme = [Theme::Light, Theme::Dark].iter().fold(
-            column![text("Choose a theme:")].spacing(10),
-            |column, theme| {
-                column.push(radio(
-                    format!("{:?}", theme),
-                    *theme,
-                    Some(self.theme),
-                    Message::ThemeChanged,
-                ))
-            },
-        );
+        let choose_theme =
+            [ThemeType::Light, ThemeType::Dark, ThemeType::Custom]
+                .iter()
+                .fold(
+                    column![text("Choose a theme:")].spacing(10),
+                    |column, theme| {
+                        column.push(radio(
+                            format!("{:?}", theme),
+                            *theme,
+                            Some(match self.theme {
+                                Theme::Light => ThemeType::Light,
+                                Theme::Dark => ThemeType::Dark,
+                                Theme::Custom { .. } => ThemeType::Custom,
+                            }),
+                            Message::ThemeChanged,
+                        ))
+                    },
+                );
 
         let text_input = text_input(
             "Type something...",
@@ -132,6 +159,6 @@ impl Sandbox for Styling {
     }
 
     fn theme(&self) -> Theme {
-        self.theme
+        self.theme.clone()
     }
 }

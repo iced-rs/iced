@@ -3,6 +3,8 @@
 /// A generic [`Overlay`].
 ///
 /// This is an alias of an `iced_native` element with a default `Renderer`.
+///
+/// [`Overlay`]: iced_native::Overlay
 pub type Element<'a, Message, Renderer = crate::Renderer> =
     iced_native::overlay::Element<'a, Message, Renderer>;
 

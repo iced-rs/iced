@@ -1,7 +1,8 @@
-use crate::program;
+#[cfg(any(feature = "image", feature = "svg"))]
+use crate::image;
 use crate::quad;
 use crate::text;
-use crate::triangle;
+use crate::{program, triangle};
 use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
@@ -16,6 +17,8 @@ use iced_native::{Font, Size};
 /// [`iced`]: https://github.com/iced-rs/iced
 #[derive(Debug)]
 pub struct Backend {
+    #[cfg(any(feature = "image", feature = "svg"))]
+    image_pipeline: image::Pipeline,
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
@@ -33,10 +36,14 @@ impl Backend {
 
         let shader_version = program::Version::new(gl);
 
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let image_pipeline = image::Pipeline::new(gl, &shader_version);
         let quad_pipeline = quad::Pipeline::new(gl, &shader_version);
         let triangle_pipeline = triangle::Pipeline::new(gl, &shader_version);
 
         Self {
+            #[cfg(any(feature = "image", feature = "svg"))]
+            image_pipeline,
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
@@ -71,6 +78,9 @@ impl Backend {
                 viewport_size.height,
             );
         }
+
+        #[cfg(any(feature = "image", feature = "svg"))]
+        self.image_pipeline.trim_cache(gl);
     }
 
     fn flush(
@@ -105,11 +115,26 @@ impl Backend {
                 * Transformation::scale(scale_factor, scale_factor);
 
             self.triangle_pipeline.draw(
+                &layer.meshes,
                 gl,
                 target_height,
                 scaled,
                 scale_factor,
-                &layer.meshes,
+            );
+        }
+
+        #[cfg(any(feature = "image", feature = "svg"))]
+        if !layer.images.is_empty() {
+            let scaled = transformation
+                * Transformation::scale(scale_factor, scale_factor);
+
+            self.image_pipeline.draw(
+                gl,
+                target_height,
+                scaled,
+                scale_factor,
+                &layer.images,
+                bounds,
             );
         }
 
@@ -239,8 +264,8 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, _handle: &iced_native::image::Handle) -> (u32, u32) {
-        (50, 50)
+    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
+        self.image_pipeline.dimensions(handle)
     }
 }
 
@@ -248,8 +273,8 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        _handle: &iced_native::svg::Handle,
-    ) -> (u32, u32) {
-        (50, 50)
+        handle: &iced_native::svg::Handle,
+    ) -> Size<u32> {
+        self.image_pipeline.viewport_dimensions(handle)
     }
 }

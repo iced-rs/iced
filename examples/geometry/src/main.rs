@@ -11,21 +11,17 @@ mod rainbow {
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
     use iced_graphics::renderer::{self, Renderer};
+    use iced_graphics::triangle::ColoredVertex2D;
     use iced_graphics::{Backend, Primitive};
 
+    use iced_native::layout;
     use iced_native::widget::{self, Widget};
     use iced_native::{
-        layout, Element, Layout, Length, Point, Rectangle, Size, Vector,
+        Element, Layout, Length, Point, Rectangle, Size, Vector,
     };
 
-    #[derive(Default)]
+    #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
-
-    impl Rainbow {
-        pub fn new() -> Self {
-            Self
-        }
-    }
 
     pub fn rainbow() -> Rainbow {
         Rainbow
@@ -63,7 +59,7 @@ mod rainbow {
             cursor_position: Point,
             _viewport: &Rectangle,
         ) {
-            use iced_graphics::triangle::{Mesh2D, Vertex2D};
+            use iced_graphics::triangle::Mesh2D;
             use iced_native::Renderer as _;
 
             let b = layout.bounds();
@@ -95,43 +91,43 @@ mod rainbow {
             let posn_bl = [0.0, b.height];
             let posn_l = [0.0, b.height / 2.0];
 
-            let mesh = Primitive::Mesh2D {
+            let mesh = Primitive::SolidMesh {
                 size: b.size(),
                 buffers: Mesh2D {
                     vertices: vec![
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_center,
                             color: [1.0, 1.0, 1.0, 1.0],
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_tl,
                             color: color_r,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_t,
                             color: color_o,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_tr,
                             color: color_y,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_r,
                             color: color_g,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_br,
                             color: color_gb,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_b,
                             color: color_b,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_bl,
                             color: color_i,
                         },
-                        Vertex2D {
+                        ColoredVertex2D {
                             position: posn_l,
                             color: color_v,
                         },
@@ -166,7 +162,7 @@ mod rainbow {
 }
 
 use iced::widget::{column, container, scrollable};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{Element, Length, Sandbox, Settings};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -179,7 +175,7 @@ impl Sandbox for Example {
     type Message = ();
 
     fn new() -> Self {
-        Example
+        Self
     }
 
     fn title(&self) -> String {
@@ -202,8 +198,7 @@ impl Sandbox for Example {
         ]
         .padding(20)
         .spacing(20)
-        .max_width(500)
-        .align_items(Alignment::Start);
+        .max_width(500);
 
         let scrollable =
             scrollable(container(content).width(Length::Fill).center_x());

@@ -5,6 +5,12 @@ use std::fmt;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
+    /// Moves the window with the left mouse button until the button is
+    /// released.
+    ///
+    /// There’s no guarantee that this will work unless the left mouse
+    /// button was pressed immediately before this function is called.
+    Drag,
     /// Resize the window.
     Resize {
         /// The new logical width of the window
@@ -12,6 +18,10 @@ pub enum Action<T> {
         /// The new logical height of the window
         height: u32,
     },
+    /// Sets the window to maximized or back
+    Maximize(bool),
+    /// Set the window to minimized or back
+    Minimize(bool),
     /// Move the window.
     ///
     /// Unsupported on Wayland.
@@ -23,6 +33,8 @@ pub enum Action<T> {
     },
     /// Set the [`Mode`] of the window.
     SetMode(Mode),
+    /// Sets the window to maximized or back
+    ToggleMaximize,
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
 }
@@ -37,9 +49,13 @@ impl<T> Action<T> {
         T: 'static,
     {
         match self {
+            Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
+            Self::Maximize(bool) => Action::Maximize(bool),
+            Self::Minimize(bool) => Action::Minimize(bool),
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
+            Self::ToggleMaximize => Action::ToggleMaximize,
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
         }
     }
@@ -48,15 +64,19 @@ impl<T> Action<T> {
 impl<T> fmt::Debug for Action<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
                 "Action::Resize {{ widget: {}, height: {} }}",
                 width, height
             ),
+            Self::Maximize(value) => write!(f, "Action::Maximize({})", value),
+            Self::Minimize(value) => write!(f, "Action::Minimize({}", value),
             Self::Move { x, y } => {
                 write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
+            Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
         }
     }

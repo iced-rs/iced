@@ -7,7 +7,15 @@ mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
-#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+#[cfg(target_arch = "wasm32")]
+#[path = "settings/wasm.rs"]
+mod platform;
+
+#[cfg(not(any(
+    target_os = "windows",
+    target_os = "macos",
+    target_arch = "wasm32"
+)))]
 #[path = "settings/other.rs"]
 mod platform;
 
@@ -27,7 +35,7 @@ pub struct Settings<Flags> {
     /// communicate with it through the windowing system.
     pub id: Option<String>,
 
-    /// The [`Window`] settings
+    /// The [`Window`] settings.
     pub window: Window,
 
     /// The data needed to initialize an [`Application`].

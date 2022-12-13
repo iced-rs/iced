@@ -231,7 +231,7 @@ where
             cursor_position,
             self.on_press.is_some(),
             theme,
-            self.style,
+            &self.style,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -260,12 +260,12 @@ where
     }
 
     fn overlay<'b>(
-        &'b self,
+        &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content.as_widget().overlay(
+        self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
@@ -361,7 +361,7 @@ pub fn draw<'a, Renderer: crate::Renderer>(
     style_sheet: &dyn StyleSheet<
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where
@@ -393,7 +393,7 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius,
+                    border_radius: styling.border_radius.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -404,7 +404,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius,
+                border_radius: styling.border_radius.into(),
                 border_width: styling.border_width,
                 border_color: styling.border_color,
             },
@@ -426,12 +426,13 @@ pub fn layout<Renderer>(
     padding: Padding,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height).pad(padding);
+    let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits);
+    let mut content = layout_content(renderer, &limits.pad(padding));
+    let padding = padding.fit(content.size(), limits.max());
+    let size = limits.pad(padding).resolve(content.size()).pad(padding);
+
     content.move_to(Point::new(padding.left.into(), padding.top.into()));
-
-    let size = limits.resolve(content.size()).pad(padding);
 
     layout::Node::with_children(size, vec![content])
 }

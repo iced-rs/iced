@@ -30,7 +30,7 @@ impl Tree {
         }
     }
 
-    /// Creates a new [`Tree`] for the provided [`Element`].
+    /// Creates a new [`Tree`] for the provided [`Widget`].
     pub fn new<'a, Message, Renderer>(
         widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
     ) -> Self
@@ -46,10 +46,10 @@ impl Tree {
         }
     }
 
-    /// Reconciliates the current tree with the provided [`Element`].
+    /// Reconciliates the current tree with the provided [`Widget`].
     ///
-    /// If the tag of the [`Element`] matches the tag of the [`Tree`], then the
-    /// [`Element`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).
+    /// If the tag of the [`Widget`] matches the tag of the [`Tree`], then the
+    /// [`Widget`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).
     ///
     /// Otherwise, the whole [`Tree`] is recreated.
     ///
@@ -67,7 +67,7 @@ impl Tree {
         }
     }
 
-    /// Reconciliates the children of the tree with the provided list of [`Element`].
+    /// Reconciliates the children of the tree with the provided list of widgets.
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
@@ -81,7 +81,7 @@ impl Tree {
         )
     }
 
-    /// Reconciliates the children of the tree with the provided list of [`Element`] using custom
+    /// Reconciliates the children of the tree with the provided list of widgets using custom
     /// logic both for diffing and creating new widget state.
     pub fn diff_children_custom<T>(
         &mut self,

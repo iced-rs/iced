@@ -104,9 +104,9 @@ where
             .draw(renderer, theme, style, layout, cursor_position)
     }
 
-    /// Applies an [`Operation`] to the [`Element`].
+    /// Applies a [`widget::Operation`] to the [`Element`].
     pub fn operate(
-        &self,
+        &mut self,
         layout: Layout<'_>,
         operation: &mut dyn widget::Operation<Message>,
     ) {
@@ -139,6 +139,57 @@ where
         position: Point,
     ) -> layout::Node {
         self.content.layout(renderer, bounds, position)
+    }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        operation: &mut dyn widget::Operation<B>,
+    ) {
+        struct MapOperation<'a, B> {
+            operation: &'a mut dyn widget::Operation<B>,
+        }
+
+        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
+            fn container(
+                &mut self,
+                id: Option<&widget::Id>,
+                operate_on_children: &mut dyn FnMut(
+                    &mut dyn widget::Operation<T>,
+                ),
+            ) {
+                self.operation.container(id, &mut |operation| {
+                    operate_on_children(&mut MapOperation { operation });
+                });
+            }
+
+            fn focusable(
+                &mut self,
+                state: &mut dyn widget::operation::Focusable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.focusable(state, id);
+            }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id)
+            }
+        }
+
+        self.content
+            .operate(layout, &mut MapOperation { operation });
     }
 
     fn on_event(

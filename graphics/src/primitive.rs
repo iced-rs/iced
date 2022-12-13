@@ -3,6 +3,7 @@ use iced_native::svg;
 use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
 
 use crate::alignment;
+use crate::gradient::Gradient;
 use crate::triangle;
 
 use std::sync::Arc;
@@ -41,7 +42,7 @@ pub enum Primitive {
         /// The background of the quad
         background: Background,
         /// The border radius of the quad
-        border_radius: f32,
+        border_radius: [f32; 4],
         /// The border width of the quad
         border_width: f32,
         /// The border color of the quad
@@ -58,6 +59,9 @@ pub enum Primitive {
     Svg {
         /// The path of the SVG file
         handle: svg::Handle,
+
+        /// The [`Color`] filter
+        color: Option<Color>,
 
         /// The bounds of the viewport
         bounds: Rectangle,
@@ -77,17 +81,32 @@ pub enum Primitive {
         /// The primitive to translate
         content: Box<Primitive>,
     },
-    /// A low-level primitive to render a mesh of triangles.
+    /// A low-level primitive to render a mesh of triangles with a solid color.
     ///
     /// It can be used to render many kinds of geometry freely.
-    Mesh2D {
-        /// The vertex and index buffers of the mesh
-        buffers: triangle::Mesh2D,
+    SolidMesh {
+        /// The vertices and indices of the mesh.
+        buffers: triangle::Mesh2D<triangle::ColoredVertex2D>,
 
         /// The size of the drawable region of the mesh.
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
+    },
+    /// A low-level primitive to render a mesh of triangles with a gradient.
+    ///
+    /// It can be used to render many kinds of geometry freely.
+    GradientMesh {
+        /// The vertices and indices of the mesh.
+        buffers: triangle::Mesh2D<triangle::Vertex2D>,
+
+        /// The size of the drawable region of the mesh.
+        ///
+        /// Any geometry that falls out of this region will be clipped.
+        size: Size,
+
+        /// The [`Gradient`] to apply to the mesh.
+        gradient: Gradient,
     },
     /// A cached primitive.
     ///

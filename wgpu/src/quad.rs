@@ -91,7 +91,7 @@ impl Pipeline {
                                 2 => Float32x2,
                                 3 => Float32x4,
                                 4 => Float32x4,
-                                5 => Float32,
+                                5 => Float32x4,
                                 6 => Float32,
                             ),
                         },

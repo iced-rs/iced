@@ -65,11 +65,10 @@ impl Pipeline {
         unsafe {
             gl.use_program(Some(program));
 
-            let matrix: [f32; 16] = Transformation::identity().into();
             gl.uniform_matrix_4_f32_slice(
                 Some(&transform_location),
                 false,
-                &matrix,
+                Transformation::identity().as_ref(),
             );
 
             gl.uniform_1_f32(Some(&scale_location), 1.0);
@@ -119,11 +118,10 @@ impl Pipeline {
 
         if transformation != self.current_transform {
             unsafe {
-                let matrix: [f32; 16] = transformation.into();
                 gl.uniform_matrix_4_f32_slice(
                     Some(&self.transform_location),
                     false,
-                    &matrix,
+                    transformation.as_ref(),
                 );
 
                 self.current_transform = transformation;
@@ -220,7 +218,7 @@ unsafe fn create_instance_buffer(
     gl.enable_vertex_attrib_array(4);
     gl.vertex_attrib_pointer_f32(
         4,
-        1,
+        4,
         glow::FLOAT,
         false,
         stride,
@@ -235,7 +233,7 @@ unsafe fn create_instance_buffer(
         glow::FLOAT,
         false,
         stride,
-        4 * (2 + 2 + 4 + 4 + 1),
+        4 * (2 + 2 + 4 + 4 + 4),
     );
     gl.vertex_attrib_divisor(5, 1);
 

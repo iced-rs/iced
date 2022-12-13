@@ -1,16 +1,16 @@
-//! Let your users split regions of your application and organize layout
-//! dynamically.
+//! Change the appearance of a pane grid.
 use iced_core::Color;
 
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
-    type Style: Default + Copy;
+    /// The supported style of the [`StyleSheet`].
+    type Style: Default;
 
     /// The [`Line`] to draw when a split is picked.
-    fn picked_split(&self, style: Self::Style) -> Option<Line>;
+    fn picked_split(&self, style: &Self::Style) -> Option<Line>;
 
     /// The [`Line`] to draw when a split is hovered.
-    fn hovered_split(&self, style: Self::Style) -> Option<Line>;
+    fn hovered_split(&self, style: &Self::Style) -> Option<Line>;
 }
 
 /// A line.

@@ -5,14 +5,14 @@ in vec2 i_Pos;
 in vec2 i_Scale;
 in vec4 i_Color;
 in vec4 i_BorderColor;
-in float i_BorderRadius;
+in vec4 i_BorderRadius;
 in float i_BorderWidth;
 
 out vec4 v_Color;
 out vec4 v_BorderColor;
 out vec2 v_Pos;
 out vec2 v_Scale;
-out float v_BorderRadius;
+out vec4 v_BorderRadius;
 out float v_BorderWidth;
 
 vec2 positions[4] = vec2[](
@@ -27,9 +27,11 @@ void main() {
     vec2 p_Pos = i_Pos * u_Scale;
     vec2 p_Scale = i_Scale  * u_Scale;
 
-    float i_BorderRadius = min(
-        i_BorderRadius,
-        min(i_Scale.x, i_Scale.y) / 2.0
+    vec4 i_BorderRadius = vec4(
+        min(i_BorderRadius.x, min(i_Scale.x, i_Scale.y) / 2.0),
+        min(i_BorderRadius.y, min(i_Scale.x, i_Scale.y) / 2.0),
+        min(i_BorderRadius.z, min(i_Scale.x, i_Scale.y) / 2.0),
+        min(i_BorderRadius.w, min(i_Scale.x, i_Scale.y) / 2.0)
     );
 
     mat4 i_Transform = mat4(

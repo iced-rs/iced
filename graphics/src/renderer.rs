@@ -6,7 +6,7 @@ use iced_native::layout;
 use iced_native::renderer;
 use iced_native::svg;
 use iced_native::text::{self, Text};
-use iced_native::{Background, Element, Font, Point, Rectangle, Size};
+use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
@@ -109,7 +109,7 @@ where
         self.primitives.push(Primitive::Quad {
             bounds: quad.bounds,
             background: background.into(),
-            border_radius: quad.border_radius,
+            border_radius: quad.border_radius.into(),
             border_width: quad.border_width,
             border_color: quad.border_color,
         });
@@ -183,7 +183,7 @@ where
 {
     type Handle = image::Handle;
 
-    fn dimensions(&self, handle: &image::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
         self.backend().dimensions(handle)
     }
 
@@ -196,11 +196,20 @@ impl<B, T> svg::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Svg,
 {
-    fn dimensions(&self, handle: &svg::Handle) -> (u32, u32) {
+    fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
     }
 
-    fn draw(&mut self, handle: svg::Handle, bounds: Rectangle) {
-        self.draw_primitive(Primitive::Svg { handle, bounds })
+    fn draw(
+        &mut self,
+        handle: svg::Handle,
+        color: Option<Color>,
+        bounds: Rectangle,
+    ) {
+        self.draw_primitive(Primitive::Svg {
+            handle,
+            color,
+            bounds,
+        })
     }
 }

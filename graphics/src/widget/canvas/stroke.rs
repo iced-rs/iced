@@ -1,10 +1,15 @@
+//! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
+pub use crate::widget::canvas::Style;
+
 use iced_native::Color;
 
 /// The style of a stroke.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Stroke<'a> {
-    /// The color of the stroke.
-    pub color: Color,
+    /// The color or gradient of the stroke.
+    ///
+    /// By default, it is set to a [`Style::Solid`] with [`Color::BLACK`].
+    pub style: Style,
     /// The distance between the two edges of the stroke.
     pub width: f32,
     /// The shape to be used at the end of open subpaths when they are stroked.
@@ -19,7 +24,10 @@ pub struct Stroke<'a> {
 impl<'a> Stroke<'a> {
     /// Sets the color of the [`Stroke`].
     pub fn with_color(self, color: Color) -> Self {
-        Stroke { color, ..self }
+        Stroke {
+            style: Style::Solid(color),
+            ..self
+        }
     }
 
     /// Sets the width of the [`Stroke`].
@@ -41,7 +49,7 @@ impl<'a> Stroke<'a> {
 impl<'a> Default for Stroke<'a> {
     fn default() -> Self {
         Stroke {
-            color: Color::BLACK,
+            style: Style::Solid(Color::BLACK),
             width: 1.0,
             line_cap: LineCap::default(),
             line_join: LineJoin::default(),

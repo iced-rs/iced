@@ -230,9 +230,9 @@ where
         let mut children = layout.children();
 
         let custom_style = if is_mouse_over {
-            theme.hovered(self.style, self.is_selected)
+            theme.hovered(&self.style, self.is_selected)
         } else {
-            theme.active(self.style, self.is_selected)
+            theme.active(&self.style, self.is_selected)
         };
 
         {
@@ -245,7 +245,7 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: size / 2.0,
+                    border_radius: (size / 2.0).into(),
                     border_width: custom_style.border_width,
                     border_color: custom_style.border_color,
                 },
@@ -261,7 +261,7 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border_radius: dot_size / 2.0,
+                        border_radius: (dot_size / 2.0).into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
