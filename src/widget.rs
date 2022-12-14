@@ -80,9 +80,7 @@ pub mod pane_grid {
 
 pub mod pick_list {
     //! Display a dropdown list of selectable values.
-    pub use iced_native::widget::pick_list::{
-        AccessoryContent, Appearance, StyleSheet,
-    };
+    pub use iced_native::widget::pick_list::{Appearance, Handle, StyleSheet};
 
     /// A widget allowing the selection of a single value from a list of options.
     pub type PickList<'a, T, Message, Renderer = crate::Renderer> =

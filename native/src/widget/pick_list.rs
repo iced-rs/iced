@@ -20,56 +20,56 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
-/// The content to the right side of the [`PickList`].
+/// The handle to the right side of the [`PickList`].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum AccessoryContent<Renderer>
+pub enum Handle<Renderer>
 where
     Renderer: text::Renderer,
 {
-    /// Default accessory content.
-    Default {
+    /// Displays an arrow icon (▼).
+    ///
+    /// This is the default.
+    Arrow {
         /// Font size of the content.
         size: Option<u16>,
     },
-    /// Custom accessory content.
+    /// A custom handle.
     Custom {
-        /// Font which will be used in the accessory content.
+        /// Font that will be used to display the `text`,
         font: Renderer::Font,
-        /// Content which will be shown.
-        content: String,
+        /// Text that will be shown.
+        text: String,
         /// Font size of the content.
         size: Option<u16>,
     },
-    /// No accessory content will be shown.
+    /// No handle will be shown.
     None,
 }
 
-impl<Renderer> Default for AccessoryContent<Renderer>
+impl<Renderer> Default for Handle<Renderer>
 where
     Renderer: text::Renderer,
 {
     fn default() -> Self {
-        Self::Default { size: None }
+        Self::Arrow { size: None }
     }
 }
 
-impl<Renderer> AccessoryContent<Renderer>
+impl<Renderer> Handle<Renderer>
 where
     Renderer: text::Renderer,
 {
     fn content(&self) -> Option<(Renderer::Font, String, Option<u16>)> {
         match self {
-            AccessoryContent::Default { size } => Some((
+            Self::Arrow { size } => Some((
                 Renderer::ICON_FONT,
                 Renderer::ARROW_DOWN_ICON.to_string(),
                 *size,
             )),
-            AccessoryContent::Custom {
-                font,
-                content,
-                size,
-            } => Some((font.clone(), content.clone(), *size)),
-            AccessoryContent::None => None,
+            Self::Custom { font, text, size } => {
+                Some((font.clone(), text.clone(), *size))
+            }
+            Self::None => None,
         }
     }
 }
@@ -90,7 +90,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    accessory_content: AccessoryContent<Renderer>,
+    handle: Handle<Renderer>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -125,7 +125,7 @@ where
             padding: Self::DEFAULT_PADDING,
             text_size: None,
             font: Default::default(),
-            accessory_content: Default::default(),
+            handle: Default::default(),
             style: Default::default(),
         }
     }
@@ -160,12 +160,9 @@ where
         self
     }
 
-    /// Sets the [`AccessoryContent`] of the [`PickList`].
-    pub fn accessory_content(
-        mut self,
-        accessory_content: AccessoryContent<Renderer>,
-    ) -> Self {
-        self.accessory_content = accessory_content;
+    /// Sets the [`Handle`] of the [`PickList`].
+    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
+        self.handle = handle;
         self
     }
 
@@ -279,7 +276,7 @@ where
             &self.font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
-            &self.accessory_content,
+            &self.handle,
             &self.style,
         )
     }
@@ -581,7 +578,7 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    accessory_content: &AccessoryContent<Renderer>,
+    handle: &Handle<Renderer>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
@@ -608,14 +605,14 @@ pub fn draw<T, Renderer>(
         style.background,
     );
 
-    if let Some((font, content, size)) = accessory_content.content() {
+    if let Some((font, text, size)) = handle.content() {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
-            content: &content,
+            content: &text,
             size,
             font,
-            color: style.accessory_content_color,
+            color: style.handle_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - f32::from(padding.horizontal()),
                 y: bounds.center_y() - size / 2.0,
