@@ -12,7 +12,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu"]
+default = ["wgpu", "winit"]
 # Enables the `Image` widget
 image = ["iced_wgpu?/image", "iced_glow?/image", "image_rs"]
 # Enables the `Svg` widget
@@ -39,6 +39,9 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
+# Enables wayland shell
+wayland = ["iced_sctk", "iced_glow", "iced_native/sctk"]
+winit = ["iced_winit"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -55,6 +58,7 @@ members = [
     "style",
     "wgpu",
     "winit",
+    "sctk",
     "examples/*",
 ]
 
@@ -63,9 +67,10 @@ iced_core = { version = "0.6", path = "core" }
 iced_futures = { version = "0.5", path = "futures" }
 iced_native = { version = "0.7", path = "native" }
 iced_graphics = { version = "0.5", path = "graphics" }
-iced_winit = { version = "0.6", path = "winit", features = ["application"] }
+iced_winit = { version = "0.6", path = "winit", features = ["application"], optional = true }
 iced_glutin = { version = "0.5", path = "glutin", optional = true }
 iced_glow = { version = "0.5", path = "glow", optional = true }
+iced_sctk = { path = "./sctk", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]

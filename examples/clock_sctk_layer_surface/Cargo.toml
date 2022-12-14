@@ -1,0 +1,12 @@
+[package]
+name = "clock_sctk_layer_surface"
+version = "0.1.0"
+authors = ["Ashley Wulber <ashley@system76.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", default-features = false, features = ["canvas", "tokio", "debug", "wayland"] }
+time = { version = "0.3.5", features = ["local-offset"] }
+iced_native = { path = "../../native" }
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "f1d9c3e" }

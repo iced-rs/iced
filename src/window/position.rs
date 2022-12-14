@@ -21,6 +21,7 @@ impl Default for Position {
     }
 }
 
+#[cfg(feature = "winit")]
 impl From<Position> for iced_winit::Position {
     fn from(position: Position) -> Self {
         match position {

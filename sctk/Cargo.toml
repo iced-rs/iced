@@ -1,0 +1,38 @@
+[package]
+name = "iced_sctk"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[features]
+debug = ["iced_native/debug"]
+system = ["sysinfo"]
+application = []
+multi_window = []
+
+[dependencies]
+log = "0.4"
+thiserror = "1.0"
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "f1d9c3e"  }
+glutin = "0.30.0-beta.2"
+glow = "0.11.2"
+raw-window-handle = "0.5.0"
+enum-repr = "0.2.6"
+futures = "0.3"
+wayland-backend = {version = "=0.1.0-beta.13", features = ["client_system"]}
+
+[dependencies.iced_native]
+features = ["wayland"]
+path = "../native"
+
+[dependencies.iced_graphics]
+features = ["opengl"]
+path = "../graphics"
+
+[dependencies.iced_futures]
+path = "../futures"
+
+[dependencies.sysinfo]
+version = "0.26"
+optional = true

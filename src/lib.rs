@@ -164,12 +164,32 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+#[cfg(all(not(feature = "glow"), feature = "wgpu", not(feature = "wayland")))]
+pub mod application;
+
 mod element;
 mod error;
 mod result;
+
+#[cfg(all(
+    not(feature = "wayland")
+))]
 mod sandbox;
 
-pub mod application;
+#[cfg(all(
+    not(feature = "wayland")
+))]
+pub use application::Application;
+
+/// wayland application
+#[cfg(feature = "wayland")]
+pub mod wayland;
+#[cfg(feature = "wayland")]
+pub use wayland::Application;
+#[cfg(feature = "wayland")]
+pub use wayland::sandbox;
+
+
 pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
@@ -181,23 +201,37 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
+#[cfg(all(
+    not(feature = "glow"),
+    feature = "wgpu",
+    not(feature = "wayland"),
+    feature = "multi_window"
+))]
+pub mod multi_window;
+
+#[cfg(feature = "wayland")]
+use iced_sctk as runtime;
+
+#[cfg(all(
+    not(feature = "glow"),
+    feature = "wgpu",
+    not(feature = "wayland")
+))]
 use iced_winit as runtime;
 
-#[cfg(feature = "glow")]
+#[cfg(all(feature = "glow", not(feature = "wayland")))]
 use iced_glutin as runtime;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
+#[cfg(all(not(feature = "iced_glow"), feature = "wgpu"))]
 use iced_wgpu as renderer;
 
-#[cfg(feature = "glow")]
+#[cfg(any(feature = "glow", feature = "wayland"))]
 use iced_glow as renderer;
 
 pub use iced_native::theme;
 pub use runtime::event;
 pub use runtime::subscription;
 
-pub use application::Application;
 pub use element::Element;
 pub use error::Error;
 pub use event::Event;
@@ -213,7 +247,7 @@ pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
     color, Alignment, Background, Color, Command, ContentFit, Font, Length,
-    Padding, Point, Rectangle, Size, Vector,
+    Padding, Point, Rectangle, Size, Vector, settings as sctk_settings
 };
 
 #[cfg(feature = "system")]

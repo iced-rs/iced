@@ -8,12 +8,15 @@ license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
+default = ["wayland"]
+wayland = ["sctk"]
 debug = []
 
 [dependencies]
 twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "f1d9c3e", optional = true }
 
 [dependencies.iced_core]
 version = "0.6"

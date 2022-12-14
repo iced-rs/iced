@@ -1,4 +1,6 @@
-use crate::window::{Icon, Position};
+use crate::window::Position;
+#[cfg(feature = "winit")]
+use crate::window::Icon;
 
 /// The window settings of an application.
 #[derive(Debug, Clone)]
@@ -34,6 +36,7 @@ pub struct Settings {
     pub always_on_top: bool,
 
     /// The icon of the window.
+    #[cfg(feature = "winit")]
     pub icon: Option<Icon>,
 }
 
@@ -50,11 +53,13 @@ impl Default for Settings {
             decorations: true,
             transparent: false,
             always_on_top: false,
+            #[cfg(feature = "winit")]
             icon: None,
         }
     }
 }
 
+#[cfg(feature = "winit")]
 impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {

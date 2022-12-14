@@ -1,3 +1,3 @@
 //! Access the clipboard.
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), not(feature = "wayland")))] // TODO support in wayland
 pub use crate::runtime::clipboard::{read, write};

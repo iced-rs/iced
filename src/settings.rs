@@ -1,4 +1,5 @@
 //! Configure your application.
+#[cfg(not(feature = "wayland"))]
 use crate::window;
 
 /// The settings of an application.
@@ -13,7 +14,13 @@ pub struct Settings<Flags> {
     /// The window settings.
     ///
     /// They will be ignored on the Web.
+    #[cfg(not(feature = "wayland"))]
     pub window: window::Settings,
+
+
+    /// the initial surface to be created
+    #[cfg(feature = "wayland")]
+    pub initial_surface: iced_sctk::settings::InitialSurface,
 
     /// The data needed to initialize the [`Application`].
     ///
@@ -76,7 +83,10 @@ impl<Flags> Settings<Flags> {
         Self {
             flags,
             id: default_settings.id,
+            #[cfg(not(feature = "wayland"))]
             window: default_settings.window,
+            #[cfg(feature = "wayland")]
+            initial_surface: default_settings.initial_surface,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
             text_multithreading: default_settings.text_multithreading,
@@ -94,7 +104,10 @@ where
     fn default() -> Self {
         Self {
             id: None,
+            #[cfg(not(feature = "wayland"))]
             window: Default::default(),
+            #[cfg(feature = "wayland")]
+            initial_surface: Default::default(),
             flags: Default::default(),
             default_font: Default::default(),
             default_text_size: 20,
@@ -106,6 +119,7 @@ where
     }
 }
 
+#[cfg(not(any(target_arch = "wasm32", feature = "wayland")))]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
@@ -114,6 +128,18 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
             try_opengles_first: settings.try_opengles_first,
+        }
+    }
+}
+#[cfg(feature = "wayland")]
+impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
+    fn from(settings: Settings<Flags>) -> Self {
+        Self {
+            flags: settings.flags,
+            kbd_repeat: Default::default(),
+            ptr_theme: None,
+            surface: settings.initial_surface,
+            exit_on_close_request: settings.exit_on_close_request,
         }
     }
 }

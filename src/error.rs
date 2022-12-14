@@ -16,6 +16,24 @@ pub enum Error {
     GraphicsCreationFailed(iced_graphics::Error),
 }
 
+#[cfg(feature = "wayland")]
+impl From<iced_sctk::Error> for Error {
+    fn from(error: iced_sctk::Error) -> Self {
+        match error {
+            iced_sctk::Error::ExecutorCreationFailed(error) => {
+                Error::ExecutorCreationFailed(error)
+            },
+            iced_sctk::Error::WindowCreationFailed(error) => {
+                Error::WindowCreationFailed(error)
+            },
+            iced_sctk::Error::GraphicsCreationFailed(error) => {
+                Error::GraphicsCreationFailed(error)
+            },
+        }
+    }
+}
+
+#[cfg(not(feature = "wayland"))]
 impl From<iced_winit::Error> for Error {
     fn from(error: iced_winit::Error) -> Error {
         match error {
