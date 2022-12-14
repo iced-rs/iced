@@ -35,6 +35,11 @@ pub enum Action<T> {
     SetMode(Mode),
     /// Sets the window to maximized or back
     ToggleMaximize,
+    /// Toggles whether window has decorations
+    /// ## Platform-specific
+    /// - **X11:** Not implemented.
+    /// - **Web:** Unsupported.
+    ToggleDecorations,
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
 }
@@ -56,6 +61,7 @@ impl<T> Action<T> {
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
             Self::ToggleMaximize => Action::ToggleMaximize,
+            Self::ToggleDecorations => Action::ToggleDecorations,
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
         }
     }
@@ -77,6 +83,7 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
+            Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
         }
     }
