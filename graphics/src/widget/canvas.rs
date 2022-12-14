@@ -7,6 +7,7 @@ pub mod event;
 pub mod fill;
 pub mod path;
 pub mod stroke;
+pub mod text;
 
 mod cache;
 mod cursor;
@@ -14,7 +15,6 @@ mod frame;
 mod geometry;
 mod program;
 mod style;
-mod text;
 
 pub use crate::gradient::{self, Gradient};
 pub use cache::Cache;
@@ -53,6 +53,7 @@ use std::marker::PhantomData;
 /// #     }
 /// #     pub use iced_native::{Color, Rectangle, Theme};
 /// # }
+/// use iced::widget::canvas::text;
 /// use iced::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
 /// use iced::{Color, Rectangle, Theme};
 ///
@@ -66,7 +67,7 @@ use std::marker::PhantomData;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _state: &(), _theme: &Theme, _text_cache: &text::Cache, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(bounds.size());
 ///
@@ -243,7 +244,7 @@ where
             renderer.draw_primitive(Primitive::Group {
                 primitives: self
                     .program
-                    .draw(state, theme, bounds, cursor)
+                    .draw(state, theme, renderer.text_cache(), bounds, cursor)
                     .into_iter()
                     .map(Geometry::into_primitive)
                     .collect(),

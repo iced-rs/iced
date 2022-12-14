@@ -90,6 +90,7 @@ impl<Message> canvas::Program<Message> for Clock {
         &self,
         _state: &Self::State,
         _theme: &Theme,
+        _text_cache: &canvas::text::Cache,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {

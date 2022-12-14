@@ -148,7 +148,7 @@ impl Theme {
             .into()
     }
 
-    fn draw(&self, frame: &mut Frame) {
+    fn draw(&self, text_cache: &canvas::text::Cache, frame: &mut Frame) {
         let pad = 20.0;
 
         let box_size = Size {
@@ -197,14 +197,17 @@ impl Theme {
                 });
             }
 
-            frame.fill_text(canvas::Text {
-                content: color_hex_string(&color),
-                position: Point {
-                    x: anchor.x + box_size.width / 2.0,
-                    y: box_size.height,
+            frame.fill_text(
+                text_cache,
+                canvas::Text {
+                    content: color_hex_string(&color),
+                    position: Point {
+                        x: anchor.x + box_size.width / 2.0,
+                        y: box_size.height,
+                    },
+                    ..text
                 },
-                ..text
-            });
+            );
         }
 
         text.vertical_alignment = alignment::Vertical::Bottom;
@@ -225,14 +228,17 @@ impl Theme {
 
             frame.fill_rectangle(anchor, box_size, color);
 
-            frame.fill_text(canvas::Text {
-                content: color_hex_string(&color),
-                position: Point {
-                    x: anchor.x + box_size.width / 2.0,
-                    y: box_size.height + 2.0 * pad,
+            frame.fill_text(
+                text_cache,
+                canvas::Text {
+                    content: color_hex_string(&color),
+                    position: Point {
+                        x: anchor.x + box_size.width / 2.0,
+                        y: box_size.height + 2.0 * pad,
+                    },
+                    ..text
                 },
-                ..text
-            });
+            );
         }
     }
 }
@@ -244,11 +250,12 @@ impl<Message> canvas::Program<Message> for Theme {
         &self,
         _state: &Self::State,
         _theme: &iced::Theme,
+        text_cache: &canvas::text::Cache,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(bounds.size(), |frame| {
-            self.draw(frame);
+            self.draw(text_cache, frame);
         });
 
         vec![theme]

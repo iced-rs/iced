@@ -1,9 +1,11 @@
+use crate::alignment;
 use crate::gradient::Gradient;
+use crate::text;
 use crate::triangle;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Style, Text};
 use crate::Primitive;
 
-use iced_native::{Point, Rectangle, Size, Vector};
+use iced_native::{Font, Point, Rectangle, Size, Vector};
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -295,46 +297,111 @@ impl Frame {
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
     /// them with the given color.
     ///
-    /// __Warning:__ Text currently does not work well with rotations and scale
-    /// transforms! The position will be correctly transformed, but the
-    /// resulting glyphs will not be rotated or scaled properly.
-    ///
-    /// Additionally, all text will be rendered on top of all the layers of
-    /// a [`Canvas`]. Therefore, it is currently only meant to be used for
-    /// overlays, which is the most common use case.
-    ///
-    /// Support for vectorial text is planned, and should address all these
-    /// limitations.
-    ///
     /// [`Canvas`]: crate::widget::Canvas
-    pub fn fill_text(&mut self, text: impl Into<Text>) {
+    pub fn fill_text(&mut self, cache: &text::Cache, text: impl Into<Text>) {
         let text = text.into();
 
-        let position = if self.transforms.current.is_identity {
-            text.position
-        } else {
-            let transformed = self.transforms.current.raw.transform_point(
-                lyon::math::Point::new(text.position.x, text.position.y),
-            );
-
-            Point::new(transformed.x, transformed.y)
+        let metrics =
+            cosmic_text::Metrics::new(text.size as i32, text.size as i32);
+        let attrs = match text.font {
+            Font::Default => cosmic_text::Attrs::new(),
+            Font::External { name, .. } => cosmic_text::Attrs {
+                family: cosmic_text::Family::Name(name),
+                ..cosmic_text::Attrs::new()
+            },
         };
 
-        // TODO: Use vectorial text instead of primitive
-        self.primitives.push(Primitive::Text {
-            content: text.content,
-            bounds: Rectangle {
-                x: position.x,
-                y: position.y,
-                width: f32::INFINITY,
-                height: f32::INFINITY,
-            },
-            color: text.color,
-            size: text.size,
-            font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
-        });
+        let mut buffer = cosmic_text::BufferLine::new(
+            &text.content,
+            cosmic_text::AttrsList::new(attrs),
+        );
+
+        let layout =
+            buffer.layout(&text::FONT_SYSTEM, metrics.font_size, i32::MAX);
+
+        let translation_x = match text.horizontal_alignment {
+            alignment::Horizontal::Left => text.position.x,
+            alignment::Horizontal::Center | alignment::Horizontal::Right => {
+                let mut line_width = 0.0f32;
+
+                for line in layout.iter() {
+                    line_width = line_width.max(line.w);
+                }
+
+                if text.horizontal_alignment == alignment::Horizontal::Center {
+                    text.position.x - line_width / 2.0
+                } else {
+                    text.position.x - line_width
+                }
+            }
+        };
+
+        let translation_y = {
+            let total_height = text.size * layout.len() as f32;
+
+            match text.vertical_alignment {
+                alignment::Vertical::Top => text.position.y,
+                alignment::Vertical::Center => {
+                    text.position.y + total_height / 2.0
+                }
+                alignment::Vertical::Bottom => text.position.y + total_height,
+            }
+        };
+
+        for run in layout.iter() {
+            for glyph in run.glyphs.iter() {
+                let start_x = translation_x + glyph.x + glyph.x_offset;
+                let start_y = translation_y as f32 + glyph.y_offset - text.size;
+
+                let offset = Vector::new(start_x, start_y);
+
+                if let Some(commands) = cache
+                    .swash
+                    .borrow_mut()
+                    .get_outline_commands(glyph.cache_key)
+                {
+                    let glyph = Path::new(|path| {
+                        use cosmic_text::Command;
+
+                        for command in commands {
+                            match command {
+                                Command::MoveTo(p) => {
+                                    path.move_to(
+                                        Point::new(p.x, -p.y) + offset,
+                                    );
+                                }
+                                Command::LineTo(p) => {
+                                    path.line_to(
+                                        Point::new(p.x, -p.y) + offset,
+                                    );
+                                }
+                                Command::CurveTo(control_a, control_b, to) => {
+                                    path.bezier_curve_to(
+                                        Point::new(control_a.x, -control_a.y)
+                                            + offset,
+                                        Point::new(control_b.x, -control_b.y)
+                                            + offset,
+                                        Point::new(to.x, -to.y) + offset,
+                                    );
+                                }
+                                Command::QuadTo(control, to) => {
+                                    path.quadratic_curve_to(
+                                        Point::new(control.x, -control.y)
+                                            + offset,
+                                        Point::new(to.x, -to.y) + offset,
+                                    );
+                                }
+                                Command::Close => {
+                                    path.close();
+                                }
+                            }
+                        }
+                    });
+
+                    self.fill(&glyph, text.color);
+                }
+            }
+        }
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
@@ -365,28 +432,11 @@ impl Frame {
 
         let primitives = frame.into_primitives();
 
-        let (text, meshes) = primitives
-            .into_iter()
-            .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
-
         let translation = Vector::new(region.x, region.y);
 
-        self.primitives.push(Primitive::Group {
-            primitives: vec![
-                Primitive::Translate {
-                    translation,
-                    content: Box::new(Primitive::Group { primitives: meshes }),
-                },
-                Primitive::Translate {
-                    translation,
-                    content: Box::new(Primitive::Clip {
-                        bounds: Rectangle::with_size(region.size()),
-                        content: Box::new(Primitive::Group {
-                            primitives: text,
-                        }),
-                    }),
-                },
-            ],
+        self.primitives.push(Primitive::Translate {
+            translation,
+            content: Box::new(Primitive::Group { primitives }),
         });
     }
 

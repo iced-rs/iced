@@ -207,9 +207,8 @@ mod grid {
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
-    };
+    use iced::widget::canvas::text::{self, Text};
+    use iced::widget::canvas::{Cache, Canvas, Cursor, Frame, Geometry, Path};
     use iced::{
         alignment, mouse, Color, Element, Length, Point, Rectangle, Size,
         Theme, Vector,
@@ -537,6 +536,7 @@ mod grid {
             &self,
             _interaction: &Interaction,
             _theme: &Theme,
+            text_cache: &text::Cache,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {
@@ -593,32 +593,38 @@ mod grid {
                 let text = Text {
                     color: Color::WHITE,
                     size: 14.0,
-                    position: Point::new(frame.width(), frame.height()),
+                    position: Point::new(frame.width(), frame.height() - 4.0),
                     horizontal_alignment: alignment::Horizontal::Right,
                     vertical_alignment: alignment::Vertical::Bottom,
                     ..Text::default()
                 };
 
                 if let Some(cell) = hovered_cell {
-                    frame.fill_text(Text {
-                        content: format!("({}, {})", cell.j, cell.i),
-                        position: text.position - Vector::new(0.0, 16.0),
-                        ..text
-                    });
+                    frame.fill_text(
+                        text_cache,
+                        Text {
+                            content: format!("({}, {})", cell.j, cell.i),
+                            position: text.position - Vector::new(0.0, 20.0),
+                            ..text
+                        },
+                    );
                 }
 
                 let cell_count = self.state.cell_count();
 
-                frame.fill_text(Text {
-                    content: format!(
-                        "{} cell{} @ {:?} ({})",
-                        cell_count,
-                        if cell_count == 1 { "" } else { "s" },
-                        self.last_tick_duration,
-                        self.last_queued_ticks
-                    ),
-                    ..text
-                });
+                frame.fill_text(
+                    text_cache,
+                    Text {
+                        content: format!(
+                            "{} cell{} @ {:?} ({})",
+                            cell_count,
+                            if cell_count == 1 { "" } else { "s" },
+                            self.last_tick_duration,
+                            self.last_queued_ticks
+                        ),
+                        ..text
+                    },
+                );
 
                 frame.into_geometry()
             };

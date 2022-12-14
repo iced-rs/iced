@@ -1,4 +1,4 @@
-use crate::font::{Family, LoadError};
+use crate::text::font::{Family, LoadError};
 
 /// A font source that can find and load system fonts.
 #[allow(missing_debug_implementations)]

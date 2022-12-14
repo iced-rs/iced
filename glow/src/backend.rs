@@ -6,7 +6,7 @@ use crate::{program, triangle};
 use crate::{Settings, Transformation, Viewport};
 
 use iced_graphics::backend;
-use iced_graphics::font;
+use iced_graphics::text::font;
 use iced_graphics::{Layer, Primitive};
 use iced_native::alignment;
 use iced_native::{Font, Size};

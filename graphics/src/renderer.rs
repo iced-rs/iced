@@ -1,11 +1,11 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
+use crate::text::{self, Text};
 use crate::{Primitive, Vector};
 use iced_native::image;
 use iced_native::layout;
 use iced_native::renderer;
 use iced_native::svg;
-use iced_native::text::{self, Text};
 use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
@@ -13,10 +13,11 @@ pub use iced_native::renderer::Style;
 use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Renderer<B: Backend, Theme> {
     backend: B,
     primitives: Vec<Primitive>,
+    text_cache: text::Cache,
     theme: PhantomData<Theme>,
 }
 
@@ -26,6 +27,7 @@ impl<B: Backend, T> Renderer<B, T> {
         Self {
             backend,
             primitives: Vec::new(),
+            text_cache: text::Cache::new(),
             theme: PhantomData,
         }
     }
@@ -44,6 +46,11 @@ impl<B: Backend, T> Renderer<B, T> {
     /// of the [`Renderer`].
     pub fn with_primitives(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
         f(&mut self.backend, &self.primitives);
+    }
+
+    /// Returns a reference to the current [`text::Cache`].
+    pub fn text_cache(&self) -> &text::Cache {
+        &self.text_cache
     }
 }
 

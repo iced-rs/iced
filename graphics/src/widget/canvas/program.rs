@@ -1,3 +1,4 @@
+use crate::text;
 use crate::widget::canvas::event::{self, Event};
 use crate::widget::canvas::mouse;
 use crate::widget::canvas::{Cursor, Geometry};
@@ -45,6 +46,7 @@ pub trait Program<Message, Theme = iced_native::Theme> {
         &self,
         state: &Self::State,
         theme: &Theme,
+        text_cache: &text::Cache,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry>;
@@ -85,10 +87,11 @@ where
         &self,
         state: &Self::State,
         theme: &Theme,
+        text_cache: &text::Cache,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> Vec<Geometry> {
-        T::draw(self, state, theme, bounds, cursor)
+        T::draw(self, state, theme, text_cache, bounds, cursor)
     }
 
     fn mouse_interaction(

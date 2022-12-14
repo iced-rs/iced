@@ -28,12 +28,12 @@ mod transformation;
 mod viewport;
 
 pub mod backend;
-pub mod font;
 pub mod gradient;
 pub mod image;
 pub mod layer;
 pub mod overlay;
 pub mod renderer;
+pub mod text;
 pub mod triangle;
 pub mod widget;
 pub mod window;

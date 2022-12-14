@@ -1,6 +1,6 @@
 use crate::Transformation;
 
-use iced_graphics::font;
+use iced_graphics::text::font;
 
 use glow_glyph::ab_glyph;
 use std::{cell::RefCell, collections::HashMap};

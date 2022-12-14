@@ -76,6 +76,7 @@ impl<Message> canvas::Program<Message> for Arc {
         &self,
         _state: &Self::State,
         theme: &Theme,
+        _text_cache: &canvas::text::Cache,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {

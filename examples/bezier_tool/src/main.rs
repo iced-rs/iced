@@ -153,6 +153,7 @@ mod bezier {
             &self,
             state: &Self::State,
             _theme: &Theme,
+            _text_cache: &canvas::text::Cache,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {

@@ -4,8 +4,8 @@ use crate::triangle;
 use crate::{Settings, Transformation};
 
 use iced_graphics::backend;
-use iced_graphics::font;
 use iced_graphics::layer::Layer;
+use iced_graphics::text::font;
 use iced_graphics::{Primitive, Viewport};
 use iced_native::alignment;
 use iced_native::{Font, Size};

@@ -13,6 +13,7 @@ use iced::time;
 use iced::widget::canvas;
 use iced::widget::canvas::gradient::{self, Gradient};
 use iced::widget::canvas::stroke::{self, Stroke};
+use iced::widget::canvas::text;
 use iced::widget::canvas::{Cursor, Path};
 use iced::window;
 use iced::{
@@ -158,6 +159,7 @@ impl<Message> canvas::Program<Message> for State {
         &self,
         _state: &Self::State,
         _theme: &Theme,
+        _text_cache: &text::Cache,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<canvas::Geometry> {

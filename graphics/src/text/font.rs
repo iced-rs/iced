@@ -15,14 +15,14 @@ pub use font_kit::{
 /// A built-in fallback font, for convenience.
 #[cfg(feature = "font-fallback")]
 #[cfg_attr(docsrs, doc(cfg(feature = "font-fallback")))]
-pub const FALLBACK: &[u8] = include_bytes!("../fonts/Lato-Regular.ttf");
+pub const FALLBACK: &[u8] = include_bytes!("../../fonts/Lato-Regular.ttf");
 
 /// A built-in icon font, for convenience.
 #[cfg(feature = "font-icons")]
 #[cfg_attr(docsrs, doc(cfg(feature = "font-icons")))]
 pub const ICONS: iced_native::Font = iced_native::Font::External {
     name: "iced_wgpu icons",
-    bytes: include_bytes!("../fonts/Icons.ttf"),
+    bytes: include_bytes!("../../fonts/Icons.ttf"),
 };
 
 /// The `char` representing a ✔ icon in the built-in [`ICONS`] font.
