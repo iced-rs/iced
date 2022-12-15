@@ -5,6 +5,8 @@ use std::fmt;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
+    /// Closes the current window and exits the application.
+    Close,
     /// Moves the window with the left mouse button until the button is
     /// released.
     ///
@@ -54,6 +56,7 @@ impl<T> Action<T> {
         T: 'static,
     {
         match self {
+            Self::Close => Action::Close,
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
             Self::Maximize(bool) => Action::Maximize(bool),
@@ -70,6 +73,7 @@ impl<T> Action<T> {
 impl<T> fmt::Debug for Action<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Close => write!(f, "Action::Close"),
             Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
