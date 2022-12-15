@@ -4,7 +4,7 @@ use iced_native::{
 };
 use sctk::{
     reexports::client::protocol::wl_pointer::AxisSource,
-    seat::{keyboard::Modifiers, pointer::AxisScroll},
+    seat::{keyboard::Modifiers, pointer::{AxisScroll, BTN_LEFT, BTN_RIGHT, BTN_MIDDLE}},
 };
 /// An error that occurred while running an application.
 #[derive(Debug, thiserror::Error)]
@@ -12,11 +12,14 @@ use sctk::{
 pub struct KeyCodeError(u32);
 
 pub fn pointer_button_to_native(button: u32) -> Option<mouse::Button> {
-    match button {
-        BTN_LEFT => Some(mouse::Button::Left),
-        BTN_MIDDLE => Some(mouse::Button::Middle),
-        BTN_RIGHT => Some(mouse::Button::Right),
-        b => b.try_into().ok().map(|b| mouse::Button::Other(b)),
+    if button == BTN_LEFT {
+        Some(mouse::Button::Left)
+    } else if button == BTN_RIGHT {
+        Some(mouse::Button::Right)
+    } else if button == BTN_MIDDLE {
+        Some(mouse::Button::Right)
+    } else {
+        button.try_into().ok().map(|b| mouse::Button::Other(b))
     }
 }
 

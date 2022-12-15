@@ -1,7 +1,6 @@
 use crate::{event_loop::state::SctkState, sctk_event::SctkEvent};
 use sctk::{
     delegate_pointer,
-    reexports::client::Proxy,
     seat::pointer::{PointerEventKind, PointerHandler},
 };
 use std::fmt::Debug;
