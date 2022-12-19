@@ -122,7 +122,7 @@ impl<T> Action<T> {
     /// Maps the output of a window [`Action`] using the provided closure.
     pub fn map<A>(
         self,
-        f: impl Fn(T) -> A + 'static + MaybeSend + Sync,
+        _: impl Fn(T) -> A + 'static + MaybeSend + Sync,
     ) -> Action<A>
     where
         T: 'static,

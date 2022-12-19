@@ -81,6 +81,11 @@ pub enum Action<T> {
         /// id of the window
         id: window::Id,
     },
+    /// Toggle maximization of the window.
+    ToggleMaximized {
+        /// id of the window
+        id: window::Id,
+    },
     /// Maximize the window.
     Maximize {
         /// id of the window
@@ -88,6 +93,11 @@ pub enum Action<T> {
     },
     /// UnsetMaximize the window.
     UnsetMaximize {
+        /// id of the window
+        id: window::Id,
+    },
+    /// Toggle fullscreen of the window.
+    ToggleFullscreen {
         /// id of the window
         id: window::Id,
     },
@@ -121,6 +131,15 @@ pub enum Action<T> {
         x: i32,
         /// y location of popup
         y: i32,
+    },
+    /// Set the mode of the window
+    Mode(window::Id, window::Mode),
+    /// Set the app id of the window
+    AppId {
+        /// id of the window
+        id: window::Id,
+        /// app id of the window
+        app_id: String,
     },
 }
 
@@ -157,6 +176,10 @@ impl<T> Action<T> {
                 Action::InteractiveResize { id, edge }
             }
             Action::Destroy(id) => Action::Destroy(id),
+            Action::Mode(id, m) => Action::Mode(id, m),
+            Action::ToggleMaximized { id } => Action::ToggleMaximized { id },
+            Action::ToggleFullscreen { id } => Action::ToggleFullscreen { id },
+            Action::AppId { id, app_id } => Action::AppId { id, app_id },
         }
     }
 }
@@ -233,6 +256,26 @@ impl<T> fmt::Debug for Action<T> {
                 f,
                 "Action::Window::Destroy {{ id: {:?} }}",
                 id
+            ),
+            Action::Mode(id, m) => write!(
+                f,
+                "Action::Window::Mode {{ id: {:?}, mode: {:?} }}",
+                id, m
+            ),
+            Action::ToggleMaximized { id } => write!(
+                f,
+                "Action::Window::Maximized {{ id: {:?} }}",
+                id
+            ),
+            Action::ToggleFullscreen { id } => write!(
+                f,
+                "Action::Window::ToggleFullscreen {{ id: {:?} }}",
+                id
+            ),
+            Action::AppId { id, app_id } => write!(
+                f,
+                "Action::Window::Mode {{ id: {:?}, app_id: {:?} }}",
+                id, app_id
             ),
         }
     }
