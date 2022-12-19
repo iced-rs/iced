@@ -1,4 +1,5 @@
-use crate::Rectangle;
+use crate::{Color, Rectangle};
+
 use iced_native::{image, svg};
 
 /// A raster or vector image.
@@ -16,6 +17,9 @@ pub enum Image {
     Vector {
         /// The handle of a vector image.
         handle: svg::Handle,
+
+        /// The [`Color`] filter
+        color: Option<Color>,
 
         /// The bounds of the image.
         bounds: Rectangle,

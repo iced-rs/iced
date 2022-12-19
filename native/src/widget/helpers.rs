@@ -198,6 +198,23 @@ where
     widget::Slider::new(range, value, on_change)
 }
 
+/// Creates a new [`VerticalSlider`].
+///
+/// [`VerticalSlider`]: widget::VerticalSlider
+pub fn vertical_slider<'a, T, Message, Renderer>(
+    range: std::ops::RangeInclusive<T>,
+    value: T,
+    on_change: impl Fn(T) -> Message + 'a,
+) -> widget::VerticalSlider<'a, T, Message, Renderer>
+where
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: widget::slider::StyleSheet,
+{
+    widget::VerticalSlider::new(range, value, on_change)
+}
+
 /// Creates a new [`PickList`].
 ///
 /// [`PickList`]: widget::PickList
@@ -285,6 +302,12 @@ where
 ///
 /// [`Svg`]: widget::Svg
 /// [`Handle`]: widget::svg::Handle
-pub fn svg(handle: impl Into<widget::svg::Handle>) -> widget::Svg {
+pub fn svg<Renderer>(
+    handle: impl Into<widget::svg::Handle>,
+) -> widget::Svg<Renderer>
+where
+    Renderer: crate::svg::Renderer,
+    Renderer::Theme: widget::svg::StyleSheet,
+{
     widget::Svg::new(handle)
 }
