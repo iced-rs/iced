@@ -632,7 +632,6 @@ fn draw_primitive(
             buffers,
             size,
         } => {
-            /*TODO: will this be needed?
             fn undo_linear_component(linear: f32) -> f32 {
                 if linear < 0.0031308 {
                     linear * 12.92
@@ -654,18 +653,6 @@ fn draw_primitive(
                 ]
             }
 
-            let rgba8 = linear_to_rgba8(&color);
-            */
-
-            // TODO: Each vertice has its own separate color.
-            let rgba8 = iced_graphics::Color::from(buffers.vertices[0].color).into_rgba8();
-            let source = Source::Solid(SolidSource::from_unpremultiplied_argb(
-                rgba8[3],
-                rgba8[0],
-                rgba8[1],
-                rgba8[2],
-            ));
-
             /*
             draw_target.push_clip_rect(IntRect::new(
                 IntPoint::new(0, 0),
@@ -673,26 +660,34 @@ fn draw_primitive(
             ));
             */
 
-            let mut pb = PathBuilder::new();
-
             for indices in buffers.indices.chunks_exact(3) {
                 let a = &buffers.vertices[indices[0] as usize];
                 let b = &buffers.vertices[indices[1] as usize];
                 let c = &buffers.vertices[indices[2] as usize];
 
+
+                let mut pb = PathBuilder::new();
                 pb.move_to(a.position[0], a.position[1]);
                 pb.line_to(b.position[0], b.position[1]);
                 pb.line_to(c.position[0], c.position[1]);
                 pb.close();
 
-            }
+                // TODO: Each vertice has its own separate color.
+                let rgba8 = linear_to_rgba8(&a.color);
+                let source = Source::Solid(SolidSource::from_unpremultiplied_argb(
+                    rgba8[3],
+                    rgba8[0],
+                    rgba8[1],
+                    rgba8[2],
+                ));
 
-            let path = pb.finish();
-            draw_target.fill(
-                &path,
-                &source,
-                draw_options
-            );
+                let path = pb.finish();
+                draw_target.fill(
+                    &path,
+                    &source,
+                    draw_options
+                );
+            }
 
             /*
             draw_target.pop_clip();
