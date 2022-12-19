@@ -414,10 +414,11 @@ where
                         variant: WindowEventVariant::Close,
                         id,
                     } => {
-                        if let Some(i) =
-                            self.state.layer_surfaces.iter().position(|l| {
-                                l.surface.wl_surface().id() == id.id()
-                            })
+                        if let Some(i) = self
+                            .state
+                            .windows
+                            .iter()
+                            .position(|l| l.window.wl_surface().id() == id.id())
                         {
                             let w = self.state.windows.remove(i);
                             w.window.xdg_toplevel().destroy();
@@ -627,11 +628,30 @@ where
                             }
                         },
                         platform_specific::wayland::window::Action::InteractiveMove { id } => {
-                            if let Some(window) = self.state.windows.iter_mut().find(|w| w.id == id) {
-                                todo!();
+                            if let (Some(window), Some((seat, last_press))) = (self.state.windows.iter_mut().find(|w| w.id == id), self.state.seats.first().and_then(|seat| seat.last_ptr_press.map(|p| (&seat.seat, p.2)))) {
+                                window.window.xdg_toplevel()._move(seat, last_press);
+                                to_commit.insert(id, window.window.wl_surface().clone());
                             }
                         },
-                        platform_specific::wayland::window::Action::InteractiveResize { id, edge } => todo!(),
+                        platform_specific::wayland::window::Action::InteractiveResize { id, edge } => {
+                            if let (Some(window), Some((seat, last_press))) = (self.state.windows.iter_mut().find(|w| w.id == id), self.state.seats.first().and_then(|seat| seat.last_ptr_press.map(|p| (&seat.seat, p.2)))) {
+                                window.window.xdg_toplevel().resize(seat, last_press, edge);
+                                to_commit.insert(id, window.window.wl_surface().clone());
+                            }
+                        },
+                        platform_specific::wayland::window::Action::ToggleMaximized { id } => {
+                            if let Some(window) = self.state.windows.iter_mut().find(|w| w.id == id) {
+                                if let Some(c) = &window.last_configure {
+                                    dbg!(c);
+                                    if c.is_maximized() {
+                                        window.window.unset_maximized();
+                                    } else {
+                                        window.window.set_maximized();
+                                    }
+                                    to_commit.insert(id, window.window.wl_surface().clone());
+                                }
+                            }
+                        },
                         platform_specific::wayland::window::Action::ShowWindowMenu { id, x, y } => todo!(),
                         platform_specific::wayland::window::Action::Destroy(id) => {
                             if let Some(i) = self.state.windows.iter().position(|l| &l.id == &id) {
@@ -646,6 +666,40 @@ where
                                     &mut control_flow,
                                     &mut callback,
                                 );
+                            }
+                        },
+                        platform_specific::wayland::window::Action::Mode(id, mode) => {
+                            if let Some(window) = self.state.windows.iter_mut().find(|w| w.id == id) {
+                                match mode {
+                                    iced_native::window::Mode::Windowed => {
+                                        window.window.unset_fullscreen();
+                                    },
+                                    iced_native::window::Mode::Fullscreen => {
+                                        window.window.set_fullscreen(None);
+                                    },
+                                    iced_native::window::Mode::Hidden => {
+                                        window.window.set_mimimized();
+                                    },
+                                }
+                                to_commit.insert(id, window.window.wl_surface().clone());
+                            }
+                        },
+                        platform_specific::wayland::window::Action::ToggleFullscreen { id } => {
+                            if let Some(window) = self.state.windows.iter_mut().find(|w| w.id == id) {
+                                if let Some(c) = &window.last_configure {
+                                    if c.is_fullscreen() {
+                                        window.window.unset_fullscreen();
+                                    } else {
+                                        window.window.set_fullscreen(None);
+                                    }
+                                    to_commit.insert(id, window.window.wl_surface().clone());
+                                }
+                            }
+                        },
+                        platform_specific::wayland::window::Action::AppId { id, app_id } => {
+                            if let Some(window) = self.state.windows.iter_mut().find(|w| w.id == id) {
+                                window.window.set_app_id(app_id);
+                                to_commit.insert(id, window.window.wl_surface().clone());
                             }
                         },
                     },

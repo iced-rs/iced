@@ -45,18 +45,35 @@ pub fn resize_window<Message>(
     ))
 }
 
-/// Sets the [`Mode`] of the window.
-pub fn set_mode_window<Message>(
-    id: window::Id,
-    mode: Mode,
-) -> Command<Message> {
-    Command::single(command::Action::Window(id, Action::SetMode(mode)))
+pub fn start_drag_window<Message>(id: window::Id) -> Command<Message> {
+    Command::single(command::Action::PlatformSpecific(
+        platform_specific::Action::Wayland(wayland::Action::Window(
+            wayland::window::Action::InteractiveMove { id },
+        )),
+    ))
 }
 
-/// Fetches the current [`Mode`] of the window.
-pub fn fetch_mode_window<Message>(
-    id: window::Id,
-    f: impl FnOnce(Mode) -> Message + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::Window(id, Action::FetchMode(Box::new(f))))
+pub fn toggle_maximize<Message>(id: window::Id) -> Command<Message> {
+    Command::single(command::Action::PlatformSpecific(
+        platform_specific::Action::Wayland(wayland::Action::Window(
+            wayland::window::Action::ToggleMaximized { id },
+        )),
+    ))
+}
+
+pub fn set_app_id_window<Message>(id: window::Id, app_id: String) -> Command<Message> {
+    Command::single(command::Action::PlatformSpecific(
+        platform_specific::Action::Wayland(wayland::Action::Window(
+            wayland::window::Action::AppId { id, app_id },
+        )),
+    ))
+}
+
+/// Sets the [`Mode`] of the window.
+pub fn set_mode_window<Message>(id: window::Id, mode: Mode) -> Command<Message> {
+    Command::single(command::Action::PlatformSpecific(
+        platform_specific::Action::Wayland(wayland::Action::Window(
+            wayland::window::Action::Mode(id, mode),
+        )),
+    ))
 }

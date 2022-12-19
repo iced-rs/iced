@@ -1158,8 +1158,8 @@ fn run_command<A, E>(
                     todo!();
                 }
             },
-            command::Action::Window(id, action) => {
-                todo!()
+            command::Action::Window(..) => {
+                unimplemented!("Use platform specific events instead")
             }
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

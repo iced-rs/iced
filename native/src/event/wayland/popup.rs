@@ -1,5 +1,3 @@
-use crate::window;
-
 /// popup events
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PopupEvent {
