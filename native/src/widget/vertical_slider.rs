@@ -9,7 +9,7 @@ use crate::event::{self, Event};
 use crate::widget::tree::{self, Tree};
 use crate::{
     layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
-    Layout, Length, Point, Rectangle, Shell, Size, Widget,
+    Layout, Length, Point, Rectangle, Shell, Size, Widget, IME,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -182,6 +182,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(
