@@ -89,6 +89,17 @@ impl Color {
         }
     }
 
+    /// Converts the [`Color`] into its RGBA8 equivalent.
+    #[must_use]
+    pub fn into_rgba8(self) -> [u8; 4] {
+        [
+            (self.r * 255.0).round() as u8,
+            (self.g * 255.0).round() as u8,
+            (self.b * 255.0).round() as u8,
+            (self.a * 255.0).round() as u8,
+        ]
+    }
+
     /// Converts the [`Color`] into its linear values.
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
@@ -148,24 +159,26 @@ impl From<[f32; 4]> for Color {
 #[macro_export]
 macro_rules! color {
     ($r:expr, $g:expr, $b:expr) => {
-        Color::from_rgb8($r, $g, $b)
+        $crate::Color::from_rgb8($r, $g, $b)
     };
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        Color::from_rgba8($r, $g, $b, $a)
+        $crate::Color::from_rgba8($r, $g, $b, $a)
     };
     ($hex:expr) => {{
         let hex = $hex as u32;
         let r = (hex & 0xff0000) >> 16;
         let g = (hex & 0xff00) >> 8;
         let b = (hex & 0xff);
-        Color::from_rgb8(r as u8, g as u8, b as u8)
+
+        $crate::Color::from_rgb8(r as u8, g as u8, b as u8)
     }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
         let r = (hex & 0xff0000) >> 16;
         let g = (hex & 0xff00) >> 8;
         let b = (hex & 0xff);
-        Color::from_rgba8(r as u8, g as u8, b as u8, $a)
+
+        $crate::Color::from_rgba8(r as u8, g as u8, b as u8, $a)
     }};
 }
 

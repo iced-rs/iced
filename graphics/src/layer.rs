@@ -251,11 +251,16 @@ impl<'a> Layer<'a> {
                     bounds: *bounds + translation,
                 });
             }
-            Primitive::Svg { handle, bounds } => {
+            Primitive::Svg {
+                handle,
+                color,
+                bounds,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Vector {
                     handle: handle.clone(),
+                    color: *color,
                     bounds: *bounds + translation,
                 });
             }

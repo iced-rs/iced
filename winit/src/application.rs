@@ -94,13 +94,6 @@ where
     fn scale_factor(&self) -> f64 {
         1.0
     }
-
-    /// Returns whether the [`Application`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
-    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -257,6 +250,7 @@ async fn run_instance<A, E, C>(
 
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
+    let mut should_exit = false;
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -277,6 +271,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &mut should_exit,
         &ime,
         &mut proxy,
         &mut debug,
@@ -338,6 +333,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &mut should_exit,
                         &ime,
                         &mut proxy,
                         &mut debug,
@@ -347,8 +343,6 @@ async fn run_instance<A, E, C>(
                     );
                     // Update window
                     state.synchronize(&application, &window);
-
-                    let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &application,
@@ -557,6 +551,7 @@ pub fn update<A: Application, E: Executor>(
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
@@ -581,6 +576,7 @@ pub fn update<A: Application, E: Executor>(
             command,
             runtime,
             clipboard,
+            should_exit,
             ime,
             proxy,
             debug,
@@ -602,6 +598,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     ime: &IME,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
@@ -645,6 +642,9 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Window(action) => match action {
+                window::Action::Close => {
+                    *should_exit = true;
+                }
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
@@ -675,6 +675,9 @@ pub fn run_command<A, E>(
                 }
                 window::Action::ToggleMaximize => {
                     window.set_maximized(!window.is_maximized())
+                }
+                window::Action::ToggleDecorations => {
+                    window.set_decorations(!window.is_decorated())
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {

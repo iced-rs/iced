@@ -26,11 +26,11 @@
 //! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
 //! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/0.4/master/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.5/wgpu
-//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.5/winit
+//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.6/wgpu
+//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.6/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
 //! [web runtime]: https://github.com/iced-rs/iced_web
-//! [examples]: https://github.com/iced-rs/iced/tree/0.5/examples
+//! [examples]: https://github.com/iced-rs/iced/tree/0.6/examples
 //! [repository]: https://github.com/iced-rs/iced
 //!
 //! # Overview

@@ -34,19 +34,19 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.5/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.5/examples/bezier_tool
-/// [`counter`]: https://github.com/iced-rs/iced/tree/0.5/examples/counter
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.5/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.5/examples/geometry
-/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.5/examples/pane_grid
-/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.5/examples/progress_bar
-/// [`styling`]: https://github.com/iced-rs/iced/tree/0.5/examples/styling
-/// [`svg`]: https://github.com/iced-rs/iced/tree/0.5/examples/svg
-/// [`tour`]: https://github.com/iced-rs/iced/tree/0.5/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.6/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.6/examples/bezier_tool
+/// [`counter`]: https://github.com/iced-rs/iced/tree/0.6/examples/counter
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.6/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.6/examples/geometry
+/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.6/examples/pane_grid
+/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.6/examples/progress_bar
+/// [`styling`]: https://github.com/iced-rs/iced/tree/0.6/examples/styling
+/// [`svg`]: https://github.com/iced-rs/iced/tree/0.6/examples/svg
+/// [`tour`]: https://github.com/iced-rs/iced/tree/0.6/examples/tour
 /// [`Canvas widget`]: crate::widget::Canvas
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.5/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.6/wgpu
 /// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///

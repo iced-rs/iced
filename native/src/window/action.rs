@@ -5,6 +5,8 @@ use std::fmt;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
+    /// Closes the current window and exits the application.
+    Close,
     /// Moves the window with the left mouse button until the button is
     /// released.
     ///
@@ -35,6 +37,11 @@ pub enum Action<T> {
     SetMode(Mode),
     /// Sets the window to maximized or back
     ToggleMaximize,
+    /// Toggles whether window has decorations
+    /// ## Platform-specific
+    /// - **X11:** Not implemented.
+    /// - **Web:** Unsupported.
+    ToggleDecorations,
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
 }
@@ -49,6 +56,7 @@ impl<T> Action<T> {
         T: 'static,
     {
         match self {
+            Self::Close => Action::Close,
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
             Self::Maximize(bool) => Action::Maximize(bool),
@@ -56,6 +64,7 @@ impl<T> Action<T> {
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
             Self::ToggleMaximize => Action::ToggleMaximize,
+            Self::ToggleDecorations => Action::ToggleDecorations,
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
         }
     }
@@ -64,6 +73,7 @@ impl<T> Action<T> {
 impl<T> fmt::Debug for Action<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::Close => write!(f, "Action::Close"),
             Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
@@ -77,6 +87,7 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
+            Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
         }
     }

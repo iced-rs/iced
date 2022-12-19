@@ -6,7 +6,7 @@ use iced_native::layout;
 use iced_native::renderer;
 use iced_native::svg;
 use iced_native::text::{self, Text};
-use iced_native::{Background, Element, Font, Point, Rectangle, Size};
+use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
@@ -200,7 +200,16 @@ where
         self.backend().viewport_dimensions(handle)
     }
 
-    fn draw(&mut self, handle: svg::Handle, bounds: Rectangle) {
-        self.draw_primitive(Primitive::Svg { handle, bounds })
+    fn draw(
+        &mut self,
+        handle: svg::Handle,
+        color: Option<Color>,
+        bounds: Rectangle,
+    ) {
+        self.draw_primitive(Primitive::Svg {
+            handle,
+            color,
+            bounds,
+        })
     }
 }

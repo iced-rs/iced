@@ -6,6 +6,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2022-12-07
+### Added
+- Support for non-uniform border radius for `Primitive::Quad`. [#1506](https://github.com/iced-rs/iced/pull/1506)
+- Operation to query the current focused widget. [#1526](https://github.com/iced-rs/iced/pull/1526)
+- Additional operations for `TextInput`. [#1529](https://github.com/iced-rs/iced/pull/1529)
+- Styling support for `Svg`. [#1578](https://github.com/iced-rs/iced/pull/1578)
+
+### Changed
+- Triangle geometry using a solid color is now drawn in a single draw call. [#1538](https://github.com/iced-rs/iced/pull/1538)
+
+### Fixed
+- Gradients for WebAssembly target. [#1524](https://github.com/iced-rs/iced/pull/1524)
+- `Overlay` layout cache not being invalidated. [#1528](https://github.com/iced-rs/iced/pull/1528)
+- Operations not working for `PaneGrid`. [#1533](https://github.com/iced-rs/iced/pull/1533)
+- Mapped `widget::Operation` always returning `Outcome::None`. [#1536](https://github.com/iced-rs/iced/pull/1536)
+- Padding of `TextInput` with `Length::Units` width. [#1539](https://github.com/iced-rs/iced/pull/1539)
+- Clipping of `Image` and `Svg` widgets in `iced_glow`. [#1557](https://github.com/iced-rs/iced/pull/1557)
+- Invalid links in documentation. [#1560](https://github.com/iced-rs/iced/pull/1560)
+- `Custom` style of `PickList` widget. [#1570](https://github.com/iced-rs/iced/pull/1570)
+- Scroller in `Scrollable` always being drawn. [#1574](https://github.com/iced-rs/iced/pull/1574)
+
+Many thanks to...
+
+- @bungoboingo
+- @l1Dan
+- @mmstick
+- @mtkennerly
+- @PolyMeilex
+- @rksm
+- @rs017991
+- @tarkah
+- @wash2
+
 ## [0.5.0] - 2022-11-10
 ### Added
 - __[Stabilization of stateless widgets][stateless]__ (#1393)  
@@ -288,7 +321,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/iced-rs/iced/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/iced-rs/iced/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/iced-rs/iced/compare/0.4.0...0.4.1

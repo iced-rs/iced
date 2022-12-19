@@ -56,7 +56,7 @@ pub mod pane_grid {
     //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
     //! drag and drop, and hotkey support.
     //!
-    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.5/examples/pane_grid
+    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.6/examples/pane_grid
     pub use iced_native::widget::pane_grid::{
         Axis, Configuration, Direction, DragEvent, Line, Node, Pane,
         ResizeEvent, Split, State, StyleSheet,
@@ -141,6 +141,7 @@ pub mod tooltip {
 pub use iced_native::widget::progress_bar;
 pub use iced_native::widget::rule;
 pub use iced_native::widget::slider;
+pub use iced_native::widget::vertical_slider;
 pub use iced_native::widget::Space;
 
 pub use button::Button;
@@ -157,6 +158,7 @@ pub use text::Text;
 pub use text_input::TextInput;
 pub use toggler::Toggler;
 pub use tooltip::Tooltip;
+pub use vertical_slider::VerticalSlider;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
@@ -194,7 +196,7 @@ pub use iced_graphics::widget::qr_code;
 pub mod svg {
     //! Display vector graphics in your application.
     pub use iced_native::svg::Handle;
-    pub use iced_native::widget::Svg;
+    pub use iced_native::widget::svg::{Appearance, StyleSheet, Svg};
 }
 
 #[cfg(feature = "canvas")]

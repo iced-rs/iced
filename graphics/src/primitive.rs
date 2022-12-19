@@ -60,6 +60,9 @@ pub enum Primitive {
         /// The path of the SVG file
         handle: svg::Handle,
 
+        /// The [`Color`] filter
+        color: Option<Color>,
+
         /// The bounds of the viewport
         bounds: Rectangle,
     },
