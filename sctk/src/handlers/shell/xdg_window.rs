@@ -3,7 +3,7 @@ use crate::{
     sctk_event::{SctkEvent, WindowEventVariant},
 };
 use sctk::{
-    delegate_xdg_shell, delegate_xdg_window, reexports::client::Proxy,
+    delegate_xdg_shell, delegate_xdg_window,
     shell::xdg::window::WindowHandler,
 };
 use std::fmt::Debug;
@@ -18,9 +18,9 @@ impl<T: Debug> WindowHandler for SctkState<T> {
         let window = match self
             .windows
             .iter()
-            .position(|s| s.window.wl_surface() == window.wl_surface())
+            .find(|s| s.window.wl_surface() == window.wl_surface())
         {
-            Some(w) => self.windows.remove(w),
+            Some(w) => w,
             None => return,
         };
 
