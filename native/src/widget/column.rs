@@ -242,12 +242,12 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        overlay::from_children(&mut self.children, tree, layout, renderer)
+        overlay::from_children(&self.children, tree, layout, renderer)
     }
 }
 

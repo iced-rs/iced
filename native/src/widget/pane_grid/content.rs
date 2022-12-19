@@ -305,12 +305,12 @@ where
     }
 
     pub(crate) fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        if let Some(title_bar) = self.title_bar.as_mut() {
+        if let Some(title_bar) = self.title_bar.as_ref() {
             let mut children = layout.children();
             let title_bar_layout = children.next()?;
 
@@ -321,14 +321,14 @@ where
             match title_bar.overlay(title_bar_state, title_bar_layout, renderer)
             {
                 Some(overlay) => Some(overlay),
-                None => self.body.as_widget_mut().overlay(
+                None => self.body.as_widget().overlay(
                     body_state,
                     children.next()?,
                     renderer,
                 ),
             }
         } else {
-            self.body.as_widget_mut().overlay(
+            self.body.as_widget().overlay(
                 &mut tree.children[0],
                 layout,
                 renderer,

@@ -395,7 +395,7 @@ where
     }
 
     pub(crate) fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -415,13 +415,13 @@ where
         let controls_state = states.next().unwrap();
 
         content
-            .as_widget_mut()
+            .as_widget()
             .overlay(title_state, title_layout, renderer)
             .or_else(move || {
-                controls.as_mut().and_then(|controls| {
+                controls.as_ref().and_then(|controls| {
                     let controls_layout = children.next()?;
 
-                    controls.as_widget_mut().overlay(
+                    controls.as_widget().overlay(
                         controls_state,
                         controls_layout,
                         renderer,

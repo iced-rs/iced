@@ -444,13 +444,13 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
         self.contents
-            .iter_mut()
+            .iter()
             .zip(&mut tree.children)
             .zip(layout.children())
             .filter_map(|(((_, pane), tree), layout)| {

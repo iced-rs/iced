@@ -405,7 +405,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
@@ -560,7 +560,7 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,

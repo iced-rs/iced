@@ -235,20 +235,18 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        use std::ops::DerefMut;
-
         let state = tree.state.downcast_ref::<State>();
 
         let overlay = OverlayBuilder {
             content: self.content.borrow_mut(),
             tree: state.tree.borrow_mut(),
             types: PhantomData,
-            overlay_builder: |content: &mut RefMut<Content<_, _>>, tree| {
+            overlay_builder: |content, tree| {
                 content.update(
                     tree,
                     renderer,
@@ -256,18 +254,16 @@ where
                     &self.view,
                 );
 
-                let Content {
-                    element, layout, ..
-                } = content.deref_mut();
-
                 let content_layout = Layout::with_offset(
-                    layout.bounds().position() - Point::ORIGIN,
-                    layout,
+                    layout.position() - Point::ORIGIN,
+                    &content.layout,
                 );
 
-                element
-                    .as_widget_mut()
-                    .overlay(tree, content_layout, renderer)
+                content.element.as_widget().overlay(
+                    tree,
+                    content_layout,
+                    renderer,
+                )
             },
         }
         .build();

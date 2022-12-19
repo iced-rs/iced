@@ -276,13 +276,13 @@ where
     }
 
     fn overlay<'b>(
-        &'b mut self,
+        &'b self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content
-            .as_widget_mut()
+            .as_widget()
             .overlay(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),

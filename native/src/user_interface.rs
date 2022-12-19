@@ -190,7 +190,7 @@ where
 
         let mut state = State::Updated;
         let mut manual_overlay =
-            ManuallyDrop::new(self.root.as_widget_mut().overlay(
+            ManuallyDrop::new(self.root.as_widget().overlay(
                 &mut self.state,
                 Layout::new(&self.base),
                 renderer,
@@ -226,7 +226,7 @@ where
                     );
 
                     manual_overlay =
-                        ManuallyDrop::new(self.root.as_widget_mut().overlay(
+                        ManuallyDrop::new(self.root.as_widget().overlay(
                             &mut self.state,
                             Layout::new(&self.base),
                             renderer,
@@ -395,11 +395,11 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) = self
-            .root
-            .as_widget_mut()
-            .overlay(&mut self.state, Layout::new(&self.base), renderer)
-        {
+        let base_cursor = if let Some(overlay) = self.root.as_widget().overlay(
+            &mut self.state,
+            Layout::new(&self.base),
+            renderer,
+        ) {
             let overlay_layout = self
                 .overlay
                 .take()
@@ -452,7 +452,7 @@ where
         overlay
             .as_ref()
             .and_then(|layout| {
-                root.as_widget_mut()
+                root.as_widget()
                     .overlay(&mut self.state, Layout::new(base), renderer)
                     .map(|overlay| {
                         let overlay_interaction = overlay.mouse_interaction(
@@ -496,7 +496,7 @@ where
             operation,
         );
 
-        if let Some(mut overlay) = self.root.as_widget_mut().overlay(
+        if let Some(mut overlay) = self.root.as_widget().overlay(
             &mut self.state,
             Layout::new(&self.base),
             renderer,
