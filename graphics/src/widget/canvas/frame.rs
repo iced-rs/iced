@@ -5,7 +5,7 @@ use crate::triangle;
 use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Style, Text};
 use crate::Primitive;
 
-use iced_native::{Font, Point, Rectangle, Size, Vector};
+use iced_native::{Color, Font, Point, Rectangle, Size, Vector};
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -355,10 +355,10 @@ impl Frame {
 
                 let offset = Vector::new(start_x, start_y);
 
-                if let Some(commands) = cache
-                    .swash
-                    .borrow_mut()
-                    .get_outline_commands(glyph.cache_key)
+                let mut swash_cache = cache.swash.borrow_mut();
+
+                if let Some(commands) =
+                    swash_cache.get_outline_commands(glyph.cache_key)
                 {
                     let glyph = Path::new(|path| {
                         use cosmic_text::Command;
@@ -399,6 +399,26 @@ impl Frame {
                     });
 
                     self.fill(&glyph, text.color);
+                } else {
+                    // TODO: Raster image support for `Canvas`
+                    let [r, g, b, a] = text.color.into_rgba8();
+
+                    swash_cache.with_pixels(
+                        glyph.cache_key,
+                        cosmic_text::Color::rgba(r, g, b, a),
+                        |x, y, color| {
+                            self.fill_rectangle(
+                                Point::new(x as f32, y as f32) + offset,
+                                Size::new(1.0, 1.0),
+                                Color::from_rgba8(
+                                    color.r(),
+                                    color.g(),
+                                    color.b(),
+                                    color.a() as f32 / 255.0,
+                                ),
+                            );
+                        },
+                    )
                 }
             }
         }

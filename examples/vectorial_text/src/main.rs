@@ -158,9 +158,9 @@ impl<Message> canvas::Program<Message> for State {
                 font: Font::Default,
                 size: self.size,
                 content: String::from(if self.use_japanese {
-                    "ベクトルテキスト"
+                    "ベクトルテキスト🎉"
                 } else {
-                    "Vectorial Text!"
+                    "Vectorial Text! 🎉"
                 }),
                 horizontal_alignment: alignment::Horizontal::Center,
                 vertical_alignment: alignment::Vertical::Center,
