@@ -407,9 +407,11 @@ impl Frame {
                         glyph.cache_key,
                         cosmic_text::Color::rgba(r, g, b, a),
                         |x, y, color| {
-                            self.fill_rectangle(
-                                Point::new(x as f32, y as f32) + offset,
-                                Size::new(1.0, 1.0),
+                            self.fill(
+                                &Path::rectangle(
+                                    Point::new(x as f32, y as f32) + offset,
+                                    Size::new(1.0, 1.0),
+                                ),
                                 Color::from_rgba8(
                                     color.r(),
                                     color.g(),
