@@ -51,7 +51,7 @@ impl Limits {
             }
             Length::Units(units) => {
                 let new_width =
-                    (units as f32).min(self.max.width).max(self.min.width);
+                    (units as f32).clamp(self.min.width, self.max.width);
 
                 self.min.width = new_width;
                 self.max.width = new_width;
@@ -73,7 +73,7 @@ impl Limits {
             }
             Length::Units(units) => {
                 let new_height =
-                    (units as f32).min(self.max.height).max(self.min.height);
+                    (units as f32).clamp(self.min.height, self.max.height);
 
                 self.min.height = new_height;
                 self.max.height = new_height;
@@ -86,16 +86,14 @@ impl Limits {
 
     /// Applies a minimum width constraint to the current [`Limits`].
     pub fn min_width(mut self, min_width: u32) -> Limits {
-        self.min.width =
-            self.min.width.max(min_width as f32).min(self.max.width);
+        self.min.width = self.min.width.clamp(min_width as f32, self.max.width);
 
         self
     }
 
     /// Applies a maximum width constraint to the current [`Limits`].
     pub fn max_width(mut self, max_width: u32) -> Limits {
-        self.max.width =
-            self.max.width.min(max_width as f32).max(self.min.width);
+        self.max.width = self.max.width.clamp(self.min.width, max_width as f32);
 
         self
     }
@@ -103,7 +101,7 @@ impl Limits {
     /// Applies a minimum height constraint to the current [`Limits`].
     pub fn min_height(mut self, min_height: u32) -> Limits {
         self.min.height =
-            self.min.height.max(min_height as f32).min(self.max.height);
+            self.min.height.clamp(min_height as f32, self.max.height);
 
         self
     }
@@ -111,7 +109,7 @@ impl Limits {
     /// Applies a maximum height constraint to the current [`Limits`].
     pub fn max_height(mut self, max_height: u32) -> Limits {
         self.max.height =
-            self.max.height.min(max_height as f32).max(self.min.height);
+            self.max.height.clamp(self.min.height, max_height as f32);
 
         self
     }
@@ -157,14 +155,10 @@ impl Limits {
     /// intrinsic size of some content.
     pub fn resolve(&self, intrinsic_size: Size) -> Size {
         Size::new(
-            intrinsic_size
-                .width
-                .min(self.max.width)
-                .max(self.fill.width),
+            intrinsic_size.width.clamp(self.fill.width, self.max.width),
             intrinsic_size
                 .height
-                .min(self.max.height)
-                .max(self.fill.height),
+                .clamp(self.fill.height, self.max.height),
         )
     }
 }
