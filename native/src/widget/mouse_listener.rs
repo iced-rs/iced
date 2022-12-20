@@ -157,6 +157,7 @@ where
             Widget::<Message, Renderer>::width(self),
             Widget::<Message, Renderer>::height(self),
             u32::MAX,
+            u32::MAX,
             |renderer, limits| {
                 self.content.as_widget().layout(renderer, limits)
             },
@@ -383,16 +384,12 @@ pub fn layout<Renderer>(
     width: Length,
     height: Length,
     max_height: u32,
+    max_width: u32,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.max_height(max_height).width(width).height(height);
+    let limits = limits.loose().max_height(max_height).max_width(max_width).width(width).height(height);
 
-    let child_limits = layout::Limits::new(
-        Size::new(limits.min().width, 0.0),
-        Size::new(limits.max().width, f32::INFINITY),
-    );
-
-    let content = layout_content(renderer, &child_limits);
+    let content = layout_content(renderer, &limits);
     let size = limits.resolve(content.size());
 
     layout::Node::with_children(size, vec![content])
