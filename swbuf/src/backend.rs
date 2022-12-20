@@ -4,18 +4,14 @@ use iced_graphics::image::raster;
 use iced_graphics::image::storage;
 #[cfg(feature = "svg")]
 use iced_graphics::image::vector;
-use iced_graphics::{Primitive, Vector};
 #[cfg(feature = "image")]
 use iced_native::image;
-use iced_native::layout;
-use iced_native::renderer;
 #[cfg(feature = "svg")]
 use iced_native::svg;
-use iced_native::text::{self, Text};
-use iced_native::{Background, Element, Font, Point, Rectangle, Size};
+use iced_native::text;
+use iced_native::{Font, Point, Size};
 use std::cell::RefCell;
 use std::fmt;
-use std::marker::PhantomData;
 
 lazy_static::lazy_static! {
     pub(crate) static ref FONT_SYSTEM: FontSystem = FontSystem::new();
@@ -257,7 +253,7 @@ impl iced_graphics::backend::Text for Backend {
         }
 
         match nearest_opt {
-            Some((offset, vector, distance)) => Some(text::Hit::NearestCharOffset(
+            Some((offset, vector, _)) => Some(text::Hit::NearestCharOffset(
                 offset,
                 vector
             )),

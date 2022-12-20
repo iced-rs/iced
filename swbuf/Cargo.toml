@@ -13,8 +13,7 @@ lazy_static = "1.4"
 log = "0.4"
 raw-window-handle = "0.5"
 raqote = { version = "0.8", default-features = false }
-# Patched version for raw-window-handle 0.5 and Redox support
-swbuf = { git = "https://github.com/rust-windowing/swbuf", branch = "main" }
+swbuf = { git = "https://github.com/rust-windowing/swbuf", rev = "9b8641fc" }
 
 [dependencies.iced_native]
 path = "../native"

@@ -1,48 +1,18 @@
 use crate::backend::{Backend, CpuStorage, FONT_SYSTEM};
 
-use cosmic_text::{Attrs, AttrsList, BufferLine, SwashCache, SwashContent};
+use cosmic_text::{AttrsList, BufferLine, SwashContent};
 use iced_graphics::{Background, Gradient, Primitive};
 use iced_graphics::alignment::{Horizontal, Vertical};
-#[cfg(feature = "image")]
-use iced_graphics::image::raster;
 #[cfg(feature = "svg")]
 use iced_graphics::image::vector;
-use iced_graphics::triangle;
-use iced_native::Font;
 use raqote::{DrawOptions, DrawTarget, Image, IntPoint, IntRect, PathBuilder, SolidSource, StrokeStyle, Source, Transform};
-use raw_window_handle::{
-    HasRawDisplayHandle,
-    HasRawWindowHandle,
-    RawDisplayHandle,
-    RawWindowHandle
-};
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use swbuf::GraphicsContext;
 use std::cmp;
-use std::cell::RefMut;
-use std::slice;
-
-// Wrapper to get around lifetimes in GraphicsContext
-#[derive(Debug)]
-struct RawWindow {
-    display_handle: RawDisplayHandle,
-    window_handle: RawWindowHandle,
-}
-
-unsafe impl HasRawDisplayHandle for RawWindow {
-    fn raw_display_handle(&self) -> RawDisplayHandle {
-        self.display_handle
-    }
-}
-
-unsafe impl HasRawWindowHandle for RawWindow {
-    fn raw_window_handle(&self) -> RawWindowHandle {
-        self.window_handle
-    }
-}
 
 // A software rendering surface
 pub struct Surface {
-    context: GraphicsContext<RawWindow>,
+    context: GraphicsContext,
     width: u32,
     height: u32,
     buffer: Vec<u32>,
@@ -50,12 +20,7 @@ pub struct Surface {
 
 impl Surface {
     pub(crate) fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(window: &W) -> Self {
-        let raw_window = crate::surface::RawWindow {
-            display_handle: window.raw_display_handle(),
-            window_handle: window.raw_window_handle(),
-        };
-
-        let context = match unsafe { GraphicsContext::new(raw_window) } {
+        let context = match unsafe { GraphicsContext::new(window, window) } {
             Ok(ok) => ok,
             Err(err) => panic!("failed to create swbuf context: {}", err),
         };
