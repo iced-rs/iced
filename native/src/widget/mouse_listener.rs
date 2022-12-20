@@ -261,6 +261,10 @@ where
         )
     }
 
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
     fn state(&self) -> tree::State {
         tree::State::new(State::default())
     }
