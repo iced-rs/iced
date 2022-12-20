@@ -47,7 +47,7 @@ where
     ///   * the current value of the [`ProgressBar`]
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self {
         ProgressBar {
-            value: value.max(*range.start()).min(*range.end()),
+            value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
