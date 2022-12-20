@@ -167,7 +167,7 @@ impl iced_graphics::backend::Text for Backend {
         let mut height = 0.0;
         for layout_line in layout.iter() {
             for glyph in layout_line.glyphs.iter() {
-                let max_x = if glyph.rtl {
+                let max_x = if glyph.level.is_rtl() {
                     glyph.x - glyph.w
                 } else {
                     glyph.x + glyph.w
@@ -203,14 +203,13 @@ impl iced_graphics::backend::Text for Backend {
             for layout_line in layout.iter() {
                 if point.y > line_y && point.y < line_y + metrics.line_height as f32 {
                     for glyph in layout_line.glyphs.iter() {
-                        let (min_x, max_x) = if glyph.rtl {
+                        let (min_x, max_x) = if glyph.level.is_rtl() {
                             (glyph.x - glyph.w, glyph.x)
                         } else {
                             (glyph.x, glyph.x + glyph.w)
                         };
 
                         if point.x > min_x && point.x < max_x {
-                            println!("EXACT HIT {:?}", glyph);
                             return Some(text::Hit::CharOffset(
                                 glyph.start
                             ));
@@ -229,7 +228,7 @@ impl iced_graphics::backend::Text for Backend {
             let center_y = line_y + metrics.line_height as f32 / 2.0;
 
             for glyph in layout_line.glyphs.iter() {
-                let (min_x, max_x) = if glyph.rtl {
+                let (min_x, max_x) = if glyph.level.is_rtl() {
                     (glyph.x - glyph.w, glyph.x)
                 } else {
                     (glyph.x, glyph.x + glyph.w)

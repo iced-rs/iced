@@ -1,20 +1,20 @@
 [package]
-name = "iced_softbuffer"
+name = "iced_swbuf"
 version = "0.1.0"
 authors = ["Jeremy Soller <jackpot51@gmail.com>"]
 edition = "2021"
-description = "A softbuffer renderer for Iced"
+description = "A swbuf renderer for Iced"
 license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [dependencies]
-cosmic-text = "0.5.3"
+cosmic-text = "0.6"
 lazy_static = "1.4"
 log = "0.4"
 raw-window-handle = "0.5"
 raqote = { version = "0.8", default-features = false }
 # Patched version for raw-window-handle 0.5 and Redox support
-softbuffer = { git = "https://github.com/jackpot51/softbuffer", branch = "redox-0.1.1" }
+swbuf = { git = "https://github.com/rust-windowing/swbuf", branch = "main" }
 
 [dependencies.iced_native]
 path = "../native"

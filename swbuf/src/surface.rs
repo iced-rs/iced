@@ -16,7 +16,7 @@ use raw_window_handle::{
     RawDisplayHandle,
     RawWindowHandle
 };
-use softbuffer::GraphicsContext;
+use swbuf::GraphicsContext;
 use std::cmp;
 use std::cell::RefMut;
 use std::slice;
@@ -57,7 +57,7 @@ impl Surface {
 
         let context = match unsafe { GraphicsContext::new(raw_window) } {
             Ok(ok) => ok,
-            Err(err) => panic!("failed to create softbuffer context: {}", err),
+            Err(err) => panic!("failed to create swbuf context: {}", err),
         };
         Surface {
             context,
@@ -198,7 +198,7 @@ fn draw_primitive(
             let mut line_width = 0.0;
             for layout_line in layout.iter() {
                 for glyph in layout_line.glyphs.iter() {
-                    let max_x = if glyph.rtl {
+                    let max_x = if glyph.level.is_rtl() {
                         glyph.x - glyph.w
                     } else {
                         glyph.x + glyph.w

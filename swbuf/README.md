@@ -1,3 +1,3 @@
-# `iced_softbuffer`
+# `iced_swbuf`
 
 Software rendering for Iced
