@@ -22,13 +22,10 @@ pub enum Mesh<'a> {
         origin: Point,
 
         /// The vertex and index buffers of the [`Mesh`].
-        buffers: &'a primitive::Mesh2D<primitive::Vertex2D>,
+        buffers: &'a primitive::Mesh2D<primitive::GradientVertex2D>,
 
         /// The clipping bounds of the [`Mesh`].
         clip_bounds: Rectangle<f32>,
-
-        /// The gradient to apply to the [`Mesh`].
-        gradient: &'a Gradient,
     },
 }
 

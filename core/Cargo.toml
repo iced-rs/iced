@@ -16,5 +16,8 @@ twox-hash = { version = "1.5", default-features = false }
 version = "0.6"
 optional = true
 
+[dependencies.thiserror]
+version = "1.0.37"
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 instant = "0.1"

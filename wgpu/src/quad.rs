@@ -3,8 +3,6 @@ use crate::graphics::Transformation;
 use crate::layer;
 use crate::Buffer;
 
-use bytemuck::{Pod, Zeroable};
-use std::mem;
 use wgpu::util::DeviceExt;
 
 #[cfg(feature = "tracing")]

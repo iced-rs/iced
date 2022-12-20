@@ -10,9 +10,8 @@ use iced::application;
 use iced::executor;
 use iced::theme::{self, Theme};
 use iced::widget::canvas;
-use iced::widget::canvas::gradient::{self, Gradient};
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::{Cursor, Path};
+use iced::widget::canvas::{Cursor, Gradient, Path};
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
@@ -208,15 +207,14 @@ impl<Message> canvas::Program<Message> for State {
 
                 let earth = Path::circle(Point::ORIGIN, Self::EARTH_RADIUS);
 
-                let earth_fill =
-                    Gradient::linear(gradient::Position::Absolute {
-                        start: Point::new(-Self::EARTH_RADIUS, 0.0),
-                        end: Point::new(Self::EARTH_RADIUS, 0.0),
-                    })
-                    .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
-                    .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
-                    .build()
-                    .expect("Build Earth fill gradient");
+                let earth_fill = Gradient::linear(
+                    Point::new(-Self::EARTH_RADIUS, 0.0),
+                    Point::new(Self::EARTH_RADIUS, 0.0),
+                )
+                .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
+                .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
+                .build()
+                .expect("Build Earth fill gradient");
 
                 frame.fill(&earth, earth_fill);
 

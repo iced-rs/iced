@@ -4,19 +4,19 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
-struct VertexInput {
+struct SolidVertexInput {
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,
 }
 
-struct VertexOutput {
+struct SolidVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) color: vec4<f32>,
 }
 
 @vertex
-fn vs_main(input: VertexInput) -> VertexOutput {
-    var out: VertexOutput;
+fn vs_main(input: SolidVertexInput) -> SolidVertexOutput {
+    var out: SolidVertexOutput;
 
     out.color = input.color;
     out.position = globals.transform * vec4<f32>(input.position, 0.0, 1.0);
@@ -25,6 +25,6 @@ fn vs_main(input: VertexInput) -> VertexOutput {
 }
 
 @fragment
-fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+fn fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
     return input.color;
 }

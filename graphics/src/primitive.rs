@@ -33,7 +33,7 @@ pub enum Primitive {
         bounds: Rectangle,
         /// The background of the quad
         background: Background,
-        /// The border radius of the quad
+        /// The border radii of the quad
         border_radius: [f32; 4],
         /// The border width of the quad
         border_width: f32,
@@ -75,15 +75,12 @@ pub enum Primitive {
     /// It can be used to render many kinds of geometry freely.
     GradientMesh {
         /// The vertices and indices of the mesh.
-        buffers: Mesh2D<Vertex2D>,
+        buffers: Mesh2D<GradientVertex2D>,
 
         /// The size of the drawable region of the mesh.
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
-
-        /// The [`Gradient`] to apply to the mesh.
-        gradient: Gradient,
     },
     #[cfg(feature = "tiny-skia")]
     Fill {

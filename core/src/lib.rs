@@ -42,6 +42,7 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
+mod angle;
 mod background;
 mod color;
 mod content_fit;
@@ -57,6 +58,7 @@ mod size;
 mod vector;
 
 pub use alignment::Alignment;
+pub use angle::{Degrees, Radians};
 pub use background::Background;
 pub use clipboard::Clipboard;
 pub use color::Color;

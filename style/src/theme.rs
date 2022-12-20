@@ -217,6 +217,9 @@ impl button::StyleSheet for Theme {
                     a: color.a * 0.5,
                     ..color
                 }),
+                Background::Gradient(gradient) => {
+                    Background::Gradient(gradient.adjust_alpha(0.5))
+                }
             }),
             text_color: Color {
                 a: active.text_color.a * 0.5,
