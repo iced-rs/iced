@@ -16,7 +16,7 @@ debug = []
 twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
-sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "f1d9c3e", optional = true }
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "73346019952f82ec7e4d4d15f5d66841b54e8b61", optional = true }
 
 [dependencies.iced_core]
 version = "0.6"

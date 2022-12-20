@@ -14,13 +14,13 @@ multi_window = []
 [dependencies]
 log = "0.4"
 thiserror = "1.0"
-sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "f1d9c3e"  }
-glutin = "0.30.0-beta.2"
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/Smithay/client-toolkit", rev = "73346019952f82ec7e4d4d15f5d66841b54e8b61"  }
+glutin = "0.30.0-beta.3"
 glow = "0.11.2"
 raw-window-handle = "0.5.0"
 enum-repr = "0.2.6"
 futures = "0.3"
-wayland-backend = {version = "=0.1.0-beta.13", features = ["client_system"]}
+wayland-backend = {version = "=0.1.0-beta.14", features = ["client_system"]}
 
 [dependencies.iced_native]
 features = ["wayland"]
