@@ -351,7 +351,7 @@ impl Frame {
         for run in layout.iter() {
             for glyph in run.glyphs.iter() {
                 let start_x = translation_x + glyph.x + glyph.x_offset;
-                let start_y = translation_y as f32 + glyph.y_offset - text.size;
+                let start_y = translation_y + glyph.y_offset - text.size;
 
                 let offset = Vector::new(start_x, start_y);
 

@@ -8,7 +8,7 @@ use std::cell::RefCell;
 #[cfg(feature = "canvas")]
 /// An access to system fonts.
 pub static FONT_SYSTEM: once_cell::sync::Lazy<cosmic_text::FontSystem> =
-    once_cell::sync::Lazy::new(|| cosmic_text::FontSystem::new());
+    once_cell::sync::Lazy::new(cosmic_text::FontSystem::new);
 
 /// A text cache.
 #[allow(missing_debug_implementations)]
@@ -24,5 +24,11 @@ impl Cache {
             #[cfg(feature = "canvas")]
             swash: RefCell::new(cosmic_text::SwashCache::new(&FONT_SYSTEM)),
         }
+    }
+}
+
+impl Default for Cache {
+    fn default() -> Self {
+        Self::new()
     }
 }
