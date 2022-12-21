@@ -4,12 +4,16 @@ use iced::keyboard;
 use iced::sctk_settings::InitialSurface;
 use iced::subscription;
 use iced::theme::{self, Theme};
+use iced::wayland::actions::popup::SctkPopupSettings;
+use iced::wayland::actions::window::SctkWindowSettings;
+use iced::wayland::popup::get_popup;
+use iced::wayland::window::get_window;
 use iced::wayland::SurfaceIdWrapper;
 use iced::widget::{
     self, button, checkbox, column, container, row, scrollable, text,
     text_input, Text,
 };
-use iced::{Application, Element};
+use iced::{window, Application, Element};
 use iced::{Color, Command, Font, Length, Settings, Subscription};
 
 use once_cell::sync::Lazy;
@@ -60,7 +64,13 @@ impl Application for Todos {
     fn new(_flags: ()) -> (Todos, Command<Message>) {
         (
             Todos::Loading,
-            Command::perform(SavedState::load(), Message::Loaded),
+            Command::batch(vec![
+                Command::perform(SavedState::load(), Message::Loaded),
+                get_window(SctkWindowSettings {
+                    window_id: window::Id::new(1),
+                    ..Default::default()
+                }),
+            ]),
         )
     }
 
@@ -110,7 +120,13 @@ impl Application for Todos {
                             state.input_value.clear();
                         }
 
-                        Command::none()
+                        return get_popup(SctkPopupSettings {
+                            parent: window::Id::new(0),
+                            id: window::Id::new(2),
+                            positioner: Default::default(),
+                            parent_size: None,
+                            grab: true,
+                        });
                     }
                     Message::FilterChanged(filter) => {
                         state.filter = filter;
@@ -185,71 +201,78 @@ impl Application for Todos {
     }
 
     fn view(&self, id: SurfaceIdWrapper) -> Element<Message> {
-        match self {
-            Todos::Loading => loading_message(),
-            Todos::Loaded(State {
-                input_value,
-                filter,
-                tasks,
-                ..
-            }) => {
-                let title = text("todos")
-                    .width(Length::Fill)
-                    .size(100)
-                    .style(Color::from([0.5, 0.5, 0.5]))
-                    .horizontal_alignment(alignment::Horizontal::Center);
-
-                let input = text_input(
-                    "What needs to be done?",
+        match id {
+            SurfaceIdWrapper::LayerSurface(_) => todo!(),
+            SurfaceIdWrapper::Window(_) => match self {
+                Todos::Loading => loading_message(),
+                Todos::Loaded(State {
                     input_value,
-                    Message::InputChanged,
-                )
-                .id(INPUT_ID.clone())
-                .padding(15)
-                .size(30)
-                .on_submit(Message::CreateTask);
-
-                let controls = view_controls(tasks, *filter);
-                let filtered_tasks =
-                    tasks.iter().filter(|task| filter.matches(task));
-
-                let tasks: Element<_> = if filtered_tasks.count() > 0 {
-                    column(
-                        tasks
-                            .iter()
-                            .enumerate()
-                            .filter(|(_, task)| filter.matches(task))
-                            .map(|(i, task)| {
-                                task.view(i).map(move |message| {
-                                    Message::TaskMessage(i, message)
-                                })
-                            })
-                            .collect(),
-                    )
-                    .spacing(10)
-                    .into()
-                } else {
-                    empty_message(match filter {
-                        Filter::All => "You have not created a task yet...",
-                        Filter::Active => "All your tasks are done! :D",
-                        Filter::Completed => {
-                            "You have not completed a task yet..."
-                        }
-                    })
-                };
-
-                let content = column![title, input, controls, tasks]
-                    .spacing(20)
-                    .max_width(800);
-
-                scrollable(
-                    container(content)
+                    filter,
+                    tasks,
+                    ..
+                }) => {
+                    let title = text("todos")
                         .width(Length::Fill)
-                        .padding(40)
-                        .center_x(),
-                )
-                .into()
-            }
+                        .size(100)
+                        .style(Color::from([0.5, 0.5, 0.5]))
+                        .horizontal_alignment(alignment::Horizontal::Center);
+
+                    let input = text_input(
+                        "What needs to be done?",
+                        input_value,
+                        Message::InputChanged,
+                    )
+                    .id(INPUT_ID.clone())
+                    .padding(15)
+                    .size(30)
+                    .on_submit(Message::CreateTask);
+
+                    let controls = view_controls(tasks, *filter);
+                    let filtered_tasks =
+                        tasks.iter().filter(|task| filter.matches(task));
+
+                    let tasks: Element<_> = if filtered_tasks.count() > 0 {
+                        column(
+                            tasks
+                                .iter()
+                                .enumerate()
+                                .filter(|(_, task)| filter.matches(task))
+                                .map(|(i, task)| {
+                                    task.view(i).map(move |message| {
+                                        Message::TaskMessage(i, message)
+                                    })
+                                })
+                                .collect(),
+                        )
+                        .spacing(10)
+                        .into()
+                    } else {
+                        empty_message(match filter {
+                            Filter::All => "You have not created a task yet...",
+                            Filter::Active => "All your tasks are done! :D",
+                            Filter::Completed => {
+                                "You have not completed a task yet..."
+                            }
+                        })
+                    };
+
+                    let content = column![title, input, controls, tasks]
+                        .spacing(20)
+                        .max_width(800);
+
+                    scrollable(
+                        container(content)
+                            .width(Length::Fill)
+                            .padding(40)
+                            .center_x(),
+                    )
+                    .into()
+                }
+            },
+            SurfaceIdWrapper::Popup(_) => container(text("hello"))
+                .width(Length::Fill)
+                .height(Length::Fill)
+                .into(),
         }
     }
 

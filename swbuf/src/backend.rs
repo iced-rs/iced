@@ -1,4 +1,6 @@
-use cosmic_text::{Attrs, AttrsList, BufferLine, FontSystem, Metrics, SwashCache, Weight};
+use cosmic_text::{
+    Attrs, AttrsList, BufferLine, FontSystem, Metrics, SwashCache, Weight,
+};
 #[cfg(feature = "image")]
 use iced_graphics::image::raster;
 use iced_graphics::image::storage;
@@ -26,8 +28,8 @@ pub(crate) struct CpuEntry {
 impl fmt::Debug for CpuEntry {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("CpuEntry")
-         .field("size", &self.size)
-         .finish()
+            .field("size", &self.size)
+            .finish()
     }
 }
 
@@ -61,11 +63,9 @@ impl storage::Storage for CpuStorage {
         for chunk in data_u8.chunks_exact(4) {
             data.push(
                 raqote::SolidSource::from_unpremultiplied_argb(
-                    chunk[3],
-                    chunk[0],
-                    chunk[1],
-                    chunk[2],
-                ).to_u32()
+                    chunk[3], chunk[0], chunk[1], chunk[2],
+                )
+                .to_u32(),
             );
         }
         Some(Self::Entry {
@@ -99,7 +99,11 @@ impl Backend {
         }
     }
 
-    pub(crate) fn cosmic_metrics_attrs(&self, size: f32, font: &Font) -> (Metrics, Attrs) {
+    pub(crate) fn cosmic_metrics_attrs(
+        &self,
+        size: f32,
+        font: &Font,
+    ) -> (Metrics, Attrs) {
         //TODO: why is this conversion necessary?
         let font_size = (size * 5.0 / 6.0) as i32;
 
@@ -109,10 +113,7 @@ impl Backend {
         let attrs = match font {
             Font::Default => Attrs::new().weight(Weight::NORMAL),
             //TODO: support using the bytes field. Right now this is just a hack for libcosmic
-            Font::External {
-                name,
-                bytes,
-            } => match *name {
+            Font::External { name, bytes } => match *name {
                 "Fira Sans Regular" => Attrs::new().weight(Weight::NORMAL),
                 "Fira Sans Light" => Attrs::new().weight(Weight::LIGHT),
                 "Fira Sans SemiBold" => Attrs::new().weight(Weight::SEMIBOLD),
@@ -120,13 +121,10 @@ impl Backend {
                     log::warn!("Unsupported font name {:?}", name);
                     Attrs::new()
                 }
-            }
+            },
         };
 
-        (
-            Metrics::new(font_size, line_height),
-            attrs
-        )
+        (Metrics::new(font_size, line_height), attrs)
     }
 }
 
@@ -157,7 +155,11 @@ impl iced_graphics::backend::Text for Backend {
 
         //TODO: improve implementation
         let mut buffer_line = BufferLine::new(content, AttrsList::new(attrs));
-        let layout = buffer_line.layout(&FONT_SYSTEM, metrics.font_size, bounds.width as i32);
+        let layout = buffer_line.layout(
+            &FONT_SYSTEM,
+            metrics.font_size,
+            bounds.width as i32,
+        );
 
         let mut width = 0.0;
         let mut height = 0.0;
@@ -191,13 +193,19 @@ impl iced_graphics::backend::Text for Backend {
 
         //TODO: improve implementation
         let mut buffer_line = BufferLine::new(content, AttrsList::new(attrs));
-        let layout = buffer_line.layout(&FONT_SYSTEM, metrics.font_size, bounds.width as i32);
+        let layout = buffer_line.layout(
+            &FONT_SYSTEM,
+            metrics.font_size,
+            bounds.width as i32,
+        );
 
         // Find exact hit
-        if ! nearest_only {
+        if !nearest_only {
             let mut line_y = 0.0;
             for layout_line in layout.iter() {
-                if point.y > line_y && point.y < line_y + metrics.line_height as f32 {
+                if point.y > line_y
+                    && point.y < line_y + metrics.line_height as f32
+                {
                     for glyph in layout_line.glyphs.iter() {
                         let (min_x, max_x) = if glyph.level.is_rtl() {
                             (glyph.x - glyph.w, glyph.x)
@@ -206,9 +214,7 @@ impl iced_graphics::backend::Text for Backend {
                         };
 
                         if point.x > min_x && point.x < max_x {
-                            return Some(text::Hit::CharOffset(
-                                glyph.start
-                            ));
+                            return Some(text::Hit::CharOffset(glyph.start));
                         }
                     }
                 }
@@ -236,16 +242,22 @@ impl iced_graphics::backend::Text for Backend {
                 let distance = center.distance(point);
                 let vector = point - center;
                 nearest_opt = match nearest_opt {
-                    Some((nearest_offset, nearest_vector, nearest_distance)) => {
+                    Some((
+                        nearest_offset,
+                        nearest_vector,
+                        nearest_distance,
+                    )) => {
                         if distance < nearest_distance {
                             Some((glyph.start, vector, distance))
                         } else {
-                            Some((nearest_offset, nearest_vector, nearest_distance))
+                            Some((
+                                nearest_offset,
+                                nearest_vector,
+                                nearest_distance,
+                            ))
                         }
-                    },
-                    None => {
-                        Some((glyph.start, vector, distance))
                     }
+                    None => Some((glyph.start, vector, distance)),
                 };
             }
 
@@ -253,10 +265,9 @@ impl iced_graphics::backend::Text for Backend {
         }
 
         match nearest_opt {
-            Some((offset, vector, _)) => Some(text::Hit::NearestCharOffset(
-                offset,
-                vector
-            )),
+            Some((offset, vector, _)) => {
+                Some(text::Hit::NearestCharOffset(offset, vector))
+            }
             None => None,
         }
     }

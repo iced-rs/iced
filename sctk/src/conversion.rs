@@ -4,7 +4,10 @@ use iced_native::{
 };
 use sctk::{
     reexports::client::protocol::wl_pointer::AxisSource,
-    seat::{keyboard::Modifiers, pointer::{AxisScroll, BTN_LEFT, BTN_RIGHT, BTN_MIDDLE}},
+    seat::{
+        keyboard::Modifiers,
+        pointer::{AxisScroll, BTN_LEFT, BTN_MIDDLE, BTN_RIGHT},
+    },
 };
 /// An error that occurred while running an application.
 #[derive(Debug, thiserror::Error)]

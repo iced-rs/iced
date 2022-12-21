@@ -61,7 +61,10 @@ pub fn toggle_maximize<Message>(id: window::Id) -> Command<Message> {
     ))
 }
 
-pub fn set_app_id_window<Message>(id: window::Id, app_id: String) -> Command<Message> {
+pub fn set_app_id_window<Message>(
+    id: window::Id,
+    app_id: String,
+) -> Command<Message> {
     Command::single(command::Action::PlatformSpecific(
         platform_specific::Action::Wayland(wayland::Action::Window(
             wayland::window::Action::AppId { id, app_id },
@@ -70,7 +73,10 @@ pub fn set_app_id_window<Message>(id: window::Id, app_id: String) -> Command<Mes
 }
 
 /// Sets the [`Mode`] of the window.
-pub fn set_mode_window<Message>(id: window::Id, mode: Mode) -> Command<Message> {
+pub fn set_mode_window<Message>(
+    id: window::Id,
+    mode: Mode,
+) -> Command<Message> {
     Command::single(command::Action::PlatformSpecific(
         platform_specific::Action::Wayland(wayland::Action::Window(
             wayland::window::Action::Mode(id, mode),

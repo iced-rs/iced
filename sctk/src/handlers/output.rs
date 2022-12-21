@@ -40,7 +40,7 @@ impl<T: Debug> OutputHandler for SctkState<T> {
         _qh: &sctk::reexports::client::QueueHandle<Self>,
         output: sctk::reexports::client::protocol::wl_output::WlOutput,
     ) {
-        self.sctk_events.push(SctkEvent::RemovedOutput(output.id()));
+        self.sctk_events.push(SctkEvent::RemovedOutput(output));
         // TODO clean up any layer surfaces on this output?
     }
 }

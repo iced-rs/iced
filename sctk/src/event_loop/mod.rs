@@ -414,11 +414,10 @@ where
                         variant: WindowEventVariant::Close,
                         id,
                     } => {
-                        if let Some(i) = self
-                            .state
-                            .windows
-                            .iter()
-                            .position(|l| l.window.wl_surface().id() == id.id())
+                        if let Some(i) =
+                            self.state.windows.iter().position(|l| {
+                                l.window.wl_surface().id() == id.id()
+                            })
                         {
                             let w = self.state.windows.remove(i);
                             w.window.xdg_toplevel().destroy();

@@ -387,7 +387,12 @@ pub fn layout<Renderer>(
     max_width: u32,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.loose().max_height(max_height).max_width(max_width).width(width).height(height);
+    let limits = limits
+        .loose()
+        .max_height(max_height)
+        .max_width(max_width)
+        .width(width)
+        .height(height);
 
     let content = layout_content(renderer, &limits);
     let size = limits.resolve(content.size());

@@ -1,8 +1,8 @@
-use crate::{Backend, surface::Surface};
+use crate::{surface::Surface, Backend};
 
 use iced_graphics::{
-    Color, Error, Viewport,
     compositor::{self, Information, SurfaceError},
+    Color, Error, Viewport,
 };
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
@@ -28,9 +28,7 @@ impl<Theme> compositor::Compositor for Compositor<Theme> {
         settings: Self::Settings,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error> {
-        let compositor = Self {
-            theme: PhantomData,
-        };
+        let compositor = Self { theme: PhantomData };
 
         let renderer = Self::Renderer::new(Backend::new());
 
