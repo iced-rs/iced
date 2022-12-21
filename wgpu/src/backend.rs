@@ -10,8 +10,8 @@ use iced_graphics::{Primitive, Viewport};
 use iced_native::alignment;
 use iced_native::{Font, Size};
 
-#[cfg(feature = "trace")]
-use iced_profiling::info_span;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
@@ -80,7 +80,7 @@ impl Backend {
         overlay_text: &[T],
     ) {
         log::debug!("Drawing");
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Backend", "PRESENT").entered();
 
         let target_size = viewport.physical_size();

@@ -21,8 +21,8 @@ use glow::HasContext;
 
 use std::cell::RefCell;
 
-#[cfg(feature = "trace")]
-use iced_profiling::info_span;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 #[derive(Debug)]
 pub(crate) struct Pipeline {
@@ -151,7 +151,7 @@ impl Pipeline {
         images: &[layer::Image],
         layer_bounds: Rectangle<u32>,
     ) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let _ = info_span!("Glow::Image", "DRAW").entered();
 
         unsafe {

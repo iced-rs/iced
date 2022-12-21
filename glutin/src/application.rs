@@ -17,8 +17,8 @@ use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
 
-#[cfg(feature = "trace")]
-use iced_profiling::{info_span, instrument::Instrument};
+#[cfg(feature = "tracing")]
+use tracing::{info_span, instrument::Instrument};
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
@@ -39,12 +39,12 @@ where
     use glutin::ContextBuilder;
 
     #[cfg(feature = "trace")]
-    let _guard = iced_profiling::init();
+    let _guard = iced_winit::Profiler::init();
 
     let mut debug = Debug::new();
     debug.startup_started();
 
-    #[cfg(feature = "trace")]
+    #[cfg(feature = "tracing")]
     let _ = info_span!("Application::Glutin", "RUN").entered();
 
     let mut event_loop = EventLoopBuilder::with_user_event().build();
@@ -147,7 +147,7 @@ where
             settings.exit_on_close_request,
         );
 
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let run_instance =
             run_instance.instrument(info_span!("Application", "LOOP"));
 
@@ -350,7 +350,7 @@ async fn run_instance<A, E, C>(
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
-                #[cfg(feature = "trace")]
+                #[cfg(feature = "tracing")]
                 let _ = info_span!("Application", "FRAME").entered();
 
                 debug.render_started();

@@ -51,6 +51,8 @@ mod proxy;
 
 #[cfg(feature = "application")]
 pub use application::Application;
+#[cfg(feature = "trace")]
+pub use application::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use position::Position;

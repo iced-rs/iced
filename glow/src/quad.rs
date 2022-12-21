@@ -7,8 +7,8 @@ use glow::HasContext;
 use iced_graphics::layer;
 use iced_native::Rectangle;
 
-#[cfg(feature = "trace")]
-use iced_profiling::info_span;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 #[derive(Debug)]
 pub enum Pipeline {
@@ -45,7 +45,7 @@ impl Pipeline {
         scale: f32,
         bounds: Rectangle<u32>,
     ) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let _ = info_span!("Glow::Quad", "DRAW").enter();
 
         match self {

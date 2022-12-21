@@ -23,8 +23,8 @@ use iced_native::image;
 #[cfg(feature = "svg")]
 use iced_native::svg;
 
-#[cfg(feature = "trace")]
-use iced_profiling::info_span;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -292,7 +292,7 @@ impl Pipeline {
         target: &wgpu::TextureView,
         _scale: f32,
     ) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
         let instances: &mut Vec<Instance> = &mut Vec::new();

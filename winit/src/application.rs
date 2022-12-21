@@ -1,4 +1,6 @@
 //! Create interactive, native cross-platform applications.
+#[cfg(feature = "trace")]
+mod profiler;
 mod state;
 
 pub use state::State;
@@ -25,7 +27,9 @@ pub use iced_native::application::{Appearance, StyleSheet};
 use std::mem::ManuallyDrop;
 
 #[cfg(feature = "trace")]
-use iced_profiling::{info_span, instrument::Instrument};
+pub use profiler::Profiler;
+#[cfg(feature = "trace")]
+use tracing::{info_span, instrument::Instrument};
 
 /// An interactive, native cross-platform application.
 ///
@@ -115,7 +119,7 @@ where
     use winit::event_loop::EventLoopBuilder;
 
     #[cfg(feature = "trace")]
-    let _guard = iced_profiling::init();
+    let _guard = Profiler::init();
 
     let mut debug = Debug::new();
     debug.startup_started();

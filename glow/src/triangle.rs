@@ -9,8 +9,8 @@ use iced_graphics::triangle::{ColoredVertex2D, Vertex2D};
 use glow::HasContext;
 use std::marker::PhantomData;
 
-#[cfg(feature = "trace")]
-use iced_profiling::info_span;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 const DEFAULT_VERTICES: usize = 1_000;
 const DEFAULT_INDICES: usize = 1_000;
@@ -61,7 +61,7 @@ impl Pipeline {
         transformation: Transformation,
         scale_factor: f32,
     ) {
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let _ = info_span!("Glow::Triangle", "DRAW").enter();
 
         unsafe {

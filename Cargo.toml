@@ -39,13 +39,12 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
-# Enables tracing with Chrome
-trace_chrome = [
-    "iced_winit/trace",
-    "iced_wgpu?/trace",
-    "iced_glow?/trace",
+# Enables chrome traces
+chrome-trace = [
+    "iced_winit/chrome-trace",
     "iced_glutin?/trace",
-    "iced_profiling/tracing-chrome"
+    "iced_wgpu?/tracing",
+    "iced_glow?/tracing",
 ]
 
 [badges]
@@ -59,7 +58,6 @@ members = [
     "glow",
     "glutin",
     "lazy",
-    "profiling",
     "native",
     "style",
     "wgpu",
@@ -75,7 +73,6 @@ iced_graphics = { version = "0.5", path = "graphics" }
 iced_winit = { version = "0.6", path = "winit", features = ["application"] }
 iced_glutin = { version = "0.5", path = "glutin", optional = true }
 iced_glow = { version = "0.5", path = "glow", optional = true }
-iced_profiling = { version = "0.1.0", path = "profiling", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]
