@@ -290,6 +290,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
         struct MapOperation<'a, B> {
@@ -334,8 +335,12 @@ where
             }
         }
 
-        self.widget
-            .operate(tree, layout, &mut MapOperation { operation });
+        self.widget.operate(
+            tree,
+            layout,
+            renderer,
+            &mut MapOperation { operation },
+        );
     }
 
     fn on_event(
@@ -473,9 +478,12 @@ where
         &self,
         state: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        self.element.widget.operate(state, layout, operation)
+        self.element
+            .widget
+            .operate(state, layout, renderer, operation)
     }
 
     fn on_event(

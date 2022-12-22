@@ -164,6 +164,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();
@@ -174,6 +175,7 @@ where
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
+                renderer,
                 operation,
             );
         });
