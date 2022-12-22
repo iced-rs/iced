@@ -493,6 +493,7 @@ where
         self.root.as_widget().operate(
             &mut self.state,
             Layout::new(&self.base),
+            renderer,
             operation,
         );
 
@@ -507,6 +508,7 @@ where
 
             overlay.operate(
                 Layout::new(self.overlay.as_ref().unwrap()),
+                renderer,
                 operation,
             );
         }
