@@ -4,6 +4,31 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
+struct SolidVertexInput {
+    @location(0) position: vec2<f32>,
+    @location(1) color: vec4<f32>,
+}
+
+struct SolidVertexOutput {
+    @builtin(position) position: vec4<f32>,
+    @location(0) color: vec4<f32>,
+}
+
+@vertex
+fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
+    var out: SolidVertexOutput;
+
+    out.color = input.color;
+    out.position = globals.transform * vec4<f32>(input.position, 0.0, 1.0);
+
+    return out;
+}
+
+@fragment
+fn solid_fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
+    return input.color;
+}
+
 struct GradientVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) raw_position: vec2<f32>,
@@ -21,7 +46,7 @@ struct GradientVertexOutput {
 }
 
 @vertex
-fn vs_main(
+fn gradient_vs_main(
     @location(0) input: vec2<f32>,
     @location(1) color_1: vec4<f32>,
     @location(2) color_2: vec4<f32>,
@@ -39,7 +64,6 @@ fn vs_main(
 
     output.position = globals.transform * vec4<f32>(input.xy, 0.0, 1.0);
     output.raw_position = input;
-    //pass gradient data to frag shader
     output.color_1 = color_1;
     output.color_2 = color_2;
     output.color_3 = color_3;
@@ -103,7 +127,7 @@ fn gradient(
 }
 
 @fragment
-fn fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
+fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
         input.color_1,
         input.color_2,
@@ -126,7 +150,6 @@ fn fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
         input.offsets_2.w,
     );
 
-    //TODO could just pass this in to the shader but is probably more performant to just check it here
     var last_index = 7;
     for (var i: i32 = 0; i <= 7; i++) {
         if (offsets[i] >= 1.0) {

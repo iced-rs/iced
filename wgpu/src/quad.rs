@@ -327,3 +327,275 @@ impl Default for Uniforms {
         }
     }
 }
+
+// mod solid {
+//     use crate::buffer;
+//     use crate::quad::{QuadVertex, INITIAL_INSTANCES};
+//     use iced_graphics::layer::quad;
+//     use std::mem;
+//
+//     #[derive(Debug)]
+//     pub struct Pipeline {
+//         pub pipeline: wgpu::RenderPipeline,
+//         pub instances: buffer::Static<quad::Solid>,
+//     }
+//
+//     impl Pipeline {
+//         pub fn new(
+//             device: &wgpu::Device,
+//             format: wgpu::TextureFormat,
+//             uniforms_layout: &wgpu::BindGroupLayout,
+//         ) -> Self {
+//             let instances = buffer::Static::new(
+//                 device,
+//                 "iced_wgpu::quad::solid instance buffer",
+//                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+//                 INITIAL_INSTANCES,
+//             );
+//
+//             let layout = device.create_pipeline_layout(
+//                 &wgpu::PipelineLayoutDescriptor {
+//                     label: Some("iced_wgpu::quad::solid pipeline layout"),
+//                     push_constant_ranges: &[],
+//                     bind_group_layouts: &[uniforms_layout],
+//                 },
+//             );
+//
+//             let shader =
+//                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
+//                     label: Some("iced_wgpu::quad::solid shader"),
+//                     source: wgpu::ShaderSource::Wgsl(
+//                         std::borrow::Cow::Borrowed(include_str!(
+//                             "shader/quad.wgsl"
+//                         )),
+//                     ),
+//                 });
+//
+//             let pipeline = device.create_render_pipeline(
+//                 &wgpu::RenderPipelineDescriptor {
+//                     label: Some("iced_wgpu::quad::solid pipeline"),
+//                     layout: Some(&layout),
+//                     vertex: wgpu::VertexState {
+//                         module: &shader,
+//                         entry_point: "solid_vs_main",
+//                         buffers: &[
+//                             wgpu::VertexBufferLayout {
+//                                 array_stride: mem::size_of::<QuadVertex>()
+//                                     as u64,
+//                                 step_mode: wgpu::VertexStepMode::Vertex,
+//                                 attributes: &[wgpu::VertexAttribute {
+//                                     shader_location: 0,
+//                                     format: wgpu::VertexFormat::Float32x2,
+//                                     offset: 0,
+//                                 }],
+//                             },
+//                             wgpu::VertexBufferLayout {
+//                                 array_stride: mem::size_of::<quad::Solid>()
+//                                     as u64,
+//                                 step_mode: wgpu::VertexStepMode::Instance,
+//                                 attributes: &wgpu::vertex_attr_array!(
+//                                     // Color
+//                                     1 => Float32x4,
+//                                     // Position
+//                                     2 => Float32x2,
+//                                     // Size
+//                                     3 => Float32x2,
+//                                     // Border color
+//                                     4 => Float32x4,
+//                                     // Border radius
+//                                     5 => Float32x4,
+//                                     // Border width
+//                                     6 => Float32,
+//                                 ),
+//                             },
+//                         ],
+//                     },
+//                     fragment: Some(wgpu::FragmentState {
+//                         module: &shader,
+//                         entry_point: "solid_fs_main",
+//                         targets: &[Some(wgpu::ColorTargetState {
+//                             format,
+//                             blend: Some(wgpu::BlendState {
+//                                 color: wgpu::BlendComponent {
+//                                     src_factor: wgpu::BlendFactor::SrcAlpha,
+//                                     dst_factor:
+//                                     wgpu::BlendFactor::OneMinusSrcAlpha,
+//                                     operation: wgpu::BlendOperation::Add,
+//                                 },
+//                                 alpha: wgpu::BlendComponent {
+//                                     src_factor: wgpu::BlendFactor::One,
+//                                     dst_factor:
+//                                     wgpu::BlendFactor::OneMinusSrcAlpha,
+//                                     operation: wgpu::BlendOperation::Add,
+//                                 },
+//                             }),
+//                             write_mask: wgpu::ColorWrites::ALL,
+//                         })],
+//                     }),
+//                     primitive: wgpu::PrimitiveState {
+//                         topology: wgpu::PrimitiveTopology::TriangleList,
+//                         front_face: wgpu::FrontFace::Cw,
+//                         ..Default::default()
+//                     },
+//                     depth_stencil: None,
+//                     multisample: wgpu::MultisampleState {
+//                         count: 1,
+//                         mask: !0,
+//                         alpha_to_coverage_enabled: false,
+//                     },
+//                     multiview: None,
+//                 },
+//             );
+//
+//             Self {
+//                 pipeline,
+//                 instances,
+//             }
+//         }
+//     }
+// }
+//
+// mod gradient {
+//     use crate::buffer;
+//     use crate::quad::{QuadVertex, INITIAL_INSTANCES};
+//     use iced_graphics::layer::quad;
+//     use std::mem;
+//
+//     #[derive(Debug)]
+//     pub struct Pipeline {
+//         pub pipeline: wgpu::RenderPipeline,
+//         pub instances: buffer::Static<quad::Gradient>,
+//     }
+//
+//     impl Pipeline {
+//         pub fn new(
+//             device: &wgpu::Device,
+//             format: wgpu::TextureFormat,
+//             uniforms_layout: &wgpu::BindGroupLayout,
+//         ) -> Self {
+//             let instances = buffer::Static::new(
+//                 device,
+//                 "iced_wgpu::quad::gradient instance buffer",
+//                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+//                 INITIAL_INSTANCES,
+//             );
+//
+//             let layout = device.create_pipeline_layout(
+//                 &wgpu::PipelineLayoutDescriptor {
+//                     label: Some("iced_wgpu::quad::gradient pipeline layout"),
+//                     push_constant_ranges: &[],
+//                     bind_group_layouts: &[uniforms_layout],
+//                 },
+//             );
+//
+//             let shader =
+//                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
+//                     label: Some("iced_wgpu::quad::gradient shader"),
+//                     source: wgpu::ShaderSource::Wgsl(
+//                         std::borrow::Cow::Borrowed(include_str!(
+//                             "shader/quad.wgsl"
+//                         )),
+//                     ),
+//                 });
+//
+//             let pipeline = device.create_render_pipeline(
+//                 &wgpu::RenderPipelineDescriptor {
+//                     label: Some("iced_wgpu::quad::gradient pipeline"),
+//                     layout: Some(&layout),
+//                     vertex: wgpu::VertexState {
+//                         module: &shader,
+//                         entry_point: "gradient_vs_main",
+//                         buffers: &[
+//                             wgpu::VertexBufferLayout {
+//                                 array_stride: mem::size_of::<QuadVertex>()
+//                                     as u64,
+//                                 step_mode: wgpu::VertexStepMode::Vertex,
+//                                 attributes: &[wgpu::VertexAttribute {
+//                                     shader_location: 0,
+//                                     format: wgpu::VertexFormat::Float32x2,
+//                                     offset: 0,
+//                                 }],
+//                             },
+//                             wgpu::VertexBufferLayout {
+//                                 array_stride: mem::size_of::<quad::Gradient>()
+//                                     as u64,
+//                                 step_mode: wgpu::VertexStepMode::Instance,
+//                                 attributes: &wgpu::vertex_attr_array!(
+//                                     // Color 1
+//                                     1 => Float32x4,
+//                                     // Color 2
+//                                     2 => Float32x4,
+//                                     // Color 3
+//                                     3 => Float32x4,
+//                                     // Color 4
+//                                     4 => Float32x4,
+//                                     // Color 5
+//                                     5 => Float32x4,
+//                                     // Color 6
+//                                     6 => Float32x4,
+//                                     // Color 7
+//                                     7 => Float32x4,
+//                                     // Color 8
+//                                     8 => Float32x4,
+//                                     // Offsets 1-4
+//                                     9 => Float32x4,
+//                                     // Offsets 5-8
+//                                     10 => Float32x4,
+//                                     // Direction
+//                                     11 => Float32x4,
+//                                     // Position & Scale
+//                                     12 => Float32x4,
+//                                     // Border color
+//                                     13 => Float32x4,
+//                                     // Border radius
+//                                     14 => Float32x4,
+//                                     // Border width
+//                                     15 => Float32
+//                                 ),
+//                             },
+//                         ],
+//                     },
+//                     fragment: Some(wgpu::FragmentState {
+//                         module: &shader,
+//                         entry_point: "gradient_fs_main",
+//                         targets: &[Some(wgpu::ColorTargetState {
+//                             format,
+//                             blend: Some(wgpu::BlendState {
+//                                 color: wgpu::BlendComponent {
+//                                     src_factor: wgpu::BlendFactor::SrcAlpha,
+//                                     dst_factor:
+//                                     wgpu::BlendFactor::OneMinusSrcAlpha,
+//                                     operation: wgpu::BlendOperation::Add,
+//                                 },
+//                                 alpha: wgpu::BlendComponent {
+//                                     src_factor: wgpu::BlendFactor::One,
+//                                     dst_factor:
+//                                     wgpu::BlendFactor::OneMinusSrcAlpha,
+//                                     operation: wgpu::BlendOperation::Add,
+//                                 },
+//                             }),
+//                             write_mask: wgpu::ColorWrites::ALL,
+//                         })],
+//                     }),
+//                     primitive: wgpu::PrimitiveState {
+//                         topology: wgpu::PrimitiveTopology::TriangleList,
+//                         front_face: wgpu::FrontFace::Cw,
+//                         ..Default::default()
+//                     },
+//                     depth_stencil: None,
+//                     multisample: wgpu::MultisampleState {
+//                         count: 1,
+//                         mask: !0,
+//                         alpha_to_coverage_enabled: false,
+//                     },
+//                     multiview: None,
+//                 },
+//             );
+//
+//             Self {
+//                 pipeline,
+//                 instances,
+//             }
+//         }
+//     }
+// }

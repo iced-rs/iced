@@ -23,7 +23,7 @@ impl Gradient {
     }
 
     /// Adjust the opacity of the gradient by a multiplier applied to each color stop.
-    pub fn adjust_alpha(mut self, alpha_multiplier: f32) -> Self {
+    pub fn transparentize(mut self, alpha_multiplier: f32) -> Self {
         match &mut self {
             Gradient::Linear(linear) => {
                 for stop in &mut linear.color_stops {
@@ -36,7 +36,7 @@ impl Gradient {
     }
 
     /// Packs the [`Gradient`] into a buffer for use in shader code.
-    pub fn flatten(&self, bounds: Rectangle) -> [f32; 44] {
+    pub fn pack(&self, bounds: Rectangle) -> [f32; 44] {
         match self {
             Gradient::Linear(linear) => {
                 let mut pack: [f32; 44] = [0.0; 44];

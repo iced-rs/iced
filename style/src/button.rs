@@ -69,7 +69,7 @@ pub trait StyleSheet {
                     ..color
                 }),
                 Background::Gradient(gradient) => {
-                    Background::Gradient(gradient.adjust_alpha(0.5))
+                    Background::Gradient(gradient.transparentize(0.5))
                 }
             }),
             text_color: Color {

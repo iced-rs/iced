@@ -1,5 +1,4 @@
-use iced::theme;
-use iced::theme::Palette;
+use iced::theme::{self, Palette};
 use iced::widget::{
     checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
@@ -55,7 +54,9 @@ impl Sandbox for Tour {
         if steps.has_previous() {
             controls = controls.push(
                 button("Back").on_press(Message::BackPressed).style(
-                    theme::Button::Custom(Box::new(CustomButtonStyle::Danger)),
+                    theme::Button::Custom(Box::new(
+                        CustomButtonStyle::Secondary,
+                    )),
                 ),
             );
         }
@@ -65,7 +66,7 @@ impl Sandbox for Tour {
         if steps.can_continue() {
             controls = controls.push(
                 button("Next").on_press(Message::NextPressed).style(
-                    theme::Button::Custom(Box::new(CustomButtonStyle::Success)),
+                    theme::Button::Custom(Box::new(CustomButtonStyle::Primary)),
                 ),
             );
         }
@@ -673,8 +674,8 @@ pub enum Layout {
 }
 
 enum CustomButtonStyle {
-    Success,
-    Danger,
+    Primary,
+    Secondary,
 }
 
 impl widget::button::StyleSheet for CustomButtonStyle {
@@ -682,7 +683,7 @@ impl widget::button::StyleSheet for CustomButtonStyle {
 
     fn active(&self, _style: &Self::Style) -> widget::button::Appearance {
         match self {
-            CustomButtonStyle::Success => widget::button::Appearance {
+            CustomButtonStyle::Primary => widget::button::Appearance {
                 background: Gradient::linear(Degrees(270.0))
                     .add_stop(0.0, Palette::LIGHT.primary)
                     .add_stop(1.0, Color::from_rgb8(54, 80, 168))
@@ -690,18 +691,20 @@ impl widget::button::StyleSheet for CustomButtonStyle {
                     .expect("Build gradient")
                     .into(),
                 text_color: Color::WHITE,
+                border_radius: 5.0,
                 ..Default::default()
             },
-            CustomButtonStyle::Danger => widget::button::Appearance {
+            CustomButtonStyle::Secondary => widget::button::Appearance {
                 background: Gradient::linear(Radians(
                     3.0 * std::f32::consts::PI / 2.0,
                 ))
-                .add_stop(0.0, Palette::LIGHT.danger)
-                .add_stop(1.0, Color::from_rgb8(125, 26, 24))
+                .add_stop(0.0, Color::from_rgb8(194, 194, 194))
+                .add_stop(1.0, Color::from_rgb8(126, 126, 126))
                 .build()
                 .expect("Build gradient")
                 .into(),
                 text_color: Color::WHITE,
+                border_radius: 5.0,
                 ..Default::default()
             },
         }

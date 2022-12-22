@@ -114,53 +114,6 @@ impl Layer {
                     );
 
                     gradient_vertex_offset += written_bytes;
-
-                    match gradient {
-                        Gradient::Linear(linear) => {
-                            use glam::{IVec4, Vec4};
-
-                            let start_offset = self.gradient.color_stop_offset;
-                            let end_offset = (linear.color_stops.len() as i32)
-                                + start_offset
-                                - 1;
-
-                            self.gradient.uniforms.push(&gradient::Uniforms {
-                                transform: transform.into(),
-                                direction: Vec4::new(
-                                    linear.start.x,
-                                    linear.start.y,
-                                    linear.end.x,
-                                    linear.end.y,
-                                ),
-                                stop_range: IVec4::new(
-                                    start_offset,
-                                    end_offset,
-                                    0,
-                                    0,
-                                ),
-                            });
-
-                            self.gradient.color_stop_offset = end_offset + 1;
-
-                            let stops: Vec<gradient::ColorStop> = linear
-                                .color_stops
-                                .iter()
-                                .map(|stop| {
-                                    let [r, g, b, a] = stop.color.into_linear();
-
-                                    gradient::ColorStop {
-                                        offset: stop.offset,
-                                        color: Vec4::new(r, g, b, a),
-                                    }
-                                })
-                                .collect();
-
-                            self.gradient
-                                .color_stops_pending_write
-                                .color_stops
-                                .extend(stops);
-                        }
-                    }
                 }
             }
         }
@@ -543,7 +496,7 @@ mod solid {
                     ),
                     source: wgpu::ShaderSource::Wgsl(
                         std::borrow::Cow::Borrowed(include_str!(
-                            "shader/solid.wgsl"
+                            "shader/triangle.wgsl"
                         )),
                     ),
                 });
@@ -554,7 +507,7 @@ mod solid {
                     layout: Some(&layout),
                     vertex: wgpu::VertexState {
                         module: &shader,
-                        entry_point: "vs_main",
+                        entry_point: "solid_vs_main",
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<
                                 primitive::ColoredVertex2D,
@@ -571,7 +524,7 @@ mod solid {
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
-                        entry_point: "fs_main",
+                        entry_point: "solid_fs_main",
                         targets: &[triangle::fragment_target(format)],
                     }),
                     primitive: triangle::primitive_state(),
@@ -716,7 +669,7 @@ mod gradient {
                     ),
                     source: wgpu::ShaderSource::Wgsl(
                         std::borrow::Cow::Borrowed(include_str!(
-                            "shader/gradient.wgsl"
+                            "shader/triangle.wgsl"
                         )),
                     ),
                 });
@@ -728,7 +681,7 @@ mod gradient {
                         layout: Some(&layout),
                         vertex: wgpu::VertexState {
                             module: &shader,
-                            entry_point: "vs_main",
+                            entry_point: "gradient_vs_main",
                             buffers: &[wgpu::VertexBufferLayout {
                                 array_stride: std::mem::size_of::<primitive::GradientVertex2D>() as u64,
                                 step_mode: wgpu::VertexStepMode::Vertex,
@@ -762,7 +715,7 @@ mod gradient {
                         },
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
-                            entry_point: "fs_main",
+                            entry_point: "gradient_fs_main",
                             targets: &[triangle::fragment_target(format)],
                         }),
                         primitive: triangle::primitive_state(),
