@@ -883,8 +883,7 @@ impl State {
 
         self.offset = Offset::Absolute(
             (self.offset.absolute(bounds, content_bounds) - delta_y)
-                .max(0.0)
-                .min((content_bounds.height - bounds.height) as f32),
+                .clamp(0.0, content_bounds.height - bounds.height),
         );
     }
 
@@ -907,7 +906,7 @@ impl State {
     /// `0` represents scrollbar at the top, while `1` represents scrollbar at
     /// the bottom.
     pub fn snap_to(&mut self, percentage: f32) {
-        self.offset = Offset::Relative(percentage.max(0.0).min(1.0));
+        self.offset = Offset::Relative(percentage.clamp(0.0, 1.0));
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
