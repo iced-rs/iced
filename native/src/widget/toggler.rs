@@ -24,9 +24,9 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 ///     TogglerToggled(bool),
 /// }
 ///
-/// let is_active = true;
+/// let is_checked = true;
 ///
-/// Toggler::new(is_active, String::from("Toggle me!"), |b| Message::TogglerToggled(b));
+/// Toggler::new(String::from("Toggle me!"), is_checked, |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer>
@@ -34,7 +34,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    is_active: bool,
+    is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
@@ -63,15 +63,15 @@ where
     ///     will receive the new state of the [`Toggler`] and must produce a
     ///     `Message`.
     pub fn new<F>(
-        is_active: bool,
         label: impl Into<Option<String>>,
+        is_checked: bool,
         f: F,
     ) -> Self
     where
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
-            is_active,
+            is_checked,
             on_toggle: Box::new(f),
             label: label.into(),
             width: Length::Fill,
@@ -193,7 +193,7 @@ where
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_active));
+                    shell.publish((self.on_toggle)(!self.is_checked));
 
                     event::Status::Captured
                 } else {
@@ -260,9 +260,9 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_active)
+            theme.hovered(&self.style, self.is_checked)
         } else {
-            theme.active(&self.style, self.is_active)
+            theme.active(&self.style, self.is_checked)
         };
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
@@ -289,7 +289,7 @@ where
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_active {
+                + if self.is_checked {
                     bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
                 } else {
                     2.0 * space
