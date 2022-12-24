@@ -82,7 +82,7 @@ impl IMEState {
                 CandidateIndicator::BoldLine(_, _) => text,
                 CandidateIndicator::Cursor(position) => {
                     let (a, b) = text.split_at(position);
-                    if a.is_empty() {
+                    if a.is_empty() & cfg!(windows) {
                         b
                     } else {
                         a
