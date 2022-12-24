@@ -130,12 +130,14 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         self.with_element(|element| {
             element.as_widget().operate(
                 &mut tree.children[0],
                 layout,
+                renderer,
                 operation,
             );
         });

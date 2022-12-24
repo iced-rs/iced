@@ -187,6 +187,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         let body_layout = if let Some(title_bar) = &self.title_bar {
@@ -195,6 +196,7 @@ where
             title_bar.operate(
                 &mut tree.children[1],
                 children.next().unwrap(),
+                renderer,
                 operation,
             );
 
@@ -206,6 +208,7 @@ where
         self.body.as_widget().operate(
             &mut tree.children[0],
             body_layout,
+            renderer,
             operation,
         );
     }
