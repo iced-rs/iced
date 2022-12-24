@@ -30,7 +30,7 @@ impl IMEState {
         self.candidate_indicator = range.map(|(start, end)| {
             // utf-8 is 1 to 4 byte variable length encoding so we try +3 byte.
             let left = start.min(end);
-            let right = end.max(start).min(self.preedit_text.len());
+            let right = end.clamp(start, self.preedit_text.len());
             let start_byte = (0..left + 1)
                 .rfind(|index| self.preedit_text.is_char_boundary(*index));
             let end_byte = (right..right + 4)
