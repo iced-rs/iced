@@ -236,6 +236,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         struct MapOperation<'a, B> {
@@ -276,6 +277,7 @@ where
             element.as_widget().operate(
                 &mut tree.children[0],
                 layout,
+                renderer,
                 &mut MapOperation { operation },
             );
         });

@@ -228,6 +228,7 @@ where
         &self,
         tree: &mut Tree,
         _layout: Layout<'_>,
+        _renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
         let state = tree.state.downcast_mut::<State>();

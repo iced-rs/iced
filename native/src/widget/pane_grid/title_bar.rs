@@ -261,6 +261,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         let mut children = layout.children();
@@ -282,6 +283,7 @@ where
             controls.as_widget().operate(
                 &mut tree.children[1],
                 controls_layout,
+                renderer,
                 operation,
             )
         };
@@ -290,6 +292,7 @@ where
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 title_layout,
+                renderer,
                 operation,
             )
         }

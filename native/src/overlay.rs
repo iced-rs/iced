@@ -47,6 +47,7 @@ where
     fn operate(
         &mut self,
         _layout: Layout<'_>,
+        _renderer: &Renderer,
         _operation: &mut dyn widget::Operation<Message>,
     ) {
     }

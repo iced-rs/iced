@@ -110,9 +110,10 @@ where
     pub fn operate(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        self.overlay.operate(layout, operation);
+        self.overlay.operate(layout, renderer, operation);
     }
 }
 
@@ -146,6 +147,7 @@ where
     fn operate(
         &mut self,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<B>,
     ) {
         struct MapOperation<'a, B> {
@@ -191,7 +193,7 @@ where
         }
 
         self.content
-            .operate(layout, &mut MapOperation { operation });
+            .operate(layout, renderer, &mut MapOperation { operation });
     }
 
     fn on_event(

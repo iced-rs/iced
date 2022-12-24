@@ -175,6 +175,7 @@ where
         &self,
         _state: &mut Tree,
         _layout: Layout<'_>,
+        _renderer: &Renderer,
         _operation: &mut dyn Operation<Message>,
     ) {
     }
