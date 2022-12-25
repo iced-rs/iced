@@ -27,6 +27,8 @@ pub trait IME {
     /// remove request of force_set_ime_allowed
     ///
     fn unlock_set_ime_allowed(&self);
+    #[cfg(target_os = "macos")]
+    fn set_ime_position_with_reenable(&self, x: i32, y: i32);
 }
 
 /// A null implementation of the [`IME`] trait.
@@ -45,6 +47,8 @@ impl IME for Null {
     fn force_set_ime_allowed(&self, _: bool) {}
 
     fn unlock_set_ime_allowed(&self) {}
+    #[cfg(target_os = "macos")]
+    fn set_ime_position_with_reenable(&self, x: i32, y: i32) {}
 }
 
 /// A IME action to be performed by some [`Command`].

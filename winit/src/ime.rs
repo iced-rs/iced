@@ -11,6 +11,8 @@ enum RequestKind {
     Outside,
     Inside,
     Password,
+    #[cfg(target_os = "macos")]
+    SetPositionWithReenable(i32, i32),
 }
 
 /// IME related setting interface.
@@ -44,6 +46,24 @@ impl IME {
                     window.set_ime_allowed(allowed);
                 }
                 None => {
+                    #[cfg(target_os = "macos")]
+                    if let Ok(requests) = self.requests.read() {
+                        if let Some(RequestKind::SetPositionWithReenable(
+                            x,
+                            y,
+                        )) = requests.iter().find(|kind| {
+                            matches!(
+                                kind,
+                                RequestKind::SetPositionWithReeable(_, _)
+                            )
+                        }) {
+                            window.set_ime_allowed(false);
+                            window.set_ime_position(
+                                winit::dpi::LogicalPosition { x, y },
+                            );
+                            window.set_ime_allowed(true);
+                        }
+                    }
                     if let Ok(mut requests) = self.requests.write() {
                         if !requests.is_empty() {
                             let allowed =
@@ -119,6 +139,8 @@ impl iced_native::ime::IME for IME {
     fn unlock_set_ime_allowed(&self) {
         self.unlock_set_ime_allowed();
     }
+    #[cfg(predicate)]
+    fn set_ime_position_with_reenable(&self) {}
 }
 
 /// allow input by ime or not.

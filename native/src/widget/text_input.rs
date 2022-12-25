@@ -818,6 +818,23 @@ where
 
                 let message = (on_change)(editor.contents());
                 shell.publish(message);
+                #[cfg(target_os = "macos")]
+                {
+                    let text_bounds =
+                        layout.children().next().unwrap().bounds();
+                    let size = size.unwrap_or_else(|| renderer.default_size());
+
+                    let width = renderer.measure_width(
+                        &editor.contents(),
+                        size,
+                        font.clone(),
+                    );
+                    let (x, y) = (
+                        (text_bounds.x + width) as i32,
+                        (text_bounds.y) as i32 + size as i32,
+                    );
+                    ime.set_ime_position_with_reenable(x, y);
+                }
                 state.ime_state = None;
                 return event::Status::Captured;
             }
