@@ -111,6 +111,12 @@ impl Rectangle<f32> {
     }
 }
 
+impl std::cmp::PartialOrd for Rectangle<f32> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        (self.width * self.height).partial_cmp(&(other.width * other.height))
+    }
+}
+
 impl std::ops::Mul<f32> for Rectangle<f32> {
     type Output = Self;
 

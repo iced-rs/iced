@@ -4,7 +4,7 @@ use iced::alignment::{self, Alignment};
 use iced::widget::{
     button, column, container, row, scrollable, text, text_input, Column,
 };
-use iced::{executor, Vector};
+use iced::{executor, Point};
 use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
@@ -83,7 +83,7 @@ impl Application for WebSocket {
 
                     scrollable::snap_to(
                         MESSAGE_LOG.clone(),
-                        Vector::new(0.0, 1.0),
+                        Point::new(0.0, 1.0),
                     )
                 }
             },

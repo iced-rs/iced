@@ -75,3 +75,11 @@ impl std::ops::Sub<Point> for Point {
         Vector::new(self.x - point.x, self.y - point.y)
     }
 }
+
+impl std::ops::Add<Point> for Point {
+    type Output = Point;
+
+    fn add(self, point: Point) -> Point {
+        Point::new(self.x + point.x, self.y + point.y)
+    }
+}

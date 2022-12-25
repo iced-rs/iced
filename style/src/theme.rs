@@ -872,6 +872,15 @@ pub enum Scrollable {
     Custom(Box<dyn scrollable::StyleSheet<Style = Theme>>),
 }
 
+impl Scrollable {
+    /// Creates a custom [`Scrollable`] theme.
+    pub fn custom<T: scrollable::StyleSheet<Style = Theme> + 'static>(
+        style: T,
+    ) -> Self {
+        Self::Custom(Box::new(style))
+    }
+}
+
 impl scrollable::StyleSheet for Theme {
     type Style = Scrollable;
 
