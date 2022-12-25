@@ -65,7 +65,7 @@ pub trait Commands<T> {
     }
 }
 
-/// Output of [CommandBuf::map].
+/// Output of [Commands::map].
 #[derive(Debug)]
 pub struct Map<C, M> {
     commands: C,
