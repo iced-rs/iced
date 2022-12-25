@@ -7,24 +7,43 @@ use iced_futures::MaybeSend;
 use crate::command::Command;
 
 /// Send commands to an iced application.
-pub trait Commands<M> {
+pub trait Commands<T> {
+    /// Type of the reborrowed command buffer.
+    ///
+    /// See [Commands::as_mut].
+    type AsMut<'a>: Commands<T>
+    where
+        Self: 'a;
+
+    /// Helper to generically reborrow the command buffer.
+    ///
+    /// This is useful if you have a function that takes `mut commands: impl
+    /// Commands<T>` and you want to use a method such as [Commands::map] which
+    /// would otherwise consume the command buffer.
+    ///
+    /// This can still be done through an expression like `(&mut
+    /// commands).map(/*  */)`, but having a method like this reduces the number
+    /// of references involves in case the `impl Command<T>` is already a
+    /// reference.
+    fn as_mut(&mut self) -> Self::AsMut<'_>;
+
     /// Perform a single asynchronous action and map its output into the message
     /// type `M`.
     fn perform<F>(
         &mut self,
         future: F,
-        f: impl Fn(F::Output) -> M + MaybeSend + Sync + 'static,
+        map: impl Fn(F::Output) -> T + MaybeSend + Sync + 'static,
     ) where
         F: Future + 'static + MaybeSend;
 
     /// Insert a command into the command buffer.
-    fn command(&mut self, command: Command<M>);
+    fn command(&mut self, command: Command<T>);
 
     /// Extend the current command buffer with an iterator.
     #[inline]
     fn extend<I>(&mut self, iter: I)
     where
-        I: IntoIterator<Item = Command<M>>,
+        I: IntoIterator<Item = Command<T>>,
     {
         for command in iter {
             self.command(command);
@@ -32,49 +51,57 @@ pub trait Commands<M> {
     }
 
     /// Map the current command buffer so that it can be used with a different
-    /// message type.
+    /// message type `U`.
     #[inline]
-    fn map<F>(self, f: F) -> Map<Self, F, M>
+    fn map<M, U>(self, map: M) -> Map<Self, M>
     where
         Self: Sized,
+        M: MaybeSend + Sync + Clone + Fn(U) -> T,
     {
         Map {
-            inner: self,
-            map: f,
-            _marker: std::marker::PhantomData,
+            commands: self,
+            map,
         }
     }
 }
 
 /// Output of [CommandBuf::map].
 #[derive(Debug)]
-pub struct Map<C, MapFn, M> {
-    inner: C,
-    map: MapFn,
-    _marker: std::marker::PhantomData<M>,
+pub struct Map<C, M> {
+    commands: C,
+    map: M,
 }
 
-impl<M: 'static, C, MapFn: 'static, U: 'static> Commands<M> for Map<C, MapFn, M>
+impl<T: 'static, C, M: 'static, U: 'static> Commands<U> for Map<C, M>
 where
-    C: Commands<U>,
-    MapFn: MaybeSend + Sync + Clone + Fn(M) -> U,
+    C: Commands<T>,
+    M: MaybeSend + Sync + Clone + Fn(U) -> T,
 {
+    type AsMut<'a> = &'a mut Self where Self: 'a;
+
+    #[inline]
+    fn as_mut(&mut self) -> Self::AsMut<'_> {
+        self
+    }
+
     #[inline]
     fn perform<F>(
         &mut self,
         future: F,
-        f: impl Fn(F::Output) -> M + MaybeSend + Sync + 'static,
+        outer: impl Fn(F::Output) -> U + MaybeSend + Sync + 'static,
     ) where
         F: Future + 'static + MaybeSend,
     {
         let map = self.map.clone();
-        self.inner.perform(future, move |m| map(f(m)));
+        self.commands
+            .perform(future, move |message| map(outer(message)));
     }
 
     #[inline]
-    fn command(&mut self, command: Command<M>) {
+    fn command(&mut self, command: Command<U>) {
         let map = self.map.clone();
-        self.inner.command(command.map(move |m| map(m)));
+        self.commands
+            .command(command.map(move |message| map(message)));
     }
 }
 
@@ -82,6 +109,13 @@ impl<C, M> Commands<M> for &mut C
 where
     C: Commands<M>,
 {
+    type AsMut<'a> = &'a mut C where Self: 'a;
+
+    #[inline]
+    fn as_mut(&mut self) -> Self::AsMut<'_> {
+        *self
+    }
+
     #[inline]
     fn perform<F>(
         &mut self,

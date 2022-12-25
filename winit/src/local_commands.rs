@@ -20,6 +20,13 @@ impl<M> LocalCommands<M> {
 }
 
 impl<M> Commands<M> for LocalCommands<M> {
+    type AsMut<'a> = &'a mut Self where Self: 'a;
+
+    #[inline]
+    fn as_mut(&mut self) -> Self::AsMut<'_> {
+        self
+    }
+
     #[inline]
     fn perform<F>(
         &mut self,
