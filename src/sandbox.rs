@@ -1,5 +1,5 @@
 use crate::theme::{self, Theme};
-use crate::{Application, Command, Element, Error, Settings, Subscription};
+use crate::{Application, Commands, Element, Error, Settings, Subscription};
 
 /// A sandboxed [`Application`].
 ///
@@ -170,18 +170,20 @@ where
     type Message = T::Message;
     type Theme = Theme;
 
-    fn new(_flags: ()) -> (Self, Command<T::Message>) {
-        (T::new(), Command::none())
+    fn new(_flags: (), _: impl Commands<Self::Message>) -> Self {
+        T::new()
     }
 
     fn title(&self) -> String {
         T::title(self)
     }
 
-    fn update(&mut self, message: T::Message) -> Command<T::Message> {
+    fn update(
+        &mut self,
+        message: T::Message,
+        _commands: impl Commands<Self::Message>,
+    ) {
         T::update(self, message);
-
-        Command::none()
     }
 
     fn view(&self) -> Element<'_, T::Message> {

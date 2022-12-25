@@ -46,6 +46,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod clipboard;
 pub mod command;
+pub mod commands;
 pub mod event;
 pub mod image;
 pub mod keyboard;
@@ -92,6 +93,7 @@ pub use executor::Executor;
 
 pub use clipboard::Clipboard;
 pub use command::Command;
+pub use commands::Commands;
 pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;

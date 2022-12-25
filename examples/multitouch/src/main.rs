@@ -5,7 +5,7 @@ use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Cursor, Geometry};
 use iced::{
-    executor, touch, window, Application, Color, Command, Element, Length,
+    executor, touch, window, Application, Color, Commands, Element, Length,
     Point, Rectangle, Settings, Subscription, Theme,
 };
 
@@ -55,20 +55,17 @@ impl Application for Multitouch {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Multitouch {
-                state: State::new(),
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        Multitouch {
+            state: State::new(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Multitouch - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::FingerPressed { id, position } => {
                 self.state.fingers.insert(id, position);
@@ -79,8 +76,6 @@ impl Application for Multitouch {
                 self.state.cache.clear();
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

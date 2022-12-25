@@ -1,7 +1,7 @@
 use iced::executor;
 use iced::widget::{container, text};
 use iced::{
-    Application, Command, Element, Length, Settings, Subscription, Theme,
+    Application, Commands, Element, Length, Settings, Subscription, Theme,
 };
 use iced_native::{
     event::{MacOS, PlatformSpecific},
@@ -28,15 +28,15 @@ impl Application for App {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (App, Command<Message>) {
-        (App::default(), Command::none())
+    fn new(_flags: (), _commands: impl Commands<Message>) -> App {
+        App::default()
     }
 
     fn title(&self) -> String {
         String::from("Url - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::EventOccurred(event) => {
                 if let Event::PlatformSpecific(PlatformSpecific::MacOS(
@@ -47,8 +47,6 @@ impl Application for App {
                 }
             }
         };
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

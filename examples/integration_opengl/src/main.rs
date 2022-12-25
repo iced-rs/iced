@@ -13,7 +13,7 @@ use iced_glow::{Backend, Renderer, Settings, Viewport};
 use iced_glutin::conversion;
 use iced_glutin::glutin;
 use iced_glutin::renderer;
-use iced_glutin::{program, Clipboard, Color, Debug, Size};
+use iced_glutin::{program, Clipboard, Color, Debug, LocalCommands, Size};
 
 pub fn main() {
     env_logger::init();
@@ -74,6 +74,7 @@ pub fn main() {
     let mut resized = false;
 
     let scene = Scene::new(&gl, shader_version);
+    let mut commands = LocalCommands::default();
 
     event_loop.run(move |event, _, control_flow| {
         *control_flow = ControlFlow::Wait;
@@ -131,6 +132,7 @@ pub fn main() {
                         },
                         &mut clipboard,
                         &mut debug,
+                        &mut commands,
                     );
 
                     // and request a redraw

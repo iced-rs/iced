@@ -4,7 +4,7 @@ use iced::widget::canvas::{
 };
 use iced::widget::{canvas, container};
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
+    Application, Color, Commands, Element, Length, Point, Rectangle, Settings,
     Subscription, Theme, Vector,
 };
 
@@ -31,22 +31,19 @@ impl Application for Clock {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Clock {
-                now: time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-                clock: Default::default(),
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        Clock {
+            now: time::OffsetDateTime::now_local()
+                .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            clock: Default::default(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Clock - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::Tick(local_time) => {
                 let now = local_time;
@@ -57,8 +54,6 @@ impl Application for Clock {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

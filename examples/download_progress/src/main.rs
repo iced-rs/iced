@@ -1,7 +1,7 @@
 use iced::executor;
 use iced::widget::{button, column, container, progress_bar, text, Column};
 use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Alignment, Application, Commands, Element, Length, Settings, Subscription,
     Theme,
 };
 
@@ -30,21 +30,18 @@ impl Application for Example {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Example, Command<Message>) {
-        (
-            Example {
-                downloads: vec![Download::new(0)],
-                last_id: 0,
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Example {
+        Example {
+            downloads: vec![Download::new(0)],
+            last_id: 0,
+        }
     }
 
     fn title(&self) -> String {
         String::from("Download progress - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::Add => {
                 self.last_id += 1;
@@ -63,9 +60,7 @@ impl Application for Example {
                     download.progress(progress);
                 }
             }
-        };
-
-        Command::none()
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {

@@ -3,7 +3,7 @@ use iced::widget::canvas::{
     Geometry, Gradient,
 };
 use iced::{
-    executor, Application, Color, Command, Element, Length, Point, Rectangle,
+    executor, Application, Color, Commands, Element, Length, Point, Rectangle,
     Renderer, Settings, Size, Theme,
 };
 use rand::{thread_rng, Rng};
@@ -30,21 +30,24 @@ impl Application for ModernArt {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (
-            ModernArt {
-                cache: Default::default(),
-            },
-            Command::none(),
-        )
+    fn new(
+        _flags: Self::Flags,
+        _commands: impl Commands<Self::Message>,
+    ) -> Self {
+        ModernArt {
+            cache: Default::default(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Modern Art")
     }
 
-    fn update(&mut self, _message: Message) -> Command<Message> {
-        Command::none()
+    fn update(
+        &mut self,
+        _message: Message,
+        _commands: impl Commands<Self::Message>,
+    ) {
     }
 
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {

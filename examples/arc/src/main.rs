@@ -5,7 +5,7 @@ use iced::widget::canvas::{
     self, stroke, Cache, Canvas, Cursor, Geometry, Path, Stroke,
 };
 use iced::{
-    Application, Command, Element, Length, Point, Rectangle, Settings,
+    Application, Commands, Element, Length, Point, Rectangle, Settings,
     Subscription, Theme,
 };
 
@@ -32,24 +32,19 @@ impl Application for Arc {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Arc {
-                start: Instant::now(),
-                cache: Default::default(),
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        Arc {
+            start: Instant::now(),
+            cache: Default::default(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Arc - Iced")
     }
 
-    fn update(&mut self, _: Message) -> Command<Message> {
+    fn update(&mut self, _: Message, _: impl Commands<Message>) {
         self.cache.clear();
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

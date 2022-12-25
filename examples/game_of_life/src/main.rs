@@ -13,7 +13,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Alignment, Application, Commands, Element, Length, Settings, Subscription,
 };
 use std::time::{Duration, Instant};
 
@@ -58,21 +58,22 @@ impl Application for GameOfLife {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self {
-                speed: 5,
-                ..Self::default()
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        Self {
+            speed: 5,
+            ..Self::default()
+        }
     }
 
     fn title(&self) -> String {
         String::from("Game of Life - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match message {
             Message::Grid(message, version) => {
                 if version == self.version {
@@ -91,7 +92,7 @@ impl Application for GameOfLife {
 
                     let version = self.version;
 
-                    return Command::perform(task, move |message| {
+                    commands.perform(task, move |message| {
                         Message::Grid(message, version)
                     });
                 }
@@ -118,8 +119,6 @@ impl Application for GameOfLife {
                 self.version += 1;
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

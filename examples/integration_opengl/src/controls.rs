@@ -1,7 +1,7 @@
 use iced_glow::Renderer;
 use iced_glutin::widget::Slider;
 use iced_glutin::widget::{Column, Row, Text};
-use iced_glutin::{Alignment, Color, Command, Element, Length, Program};
+use iced_glutin::{Alignment, Color, Commands, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,
@@ -28,14 +28,12 @@ impl Program for Controls {
     type Renderer = Renderer;
     type Message = Message;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _: impl Commands<Self::Message>) {
         match message {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message, Renderer> {

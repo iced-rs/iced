@@ -5,7 +5,7 @@ use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{button, column, container, row, scrollable, text};
 use iced::{
-    Application, Color, Command, Element, Length, Settings, Size, Subscription,
+    Application, Color, Commands, Element, Length, Settings, Size, Subscription,
 };
 use iced_lazy::responsive;
 use iced_native::{event, subscription, Event};
@@ -41,24 +41,21 @@ impl Application for Example {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
         let (panes, _) = pane_grid::State::new(Pane::new(0));
 
-        (
-            Example {
-                panes,
-                panes_created: 1,
-                focus: None,
-            },
-            Command::none(),
-        )
+        Example {
+            panes,
+            panes_created: 1,
+            focus: None,
+        }
     }
 
     fn title(&self) -> String {
         String::from("Pane grid - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::Split(axis, pane) => {
                 let result = self.panes.split(
@@ -139,8 +136,6 @@ impl Application for Example {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

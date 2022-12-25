@@ -6,7 +6,8 @@ use iced::widget::{
     button, column, container, row, scrollable, text, text_input, Column,
 };
 use iced::{
-    Application, Color, Command, Element, Length, Settings, Subscription, Theme,
+    Application, Color, Commands, Element, Length, Settings, Subscription,
+    Theme,
 };
 use once_cell::sync::Lazy;
 
@@ -35,56 +36,51 @@ impl Application for WebSocket {
     type Flags = ();
     type Executor = executor::Default;
 
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self::default(),
-            Command::perform(echo::server::run(), |_| Message::Server),
-        )
+    fn new(_flags: Self::Flags, mut commands: impl Commands<Message>) -> Self {
+        commands.perform(echo::server::run(), |()| Message::Server);
+        Self::default()
     }
 
     fn title(&self) -> String {
         String::from("WebSocket - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match message {
             Message::NewMessageChanged(new_message) => {
                 self.new_message = new_message;
-
-                Command::none()
             }
             Message::Send(message) => match &mut self.state {
                 State::Connected(connection) => {
                     self.new_message.clear();
 
                     connection.send(message);
-
-                    Command::none()
                 }
-                State::Disconnected => Command::none(),
+                State::Disconnected => {}
             },
             Message::Echo(event) => match event {
                 echo::Event::Connected(connection) => {
                     self.state = State::Connected(connection);
 
                     self.messages.push(echo::Message::connected());
-
-                    Command::none()
                 }
                 echo::Event::Disconnected => {
                     self.state = State::Disconnected;
 
                     self.messages.push(echo::Message::disconnected());
-
-                    Command::none()
                 }
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    scrollable::snap_to(MESSAGE_LOG.clone(), 1.0)
+                    commands
+                        .command(scrollable::snap_to(MESSAGE_LOG.clone(), 1.0));
                 }
             },
-            Message::Server => Command::none(),
+            Message::Server => {}
         }
     }
 

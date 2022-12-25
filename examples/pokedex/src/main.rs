@@ -1,7 +1,7 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
+    Alignment, Application, Color, Commands, Element, Length, Settings, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -27,11 +27,10 @@ impl Application for Pokedex {
     type Executor = iced::executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Pokedex, Command<Message>) {
-        (
-            Pokedex::Loading,
-            Command::perform(Pokemon::search(), Message::PokemonFound),
-        )
+    fn new(_flags: (), mut commands: impl Commands<Message>) -> Pokedex {
+        commands.perform(Pokemon::search(), Message::PokemonFound);
+
+        Pokedex::Loading
     }
 
     fn title(&self) -> String {
@@ -44,24 +43,24 @@ impl Application for Pokedex {
         format!("{} - Pokédex", subtitle)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match message {
             Message::PokemonFound(Ok(pokemon)) => {
                 *self = Pokedex::Loaded { pokemon };
-
-                Command::none()
             }
             Message::PokemonFound(Err(_error)) => {
                 *self = Pokedex::Errored;
-
-                Command::none()
             }
             Message::Search => match self {
-                Pokedex::Loading => Command::none(),
+                Pokedex::Loading => {}
                 _ => {
                     *self = Pokedex::Loading;
 
-                    Command::perform(Pokemon::search(), Message::PokemonFound)
+                    commands.perform(Pokemon::search(), Message::PokemonFound);
                 }
             },
         }

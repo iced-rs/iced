@@ -3,7 +3,7 @@ use crate::event::{self, Event};
 use crate::mouse;
 use crate::renderer;
 use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Point, Program, Size};
+use crate::{Clipboard, Commands, Debug, Point, Program, Size};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -95,7 +95,8 @@ where
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
-    ) -> (Vec<Event>, Option<Command<P::Message>>) {
+        mut commands: impl Commands<P::Message>,
+    ) -> Vec<Event> {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -129,30 +130,25 @@ where
         messages.append(&mut self.queued_messages);
         debug.event_processing_finished();
 
-        let command = if messages.is_empty() {
+        if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
-
-            None
         } else {
             // When there are messages, we are forced to rebuild twice
             // for now :^)
             let temp_cache = user_interface.into_cache();
 
-            let commands =
-                Command::batch(messages.into_iter().map(|message| {
-                    debug.log_message(&message);
+            for message in messages.into_iter() {
+                debug.log_message(&message);
 
-                    debug.update_started();
-                    let command = self.program.update(message);
-                    debug.update_finished();
-
-                    command
-                }));
+                debug.update_started();
+                self.program.update(message, &mut commands);
+                debug.update_finished();
+            }
 
             let mut user_interface = build_user_interface(
                 &mut self.program,
@@ -168,11 +164,9 @@ where
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
+        }
 
-            Some(commands)
-        };
-
-        (uncaptured_events, command)
+        uncaptured_events
     }
 }
 

@@ -4,6 +4,7 @@ use crate::{Error, Executor, Runtime};
 
 pub use iced_winit::application::StyleSheet;
 pub use iced_winit::Application;
+pub use iced_winit::LocalCommands;
 
 use iced_graphics::window;
 use iced_winit::application;
@@ -12,7 +13,7 @@ use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
 use iced_winit::user_interface;
-use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
+use iced_winit::{Clipboard, Debug, Proxy, Settings};
 
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
@@ -48,10 +49,12 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let (application, init_command) = {
+    let mut commands = LocalCommands::default();
+
+    let application = {
         let flags = settings.flags;
 
-        runtime.enter(|| A::new(flags))
+        runtime.enter(|| A::new(flags, &mut commands))
     };
 
     let context = {
@@ -133,7 +136,7 @@ where
         debug,
         receiver,
         context,
-        init_command,
+        commands,
         settings.exit_on_close_request,
     ));
 
@@ -185,7 +188,7 @@ async fn run_instance<A, E, C>(
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<glutin::event::Event<'_, A::Message>>,
     mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
-    init_command: Command<A::Message>,
+    mut commands: LocalCommands<A::Message>,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -207,7 +210,7 @@ async fn run_instance<A, E, C>(
         &mut cache,
         &state,
         &mut renderer,
-        init_command,
+        &mut commands,
         &mut runtime,
         &mut clipboard,
         &mut should_exit,
@@ -277,6 +280,7 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
+                        &mut commands,
                         context.window(),
                         || compositor.fetch_information(),
                     );

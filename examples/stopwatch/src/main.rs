@@ -4,7 +4,7 @@ use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
 use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Alignment, Application, Commands, Element, Length, Settings, Subscription,
 };
 
 use std::time::{Duration, Instant};
@@ -36,21 +36,18 @@ impl Application for Stopwatch {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
-        (
-            Stopwatch {
-                duration: Duration::default(),
-                state: State::Idle,
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Stopwatch {
+        Stopwatch {
+            duration: Duration::default(),
+            state: State::Idle,
+        }
     }
 
     fn title(&self) -> String {
         String::from("Stopwatch - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::Toggle => match self.state {
                 State::Idle => {
@@ -72,8 +69,6 @@ impl Application for Stopwatch {
                 self.duration = Duration::default();
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

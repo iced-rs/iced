@@ -5,8 +5,7 @@ use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{column, row, slider, text};
 use iced::{
-    Application, Color, Command, Length, Point, Rectangle, Settings, Size,
-    Theme,
+    Application, Color, Length, Point, Rectangle, Settings, Size, Theme,
 };
 
 use rand::Rng;
@@ -36,11 +35,10 @@ impl Application for SierpinskiEmulator {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let emulator = SierpinskiEmulator {
+    fn new(_flags: Self::Flags, _: impl iced::Commands<Message>) -> Self {
+        SierpinskiEmulator {
             graph: SierpinskiGraph::new(),
-        };
-        (emulator, Command::none())
+        }
     }
 
     fn title(&self) -> String {
@@ -50,7 +48,8 @@ impl Application for SierpinskiEmulator {
     fn update(
         &mut self,
         message: Self::Message,
-    ) -> iced::Command<Self::Message> {
+        _: impl iced::Commands<Self::Message>,
+    ) {
         match message {
             Message::IterationSet(cur_iter) => {
                 self.graph.iteration = cur_iter;
@@ -66,8 +65,6 @@ impl Application for SierpinskiEmulator {
         }
 
         self.graph.redraw();
-
-        Command::none()
     }
 
     fn view(&self) -> iced::Element<'_, Self::Message> {

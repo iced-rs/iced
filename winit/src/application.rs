@@ -5,11 +5,12 @@ pub use state::State;
 
 use crate::clipboard::{self, Clipboard};
 use crate::conversion;
+use crate::local_commands::LocalCommands;
 use crate::mouse;
 use crate::renderer;
 use crate::widget::operation;
 use crate::{
-    Command, Debug, Error, Executor, Proxy, Runtime, Settings, Size,
+    Commands, Debug, Error, Executor, Proxy, Runtime, Settings, Size,
     Subscription,
 };
 
@@ -50,7 +51,7 @@ where
     /// Additionally, you can return a [`Command`] if you need to perform some
     /// async action in the background on startup. This is useful if you want to
     /// load state from a file, perform an initial HTTP request, etc.
-    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
+    fn new(flags: Self::Flags, commands: impl Commands<Self::Message>) -> Self;
 
     /// Returns the current title of the [`Application`].
     ///
@@ -124,10 +125,11 @@ where
         Runtime::new(executor, proxy)
     };
 
-    let (application, init_command) = {
-        let flags = settings.flags;
+    let mut commands = LocalCommands::default();
 
-        runtime.enter(|| A::new(flags))
+    let application = {
+        let flags = settings.flags;
+        runtime.enter(|| A::new(flags, &mut commands))
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -183,7 +185,7 @@ where
         proxy,
         debug,
         receiver,
-        init_command,
+        commands,
         window,
         settings.exit_on_close_request,
     ));
@@ -233,7 +235,7 @@ async fn run_instance<A, E, C>(
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
-    init_command: Command<A::Message>,
+    mut commands: LocalCommands<A::Message>,
     window: winit::window::Window,
     exit_on_close_request: bool,
 ) where
@@ -266,7 +268,7 @@ async fn run_instance<A, E, C>(
         &mut cache,
         &state,
         &mut renderer,
-        init_command,
+        &mut commands,
         &mut runtime,
         &mut clipboard,
         &mut should_exit,
@@ -335,6 +337,7 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
+                        &mut commands,
                         &window,
                         || compositor.fetch_information(),
                     );
@@ -553,6 +556,7 @@ pub fn update<A: Application, E: Executor>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
+    commands: &mut LocalCommands<A::Message>,
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
@@ -562,7 +566,7 @@ pub fn update<A: Application, E: Executor>(
         debug.log_message(&message);
 
         debug.update_started();
-        let command = runtime.enter(|| application.update(message));
+        runtime.enter(|| application.update(message, &mut *commands));
         debug.update_finished();
 
         run_command(
@@ -570,7 +574,7 @@ pub fn update<A: Application, E: Executor>(
             cache,
             state,
             renderer,
-            command,
+            commands,
             runtime,
             clipboard,
             should_exit,
@@ -591,7 +595,7 @@ pub fn run_command<A, E>(
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
-    command: Command<A::Message>,
+    commands: &mut LocalCommands<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
@@ -608,7 +612,7 @@ pub fn run_command<A, E>(
     use iced_native::system;
     use iced_native::window;
 
-    for action in command.actions() {
+    for action in commands.actions() {
         match action {
             command::Action::Future(future) => {
                 runtime.spawn(future);

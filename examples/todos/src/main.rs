@@ -9,7 +9,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Font, Length, Settings, Subscription};
+use iced::{Color, Commands, Font, Length, Settings, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -58,11 +58,9 @@ impl Application for Todos {
     type Executor = iced::executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Todos, Command<Message>) {
-        (
-            Todos::Loading,
-            Command::perform(SavedState::load(), Message::Loaded),
-        )
+    fn new(_flags: (), mut commands: impl Commands<Self::Message>) -> Todos {
+        commands.perform(SavedState::load(), Message::Loaded);
+        Todos::Loading
     }
 
     fn title(&self) -> String {
@@ -74,7 +72,11 @@ impl Application for Todos {
         format!("Todos{} - Iced", if dirty { "*" } else { "" })
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match self {
             Todos::Loading => {
                 match message {
@@ -92,16 +94,14 @@ impl Application for Todos {
                     _ => {}
                 }
 
-                text_input::focus(INPUT_ID.clone())
+                commands.command(text_input::focus(INPUT_ID.clone()));
             }
             Todos::Loaded(state) => {
                 let mut saved = false;
 
-                let command = match message {
+                match message {
                     Message::InputChanged(value) => {
                         state.input_value = value;
-
-                        Command::none()
                     }
                     Message::CreateTask => {
                         if !state.input_value.is_empty() {
@@ -110,18 +110,12 @@ impl Application for Todos {
                                 .push(Task::new(state.input_value.clone()));
                             state.input_value.clear();
                         }
-
-                        Command::none()
                     }
                     Message::FilterChanged(filter) => {
                         state.filter = filter;
-
-                        Command::none()
                     }
                     Message::TaskMessage(i, TaskMessage::Delete) => {
                         state.tasks.remove(i);
-
-                        Command::none()
                     }
                     Message::TaskMessage(i, task_message) => {
                         if let Some(task) = state.tasks.get_mut(i) {
@@ -132,42 +126,36 @@ impl Application for Todos {
 
                             if should_focus {
                                 let id = Task::text_input_id(i);
-                                Command::batch(vec![
+                                commands.extend([
                                     text_input::focus(id.clone()),
                                     text_input::select_all(id),
-                                ])
-                            } else {
-                                Command::none()
+                                ]);
                             }
-                        } else {
-                            Command::none()
                         }
                     }
                     Message::Saved(_) => {
                         state.saving = false;
                         saved = true;
-
-                        Command::none()
                     }
                     Message::TabPressed { shift } => {
-                        if shift {
+                        commands.command(if shift {
                             widget::focus_previous()
                         } else {
                             widget::focus_next()
-                        }
+                        });
                     }
-                    _ => Command::none(),
+                    _ => {}
                 };
 
                 if !saved {
                     state.dirty = true;
                 }
 
-                let save = if state.dirty && !state.saving {
+                if state.dirty && !state.saving {
                     state.dirty = false;
                     state.saving = true;
 
-                    Command::perform(
+                    commands.perform(
                         SavedState {
                             input_value: state.input_value.clone(),
                             filter: state.filter,
@@ -175,12 +163,8 @@ impl Application for Todos {
                         }
                         .save(),
                         Message::Saved,
-                    )
-                } else {
-                    Command::none()
-                };
-
-                Command::batch(vec![command, save])
+                    );
+                }
             }
         }
     }

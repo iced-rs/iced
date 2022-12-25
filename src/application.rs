@@ -1,5 +1,5 @@
 //! Build interactive cross-platform applications.
-use crate::{Command, Element, Executor, Settings, Subscription};
+use crate::{Commands, Element, Executor, Settings, Subscription};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
@@ -60,7 +60,7 @@ pub use iced_native::application::{Appearance, StyleSheet};
 ///
 /// ```no_run
 /// use iced::executor;
-/// use iced::{Application, Command, Element, Settings, Theme};
+/// use iced::{Application, Commands, Element, Settings, Theme};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -74,16 +74,15 @@ pub use iced_native::application::{Appearance, StyleSheet};
 ///     type Message = ();
 ///     type Theme = Theme;
 ///
-///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
-///         (Hello, Command::none())
+///     fn new(_flags: (), _commands: impl Commands<()>) -> Hello {
+///         Hello
 ///     }
 ///
 ///     fn title(&self) -> String {
 ///         String::from("A cool application")
 ///     }
 ///
-///     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
-///         Command::none()
+///     fn update(&mut self, _message: Self::Message, _commands: impl Commands<()>) {
 ///     }
 ///
 ///     fn view(&self) -> Element<Self::Message> {
@@ -119,7 +118,7 @@ pub trait Application: Sized {
     /// load state from a file, perform an initial HTTP request, etc.
     ///
     /// [`run`]: Self::run
-    fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
+    fn new(flags: Self::Flags, commands: impl Commands<Self::Message>) -> Self;
 
     /// Returns the current title of the [`Application`].
     ///
@@ -134,7 +133,11 @@ pub trait Application: Sized {
     /// this method.
     ///
     /// Any [`Command`] returned will be executed immediately in the background.
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
+    fn update(
+        &mut self,
+        message: Self::Message,
+        commands: impl Commands<Self::Message>,
+    );
 
     /// Returns the widgets to display in the [`Application`].
     ///
@@ -230,8 +233,12 @@ where
     type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
 
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
-        self.0.update(message)
+    fn update(
+        &mut self,
+        message: Self::Message,
+        commands: impl Commands<Self::Message>,
+    ) {
+        self.0.update(message, commands);
     }
 
     fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
@@ -245,10 +252,9 @@ where
 {
     type Flags = A::Flags;
 
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
-        let (app, command) = A::new(flags);
-
-        (Instance(app), command)
+    fn new(flags: Self::Flags, commands: impl Commands<Self::Message>) -> Self {
+        let app = A::new(flags, commands);
+        Instance(app)
     }
 
     fn title(&self) -> String {

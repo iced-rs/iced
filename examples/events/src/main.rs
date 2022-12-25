@@ -2,7 +2,7 @@ use iced::alignment;
 use iced::executor;
 use iced::widget::{button, checkbox, container, text, Column};
 use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Alignment, Application, Commands, Element, Length, Settings, Subscription,
     Theme,
 };
 use iced_native::{window, Event};
@@ -34,15 +34,15 @@ impl Application for Events {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Events, Command<Message>) {
-        (Events::default(), Command::none())
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Events {
+        Events::default()
     }
 
     fn title(&self) -> String {
         String::from("Events - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::EventOccurred(event) if self.enabled => {
                 self.last.push(event);
@@ -62,9 +62,7 @@ impl Application for Events {
             Message::Exit => {
                 self.should_exit = true;
             }
-        };
-
-        Command::none()
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {

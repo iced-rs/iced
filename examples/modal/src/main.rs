@@ -2,7 +2,7 @@ use iced::widget::{
     self, button, column, container, horizontal_space, row, text, text_input,
 };
 use iced::{
-    executor, keyboard, subscription, theme, Alignment, Application, Command,
+    executor, keyboard, subscription, theme, Alignment, Application, Commands,
     Element, Event, Length, Settings, Subscription,
 };
 
@@ -35,8 +35,8 @@ impl Application for App {
     type Theme = iced::Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (App::default(), Command::none())
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        App::default()
     }
 
     fn title(&self) -> String {
@@ -47,30 +47,29 @@ impl Application for App {
         subscription::events().map(Message::Event)
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match message {
             Message::ShowModal => {
                 self.show_modal = true;
-                widget::focus_next()
+                commands.command(widget::focus_next());
             }
             Message::HideModal => {
                 self.hide_modal();
-                Command::none()
             }
             Message::Email(email) => {
                 self.email = email;
-                Command::none()
             }
             Message::Password(password) => {
                 self.password = password;
-                Command::none()
             }
             Message::Submit => {
                 if !self.email.is_empty() && !self.password.is_empty() {
                     self.hide_modal();
                 }
-
-                Command::none()
             }
             Message::Event(event) => match event {
                 Event::Keyboard(keyboard::Event::KeyPressed {
@@ -78,9 +77,9 @@ impl Application for App {
                     modifiers,
                 }) => {
                     if modifiers.shift() {
-                        widget::focus_previous()
+                        commands.command(widget::focus_previous());
                     } else {
-                        widget::focus_next()
+                        commands.command(widget::focus_next());
                     }
                 }
                 Event::Keyboard(keyboard::Event::KeyPressed {
@@ -88,9 +87,8 @@ impl Application for App {
                     ..
                 }) => {
                     self.hide_modal();
-                    Command::none()
                 }
-                _ => Command::none(),
+                _ => {}
             },
         }
     }

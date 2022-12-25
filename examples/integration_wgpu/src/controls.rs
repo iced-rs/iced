@@ -1,6 +1,6 @@
 use iced_wgpu::Renderer;
 use iced_winit::widget::{slider, text_input, Column, Row, Text};
-use iced_winit::{Alignment, Color, Command, Element, Length, Program};
+use iced_winit::{Alignment, Color, Commands, Element, Length, Program};
 
 pub struct Controls {
     background_color: Color,
@@ -30,7 +30,11 @@ impl Program for Controls {
     type Renderer = Renderer;
     type Message = Message;
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        _commands: impl Commands<Self::Message>,
+    ) {
         match message {
             Message::BackgroundColorChanged(color) => {
                 self.background_color = color;
@@ -39,8 +43,6 @@ impl Program for Controls {
                 self.text = text;
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message, Renderer> {

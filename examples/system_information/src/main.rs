@@ -1,6 +1,6 @@
 use iced::widget::{button, column, container, text};
 use iced::{
-    executor, system, Application, Command, Element, Length, Settings, Theme,
+    executor, system, Application, Commands, Element, Length, Settings, Theme,
 };
 
 use bytesize::ByteSize;
@@ -28,30 +28,33 @@ impl Application for Example {
     type Executor = executor::Default;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self::Loading,
-            system::fetch_information(Message::InformationReceived),
-        )
+    fn new(_flags: (), mut commands: impl Commands<Message>) -> Self {
+        commands
+            .command(system::fetch_information(Message::InformationReceived));
+        Self::Loading
     }
 
     fn title(&self) -> String {
         String::from("System Information - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(
+        &mut self,
+        message: Message,
+        mut commands: impl Commands<Message>,
+    ) {
         match message {
             Message::Refresh => {
                 *self = Self::Loading;
 
-                return system::fetch_information(Message::InformationReceived);
+                commands.command(system::fetch_information(
+                    Message::InformationReceived,
+                ));
             }
             Message::InformationReceived(information) => {
                 *self = Self::Loaded { information };
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

@@ -7,7 +7,7 @@ use scene::Scene;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
 use iced_winit::{
     conversion, futures, program, renderer, winit, Clipboard, Color, Debug,
-    Size,
+    LocalCommands, Size,
 };
 
 use winit::{
@@ -144,6 +144,8 @@ pub fn main() {
         &mut debug,
     );
 
+    let mut commands = LocalCommands::default();
+
     // Run event loop
     event_loop.run(move |event, _, control_flow| {
         // You should change this if you want to render continuosly
@@ -191,6 +193,7 @@ pub fn main() {
                         &renderer::Style { text_color: Color::WHITE },
                         &mut clipboard,
                         &mut debug,
+                        &mut commands,
                     );
 
                     // and request a redraw

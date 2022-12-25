@@ -16,7 +16,7 @@ use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Cursor, Path};
 use iced::window;
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
+    Application, Color, Commands, Element, Length, Point, Rectangle, Settings,
     Size, Subscription, Vector,
 };
 
@@ -44,27 +44,22 @@ impl Application for SolarSystem {
     type Theme = Theme;
     type Flags = ();
 
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            SolarSystem {
-                state: State::new(),
-            },
-            Command::none(),
-        )
+    fn new(_flags: (), _commands: impl Commands<Message>) -> Self {
+        SolarSystem {
+            state: State::new(),
+        }
     }
 
     fn title(&self) -> String {
         String::from("Solar system - Iced")
     }
 
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message, _commands: impl Commands<Message>) {
         match message {
             Message::Tick(instant) => {
                 self.state.update(instant);
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

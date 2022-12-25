@@ -212,8 +212,8 @@ pub use theme::Theme;
 pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
-    color, Alignment, Background, Color, Command, ContentFit, Font, Length,
-    Padding, Point, Rectangle, Size, Vector,
+    color, Alignment, Background, Color, Command, Commands, ContentFit, Font,
+    Length, Padding, Point, Rectangle, Size, Vector,
 };
 
 #[cfg(feature = "system")]
