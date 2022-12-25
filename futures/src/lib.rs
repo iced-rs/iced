@@ -19,7 +19,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use futures;
 
-mod command;
 mod maybe_send;
 mod runtime;
 
@@ -27,7 +26,6 @@ pub mod backend;
 pub mod executor;
 pub mod subscription;
 
-pub use command::Command;
 pub use executor::Executor;
 pub use maybe_send::MaybeSend;
 pub use platform::*;

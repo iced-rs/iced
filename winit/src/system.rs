@@ -1,5 +1,5 @@
 //! Access the native system.
-use crate::command::{self, Command};
+use crate::command::Command;
 pub use iced_native::system::*;
 
 use iced_graphics::compositor;
@@ -8,9 +8,7 @@ use iced_graphics::compositor;
 pub fn fetch_information<Message>(
     f: impl Fn(Information) -> Message + Send + 'static,
 ) -> Command<Message> {
-    Command::single(command::Action::System(Action::QueryInformation(
-        Box::new(f),
-    )))
+    Command::System(Action::QueryInformation(Box::new(f)))
 }
 
 pub(crate) fn information(

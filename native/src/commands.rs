@@ -82,6 +82,7 @@ impl<C, M> Commands<M> for &mut C
 where
     C: Commands<M>,
 {
+    #[inline]
     fn perform<F>(
         &mut self,
         future: F,
@@ -92,6 +93,7 @@ where
         (**self).perform(future, map);
     }
 
+    #[inline]
     fn command(&mut self, command: Command<M>) {
         (**self).command(command);
     }

@@ -612,12 +612,12 @@ pub fn run_command<A, E>(
     use iced_native::system;
     use iced_native::window;
 
-    for action in commands.actions() {
-        match action {
-            command::Action::Future(future) => {
+    for command in commands.commands() {
+        match command {
+            command::Command::Future(future) => {
                 runtime.spawn(future);
             }
-            command::Action::Clipboard(action) => match action {
+            command::Command::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
 
@@ -629,7 +629,7 @@ pub fn run_command<A, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(action) => match action {
+            command::Command::Window(action) => match action {
                 window::Action::Close => {
                     *should_exit = true;
                 }
@@ -679,7 +679,7 @@ pub fn run_command<A, E>(
                         .expect("Send message to event loop");
                 }
             },
-            command::Action::System(action) => match action {
+            command::Command::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
                     #[cfg(feature = "system")]
                     {
@@ -699,7 +699,7 @@ pub fn run_command<A, E>(
                     }
                 }
             },
-            command::Action::Widget(action) => {
+            command::Command::Widget(action) => {
                 let mut current_cache = std::mem::take(cache);
                 let mut current_operation = Some(action.into_operation());
 

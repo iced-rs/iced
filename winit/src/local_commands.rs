@@ -3,19 +3,18 @@ use std::future::Future;
 use iced_futures::futures::FutureExt;
 use iced_futures::MaybeSend;
 
-use crate::command::Action;
-use crate::Commands;
+use crate::{Command, Commands};
 
 /// A command buffer used for an application.
 #[derive(Debug)]
 pub struct LocalCommands<M> {
-    buf: Vec<Action<M>>,
+    buf: Vec<Command<M>>,
 }
 
 impl<M> LocalCommands<M> {
-    /// Drain actions from this command buffer.
+    /// Drain commands from this command buffer.
     #[inline]
-    pub fn actions(&mut self) -> impl Iterator<Item = Action<M>> + '_ {
+    pub fn commands(&mut self) -> impl Iterator<Item = Command<M>> + '_ {
         self.buf.drain(..)
     }
 }
@@ -29,13 +28,12 @@ impl<M> Commands<M> for LocalCommands<M> {
     ) where
         F: Future + 'static + MaybeSend,
     {
-        self.buf.push(Action::Future(Box::pin(future.map(map))));
+        self.buf.push(Command::Future(Box::pin(future.map(map))));
     }
 
-    fn command(&mut self, command: crate::Command<M>) {
-        for action in command.actions() {
-            self.buf.push(action);
-        }
+    #[inline]
+    fn command(&mut self, command: Command<M>) {
+        self.buf.push(command);
     }
 }
 

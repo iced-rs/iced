@@ -1,7 +1,7 @@
 //! Access the clipboard.
 pub use iced_native::clipboard::Action;
 
-use crate::command::{self, Command};
+use crate::command::Command;
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -70,10 +70,10 @@ impl iced_native::Clipboard for Clipboard {
 pub fn read<Message>(
     f: impl Fn(Option<String>) -> Message + 'static,
 ) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Read(Box::new(f))))
+    Command::Clipboard(Action::Read(Box::new(f)))
 }
 
 /// Write the given contents to the clipboard.
 pub fn write<Message>(contents: String) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Write(contents)))
+    Command::Clipboard(Action::Write(contents))
 }
