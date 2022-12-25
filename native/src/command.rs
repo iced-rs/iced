@@ -11,11 +11,6 @@ use crate::window;
 
 /// An asynchronous command to be performed by some runtime.
 pub enum Command<T> {
-    /// Run a [`Future`] to completion.
-    ///
-    /// [`Future`]: iced_futures::BoxFuture
-    Future(iced_futures::BoxFuture<T>),
-
     /// Run a clipboard action.
     Clipboard(clipboard::Action<T>),
 
@@ -46,10 +41,7 @@ impl<T> Command<T> {
         A: 'static,
         T: 'static,
     {
-        use iced_futures::futures::FutureExt;
-
         match self {
-            Self::Future(future) => Command::Future(Box::pin(future.map(f))),
             Self::Clipboard(action) => Command::Clipboard(action.map(f)),
             Self::Window(window) => Command::Window(window.map(f)),
             Self::System(system) => Command::System(system.map(f)),
@@ -61,7 +53,6 @@ impl<T> Command<T> {
 impl<T> fmt::Debug for Command<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Future(_) => write!(f, "Action::Future"),
             Self::Clipboard(action) => {
                 write!(f, "Action::Clipboard({:?})", action)
             }

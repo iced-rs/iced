@@ -612,11 +612,12 @@ pub fn run_command<A, E>(
     use iced_native::system;
     use iced_native::window;
 
+    for future in commands.futures() {
+        runtime.spawn(future);
+    }
+
     for command in commands.commands() {
         match command {
-            command::Command::Future(future) => {
-                runtime.spawn(future);
-            }
             command::Command::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());

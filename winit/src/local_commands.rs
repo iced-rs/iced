@@ -1,3 +1,4 @@
+use std::fmt;
 use std::future::Future;
 
 use iced_futures::futures::FutureExt;
@@ -6,16 +7,24 @@ use iced_futures::MaybeSend;
 use crate::{Command, Commands};
 
 /// A command buffer used for an application.
-#[derive(Debug)]
 pub struct LocalCommands<M> {
-    buf: Vec<Command<M>>,
+    futures: Vec<iced_futures::BoxFuture<M>>,
+    commands: Vec<Command<M>>,
 }
 
 impl<M> LocalCommands<M> {
+    /// Drain futures from command buffer.
+    #[inline]
+    pub fn futures(
+        &mut self,
+    ) -> impl Iterator<Item = iced_futures::BoxFuture<M>> + '_ {
+        self.futures.drain(..)
+    }
+
     /// Drain commands from this command buffer.
     #[inline]
     pub fn commands(&mut self) -> impl Iterator<Item = Command<M>> + '_ {
-        self.buf.drain(..)
+        self.commands.drain(..)
     }
 }
 
@@ -35,12 +44,12 @@ impl<M> Commands<M> for LocalCommands<M> {
     ) where
         F: Future + 'static + MaybeSend,
     {
-        self.buf.push(Command::Future(Box::pin(future.map(map))));
+        self.futures.push(Box::pin(future.map(map)));
     }
 
     #[inline]
     fn command(&mut self, command: Command<M>) {
-        self.buf.push(command);
+        self.commands.push(command);
     }
 }
 
@@ -48,7 +57,19 @@ impl<M> Default for LocalCommands<M> {
     #[inline]
     fn default() -> Self {
         Self {
-            buf: Vec::default(),
+            futures: Vec::new(),
+            commands: Vec::new(),
         }
+    }
+}
+
+impl<M> fmt::Debug for LocalCommands<M>
+where
+    M: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LocalCommands")
+            .field("commands", &self.commands)
+            .finish_non_exhaustive()
     }
 }
