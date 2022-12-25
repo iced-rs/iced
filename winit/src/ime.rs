@@ -54,12 +54,12 @@ impl IME {
                         )) = requests.iter().find(|kind| {
                             matches!(
                                 kind,
-                                RequestKind::SetPositionWithReeable(_, _)
+                                RequestKind::SetPositionWithReenable(_, _)
                             )
                         }) {
                             window.set_ime_allowed(false);
                             window.set_ime_position(
-                                winit::dpi::LogicalPosition { x, y },
+                                winit::dpi::LogicalPosition { x: *x, y: *y },
                             );
                             window.set_ime_allowed(true);
                         }
