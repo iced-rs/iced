@@ -46,8 +46,8 @@ impl IME {
                     window.set_ime_allowed(allowed);
                 }
                 None => {
-                    #[cfg(target_os = "macos")]
                     if let Ok(requests) = self.requests.read() {
+                        #[cfg(target_os = "macos")]
                         if let Some(RequestKind::SetPositionWithReenable(
                             x,
                             y,
@@ -62,6 +62,15 @@ impl IME {
                                 winit::dpi::LogicalPosition { x: *x, y: *y },
                             );
                             window.set_ime_allowed(true);
+                        }
+                        // this is needed to eliminate exisiting buffer of IME.
+                        // if this block is absent preedit of other text input is copied.
+                        if requests
+                            .iter()
+                            .find(|kind| matches!(kind, RequestKind::Outside))
+                            .is_some()
+                        {
+                            window.set_ime_allowed(false);
                         }
                     }
                     if let Ok(mut requests) = self.requests.write() {
@@ -139,8 +148,12 @@ impl iced_native::ime::IME for IME {
     fn unlock_set_ime_allowed(&self) {
         self.unlock_set_ime_allowed();
     }
-    #[cfg(predicate)]
-    fn set_ime_position_with_reenable(&self) {}
+    #[cfg(target_os = "macos")]
+    fn set_ime_position_with_reenable(&self, x: i32, y: i32) {
+        if let Ok(mut guard) = self.requests.write() {
+            guard.push(RequestKind::SetPositionWithReenable(x, y))
+        }
+    }
 }
 
 /// allow input by ime or not.

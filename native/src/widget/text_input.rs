@@ -525,10 +525,9 @@ where
                     }
                 }
             } else {
-                ime.outside();
                 if focus_lost {
                     let mut editor = Editor::new(value, &mut state.cursor);
-
+                    ime.outside();
                     if let Some(old_ime_state) = state.ime_state.take() {
                         old_ime_state
                             .preedit_text()
