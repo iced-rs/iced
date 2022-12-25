@@ -500,44 +500,40 @@ where
                 }
 
                 state.last_click = Some(click);
-                if !is_secure {
-                    if focus_gained {
-                        let position = state.cursor.start(value);
+                if !is_secure && focus_gained {
+                    let position = state.cursor.start(value);
 
-                        // calcurate where we need to place candidate window.
-                        let size =
-                            size.unwrap_or_else(|| renderer.default_size());
+                    // calcurate where we need to place candidate window.
+                    let size = size.unwrap_or_else(|| renderer.default_size());
 
-                        let position = measure_cursor_and_scroll_offset(
-                            renderer,
-                            text_bounds,
-                            value,
-                            size,
-                            position,
-                            font.clone(),
-                        );
-                        let position = (
-                            (text_bounds.x + position.0) as i32,
-                            (text_bounds.y) as i32 + size as i32,
-                        );
+                    let position = measure_cursor_and_scroll_offset(
+                        renderer,
+                        text_bounds,
+                        value,
+                        size,
+                        position,
+                        font.clone(),
+                    );
+                    let position = (
+                        (text_bounds.x + position.0) as i32,
+                        (text_bounds.y) as i32 + size as i32,
+                    );
 
-                        ime.set_ime_position(position.0, position.1);
-                    }
+                    ime.set_ime_position(position.0, position.1);
                 }
-            } else {
-                if focus_lost {
-                    let mut editor = Editor::new(value, &mut state.cursor);
-                    ime.outside();
-                    if let Some(old_ime_state) = state.ime_state.take() {
-                        old_ime_state
-                            .preedit_text()
-                            .chars()
-                            .for_each(|ch| editor.insert(ch));
-                        let message = (on_change)(editor.contents());
-                        shell.publish(message);
-                    }
+            } else if focus_lost {
+                let mut editor = Editor::new(value, &mut state.cursor);
+                ime.outside();
+                if let Some(old_ime_state) = state.ime_state.take() {
+                    old_ime_state
+                        .preedit_text()
+                        .chars()
+                        .for_each(|ch| editor.insert(ch));
+                    let message = (on_change)(editor.contents());
+                    shell.publish(message);
                 }
             }
+
             return event::Status::Captured;
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))

@@ -27,7 +27,17 @@ pub trait IME {
     /// remove request of force_set_ime_allowed
     ///
     fn unlock_set_ime_allowed(&self);
+
     #[cfg(target_os = "macos")]
+    /// macos's strange behavior of set_ime_position workaround.
+    ///
+    /// on macos we can't move cadidate window by set_ime_position.
+    ///
+    /// we set ime candidate window position by these steps when IME::Commit event processed.
+    ///
+    /// * disable IME
+    /// * set candidate position
+    /// * enable IME
     fn set_ime_position_with_reenable(&self, x: i32, y: i32);
 }
 
