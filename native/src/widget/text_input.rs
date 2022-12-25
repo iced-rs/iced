@@ -422,10 +422,17 @@ where
     Message: Clone,
     Renderer: text::Renderer,
 {
+    let state = state();
+    if state.is_focused {
+        if is_secure {
+            ime.password_mode();
+        } else {
+            ime.inside();
+        }
+    }
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            let state = state();
             let is_clicked = layout.bounds().contains(cursor_position);
             // if gain focus enable ime
             let focus_gained = !state.is_focused && is_clicked;
@@ -493,11 +500,7 @@ where
                 }
 
                 state.last_click = Some(click);
-
-                if is_secure {
-                    ime.password_mode();
-                } else {
-                    ime.inside();
+                if !is_secure {
                     if focus_gained {
                         let position = state.cursor.start(value);
 
@@ -541,12 +544,10 @@ where
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. })
         | Event::Touch(touch::Event::FingerLost { .. }) => {
-            state().is_dragging = false;
+            state.is_dragging = false;
         }
         Event::Mouse(mouse::Event::CursorMoved { position })
         | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
-            let state = state();
-
             if state.is_dragging {
                 let text_layout = layout.children().next().unwrap();
                 let target = position.x - text_layout.bounds().x;
@@ -576,8 +577,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
-            let state = state();
-
             if state.is_focused
                 && state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
@@ -594,8 +593,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
-            let state = state();
-
             if state.is_focused {
                 let modifiers = state.keyboard_modifiers;
 
@@ -777,8 +774,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
-            let state = state();
-
             if state.is_focused {
                 match key_code {
                     keyboard::KeyCode::V => {
@@ -798,12 +793,9 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-            let state = state();
-
             state.keyboard_modifiers = modifiers;
         }
         Event::Keyboard(keyboard::Event::IMECommit(text)) => {
-            let state = state();
             if state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
                 && !is_secure
@@ -841,14 +833,12 @@ where
         }
 
         Event::Keyboard(keyboard::Event::IMEEnabled) => {
-            let state = state();
             if state.is_focused {
                 let _ = state.ime_state.replace(IMEState::default());
                 return event::Status::Captured;
             }
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
-            let state = state();
             if !state.is_focused || is_secure {
                 return event::Status::Ignored;
             }
