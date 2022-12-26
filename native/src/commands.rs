@@ -10,12 +10,12 @@ use crate::command::Command;
 pub trait Commands<T> {
     /// Type of the reborrowed command buffer.
     ///
-    /// See [Commands::as_mut].
-    type AsMut<'a>: Commands<T>
+    /// See [`Commands::by_ref`].
+    type ByRef<'a>: Commands<T>
     where
         Self: 'a;
 
-    /// Helper to generically reborrow the command buffer.
+    /// Helper to generically reborrow the command buffer mutably.
     ///
     /// This is useful if you have a function that takes `mut commands: impl
     /// Commands<T>` and you want to use a method such as [Commands::map] which
@@ -25,10 +25,88 @@ pub trait Commands<T> {
     /// commands).map(/*  */)`, but having a method like this reduces the number
     /// of references involves in case the `impl Command<T>` is already a
     /// reference.
-    fn as_mut(&mut self) -> Self::AsMut<'_>;
+    ///
+    /// Note that naming is inspired by [`Iterator::by_ref`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use iced_native::Commands;
+    /// enum Message {
+    ///     Component1(component1::Message),
+    ///     Component2(component2::Message),
+    /// }
+    ///
+    /// fn update(mut commands: impl Commands<Message>) {
+    ///     component1::update(commands.by_ref().map(Message::Component1));
+    ///     component2::update(commands.by_ref().map(Message::Component2));
+    /// }
+    ///
+    /// mod component1 {
+    ///     # use iced_native::Commands;
+    ///     pub(crate) enum Message {
+    ///         Tick,
+    ///     }
+    ///
+    ///     pub(crate) fn update(mut commands: impl Commands<Message>) {
+    ///         // emit commands
+    ///     }
+    /// }
+    ///
+    /// mod component2 {
+    ///     #    use iced_native::Commands;
+    ///     pub(crate) enum Message {
+    ///         Tick,
+    ///     }
+    ///
+    ///     pub(crate) fn update(mut commands: impl Commands<Message>) {
+    ///         // emit commands
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// Without this method, you'd have to do the following while also
+    /// potentially constructing another reference that you don't really need:
+    ///
+    /// ```
+    /// # use iced_native::Commands;
+    /// # enum Message { Component1(component1::Message), Component2(component2::Message) }
+    /// fn update(mut commands: impl Commands<Message>) {
+    ///     component1::update((&mut commands).map(Message::Component1));
+    ///     component2::update((&mut commands).map(Message::Component2));
+    /// }
+    /// # mod component1 {
+    /// # use iced_native::Commands;
+    /// # pub(crate) enum Message { Tick }
+    /// # pub(crate) fn update(mut commands: impl Commands<Message>) { }
+    /// # }
+    /// # mod component2 {
+    /// # use iced_native::Commands;
+    /// # pub(crate) enum Message { Tick }
+    /// # pub(crate) fn update(mut commands: impl Commands<Message>) { }
+    /// # }
+    /// ```
+    fn by_ref(&mut self) -> Self::ByRef<'_>;
 
-    /// Perform a single asynchronous action and map its output into the message
-    /// type `M`.
+    /// Perform a single asynchronous action and map its output into the
+    /// expected message type `T`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use iced_native::Commands;
+    /// enum Message {
+    ///     Greeting(String),
+    /// }
+    ///
+    /// async fn asynchronous_update() -> String {
+    ///     "Hello World".to_string()
+    /// }
+    ///
+    /// fn update(mut commands: impl Commands<Message>) {
+    ///     commands.perform(asynchronous_update(), Message::Greeting);
+    /// }
+    /// ```
     fn perform<F>(
         &mut self,
         future: F,
@@ -36,7 +114,24 @@ pub trait Commands<T> {
     ) where
         F: Future + 'static + MaybeSend;
 
-    /// Insert a command into the command buffer.
+    /// Insert a command directly into the command buffer.
+    ///
+    /// This is primarily used for built-in commands such as window messages.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # // NB: we don't have access to iced here so faking it.
+    /// # mod iced { pub(crate) mod window { pub(crate) fn close<Message>() -> iced_native::Command<Message> { todo!() } } }
+    /// # use iced_native::Commands;
+    /// enum Message {
+    ///     /* snip */
+    /// }
+    ///
+    /// fn update(mut commands: impl Commands<Message>) {
+    ///     commands.command(iced::window::close());
+    /// }
+    /// ```
     fn command(&mut self, command: Command<T>);
 
     /// Extend the current command buffer with an iterator.
@@ -52,6 +147,43 @@ pub trait Commands<T> {
 
     /// Map the current command buffer so that it can be used with a different
     /// message type `U`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use iced_native::Commands;
+    /// enum Message {
+    ///     Component1(component1::Message),
+    ///     Component2(component2::Message),
+    /// }
+    ///
+    /// fn update(mut commands: impl Commands<Message>) {
+    ///     component1::update(commands.by_ref().map(Message::Component1));
+    ///     component2::update(commands.by_ref().map(Message::Component2));
+    /// }
+    ///
+    /// mod component1 {
+    ///     # use iced_native::Commands;
+    ///     pub(crate) enum Message {
+    ///         Tick,
+    ///     }
+    ///
+    ///     pub(crate) fn update(mut commands: impl Commands<Message>) {
+    ///         // emit commands
+    ///     }
+    /// }
+    ///
+    /// mod component2 {
+    ///     #    use iced_native::Commands;
+    ///     pub(crate) enum Message {
+    ///         Tick,
+    ///     }
+    ///
+    ///     pub(crate) fn update(mut commands: impl Commands<Message>) {
+    ///         // emit commands
+    ///     }
+    /// }
+    /// ```
     #[inline]
     fn map<M, U>(self, map: M) -> Map<Self, M>
     where
@@ -65,7 +197,7 @@ pub trait Commands<T> {
     }
 }
 
-/// Output of [Commands::map].
+/// Wrapper produced by [`Commands::map`].
 #[derive(Debug)]
 pub struct Map<C, M> {
     commands: C,
@@ -77,10 +209,10 @@ where
     C: Commands<T>,
     M: MaybeSend + Sync + Clone + Fn(U) -> T,
 {
-    type AsMut<'a> = &'a mut Self where Self: 'a;
+    type ByRef<'a> = &'a mut Self where Self: 'a;
 
     #[inline]
-    fn as_mut(&mut self) -> Self::AsMut<'_> {
+    fn by_ref(&mut self) -> Self::ByRef<'_> {
         self
     }
 
@@ -109,10 +241,10 @@ impl<C, M> Commands<M> for &mut C
 where
     C: Commands<M>,
 {
-    type AsMut<'a> = &'a mut C where Self: 'a;
+    type ByRef<'a> = &'a mut C where Self: 'a;
 
     #[inline]
-    fn as_mut(&mut self) -> Self::AsMut<'_> {
+    fn by_ref(&mut self) -> Self::ByRef<'_> {
         *self
     }
 

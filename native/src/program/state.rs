@@ -146,7 +146,7 @@ where
                 debug.log_message(&message);
 
                 debug.update_started();
-                self.program.update(message, commands.as_mut());
+                self.program.update(message, commands.by_ref());
                 debug.update_finished();
             }
 

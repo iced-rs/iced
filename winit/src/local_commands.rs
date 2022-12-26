@@ -29,10 +29,10 @@ impl<M> LocalCommands<M> {
 }
 
 impl<M> Commands<M> for LocalCommands<M> {
-    type AsMut<'a> = &'a mut Self where Self: 'a;
+    type ByRef<'a> = &'a mut Self where Self: 'a;
 
     #[inline]
-    fn as_mut(&mut self) -> Self::AsMut<'_> {
+    fn by_ref(&mut self) -> Self::ByRef<'_> {
         self
     }
 
