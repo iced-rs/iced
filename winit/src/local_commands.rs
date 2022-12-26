@@ -29,7 +29,7 @@ impl<M> LocalCommands<M> {
 }
 
 impl<M> Commands<M> for LocalCommands<M> {
-    type ByRef<'a> = &'a mut Self where Self: 'a;
+    type ByRef<'this> = &'this mut Self where Self: 'this;
 
     #[inline]
     fn by_ref(&mut self) -> Self::ByRef<'_> {

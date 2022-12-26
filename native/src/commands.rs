@@ -11,9 +11,9 @@ pub trait Commands<T> {
     /// Type of the reborrowed command buffer.
     ///
     /// See [`Commands::by_ref`].
-    type ByRef<'a>: Commands<T>
+    type ByRef<'this>: Commands<T>
     where
-        Self: 'a;
+        Self: 'this;
 
     /// Helper to generically reborrow the command buffer mutably.
     ///
@@ -209,7 +209,7 @@ where
     C: Commands<T>,
     M: MaybeSend + Sync + Clone + Fn(U) -> T,
 {
-    type ByRef<'a> = &'a mut Self where Self: 'a;
+    type ByRef<'this> = &'this mut Self where Self: 'this;
 
     #[inline]
     fn by_ref(&mut self) -> Self::ByRef<'_> {
@@ -241,11 +241,11 @@ impl<C, M> Commands<M> for &mut C
 where
     C: Commands<M>,
 {
-    type ByRef<'a> = &'a mut C where Self: 'a;
+    type ByRef<'this> = C::ByRef<'this> where Self: 'this;
 
     #[inline]
     fn by_ref(&mut self) -> Self::ByRef<'_> {
-        *self
+        (*self).by_ref()
     }
 
     #[inline]
