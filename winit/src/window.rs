@@ -4,11 +4,9 @@ use iced_native::window;
 
 pub use window::{Event, Mode};
 
-
 /// icon
 #[derive(Debug, Clone)]
 pub struct Icon(pub winit::window::Icon);
-
 
 /// Closes the current window and exits the application.
 pub fn close<Message>() -> Command<Message> {
