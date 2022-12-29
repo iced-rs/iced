@@ -1,4 +1,4 @@
-use crate::window::{Mode, CursorGrabMode};
+use crate::window::{CursorGrabMode, Mode};
 
 use iced_futures::MaybeSend;
 use std::fmt;
