@@ -147,6 +147,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
         operation.container(None, &mut |operation| {
@@ -155,7 +156,9 @@ where
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .for_each(|((child, state), layout)| {
-                    child.as_widget().operate(state, layout, operation);
+                    child
+                        .as_widget()
+                        .operate(state, layout, renderer, operation);
                 })
         });
     }

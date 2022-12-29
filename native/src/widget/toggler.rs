@@ -265,8 +265,8 @@ where
             theme.active(&self.style, self.is_active)
         };
 
-        let border_radius = bounds.height as f32 / BORDER_RADIUS_RATIO;
-        let space = SPACE_RATIO * bounds.height as f32;
+        let border_radius = bounds.height / BORDER_RADIUS_RATIO;
+        let space = SPACE_RATIO * bounds.height;
 
         let toggler_background_bounds = Rectangle {
             x: bounds.x + space,

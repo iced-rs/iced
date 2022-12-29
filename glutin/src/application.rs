@@ -200,6 +200,7 @@ async fn run_instance<A, E, C>(
     let mut cache = user_interface::Cache::default();
     let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
+    let mut should_exit = false;
 
     application::run_command(
         &application,
@@ -209,6 +210,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &mut should_exit,
         &mut proxy,
         &mut debug,
         context.window(),
@@ -271,6 +273,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &mut should_exit,
                         &mut proxy,
                         &mut debug,
                         &mut messages,
@@ -280,8 +283,6 @@ async fn run_instance<A, E, C>(
 
                     // Update window
                     state.synchronize(&application, context.window());
-
-                    let should_exit = application.should_exit();
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(

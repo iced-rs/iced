@@ -331,11 +331,7 @@ impl Pipeline {
                     wgpu::IndexFormat::Uint32,
                 );
 
-                render_pass.draw_indexed(
-                    0..(self.index_strides[index] as u32),
-                    0,
-                    0..1,
-                );
+                render_pass.draw_indexed(0..self.index_strides[index], 0, 0..1);
             }
         }
 

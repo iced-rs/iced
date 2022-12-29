@@ -270,8 +270,4 @@ where
     fn scale_factor(&self) -> f64 {
         self.0.scale_factor()
     }
-
-    fn should_exit(&self) -> bool {
-        self.0.should_exit()
-    }
 }
