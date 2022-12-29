@@ -74,8 +74,8 @@ pub enum Action<T> {
     ///
     /// ## Platform-specific
     ///
-    /// - **iOS / Android / Web / Wayland:** Unsupported.
-    AlwaysOnTop(bool),
+    /// - **Web / Wayland:** Unsupported.
+    SetAlwaysOnTop(bool),
 }
 
 impl<T> Action<T> {
@@ -102,7 +102,7 @@ impl<T> Action<T> {
                 Action::RequestUserAttention(attention_type)
             }
             Self::GainFocus => Action::GainFocus,
-            Self::AlwaysOnTop(bool) => Action::AlwaysOnTop(bool),
+            Self::SetAlwaysOnTop(bool) => Action::SetAlwaysOnTop(bool),
         }
     }
 }
@@ -129,7 +129,7 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RequestUserAttention")
             }
             Self::GainFocus => write!(f, "Action::GainFocus"),
-            Self::AlwaysOnTop(value) => {
+            Self::SetAlwaysOnTop(value) => {
                 write!(f, "Action::AlwaysOnTop({})", value)
             }
         }

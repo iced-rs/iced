@@ -788,7 +788,7 @@ pub fn run_command<A, E>(
                         user_attention.map(conversion::user_attention),
                     ),
                 window::Action::GainFocus => window.focus_window(),
-                window::Action::AlwaysOnTop(value) => {
+                window::Action::SetAlwaysOnTop(value) => {
                     window.set_always_on_top(value)
                 }
             },
