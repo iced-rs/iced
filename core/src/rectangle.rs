@@ -116,8 +116,8 @@ impl std::ops::Mul<f32> for Rectangle<f32> {
 
     fn mul(self, scale: f32) -> Self {
         Self {
-            x: self.x as f32 * scale,
-            y: self.y as f32 * scale,
+            x: self.x * scale,
+            y: self.y * scale,
             width: self.width * scale,
             height: self.height * scale,
         }

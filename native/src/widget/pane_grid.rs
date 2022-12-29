@@ -294,6 +294,7 @@ where
         &self,
         tree: &mut Tree,
         layout: Layout<'_>,
+        renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         operation.container(None, &mut |operation| {
@@ -302,7 +303,7 @@ where
                 .zip(&mut tree.children)
                 .zip(layout.children())
                 .for_each(|(((_pane, content), state), layout)| {
-                    content.operate(state, layout, operation);
+                    content.operate(state, layout, renderer, operation);
                 })
         });
     }
@@ -630,13 +631,13 @@ pub fn update<'a, Message, T: Draggable>(
                                 let position =
                                     cursor_position.y - bounds.y - rectangle.y;
 
-                                (position / rectangle.height).max(0.1).min(0.9)
+                                (position / rectangle.height).clamp(0.1, 0.9)
                             }
                             Axis::Vertical => {
                                 let position =
                                     cursor_position.x - bounds.x - rectangle.x;
 
-                                (position / rectangle.width).max(0.1).min(0.9)
+                                (position / rectangle.width).clamp(0.1, 0.9)
                             }
                         };
 

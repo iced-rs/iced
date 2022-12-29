@@ -80,7 +80,7 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     pub fn push(&mut self, value: &T) {
         //this write operation on the cpu buffer will adjust for uniform alignment requirements
         let offset = self.cpu.write(value);
-        self.offsets.push(offset as u32);
+        self.offsets.push(offset);
     }
 
     /// Resize buffer contents if necessary. This will re-create the GPU buffer if current size is
