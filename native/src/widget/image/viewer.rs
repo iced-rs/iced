@@ -170,8 +170,7 @@ where
                             } else {
                                 state.scale / (1.0 + self.scale_step)
                             })
-                            .max(self.min_scale)
-                            .min(self.max_scale);
+                            .clamp(self.min_scale, self.max_scale);
 
                             let image_size = image_size(
                                 renderer,
@@ -251,16 +250,14 @@ where
 
                     let x = if bounds.width < image_size.width {
                         (state.starting_offset.x - delta.x)
-                            .min(hidden_width)
-                            .max(-hidden_width)
+                            .clamp(-hidden_width, hidden_width)
                     } else {
                         0.0
                     };
 
                     let y = if bounds.height < image_size.height {
                         (state.starting_offset.y - delta.y)
-                            .min(hidden_height)
-                            .max(-hidden_height)
+                            .clamp(-hidden_height, hidden_height)
                     } else {
                         0.0
                     };
@@ -374,8 +371,8 @@ impl State {
             (image_size.height - bounds.height / 2.0).max(0.0).round();
 
         Vector::new(
-            self.current_offset.x.min(hidden_width).max(-hidden_width),
-            self.current_offset.y.min(hidden_height).max(-hidden_height),
+            self.current_offset.x.clamp(-hidden_width, hidden_width),
+            self.current_offset.y.clamp(-hidden_height, hidden_height),
         )
     }
 

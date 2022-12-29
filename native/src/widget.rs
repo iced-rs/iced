@@ -33,6 +33,7 @@ pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
 pub mod tree;
+pub mod vertical_slider;
 
 mod action;
 mod id;
@@ -79,6 +80,8 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use tree::Tree;
+#[doc(no_inline)]
+pub use vertical_slider::VerticalSlider;
 
 pub use action::Action;
 pub use id::Id;
@@ -172,6 +175,7 @@ where
         &self,
         _state: &mut Tree,
         _layout: Layout<'_>,
+        _renderer: &Renderer,
         _operation: &mut dyn Operation<Message>,
     ) {
     }
