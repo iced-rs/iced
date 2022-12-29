@@ -42,7 +42,7 @@ pub enum Action<T> {
     ///
     /// ## Platform-specific
     ///
-    /// - **iOS / Android / Web / Wayland / macOS:** Unsupported.
+    /// - **Web / Wayland / macOS:** Unsupported.
     ///
     /// - **Windows:** Sets `ICON_SMALL`. The base size for a window icon is 16x16, but it's
     ///   recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
