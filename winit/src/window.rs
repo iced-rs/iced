@@ -57,7 +57,7 @@ pub fn fetch_mode<Message>(
 
 impl From<iced_native::window::Icon> for Icon {
     fn from(value: iced_native::window::Icon) -> Self {
-        let (rgba, width, height) = value.get_icon();
+        let (rgba, width, height) = value.into_raw();
         Icon(winit::window::Icon::from_rgba(rgba, width, height).unwrap())
     }
 }

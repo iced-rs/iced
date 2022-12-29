@@ -22,7 +22,7 @@ pub struct Icon {
 
 impl Icon {
     /// return the icon data
-    pub fn get_icon(self) -> (Vec<u8>, u32, u32) {
+    pub fn into_raw(self) -> (Vec<u8>, u32, u32) {
         (self.rgba, self.width, self.height)
     }
 
