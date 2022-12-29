@@ -53,7 +53,6 @@ impl Icon {
             height,
         })
     }
-
 }
 
 #[derive(Debug)]

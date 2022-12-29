@@ -1,4 +1,4 @@
-use crate::window::{Mode, Icon};
+use crate::window::{Icon, Mode};
 
 use iced_futures::MaybeSend;
 use std::fmt;
