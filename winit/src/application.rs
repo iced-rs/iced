@@ -678,7 +678,7 @@ pub fn run_command<A, E>(
                     .request_user_attention(
                         user_attention.map(conversion::user_attention),
                     ),
-                window::Action::FocusWindow => window.focus_window(),
+                window::Action::GainFocus => window.focus_window(),
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

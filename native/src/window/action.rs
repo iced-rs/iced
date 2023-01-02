@@ -68,7 +68,7 @@ pub enum Action<T> {
     /// ## Platform-specific
     ///
     /// - **Web / Wayland:** Unsupported.
-    FocusWindow,
+    GainFocus,
 }
 
 impl<T> Action<T> {
@@ -94,7 +94,7 @@ impl<T> Action<T> {
             Self::RequestUserAttention(attention_type) => {
                 Action::RequestUserAttention(attention_type)
             }
-            Self::FocusWindow => Action::FocusWindow,
+            Self::GainFocus => Action::GainFocus,
         }
     }
 }
@@ -121,7 +121,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::RequestUserAttention(_) => {
                 write!(f, "Action::RequestUserAttention")
             }
-            Self::FocusWindow => write!(f, "Action::FocusWindow"),
+            Self::GainFocus => write!(f, "Action::GainFocus"),
         }
     }
 }
