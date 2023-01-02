@@ -58,6 +58,17 @@ pub enum Action<T> {
     /// - **X11:** Requests for user attention must be manually cleared.
     /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
     RequestUserAttention(Option<UserAttention>),
+    /// Brings the window to the front and sets input focus. Has no effect if the window is
+    /// already in focus, minimized, or not visible.
+    ///
+    /// This method steals input focus from other applications. Do not use this method unless
+    /// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
+    /// user experience.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland:** Unsupported.
+    GainFocus,
 }
 
 impl<T> Action<T> {
@@ -83,6 +94,7 @@ impl<T> Action<T> {
             Self::RequestUserAttention(attention_type) => {
                 Action::RequestUserAttention(attention_type)
             }
+            Self::GainFocus => Action::GainFocus,
         }
     }
 }
@@ -109,6 +121,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::RequestUserAttention(_) => {
                 write!(f, "Action::RequestUserAttention")
             }
+            Self::GainFocus => write!(f, "Action::GainFocus"),
         }
     }
 }
