@@ -535,10 +535,10 @@ impl pick_list::StyleSheet for Theme {
                     text_color: palette.background.weak.text,
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
+                    handle_color: palette.background.weak.text,
                     border_radius: 2.0,
                     border_width: 1.0,
                     border_color: palette.background.strong.color,
-                    icon_size: 0.7,
                 }
             }
             PickList::Custom(custom, _) => custom.active(self),
@@ -554,10 +554,10 @@ impl pick_list::StyleSheet for Theme {
                     text_color: palette.background.weak.text,
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
+                    handle_color: palette.background.weak.text,
                     border_radius: 2.0,
                     border_width: 1.0,
                     border_color: palette.primary.strong.color,
-                    icon_size: 0.7,
                 }
             }
             PickList::Custom(custom, _) => custom.hovered(self),

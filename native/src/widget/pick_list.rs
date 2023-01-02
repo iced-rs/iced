@@ -20,6 +20,60 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
+/// The handle to the right side of the [`PickList`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Handle<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Displays an arrow icon (▼).
+    ///
+    /// This is the default.
+    Arrow {
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// A custom handle.
+    Custom {
+        /// Font that will be used to display the `text`,
+        font: Renderer::Font,
+        /// Text that will be shown.
+        text: String,
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// No handle will be shown.
+    None,
+}
+
+impl<Renderer> Default for Handle<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn default() -> Self {
+        Self::Arrow { size: None }
+    }
+}
+
+impl<Renderer> Handle<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn content(&self) -> Option<(Renderer::Font, String, Option<u16>)> {
+        match self {
+            Self::Arrow { size } => Some((
+                Renderer::ICON_FONT,
+                Renderer::ARROW_DOWN_ICON.to_string(),
+                *size,
+            )),
+            Self::Custom { font, text, size } => {
+                Some((font.clone(), text.clone(), *size))
+            }
+            Self::None => None,
+        }
+    }
+}
+
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
 pub struct PickList<'a, T, Message, Renderer>
@@ -36,6 +90,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
+    handle: Handle<Renderer>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -67,9 +122,10 @@ where
             placeholder: None,
             selected,
             width: Length::Shrink,
-            text_size: None,
             padding: Self::DEFAULT_PADDING,
+            text_size: None,
             font: Default::default(),
+            handle: Default::default(),
             style: Default::default(),
         }
     }
@@ -101,6 +157,12 @@ where
     /// Sets the font of the [`PickList`].
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the [`Handle`] of the [`PickList`].
+    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
+        self.handle = handle;
         self
     }
 
@@ -214,6 +276,7 @@ where
             &self.font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
+            &self.handle,
             &self.style,
         )
     }
@@ -515,6 +578,7 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
+    handle: &Handle<Renderer>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
@@ -541,19 +605,24 @@ pub fn draw<T, Renderer>(
         style.background,
     );
 
-    renderer.fill_text(Text {
-        content: &Renderer::ARROW_DOWN_ICON.to_string(),
-        font: Renderer::ICON_FONT,
-        size: bounds.height * style.icon_size,
-        bounds: Rectangle {
-            x: bounds.x + bounds.width - f32::from(padding.horizontal()),
-            y: bounds.center_y(),
-            ..bounds
-        },
-        color: style.text_color,
-        horizontal_alignment: alignment::Horizontal::Right,
-        vertical_alignment: alignment::Vertical::Center,
-    });
+    if let Some((font, text, size)) = handle.content() {
+        let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
+
+        renderer.fill_text(Text {
+            content: &text,
+            size,
+            font,
+            color: style.handle_color,
+            bounds: Rectangle {
+                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
+                y: bounds.center_y() - size / 2.0,
+                height: size,
+                ..bounds
+            },
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Top,
+        });
+    }
 
     let label = selected.map(ToString::to_string);
 
