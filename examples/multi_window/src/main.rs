@@ -268,7 +268,7 @@ impl Application for Example {
             .spacing(5)
             .align_items(Alignment::Center);
 
-            let pane_grid = PaneGrid::new(&window.panes, |id, pane| {
+            let pane_grid = PaneGrid::new(&window.panes, |id, pane, _| {
                 let is_focused = focus == Some(id);
 
                 let pin_button = button(

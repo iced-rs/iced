@@ -887,6 +887,10 @@ pub fn run_command<A, E>(
                         .send_event(Event::CloseWindow(id))
                         .expect("Send message to event loop");
                 }
+                window::Action::Drag => {
+                    let window = windows.get(&id).expect("No window found");
+                    let _res = window.drag_window();
+                }
                 window::Action::Resize { width, height } => {
                     let window = windows.get(&id).expect("No window found");
                     window.set_inner_size(winit::dpi::LogicalSize {
@@ -920,6 +924,22 @@ pub fn run_command<A, E>(
                     proxy
                         .send_event(Event::Application(tag(mode)))
                         .expect("Send message to event loop");
+                }
+                window::Action::Maximize(value) => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_maximized(value);
+                }
+                window::Action::Minimize(value) => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_minimized(value);
+                }
+                window::Action::ToggleMaximize => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_maximized(!window.is_maximized());
+                }
+                window::Action::ToggleDecorations => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_decorations(!window.is_decorated());
                 }
             },
             command::Action::System(action) => match action {
