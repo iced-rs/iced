@@ -493,6 +493,22 @@ pub fn key_code(
     }
 }
 
+/// Converts some [`UserAttention`] into it's `winit` counterpart.
+///
+/// [`UserAttention`]: window::UserAttention
+pub fn user_attention(
+    user_attention: window::UserAttention,
+) -> winit::window::UserAttentionType {
+    match user_attention {
+        window::UserAttention::Critical => {
+            winit::window::UserAttentionType::Critical
+        }
+        window::UserAttention::Informational => {
+            winit::window::UserAttentionType::Informational
+        }
+    }
+}
+
 // As defined in: http://www.unicode.org/faq/private_use.html
 pub(crate) fn is_private_use_character(c: char) -> bool {
     matches!(
