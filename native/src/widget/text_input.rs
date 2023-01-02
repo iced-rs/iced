@@ -454,9 +454,17 @@ where
                             )
                         } else {
                             None
-                        };
+                        }
+                        .unwrap_or(0);
 
-                        state.cursor.move_to(position.unwrap_or(0));
+                        if state.keyboard_modifiers.shift() {
+                            state.cursor.select_range(
+                                state.cursor.start(value),
+                                position,
+                            );
+                        } else {
+                            state.cursor.move_to(position);
+                        }
                         state.is_dragging = true;
                     }
                     click::Kind::Double => {
