@@ -162,7 +162,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::toggler::StyleSheet,
 {
-    widget::Toggler::new(is_checked, label, f)
+    widget::Toggler::new(label, is_checked, f)
 }
 
 /// Creates a new [`TextInput`].
