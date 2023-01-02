@@ -48,10 +48,12 @@ pub trait Component<Message, Renderer> {
     fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Renderer>;
 
     /// Update the [`Component`] state based on the provided [`Operation`](widget::Operation)
+    ///
+    /// By default, it does nothing.
     fn operate(
         &self,
-        #[allow(unused)] state: &mut Self::State,
-        #[allow(unused)] operation: &mut dyn widget::Operation<Message>,
+        _state: &mut Self::State,
+        _operation: &mut dyn widget::Operation<Message>,
     ) {
     }
 }
