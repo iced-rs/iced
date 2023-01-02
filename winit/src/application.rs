@@ -674,16 +674,10 @@ pub fn run_command<A, E>(
                 window::Action::ToggleDecorations => {
                     window.set_decorations(!window.is_decorated())
                 }
-                window::Action::RequestUserAttention(attention_type) => window
-                    .request_user_attention(match attention_type {
-                        Some(window::UserAttention::Critical) => {
-                            Some(winit::window::UserAttentionType::Critical)
-                        }
-                        Some(window::UserAttention::Informational) => Some(
-                            winit::window::UserAttentionType::Informational,
-                        ),
-                        None => None,
-                    }),
+                window::Action::RequestUserAttention(user_attention) => window
+                    .request_user_attention(
+                        user_attention.map(conversion::user_attention),
+                    ),
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
