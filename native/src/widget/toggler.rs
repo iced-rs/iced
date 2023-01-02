@@ -24,9 +24,9 @@ pub use iced_style::toggler::{Appearance, StyleSheet};
 ///     TogglerToggled(bool),
 /// }
 ///
-/// let is_checked = true;
+/// let is_toggled = true;
 ///
-/// Toggler::new(String::from("Toggle me!"), is_checked, |b| Message::TogglerToggled(b));
+/// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
 pub struct Toggler<'a, Message, Renderer>
@@ -34,7 +34,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    is_checked: bool,
+    is_toggled: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
@@ -64,14 +64,14 @@ where
     ///     `Message`.
     pub fn new<F>(
         label: impl Into<Option<String>>,
-        is_checked: bool,
+        is_toggled: bool,
         f: F,
     ) -> Self
     where
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
-            is_checked,
+            is_toggled,
             on_toggle: Box::new(f),
             label: label.into(),
             width: Length::Fill,
@@ -193,7 +193,7 @@ where
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_checked));
+                    shell.publish((self.on_toggle)(!self.is_toggled));
 
                     event::Status::Captured
                 } else {
@@ -260,9 +260,9 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_checked)
+            theme.hovered(&self.style, self.is_toggled)
         } else {
-            theme.active(&self.style, self.is_checked)
+            theme.active(&self.style, self.is_toggled)
         };
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
@@ -289,7 +289,7 @@ where
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_checked {
+                + if self.is_toggled {
                     bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
                 } else {
                     2.0 * space
