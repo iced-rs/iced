@@ -33,7 +33,6 @@ use std::mem::ManuallyDrop;
 pub enum Event<Message> {
     /// An [`Application`] generated message
     Application(Message),
-
     /// TODO(derezzedex)
     // Create a wrapper variant of `window::Event` type instead
     // (maybe we should also allow users to listen/react to those internal messages?)
@@ -197,7 +196,8 @@ where
         .map_err(Error::WindowCreationFailed)?;
 
     let windows: HashMap<window::Id, winit::window::Window> =
-        HashMap::from([(window::Id::new(0usize), window)]);
+        HashMap::from([(window::Id::MAIN, window)]);
+
     let window = windows.values().next().expect("No window found");
 
     #[cfg(target_arch = "wasm32")]
@@ -515,64 +515,72 @@ async fn run_instance<A, E, C>(
                     ),
                 ));
             }
-            event::Event::UserEvent(event) => match event {
-                Event::Application(message) => {
-                    messages.push(message);
-                }
-                Event::WindowCreated(id, window) => {
-                    let mut surface = compositor.create_surface(&window);
+            event::Event::UserEvent(event) => {
+                match event {
+                    Event::Application(message) => {
+                        messages.push(message);
+                    }
+                    Event::WindowCreated(id, window) => {
+                        let mut surface = compositor.create_surface(&window);
 
-                    let state = State::new(&application, &window);
+                        let state = State::new(&application, &window);
 
-                    let physical_size = state.physical_size();
+                        let physical_size = state.physical_size();
 
-                    compositor.configure_surface(
-                        &mut surface,
-                        physical_size.width,
-                        physical_size.height,
-                    );
+                        compositor.configure_surface(
+                            &mut surface,
+                            physical_size.width,
+                            physical_size.height,
+                        );
 
-                    let user_interface = build_user_interface(
-                        &application,
-                        user_interface::Cache::default(),
-                        &mut renderer,
-                        state.logical_size(),
-                        &mut debug,
-                        id,
-                    );
+                        let user_interface = build_user_interface(
+                            &application,
+                            user_interface::Cache::default(),
+                            &mut renderer,
+                            state.logical_size(),
+                            &mut debug,
+                            id,
+                        );
 
-                    let _ = states.insert(id, state);
-                    let _ = surfaces.insert(id, surface);
-                    let _ = interfaces.insert(id, user_interface);
-                    let _ = window_ids.insert(window.id(), id);
-                    let _ = windows.insert(id, window);
-                }
-                Event::CloseWindow(id) => {
-                    // TODO(derezzedex): log errors
-                    if let Some(window) = windows.get(&id) {
-                        if window_ids.remove(&window.id()).is_none() {
-                            println!("Failed to remove from `window_ids`!");
+                        let _ = states.insert(id, state);
+                        let _ = surfaces.insert(id, surface);
+                        let _ = interfaces.insert(id, user_interface);
+                        let _ = window_ids.insert(window.id(), id);
+                        let _ = windows.insert(id, window);
+                    }
+                    Event::CloseWindow(id) => {
+                        println!("Closing window {:?}. Total: {}", id, windows.len());
+
+                        if let Some(window) = windows.get(&id) {
+                            if window_ids.remove(&window.id()).is_none() {
+                                log::error!("Failed to remove window with id {:?} from window_ids.", window.id());
+                            }
+                        } else {
+                            log::error!("Could not find window with id {:?} in windows.", id);
+                        }
+                        if states.remove(&id).is_none() {
+                            log::error!("Failed to remove window {:?} from states.", id);
+                        }
+                        if interfaces.remove(&id).is_none() {
+                            log::error!("Failed to remove window {:?} from interfaces.", id);
+                        }
+                        if windows.remove(&id).is_none() {
+                            log::error!("Failed to remove window {:?} from windows.", id);
+                        }
+                        if surfaces.remove(&id).is_none() {
+                            log::error!("Failed to remove window {:?} from surfaces.", id);
+                        }
+
+                        if windows.is_empty() {
+                            log::info!("All windows are closed. Terminating program.");
+                            break 'main;
+                        } else {
+                            log::info!("Remaining windows: {:?}", windows.len());
                         }
                     }
-                    if states.remove(&id).is_none() {
-                        println!("Failed to remove from `states`!")
-                    }
-                    if interfaces.remove(&id).is_none() {
-                        println!("Failed to remove from `interfaces`!");
-                    }
-                    if windows.remove(&id).is_none() {
-                        println!("Failed to remove from `windows`!")
-                    }
-                    if surfaces.remove(&id).is_none() {
-                        println!("Failed to remove from `surfaces`!")
-                    }
-
-                    if windows.is_empty() {
-                        break 'main;
-                    }
+                    Event::NewWindow(_, _) => unreachable!(),
                 }
-                Event::NewWindow(_, _) => unreachable!(),
-            },
+            }
             event::Event::RedrawRequested(id) => {
                 let state = window_ids
                     .get(&id)

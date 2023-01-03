@@ -8,5 +8,6 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["debug", "multi_window"] }
+env_logger = "0.10.0"
 iced_native = { path = "../../native" }
 iced_lazy = { path = "../../lazy" }

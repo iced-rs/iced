@@ -15,6 +15,8 @@ use iced_native::{event, subscription, Event};
 use std::collections::HashMap;
 
 pub fn main() -> iced::Result {
+    env_logger::init();
+
     Example::run(Settings::default())
 }
 
