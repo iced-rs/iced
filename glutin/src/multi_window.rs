@@ -23,12 +23,11 @@ use glutin::config::{
 };
 use glutin::context::{
     ContextApi, ContextAttributesBuilder, NotCurrentContext,
-    NotCurrentGlContextSurfaceAccessor,
-    PossiblyCurrentContextGlSurfaceAccessor, PossiblyCurrentGlContext,
+    NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext,
 };
 use glutin::display::{Display, DisplayApiPreference, GlDisplay};
 use glutin::surface::{
-    GlSurface, Surface, SurfaceAttributesBuilder, WindowSurface,
+    GlSurface, Surface, SurfaceAttributesBuilder, SwapInterval, WindowSurface,
 };
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
@@ -240,41 +239,18 @@ where
                 )
             })?;
 
-        let (width, height) = window.inner_size().into();
-        let surface_attributes =
-            SurfaceAttributesBuilder::<WindowSurface>::new()
-                .with_srgb(Some(true))
-                .build(
-                    window_handle,
-                    NonZeroU32::new(width).unwrap_or(ONE),
-                    NonZeroU32::new(height).unwrap_or(ONE),
-                );
-
-        let surface = display
-            .create_window_surface(configuration.as_ref(), &surface_attributes)
-            .map_err(|error| {
-                Error::GraphicsCreationFailed(
-                    iced_graphics::Error::BackendError(format!(
-                        "failed to create surface: {error}"
-                    )),
-                )
-            })?;
-
-        let context = {
-            context
-                .make_current(&surface)
-                .expect("make context current")
-        };
-
-        if let Err(error) = surface.set_swap_interval(
-            &context,
-            glutin::surface::SwapInterval::Wait(ONE),
-        ) {
-            log::error!("set swap interval failed: {}", error);
-        }
+        let surface = gl_surface(&display, configuration.as_ref(), &window);
 
         (display, window, configuration.0, surface, context)
     };
+
+    let windows: HashMap<window::Id, winit::window::Window> =
+        HashMap::from([(window::Id::MAIN, window)]);
+
+    // need to make context current before trying to load GL functions
+    let context = context
+        .make_current(&surface)
+        .expect("Make context current.");
 
     #[allow(unsafe_code)]
     let (compositor, renderer) = unsafe {
@@ -284,7 +260,7 @@ where
         })?
     };
 
-    let context = { context.make_not_current().expect("make context current") };
+    let context = context.make_not_current().expect("Make not current.");
 
     let (mut sender, receiver) = mpsc::unbounded();
 
@@ -297,9 +273,8 @@ where
         debug,
         receiver,
         display,
-        window,
+        windows,
         configuration,
-        surface,
         context,
         init_command,
         settings.exit_on_close_request,
@@ -370,10 +345,9 @@ async fn run_instance<A, E, C>(
         winit::event::Event<'_, Event<A::Message>>,
     >,
     display: Display,
-    window: winit::window::Window,
+    mut windows: HashMap<window::Id, winit::window::Window>,
     configuration: Config,
-    surface: Surface<WindowSurface>,
-    context: NotCurrentContext,
+    mut context: NotCurrentContext,
     init_command: Command<A::Message>,
     _exit_on_close_request: bool,
 ) where
@@ -385,34 +359,48 @@ async fn run_instance<A, E, C>(
     use iced_winit::futures::stream::StreamExt;
     use winit::event;
 
-    let context = {
-        context
-            .make_current(&surface)
-            .expect("make context current")
-    };
-
-    let mut clipboard = Clipboard::connect(&window);
+    let mut clipboard =
+        Clipboard::connect(windows.values().next().expect("No window found"));
     let mut cache = user_interface::Cache::default();
-    let state = State::new(&application, &window);
-    let user_interface = multi_window::build_user_interface(
-        &application,
-        user_interface::Cache::default(),
-        &mut renderer,
-        state.logical_size(),
-        &mut debug,
-        window::Id::MAIN,
-    );
+    let mut current_context_window = None;
+    let mut window_ids: HashMap<_, _> = windows
+        .iter()
+        .map(|(&id, window)| (window.id(), id))
+        .collect();
+    let mut states = HashMap::new();
+    let mut surfaces = HashMap::new();
+    let mut interfaces = ManuallyDrop::new(HashMap::new());
 
-    let mut current_context_window = window.id();
-    let mut window_ids = HashMap::from([(window.id(), window::Id::MAIN)]);
-    let mut windows = HashMap::from([(window::Id::MAIN, window)]);
-    let mut surfaces = HashMap::from([(window::Id::MAIN, surface)]);
-    let mut states = HashMap::from([(window::Id::MAIN, state)]);
-    let mut interfaces =
-        ManuallyDrop::new(HashMap::from([(window::Id::MAIN, user_interface)]));
+    for (&id, window) in windows.keys().zip(windows.values()) {
+        let surface = gl_surface(&display, &configuration, &window);
+        let current_context = context.make_current(&surface).expect("Make current.");
+        let state = State::new(&application, &window);
+        let physical_size = state.physical_size();
+
+        surface.resize(
+            &current_context,
+            NonZeroU32::new(physical_size.width).unwrap_or(ONE),
+            NonZeroU32::new(physical_size.height).unwrap_or(ONE),
+        );
+
+        let user_interface = multi_window::build_user_interface(
+            &application,
+            user_interface::Cache::default(),
+            &mut renderer,
+            state.logical_size(),
+            &mut debug,
+            id,
+        );
+
+        context = current_context.make_not_current().expect("Make not current.");
+
+        let _ = states.insert(id, state);
+        let _ = surfaces.insert(id, surface);
+        let _ = interfaces.insert(id, user_interface);
+    }
 
     {
-        let state = states.get(&window::Id::MAIN).unwrap();
+        let state = states.values().next().expect("No state found.");
 
         run_command(
             &application,
@@ -653,12 +641,11 @@ async fn run_instance<A, E, C>(
 
                 debug.render_started();
 
-                if current_context_window != id {
-                    context
-                        .make_current(&surface)
-                        .expect("Make OpenGL context current");
+                let current_context =
+                    context.make_current(&surface).expect("Make current.");
 
-                    current_context_window = id;
+                if current_context_window != Some(id) {
+                    current_context_window = Some(id);
                 }
 
                 if state.viewport_changed() {
@@ -695,10 +682,16 @@ async fn run_instance<A, E, C>(
                     }
 
                     surface.resize(
-                        &context,
+                        &current_context,
                         NonZeroU32::new(physical_size.width).unwrap_or(ONE),
                         NonZeroU32::new(physical_size.height).unwrap_or(ONE),
                     );
+
+                    if let Err(error) =
+                        surface.set_swap_interval(&current_context, SwapInterval::Wait(ONE))
+                    {
+                        log::error!("Could not set swap interval for surface attached to window id: {:?}", id);
+                    }
 
                     compositor.resize_viewport(physical_size);
 
@@ -713,10 +706,10 @@ async fn run_instance<A, E, C>(
                     &debug.overlay(),
                 );
 
-                surface.swap_buffers(&context).expect("Swap buffers");
+                surface.swap_buffers(&current_context).expect("Swap buffers");
 
+                context = current_context.make_not_current().expect("Make not current.");
                 debug.render_finished();
-
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
             }
@@ -1037,4 +1030,27 @@ where
     }
 
     interfaces
+}
+
+#[allow(unsafe_code)]
+fn gl_surface(
+    display: &Display,
+    gl_config: &Config,
+    window: &winit::window::Window,
+) -> Surface<WindowSurface> {
+    let (width, height) = window.inner_size().into();
+
+    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new()
+        .with_srgb(Some(true))
+        .build(
+            window.raw_window_handle(),
+            NonZeroU32::new(width).unwrap_or(ONE),
+            NonZeroU32::new(height).unwrap_or(ONE),
+        );
+
+    unsafe {
+        display
+            .create_window_surface(gl_config, &surface_attributes)
+            .expect("failed to create surface")
+    }
 }

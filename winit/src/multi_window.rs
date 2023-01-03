@@ -320,6 +320,7 @@ async fn run_instance<A, E, C>(
 
     for (&id, window) in windows.keys().zip(windows.values()) {
         let mut surface = compositor.create_surface(window);
+        println!("Creating surface for window: {:?}", window);
 
         let state = State::new(&application, window);
 
