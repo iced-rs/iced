@@ -46,6 +46,16 @@ pub trait Component<Message, Renderer> {
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
     fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Renderer>;
+
+    /// Update the [`Component`] state based on the provided [`Operation`](widget::Operation)
+    ///
+    /// By default, it does nothing.
+    fn operate(
+        &self,
+        _state: &mut Self::State,
+        _operation: &mut dyn widget::Operation<Message>,
+    ) {
+    }
 }
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
@@ -94,6 +104,26 @@ where
 {
     fn rebuild_element(&self, state: &S) {
         let heads = self.state.borrow_mut().take().unwrap().into_heads();
+
+        *self.state.borrow_mut() = Some(
+            StateBuilder {
+                component: heads.component,
+                message: PhantomData,
+                state: PhantomData,
+                element_builder: |component| Some(component.view(state)),
+            }
+            .build(),
+        );
+    }
+
+    fn rebuild_element_with_operation(
+        &self,
+        state: &mut S,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let heads = self.state.borrow_mut().take().unwrap().into_heads();
+
+        heads.component.operate(state, operation);
 
         *self.state.borrow_mut() = Some(
             StateBuilder {
@@ -239,6 +269,11 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
+        self.rebuild_element_with_operation(
+            tree.state.downcast_mut(),
+            operation,
+        );
+
         struct MapOperation<'a, B> {
             operation: &'a mut dyn widget::Operation<B>,
         }

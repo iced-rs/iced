@@ -8,7 +8,7 @@
 [![Crates.io](https://img.shields.io/crates/v/iced.svg)](https://crates.io/crates/iced)
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/crates/d/iced.svg)](https://crates.io/crates/iced)
-[![Test Status](https://img.shields.io/github/workflow/status/iced-rs/iced/Test?event=push&label=test)](https://github.com/iced-rs/iced/actions)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/iced-rs/iced/test.yml?branch=master&event=push&label=test)](https://github.com/iced-rs/iced/actions)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 A cross-platform GUI library for Rust focused on simplicity and type-safety.

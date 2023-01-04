@@ -8,6 +8,8 @@ pub struct Appearance {
     pub text_color: Color,
     /// The placeholder [`Color`] of the pick list.
     pub placeholder_color: Color,
+    /// The handle [`Color`] of the pick list.
+    pub handle_color: Color,
     /// The [`Background`] of the pick list.
     pub background: Background,
     /// The border radius of the pick list.
@@ -16,8 +18,6 @@ pub struct Appearance {
     pub border_width: f32,
     /// The border color of the pick list.
     pub border_color: Color,
-    /// The size of the arrow icon of the pick list.
-    pub icon_size: f32,
 }
 
 /// A set of rules that dictate the style of a container.

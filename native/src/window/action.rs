@@ -1,4 +1,4 @@
-use crate::window::Mode;
+use crate::window::{Mode, UserAttention};
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -35,6 +35,8 @@ pub enum Action<T> {
     },
     /// Set the [`Mode`] of the window.
     SetMode(Mode),
+    /// Fetch the current [`Mode`] of the window.
+    FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
     /// Sets the window to maximized or back
     ToggleMaximize,
     /// Toggles whether window has decorations
@@ -42,8 +44,31 @@ pub enum Action<T> {
     /// - **X11:** Not implemented.
     /// - **Web:** Unsupported.
     ToggleDecorations,
-    /// Fetch the current [`Mode`] of the window.
-    FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
+    /// Requests user attention to the window, this has no effect if the application
+    /// is already focused. How requesting for user attention manifests is platform dependent,
+    /// see [`UserAttentionType`] for details.
+    ///
+    /// Providing `None` will unset the request for user attention. Unsetting the request for
+    /// user attention might not be done automatically by the WM when the window receives input.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS / Android / Web:** Unsupported.
+    /// - **macOS:** `None` has no effect.
+    /// - **X11:** Requests for user attention must be manually cleared.
+    /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
+    RequestUserAttention(Option<UserAttention>),
+    /// Brings the window to the front and sets input focus. Has no effect if the window is
+    /// already in focus, minimized, or not visible.
+    ///
+    /// This method steals input focus from other applications. Do not use this method unless
+    /// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
+    /// user experience.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland:** Unsupported.
+    GainFocus,
 }
 
 impl<T> Action<T> {
@@ -63,9 +88,13 @@ impl<T> Action<T> {
             Self::Minimize(bool) => Action::Minimize(bool),
             Self::Move { x, y } => Action::Move { x, y },
             Self::SetMode(mode) => Action::SetMode(mode),
+            Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
             Self::ToggleDecorations => Action::ToggleDecorations,
-            Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
+            Self::RequestUserAttention(attention_type) => {
+                Action::RequestUserAttention(attention_type)
+            }
+            Self::GainFocus => Action::GainFocus,
         }
     }
 }
@@ -86,9 +115,13 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
             }
             Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
+            Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
-            Self::FetchMode(_) => write!(f, "Action::FetchMode"),
+            Self::RequestUserAttention(_) => {
+                write!(f, "Action::RequestUserAttention")
+            }
+            Self::GainFocus => write!(f, "Action::GainFocus"),
         }
     }
 }
