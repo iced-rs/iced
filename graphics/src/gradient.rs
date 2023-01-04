@@ -64,7 +64,7 @@ impl From<(Point, Point)> for Position {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 /// The location of a relatively-positioned gradient.
 pub enum Location {
     /// Top left.
