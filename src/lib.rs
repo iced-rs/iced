@@ -24,7 +24,7 @@
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 //! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
 //! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/0.4/master/native
+//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.6/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.6/wgpu
 //! [windowing shell]: https://github.com/iced-rs/iced/tree/0.6/winit
