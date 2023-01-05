@@ -2,19 +2,19 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{Id, Event, Mode, UserAttention};
+pub use window::{Event, Id, Mode, UserAttention};
 
-/// Closes the current window and exits the application.
-pub fn close<Message>() -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Close))
+/// Closes the window.
+pub fn close<Message>(id: window::Id) -> Command<Message> {
+    Command::single(command::Action::Window(id, window::Action::Close))
 }
 
 /// Begins dragging the window while the left mouse button is held.
-pub fn drag<Message>() -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Drag))
+pub fn drag<Message>(id: window::Id) -> Command<Message> {
+    Command::single(command::Action::Window(id, window::Action::Drag))
 }
 
-/// TODO(derezzedex)
+/// Spawns a new window.
 pub fn spawn<Message>(
     id: window::Id,
     settings: window::Settings,
@@ -23,11 +23,6 @@ pub fn spawn<Message>(
         id,
         window::Action::Spawn { settings },
     ))
-}
-
-/// TODO(derezzedex)
-pub fn close<Message>(id: window::Id) -> Command<Message> {
-    Command::single(command::Action::Window(id, window::Action::Close))
 }
 
 /// Resizes the window to the given logical dimensions.
@@ -43,13 +38,19 @@ pub fn resize<Message>(
 }
 
 /// Sets the window to maximized or back.
-pub fn maximize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Maximize(value)))
+pub fn maximize<Message>(id: window::Id, value: bool) -> Command<Message> {
+    Command::single(command::Action::Window(
+        id,
+        window::Action::Maximize(value),
+    ))
 }
 
 /// Set the window to minimized or back.
-pub fn minimize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Minimize(value)))
+pub fn minimize<Message>(id: window::Id, value: bool) -> Command<Message> {
+    Command::single(command::Action::Window(
+        id,
+        window::Action::Minimize(value),
+    ))
 }
 
 /// Moves a window to the given logical coordinates.
@@ -63,8 +64,8 @@ pub fn set_mode<Message>(id: window::Id, mode: Mode) -> Command<Message> {
 }
 
 /// Sets the window to maximized or back.
-pub fn toggle_maximize<Message>() -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::ToggleMaximize))
+pub fn toggle_maximize<Message>(id: window::Id) -> Command<Message> {
+    Command::single(command::Action::Window(id, window::Action::ToggleMaximize))
 }
 
 /// Fetches the current [`Mode`] of the window.

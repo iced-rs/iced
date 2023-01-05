@@ -44,7 +44,7 @@ pub trait Application: Sized {
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
-    fn title(&self) -> String;
+    fn title(&self, window: window::Id) -> String;
 
     /// Handles a __message__ and updates the state of the [`Application`].
     ///
@@ -110,7 +110,7 @@ pub trait Application: Sized {
         false
     }
 
-    /// TODO(derezzedex)
+    /// Requests that the [`window`] be closed.
     fn close_requested(&self, window: window::Id) -> Self::Message;
 
     /// Runs the [`Application`].
@@ -163,8 +163,8 @@ where
         (Instance(app), command)
     }
 
-    fn title(&self) -> String {
-        self.0.title()
+    fn title(&self, window: window::Id) -> String {
+        self.0.title(window)
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {

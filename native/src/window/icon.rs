@@ -3,10 +3,10 @@
 /// The icon of a window.
 #[derive(Debug, Clone)]
 pub struct Icon {
-    /// TODO(derezzedex)
+    /// The __rgba__ color data of the window [`Icon`].
     pub rgba: Vec<u8>,
-    /// TODO(derezzedex)
+    /// The width of the window [`Icon`].
     pub width: u32,
-    /// TODO(derezzedex)
+    /// The height of the window [`Icon`].
     pub height: u32,
 }

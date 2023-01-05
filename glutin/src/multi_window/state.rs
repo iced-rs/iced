@@ -8,7 +8,6 @@ use iced_winit::winit;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
-use std::collections::HashMap;
 use std::marker::PhantomData;
 
 /// The state of a windowed [`Application`].
@@ -33,8 +32,8 @@ where
     <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
-    pub fn new(application: &A, window: &Window) -> Self {
-        let title = application.title();
+    pub fn new(application: &A, window_id: window::Id, window: &Window) -> Self {
+        let title = application.title(window_id);
         let scale_factor = application.scale_factor();
         let theme = application.theme();
         let appearance = theme.appearance(&application.style());
@@ -67,7 +66,7 @@ where
         &self.viewport
     }
 
-    /// TODO(derezzedex)
+    /// Returns whether or not the current [`Viewport`] has changed.
     pub fn viewport_changed(&self) -> bool {
         self.viewport_changed
     }
@@ -187,12 +186,11 @@ where
     pub fn synchronize(
         &mut self,
         application: &A,
-        windows: &HashMap<window::Id, Window>,
+        window_id: window::Id,
+        window: &Window,
     ) {
-        let window = windows.values().next().expect("No window found");
-
         // Update window title
-        let new_title = application.title();
+        let new_title = application.title(window_id);
 
         if self.title != new_title {
             window.set_title(&new_title);

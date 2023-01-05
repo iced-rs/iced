@@ -1,4 +1,4 @@
-use crate::window::{self, Mode, UserAttention};
+use crate::window;
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -13,9 +13,9 @@ pub enum Action<T> {
     /// There’s no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     Drag,
-    /// TODO(derezzedex)
+    /// Spawns a new window with the provided [`window::Settings`].
     Spawn {
-        /// TODO(derezzedex)
+        /// The settings of the [`Window`].
         settings: window::Settings,
     },
     /// Resize the window.
@@ -62,7 +62,7 @@ pub enum Action<T> {
     /// - **macOS:** `None` has no effect.
     /// - **X11:** Requests for user attention must be manually cleared.
     /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
-    RequestUserAttention(Option<UserAttention>),
+    RequestUserAttention(Option<window::UserAttention>),
     /// Brings the window to the front and sets input focus. Has no effect if the window is
     /// already in focus, minimized, or not visible.
     ///

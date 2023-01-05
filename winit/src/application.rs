@@ -675,7 +675,7 @@ pub fn run_command<A, E>(
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
-                window::Action::Spawn { .. } | window::Action::Close => {
+                window::Action::Spawn { .. } => {
                     log::info!(
                         "This is only available on `multi_window::Application`"
                     )

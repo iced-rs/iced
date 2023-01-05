@@ -12,7 +12,6 @@ use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
-use iced_winit::settings;
 use iced_winit::user_interface;
 use iced_winit::window;
 use iced_winit::winit;
@@ -26,11 +25,12 @@ use glutin::context::{
     NotCurrentGlContextSurfaceAccessor, PossiblyCurrentGlContext,
 };
 use glutin::display::{Display, DisplayApiPreference, GlDisplay};
-use glutin::surface::{
-    GlSurface, Surface, SurfaceAttributesBuilder, SwapInterval, WindowSurface,
-};
+use glutin::surface::{GlSurface, SwapInterval};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
+use crate::application::gl_surface;
+use iced_native::window::Action;
+use iced_winit::multi_window::Event;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::mem::ManuallyDrop;
@@ -76,7 +76,7 @@ where
     };
 
     let builder = settings.window.into_builder(
-        &application.title(),
+        &application.title(window::Id::MAIN),
         event_loop.primary_monitor(),
         settings.id,
     );
@@ -239,7 +239,14 @@ where
                 )
             })?;
 
-        let surface = gl_surface(&display, configuration.as_ref(), &window);
+        let surface = gl_surface(&display, configuration.as_ref(), &window)
+            .map_err(|error| {
+                Error::GraphicsCreationFailed(
+                    iced_graphics::Error::BackendError(format!(
+                        "failed to create surface: {error}"
+                    )),
+                )
+            })?;
 
         (display, window, configuration.0, surface, context)
     };
@@ -301,14 +308,13 @@ where
                 event: winit::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
-            winit::event::Event::UserEvent(Event::NewWindow(id, settings)) => {
-                // TODO(derezzedex)
+            winit::event::Event::UserEvent(Event::NewWindow {
+                id,
+                settings,
+                title,
+            }) => {
                 let window = settings
-                    .into_builder(
-                        "fix window title",
-                        event_loop.primary_monitor(),
-                        None,
-                    )
+                    .into_builder(&title, event_loop.primary_monitor(), None)
                     .build(event_loop)
                     .expect("Failed to build window");
 
@@ -372,9 +378,11 @@ async fn run_instance<A, E, C>(
     let mut interfaces = ManuallyDrop::new(HashMap::new());
 
     for (&id, window) in windows.keys().zip(windows.values()) {
-        let surface = gl_surface(&display, &configuration, &window);
-        let current_context = context.make_current(&surface).expect("Make current.");
-        let state = State::new(&application, &window);
+        let surface = gl_surface(&display, &configuration, &window)
+            .expect("Create surface.");
+        let current_context =
+            context.make_current(&surface).expect("Make current.");
+        let state = State::new(&application, id, &window);
         let physical_size = state.physical_size();
 
         surface.resize(
@@ -392,7 +400,9 @@ async fn run_instance<A, E, C>(
             id,
         );
 
-        context = current_context.make_not_current().expect("Make not current.");
+        context = current_context
+            .make_not_current()
+            .expect("Make not current.");
 
         let _ = states.insert(id, state);
         let _ = surfaces.insert(id, surface);
@@ -431,7 +441,7 @@ async fn run_instance<A, E, C>(
                     let (filtered, remaining): (Vec<_>, Vec<_>) =
                         events.iter().cloned().partition(
                             |(window_id, _event): &(
-                                Option<crate::window::Id>,
+                                Option<window::Id>,
                                 iced_native::event::Event,
                             )| {
                                 *window_id == Some(id) || *window_id == None
@@ -503,7 +513,11 @@ async fn run_instance<A, E, C>(
                         );
 
                         // Update window
-                        state.synchronize(&application, &windows);
+                        state.synchronize(
+                            &application,
+                            id,
+                            windows.get(&id).expect("No window found with ID."),
+                        );
 
                         let should_exit = application.should_exit();
 
@@ -563,7 +577,7 @@ async fn run_instance<A, E, C>(
             event::Event::UserEvent(event) => match event {
                 Event::Application(message) => messages.push(message),
                 Event::WindowCreated(id, window) => {
-                    let state = State::new(&application, &window);
+                    let state = State::new(&application, id, &window);
                     let user_interface = multi_window::build_user_interface(
                         &application,
                         user_interface::Cache::default(),
@@ -573,26 +587,8 @@ async fn run_instance<A, E, C>(
                         id,
                     );
 
-                    let window_handle = window.raw_window_handle();
-                    let (width, height) = window.inner_size().into();
-                    let surface_attributes =
-                        SurfaceAttributesBuilder::<WindowSurface>::new()
-                            .with_srgb(Some(true))
-                            .build(
-                                window_handle,
-                                NonZeroU32::new(width).unwrap_or(ONE),
-                                NonZeroU32::new(height).unwrap_or(ONE),
-                            );
-
-                    #[allow(unsafe_code)]
-                    let surface = unsafe {
-                        display
-                            .create_window_surface(
-                                &configuration,
-                                &surface_attributes,
-                            )
-                            .expect("failed to create surface")
-                    };
+                    let surface = gl_surface(&display, &configuration, &window)
+                        .expect("Create surface.");
 
                     let _ = states.insert(id, state);
                     let _ = interfaces.insert(id, user_interface);
@@ -624,7 +620,7 @@ async fn run_instance<A, E, C>(
                         break 'main;
                     }
                 }
-                Event::NewWindow(_, _) => unreachable!(),
+                Event::NewWindow { .. } => unreachable!(),
             },
             event::Event::RedrawRequested(id) => {
                 let state = window_ids
@@ -687,9 +683,10 @@ async fn run_instance<A, E, C>(
                         NonZeroU32::new(physical_size.height).unwrap_or(ONE),
                     );
 
-                    if let Err(error) =
-                        surface.set_swap_interval(&current_context, SwapInterval::Wait(ONE))
-                    {
+                    if let Err(_) = surface.set_swap_interval(
+                        &current_context,
+                        SwapInterval::Wait(ONE),
+                    ) {
                         log::error!("Could not set swap interval for surface attached to window id: {:?}", id);
                     }
 
@@ -706,9 +703,13 @@ async fn run_instance<A, E, C>(
                     &debug.overlay(),
                 );
 
-                surface.swap_buffers(&current_context).expect("Swap buffers");
+                surface
+                    .swap_buffers(&current_context)
+                    .expect("Swap buffers");
 
-                context = current_context.make_not_current().expect("Make not current.");
+                context = current_context
+                    .make_not_current()
+                    .expect("Make not current.");
                 debug.render_finished();
                 // TODO: Handle animations!
                 // Maybe we can use `ControlFlow::WaitUntil` for this.
@@ -751,11 +752,10 @@ async fn run_instance<A, E, C>(
                             ));
                         }
                     } else {
-                        // TODO(derezzedex): log error
+                        log::error!("Window state not found for id: {:?}", window_id);
                     }
                 } else {
-                    // TODO(derezzedex): log error
-                    // println!("{:?}: {:?}", window_id, window_event);
+                    log::error!("Window not found for id: {:?}", window_id);
                 }
             }
             _ => {}
@@ -764,25 +764,6 @@ async fn run_instance<A, E, C>(
 
     // Manually drop the user interface
     // drop(ManuallyDrop::into_inner(user_interface));
-}
-
-/// TODO(derezzedex):
-// This is the an wrapper around the `Application::Message` associate type
-// to allows the `shell` to create internal messages, while still having
-// the current user specified custom messages.
-#[derive(Debug)]
-pub enum Event<Message> {
-    /// An [`Application`] generated message
-    Application(Message),
-
-    /// TODO(derezzedex)
-    // Create a wrapper variant of `window::Event` type instead
-    // (maybe we should also allow users to listen/react to those internal messages?)
-    NewWindow(window::Id, settings::Window),
-    /// TODO(derezzedex)
-    CloseWindow(window::Id),
-    /// TODO(derezzedex)
-    WindowCreated(window::Id, winit::window::Window),
 }
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
@@ -872,7 +853,11 @@ pub fn run_command<A, E>(
             command::Action::Window(id, action) => match action {
                 window::Action::Spawn { settings } => {
                     proxy
-                        .send_event(Event::NewWindow(id, settings.into()))
+                        .send_event(Event::NewWindow {
+                            id,
+                            settings: settings.into(),
+                            title: application.title(id),
+                        })
                         .expect("Send message to event loop");
                 }
                 window::Action::Close => {
@@ -933,6 +918,16 @@ pub fn run_command<A, E>(
                 window::Action::ToggleDecorations => {
                     let window = windows.get(&id).expect("No window found!");
                     window.set_decorations(!window.is_decorated());
+                }
+                Action::RequestUserAttention(attention_type) => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.request_user_attention(
+                        attention_type.map(conversion::user_attention),
+                    );
+                }
+                Action::GainFocus => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.focus_window();
                 }
             },
             command::Action::System(action) => match action {
@@ -1030,27 +1025,4 @@ where
     }
 
     interfaces
-}
-
-#[allow(unsafe_code)]
-fn gl_surface(
-    display: &Display,
-    gl_config: &Config,
-    window: &winit::window::Window,
-) -> Surface<WindowSurface> {
-    let (width, height) = window.inner_size().into();
-
-    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new()
-        .with_srgb(Some(true))
-        .build(
-            window.raw_window_handle(),
-            NonZeroU32::new(width).unwrap_or(ONE),
-            NonZeroU32::new(height).unwrap_or(ONE),
-        );
-
-    unsafe {
-        display
-            .create_window_surface(gl_config, &surface_attributes)
-            .expect("failed to create surface")
-    }
 }

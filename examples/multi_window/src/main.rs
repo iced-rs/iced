@@ -26,6 +26,7 @@ struct Example {
     _focused: window::Id,
 }
 
+#[derive(Debug)]
 struct Window {
     title: String,
     panes: pane_grid::State<Pane>,
@@ -80,8 +81,11 @@ impl Application for Example {
         )
     }
 
-    fn title(&self) -> String {
-        String::from("Multi windowed pane grid - Iced")
+    fn title(&self, window: window::Id) -> String {
+        self.windows
+            .get(&window)
+            .map(|w| w.title.clone())
+            .unwrap_or(String::from("New Window"))
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -262,7 +266,6 @@ impl Application for Example {
                     &window.title,
                     WindowMessage::TitleChanged,
                 ),
-                button(text("Apply")).style(theme::Button::Primary),
                 button(text("Close"))
                     .on_press(WindowMessage::CloseWindow)
                     .style(theme::Button::Destructive),
@@ -389,6 +392,7 @@ impl std::fmt::Display for SelectableWindow {
     }
 }
 
+#[derive(Debug)]
 struct Pane {
     id: usize,
     pub axis: pane_grid::Axis,
