@@ -153,12 +153,17 @@ impl Limits {
 
     /// Computes the resulting [`Size`] that fits the [`Limits`] given the
     /// intrinsic size of some content.
+    #[allow(clippy::manual_clamp)]
     pub fn resolve(&self, intrinsic_size: Size) -> Size {
         Size::new(
-            intrinsic_size.width.clamp(self.fill.width, self.max.width),
+            intrinsic_size
+                .width
+                .min(self.max.width)
+                .max(self.fill.width),
             intrinsic_size
                 .height
-                .clamp(self.fill.height, self.max.height),
+                .min(self.max.height)
+                .max(self.fill.height),
         )
     }
 }
