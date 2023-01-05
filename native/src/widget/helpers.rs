@@ -129,7 +129,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
-    widget::Checkbox::new(is_checked, label, f)
+    widget::Checkbox::new(label, is_checked, f)
 }
 
 /// Creates a new [`Radio`].

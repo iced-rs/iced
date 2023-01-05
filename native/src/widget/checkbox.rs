@@ -27,7 +27,7 @@ pub use iced_style::checkbox::{Appearance, StyleSheet};
 ///
 /// let is_checked = true;
 ///
-/// Checkbox::new(is_checked, "Toggle me!", Message::CheckboxToggled);
+/// Checkbox::new("Toggle me!", is_checked, Message::CheckboxToggled);
 /// ```
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
@@ -67,7 +67,7 @@ where
     ///   * a function that will be called when the [`Checkbox`] is toggled. It
     ///     will receive the new state of the [`Checkbox`] and must produce a
     ///     `Message`.
-    pub fn new<F>(is_checked: bool, label: impl Into<String>, f: F) -> Self
+    pub fn new<F>(label: impl Into<String>, is_checked: bool, f: F) -> Self
     where
         F: 'a + Fn(bool) -> Message,
     {
