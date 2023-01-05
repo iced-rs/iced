@@ -39,6 +39,16 @@ pub trait StyleSheet {
     /// Produces the active [`Appearance`] of a button.
     fn active(&self, style: &Self::Style) -> Appearance;
 
+    /// Produces the focused [`Appearance`] of a button.
+    fn focused(&self, style: &Self::Style) -> Appearance {
+        let active = self.active(style);
+
+        Appearance {
+            shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
+            ..active
+        }
+    }
+
     /// Produces the hovered [`Appearance`] of a button.
     fn hovered(&self, style: &Self::Style) -> Appearance {
         let active = self.active(style);

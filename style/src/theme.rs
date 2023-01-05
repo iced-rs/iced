@@ -192,6 +192,25 @@ impl button::StyleSheet for Theme {
         }
     }
 
+    fn focused(&self, style: &Self::Style) -> button::Appearance {
+        let palette = self.extended_palette();
+
+        let background = match style {
+            Button::Primary => Some(palette.primary.base.color),
+            Button::Secondary => Some(palette.background.strong.color),
+            Button::Positive => Some(palette.success.strong.color),
+            Button::Destructive => Some(palette.danger.strong.color),
+            Button::Text | Button::Custom(_) => None,
+        };
+
+        let active = self.active(style);
+
+        button::Appearance {
+            background: background.map(Background::from),
+            ..active
+        }
+    }
+
     fn pressed(&self, style: &Self::Style) -> button::Appearance {
         if let Button::Custom(custom) = style {
             return custom.pressed(self);

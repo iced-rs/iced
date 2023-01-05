@@ -2,16 +2,18 @@
 //!
 //! A [`Button`] has some local [`State`].
 use crate::event::{self, Event};
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
+use crate::widget;
+use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
-use crate::widget::Operation;
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Background, Clipboard, Color, Command, Element, Layout, Length, Padding,
+    Point, Rectangle, Shell, Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -56,6 +58,7 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -72,6 +75,7 @@ where
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
+            id: None,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
@@ -104,6 +108,12 @@ where
     /// Unless `on_press` is called, the [`Button`] will be disabled.
     pub fn on_press(mut self, msg: Message) -> Self {
         self.on_press = Some(msg);
+        self
+    }
+
+    /// Sets the [`Id`] of the [`Button`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
         self
     }
 
@@ -178,6 +188,9 @@ where
                 operation,
             );
         });
+
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
     }
 
     fn on_event(
@@ -289,12 +302,28 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_pressed: bool,
+    is_focused: bool,
 }
 
 impl State {
     /// Creates a new [`State`].
     pub fn new() -> State {
         State::default()
+    }
+
+    /// Returns whether the [`Button`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    /// Focuses the [`Button`].
+    pub fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    /// Unfocuses the [`Button`].
+    pub fn unfocus(&mut self) {
+        self.is_focused = false;
     }
 }
 
@@ -341,6 +370,17 @@ pub fn update<'a, Message: Clone>(
                 }
             }
         }
+
+        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+            if let Some(on_press) = on_press.clone() {
+                let state = state();
+                if state.is_focused && key_code == keyboard::KeyCode::Enter {
+                    state.is_pressed = true;
+                    shell.publish(on_press);
+                    return event::Status::Captured;
+                }
+            }
+        }
         Event::Touch(touch::Event::FingerLost { .. }) => {
             let state = state();
 
@@ -368,17 +408,18 @@ where
     Renderer::Theme: StyleSheet,
 {
     let is_mouse_over = bounds.contains(cursor_position);
+    let state = state();
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
     } else if is_mouse_over {
-        let state = state();
-
         if state.is_pressed {
             style_sheet.pressed(style)
         } else {
             style_sheet.hovered(style)
         }
+    } else if state.is_focused {
+        style_sheet.focused(style)
     } else {
         style_sheet.active(style)
     };
@@ -449,5 +490,48 @@ pub fn mouse_interaction(
         mouse::Interaction::Pointer
     } else {
         mouse::Interaction::default()
+    }
+}
+
+/// The identifier of a [`Button`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
+    }
+}
+
+/// Produces a [`Command`] that focuses the [`Button`] with the given [`Id`].
+pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
+    Command::widget(operation::focusable::focus(id.0))
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(self)
+    }
+
+    fn focus(&mut self) {
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        State::unfocus(self)
     }
 }
