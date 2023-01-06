@@ -23,14 +23,11 @@ dds = ["iced_graphics/dds"]
 farbfeld = ["iced_graphics/farbfeld"]
 canvas = ["iced_graphics/canvas"]
 qr_code = ["iced_graphics/qr_code"]
-default_system_font = ["iced_graphics/font-source"]
 spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 
 [dependencies]
 wgpu = "0.14"
-wgpu_glyph = "0.18"
-glyph_brush = "0.7"
 raw-window-handle = "0.5"
 log = "0.4"
 guillotiere = "0.6"
@@ -48,7 +45,6 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
-features = ["font-fallback", "font-icons"]
 
 [dependencies.tracing]
 version = "0.1.6"
