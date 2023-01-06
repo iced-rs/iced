@@ -8,13 +8,15 @@ use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
 
-pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
+pub use iced_style::slider::{
+    Appearance, Handle, HandleShape, Rail, StyleSheet,
+};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -368,37 +370,7 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let rail_y = bounds.y + (bounds.height / 2.0).round();
-
-    renderer.fill_quad(
-        renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y - 1.0,
-                width: bounds.width,
-                height: 2.0,
-            },
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        },
-        style.rail_colors.0,
-    );
-
-    renderer.fill_quad(
-        renderer::Quad {
-            bounds: Rectangle {
-                x: bounds.x,
-                y: rail_y + 1.0,
-                width: bounds.width,
-                height: 2.0,
-            },
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        },
-        Background::Color(style.rail_colors.1),
-    );
+    let value = value.into() as f32;
 
     let (handle_width, handle_height, handle_border_radius) = match style
         .handle
@@ -411,25 +383,69 @@ pub fn draw<T, R>(
         } => (f32::from(width), bounds.height, border_radius),
     };
 
-    let value = value.into() as f32;
     let (range_start, range_end) = {
         let (start, end) = range.clone().into_inner();
 
         (start.into() as f32, end.into() as f32)
     };
 
-    let handle_offset = if range_start >= range_end {
+    let offset = if range_start >= range_end {
         0.0
     } else {
         (bounds.width - handle_width) * (value - range_start)
             / (range_end - range_start)
     };
 
+    let line_y = bounds.y + bounds.height / 2.0 - style.rail.size / 2.0;
+    let line_offset = offset + handle_width / 2.0;
+
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + handle_offset.round(),
-                y: rail_y - handle_height / 2.0,
+                x: bounds.x,
+                y: line_y,
+                width: line_offset,
+                height: style.rail.size,
+            },
+            border_radius: [
+                style.rail.border_radius,
+                0.0,
+                0.0,
+                style.rail.border_radius,
+            ]
+            .into(),
+            border_width: style.rail.border_width,
+            border_color: style.rail.border_color,
+        },
+        style.rail.colors.0,
+    );
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x + line_offset.round(),
+                y: line_y,
+                width: bounds.width - line_offset,
+                height: style.rail.size,
+            },
+            border_radius: [
+                0.0,
+                style.rail.border_radius,
+                style.rail.border_radius,
+                0.0,
+            ]
+            .into(),
+            border_width: style.rail.border_width,
+            border_color: style.rail.border_color,
+        },
+        style.rail.colors.1,
+    );
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: bounds.x + offset.round(),
+                y: bounds.y + bounds.height / 2.0 - handle_height / 2.0,
                 width: handle_width,
                 height: handle_height,
             },
