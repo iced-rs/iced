@@ -134,6 +134,7 @@ impl Application for ScrollableDemo {
             text("Scroller width:"),
             scroller_width_slider,
         ]
+        .spacing(10)
         .width(Length::Fill);
 
         let scroll_orientation_controls = column(vec![
@@ -160,6 +161,7 @@ impl Application for ScrollableDemo {
             )
             .into(),
         ])
+        .spacing(10)
         .width(Length::Fill);
 
         let scroll_controls =
