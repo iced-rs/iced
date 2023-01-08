@@ -516,7 +516,10 @@ pub fn update<Message>(
 
                 return event::Status::Captured;
             }
-            Event::Touch(event) => {
+            Event::Touch(event)
+                if state.scroll_area_touched_at.is_some()
+                    || !mouse_over_y_scrollbar && !mouse_over_x_scrollbar =>
+            {
                 match event {
                     touch::Event::FingerPressed { .. } => {
                         state.scroll_area_touched_at = Some(cursor_position);
