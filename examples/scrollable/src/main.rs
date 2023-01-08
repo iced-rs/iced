@@ -3,7 +3,7 @@ use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
-use iced::{executor, theme, Alignment, Color, Point};
+use iced::{executor, theme, Alignment, Color};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 use once_cell::sync::Lazy;
 
@@ -18,7 +18,7 @@ struct ScrollableDemo {
     scrollbar_width: u16,
     scrollbar_margin: u16,
     scroller_width: u16,
-    current_scroll_offset: Point,
+    current_scroll_offset: scrollable::RelativeOffset,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -36,7 +36,7 @@ enum Message {
     ScrollerWidthChanged(u16),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(Point),
+    Scrolled(scrollable::RelativeOffset),
 }
 
 impl Application for ScrollableDemo {
@@ -52,7 +52,7 @@ impl Application for ScrollableDemo {
                 scrollbar_width: 10,
                 scrollbar_margin: 0,
                 scroller_width: 10,
-                current_scroll_offset: Point::ORIGIN,
+                current_scroll_offset: scrollable::RelativeOffset::START,
             },
             Command::none(),
         )
@@ -65,7 +65,7 @@ impl Application for ScrollableDemo {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::SwitchDirection(direction) => {
-                self.current_scroll_offset = Point::ORIGIN;
+                self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
 
                 scrollable::snap_to(
@@ -89,7 +89,7 @@ impl Application for ScrollableDemo {
                 Command::none()
             }
             Message::ScrollToBeginning => {
-                self.current_scroll_offset = Point::ORIGIN;
+                self.current_scroll_offset = scrollable::RelativeOffset::START;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),
@@ -97,7 +97,7 @@ impl Application for ScrollableDemo {
                 )
             }
             Message::ScrollToEnd => {
-                self.current_scroll_offset = Point::new(1.0, 1.0);
+                self.current_scroll_offset = scrollable::RelativeOffset::END;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),

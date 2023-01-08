@@ -1,10 +1,10 @@
 mod echo;
 
 use iced::alignment::{self, Alignment};
+use iced::executor;
 use iced::widget::{
     button, column, container, row, scrollable, text, text_input, Column,
 };
-use iced::{executor, Point};
 use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
 };
@@ -83,7 +83,7 @@ impl Application for WebSocket {
 
                     scrollable::snap_to(
                         MESSAGE_LOG.clone(),
-                        Point::new(0.0, 1.0),
+                        scrollable::RelativeOffset::END,
                     )
                 }
             },

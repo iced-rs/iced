@@ -14,6 +14,7 @@ use crate::{
 };
 
 pub use iced_style::scrollable::StyleSheet;
+pub use operation::scrollable::RelativeOffset;
 
 pub mod style {
     //! The styles of a [`Scrollable`].
@@ -35,7 +36,7 @@ where
     vertical: Properties,
     horizontal: Option<Properties>,
     content: Element<'a, Message, Renderer>,
-    on_scroll: Option<Box<dyn Fn(Point) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(RelativeOffset) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -85,7 +86,10 @@ where
     ///
     /// The function takes the new relative x & y offset of the [`Scrollable`]
     /// (e.g. `0` means beginning, while `1` means end).
-    pub fn on_scroll(mut self, f: impl Fn(Point) -> Message + 'a) -> Self {
+    pub fn on_scroll(
+        mut self,
+        f: impl Fn(RelativeOffset) -> Message + 'a,
+    ) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
     }
@@ -375,9 +379,9 @@ impl From<Id> for widget::Id {
 /// to the provided `percentage` along the x & y axis.
 pub fn snap_to<Message: 'static>(
     id: Id,
-    percentage: Point,
+    offset: RelativeOffset,
 ) -> Command<Message> {
-    Command::widget(operation::scrollable::snap_to(id.0, percentage))
+    Command::widget(operation::scrollable::snap_to(id.0, offset))
 }
 
 /// Computes the layout of a [`Scrollable`].
@@ -428,7 +432,7 @@ pub fn update<Message>(
     shell: &mut Shell<'_, Message>,
     vertical: &Properties,
     horizontal: Option<&Properties>,
-    on_scroll: &Option<Box<dyn Fn(Point) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
     update_content: impl FnOnce(
         Event,
         Layout<'_>,
@@ -872,7 +876,7 @@ pub fn draw<Renderer>(
 
 fn notify_on_scroll<Message>(
     state: &State,
-    on_scroll: &Option<Box<dyn Fn(Point) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -882,13 +886,15 @@ fn notify_on_scroll<Message>(
             return;
         }
 
-        let x_offset = state.offset_x.absolute_x(bounds, content_bounds)
+        let x = state.offset_x.absolute(bounds.width, content_bounds.width)
             / (content_bounds.width - bounds.width);
 
-        let y_offset = state.offset_y.absolute_y(bounds, content_bounds)
+        let y = state
+            .offset_y
+            .absolute(bounds.height, content_bounds.height)
             / (content_bounds.height - bounds.height);
 
-        shell.publish(on_scroll(Point::new(x_offset, y_offset)))
+        shell.publish(on_scroll(RelativeOffset { x, y }))
     }
 }
 
@@ -915,12 +921,11 @@ impl Default for State {
 }
 
 impl operation::Scrollable for State {
-    fn snap_to(&mut self, percentage: Point) {
-        State::snap_to(self, percentage);
+    fn snap_to(&mut self, offset: RelativeOffset) {
+        State::snap_to(self, offset);
     }
 }
 
-/// The offset of a [`Scrollable`].
 #[derive(Debug, Clone, Copy)]
 enum Offset {
     Absolute(f32),
@@ -928,24 +933,13 @@ enum Offset {
 }
 
 impl Offset {
-    fn absolute_x(self, bounds: Rectangle, content_bounds: Rectangle) -> f32 {
+    fn absolute(self, window: f32, content: f32) -> f32 {
         match self {
             Offset::Absolute(absolute) => {
-                absolute.min((content_bounds.width - bounds.width).max(0.0))
+                absolute.min((content - window).max(0.0))
             }
             Offset::Relative(percentage) => {
-                ((content_bounds.width - bounds.width) * percentage).max(0.0)
-            }
-        }
-    }
-
-    fn absolute_y(self, bounds: Rectangle, content_bounds: Rectangle) -> f32 {
-        match self {
-            Offset::Absolute(absolute) => {
-                absolute.min((content_bounds.height - bounds.height).max(0.0))
-            }
-            Offset::Relative(percentage) => {
-                ((content_bounds.height - bounds.height) * percentage).max(0.0)
+                ((content - window) * percentage).max(0.0)
             }
         }
     }
@@ -967,14 +961,16 @@ impl State {
     ) {
         if bounds.height < content_bounds.height {
             self.offset_y = Offset::Absolute(
-                (self.offset_y.absolute_y(bounds, content_bounds) - delta.y)
+                (self.offset_y.absolute(bounds.height, content_bounds.height)
+                    - delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
             )
         }
 
         if bounds.width < content_bounds.width {
             self.offset_x = Offset::Absolute(
-                (self.offset_x.absolute_x(bounds, content_bounds) - delta.x)
+                (self.offset_x.absolute(bounds.width, content_bounds.width)
+                    - delta.x)
                     .clamp(0.0, content_bounds.width - bounds.width),
             );
         }
@@ -1008,34 +1004,33 @@ impl State {
         self.unsnap(bounds, content_bounds);
     }
 
-    /// Snaps the scroll position to a relative amount.
-    ///
-    /// `0` represents scrollbar at the beginning, while `1` represents scrollbar at
-    /// the end.
-    pub fn snap_to(&mut self, percentage: Point) {
-        self.offset_x = Offset::Relative(percentage.x.clamp(0.0, 1.0));
-        self.offset_y = Offset::Relative(percentage.y.clamp(0.0, 1.0));
+    /// Snaps the scroll position to a [`RelativeOffset`].
+    pub fn snap_to(&mut self, offset: RelativeOffset) {
+        self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
+        self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the
     /// [`Scrollable`] and its contents.
     pub fn unsnap(&mut self, bounds: Rectangle, content_bounds: Rectangle) {
-        self.offset_x =
-            Offset::Absolute(self.offset_x.absolute_x(bounds, content_bounds));
-        self.offset_y =
-            Offset::Absolute(self.offset_y.absolute_y(bounds, content_bounds));
+        self.offset_x = Offset::Absolute(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+        );
+        self.offset_y = Offset::Absolute(
+            self.offset_y.absolute(bounds.height, content_bounds.height),
+        );
     }
 
-    /// Returns the current x & y scrolling offset of the [`State`], given the bounds
-    /// of the [`Scrollable`] and its contents.
+    /// Returns the scrolling offset of the [`State`], given the bounds of the
+    /// [`Scrollable`] and its contents.
     pub fn offset(
         &self,
         bounds: Rectangle,
         content_bounds: Rectangle,
-    ) -> Point {
-        Point::new(
-            self.offset_x.absolute_x(bounds, content_bounds),
-            self.offset_y.absolute_y(bounds, content_bounds),
+    ) -> Vector {
+        Vector::new(
+            self.offset_x.absolute(bounds.width, content_bounds.width),
+            self.offset_y.absolute(bounds.height, content_bounds.height),
         )
     }
 
