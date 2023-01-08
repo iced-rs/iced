@@ -1,5 +1,6 @@
 //! Navigate an endless amount of content with a scrollbar.
 use crate::event::{self, Event};
+use crate::keyboard;
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
@@ -479,13 +480,26 @@ pub fn update<Message>(
         return event::Status::Captured;
     }
 
+    if let Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) = event
+    {
+        state.keyboard_modifiers = modifiers;
+
+        return event::Status::Ignored;
+    }
+
     if mouse_over_scrollable {
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
                 let delta = match delta {
                     mouse::ScrollDelta::Lines { x, y } => {
                         // TODO: Configurable speed/friction (?)
-                        Vector::new(x * 60.0, y * 60.0)
+                        let movement = if state.keyboard_modifiers.shift() {
+                            Vector::new(y, x)
+                        } else {
+                            Vector::new(x, y)
+                        };
+
+                        movement * 60.0
                     }
                     mouse::ScrollDelta::Pixels { x, y } => Vector::new(x, y),
                 };
@@ -906,6 +920,7 @@ pub struct State {
     y_scroller_grabbed_at: Option<f32>,
     offset_x: Offset,
     x_scroller_grabbed_at: Option<f32>,
+    keyboard_modifiers: keyboard::Modifiers,
 }
 
 impl Default for State {
@@ -916,6 +931,7 @@ impl Default for State {
             y_scroller_grabbed_at: None,
             offset_x: Offset::Absolute(0.0),
             x_scroller_grabbed_at: None,
+            keyboard_modifiers: keyboard::Modifiers::default(),
         }
     }
 }
