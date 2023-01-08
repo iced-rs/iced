@@ -896,7 +896,9 @@ fn notify_on_scroll<Message>(
     shell: &mut Shell<'_, Message>,
 ) {
     if let Some(on_scroll) = on_scroll {
-        if content_bounds <= bounds {
+        if content_bounds.width <= bounds.width
+            && content_bounds.height <= bounds.height
+        {
             return;
         }
 
