@@ -1,8 +1,4 @@
 //! Create interactive, native cross-platform applications.
-mod state;
-
-pub use state::State;
-
 use crate::mouse;
 use crate::{Error, Executor, Runtime};
 
@@ -382,7 +378,7 @@ async fn run_instance<A, E, C>(
             .expect("Create surface.");
         let current_context =
             context.make_current(&surface).expect("Make current.");
-        let state = State::new(&application, id, &window);
+        let state = multi_window::State::new(&application, id, &window);
         let physical_size = state.physical_size();
 
         surface.resize(
@@ -577,7 +573,7 @@ async fn run_instance<A, E, C>(
             event::Event::UserEvent(event) => match event {
                 Event::Application(message) => messages.push(message),
                 Event::WindowCreated(id, window) => {
-                    let state = State::new(&application, id, &window);
+                    let state = multi_window::State::new(&application, id, &window);
                     let user_interface = multi_window::build_user_interface(
                         &application,
                         user_interface::Cache::default(),
@@ -771,7 +767,7 @@ async fn run_instance<A, E, C>(
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
     cache: &mut user_interface::Cache,
-    state: &State<A>,
+    state: &multi_window::State<A>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
@@ -813,7 +809,7 @@ pub fn update<A: Application, E: Executor>(
 pub fn run_command<A, E>(
     application: &A,
     cache: &mut user_interface::Cache,
-    state: &State<A>,
+    state: &multi_window::State<A>,
     renderer: &mut A::Renderer,
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
@@ -993,7 +989,7 @@ pub fn build_user_interfaces<'a, A>(
     application: &'a A,
     renderer: &mut A::Renderer,
     debug: &mut Debug,
-    states: &HashMap<window::Id, State<A>>,
+    states: &HashMap<window::Id, multi_window::State<A>>,
     mut pure_states: HashMap<window::Id, user_interface::Cache>,
 ) -> HashMap<
     window::Id,
