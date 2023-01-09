@@ -11,6 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+trace = ["iced_winit/trace"]
 debug = ["iced_winit/debug"]
 system = ["iced_winit/system"]
 
@@ -35,3 +36,7 @@ features = ["application"]
 version = "0.5"
 path = "../graphics"
 features = ["opengl"]
+
+[dependencies.tracing]
+version = "0.1.6"
+optional = true

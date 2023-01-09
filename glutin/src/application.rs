@@ -17,6 +17,9 @@ use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
 use glutin::window::Window;
 use std::mem::ManuallyDrop;
 
+#[cfg(feature = "tracing")]
+use tracing::{info_span, instrument::Instrument};
+
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
 pub fn run<A, E, C>(
@@ -35,8 +38,14 @@ where
     use glutin::platform::run_return::EventLoopExtRunReturn;
     use glutin::ContextBuilder;
 
+    #[cfg(feature = "trace")]
+    let _guard = iced_winit::Profiler::init();
+
     let mut debug = Debug::new();
     debug.startup_started();
+
+    #[cfg(feature = "tracing")]
+    let _ = info_span!("Application::Glutin", "RUN").entered();
 
     let mut event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -124,18 +133,26 @@ where
 
     let (mut sender, receiver) = mpsc::unbounded();
 
-    let mut instance = Box::pin(run_instance::<A, E, C>(
-        application,
-        compositor,
-        renderer,
-        runtime,
-        proxy,
-        debug,
-        receiver,
-        context,
-        init_command,
-        settings.exit_on_close_request,
-    ));
+    let mut instance = Box::pin({
+        let run_instance = run_instance::<A, E, C>(
+            application,
+            compositor,
+            renderer,
+            runtime,
+            proxy,
+            debug,
+            receiver,
+            context,
+            init_command,
+            settings.exit_on_close_request,
+        );
+
+        #[cfg(feature = "tracing")]
+        let run_instance =
+            run_instance.instrument(info_span!("Application", "LOOP"));
+
+        run_instance
+    });
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -333,6 +350,9 @@ async fn run_instance<A, E, C>(
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
+                #[cfg(feature = "tracing")]
+                let _ = info_span!("Application", "FRAME").entered();
+
                 debug.render_started();
 
                 #[allow(unsafe_code)]

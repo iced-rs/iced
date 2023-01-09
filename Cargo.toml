@@ -39,6 +39,13 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
+# Enables chrome traces
+chrome-trace = [
+    "iced_winit/chrome-trace",
+    "iced_glutin?/trace",
+    "iced_wgpu?/tracing",
+    "iced_glow?/tracing",
+]
 
 [badges]
 maintenance = { status = "actively-developed" }

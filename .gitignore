@@ -4,3 +4,4 @@ pkg/
 Cargo.lock
 .cargo/
 dist/
+traces/

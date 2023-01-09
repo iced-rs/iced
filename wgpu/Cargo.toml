@@ -50,6 +50,10 @@ version = "0.5"
 path = "../graphics"
 features = ["font-fallback", "font-icons"]
 
+[dependencies.tracing]
+version = "0.1.6"
+optional = true
+
 [dependencies.encase]
 version = "0.3.0"
 features = ["glam"]

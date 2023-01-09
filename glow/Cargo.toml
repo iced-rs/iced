@@ -42,6 +42,10 @@ version = "0.5"
 path = "../graphics"
 features = ["font-fallback", "font-icons", "opengl"]
 
+[dependencies.tracing]
+version = "0.1.6"
+optional = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
