@@ -10,8 +10,6 @@ use crate::{
     Shell, Widget,
 };
 
-use std::u32;
-
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
