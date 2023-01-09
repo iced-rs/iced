@@ -3,13 +3,62 @@ use crate::{Command, Element, Executor, Settings, Subscription};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
-/// A pure version of [`Application`].
+/// An interactive cross-platform multi-window application.
 ///
-/// Unlike the impure version, the `view` method of this trait takes an
-/// immutable reference to `self` and returns a pure [`Element`].
+/// This trait is the main entrypoint of Iced. Once implemented, you can run
+/// your GUI application by simply calling [`run`](#method.run).
 ///
-/// [`Application`]: crate::Application
-/// [`Element`]: pure::Element
+/// An [`Application`] can execute asynchronous actions by returning a
+/// [`Command`] in some of its methods. For example, to spawn a new window, you
+/// can use the `iced_winit::window::spawn()` [`Command`].
+///
+/// When using an [`Application`] with the `debug` feature enabled, a debug view
+/// can be toggled by pressing `F12`.
+///
+/// ## A simple "Hello, world!"
+///
+/// If you just want to get started, here is a simple [`Application`] that
+/// says "Hello, world!":
+///
+/// ```no_run
+/// use iced::executor;
+/// use iced::multi_window::Application;
+/// use iced::window;
+/// use iced::{Command, Element, Settings, Theme};
+///
+/// pub fn main() -> iced::Result {
+///     Hello::run(Settings::default())
+/// }
+///
+/// struct Hello;
+///
+/// impl Application for Hello {
+///     type Executor = executor::Default;
+///     type Message = ();
+///     type Theme = Theme;
+///     type Flags = ();
+///
+///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
+///         (Hello, Command::none())
+///     }
+///
+///     fn title(&self, window: window::Id) -> String {
+///         String::from("A cool application")
+///     }
+///
+///     fn update(&mut self, _message: Self::Message) -> Command<Self::Message> {
+///         Command::none()
+///     }
+///
+///     fn view(&self, window: window::Id) -> Element<Self::Message> {
+///         "Hello, world!".into()
+///     }
+///
+///     fn close_requested(&self, window: window::Id) -> Self::Message {
+///         ()
+///     }
+/// }
+/// ```
 pub trait Application: Sized {
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -157,16 +206,6 @@ where
     type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
 
-    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
-        let (app, command) = A::new(flags);
-
-        (Instance(app), command)
-    }
-
-    fn title(&self, window: window::Id) -> String {
-        self.0.title(window)
-    }
-
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
     }
@@ -176,6 +215,16 @@ where
         window: window::Id,
     ) -> Element<'_, Self::Message, Self::Renderer> {
         self.0.view(window)
+    }
+
+    fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
+        let (app, command) = A::new(flags);
+
+        (Instance(app), command)
+    }
+
+    fn title(&self, window: window::Id) -> String {
+        self.0.title(window)
     }
 
     fn theme(&self) -> A::Theme {

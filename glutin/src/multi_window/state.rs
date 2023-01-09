@@ -31,8 +31,12 @@ impl<A: Application> State<A>
 where
     <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
-    /// Creates a new [`State`] for the provided [`Application`] and window.
-    pub fn new(application: &A, window_id: window::Id, window: &Window) -> Self {
+    /// Creates a new [`State`] for the provided [`Application`]'s window.
+    pub fn new(
+        application: &A,
+        window_id: window::Id,
+        window: &Window,
+    ) -> Self {
         let title = application.title(window_id);
         let scale_factor = application.scale_factor();
         let theme = application.theme();
