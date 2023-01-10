@@ -21,6 +21,8 @@ use iced::{
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
+    env_logger::builder().format_timestamp(None).init();
+
     SolarSystem::run(Settings {
         antialiasing: true,
         ..Settings::default()
