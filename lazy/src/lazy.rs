@@ -16,7 +16,7 @@ use std::rc::Rc;
 #[allow(missing_debug_implementations)]
 pub struct Lazy<'a, Message, Renderer, Dependency, View> {
     dependency: Dependency,
-    view: Box<dyn Fn() -> View + 'a>,
+    view: Box<dyn Fn(&Dependency) -> View + 'a>,
     element: RefCell<
         Option<Rc<RefCell<Option<Element<'static, Message, Renderer>>>>>,
     >,
@@ -28,7 +28,10 @@ where
     Dependency: Hash + 'a,
     View: Into<Element<'static, Message, Renderer>>,
 {
-    pub fn new(dependency: Dependency, view: impl Fn() -> View + 'a) -> Self {
+    pub fn new(
+        dependency: Dependency,
+        view: impl Fn(&Dependency) -> View + 'a,
+    ) -> Self {
         Self {
             dependency,
             view: Box::new(view),
@@ -88,7 +91,8 @@ where
         self.dependency.hash(&mut hasher);
         let hash = hasher.finish();
 
-        let element = Rc::new(RefCell::new(Some((self.view)().into())));
+        let element =
+            Rc::new(RefCell::new(Some((self.view)(&self.dependency).into())));
 
         (*self.element.borrow_mut()) = Some(element.clone());
 
@@ -109,7 +113,7 @@ where
         if current.hash != new_hash {
             current.hash = new_hash;
 
-            let element = (self.view)().into();
+            let element = (self.view)(&self.dependency).into();
             current.element = Rc::new(RefCell::new(Some(element)));
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
