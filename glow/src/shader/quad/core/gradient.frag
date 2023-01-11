@@ -11,6 +11,10 @@ out vec4 fragColor;
 #define gl_FragColor fragColor
 #endif
 
+float random(vec2 coords) {
+    return fract(sin(dot(coords.xy, vec2(12.9898,78.233))) * 43758.5453);
+}
+
 float selectBorderRadius(vec4 radi, vec2 position, vec2 center)
 {
     float rx = radi.x;
@@ -37,6 +41,8 @@ vec4 gradient(
 
     //if a gradient has a start/end stop that is identical, the mesh will have a transparent fill
     vec4 color;
+
+    float noise_granularity = 0.3/255.0;
 
     float offsets_arr[8];
     offsets_arr[0] = offsets[0].x;
@@ -80,7 +86,7 @@ vec4 gradient(
         }
     }
 
-    return color;
+    return color += mix(-noise_granularity, noise_granularity, random(raw_position));
 }
 
 float fDistance(vec2 frag_coord, vec2 position, vec2 size, float radius)

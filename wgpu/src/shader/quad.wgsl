@@ -218,6 +218,10 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
     return out;
 }
 
+fn random(coords: vec2<f32>) -> f32 {
+    return fract(sin(dot(coords, vec2(12.9898,78.233))) * 43758.5453);
+}
+
 /// Returns the current interpolated color with a max 8-stop gradient
 fn gradient(
     raw_position: vec2<f32>,
@@ -241,6 +245,8 @@ fn gradient(
 
     var color: vec4<f32>;
 
+    let noise_granularity: f32 = 0.3/255.0;
+
     for (var i: i32 = 0; i < last_index; i++) {
         let curr_offset = offsets_arr[i];
         let next_offset = offsets_arr[i+1];
@@ -262,7 +268,7 @@ fn gradient(
         }
     }
 
-    return color;
+    return color + mix(-noise_granularity, noise_granularity, random(raw_position));
 }
 
 @fragment
