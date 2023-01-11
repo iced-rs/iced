@@ -46,7 +46,7 @@ impl Sandbox for App {
     }
 
     fn title(&self) -> String {
-        String::from("Cached - Iced")
+        String::from("Lazy - Iced")
     }
 
     fn update(&mut self, message: Message) {
