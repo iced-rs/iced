@@ -86,7 +86,7 @@ impl From<Color> for iced::Color {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq)]
 struct Item {
     name: String,
     color: Color,
@@ -95,6 +95,12 @@ struct Item {
 impl Hash for Item {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.name.hash(state);
+    }
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(&other.name)
     }
 }
 
@@ -166,10 +172,10 @@ impl Sandbox for App {
 
             items.sort_by(|a, b| match self.order {
                 Order::Ascending => {
-                    (&a.name).to_lowercase().cmp(&(&b.name).to_lowercase())
+                    a.name.to_lowercase().cmp(&b.name.to_lowercase())
                 }
                 Order::Descending => {
-                    (&b.name).to_lowercase().cmp(&(&a.name).to_lowercase())
+                    b.name.to_lowercase().cmp(&a.name.to_lowercase())
                 }
             });
 
