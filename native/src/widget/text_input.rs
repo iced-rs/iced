@@ -429,11 +429,10 @@ where
             let is_clicked = layout.bounds().contains(cursor_position);
 
             state.is_focused = if is_clicked {
-                let now = Instant::now();
+                state.is_focused.or_else(|| {
+                    let now = Instant::now();
 
-                Some(Focus {
-                    at: now,
-                    last_draw: now,
+                    Some(Focus { at: now, now })
                 })
             } else {
                 None
@@ -785,7 +784,7 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                focus.last_draw = now;
+                focus.now = now;
 
                 let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
                     - (now - focus.at).as_millis()
@@ -864,8 +863,7 @@ pub fn draw<Renderer>(
                         font.clone(),
                     );
 
-                let is_cursor_visible = ((focus.last_draw - focus.at)
-                    .as_millis()
+                let is_cursor_visible = ((focus.now - focus.at).as_millis()
                     / CURSOR_BLINK_INTERVAL_MILLIS)
                     % 2
                     == 0;
@@ -1010,7 +1008,7 @@ pub struct State {
 #[derive(Debug, Clone, Copy)]
 struct Focus {
     at: Instant,
-    last_draw: Instant,
+    now: Instant,
 }
 
 impl State {
@@ -1045,10 +1043,7 @@ impl State {
     pub fn focus(&mut self) {
         let now = Instant::now();
 
-        self.is_focused = Some(Focus {
-            at: now,
-            last_draw: now,
-        });
+        self.is_focused = Some(Focus { at: now, now: now });
 
         self.move_cursor_to_end();
     }
