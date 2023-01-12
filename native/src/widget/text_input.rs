@@ -28,7 +28,7 @@ use crate::{
     Rectangle, Shell, Size, Vector, Widget,
 };
 
-use std::time::{Duration, Instant};
+use instant::{Duration, Instant};
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 

@@ -15,8 +15,9 @@ trace = ["iced_winit/trace"]
 debug = ["iced_winit/debug"]
 system = ["iced_winit/system"]
 
-[dependencies.log]
-version = "0.4"
+[dependencies]
+log = "0.4"
+instant = "0.1"
 
 [dependencies.glutin]
 version = "0.29"

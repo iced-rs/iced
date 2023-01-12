@@ -13,7 +13,7 @@ pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
 
-use std::time::Instant;
+use instant::Instant;
 
 /// Subscribes to the frames of the window of the running application.
 ///

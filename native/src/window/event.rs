@@ -1,5 +1,5 @@
+use instant::Instant;
 use std::path::PathBuf;
-use std::time::Instant;
 
 /// A window-related event.
 #[derive(PartialEq, Eq, Clone, Debug)]

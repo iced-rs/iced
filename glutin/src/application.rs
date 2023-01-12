@@ -15,8 +15,8 @@ use iced_winit::user_interface;
 use iced_winit::{Clipboard, Command, Debug, Event, Proxy, Settings};
 
 use glutin::window::Window;
+use instant::Instant;
 use std::mem::ManuallyDrop;
-use std::time::Instant;
 
 #[cfg(feature = "tracing")]
 use tracing::{info_span, instrument::Instrument};

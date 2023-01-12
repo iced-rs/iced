@@ -24,8 +24,8 @@ use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
+use instant::Instant;
 use std::mem::ManuallyDrop;
-use std::time::Instant;
 
 #[cfg(feature = "trace")]
 pub use profiler::Profiler;
