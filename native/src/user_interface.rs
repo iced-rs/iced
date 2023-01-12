@@ -7,6 +7,8 @@ use crate::renderer;
 use crate::widget;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 
+use std::time::Instant;
+
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
 /// It can be updated and drawn.
@@ -188,7 +190,9 @@ where
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
 
-        let mut state = State::Updated;
+        let mut outdated = false;
+        let mut redraw_requested_at = None;
+
         let mut manual_overlay =
             ManuallyDrop::new(self.root.as_widget_mut().overlay(
                 &mut self.state,
@@ -217,6 +221,16 @@ where
 
                 event_statuses.push(event_status);
 
+                match (redraw_requested_at, shell.redraw_requested_at()) {
+                    (None, Some(at)) => {
+                        redraw_requested_at = Some(at);
+                    }
+                    (Some(current), Some(new)) if new < current => {
+                        redraw_requested_at = Some(new);
+                    }
+                    _ => {}
+                }
+
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
@@ -244,7 +258,7 @@ where
                 }
 
                 if shell.are_widgets_invalid() {
-                    state = State::Outdated;
+                    outdated = true;
                 }
             }
 
@@ -289,6 +303,16 @@ where
                     self.overlay = None;
                 }
 
+                match (redraw_requested_at, shell.redraw_requested_at()) {
+                    (None, Some(at)) => {
+                        redraw_requested_at = Some(at);
+                    }
+                    (Some(current), Some(new)) if new < current => {
+                        redraw_requested_at = Some(new);
+                    }
+                    _ => {}
+                }
+
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
                         &self.root,
@@ -299,14 +323,23 @@ where
                 });
 
                 if shell.are_widgets_invalid() {
-                    state = State::Outdated;
+                    outdated = true;
                 }
 
                 event_status.merge(overlay_status)
             })
             .collect();
 
-        (state, event_statuses)
+        (
+            if outdated {
+                State::Outdated
+            } else {
+                State::Updated {
+                    redraw_requested_at,
+                }
+            },
+            event_statuses,
+        )
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -559,5 +592,8 @@ pub enum State {
 
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
-    Updated,
+    Updated {
+        /// The [`Instant`] when a redraw should be performed.
+        redraw_requested_at: Option<Instant>,
+    },
 }

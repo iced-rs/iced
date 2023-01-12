@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Instant;
 
 /// A window-related event.
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -18,6 +19,11 @@ pub enum Event {
         /// The new logical height of the window
         height: u32,
     },
+
+    /// A window redraw was requested.
+    ///
+    /// The [`Instant`] contains the current time.
+    RedrawRequested(Instant),
 
     /// The user has requested for the window to close.
     ///

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 /// A connection to the state of a shell.
 ///
 /// A [`Widget`] can leverage a [`Shell`] to trigger changes in an application,
@@ -7,6 +9,7 @@
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
+    redraw_requested_at: Option<Instant>,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
 }
@@ -16,9 +19,45 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn new(messages: &'a mut Vec<Message>) -> Self {
         Self {
             messages,
+            redraw_requested_at: None,
             is_layout_invalid: false,
             are_widgets_invalid: false,
         }
+    }
+
+    /// Publish the given `Message` for an application to process it.
+    pub fn publish(&mut self, message: Message) {
+        self.messages.push(message);
+    }
+
+    /// Requests a new frame to be drawn at the given [`Instant`].
+    pub fn request_redraw(&mut self, at: Instant) {
+        match self.redraw_requested_at {
+            None => {
+                self.redraw_requested_at = Some(at);
+            }
+            Some(current) if at < current => {
+                self.redraw_requested_at = Some(at);
+            }
+            _ => {}
+        }
+    }
+
+    /// Returns the requested [`Instant`] a redraw should happen, if any.
+    pub fn redraw_requested_at(&self) -> Option<Instant> {
+        self.redraw_requested_at
+    }
+
+    /// Returns whether the current layout is invalid or not.
+    pub fn is_layout_invalid(&self) -> bool {
+        self.is_layout_invalid
+    }
+
+    /// Invalidates the current application layout.
+    ///
+    /// The shell will relayout the application widgets.
+    pub fn invalidate_layout(&mut self) {
+        self.is_layout_invalid = true;
     }
 
     /// Triggers the given function if the layout is invalid, cleaning it in the
@@ -31,21 +70,10 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
-    /// Returns whether the current layout is invalid or not.
-    pub fn is_layout_invalid(&self) -> bool {
-        self.is_layout_invalid
-    }
-
-    /// Publish the given `Message` for an application to process it.
-    pub fn publish(&mut self, message: Message) {
-        self.messages.push(message);
-    }
-
-    /// Invalidates the current application layout.
-    ///
-    /// The shell will relayout the application widgets.
-    pub fn invalidate_layout(&mut self) {
-        self.is_layout_invalid = true;
+    /// Returns whether the widgets of the current application have been
+    /// invalidated.
+    pub fn are_widgets_invalid(&self) -> bool {
+        self.are_widgets_invalid
     }
 
     /// Invalidates the current application widgets.
@@ -62,16 +90,14 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
+        if let Some(at) = other.redraw_requested_at {
+            self.request_redraw(at);
+        }
+
         self.is_layout_invalid =
             self.is_layout_invalid || other.is_layout_invalid;
 
         self.are_widgets_invalid =
             self.are_widgets_invalid || other.are_widgets_invalid;
-    }
-
-    /// Returns whether the widgets of the current application have been
-    /// invalidated.
-    pub fn are_widgets_invalid(&self) -> bool {
-        self.are_widgets_invalid
     }
 }
