@@ -1043,7 +1043,7 @@ impl State {
     pub fn focus(&mut self) {
         let now = Instant::now();
 
-        self.is_focused = Some(Focus { at: now, now: now });
+        self.is_focused = Some(Focus { at: now, now });
 
         self.move_cursor_to_end();
     }
