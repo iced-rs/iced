@@ -97,6 +97,7 @@
 //!             text(self.value).size(50),
 //!
 //!             // The decrement button. We tell it to produce a
+//!             // `DecrementPressed` message when pressed
 //!             button("-").on_press(Message::DecrementPressed),
 //!         ]
 //!     }
