@@ -270,6 +270,7 @@ async fn run_instance<A, E, C>(
                 redraw_pending = matches!(
                     start_cause,
                     event::StartCause::Init
+                        | event::StartCause::Poll
                         | event::StartCause::ResumeTimeReached { .. }
                 );
             }
@@ -379,8 +380,15 @@ async fn run_instance<A, E, C>(
 
                 let _ = control_sender.start_send(match interface_state {
                     user_interface::State::Updated {
-                        redraw_requested_at: Some(at),
-                    } => ControlFlow::WaitUntil(at),
+                        redraw_request: Some(redraw_request),
+                    } => match redraw_request {
+                        crate::window::RedrawRequest::NextFrame => {
+                            ControlFlow::Poll
+                        }
+                        crate::window::RedrawRequest::At(at) => {
+                            ControlFlow::WaitUntil(at)
+                        }
+                    },
                     _ => ControlFlow::Wait,
                 });
 

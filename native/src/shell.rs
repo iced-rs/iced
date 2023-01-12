@@ -1,4 +1,4 @@
-use std::time::Instant;
+use crate::window;
 
 /// A connection to the state of a shell.
 ///
@@ -9,7 +9,7 @@ use std::time::Instant;
 #[derive(Debug)]
 pub struct Shell<'a, Message> {
     messages: &'a mut Vec<Message>,
-    redraw_requested_at: Option<Instant>,
+    redraw_request: Option<window::RedrawRequest>,
     is_layout_invalid: bool,
     are_widgets_invalid: bool,
 }
@@ -19,7 +19,7 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn new(messages: &'a mut Vec<Message>) -> Self {
         Self {
             messages,
-            redraw_requested_at: None,
+            redraw_request: None,
             is_layout_invalid: false,
             are_widgets_invalid: false,
         }
@@ -31,21 +31,21 @@ impl<'a, Message> Shell<'a, Message> {
     }
 
     /// Requests a new frame to be drawn at the given [`Instant`].
-    pub fn request_redraw(&mut self, at: Instant) {
-        match self.redraw_requested_at {
+    pub fn request_redraw(&mut self, request: window::RedrawRequest) {
+        match self.redraw_request {
             None => {
-                self.redraw_requested_at = Some(at);
+                self.redraw_request = Some(request);
             }
-            Some(current) if at < current => {
-                self.redraw_requested_at = Some(at);
+            Some(current) if request < current => {
+                self.redraw_request = Some(request);
             }
             _ => {}
         }
     }
 
     /// Returns the requested [`Instant`] a redraw should happen, if any.
-    pub fn redraw_requested_at(&self) -> Option<Instant> {
-        self.redraw_requested_at
+    pub fn redraw_request(&self) -> Option<window::RedrawRequest> {
+        self.redraw_request
     }
 
     /// Returns whether the current layout is invalid or not.
@@ -90,7 +90,7 @@ impl<'a, Message> Shell<'a, Message> {
     pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
         self.messages.extend(other.messages.drain(..).map(f));
 
-        if let Some(at) = other.redraw_requested_at {
+        if let Some(at) = other.redraw_request {
             self.request_redraw(at);
         }
 

@@ -5,9 +5,8 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
+use crate::window;
 use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
-
-use std::time::Instant;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -191,7 +190,7 @@ where
         use std::mem::ManuallyDrop;
 
         let mut outdated = false;
-        let mut redraw_requested_at = None;
+        let mut redraw_request = None;
 
         let mut manual_overlay =
             ManuallyDrop::new(self.root.as_widget_mut().overlay(
@@ -221,12 +220,12 @@ where
 
                 event_statuses.push(event_status);
 
-                match (redraw_requested_at, shell.redraw_requested_at()) {
+                match (redraw_request, shell.redraw_request()) {
                     (None, Some(at)) => {
-                        redraw_requested_at = Some(at);
+                        redraw_request = Some(at);
                     }
                     (Some(current), Some(new)) if new < current => {
-                        redraw_requested_at = Some(new);
+                        redraw_request = Some(new);
                     }
                     _ => {}
                 }
@@ -303,12 +302,12 @@ where
                     self.overlay = None;
                 }
 
-                match (redraw_requested_at, shell.redraw_requested_at()) {
+                match (redraw_request, shell.redraw_request()) {
                     (None, Some(at)) => {
-                        redraw_requested_at = Some(at);
+                        redraw_request = Some(at);
                     }
                     (Some(current), Some(new)) if new < current => {
-                        redraw_requested_at = Some(new);
+                        redraw_request = Some(new);
                     }
                     _ => {}
                 }
@@ -334,9 +333,7 @@ where
             if outdated {
                 State::Outdated
             } else {
-                State::Updated {
-                    redraw_requested_at,
-                }
+                State::Updated { redraw_request }
             },
             event_statuses,
         )
@@ -594,6 +591,6 @@ pub enum State {
     /// rebuilding.
     Updated {
         /// The [`Instant`] when a redraw should be performed.
-        redraw_requested_at: Option<Instant>,
+        redraw_request: Option<window::RedrawRequest>,
     },
 }

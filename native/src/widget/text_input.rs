@@ -793,9 +793,9 @@ where
                     - (now - focus.updated_at).as_millis()
                         % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                shell.request_redraw(
+                shell.request_redraw(window::RedrawRequest::At(
                     now + Duration::from_millis(millis_until_redraw as u64),
-                );
+                ));
             }
         }
         _ => {}

@@ -2,11 +2,13 @@
 mod action;
 mod event;
 mod mode;
+mod redraw_request;
 mod user_attention;
 
 pub use action::Action;
 pub use event::Event;
 pub use mode::Mode;
+pub use redraw_request::RedrawRequest;
 pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
