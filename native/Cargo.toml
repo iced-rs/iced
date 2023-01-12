@@ -14,7 +14,6 @@ debug = []
 twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
-instant = "0.1"
 
 [dependencies.iced_core]
 version = "0.6"

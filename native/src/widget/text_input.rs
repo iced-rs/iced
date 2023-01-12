@@ -18,6 +18,7 @@ use crate::layout;
 use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
+use crate::time::{Duration, Instant};
 use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
@@ -27,8 +28,6 @@ use crate::{
     Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
-
-use instant::{Duration, Instant};
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 

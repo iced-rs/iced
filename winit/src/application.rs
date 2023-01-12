@@ -20,11 +20,11 @@ use iced_futures::futures::channel::mpsc;
 use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
+use iced_native::time::Instant;
 use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
-use instant::Instant;
 use std::mem::ManuallyDrop;
 
 #[cfg(feature = "trace")]

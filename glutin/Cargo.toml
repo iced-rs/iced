@@ -17,7 +17,6 @@ system = ["iced_winit/system"]
 
 [dependencies]
 log = "0.4"
-instant = "0.1"
 
 [dependencies.glutin]
 version = "0.29"

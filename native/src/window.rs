@@ -12,8 +12,7 @@ pub use redraw_request::RedrawRequest;
 pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
-
-use instant::Instant;
+use crate::time::Instant;
 
 /// Subscribes to the frames of the window of the running application.
 ///

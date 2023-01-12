@@ -11,11 +11,11 @@ use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
+use iced_winit::time::Instant;
 use iced_winit::user_interface;
 use iced_winit::{Clipboard, Command, Debug, Event, Proxy, Settings};
 
 use glutin::window::Window;
-use instant::Instant;
 use std::mem::ManuallyDrop;
 
 #[cfg(feature = "tracing")]

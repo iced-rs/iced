@@ -21,7 +21,6 @@ application = []
 window_clipboard = "0.2"
 log = "0.4"
 thiserror = "1.0"
-instant = "0.1"
 
 [dependencies.winit]
 version = "0.27"

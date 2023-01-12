@@ -1,4 +1,4 @@
-use instant::Instant;
+use crate::time::Instant;
 
 /// A request to redraw a window.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
