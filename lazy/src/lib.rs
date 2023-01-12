@@ -33,7 +33,7 @@ use std::hash::Hash;
 
 pub fn lazy<'a, Message, Renderer, Dependency, View>(
     dependency: Dependency,
-    view: impl Fn() -> View + 'a,
+    view: impl Fn(&Dependency) -> View + 'a,
 ) -> Lazy<'a, Message, Renderer, Dependency, View>
 where
     Dependency: Hash + 'a,

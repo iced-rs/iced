@@ -167,7 +167,7 @@ impl Sandbox for App {
     }
 
     fn view(&self) -> Element<Message> {
-        let options = lazy(self.version, || {
+        let options = lazy(self.version, |_| {
             let mut items: Vec<_> = self.items.iter().cloned().collect();
 
             items.sort_by(|a, b| match self.order {
