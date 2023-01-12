@@ -432,7 +432,10 @@ where
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
 
-                    Some(Focus { at: now, now })
+                    Some(Focus {
+                        updated_at: now,
+                        now,
+                    })
                 })
             } else {
                 None
@@ -564,7 +567,7 @@ where
                     let message = (on_change)(editor.contents());
                     shell.publish(message);
 
-                    focus.at = Instant::now();
+                    focus.updated_at = Instant::now();
 
                     return event::Status::Captured;
                 }
@@ -575,7 +578,7 @@ where
 
             if let Some(focus) = &mut state.is_focused {
                 let modifiers = state.keyboard_modifiers;
-                focus.at = Instant::now();
+                focus.updated_at = Instant::now();
 
                 match key_code {
                     keyboard::KeyCode::Enter
@@ -787,7 +790,7 @@ where
                 focus.now = now;
 
                 let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                    - (now - focus.at).as_millis()
+                    - (now - focus.updated_at).as_millis()
                         % CURSOR_BLINK_INTERVAL_MILLIS;
 
                 shell.request_redraw(
@@ -863,7 +866,8 @@ pub fn draw<Renderer>(
                         font.clone(),
                     );
 
-                let is_cursor_visible = ((focus.now - focus.at).as_millis()
+                let is_cursor_visible = ((focus.now - focus.updated_at)
+                    .as_millis()
                     / CURSOR_BLINK_INTERVAL_MILLIS)
                     % 2
                     == 0;
@@ -1007,7 +1011,7 @@ pub struct State {
 
 #[derive(Debug, Clone, Copy)]
 struct Focus {
-    at: Instant,
+    updated_at: Instant,
     now: Instant,
 }
 
@@ -1043,7 +1047,10 @@ impl State {
     pub fn focus(&mut self) {
         let now = Instant::now();
 
-        self.is_focused = Some(Focus { at: now, now });
+        self.is_focused = Some(Focus {
+            updated_at: now,
+            now,
+        });
 
         self.move_cursor_to_end();
     }
