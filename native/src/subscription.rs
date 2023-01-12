@@ -59,8 +59,11 @@ pub fn events_with<Message>(
 where
     Message: 'static + MaybeSend,
 {
+    #[derive(Hash)]
+    struct EventsWith;
+
     Subscription::from_recipe(Runner {
-        id: f,
+        id: (EventsWith, f),
         spawn: move |events| {
             use futures::future;
             use futures::stream::StreamExt;
@@ -70,6 +73,28 @@ where
                     Event::Window(window::Event::RedrawRequested(_)) => None,
                     _ => f(event, status),
                 })
+            })
+        },
+    })
+}
+
+pub(crate) fn raw_events<Message>(
+    f: fn(Event, event::Status) -> Option<Message>,
+) -> Subscription<Message>
+where
+    Message: 'static + MaybeSend,
+{
+    #[derive(Hash)]
+    struct RawEvents;
+
+    Subscription::from_recipe(Runner {
+        id: (RawEvents, f),
+        spawn: move |events| {
+            use futures::future;
+            use futures::stream::StreamExt;
+
+            events.filter_map(move |(event, status)| {
+                future::ready(f(event, status))
             })
         },
     })

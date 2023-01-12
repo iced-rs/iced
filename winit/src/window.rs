@@ -2,7 +2,7 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{Event, Mode, UserAttention};
+pub use window::{frames, Event, Mode, UserAttention};
 
 /// Closes the current window and exits the application.
 pub fn close<Message>() -> Command<Message> {
