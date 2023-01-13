@@ -26,6 +26,11 @@ use iced_native::window::Action;
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 
+#[cfg(feature = "trace")]
+pub use crate::Profiler;
+#[cfg(feature = "trace")]
+use tracing::{info_span, instrument::Instrument};
+
 /// TODO(derezzedex)
 // This is the an wrapper around the `Application::Message` associate type
 // to allows the `shell` to create internal messages, while still having
@@ -172,8 +177,14 @@ where
     use futures::Future;
     use winit::event_loop::EventLoopBuilder;
 
+    #[cfg(feature = "trace")]
+    let _guard = Profiler::init();
+
     let mut debug = Debug::new();
     debug.startup_started();
+
+    #[cfg(feature = "trace")]
+    let _ = info_span!("Application", "RUN").entered();
 
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -227,18 +238,26 @@ where
 
     let (mut sender, receiver) = mpsc::unbounded();
 
-    let mut instance = Box::pin(run_instance::<A, E, C>(
-        application,
-        compositor,
-        renderer,
-        runtime,
-        proxy,
-        debug,
-        receiver,
-        init_command,
-        windows,
-        settings.exit_on_close_request,
-    ));
+    let mut instance = Box::pin({
+        let run_instance = run_instance::<A, E, C>(
+            application,
+            compositor,
+            renderer,
+            runtime,
+            proxy,
+            debug,
+            receiver,
+            init_command,
+            windows,
+            settings.exit_on_close_request,
+        );
+
+        #[cfg(feature = "trace")]
+            let run_instance =
+            run_instance.instrument(info_span!("Application", "LOOP"));
+
+        run_instance
+    });
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -604,6 +623,9 @@ async fn run_instance<A, E, C>(
                 Event::NewWindow { .. } => unreachable!(),
             },
             event::Event::RedrawRequested(id) => {
+                #[cfg(feature = "trace")]
+                let _ = info_span!("Application", "FRAME").entered();
+
                 let state = window_ids
                     .get(&id)
                     .and_then(|id| states.get_mut(id))
@@ -788,12 +810,22 @@ pub fn build_user_interface<'a, A: Application>(
 where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
+    #[cfg(feature = "trace")]
+    let view_span = info_span!("Application", "VIEW").entered();
+
     debug.view_started();
     let view = application.view(id);
+
+    #[cfg(feature = "trace")]
+    let _ = view_span.exit();
     debug.view_finished();
 
+    #[cfg(feature = "trace")]
+    let layout_span = info_span!("Application", "LAYOUT").entered();
     debug.layout_started();
     let user_interface = UserInterface::build(view, size, cache, renderer);
+    #[cfg(feature = "trace")]
+    let _ = layout_span.exit();
     debug.layout_finished();
 
     user_interface
@@ -817,10 +849,15 @@ pub fn update<A: Application, E: Executor>(
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
+        #[cfg(feature = "trace")]
+        let update_span = info_span!("Application", "UPDATE").entered();
+
         debug.log_message(&message);
 
         debug.update_started();
         let command = runtime.enter(|| application.update(message));
+        #[cfg(feature = "trace")]
+        let _ = update_span.exit();
         debug.update_finished();
 
         run_command(

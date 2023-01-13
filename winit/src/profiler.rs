@@ -21,6 +21,7 @@ pub struct Profiler {
 impl Profiler {
     /// Initializes the [`Profiler`].
     pub fn init() -> Self {
+        log::info!("Capturing trace..");
         // Registry stores the spans & generates unique span IDs
         let subscriber = Registry::default();
 

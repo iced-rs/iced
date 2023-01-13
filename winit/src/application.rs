@@ -1,6 +1,4 @@
 //! Create interactive, native cross-platform applications.
-#[cfg(feature = "trace")]
-mod profiler;
 mod state;
 
 pub use state::State;
@@ -27,7 +25,7 @@ pub use iced_native::application::{Appearance, StyleSheet};
 use std::mem::ManuallyDrop;
 
 #[cfg(feature = "trace")]
-pub use profiler::Profiler;
+pub use crate::Profiler;
 #[cfg(feature = "trace")]
 use tracing::{info_span, instrument::Instrument};
 

@@ -32,6 +32,9 @@ use std::ffi::CString;
 use std::mem::ManuallyDrop;
 use std::num::NonZeroU32;
 
+#[cfg(feature = "tracing")]
+use tracing::{info_span, instrument::Instrument};
+
 #[allow(unsafe_code)]
 const ONE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
 
@@ -52,8 +55,14 @@ where
     use winit::event_loop::EventLoopBuilder;
     use winit::platform::run_return::EventLoopExtRunReturn;
 
+    #[cfg(feature = "trace")]
+    let _guard = iced_winit::Profiler::init();
+
     let mut debug = Debug::new();
     debug.startup_started();
+
+    #[cfg(feature = "tracing")]
+    let _ = info_span!("Application::Glutin", "RUN").entered();
 
     let mut event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -267,21 +276,29 @@ where
 
     let (mut sender, receiver) = mpsc::unbounded();
 
-    let mut instance = Box::pin(run_instance::<A, E, C>(
-        application,
-        compositor,
-        renderer,
-        runtime,
-        proxy,
-        debug,
-        receiver,
-        display,
-        windows,
-        configuration,
-        context,
-        init_command,
-        settings.exit_on_close_request,
-    ));
+    let mut instance = Box::pin({
+        let run_instance = run_instance::<A, E, C>(
+            application,
+            compositor,
+            renderer,
+            runtime,
+            proxy,
+            debug,
+            receiver,
+            display,
+            windows,
+            configuration,
+            context,
+            init_command,
+            settings.exit_on_close_request,
+        );
+
+        #[cfg(feature = "tracing")]
+            let run_instance =
+            run_instance.instrument(info_span!("Application", "LOOP"));
+
+        run_instance
+    });
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -619,6 +636,9 @@ async fn run_instance<A, E, C>(
                 Event::NewWindow { .. } => unreachable!(),
             },
             event::Event::RedrawRequested(id) => {
+                #[cfg(feature = "tracing")]
+                let _ = info_span!("Application", "FRAME").entered();
+
                 let state = window_ids
                     .get(&id)
                     .and_then(|id| states.get_mut(id))

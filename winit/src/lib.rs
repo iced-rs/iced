@@ -51,11 +51,13 @@ pub mod system;
 mod error;
 mod icon;
 mod proxy;
+#[cfg(feature = "trace")]
+mod profiler;
 
 #[cfg(feature = "application")]
 pub use application::Application;
 #[cfg(feature = "trace")]
-pub use application::Profiler;
+pub use profiler::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
 pub use icon::Icon;

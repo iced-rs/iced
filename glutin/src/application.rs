@@ -33,7 +33,7 @@ use std::ffi::CString;
 use std::mem::ManuallyDrop;
 use std::num::NonZeroU32;
 
-#[cfg(feature = "tracing")]
+#[cfg(feature = "trace")]
 use tracing::{info_span, instrument::Instrument};
 
 #[allow(unsafe_code)]
@@ -62,7 +62,7 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    #[cfg(feature = "tracing")]
+    #[cfg(feature = "trace")]
     let _ = info_span!("Application::Glutin", "RUN").entered();
 
     let mut event_loop = EventLoopBuilder::with_user_event().build();
@@ -298,7 +298,7 @@ where
             settings.exit_on_close_request,
         );
 
-        #[cfg(feature = "tracing")]
+        #[cfg(feature = "trace")]
         let run_instance =
             run_instance.instrument(info_span!("Application", "LOOP"));
 
@@ -509,7 +509,7 @@ async fn run_instance<A, E, C>(
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
-                #[cfg(feature = "tracing")]
+                #[cfg(feature = "trace")]
                 let _ = info_span!("Application", "FRAME").entered();
 
                 debug.render_started();
