@@ -63,7 +63,7 @@ body:
         If you are using an older release, please upgrade to the latest one before filing an issue.
       options:
         - master
-        - 0.6
+        - 0.7
     validations:
       required: true
   - type: dropdown
