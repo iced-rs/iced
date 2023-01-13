@@ -9,7 +9,6 @@
 use iced::application;
 use iced::executor;
 use iced::theme::{self, Theme};
-use iced::time;
 use iced::widget::canvas;
 use iced::widget::canvas::gradient::{self, Gradient};
 use iced::widget::canvas::stroke::{self, Stroke};
@@ -90,7 +89,7 @@ impl Application for SolarSystem {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        time::every(time::Duration::from_millis(10)).map(Message::Tick)
+        window::frames().map(Message::Tick)
     }
 }
 

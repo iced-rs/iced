@@ -36,11 +36,11 @@ pub trait Renderer: Sized {
         f: impl FnOnce(&mut Self),
     );
 
-    /// Clears all of the recorded primitives in the [`Renderer`].
-    fn clear(&mut self);
-
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
+
+    /// Clears all of the recorded primitives in the [`Renderer`].
+    fn clear(&mut self);
 }
 
 /// A polygon with four sides.

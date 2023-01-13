@@ -1,11 +1,12 @@
 use iced::alignment;
 use iced::executor;
 use iced::widget::{button, checkbox, container, text, Column};
+use iced::window;
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
-use iced_native::{window, Event};
+use iced_native::Event;
 
 pub fn main() -> iced::Result {
     Events::run(Settings {
@@ -18,7 +19,6 @@ pub fn main() -> iced::Result {
 struct Events {
     last: Vec<iced_native::Event>,
     enabled: bool,
-    should_exit: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -50,29 +50,27 @@ impl Application for Events {
                 if self.last.len() > 5 {
                     let _ = self.last.remove(0);
                 }
+
+                Command::none()
             }
             Message::EventOccurred(event) => {
                 if let Event::Window(window::Event::CloseRequested) = event {
-                    self.should_exit = true;
+                    window::close()
+                } else {
+                    Command::none()
                 }
             }
             Message::Toggled(enabled) => {
                 self.enabled = enabled;
-            }
-            Message::Exit => {
-                self.should_exit = true;
-            }
-        };
 
-        Command::none()
+                Command::none()
+            }
+            Message::Exit => window::close(),
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
         iced_native::subscription::events().map(Message::EventOccurred)
-    }
-
-    fn should_exit(&self) -> bool {
-        self.should_exit
     }
 
     fn view(&self) -> Element<Message> {

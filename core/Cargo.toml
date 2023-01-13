@@ -15,4 +15,4 @@ version = "0.6"
 optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-timer = { version = "0.2" }
+instant = "0.1"

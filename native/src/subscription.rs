@@ -1,5 +1,6 @@
 //! Listen to external events in your application.
 use crate::event::{self, Event};
+use crate::window;
 use crate::Hasher;
 
 use iced_futures::futures::{self, Future, Stream};
@@ -33,7 +34,7 @@ pub type Tracker =
 
 pub use iced_futures::subscription::Recipe;
 
-/// Returns a [`Subscription`] to all the runtime events.
+/// Returns a [`Subscription`] to all the ignored runtime events.
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
@@ -58,8 +59,36 @@ pub fn events_with<Message>(
 where
     Message: 'static + MaybeSend,
 {
+    #[derive(Hash)]
+    struct EventsWith;
+
     Subscription::from_recipe(Runner {
-        id: f,
+        id: (EventsWith, f),
+        spawn: move |events| {
+            use futures::future;
+            use futures::stream::StreamExt;
+
+            events.filter_map(move |(event, status)| {
+                future::ready(match event {
+                    Event::Window(window::Event::RedrawRequested(_)) => None,
+                    _ => f(event, status),
+                })
+            })
+        },
+    })
+}
+
+pub(crate) fn raw_events<Message>(
+    f: fn(Event, event::Status) -> Option<Message>,
+) -> Subscription<Message>
+where
+    Message: 'static + MaybeSend,
+{
+    #[derive(Hash)]
+    struct RawEvents;
+
+    Subscription::from_recipe(Runner {
+        id: (RawEvents, f),
         spawn: move |events| {
             use futures::future;
             use futures::stream::StreamExt;
