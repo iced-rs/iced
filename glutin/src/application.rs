@@ -340,9 +340,8 @@ async fn run_instance<A, E, C>(
                 // TODO: Avoid redrawing all the time by forcing widgets to
                 // request redraws on state changes
                 //
-                // Then, we can use the `interface_state` here to decide whether
-                // if a redraw is needed right away, or simply wait until a
-                // specific time.
+                // Then, we can use the `interface_state` here to decide if a redraw
+                // is needed right away, or simply wait until a specific time.
                 let redraw_event = Event::Window(
                     crate::window::Event::RedrawRequested(Instant::now()),
                 );
