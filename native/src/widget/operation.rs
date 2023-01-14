@@ -9,6 +9,7 @@ pub use text_input::TextInput;
 
 use crate::widget::Id;
 
+use std::any::Any;
 use std::fmt;
 
 /// A piece of logic that can traverse the widget tree of an application in
@@ -32,6 +33,9 @@ pub trait Operation<T> {
 
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
+
+    /// Operates on a custom widget with some state.
+    fn custom(&mut self, _state: &mut dyn Any, _id: Option<&Id>) {}
 
     /// Finishes the [`Operation`] and returns its [`Outcome`].
     fn finish(&self) -> Outcome<T> {
