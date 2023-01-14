@@ -425,7 +425,7 @@ where
     Renderer: text::Renderer,
 {
     let state = state();
-    if state.is_focused {
+    if state.is_focused.is_some() {
         if is_secure {
             ime.password_mode();
         } else {
@@ -437,8 +437,8 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let is_clicked = layout.bounds().contains(cursor_position);
             // if gain focus enable ime
-            let focus_gained = !state.is_focused && is_clicked;
-            let focus_lost = state.is_focused && !is_clicked;
+            let focus_gained = state.is_focused.is_none() && is_clicked;
+            let focus_lost = state.is_focused.is_some() && !is_clicked;
             state.is_focused = if is_clicked {
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
@@ -593,8 +593,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
-            let state = state();
-
             if let Some(focus) = &mut state.is_focused {
                 if state.is_pasting.is_none()
                     && !state.keyboard_modifiers.command()
@@ -614,8 +612,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
-            let state = state();
-
             if let Some(focus) = &mut state.is_focused {
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
@@ -798,8 +794,6 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
-            let state = state();
-
             if state.is_focused.is_some() {
                 match key_code {
                     keyboard::KeyCode::V => {
@@ -822,8 +816,6 @@ where
             state.keyboard_modifiers = modifiers;
         }
         Event::Window(window::Event::RedrawRequested(now)) => {
-            let state = state();
-
             if let Some(focus) = &mut state.is_focused {
                 focus.now = now;
 
@@ -840,7 +832,7 @@ where
             if state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
                 && !is_secure
-                && state.is_focused
+                && state.is_focused.is_some()
                 && state.ime_state.is_some()
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
@@ -874,13 +866,13 @@ where
         }
 
         Event::Keyboard(keyboard::Event::IMEEnabled) => {
-            if state.is_focused {
+            if state.is_focused.is_some() {
                 let _ = state.ime_state.replace(IMEState::default());
                 return event::Status::Captured;
             }
         }
         Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
-            if !state.is_focused || is_secure {
+            if state.is_focused.is_none() || is_secure {
                 return event::Status::Ignored;
             }
             // calcurate where we need to place candidate window.
@@ -1027,7 +1019,7 @@ pub fn draw<Renderer>(
     let text_width = renderer.measure_width(&render_text, size, font.clone());
 
     let (cursor, offset) = if let Some(focus) = &state.is_focused {
-        match state.cursor.state(value) {
+        match state.cursor.state(&value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(

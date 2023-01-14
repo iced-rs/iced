@@ -415,6 +415,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
@@ -436,7 +437,7 @@ async fn run_instance<A, E, C>(
 
                     mouse_interaction = new_mouse_interaction;
                 }
-
+                ime.apply_request(&window);
                 window.request_redraw();
                 runtime
                     .broadcast((redraw_event, crate::event::Status::Ignored));

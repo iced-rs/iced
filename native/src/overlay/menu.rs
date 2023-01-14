@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::text::{self, Text};
 use crate::touch;
 use crate::widget::container::{self, Container};
-use crate::widget::scrollable::{self, Scrollable};
+use crate::widget::scrollable;
 use crate::widget::tree::Tree;
 use crate::{alignment, IME};
 
@@ -17,6 +17,7 @@ use crate::{
 };
 
 pub use iced_style::menu::{Appearance, StyleSheet};
+use scrollable::Scrollable;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]

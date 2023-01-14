@@ -9,7 +9,7 @@ use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
-use crate::{layout, IME};
+use crate::IME;
 use crate::{
     Background, Clipboard, Color, Command, Element, Layout, Length, Point,
     Rectangle, Shell, Size, Vector, Widget,

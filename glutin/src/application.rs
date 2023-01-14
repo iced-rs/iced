@@ -354,6 +354,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
