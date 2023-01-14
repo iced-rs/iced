@@ -1,3 +1,5 @@
+use crate::time::Instant;
+
 use std::path::PathBuf;
 
 /// A window-related event.
@@ -18,6 +20,11 @@ pub enum Event {
         /// The new logical height of the window
         height: u32,
     },
+
+    /// A window redraw was requested.
+    ///
+    /// The [`Instant`] contains the current time.
+    RedrawRequested(Instant),
 
     /// The user has requested for the window to close.
     ///

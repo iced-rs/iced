@@ -67,8 +67,7 @@ impl IME {
                         // if this block is absent preedit of other text input is copied.
                         if requests
                             .iter()
-                            .find(|kind| matches!(kind, RequestKind::Outside))
-                            .is_some()
+                            .any(|kind| matches!(kind, RequestKind::Outside))
                         {
                             window.set_ime_allowed(false);
                         }
