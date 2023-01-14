@@ -37,11 +37,26 @@ pub trait StyleSheet {
     /// Produces the style of an active scrollbar.
     fn active(&self, style: &Self::Style) -> Scrollbar;
 
-    /// Produces the style of an hovered scrollbar.
+    /// Produces the style of a hovered scrollbar.
     fn hovered(&self, style: &Self::Style) -> Scrollbar;
 
     /// Produces the style of a scrollbar that is being dragged.
     fn dragging(&self, style: &Self::Style) -> Scrollbar {
         self.hovered(style)
+    }
+
+    /// Produces the style of an active horizontal scrollbar.
+    fn active_horizontal(&self, style: &Self::Style) -> Scrollbar {
+        self.active(style)
+    }
+
+    /// Produces the style of a hovered horizontal scrollbar.
+    fn hovered_horizontal(&self, style: &Self::Style) -> Scrollbar {
+        self.hovered(style)
+    }
+
+    /// Produces the style of a horizontal scrollbar that is being dragged.
+    fn dragging_horizontal(&self, style: &Self::Style) -> Scrollbar {
+        self.hovered_horizontal(style)
     }
 }

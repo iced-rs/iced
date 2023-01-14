@@ -1,6 +1,6 @@
 [package]
 name = "iced_native"
-version = "0.7.0"
+version = "0.8.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A renderer-agnostic library for native GUIs"
@@ -16,7 +16,7 @@ unicode-segmentation = "1.6"
 num-traits = "0.2"
 
 [dependencies.iced_core]
-version = "0.6"
+version = "0.7"
 path = "../core"
 
 [dependencies.iced_futures]
@@ -25,5 +25,5 @@ path = "../futures"
 features = ["thread-pool"]
 
 [dependencies.iced_style]
-version = "0.5.1"
+version = "0.6.0"
 path = "../style"

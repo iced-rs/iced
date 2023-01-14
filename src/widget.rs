@@ -56,7 +56,7 @@ pub mod pane_grid {
     //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
     //! drag and drop, and hotkey support.
     //!
-    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.6/examples/pane_grid
+    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.7/examples/pane_grid
     pub use iced_native::widget::pane_grid::{
         Axis, Configuration, Direction, DragEvent, Line, Node, Pane,
         ResizeEvent, Split, State, StyleSheet,
@@ -99,7 +99,8 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        snap_to, style::Scrollbar, style::Scroller, Id, StyleSheet,
+        snap_to, style::Scrollbar, style::Scroller, Id, Properties,
+        RelativeOffset, StyleSheet,
     };
 
     /// A widget that can vertically display an infinite amount of content

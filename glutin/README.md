@@ -20,7 +20,7 @@ It exposes a renderer-agnostic `Application` trait that can be implemented and t
 Add `iced_glutin` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_glutin = "0.2"
+iced_glutin = "0.6"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

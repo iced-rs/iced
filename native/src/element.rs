@@ -9,6 +9,7 @@ use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
+use std::any::Any;
 use std::borrow::Borrow;
 
 /// A generic [`Widget`].
@@ -332,6 +333,10 @@ where
                 id: Option<&widget::Id>,
             ) {
                 self.operation.text_input(state, id);
+            }
+
+            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+                self.operation.custom(state, id);
             }
         }
 

@@ -872,6 +872,15 @@ pub enum Scrollable {
     Custom(Box<dyn scrollable::StyleSheet<Style = Theme>>),
 }
 
+impl Scrollable {
+    /// Creates a custom [`Scrollable`] theme.
+    pub fn custom<T: scrollable::StyleSheet<Style = Theme> + 'static>(
+        style: T,
+    ) -> Self {
+        Self::Custom(Box::new(style))
+    }
+}
+
 impl scrollable::StyleSheet for Theme {
     type Style = Scrollable;
 
@@ -923,6 +932,30 @@ impl scrollable::StyleSheet for Theme {
         match style {
             Scrollable::Default => self.hovered(style),
             Scrollable::Custom(custom) => custom.dragging(self),
+        }
+    }
+
+    fn active_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.active(style),
+            Scrollable::Custom(custom) => custom.active_horizontal(self),
+        }
+    }
+
+    fn hovered_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.hovered(style),
+            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
+        }
+    }
+
+    fn dragging_horizontal(
+        &self,
+        style: &Self::Style,
+    ) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.hovered_horizontal(style),
+            Scrollable::Custom(custom) => custom.dragging_horizontal(self),
         }
     }
 }

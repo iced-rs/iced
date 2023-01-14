@@ -282,12 +282,14 @@ where
                 );
 
                 let Content {
-                    element, layout, ..
+                    element,
+                    layout: content_layout,
+                    ..
                 } = content.deref_mut();
 
                 let content_layout = Layout::with_offset(
                     layout.bounds().position() - Point::ORIGIN,
-                    layout,
+                    content_layout,
                 );
 
                 element
