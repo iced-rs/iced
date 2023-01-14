@@ -18,10 +18,10 @@ pub trait Focusable {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Count {
     /// The index of the current focused widget, if any.
-    focused: Option<usize>,
+    pub focused: Option<usize>,
 
     /// The total amount of focusable widgets.
-    total: usize,
+    pub total: usize,
 }
 
 /// Produces an [`Operation`] that focuses the widget with the given [`Id`].

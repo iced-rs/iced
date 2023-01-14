@@ -64,7 +64,7 @@ impl From<(Point, Point)> for Position {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 /// The location of a relatively-positioned gradient.
 pub enum Location {
     /// Top left.
@@ -86,7 +86,7 @@ pub enum Location {
 }
 
 impl Location {
-    fn to_absolute(&self, top_left: Point, size: Size) -> Point {
+    fn to_absolute(self, top_left: Point, size: Size) -> Point {
         match self {
             Location::TopLeft => top_left,
             Location::Top => {

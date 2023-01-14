@@ -8,6 +8,8 @@ use crate::Transformation;
 use iced_graphics::layer::mesh::{self, Mesh};
 use iced_graphics::triangle::ColoredVertex2D;
 use iced_graphics::Size;
+#[cfg(feature = "tracing")]
+use tracing::info_span;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -53,6 +55,9 @@ impl Pipeline {
         scale_factor: f32,
         meshes: &[Mesh<'_>],
     ) {
+        #[cfg(feature = "tracing")]
+        let _ = info_span!("Wgpu::Triangle", "DRAW").entered();
+
         // Count the total amount of vertices & indices we need to handle
         let count = mesh::attribute_count_of(meshes);
 
@@ -247,6 +252,9 @@ impl Pipeline {
                 (target, None, wgpu::LoadOp::Load)
             };
 
+            #[cfg(feature = "tracing")]
+            let _ = info_span!("Wgpu::Triangle", "BEGIN_RENDER_PASS").enter();
+
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                     label: Some("iced_wgpu::triangle render pass"),
@@ -331,11 +339,7 @@ impl Pipeline {
                     wgpu::IndexFormat::Uint32,
                 );
 
-                render_pass.draw_indexed(
-                    0..(self.index_strides[index] as u32),
-                    0,
-                    0..1,
-                );
+                render_pass.draw_indexed(0..self.index_strides[index], 0, 0..1);
             }
         }
 

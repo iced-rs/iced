@@ -1,5 +1,4 @@
 use crate::{Padding, Vector};
-use std::f32;
 
 /// An amount of space in 2 dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

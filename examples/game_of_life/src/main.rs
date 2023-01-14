@@ -492,8 +492,10 @@ mod grid {
                                 let old_scaling = self.scaling;
 
                                 let scaling = (self.scaling * (1.0 + y / 30.0))
-                                    .max(Self::MIN_SCALING)
-                                    .min(Self::MAX_SCALING);
+                                    .clamp(
+                                        Self::MIN_SCALING,
+                                        Self::MAX_SCALING,
+                                    );
 
                                 let translation =
                                     if let Some(cursor_to_center) =

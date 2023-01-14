@@ -129,7 +129,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
-    widget::Checkbox::new(is_checked, label, f)
+    widget::Checkbox::new(label, is_checked, f)
 }
 
 /// Creates a new [`Radio`].
@@ -162,7 +162,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::toggler::StyleSheet,
 {
-    widget::Toggler::new(is_checked, label, f)
+    widget::Toggler::new(label, is_checked, f)
 }
 
 /// Creates a new [`TextInput`].
@@ -196,6 +196,23 @@ where
     Renderer::Theme: widget::slider::StyleSheet,
 {
     widget::Slider::new(range, value, on_change)
+}
+
+/// Creates a new [`VerticalSlider`].
+///
+/// [`VerticalSlider`]: widget::VerticalSlider
+pub fn vertical_slider<'a, T, Message, Renderer>(
+    range: std::ops::RangeInclusive<T>,
+    value: T,
+    on_change: impl Fn(T) -> Message + 'a,
+) -> widget::VerticalSlider<'a, T, Message, Renderer>
+where
+    T: Copy + From<u8> + std::cmp::PartialOrd,
+    Message: Clone,
+    Renderer: crate::Renderer,
+    Renderer::Theme: widget::slider::StyleSheet,
+{
+    widget::VerticalSlider::new(range, value, on_change)
 }
 
 /// Creates a new [`PickList`].

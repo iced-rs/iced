@@ -1,18 +1,21 @@
 use iced::theme;
 use iced::widget::{
-    button, column, horizontal_space, row, scrollable, text, text_input,
+    button, column, horizontal_space, pick_list, row, scrollable, text,
+    text_input,
 };
 use iced::{Element, Length, Sandbox, Settings};
 use iced_lazy::lazy;
 
 use std::collections::HashSet;
+use std::hash::Hash;
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
 }
 
 struct App {
-    options: HashSet<String>,
+    version: u8,
+    items: HashSet<Item>,
     input: String,
     order: Order,
 }
@@ -20,12 +23,92 @@ struct App {
 impl Default for App {
     fn default() -> Self {
         Self {
-            options: ["Foo", "Bar", "Baz", "Qux", "Corge", "Waldo", "Fred"]
+            version: 0,
+            items: ["Foo", "Bar", "Baz", "Qux", "Corge", "Waldo", "Fred"]
                 .into_iter()
-                .map(ToString::to_string)
+                .map(From::from)
                 .collect(),
             input: Default::default(),
             order: Order::Ascending,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+enum Color {
+    #[default]
+    Black,
+    Red,
+    Orange,
+    Yellow,
+    Green,
+    Blue,
+    Purple,
+}
+
+impl Color {
+    const ALL: &[Color] = &[
+        Color::Black,
+        Color::Red,
+        Color::Orange,
+        Color::Yellow,
+        Color::Green,
+        Color::Blue,
+        Color::Purple,
+    ];
+}
+
+impl std::fmt::Display for Color {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Black => "Black",
+            Self::Red => "Red",
+            Self::Orange => "Orange",
+            Self::Yellow => "Yellow",
+            Self::Green => "Green",
+            Self::Blue => "Blue",
+            Self::Purple => "Purple",
+        })
+    }
+}
+
+impl From<Color> for iced::Color {
+    fn from(value: Color) -> Self {
+        match value {
+            Color::Black => iced::Color::from_rgb8(0, 0, 0),
+            Color::Red => iced::Color::from_rgb8(220, 50, 47),
+            Color::Orange => iced::Color::from_rgb8(203, 75, 22),
+            Color::Yellow => iced::Color::from_rgb8(181, 137, 0),
+            Color::Green => iced::Color::from_rgb8(133, 153, 0),
+            Color::Blue => iced::Color::from_rgb8(38, 139, 210),
+            Color::Purple => iced::Color::from_rgb8(108, 113, 196),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq)]
+struct Item {
+    name: String,
+    color: Color,
+}
+
+impl Hash for Item {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+    }
+}
+
+impl PartialEq for Item {
+    fn eq(&self, other: &Self) -> bool {
+        self.name.eq(&other.name)
+    }
+}
+
+impl From<&str> for Item {
+    fn from(s: &str) -> Self {
+        Self {
+            name: s.to_owned(),
+            color: Default::default(),
         }
     }
 }
@@ -34,8 +117,9 @@ impl Default for App {
 enum Message {
     InputChanged(String),
     ToggleOrder,
-    DeleteOption(String),
-    AddOption(String),
+    DeleteItem(Item),
+    AddItem(String),
+    ItemColorChanged(Item, Color),
 }
 
 impl Sandbox for App {
@@ -46,7 +130,7 @@ impl Sandbox for App {
     }
 
     fn title(&self) -> String {
-        String::from("Cached - Iced")
+        String::from("Lazy - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -55,43 +139,71 @@ impl Sandbox for App {
                 self.input = input;
             }
             Message::ToggleOrder => {
+                self.version = self.version.wrapping_add(1);
                 self.order = match self.order {
                     Order::Ascending => Order::Descending,
                     Order::Descending => Order::Ascending,
                 }
             }
-            Message::AddOption(option) => {
-                self.options.insert(option);
+            Message::AddItem(name) => {
+                self.version = self.version.wrapping_add(1);
+                self.items.insert(name.as_str().into());
                 self.input.clear();
             }
-            Message::DeleteOption(option) => {
-                self.options.remove(&option);
+            Message::DeleteItem(item) => {
+                self.version = self.version.wrapping_add(1);
+                self.items.remove(&item);
+            }
+            Message::ItemColorChanged(item, color) => {
+                self.version = self.version.wrapping_add(1);
+                if self.items.remove(&item) {
+                    self.items.insert(Item {
+                        name: item.name,
+                        color,
+                    });
+                }
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let options = lazy((&self.order, self.options.len()), || {
-            let mut options: Vec<_> = self.options.iter().collect();
+        let options = lazy(self.version, |_| {
+            let mut items: Vec<_> = self.items.iter().cloned().collect();
 
-            options.sort_by(|a, b| match self.order {
-                Order::Ascending => a.to_lowercase().cmp(&b.to_lowercase()),
-                Order::Descending => b.to_lowercase().cmp(&a.to_lowercase()),
+            items.sort_by(|a, b| match self.order {
+                Order::Ascending => {
+                    a.name.to_lowercase().cmp(&b.name.to_lowercase())
+                }
+                Order::Descending => {
+                    b.name.to_lowercase().cmp(&a.name.to_lowercase())
+                }
             });
 
             column(
-                options
+                items
                     .into_iter()
-                    .map(|option| {
+                    .map(|item| {
+                        let button = button("Delete")
+                            .on_press(Message::DeleteItem(item.clone()))
+                            .style(theme::Button::Destructive);
+
                         row![
-                            text(option),
+                            text(&item.name)
+                                .style(theme::Text::Color(item.color.into())),
                             horizontal_space(Length::Fill),
-                            button("Delete")
-                                .on_press(Message::DeleteOption(
-                                    option.to_string(),
-                                ),)
-                                .style(theme::Button::Destructive)
+                            pick_list(
+                                Color::ALL,
+                                Some(item.color),
+                                move |color| {
+                                    Message::ItemColorChanged(
+                                        item.clone(),
+                                        color,
+                                    )
+                                }
+                            ),
+                            button
                         ]
+                        .spacing(20)
                         .into()
                     })
                     .collect(),
@@ -107,7 +219,7 @@ impl Sandbox for App {
                     &self.input,
                     Message::InputChanged,
                 )
-                .on_submit(Message::AddOption(self.input.clone())),
+                .on_submit(Message::AddItem(self.input.clone())),
                 button(text(format!("Toggle Order ({})", self.order)))
                     .on_press(Message::ToggleOrder)
             ]

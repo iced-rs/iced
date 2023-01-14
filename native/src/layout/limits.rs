@@ -1,3 +1,4 @@
+#![allow(clippy::manual_clamp)]
 use crate::{Length, Padding, Size};
 
 /// A set of size constraints for layouting.

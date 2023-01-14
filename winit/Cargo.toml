@@ -1,6 +1,6 @@
 [package]
 name = "iced_winit"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A winit runtime for Iced"
@@ -11,6 +11,8 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+trace = ["tracing", "tracing-core", "tracing-subscriber"]
+chrome-trace = ["trace", "tracing-chrome"]
 debug = ["iced_native/debug"]
 system = ["sysinfo"]
 application = []
@@ -24,16 +26,34 @@ thiserror = "1.0"
 version = "0.27"
 
 [dependencies.iced_native]
-version = "0.7"
+version = "0.8"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.5"
+version = "0.6"
 path = "../graphics"
 
 [dependencies.iced_futures]
 version = "0.5"
 path = "../futures"
+
+[dependencies.tracing]
+version = "0.1.37"
+optional = true
+features = ["std"]
+
+[dependencies.tracing-core]
+version = "0.1.30"
+optional = true
+
+[dependencies.tracing-subscriber]
+version = "0.3.16"
+optional = true
+features = ["registry"]
+
+[dependencies.tracing-chrome]
+version = "0.7.0"
+optional = true
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"

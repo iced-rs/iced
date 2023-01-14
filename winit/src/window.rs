@@ -2,7 +2,12 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{Event, Mode};
+pub use window::{frames, Event, Mode, RedrawRequest, UserAttention};
+
+/// Closes the current window and exits the application.
+pub fn close<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Close))
+}
 
 /// Begins dragging the window while the left mouse button is held.
 pub fn drag<Message>() -> Command<Message> {

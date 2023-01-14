@@ -1,4 +1,6 @@
 //! Create interactive, native cross-platform applications.
+#[cfg(feature = "trace")]
+mod profiler;
 mod state;
 
 pub use state::State;
@@ -9,7 +11,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget::operation;
 use crate::{
-    Command, Debug, Error, Executor, Proxy, Runtime, Settings, Size,
+    Command, Debug, Error, Event, Executor, Proxy, Runtime, Settings, Size,
     Subscription,
 };
 
@@ -18,11 +20,17 @@ use iced_futures::futures::channel::mpsc;
 use iced_graphics::compositor;
 use iced_graphics::window;
 use iced_native::program::Program;
+use iced_native::time::Instant;
 use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
 use std::mem::ManuallyDrop;
+
+#[cfg(feature = "trace")]
+pub use profiler::Profiler;
+#[cfg(feature = "trace")]
+use tracing::{info_span, instrument::Instrument};
 
 /// An interactive, native cross-platform application.
 ///
@@ -93,13 +101,6 @@ where
     fn scale_factor(&self) -> f64 {
         1.0
     }
-
-    /// Returns whether the [`Application`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
-    }
 }
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
@@ -118,8 +119,14 @@ where
     use futures::Future;
     use winit::event_loop::EventLoopBuilder;
 
+    #[cfg(feature = "trace")]
+    let _guard = Profiler::init();
+
     let mut debug = Debug::new();
     debug.startup_started();
+
+    #[cfg(feature = "trace")]
+    let _ = info_span!("Application", "RUN").entered();
 
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -180,20 +187,30 @@ where
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
-    let (mut sender, receiver) = mpsc::unbounded();
+    let (mut event_sender, event_receiver) = mpsc::unbounded();
+    let (control_sender, mut control_receiver) = mpsc::unbounded();
 
-    let mut instance = Box::pin(run_instance::<A, E, C>(
-        application,
-        compositor,
-        renderer,
-        runtime,
-        proxy,
-        debug,
-        receiver,
-        init_command,
-        window,
-        settings.exit_on_close_request,
-    ));
+    let mut instance = Box::pin({
+        let run_instance = run_instance::<A, E, C>(
+            application,
+            compositor,
+            renderer,
+            runtime,
+            proxy,
+            debug,
+            event_receiver,
+            control_sender,
+            init_command,
+            window,
+            settings.exit_on_close_request,
+        );
+
+        #[cfg(feature = "trace")]
+        let run_instance =
+            run_instance.instrument(info_span!("Application", "LOOP"));
+
+        run_instance
+    });
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -220,13 +237,19 @@ where
         };
 
         if let Some(event) = event {
-            sender.start_send(event).expect("Send event");
+            event_sender.start_send(event).expect("Send event");
 
             let poll = instance.as_mut().poll(&mut context);
 
-            *control_flow = match poll {
-                task::Poll::Pending => ControlFlow::Wait,
-                task::Poll::Ready(_) => ControlFlow::Exit,
+            match poll {
+                task::Poll::Pending => {
+                    if let Ok(Some(flow)) = control_receiver.try_next() {
+                        *control_flow = flow;
+                    }
+                }
+                task::Poll::Ready(_) => {
+                    *control_flow = ControlFlow::Exit;
+                }
             };
         }
     })
@@ -239,7 +262,10 @@ async fn run_instance<A, E, C>(
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
-    mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    mut event_receiver: mpsc::UnboundedReceiver<
+        winit::event::Event<'_, A::Message>,
+    >,
+    mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
     window: winit::window::Window,
     exit_on_close_request: bool,
@@ -251,10 +277,12 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
+    use winit::event_loop::ControlFlow;
 
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(&window);
+    let mut should_exit = false;
 
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
@@ -275,6 +303,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &mut should_exit,
         &mut proxy,
         &mut debug,
         &window,
@@ -293,13 +322,22 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
+    let mut redraw_pending = false;
 
     debug.startup_finished();
 
-    while let Some(event) = receiver.next().await {
+    while let Some(event) = event_receiver.next().await {
         match event {
+            event::Event::NewEvents(start_cause) => {
+                redraw_pending = matches!(
+                    start_cause,
+                    event::StartCause::Init
+                        | event::StartCause::Poll
+                        | event::StartCause::ResumeTimeReached { .. }
+                );
+            }
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() {
+                if !redraw_pending && events.is_empty() && messages.is_empty() {
                     continue;
                 }
 
@@ -322,7 +360,7 @@ async fn run_instance<A, E, C>(
                 if !messages.is_empty()
                     || matches!(
                         interface_state,
-                        user_interface::State::Outdated,
+                        user_interface::State::Outdated
                     )
                 {
                     let mut cache =
@@ -336,6 +374,7 @@ async fn run_instance<A, E, C>(
                         &mut renderer,
                         &mut runtime,
                         &mut clipboard,
+                        &mut should_exit,
                         &mut proxy,
                         &mut debug,
                         &mut messages,
@@ -345,8 +384,6 @@ async fn run_instance<A, E, C>(
 
                     // Update window
                     state.synchronize(&application, &window);
-
-                    let should_exit = application.should_exit();
 
                     user_interface = ManuallyDrop::new(build_user_interface(
                         &application,
@@ -360,6 +397,23 @@ async fn run_instance<A, E, C>(
                         break;
                     }
                 }
+
+                // TODO: Avoid redrawing all the time by forcing widgets to
+                // request redraws on state changes
+                //
+                // Then, we can use the `interface_state` here to decide if a redraw
+                // is needed right away, or simply wait until a specific time.
+                let redraw_event = Event::Window(
+                    crate::window::Event::RedrawRequested(Instant::now()),
+                );
+
+                let (interface_state, _) = user_interface.update(
+                    &[redraw_event.clone()],
+                    state.cursor_position(),
+                    &mut renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
 
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
@@ -381,11 +435,32 @@ async fn run_instance<A, E, C>(
                 }
 
                 window.request_redraw();
+                runtime
+                    .broadcast((redraw_event, crate::event::Status::Ignored));
+
+                let _ = control_sender.start_send(match interface_state {
+                    user_interface::State::Updated {
+                        redraw_request: Some(redraw_request),
+                    } => match redraw_request {
+                        crate::window::RedrawRequest::NextFrame => {
+                            ControlFlow::Poll
+                        }
+                        crate::window::RedrawRequest::At(at) => {
+                            ControlFlow::WaitUntil(at)
+                        }
+                    },
+                    _ => ControlFlow::Wait,
+                });
+
+                redraw_pending = false;
             }
             event::Event::UserEvent(message) => {
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
+                #[cfg(feature = "trace")]
+                let _ = info_span!("Application", "FRAME").entered();
+
                 let physical_size = state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
@@ -524,12 +599,24 @@ pub fn build_user_interface<'a, A: Application>(
 where
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
+    #[cfg(feature = "trace")]
+    let view_span = info_span!("Application", "VIEW").entered();
+
     debug.view_started();
     let view = application.view();
+
+    #[cfg(feature = "trace")]
+    let _ = view_span.exit();
     debug.view_finished();
+
+    #[cfg(feature = "trace")]
+    let layout_span = info_span!("Application", "LAYOUT").entered();
 
     debug.layout_started();
     let user_interface = UserInterface::build(view, size, cache, renderer);
+
+    #[cfg(feature = "trace")]
+    let _ = layout_span.exit();
     debug.layout_finished();
 
     user_interface
@@ -544,6 +631,7 @@ pub fn update<A: Application, E: Executor>(
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
@@ -553,10 +641,16 @@ pub fn update<A: Application, E: Executor>(
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
+        #[cfg(feature = "trace")]
+        let update_span = info_span!("Application", "UPDATE").entered();
+
         debug.log_message(&message);
 
         debug.update_started();
         let command = runtime.enter(|| application.update(message));
+
+        #[cfg(feature = "trace")]
+        let _ = update_span.exit();
         debug.update_finished();
 
         run_command(
@@ -567,6 +661,7 @@ pub fn update<A: Application, E: Executor>(
             command,
             runtime,
             clipboard,
+            should_exit,
             proxy,
             debug,
             window,
@@ -587,6 +682,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
@@ -618,6 +714,9 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Window(action) => match action {
+                window::Action::Close => {
+                    *should_exit = true;
+                }
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
@@ -646,9 +745,6 @@ pub fn run_command<A, E>(
                         mode,
                     ));
                 }
-                window::Action::ToggleMaximize => {
-                    window.set_maximized(!window.is_maximized())
-                }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
@@ -660,6 +756,17 @@ pub fn run_command<A, E>(
                         .send_event(tag(mode))
                         .expect("Send message to event loop");
                 }
+                window::Action::ToggleMaximize => {
+                    window.set_maximized(!window.is_maximized())
+                }
+                window::Action::ToggleDecorations => {
+                    window.set_decorations(!window.is_decorated())
+                }
+                window::Action::RequestUserAttention(user_attention) => window
+                    .request_user_attention(
+                        user_attention.map(conversion::user_attention),
+                    ),
+                window::Action::GainFocus => window.focus_window(),
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

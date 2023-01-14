@@ -81,7 +81,10 @@ impl Application for WebSocket {
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    scrollable::snap_to(MESSAGE_LOG.clone(), 1.0)
+                    scrollable::snap_to(
+                        MESSAGE_LOG.clone(),
+                        scrollable::RelativeOffset::END,
+                    )
                 }
             },
             Message::Server => Command::none(),

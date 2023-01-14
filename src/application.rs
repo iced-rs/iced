@@ -39,15 +39,15 @@ pub use iced_native::application::{Appearance, StyleSheet};
 /// to listen to time.
 /// - [`todos`], a todos tracker inspired by [TodoMVC].
 ///
-/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.6/examples
-/// [`clock`]: https://github.com/iced-rs/iced/tree/0.6/examples/clock
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.6/examples/download_progress
-/// [`events`]: https://github.com/iced-rs/iced/tree/0.6/examples/events
-/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.6/examples/game_of_life
-/// [`pokedex`]: https://github.com/iced-rs/iced/tree/0.6/examples/pokedex
-/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.6/examples/solar_system
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.6/examples/stopwatch
-/// [`todos`]: https://github.com/iced-rs/iced/tree/0.6/examples/todos
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.7/examples
+/// [`clock`]: https://github.com/iced-rs/iced/tree/0.7/examples/clock
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.7/examples/download_progress
+/// [`events`]: https://github.com/iced-rs/iced/tree/0.7/examples/events
+/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.7/examples/game_of_life
+/// [`pokedex`]: https://github.com/iced-rs/iced/tree/0.7/examples/pokedex
+/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.7/examples/solar_system
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.7/examples/stopwatch
+/// [`todos`]: https://github.com/iced-rs/iced/tree/0.7/examples/todos
 /// [`Sandbox`]: crate::Sandbox
 /// [`Canvas`]: crate::widget::Canvas
 /// [PokéAPI]: https://pokeapi.co/
@@ -180,13 +180,6 @@ pub trait Application: Sized {
         1.0
     }
 
-    /// Returns whether the [`Application`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
-    }
-
     /// Runs the [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -269,9 +262,5 @@ where
 
     fn scale_factor(&self) -> f64 {
         self.0.scale_factor()
-    }
-
-    fn should_exit(&self) -> bool {
-        self.0.should_exit()
     }
 }

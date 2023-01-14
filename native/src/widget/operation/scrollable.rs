@@ -3,25 +3,19 @@ use crate::widget::{Id, Operation};
 
 /// The internal state of a widget that can be scrolled.
 pub trait Scrollable {
-    /// Snaps the scroll of the widget to the given `percentage`.
-    fn snap_to(&mut self, percentage: f32);
+    /// Snaps the scroll of the widget to the given `percentage` along the horizontal & vertical axis.
+    fn snap_to(&mut self, offset: RelativeOffset);
 }
 
 /// Produces an [`Operation`] that snaps the widget with the given [`Id`] to
 /// the provided `percentage`.
-pub fn snap_to<T>(target: Id, percentage: f32) -> impl Operation<T> {
+pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
     struct SnapTo {
         target: Id,
-        percentage: f32,
+        offset: RelativeOffset,
     }
 
     impl<T> Operation<T> for SnapTo {
-        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
-            if Some(&self.target) == id {
-                state.snap_to(self.percentage);
-            }
-        }
-
         fn container(
             &mut self,
             _id: Option<&Id>,
@@ -29,7 +23,32 @@ pub fn snap_to<T>(target: Id, percentage: f32) -> impl Operation<T> {
         ) {
             operate_on_children(self)
         }
+
+        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
+            if Some(&self.target) == id {
+                state.snap_to(self.offset);
+            }
+        }
     }
 
-    SnapTo { target, percentage }
+    SnapTo { target, offset }
+}
+
+/// The amount of offset in each direction of a [`Scrollable`].
+///
+/// A value of `0.0` means start, while `1.0` means end.
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct RelativeOffset {
+    /// The amount of horizontal offset
+    pub x: f32,
+    /// The amount of vertical offset
+    pub y: f32,
+}
+
+impl RelativeOffset {
+    /// A relative offset that points to the top-left of a [`Scrollable`].
+    pub const START: Self = Self { x: 0.0, y: 0.0 };
+
+    /// A relative offset that points to the bottom-right of a [`Scrollable`].
+    pub const END: Self = Self { x: 1.0, y: 1.0 };
 }

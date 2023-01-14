@@ -3,8 +3,8 @@ use iced_native::layout::{self, Layout};
 use iced_native::mouse;
 use iced_native::overlay;
 use iced_native::renderer;
-use iced_native::widget::horizontal_space;
 use iced_native::widget::tree::{self, Tree};
+use iced_native::widget::{self, horizontal_space};
 use iced_native::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
@@ -142,6 +142,29 @@ where
         layout::Node::new(limits.max())
     }
 
+    fn operate(
+        &self,
+        tree: &mut Tree,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        let state = tree.state.downcast_mut::<State>();
+        let mut content = self.content.borrow_mut();
+
+        content.resolve(
+            &mut state.tree.borrow_mut(),
+            renderer,
+            layout,
+            &self.view,
+            |tree, renderer, layout, element| {
+                element
+                    .as_widget()
+                    .operate(tree, layout, renderer, operation);
+            },
+        );
+    }
+
     fn on_event(
         &mut self,
         tree: &mut Tree,
@@ -257,12 +280,14 @@ where
                 );
 
                 let Content {
-                    element, layout, ..
+                    element,
+                    layout: content_layout,
+                    ..
                 } = content.deref_mut();
 
                 let content_layout = Layout::with_offset(
                     layout.bounds().position() - Point::ORIGIN,
-                    layout,
+                    content_layout,
                 );
 
                 element

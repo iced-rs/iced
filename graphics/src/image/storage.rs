@@ -20,7 +20,7 @@ pub trait Storage {
         state: &mut Self::State<'_>,
     ) -> Option<Self::Entry>;
 
-    /// Romve a [`Self::Entry`] from the [`Storage`].
+    /// Remove a [`Self::Entry`] from the [`Storage`].
     fn remove(&mut self, entry: &Self::Entry, state: &mut Self::State<'_>);
 }
 
