@@ -151,6 +151,19 @@ where
             )
         });
     }
+
+    fn contains_cursor(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        self.children
+            .iter()
+            .zip(layout.children())
+            .any(|(child, layout)| {
+                child.contains_cursor(layout, cursor_position)
+            })
+    }
 }
 
 impl<'a, Message, Renderer> From<Group<'a, Message, Renderer>>

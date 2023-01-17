@@ -115,6 +115,15 @@ where
     ) {
         self.overlay.operate(layout, renderer, operation);
     }
+
+    /// Whether the [`Overlay`] contains the cursor
+    pub fn contains_cursor(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        self.overlay.contains_cursor(layout, cursor_position)
+    }
 }
 
 struct Map<'a, A, B, Renderer> {
@@ -251,5 +260,13 @@ where
     ) {
         self.content
             .draw(renderer, theme, style, layout, cursor_position)
+    }
+
+    fn contains_cursor(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        self.content.contains_cursor(layout, cursor_position)
     }
 }

@@ -89,6 +89,15 @@ where
     ) -> mouse::Interaction {
         mouse::Interaction::Idle
     }
+
+    /// Whether the [`Overlay`] contains the cursor
+    fn contains_cursor(
+        &self,
+        layout: Layout<'_>,
+        cursor_position: Point,
+    ) -> bool {
+        layout.bounds().contains(cursor_position)
+    }
 }
 
 /// Returns a [`Group`] of overlay [`Element`] children.
