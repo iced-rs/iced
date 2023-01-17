@@ -91,7 +91,7 @@ where
     }
 }
 
-/// Obtains the first overlay [`Element`] found in the given children.
+/// Returns a [`Group`] of overlay [`Element`] children.
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
@@ -104,12 +104,14 @@ pub fn from_children<'a, Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
-    children
+    let children = children
         .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
             child.as_widget_mut().overlay(state, layout, renderer)
         })
-        .next()
+        .collect::<Vec<_>>();
+
+    (!children.is_empty()).then(|| Group::with_children(children).overlay())
 }
