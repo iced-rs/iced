@@ -70,7 +70,7 @@ where
 
             events.filter_map(move |(event, status)| {
                 future::ready(match event {
-                    Event::Window(window::Event::RedrawRequested(_)) => None,
+                    Event::Window(_, window::Event::RedrawRequested(_)) => None,
                     _ => f(event, status),
                 })
             })

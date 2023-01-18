@@ -5,8 +5,8 @@ mod icon;
 mod id;
 mod mode;
 mod position;
-mod settings;
 mod redraw_request;
+mod settings;
 mod user_attention;
 
 pub use action::Action;
@@ -15,8 +15,8 @@ pub use icon::Icon;
 pub use id::Id;
 pub use mode::Mode;
 pub use position::Position;
-pub use settings::Settings;
 pub use redraw_request::RedrawRequest;
+pub use settings::Settings;
 pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
@@ -32,7 +32,7 @@ use crate::time::Instant;
 /// animations without missing any frames.
 pub fn frames() -> Subscription<Instant> {
     subscription::raw_events(|event, _status| match event {
-        crate::Event::Window(Event::RedrawRequested(at)) => Some(at),
+        crate::Event::Window(_, Event::RedrawRequested(at)) => Some(at),
         _ => None,
     })
 }

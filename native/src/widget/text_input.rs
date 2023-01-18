@@ -782,7 +782,7 @@ where
 
             state.keyboard_modifiers = modifiers;
         }
-        Event::Window(window::Event::RedrawRequested(now)) => {
+        Event::Window(_, window::Event::RedrawRequested(now)) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
