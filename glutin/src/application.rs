@@ -11,9 +11,10 @@ use iced_winit::conversion;
 use iced_winit::futures;
 use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
+use iced_winit::time::Instant;
 use iced_winit::user_interface;
 use iced_winit::winit;
-use iced_winit::{Clipboard, Command, Debug, Proxy, Settings};
+use iced_winit::{Clipboard, Command, Debug, Event, Proxy, Settings};
 
 use glutin::config::{
     Config, ConfigSurfaceTypes, ConfigTemplateBuilder, GlConfig,
@@ -280,7 +281,8 @@ where
 
     let context = { context.make_not_current().expect("make context current") };
 
-    let (mut sender, receiver) = mpsc::unbounded();
+    let (mut event_sender, event_receiver) = mpsc::unbounded();
+    let (control_sender, mut control_receiver) = mpsc::unbounded();
 
     let mut instance = Box::pin({
         let run_instance = run_instance::<A, E, C>(
@@ -290,7 +292,8 @@ where
             runtime,
             proxy,
             debug,
-            receiver,
+            event_receiver,
+            control_sender,
             window,
             surface,
             context,
@@ -330,14 +333,20 @@ where
         };
 
         if let Some(event) = event {
-            sender.start_send(event).expect("Send event");
+            event_sender.start_send(event).expect("Send event");
 
             let poll = instance.as_mut().poll(&mut context);
 
-            *control_flow = match poll {
-                task::Poll::Pending => ControlFlow::Wait,
-                task::Poll::Ready(_) => ControlFlow::Exit,
-            };
+            match poll {
+                task::Poll::Pending => {
+                    if let Ok(Some(flow)) = control_receiver.try_next() {
+                        *control_flow = flow;
+                    }
+                }
+                task::Poll::Ready(_) => {
+                    *control_flow = ControlFlow::Exit;
+                }
+            }
         }
     });
 
@@ -351,7 +360,8 @@ async fn run_instance<A, E, C>(
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
-    mut receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>>,
+    mut event_receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>, >,
+    mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     window: winit::window::Window,
     surface: Surface<WindowSurface>,
     context: NotCurrentContext,
@@ -364,6 +374,7 @@ async fn run_instance<A, E, C>(
     <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
     use iced_winit::futures::stream::StreamExt;
+    use winit::event_loop::ControlFlow;
     use winit::event;
 
     let context = {
@@ -406,13 +417,22 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
+    let mut redraw_pending = false;
 
     debug.startup_finished();
 
-    while let Some(event) = receiver.next().await {
+    while let Some(event) = event_receiver.next().await {
         match event {
+            event::Event::NewEvents(start_cause) => {
+                redraw_pending = matches!(
+                    start_cause,
+                    event::StartCause::Init
+                        | event::StartCause::Poll
+                        | event::StartCause::ResumeTimeReached { .. }
+                );
+            }
             event::Event::MainEventsCleared => {
-                if events.is_empty() && messages.is_empty() {
+                if !redraw_pending && events.is_empty() && messages.is_empty() {
                     continue;
                 }
 
@@ -474,6 +494,24 @@ async fn run_instance<A, E, C>(
                     }
                 }
 
+                // TODO: Avoid redrawing all the time by forcing widgets to
+                // request redraws on state changes
+                //
+                // Then, we can use the `interface_state` here to decide if a redraw
+                // is needed right away, or simply wait until a specific time.
+                let redraw_event = Event::Window(
+                    crate::window::Id::MAIN,
+                    crate::window::Event::RedrawRequested(Instant::now()),
+                );
+
+                let (interface_state, _) = user_interface.update(
+                    &[redraw_event.clone()],
+                    state.cursor_position(),
+                    &mut renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
+
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
@@ -494,6 +532,23 @@ async fn run_instance<A, E, C>(
                 }
 
                 window.request_redraw();
+                runtime.broadcast((redraw_event, crate::event::Status::Ignored));
+
+                let _ = control_sender.start_send(match interface_state {
+                    user_interface::State::Updated {
+                        redraw_request: Some(redraw_request),
+                    } => match redraw_request {
+                        crate::window::RedrawRequest::NextFrame => {
+                            ControlFlow::Poll
+                        }
+                        crate::window::RedrawRequest::At(at) => {
+                            ControlFlow::WaitUntil(at)
+                        }
+                    },
+                    _ => ControlFlow::Wait,
+                });
+
+                redraw_pending = false;
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),

@@ -1,6 +1,6 @@
 [package]
 name = "iced_glutin"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A glutin runtime for Iced"
@@ -19,23 +19,23 @@ multi_window = ["iced_winit/multi_window"]
 [dependencies.raw-window-handle]
 version = "0.5.0"
 
-[dependencies.log]
-version = "0.4"
+[dependencies]
+log = "0.4"
 
 [dependencies.glutin]
 version = "0.30"
 
 [dependencies.iced_native]
-version = "0.7"
+version = "0.8"
 path = "../native"
 
 [dependencies.iced_winit]
-version = "0.6"
+version = "0.7"
 path = "../winit"
 features = ["application"]
 
 [dependencies.iced_graphics]
-version = "0.5"
+version = "0.6"
 path = "../graphics"
 features = ["opengl"]
 

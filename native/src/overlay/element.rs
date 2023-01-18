@@ -7,6 +7,8 @@ use crate::renderer;
 use crate::widget;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
+use std::any::Any;
+
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
@@ -187,6 +189,10 @@ where
                 id: Option<&widget::Id>,
             ) {
                 self.operation.text_input(state, id)
+            }
+
+            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+                self.operation.custom(state, id);
             }
         }
 

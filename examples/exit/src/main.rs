@@ -1,5 +1,7 @@
+use iced::executor;
 use iced::widget::{button, column, container};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::window;
+use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Exit::run(Settings::default())
@@ -8,7 +10,6 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Exit {
     show_confirm: bool,
-    exit: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -17,28 +18,27 @@ enum Message {
     Exit,
 }
 
-impl Sandbox for Exit {
+impl Application for Exit {
+    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Flags = ();
 
-    fn new() -> Self {
-        Self::default()
+    fn new(_flags: ()) -> (Self, Command<Message>) {
+        (Self::default(), Command::none())
     }
 
     fn title(&self) -> String {
         String::from("Exit - Iced")
     }
 
-    fn should_exit(&self) -> bool {
-        self.exit
-    }
-
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Confirm => {
-                self.exit = true;
-            }
+            Message::Confirm => window::close(),
             Message::Exit => {
                 self.show_confirm = true;
+
+                Command::none()
             }
         }
     }

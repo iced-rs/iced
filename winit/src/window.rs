@@ -2,7 +2,7 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{Event, Id, Mode, UserAttention};
+pub use window::{Event, Id, Mode, RedrawRequest, frames, UserAttention};
 
 /// Closes the window.
 pub fn close<Message>(id: window::Id) -> Command<Message> {
