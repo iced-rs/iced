@@ -264,7 +264,7 @@ where
             let base_cursor = if manual_overlay
                 .as_ref()
                 .unwrap()
-                .contains_cursor(Layout::new(&layout), cursor_position)
+                .is_over(Layout::new(&layout), cursor_position)
             {
                 // TODO: Type-safe cursor availability
                 Point::new(-1.0, -1.0)
@@ -508,10 +508,8 @@ where
                             );
                         });
 
-                        if overlay.contains_cursor(
-                            Layout::new(layout),
-                            cursor_position,
-                        ) {
+                        if overlay.is_over(Layout::new(layout), cursor_position)
+                        {
                             overlay_interaction
                         } else {
                             base_interaction

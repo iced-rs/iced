@@ -116,13 +116,9 @@ where
         self.overlay.operate(layout, renderer, operation);
     }
 
-    /// Whether the [`Overlay`] contains the cursor
-    pub fn contains_cursor(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
-        self.overlay.contains_cursor(layout, cursor_position)
+    /// Returns true if the cursor is over the [`Element`]
+    pub fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.overlay.is_over(layout, cursor_position)
     }
 }
 
@@ -262,11 +258,7 @@ where
             .draw(renderer, theme, style, layout, cursor_position)
     }
 
-    fn contains_cursor(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
-        self.content.contains_cursor(layout, cursor_position)
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.content.is_over(layout, cursor_position)
     }
 }

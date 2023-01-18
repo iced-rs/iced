@@ -90,12 +90,8 @@ where
         mouse::Interaction::Idle
     }
 
-    /// Whether the [`Overlay`] contains the cursor
-    fn contains_cursor(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
+    /// Returns true if the cursor is over the [`Overlay`]
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
         layout.bounds().contains(cursor_position)
     }
 }

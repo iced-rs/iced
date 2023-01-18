@@ -152,17 +152,11 @@ where
         });
     }
 
-    fn contains_cursor(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-    ) -> bool {
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
         self.children
             .iter()
             .zip(layout.children())
-            .any(|(child, layout)| {
-                child.contains_cursor(layout, cursor_position)
-            })
+            .any(|(child, layout)| child.is_over(layout, cursor_position))
     }
 }
 
