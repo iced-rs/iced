@@ -12,6 +12,7 @@ use iced::{Color, Command, Element, Length, Settings, Size, Subscription};
 use iced_lazy::responsive;
 use iced_native::{event, subscription, Event};
 
+use iced_native::window::Id;
 use std::collections::HashMap;
 
 pub fn main() -> iced::Result {
@@ -29,6 +30,7 @@ struct Example {
 #[derive(Debug)]
 struct Window {
     title: String,
+    scale: f64,
     panes: pane_grid::State<Pane>,
     focus: Option<pane_grid::Pane>,
 }
@@ -69,6 +71,7 @@ impl Application for Example {
             panes,
             focus: None,
             title: String::from("Default window"),
+            scale: 1.0,
         };
 
         (
@@ -178,6 +181,7 @@ impl Application for Example {
                         panes,
                         focus: None,
                         title: format!("New window ({})", self.windows.len()),
+                        scale: 1.0 + (self.windows.len() as f64 / 10.0),
                     };
 
                     let window_id = window::Id::new(self.windows.len());
@@ -341,6 +345,10 @@ impl Application for Example {
 
     fn close_requested(&self, window: window::Id) -> Self::Message {
         Message::Window(window, WindowMessage::CloseWindow)
+    }
+
+    fn scale_factor(&self, window: Id) -> f64 {
+        self.windows.get(&window).map(|w| w.scale).unwrap_or(1.0)
     }
 }
 

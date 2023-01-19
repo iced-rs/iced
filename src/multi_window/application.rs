@@ -148,7 +148,7 @@ pub trait Application: Sized {
     /// while a scale factor of `0.5` will shrink them to half their size.
     ///
     /// By default, it returns `1.0`.
-    fn scale_factor(&self) -> f64 {
+    fn scale_factor(&self, window: window::Id) -> f64 {
         1.0
     }
 
@@ -239,8 +239,8 @@ where
         self.0.subscription()
     }
 
-    fn scale_factor(&self) -> f64 {
-        self.0.scale_factor()
+    fn scale_factor(&self, window: window::Id) -> f64 {
+        self.0.scale_factor(window)
     }
 
     fn should_exit(&self) -> bool {

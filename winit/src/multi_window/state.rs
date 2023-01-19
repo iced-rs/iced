@@ -36,7 +36,7 @@ where
         window: &Window,
     ) -> Self {
         let title = application.title(window_id);
-        let scale_factor = application.scale_factor();
+        let scale_factor = application.scale_factor(window_id);
         let theme = application.theme();
         let appearance = theme.appearance(&application.style());
 
@@ -199,7 +199,7 @@ where
         }
 
         // Update scale factor
-        let new_scale_factor = application.scale_factor();
+        let new_scale_factor = application.scale_factor(window_id);
 
         if self.scale_factor != new_scale_factor {
             let size = window.inner_size();
