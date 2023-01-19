@@ -1,7 +1,7 @@
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Preset {
     Custom,
-    [default]
+    #[default]
     Xkcd,
     Glider,
     SmallExploder,
