@@ -14,14 +14,12 @@
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-<div align="center">
-  <a href="https://gfycat.com/littlesanehalicore">
-    <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" width="33%">
-  </a>
-  <a href="https://gfycat.com/politeadorableiberianmole">
-    <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" width="33%">
-  </a>
-</div>
+<a href="https://gfycat.com/littlesanehalicore">
+  <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" width="334px">
+</a>
+<a href="https://gfycat.com/politeadorableiberianmole">
+  <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" width="334px">
+</a>
 
 </div>
 
