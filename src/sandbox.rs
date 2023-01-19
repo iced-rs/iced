@@ -126,6 +126,18 @@ pub trait Sandbox {
     fn style(&self) -> theme::Application {
         theme::Application::default()
     }
+    
+    /// Returns the event [`Subscription`] for the current state of the
+    /// application.
+    ///
+    /// A [`Subscription`] will be kept alive as long as you keep returning it,
+    /// and the __messages__ produced will be handled by
+    /// [`update`](#tymethod.update).
+    ///
+    /// By default, this method returns an empty [`Subscription`].
+    fn subscription(&self) -> Subscription<T::Message> {
+        Subscription::none()
+    }
 
     /// Returns the scale factor of the [`Sandbox`].
     ///
@@ -190,7 +202,7 @@ where
     }
 
     fn subscription(&self) -> Subscription<T::Message> {
-        Subscription::none()
+        T::subscription(self)
     }
 
     fn scale_factor(&self) -> f64 {
