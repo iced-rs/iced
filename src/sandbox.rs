@@ -135,7 +135,7 @@ pub trait Sandbox {
     /// [`update`](#tymethod.update).
     ///
     /// By default, this method returns an empty [`Subscription`].
-    fn subscription(&self) -> Subscription<T::Message> {
+    fn subscription(&self) -> Subscription<Self::Message> {
         Subscription::none()
     }
 
