@@ -37,7 +37,7 @@ impl Sandbox for QRGenerator {
                     None
                 } else {
                     qr_code::State::new(&data).ok()
-                }
+                };
                 
                 self.data = data;
             }
