@@ -45,6 +45,11 @@ pub trait StyleSheet {
         self.hovered(style)
     }
 
+    /// Produces the style of a scrollbar when mouse is over the scrollable area.
+    fn focused(&self, style: &Self::Style) -> Scrollbar {
+        self.active(style)
+    }
+
     /// Produces the style of an active horizontal scrollbar.
     fn active_horizontal(&self, style: &Self::Style) -> Scrollbar {
         self.active(style)
@@ -58,5 +63,10 @@ pub trait StyleSheet {
     /// Produces the style of a horizontal scrollbar that is being dragged.
     fn dragging_horizontal(&self, style: &Self::Style) -> Scrollbar {
         self.hovered_horizontal(style)
+    }
+
+    /// Produces the style of a horizontal scrollbar when mouse is over the scrollable area.
+    fn focused_horizontal(&self, style: &Self::Style) -> Scrollbar {
+        self.active_horizontal(style)
     }
 }
