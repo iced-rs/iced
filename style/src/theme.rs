@@ -935,6 +935,13 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
+    fn focused(&self, style: &Self::Style) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.active(style),
+            Scrollable::Custom(custom) => custom.focused(self),
+        }
+    }
+
     fn active_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => self.active(style),
@@ -956,6 +963,16 @@ impl scrollable::StyleSheet for Theme {
         match style {
             Scrollable::Default => self.hovered_horizontal(style),
             Scrollable::Custom(custom) => custom.dragging_horizontal(self),
+        }
+    }
+
+    fn focused_horizontal(
+        &self,
+        style: &Self::Style,
+    ) -> scrollable::Scrollbar {
+        match style {
+            Scrollable::Default => self.active_horizontal(style),
+            Scrollable::Custom(custom) => custom.focused_horizontal(self),
         }
     }
 }
