@@ -69,6 +69,8 @@ pub enum Action<T> {
     ///
     /// - **Web / Wayland:** Unsupported.
     GainFocus,
+    /// Change the title of the application.
+    Title(String)
 }
 
 impl<T> Action<T> {
@@ -95,6 +97,7 @@ impl<T> Action<T> {
                 Action::RequestUserAttention(attention_type)
             }
             Self::GainFocus => Action::GainFocus,
+            Self::Title(title) => Action::Title(title)
         }
     }
 }
@@ -122,6 +125,7 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RequestUserAttention")
             }
             Self::GainFocus => write!(f, "Action::GainFocus"),
+            Self::Title(title) => write!(f, "Action::Title({})", title)
         }
     }
 }

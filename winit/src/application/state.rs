@@ -12,7 +12,6 @@ pub struct State<A: Application>
 where
     <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
-    title: String,
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: usize,
@@ -29,7 +28,7 @@ where
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
-        let title = application.title();
+
         let scale_factor = application.scale_factor();
         let theme = application.theme();
         let appearance = theme.appearance(&application.style());
@@ -44,7 +43,6 @@ where
         };
 
         Self {
-            title,
             scale_factor,
             viewport,
             viewport_version: 0,
@@ -181,14 +179,6 @@ where
     ///
     /// [`Application::update`]: crate::Program::update
     pub fn synchronize(&mut self, application: &A, window: &Window) {
-        // Update window title
-        let new_title = application.title();
-
-        if self.title != new_title {
-            window.set_title(&new_title);
-
-            self.title = new_title;
-        }
 
         // Update scale factor and size
         let new_scale_factor = application.scale_factor();

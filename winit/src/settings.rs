@@ -93,6 +93,9 @@ pub struct Window {
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
+
+    /// Title of the window.
+    pub title: String
 }
 
 impl Window {
@@ -194,6 +197,7 @@ impl Default for Window {
             always_on_top: false,
             icon: None,
             platform_specific: Default::default(),
+            title: String::from("Iced")
         }
     }
 }

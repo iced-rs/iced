@@ -244,10 +244,6 @@ where
         (Instance(app), command)
     }
 
-    fn title(&self) -> String {
-        self.0.title()
-    }
-
     fn theme(&self) -> A::Theme {
         self.0.theme()
     }

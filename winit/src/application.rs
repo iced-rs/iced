@@ -60,12 +60,6 @@ where
     /// load state from a file, perform an initial HTTP request, etc.
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
-    /// Returns the current title of the [`Application`].
-    ///
-    /// This title can be dynamic! The runtime will automatically update the
-    /// title of your application when necessary.
-    fn title(&self) -> String;
-
     /// Returns the current `Theme` of the [`Application`].
     fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
 
@@ -145,10 +139,10 @@ where
     };
 
     #[cfg(target_arch = "wasm32")]
-    let target = settings.window.platform_specific.target.clone();
+    let target = settings.window.clone().platform_specific.target.clone();
 
-    let builder = settings.window.into_builder(
-        &application.title(),
+    let builder = settings.window.clone().into_builder(
+        &settings.window.title,
         event_loop.primary_monitor(),
         settings.id,
     );
@@ -778,6 +772,7 @@ pub fn run_command<A, E>(
                         user_attention.map(conversion::user_attention),
                     ),
                 window::Action::GainFocus => window.focus_window(),
+                window::Action::Title(title) => window.set_title(&title)
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
