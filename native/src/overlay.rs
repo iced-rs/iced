@@ -1,9 +1,11 @@
 //! Display interactive elements on top of other widgets.
 mod element;
+mod group;
 
 pub mod menu;
 
 pub use element::Element;
+pub use group::Group;
 pub use menu::Menu;
 
 use crate::event::{self, Event};
@@ -87,9 +89,17 @@ where
     ) -> mouse::Interaction {
         mouse::Interaction::Idle
     }
+
+    /// Returns true if the cursor is over the [`Overlay`].
+    ///
+    /// By default, it returns true if the bounds of the `layout` contain
+    /// the `cursor_position`.
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        layout.bounds().contains(cursor_position)
+    }
 }
 
-/// Obtains the first overlay [`Element`] found in the given children.
+/// Returns a [`Group`] of overlay [`Element`] children.
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
@@ -102,12 +112,14 @@ pub fn from_children<'a, Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
-    children
+    let children = children
         .iter_mut()
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
             child.as_widget_mut().overlay(state, layout, renderer)
         })
-        .next()
+        .collect::<Vec<_>>();
+
+    (!children.is_empty()).then(|| Group::with_children(children).overlay())
 }

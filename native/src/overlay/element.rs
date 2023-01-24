@@ -115,6 +115,11 @@ where
     ) {
         self.overlay.operate(layout, renderer, operation);
     }
+
+    /// Returns true if the cursor is over the [`Element`].
+    pub fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.overlay.is_over(layout, cursor_position)
+    }
 }
 
 struct Map<'a, A, B, Renderer> {
@@ -251,5 +256,9 @@ where
     ) {
         self.content
             .draw(renderer, theme, style, layout, cursor_position)
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.content.is_over(layout, cursor_position)
     }
 }
