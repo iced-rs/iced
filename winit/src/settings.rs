@@ -94,15 +94,14 @@ pub struct Window {
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
 
-    /// Title of the window.
-    pub title: String
+    /// The title of the window.
+    pub title: String,
 }
 
 impl Window {
     /// Converts the window settings into a `WindowBuilder` from `winit`.
     pub fn into_builder(
         self,
-        title: &str,
         primary_monitor: Option<MonitorHandle>,
         _id: Option<String>,
     ) -> WindowBuilder {
@@ -111,7 +110,7 @@ impl Window {
         let (width, height) = self.size;
 
         window_builder = window_builder
-            .with_title(title)
+            .with_title(self.title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
@@ -197,7 +196,7 @@ impl Default for Window {
             always_on_top: false,
             icon: None,
             platform_specific: Default::default(),
-            title: String::from("Iced")
+            title: String::from("A cool application"),
         }
     }
 }

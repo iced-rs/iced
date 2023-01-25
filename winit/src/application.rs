@@ -139,13 +139,11 @@ where
     };
 
     #[cfg(target_arch = "wasm32")]
-    let target = settings.window.clone().platform_specific.target.clone();
+    let target = settings.window.platform_specific.target.clone();
 
-    let builder = settings.window.clone().into_builder(
-        &settings.window.title,
-        event_loop.primary_monitor(),
-        settings.id,
-    );
+    let builder = settings
+        .window
+        .into_builder(event_loop.primary_monitor(), settings.id);
 
     log::info!("Window builder: {:#?}", builder);
 
@@ -772,7 +770,7 @@ pub fn run_command<A, E>(
                         user_attention.map(conversion::user_attention),
                     ),
                 window::Action::GainFocus => window.focus_window(),
-                window::Action::Title(title) => window.set_title(&title)
+                window::Action::ChangeTitle(title) => window.set_title(&title),
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

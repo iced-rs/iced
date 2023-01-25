@@ -34,7 +34,7 @@ pub struct Settings {
     pub icon: Option<Icon>,
 
     /// The title of the window.
-    pub title: String
+    pub title: String,
 }
 
 impl Default for Settings {
@@ -50,7 +50,7 @@ impl Default for Settings {
             transparent: false,
             always_on_top: false,
             icon: None,
-            title: String::from("Iced")
+            title: String::from("A cool application"),
         }
     }
 }
@@ -69,7 +69,7 @@ impl From<Settings> for iced_winit::settings::Window {
             always_on_top: settings.always_on_top,
             icon: settings.icon.map(Icon::into),
             platform_specific: Default::default(),
-            title: settings.title
+            title: settings.title,
         }
     }
 }

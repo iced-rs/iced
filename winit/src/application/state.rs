@@ -28,7 +28,6 @@ where
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
-
         let scale_factor = application.scale_factor();
         let theme = application.theme();
         let appearance = theme.appearance(&application.style());
@@ -179,7 +178,6 @@ where
     ///
     /// [`Application::update`]: crate::Program::update
     pub fn synchronize(&mut self, application: &A, window: &Window) {
-
         // Update scale factor and size
         let new_scale_factor = application.scale_factor();
         let new_size = window.inner_size();

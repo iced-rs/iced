@@ -65,11 +65,9 @@ where
     };
 
     let context = {
-        let builder = settings.window.clone().into_builder(
-            &settings.window.title,
-            event_loop.primary_monitor(),
-            settings.id,
-        );
+        let builder = settings
+            .window
+            .into_builder(event_loop.primary_monitor(), settings.id);
 
         log::info!("Window builder: {:#?}", builder);
 
