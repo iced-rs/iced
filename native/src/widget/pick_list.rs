@@ -20,6 +20,43 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
+/// The content of the [`Handle`].
+#[derive(Clone)]
+pub struct HandleContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Font that will be used to display the `text`,
+    pub font: Renderer::Font,
+    /// Text that will be shown.
+    pub text: String,
+    /// Font size of the content.
+    pub size: Option<u16>,
+}
+
+impl<Renderer> std::fmt::Debug for HandleContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HandleIcon")
+            .field("text", &self.text)
+            .field("size", &self.size)
+            .finish()
+    }
+}
+
+impl<Renderer> PartialEq for HandleContent<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.text.eq(&other.text) && self.size.eq(&other.size)
+    }
+}
+
+impl<Renderer> Eq for HandleContent<Renderer> where Renderer: text::Renderer {}
+
 /// The handle to the right side of the [`PickList`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Handle<Renderer>
@@ -33,14 +70,14 @@ where
         /// Font size of the content.
         size: Option<u16>,
     },
-    /// A custom handle.
-    Custom {
-        /// Font that will be used to display the `text`,
-        font: Renderer::Font,
-        /// Text that will be shown.
-        text: String,
-        /// Font size of the content.
-        size: Option<u16>,
+    /// A custom static handle.
+    Static(HandleContent<Renderer>),
+    /// A custom dynamic handle.
+    Dynamic {
+        /// The [`HandleContent`] used when [`PickList`] is closed.
+        closed: HandleContent<Renderer>,
+        /// The [`HandleContent`] used when [`PickList`] is open.
+        open: HandleContent<Renderer>,
     },
     /// No handle will be shown.
     None,
@@ -59,15 +96,29 @@ impl<Renderer> Handle<Renderer>
 where
     Renderer: text::Renderer,
 {
-    fn content(&self) -> Option<(Renderer::Font, String, Option<u16>)> {
+    fn content(
+        &self,
+        is_open: bool,
+    ) -> Option<(Renderer::Font, String, Option<u16>)> {
         match self {
             Self::Arrow { size } => Some((
                 Renderer::ICON_FONT,
                 Renderer::ARROW_DOWN_ICON.to_string(),
                 *size,
             )),
-            Self::Custom { font, text, size } => {
+            Self::Static(HandleContent { font, text, size }) => {
                 Some((font.clone(), text.clone(), *size))
+            }
+            Self::Dynamic { open, closed } => {
+                if is_open {
+                    Some((open.font.clone(), open.text.clone(), open.size))
+                } else {
+                    Some((
+                        closed.font.clone(),
+                        closed.text.clone(),
+                        closed.size,
+                    ))
+                }
             }
             Self::None => None,
         }
@@ -258,7 +309,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,
@@ -278,6 +329,7 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
+            || tree.state.downcast_ref::<State<T>>(),
         )
     }
 
@@ -568,7 +620,7 @@ where
 }
 
 /// Draws a [`PickList`].
-pub fn draw<T, Renderer>(
+pub fn draw<'a, T, Renderer>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     layout: Layout<'_>,
@@ -580,11 +632,13 @@ pub fn draw<T, Renderer>(
     selected: Option<&T>,
     handle: &Handle<Renderer>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    state: impl FnOnce() -> &'a State<T>,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
-    T: ToString,
+    T: ToString + 'a,
 {
+    let state = state();
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
     let is_selected = selected.is_some();
@@ -605,7 +659,7 @@ pub fn draw<T, Renderer>(
         style.background,
     );
 
-    if let Some((font, text, size)) = handle.content() {
+    if let Some((font, text, size)) = handle.content(state.is_open) {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
