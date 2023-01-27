@@ -49,8 +49,8 @@ impl Profiler {
                     .to_str()
                     .unwrap_or("trace");
 
-                let path = out_dir
-                    .join(format!("{}_trace_{}.json", curr_exe_name, time));
+                let path =
+                    out_dir.join(format!("{curr_exe_name}_trace_{time}.json"));
 
                 layer = layer.file(path);
             } else {

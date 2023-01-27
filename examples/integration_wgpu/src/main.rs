@@ -274,7 +274,7 @@ pub fn main() {
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {
-                            panic!("Swapchain error: {}. Rendering cannot continue.", error)
+                            panic!("Swapchain error: {error}. Rendering cannot continue.")
                         }
                         _ => {
                             // Try rendering again next frame.

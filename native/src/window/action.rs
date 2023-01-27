@@ -106,15 +106,14 @@ impl<T> fmt::Debug for Action<T> {
             Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
-                "Action::Resize {{ widget: {}, height: {} }}",
-                width, height
+                "Action::Resize {{ widget: {width}, height: {height} }}"
             ),
-            Self::Maximize(value) => write!(f, "Action::Maximize({})", value),
-            Self::Minimize(value) => write!(f, "Action::Minimize({}", value),
+            Self::Maximize(value) => write!(f, "Action::Maximize({value})"),
+            Self::Minimize(value) => write!(f, "Action::Minimize({value}"),
             Self::Move { x, y } => {
-                write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
+                write!(f, "Action::Move {{ x: {x}, y: {y} }}")
             }
-            Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
+            Self::SetMode(mode) => write!(f, "Action::SetMode({mode:?})"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
