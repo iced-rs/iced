@@ -20,6 +20,7 @@ use crate::BoxStream;
 /// `Hasher`.
 ///
 /// [`Command`]: crate::Command
+#[must_use = "`Subscription` must be returned to runtime to take effect"]
 pub struct Subscription<Hasher, Event, Output> {
     recipes: Vec<Box<dyn Recipe<Hasher, Event, Output = Output>>>,
 }
