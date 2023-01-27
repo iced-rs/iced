@@ -11,6 +11,7 @@ use std::fmt;
 use std::future::Future;
 
 /// A set of asynchronous actions to be performed by some runtime.
+#[must_use = "`Command` must be returned to runtime to take effect"]
 pub struct Command<T>(iced_futures::Command<Action<T>>);
 
 impl<T> Command<T> {
