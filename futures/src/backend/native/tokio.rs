@@ -9,6 +9,7 @@ impl crate::Executor for Executor {
         tokio::runtime::Runtime::new()
     }
 
+    #[allow(clippy::let_underscore_future)]
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         let _ = tokio::runtime::Runtime::spawn(self, future);
     }
