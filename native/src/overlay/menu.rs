@@ -281,10 +281,7 @@ where
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: Rectangle {
-                    width: bounds.width - 1.0,
-                    ..bounds
-                },
+                bounds,
                 border_color: appearance.border_color,
                 border_width: appearance.border_width,
                 border_radius: appearance.border_radius.into(),
