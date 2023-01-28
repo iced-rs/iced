@@ -177,7 +177,7 @@ impl Download {
                     .into()
             }
             State::Downloading { .. } => {
-                text(format!("Downloading... {:.2}%", current_progress)).into()
+                text(format!("Downloading... {current_progress:.2}%")).into()
             }
             State::Errored => column![
                 "Something went wrong :(",

@@ -114,13 +114,12 @@ impl Application for Example {
                 {
                     let memory_readable = ByteSize::kb(memory_used).to_string();
 
-                    format!("{} kb ({})", memory_used, memory_readable)
+                    format!("{memory_used} kb ({memory_readable})")
                 } else {
                     String::from("None")
                 };
 
-                let memory_used =
-                    text(format!("Memory (used): {}", memory_text));
+                let memory_used = text(format!("Memory (used): {memory_text}"));
 
                 let graphics_adapter = text(format!(
                     "Graphics adapter: {}",

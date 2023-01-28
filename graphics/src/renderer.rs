@@ -53,9 +53,9 @@ where
 {
     type Theme = T;
 
-    fn layout<'a, Message>(
+    fn layout<Message>(
         &mut self,
-        element: &Element<'a, Message, Self>,
+        element: &Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
         let layout = element.as_widget().layout(self, limits);

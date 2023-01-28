@@ -141,7 +141,7 @@ impl fmt::Display for Message {
             Message::Disconnected => {
                 write!(f, "Connection lost... Retrying...")
             }
-            Message::User(message) => write!(f, "{}", message),
+            Message::User(message) => write!(f, "{message}"),
         }
     }
 }

@@ -78,7 +78,7 @@ impl Sandbox for Styling {
                     column![text("Choose a theme:")].spacing(10),
                     |column, theme| {
                         column.push(radio(
-                            format!("{:?}", theme),
+                            format!("{theme:?}"),
                             *theme,
                             Some(match self.theme {
                                 Theme::Light => ThemeType::Light,
