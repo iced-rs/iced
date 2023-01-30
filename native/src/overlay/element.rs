@@ -53,8 +53,14 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.overlay.layout(renderer, bounds, self.position)
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        translation: Vector,
+    ) -> layout::Node {
+        self.overlay
+            .layout(renderer, bounds, self.position + translation)
     }
 
     /// Processes a runtime [`Event`].

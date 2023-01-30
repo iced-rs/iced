@@ -66,13 +66,15 @@ where
         &self,
         renderer: &Renderer,
         bounds: Size,
-        _position: Point,
+        position: Point,
     ) -> layout::Node {
+        let translation = position - Point::ORIGIN;
+
         layout::Node::with_children(
             bounds,
             self.children
                 .iter()
-                .map(|child| child.layout(renderer, bounds))
+                .map(|child| child.layout(renderer, bounds, translation))
                 .collect(),
         )
     }
