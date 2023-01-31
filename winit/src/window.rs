@@ -22,12 +22,12 @@ pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
     }))
 }
 
-/// Sets the window to maximized or back.
+/// Maximizes the window.
 pub fn maximize<Message>(value: bool) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Maximize(value)))
 }
 
-/// Set the window to minimized or back.
+/// Minimes the window.
 pub fn minimize<Message>(value: bool) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Minimize(value)))
 }
@@ -38,11 +38,11 @@ pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
 }
 
 /// Sets the [`Mode`] of the window.
-pub fn set_mode<Message>(mode: Mode) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::SetMode(mode)))
+pub fn change_mode<Message>(mode: Mode) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeMode(mode)))
 }
 
-/// Sets the window to maximized or back.
+/// Toggles the window to maximized or back.
 pub fn toggle_maximize<Message>() -> Command<Message> {
     Command::single(command::Action::Window(window::Action::ToggleMaximize))
 }

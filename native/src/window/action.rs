@@ -33,18 +33,19 @@ pub enum Action<T> {
         /// The new logical y location of the window
         y: i32,
     },
-    /// Set the [`Mode`] of the window.
-    SetMode(Mode),
+    /// Change the [`Mode`] of the window.
+    ChangeMode(Mode),
     /// Fetch the current [`Mode`] of the window.
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
-    /// Sets the window to maximized or back
+    /// Toggle the window to maximized or back
     ToggleMaximize,
-    /// Toggles whether window has decorations
+    /// Toggle whether window has decorations.
+    ///
     /// ## Platform-specific
     /// - **X11:** Not implemented.
     /// - **Web:** Unsupported.
     ToggleDecorations,
-    /// Requests user attention to the window, this has no effect if the application
+    /// Request user attention to the window, this has no effect if the application
     /// is already focused. How requesting for user attention manifests is platform dependent,
     /// see [`UserAttentionType`] for details.
     ///
@@ -58,7 +59,7 @@ pub enum Action<T> {
     /// - **X11:** Requests for user attention must be manually cleared.
     /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
     RequestUserAttention(Option<UserAttention>),
-    /// Brings the window to the front and sets input focus. Has no effect if the window is
+    /// Bring the window to the front and sets input focus. Has no effect if the window is
     /// already in focus, minimized, or not visible.
     ///
     /// This method steals input focus from other applications. Do not use this method unless
@@ -87,7 +88,7 @@ impl<T> Action<T> {
             Self::Maximize(bool) => Action::Maximize(bool),
             Self::Minimize(bool) => Action::Minimize(bool),
             Self::Move { x, y } => Action::Move { x, y },
-            Self::SetMode(mode) => Action::SetMode(mode),
+            Self::ChangeMode(mode) => Action::ChangeMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
             Self::ToggleDecorations => Action::ToggleDecorations,
@@ -113,7 +114,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::Move { x, y } => {
                 write!(f, "Action::Move {{ x: {x}, y: {y} }}")
             }
-            Self::SetMode(mode) => write!(f, "Action::SetMode({mode:?})"),
+            Self::ChangeMode(mode) => write!(f, "Action::SetMode({mode:?})"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),

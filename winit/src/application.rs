@@ -749,7 +749,7 @@ pub fn run_command<A, E>(
                         y,
                     });
                 }
-                window::Action::SetMode(mode) => {
+                window::Action::ChangeMode(mode) => {
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
                         window.primary_monitor(),
