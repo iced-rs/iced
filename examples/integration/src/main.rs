@@ -134,8 +134,12 @@ pub fn main() {
 
     // Initialize iced
     let mut debug = Debug::new();
-    let mut renderer =
-        Renderer::new(Backend::new(&device, Settings::default(), format));
+    let mut renderer = Renderer::new(Backend::new(
+        &device,
+        &queue,
+        Settings::default(),
+        format,
+    ));
 
     let mut state = program::State::new(
         controls,
@@ -247,6 +251,7 @@ pub fn main() {
                         renderer.with_primitives(|backend, primitive| {
                             backend.present(
                                 &device,
+                                &queue,
                                 &mut staging_belt,
                                 &mut encoder,
                                 &view,

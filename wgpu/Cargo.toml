@@ -33,6 +33,7 @@ log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
 bitflags = "1.2"
+once_cell = "1.0"
 
 [dependencies.bytemuck]
 version = "1.9"
@@ -45,6 +46,10 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
+
+[dependencies.glyphon]
+version = "0.2"
+path = "../../glyphon"
 
 [dependencies.tracing]
 version = "0.1.6"

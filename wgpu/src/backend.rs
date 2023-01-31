@@ -18,7 +18,7 @@ use crate::image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
@@ -34,11 +34,13 @@ impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         settings: Settings,
         format: wgpu::TextureFormat,
     ) -> Self {
         let text_pipeline = text::Pipeline::new(
             device,
+            queue,
             format,
             settings.default_font,
             settings.text_multithreading,
@@ -70,6 +72,7 @@ impl Backend {
     pub fn present<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
@@ -91,6 +94,7 @@ impl Backend {
         for layer in layers {
             self.flush(
                 device,
+                queue,
                 scale_factor,
                 transformation,
                 &layer,
@@ -108,6 +112,7 @@ impl Backend {
     fn flush(
         &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
@@ -171,11 +176,15 @@ impl Backend {
         }
 
         if !layer.text.is_empty() {
-            for _text in layer.text.iter() {
-                // TODO: Queue text sections
-            }
+            self.text_pipeline.prepare(
+                device,
+                queue,
+                &layer.text,
+                scale_factor,
+                target_size,
+            );
 
-            // TODO: Draw queued
+            self.text_pipeline.render(encoder, target);
         }
     }
 }

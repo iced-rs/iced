@@ -12,7 +12,8 @@ pub use text::Text;
 
 use crate::alignment;
 use crate::{
-    Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
+    Background, Color, Font, Point, Primitive, Rectangle, Size, Vector,
+    Viewport,
 };
 
 /// A group of primitives that should be clipped together.
@@ -60,7 +61,7 @@ impl<'a> Layer<'a> {
                     Point::new(11.0, 11.0 + 25.0 * i as f32),
                     Size::INFINITY,
                 ),
-                color: [0.9, 0.9, 0.9, 1.0],
+                color: Color::new(0.9, 0.9, 0.9, 1.0),
                 size: 20.0,
                 font: Font::Default,
                 horizontal_alignment: alignment::Horizontal::Left,
@@ -71,7 +72,7 @@ impl<'a> Layer<'a> {
 
             overlay.text.push(Text {
                 bounds: text.bounds + Vector::new(-1.0, -1.0),
-                color: [0.0, 0.0, 0.0, 1.0],
+                color: Color::BLACK,
                 ..text
             });
         }
@@ -136,7 +137,7 @@ impl<'a> Layer<'a> {
                     content,
                     bounds: *bounds + translation,
                     size: *size,
-                    color: color.into_linear(),
+                    color: *color,
                     font: *font,
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,

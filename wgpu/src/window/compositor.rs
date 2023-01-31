@@ -114,7 +114,7 @@ impl<Theme> Compositor<Theme> {
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
-        Backend::new(&self.device, self.settings, self.format)
+        Backend::new(&self.device, &self.queue, self.settings, self.format)
     }
 }
 
@@ -227,6 +227,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
                         &self.device,
+                        &self.queue,
                         &mut self.staging_belt,
                         &mut encoder,
                         view,

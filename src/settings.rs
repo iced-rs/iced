@@ -28,7 +28,7 @@ pub struct Settings<Flags> {
 
     /// The text size that will be used by default.
     ///
-    /// The default value is `20.0`.
+    /// The default value is `16.0`.
     pub default_text_size: f32,
 
     /// If enabled, spread text workload in multiple threads when multiple cores
@@ -97,7 +97,7 @@ where
             window: Default::default(),
             flags: Default::default(),
             default_font: Default::default(),
-            default_text_size: 20.0,
+            default_text_size: 16.0,
             text_multithreading: false,
             antialiasing: false,
             exit_on_close_request: true,
