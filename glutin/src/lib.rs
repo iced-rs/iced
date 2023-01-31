@@ -28,6 +28,8 @@ pub use glutin;
 pub use iced_winit::*;
 
 pub mod application;
+mod compositor;
 
 #[doc(no_inline)]
 pub use application::Application;
+pub use compositor::{Compositor, Settings};
