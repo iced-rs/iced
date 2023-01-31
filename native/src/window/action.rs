@@ -47,7 +47,7 @@ pub enum Action<T> {
     ToggleDecorations,
     /// Request user attention to the window, this has no effect if the application
     /// is already focused. How requesting for user attention manifests is platform dependent,
-    /// see [`UserAttentionType`] for details.
+    /// see [`UserAttention`] for details.
     ///
     /// Providing `None` will unset the request for user attention. Unsetting the request for
     /// user attention might not be done automatically by the WM when the window receives input.

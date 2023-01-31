@@ -42,11 +42,6 @@ pub fn change_mode<Message>(mode: Mode) -> Command<Message> {
     Command::single(command::Action::Window(window::Action::ChangeMode(mode)))
 }
 
-/// Toggles the window to maximized or back.
-pub fn toggle_maximize<Message>() -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::ToggleMaximize))
-}
-
 /// Fetches the current [`Mode`] of the window.
 pub fn fetch_mode<Message>(
     f: impl FnOnce(Mode) -> Message + 'static,
@@ -54,4 +49,38 @@ pub fn fetch_mode<Message>(
     Command::single(command::Action::Window(window::Action::FetchMode(
         Box::new(f),
     )))
+}
+
+/// Toggles the window to maximized or back.
+pub fn toggle_maximize<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ToggleMaximize))
+}
+
+/// Toggles the window decorations.
+pub fn toggle_decorations<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ToggleDecorations))
+}
+
+/// Request user attention to the window, this has no effect if the application
+/// is already focused. How requesting for user attention manifests is platform dependent,
+/// see [`UserAttention`] for details.
+///
+/// Providing `None` will unset the request for user attention. Unsetting the request for
+/// user attention might not be done automatically by the WM when the window receives input.
+pub fn request_user_attention<Message>(
+    user_attention: Option<UserAttention>,
+) -> Command<Message> {
+    Command::single(command::Action::Window(
+        window::Action::RequestUserAttention(user_attention),
+    ))
+}
+
+/// Brings the window to the front and sets input focus. Has no effect if the window is
+/// already in focus, minimized, or not visible.
+///
+/// This [`Command`] steals input focus from other applications. Do not use this method unless
+/// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
+/// user experience.
+pub fn gain_focus<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::GainFocus))
 }
