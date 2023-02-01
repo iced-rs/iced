@@ -384,7 +384,7 @@ where
 
     let size = {
         let intrinsic =
-            Size::new(max_width + text_size + padding.left, text_size);
+            Size::new(max_width + text_size + padding.left, text_size * 1.2);
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -620,12 +620,12 @@ pub fn draw<'a, T, Renderer>(
             color: style.handle_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - padding.horizontal(),
-                y: bounds.center_y() - size / 2.0,
-                height: size,
+                y: bounds.center_y(),
+                height: size * 1.2,
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Right,
-            vertical_alignment: alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Center,
         });
     }
 
@@ -645,12 +645,12 @@ pub fn draw<'a, T, Renderer>(
             },
             bounds: Rectangle {
                 x: bounds.x + padding.left,
-                y: bounds.center_y() - text_size / 2.0,
+                y: bounds.center_y(),
                 width: bounds.width - padding.horizontal(),
-                height: text_size,
+                height: text_size * 1.2,
             },
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Center,
         });
     }
 }
