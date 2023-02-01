@@ -1,6 +1,7 @@
 pub use iced_native::text::Hit;
 
 use iced_graphics::layer::Text;
+use iced_native::alignment;
 use iced_native::{Font, Rectangle, Size};
 
 #[allow(missing_debug_implementations)]
@@ -93,11 +94,37 @@ impl Pipeline {
         let text_areas: Vec<_> = sections
             .iter()
             .zip(buffers.iter())
-            .map(|(section, buffer)| glyphon::TextArea {
-                buffer,
-                left: (section.bounds.x * scale_factor) as i32,
-                top: (section.bounds.y * scale_factor) as i32,
-                bounds,
+            .map(|(section, buffer)| {
+                let x = section.bounds.x * scale_factor;
+                let y = section.bounds.y * scale_factor;
+
+                let max_width = buffer
+                    .layout_runs()
+                    .fold(0.0f32, |max, run| max.max(run.line_w));
+
+                let total_height = buffer.visible_lines() as f32
+                    * section.size
+                    * 1.2
+                    * scale_factor;
+
+                let left = match section.horizontal_alignment {
+                    alignment::Horizontal::Left => x,
+                    alignment::Horizontal::Center => x - max_width / 2.0,
+                    alignment::Horizontal::Right => x - max_width,
+                };
+
+                let top = match section.vertical_alignment {
+                    alignment::Vertical::Top => y,
+                    alignment::Vertical::Center => y - total_height / 2.0,
+                    alignment::Vertical::Bottom => y - total_height,
+                };
+
+                glyphon::TextArea {
+                    buffer,
+                    left: left as i32,
+                    top: top as i32,
+                    bounds,
+                }
             })
             .collect();
 
