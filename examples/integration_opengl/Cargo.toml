@@ -6,7 +6,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced_glutin = { path = "../../glutin" }
 iced_glow = { path = "../../glow" }
-iced_winit = { path = "../../winit" }
+iced_native = { path = "../../native" }
 env_logger = "0.8"
+glutin = "0.30.3"
+glutin-winit = "0.2.2"
+raw-window-handle = "0.5.0"
+winit = "0.27.5"
