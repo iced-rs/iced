@@ -67,8 +67,14 @@ impl Pipeline {
                     section.content,
                     glyphon::Attrs::new()
                         .color({
-                            let [r, g, b, a] = section.color.into_rgba8();
-                            glyphon::Color::rgba(r, g, b, a)
+                            let [r, g, b, a] = section.color.into_linear();
+
+                            glyphon::Color::rgba(
+                                (r * 255.0) as u8,
+                                (g * 255.0) as u8,
+                                (b * 255.0) as u8,
+                                (a * 255.0) as u8,
+                            )
                         })
                         .family(match section.font {
                             Font::Default => glyphon::Family::SansSerif,
