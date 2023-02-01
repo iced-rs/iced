@@ -105,6 +105,8 @@ impl Backend {
             );
         }
 
+        self.text_pipeline.end_frame();
+
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.trim_cache(device, encoder);
     }
@@ -180,6 +182,7 @@ impl Backend {
                 device,
                 queue,
                 &layer.text,
+                layer.bounds,
                 scale_factor,
                 target_size,
             );

@@ -1,13 +1,14 @@
 pub use iced_native::text::Hit;
 
 use iced_graphics::layer::Text;
-use iced_native::{Font, Size};
+use iced_native::{Font, Rectangle, Size};
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    renderer: glyphon::TextRenderer,
+    renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     cache: glyphon::SwashCache<'static>,
+    layer: usize,
 }
 
 // TODO: Share with `iced_graphics`
@@ -23,9 +24,10 @@ impl Pipeline {
         _multithreading: bool,
     ) -> Self {
         Pipeline {
-            renderer: glyphon::TextRenderer::new(device, queue),
+            renderers: Vec::new(),
             atlas: glyphon::TextAtlas::new(device, queue, format),
             cache: glyphon::SwashCache::new(&FONT_SYSTEM),
+            layer: 0,
         }
     }
 
@@ -34,9 +36,17 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         sections: &[Text<'_>],
+        bounds: Rectangle,
         scale_factor: f32,
         target_size: Size<u32>,
     ) {
+        if self.renderers.len() <= self.layer {
+            self.renderers
+                .push(glyphon::TextRenderer::new(device, queue));
+        }
+
+        let renderer = &mut self.renderers[self.layer];
+
         let buffers: Vec<_> = sections
             .iter()
             .map(|section| {
@@ -73,6 +83,13 @@ impl Pipeline {
             })
             .collect();
 
+        let bounds = glyphon::TextBounds {
+            left: (bounds.x * scale_factor) as i32,
+            top: (bounds.y * scale_factor) as i32,
+            right: ((bounds.x + bounds.width) * scale_factor) as i32,
+            bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
+        };
+
         let text_areas: Vec<_> = sections
             .iter()
             .zip(buffers.iter())
@@ -80,18 +97,11 @@ impl Pipeline {
                 buffer,
                 left: (section.bounds.x * scale_factor) as i32,
                 top: (section.bounds.y * scale_factor) as i32,
-                bounds: glyphon::TextBounds {
-                    left: (section.bounds.x * scale_factor) as i32,
-                    top: (section.bounds.y * scale_factor) as i32,
-                    right: ((section.bounds.x + section.bounds.width)
-                        * scale_factor) as i32,
-                    bottom: ((section.bounds.y + section.bounds.height)
-                        * scale_factor) as i32,
-                },
+                bounds,
             })
             .collect();
 
-        self.renderer
+        renderer
             .prepare(
                 device,
                 queue,
@@ -126,9 +136,18 @@ impl Pipeline {
                 depth_stencil_attachment: None,
             });
 
-        self.renderer
+        let renderer = &mut self.renderers[self.layer];
+
+        renderer
             .render(&self.atlas, &mut render_pass)
             .expect("Render text");
+
+        self.layer += 1;
+    }
+
+    pub fn end_frame(&mut self) {
+        self.renderers.truncate(self.layer);
+        self.layer = 0;
     }
 
     pub fn measure(
