@@ -56,6 +56,7 @@ where
     width: Length,
     height: u16,
     style: <Renderer::Theme as StyleSheet>::Style,
+    logarithmic_scale: bool,
 }
 
 impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
@@ -101,6 +102,7 @@ where
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
             style: Default::default(),
+            logarithmic_scale: false,
         }
     }
 
@@ -139,6 +141,12 @@ where
     /// Sets the step size of the [`Slider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
+        self
+    }
+
+    /// Sets the scale of the [`Slider`] to logarithmic. By default, a linear scale is used.
+    pub fn logarithmic_scale(mut self) -> Self {
+        self.logarithmic_scale = true;
         self
     }
 }
@@ -201,6 +209,7 @@ where
             self.step,
             self.on_change.as_ref(),
             &self.on_release,
+            self.logarithmic_scale
         )
     }
 
@@ -270,6 +279,7 @@ pub fn update<Message, T>(
     step: T,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
+    logarithmic_scale: bool,
 ) -> event::Status
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
@@ -292,7 +302,14 @@ where
                 / f64::from(bounds.width);
 
             let steps = (percent * (end - start) / step).round();
-            let value = steps * step + start;
+            let value = if !logarithmic_scale {
+                steps * step + start
+            } else {
+                let start_exponent = start.log10();
+                let end_exponent = end.log10();
+                let current_exponent = percent * (end_exponent - start_exponent);
+                10.0_f64.powf(current_exponent)
+            };
 
             if let Some(value) = T::from_f64(value) {
                 value
