@@ -856,8 +856,6 @@ pub fn draw<Renderer>(
                         theme.dragging(style)
                     } else if mouse_over_y_scrollbar {
                         theme.hovered(style)
-                    } else if mouse_over_scrollable {
-                        theme.focused(style)
                     } else {
                         theme.active(style)
                     };
@@ -871,8 +869,6 @@ pub fn draw<Renderer>(
                         theme.dragging_horizontal(style)
                     } else if mouse_over_x_scrollbar {
                         theme.hovered_horizontal(style)
-                    } else if mouse_over_scrollable {
-                        theme.focused_horizontal(style)
                     } else {
                         theme.active_horizontal(style)
                     };
