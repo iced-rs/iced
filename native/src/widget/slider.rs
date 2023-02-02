@@ -145,6 +145,8 @@ where
     }
 
     /// Sets the scale of the [`Slider`] to logarithmic. By default, a linear scale is used.
+    ///
+    /// Note that in case of a logarithmic scale, it is meaningful only to use positive values for the range, with the lower bound > 0.
     pub fn logarithmic_scale(mut self) -> Self {
         self.logarithmic_scale = true;
         self
@@ -309,7 +311,7 @@ where
                 let start_exponent = start.log10();
                 let end_exponent = end.log10();
                 let current_exponent =
-                    percent * (end_exponent - start_exponent);
+                    percent * (end_exponent - start_exponent) + start_exponent;
                 10.0_f64.powf(current_exponent)
             };
 
