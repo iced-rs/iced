@@ -2,15 +2,106 @@ pub use iced_native::text::Hit;
 
 use iced_graphics::layer::Text;
 use iced_native::alignment;
-use iced_native::{Font, Rectangle, Size};
+use iced_native::{Color, Font, Rectangle, Size};
+
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::cell::RefCell;
+use std::hash::{BuildHasher, Hash, Hasher};
+use twox_hash::RandomXxHashBuilder64;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     cache: glyphon::SwashCache<'static>,
+    measurement_cache: RefCell<Cache>,
+    render_cache: Cache,
     layer: usize,
 }
+
+struct Cache {
+    entries: FxHashMap<KeyHash, glyphon::Buffer<'static>>,
+    recently_used: FxHashSet<KeyHash>,
+    hasher: RandomXxHashBuilder64,
+}
+
+impl Cache {
+    fn new() -> Self {
+        Self {
+            entries: FxHashMap::default(),
+            recently_used: FxHashSet::default(),
+            hasher: RandomXxHashBuilder64::default(),
+        }
+    }
+
+    fn get(&self, key: &KeyHash) -> Option<&glyphon::Buffer<'static>> {
+        self.entries.get(key)
+    }
+
+    fn allocate(
+        &mut self,
+        key: Key<'_>,
+    ) -> (KeyHash, &mut glyphon::Buffer<'static>) {
+        let hash = {
+            let mut hasher = self.hasher.build_hasher();
+
+            key.content.hash(&mut hasher);
+            (key.size as i32).hash(&mut hasher);
+            key.font.hash(&mut hasher);
+            (key.bounds.width as i32).hash(&mut hasher);
+            (key.bounds.height as i32).hash(&mut hasher);
+            key.color.into_rgba8().hash(&mut hasher);
+
+            hasher.finish()
+        };
+
+        if !self.entries.contains_key(&hash) {
+            let metrics =
+                glyphon::Metrics::new(key.size as i32, (key.size * 1.2) as i32);
+
+            let mut buffer = glyphon::Buffer::new(&FONT_SYSTEM, metrics);
+
+            buffer.set_size(key.bounds.width as i32, key.bounds.height as i32);
+            buffer.set_text(
+                key.content,
+                glyphon::Attrs::new().family(to_family(key.font)).color({
+                    let [r, g, b, a] = key.color.into_linear();
+
+                    glyphon::Color::rgba(
+                        (r * 255.0) as u8,
+                        (g * 255.0) as u8,
+                        (b * 255.0) as u8,
+                        (a * 255.0) as u8,
+                    )
+                }),
+            );
+
+            let _ = self.entries.insert(hash, buffer);
+        }
+
+        let _ = self.recently_used.insert(hash);
+
+        (hash, self.entries.get_mut(&hash).unwrap())
+    }
+
+    fn trim(&mut self) {
+        self.entries
+            .retain(|key, _| self.recently_used.contains(key));
+
+        self.recently_used.clear();
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Key<'a> {
+    content: &'a str,
+    size: f32,
+    font: Font,
+    bounds: Size,
+    color: Color,
+}
+
+type KeyHash = u64;
 
 // TODO: Share with `iced_graphics`
 static FONT_SYSTEM: once_cell::sync::Lazy<glyphon::FontSystem> =
@@ -28,6 +119,8 @@ impl Pipeline {
             renderers: Vec::new(),
             atlas: glyphon::TextAtlas::new(device, queue, format),
             cache: glyphon::SwashCache::new(&FONT_SYSTEM),
+            measurement_cache: RefCell::new(Cache::new()),
+            render_cache: Cache::new(),
             layer: 0,
         }
     }
@@ -48,46 +141,27 @@ impl Pipeline {
 
         let renderer = &mut self.renderers[self.layer];
 
-        let buffers: Vec<_> = sections
+        let keys: Vec<_> = sections
             .iter()
             .map(|section| {
-                let metrics = glyphon::Metrics::new(
-                    (section.size * scale_factor) as i32,
-                    (section.size * 1.2 * scale_factor) as i32,
-                );
+                let (key, _) = self.render_cache.allocate(Key {
+                    content: section.content,
+                    size: section.size * scale_factor,
+                    font: section.font,
+                    bounds: Size {
+                        width: section.bounds.width * scale_factor,
+                        height: section.bounds.height * scale_factor,
+                    },
+                    color: section.color,
+                });
 
-                let mut buffer = glyphon::Buffer::new(&FONT_SYSTEM, metrics);
-
-                buffer.set_size(
-                    (section.bounds.width * scale_factor).ceil() as i32,
-                    (section.bounds.height * scale_factor).ceil() as i32,
-                );
-
-                buffer.set_text(
-                    section.content,
-                    glyphon::Attrs::new()
-                        .color({
-                            let [r, g, b, a] = section.color.into_linear();
-
-                            glyphon::Color::rgba(
-                                (r * 255.0) as u8,
-                                (g * 255.0) as u8,
-                                (b * 255.0) as u8,
-                                (a * 255.0) as u8,
-                            )
-                        })
-                        .family(match section.font {
-                            Font::Default => glyphon::Family::SansSerif,
-                            Font::External { name, .. } => {
-                                glyphon::Family::Name(name)
-                            }
-                        }),
-                );
-
-                buffer.shape_until_scroll();
-
-                buffer
+                key
             })
+            .collect();
+
+        let buffers: Vec<_> = keys
+            .iter()
+            .map(|key| self.render_cache.get(key).expect("Get cached buffer"))
             .collect();
 
         let bounds = glyphon::TextBounds {
@@ -190,29 +264,27 @@ impl Pipeline {
         font: Font,
         bounds: Size,
     ) -> (f32, f32) {
-        let attrs = match font {
-            Font::Default => glyphon::Attrs::new(),
-            Font::External { name, .. } => glyphon::Attrs {
-                family: glyphon::Family::Name(name),
-                ..glyphon::Attrs::new()
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let (_, paragraph) = measurement_cache.allocate(Key {
+            content,
+            size: size,
+            font,
+            bounds: Size {
+                width: bounds.width,
+                height: f32::INFINITY,
             },
-        };
+            color: Color::BLACK,
+        });
 
-        let mut paragraph =
-            glyphon::BufferLine::new(content, glyphon::AttrsList::new(attrs));
+        let (total_lines, max_width) = paragraph
+            .layout_runs()
+            .enumerate()
+            .fold((0, 0.0), |(_, max), (i, buffer)| {
+                (i + 1, buffer.line_w.max(max))
+            });
 
-        // TODO: Cache layout
-        let layout = paragraph.layout(
-            &FONT_SYSTEM,
-            size as i32,
-            bounds.width as i32,
-            glyphon::Wrap::Word,
-        );
-
-        (
-            layout.iter().fold(0.0, |max, line| line.w.max(max)),
-            size * 1.2 * layout.len() as f32,
-        )
+        (max_width, size * 1.2 * total_lines as f32)
     }
 
     pub fn hit_test(
@@ -227,5 +299,14 @@ impl Pipeline {
         None
     }
 
-    pub fn trim_measurement_cache(&mut self) {}
+    pub fn trim_measurement_cache(&mut self) {
+        self.measurement_cache.borrow_mut().trim();
+    }
+}
+
+fn to_family(font: Font) -> glyphon::Family<'static> {
+    match font {
+        Font::Default => glyphon::Family::SansSerif,
+        Font::External { name, .. } => glyphon::Family::Name(name),
+    }
 }

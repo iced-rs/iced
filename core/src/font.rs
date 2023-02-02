@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 /// A font.
 #[derive(Debug, Clone, Copy)]
 pub enum Font {
@@ -20,5 +22,19 @@ pub enum Font {
 impl Default for Font {
     fn default() -> Font {
         Font::Default
+    }
+}
+
+impl Hash for Font {
+    fn hash<H: Hasher>(&self, hasher: &mut H) {
+        match self {
+            Self::Default => {
+                0.hash(hasher);
+            }
+            Self::External { name, .. } => {
+                1.hash(hasher);
+                name.hash(hasher);
+            }
+        }
     }
 }
