@@ -62,7 +62,7 @@ where
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::None => write!(f, "Outcome::None"),
-            Self::Some(output) => write!(f, "Outcome::Some({:?})", output),
+            Self::Some(output) => write!(f, "Outcome::Some({output:?})"),
             Self::Chain(_) => write!(f, "Outcome::Chain(...)"),
         }
     }

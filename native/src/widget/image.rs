@@ -111,6 +111,45 @@ where
     layout::Node::new(final_size)
 }
 
+/// Draws an [`Image`]
+pub fn draw<Renderer, Handle>(
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    handle: &Handle,
+    content_fit: ContentFit,
+) where
+    Renderer: image::Renderer<Handle = Handle>,
+    Handle: Clone + Hash,
+{
+    let Size { width, height } = renderer.dimensions(handle);
+    let image_size = Size::new(width as f32, height as f32);
+
+    let bounds = layout.bounds();
+    let adjusted_fit = content_fit.fit(image_size, bounds.size());
+
+    let render = |renderer: &mut Renderer| {
+        let offset = Vector::new(
+            (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
+            (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+        );
+
+        let drawing_bounds = Rectangle {
+            width: adjusted_fit.width,
+            height: adjusted_fit.height,
+            ..bounds
+        };
+
+        renderer.draw(handle.clone(), drawing_bounds + offset)
+    };
+
+    if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
+    {
+        renderer.with_layer(bounds, render);
+    } else {
+        render(renderer)
+    }
+}
+
 impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -149,34 +188,7 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
-        let image_size = Size::new(width as f32, height as f32);
-
-        let bounds = layout.bounds();
-        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
-
-        let render = |renderer: &mut Renderer| {
-            let offset = Vector::new(
-                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-            );
-
-            let drawing_bounds = Rectangle {
-                width: adjusted_fit.width,
-                height: adjusted_fit.height,
-                ..bounds
-            };
-
-            renderer.draw(self.handle.clone(), drawing_bounds + offset)
-        };
-
-        if adjusted_fit.width > bounds.width
-            || adjusted_fit.height > bounds.height
-        {
-            renderer.with_layer(bounds, render);
-        } else {
-            render(renderer)
-        }
+        draw(renderer, layout, &self.handle, self.content_fit)
     }
 }
 

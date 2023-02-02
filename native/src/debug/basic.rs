@@ -133,7 +133,7 @@ impl Debug {
     }
 
     pub fn log_message<Message: std::fmt::Debug>(&mut self, message: &Message) {
-        self.last_messages.push_back(format!("{:?}", message));
+        self.last_messages.push_back(format!("{message:?}"));
 
         if self.last_messages.len() > 10 {
             let _ = self.last_messages.pop_front();
@@ -150,7 +150,7 @@ impl Debug {
         let mut lines = Vec::new();
 
         fn key_value<T: std::fmt::Debug>(key: &str, value: T) -> String {
-            format!("{} {:?}", key, value)
+            format!("{key} {value:?}")
         }
 
         lines.push(format!(
@@ -176,9 +176,9 @@ impl Debug {
         lines.push(String::from("Last messages:"));
         lines.extend(self.last_messages.iter().map(|msg| {
             if msg.len() <= 100 {
-                format!("    {}", msg)
+                format!("    {msg}")
             } else {
-                format!("    {:.100}...", msg)
+                format!("    {msg:.100}...")
             }
         }));
 

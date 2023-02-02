@@ -356,9 +356,9 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let vector = position - overlay.position();
+            let translation = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, translation)
         })
         .unwrap_or_default()
     }

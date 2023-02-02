@@ -35,7 +35,7 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::overlay;
+use crate::overlay::{self, Group};
 use crate::renderer;
 use crate::touch;
 use crate::widget;
@@ -450,14 +450,17 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.contents
+        let children = self
+            .contents
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
-            .filter_map(|(((_, pane), tree), layout)| {
-                pane.overlay(tree, layout, renderer)
+            .filter_map(|(((_, content), state), layout)| {
+                content.overlay(state, layout, renderer)
             })
-            .next()
+            .collect::<Vec<_>>();
+
+        (!children.is_empty()).then(|| Group::with_children(children).overlay())
     }
 }
 
