@@ -286,14 +286,26 @@ impl Pipeline {
 
     pub fn hit_test(
         &self,
-        _content: &str,
-        _size: f32,
-        _font: iced_native::Font,
-        _bounds: iced_native::Size,
-        _point: iced_native::Point,
+        content: &str,
+        size: f32,
+        font: iced_native::Font,
+        bounds: iced_native::Size,
+        point: iced_native::Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        None
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let (_, paragraph) = measurement_cache.allocate(Key {
+            content,
+            size: size,
+            font,
+            bounds,
+            color: Color::BLACK,
+        });
+
+        let cursor = paragraph.hit(point.x as i32, point.y as i32)?;
+
+        Some(Hit::CharOffset(cursor.index))
     }
 
     pub fn trim_measurement_cache(&mut self) {
