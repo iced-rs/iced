@@ -452,7 +452,6 @@ pub fn draw<T, R>(
             let current_exponent = value.log10();
             bounds.width * (current_exponent - start_exponent)
                 / (end_exponent - start_exponent)
-                - handle_width / 2.0
         }
     };
 
