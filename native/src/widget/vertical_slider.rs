@@ -50,6 +50,7 @@ where
     width: u16,
     height: Length,
     style: <Renderer::Theme as StyleSheet>::Style,
+    logarithmic_scale: bool,
 }
 
 impl<'a, T, Message, Renderer> VerticalSlider<'a, T, Message, Renderer>
@@ -95,6 +96,7 @@ where
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
             style: Default::default(),
+            logarithmic_scale: false,
         }
     }
 
@@ -133,6 +135,14 @@ where
     /// Sets the step size of the [`VerticalSlider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
+        self
+    }
+
+    /// Sets the scale of the [`Slider`] to logarithmic. By default, a linear scale is used.
+    ///
+    /// Note that in case of a logarithmic scale, it is meaningful only to use positive values for the range, with the lower bound > 0.
+    pub fn logarithmic_scale(mut self) -> Self {
+        self.logarithmic_scale = true;
         self
     }
 }
@@ -195,6 +205,7 @@ where
             self.step,
             self.on_change.as_ref(),
             &self.on_release,
+            self.logarithmic_scale,
         )
     }
 
@@ -217,6 +228,7 @@ where
             &self.range,
             theme,
             &self.style,
+            self.logarithmic_scale,
         )
     }
 
@@ -264,6 +276,7 @@ pub fn update<Message, T>(
     step: T,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
+    logarithmic_scale: bool,
 ) -> event::Status
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
@@ -287,7 +300,15 @@ where
                     / f64::from(bounds.height);
 
             let steps = (percent * (end - start) / step).round();
-            let value = steps * step + start;
+            let value = if !logarithmic_scale {
+                steps * step + start
+            } else {
+                let start_exponent = start.log10();
+                let end_exponent = end.log10();
+                let current_exponent =
+                    percent * (end_exponent - start_exponent) + start_exponent;
+                10.0_f64.powf(current_exponent)
+            };
 
             if let Some(value) = T::from_f64(value) {
                 value
@@ -349,6 +370,7 @@ pub fn draw<T, R>(
     range: &RangeInclusive<T>,
     style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
     style: &<R::Theme as StyleSheet>::Style,
+    logarithmic_scale: bool,
 ) where
     T: Into<f64> + Copy,
     R: crate::Renderer,
@@ -418,8 +440,16 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.height * (value - range_end) / (range_start - range_end)
-            - handle_width / 2.0
+        if !logarithmic_scale {
+            bounds.height * (value - range_end) / (range_start - range_end)
+                - handle_width / 2.0
+        } else {
+            let start_exponent = range_start.log10();
+            let end_exponent = range_end.log10();
+            let current_exponent = value.log10();
+            bounds.height * (current_exponent - end_exponent)
+                / (start_exponent - end_exponent)
+        }
     };
 
     renderer.fill_quad(
