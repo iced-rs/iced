@@ -159,11 +159,6 @@ impl Pipeline {
             })
             .collect();
 
-        let buffers: Vec<_> = keys
-            .iter()
-            .map(|key| self.render_cache.get(key).expect("Get cached buffer"))
-            .collect();
-
         let bounds = glyphon::TextBounds {
             left: (bounds.x * scale_factor) as i32,
             top: (bounds.y * scale_factor) as i32,
@@ -173,8 +168,11 @@ impl Pipeline {
 
         let text_areas: Vec<_> = sections
             .iter()
-            .zip(buffers.iter())
-            .map(|(section, buffer)| {
+            .zip(keys.iter())
+            .map(|(section, key)| {
+                let buffer =
+                    self.render_cache.get(key).expect("Get cached buffer");
+
                 let x = section.bounds.x * scale_factor;
                 let y = section.bounds.y * scale_factor;
 
