@@ -1,4 +1,6 @@
-use crate::widget::operation::{self, Focusable, Operation, Scrollable};
+use crate::widget::operation::{
+    self, Focusable, Operation, Scrollable, TextInput,
+};
 use crate::widget::Id;
 
 use iced_futures::MaybeSend;
@@ -84,6 +86,14 @@ where
                 id: Option<&Id>,
             ) {
                 self.operation.focusable(state, id);
+            }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn TextInput,
+                id: Option<&Id>,
+            ) {
+                self.operation.text_input(state, id);
             }
 
             fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {

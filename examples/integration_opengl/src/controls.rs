@@ -90,7 +90,7 @@ impl Program for Controls {
                             )
                             .push(sliders)
                             .push(
-                                Text::new(format!("{:?}", background_color))
+                                Text::new(format!("{background_color:?}"))
                                     .size(14)
                                     .style(Color::WHITE),
                             ),

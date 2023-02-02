@@ -227,6 +227,10 @@ where
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
+        if let Some(redraw_request) = local_shell.redraw_request() {
+            shell.request_redraw(redraw_request);
+        }
+
         if !local_messages.is_empty() {
             let mut heads = self.state.take().unwrap().into_heads();
 
@@ -451,9 +455,9 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let vector = position - overlay.position();
+            let translation = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, translation)
         })
         .unwrap_or_default()
     }
