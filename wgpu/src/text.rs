@@ -254,6 +254,8 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.renderers.truncate(self.layer);
+        self.render_cache.trim();
+
         self.layer = 0;
     }
 
