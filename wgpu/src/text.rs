@@ -270,10 +270,7 @@ impl Pipeline {
             content,
             size: size,
             font,
-            bounds: Size {
-                width: bounds.width,
-                height: f32::INFINITY,
-            },
+            bounds,
             color: Color::BLACK,
         });
 
