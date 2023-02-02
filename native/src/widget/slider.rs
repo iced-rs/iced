@@ -209,7 +209,7 @@ where
             self.step,
             self.on_change.as_ref(),
             &self.on_release,
-            self.logarithmic_scale
+            self.logarithmic_scale,
         )
     }
 
@@ -232,6 +232,7 @@ where
             &self.range,
             theme,
             &self.style,
+            self.logarithmic_scale,
         )
     }
 
@@ -307,7 +308,8 @@ where
             } else {
                 let start_exponent = start.log10();
                 let end_exponent = end.log10();
-                let current_exponent = percent * (end_exponent - start_exponent);
+                let current_exponent =
+                    percent * (end_exponent - start_exponent);
                 10.0_f64.powf(current_exponent)
             };
 
@@ -371,6 +373,7 @@ pub fn draw<T, R>(
     range: &RangeInclusive<T>,
     style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
     style: &<R::Theme as StyleSheet>::Style,
+    logarithmic_scale: bool,
 ) where
     T: Into<f64> + Copy,
     R: crate::Renderer,
@@ -440,8 +443,17 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.width * (value - range_start) / (range_end - range_start)
-            - handle_width / 2.0
+        if !logarithmic_scale {
+            bounds.width * (value - range_start) / (range_end - range_start)
+                - handle_width / 2.0
+        } else {
+            let start_exponent = range_start.log10();
+            let end_exponent = range_end.log10();
+            let current_exponent = value.log10();
+            bounds.width * (current_exponent - start_exponent)
+                / (end_exponent - start_exponent)
+                - handle_width / 2.0
+        }
     };
 
     renderer.fill_quad(
