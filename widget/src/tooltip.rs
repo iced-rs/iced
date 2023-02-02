@@ -1,16 +1,15 @@
 //! Display a widget over another.
 use crate::container;
-use crate::core;
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
-use crate::core::widget::Tree;
+use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+    Vector,
 };
 use crate::Text;
 
@@ -107,12 +106,20 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
-    fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
+    fn children(&self) -> Vec<widget::Tree> {
+        vec![widget::Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&self, tree: &mut widget::Tree) {
         tree.diff_children(std::slice::from_ref(&self.content))
+    }
+
+    fn state(&self) -> widget::tree::State {
+        widget::tree::State::new(State::default())
+    }
+
+    fn tag(&self) -> widget::tree::Tag {
+        widget::tree::Tag::of::<State>()
     }
 
     fn width(&self) -> Length {
@@ -133,7 +140,7 @@ where
 
     fn on_event(
         &mut self,
-        tree: &mut Tree,
+        tree: &mut widget::Tree,
         event: Event,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -141,6 +148,13 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
+        let state = tree.state.downcast_mut::<State>();
+
+        *state = cursor
+            .position_over(layout.bounds())
+            .map(|cursor_position| State::Hovered { cursor_position })
+            .unwrap_or_default();
+
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
             event,
@@ -154,7 +168,7 @@ where
 
     fn mouse_interaction(
         &self,
-        tree: &Tree,
+        tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -171,7 +185,7 @@ where
 
     fn draw(
         &self,
-        tree: &Tree,
+        tree: &widget::Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
@@ -188,50 +202,50 @@ where
             cursor,
             viewport,
         );
-
-        let tooltip = &self.tooltip;
-
-        draw(
-            renderer,
-            theme,
-            inherited_style,
-            layout,
-            cursor,
-            viewport,
-            self.position,
-            self.gap,
-            self.padding,
-            self.snap_within_viewport,
-            &self.style,
-            |renderer, limits| {
-                Widget::<(), Renderer>::layout(tooltip, renderer, limits)
-            },
-            |renderer, defaults, layout, viewport| {
-                Widget::<(), Renderer>::draw(
-                    tooltip,
-                    &Tree::empty(),
-                    renderer,
-                    theme,
-                    defaults,
-                    layout,
-                    cursor,
-                    viewport,
-                );
-            },
-        );
     }
 
     fn overlay<'b>(
         &'b mut self,
-        tree: &'b mut Tree,
+        tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        self.content.as_widget_mut().overlay(
+        let state = tree.state.downcast_ref::<State>();
+
+        let content = self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
             renderer,
-        )
+        );
+
+        let tooltip = if let State::Hovered { cursor_position } = *state {
+            Some(overlay::Element::new(
+                layout.position(),
+                Box::new(Overlay {
+                    tooltip: &self.tooltip,
+                    cursor_position,
+                    content_bounds: layout.bounds(),
+                    snap_within_viewport: self.snap_within_viewport,
+                    position: self.position,
+                    gap: self.gap,
+                    padding: self.padding,
+                    style: &self.style,
+                }),
+            ))
+        } else {
+            None
+        };
+
+        if content.is_some() || tooltip.is_some() {
+            Some(
+                overlay::Group::with_children(
+                    content.into_iter().chain(tooltip).collect(),
+                )
+                .overlay(),
+            )
+        } else {
+            None
+        }
     }
 }
 
@@ -264,72 +278,93 @@ pub enum Position {
     Right,
 }
 
-/// Draws a [`Tooltip`].
-pub fn draw<Renderer>(
-    renderer: &mut Renderer,
-    theme: &Renderer::Theme,
-    inherited_style: &renderer::Style,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    viewport: &Rectangle,
+#[derive(Debug, Clone, Copy, Default)]
+enum State {
+    #[default]
+    Idle,
+    Hovered {
+        cursor_position: Point,
+    },
+}
+
+struct Overlay<'a, 'b, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
+{
+    tooltip: &'b Text<'a, Renderer>,
+    cursor_position: Point,
+    content_bounds: Rectangle,
+    snap_within_viewport: bool,
     position: Position,
     gap: f32,
     padding: f32,
-    snap_within_viewport: bool,
-    style: &<Renderer::Theme as container::StyleSheet>::Style,
-    layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-    draw_text: impl FnOnce(&mut Renderer, &renderer::Style, Layout<'_>, &Rectangle),
-) where
-    Renderer: core::Renderer,
-    Renderer::Theme: container::StyleSheet,
+    style: &'b <Renderer::Theme as container::StyleSheet>::Style,
+}
+
+impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
+    for Overlay<'a, 'b, Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
-    use container::StyleSheet;
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        _position: Point,
+    ) -> layout::Node {
+        let viewport = Rectangle::with_size(bounds);
 
-    let bounds = layout.bounds();
+        let gap = f32::from(self.gap);
 
-    if let Some(cursor_position) = cursor.position_over(bounds) {
-        let style = theme.appearance(style);
-
-        let defaults = renderer::Style {
-            text_color: style.text_color.unwrap_or(inherited_style.text_color),
-        };
-
-        let text_layout = layout_text(
+        let text_layout = Widget::<(), Renderer>::layout(
+            self.tooltip,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
-                snap_within_viewport
+                self.snap_within_viewport
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .pad(Padding::new(padding)),
+            .pad(Padding::new(self.padding)),
         );
 
+        let padding = f32::from(self.padding);
+
         let text_bounds = text_layout.bounds();
-        let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
-        let y_center = bounds.y + (bounds.height - text_bounds.height) / 2.0;
+        let x_center = self.content_bounds.x
+            + (self.content_bounds.width - text_bounds.width) / 2.0;
+        let y_center = self.content_bounds.y
+            + (self.content_bounds.height - text_bounds.height) / 2.0;
 
         let mut tooltip_bounds = {
-            let offset = match position {
+            let offset = match self.position {
                 Position::Top => Vector::new(
                     x_center,
-                    bounds.y - text_bounds.height - gap - padding,
+                    self.content_bounds.y - text_bounds.height - gap - padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
-                    bounds.y + bounds.height + gap + padding,
+                    self.content_bounds.y
+                        + self.content_bounds.height
+                        + gap
+                        + padding,
                 ),
                 Position::Left => Vector::new(
-                    bounds.x - text_bounds.width - gap - padding,
+                    self.content_bounds.x - text_bounds.width - gap - padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
-                    bounds.x + bounds.width + gap + padding,
+                    self.content_bounds.x
+                        + self.content_bounds.width
+                        + gap
+                        + padding,
                     y_center,
                 ),
                 Position::FollowCursor => Vector::new(
-                    cursor_position.x,
-                    cursor_position.y - text_bounds.height,
+                    self.cursor_position.x,
+                    self.cursor_position.y - text_bounds.height,
                 ),
             };
 
@@ -341,7 +376,7 @@ pub fn draw<Renderer>(
             }
         };
 
-        if snap_within_viewport {
+        if self.snap_within_viewport {
             if tooltip_bounds.x < viewport.x {
                 tooltip_bounds.x = viewport.x;
             } else if viewport.x + viewport.width
@@ -361,21 +396,49 @@ pub fn draw<Renderer>(
             }
         }
 
-        renderer.with_layer(Rectangle::with_size(Size::INFINITY), |renderer| {
-            container::draw_background(renderer, &style, tooltip_bounds);
+        layout::Node::with_children(
+            tooltip_bounds.size(),
+            vec![text_layout.translate(Vector::new(padding, padding))],
+        )
+        .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
+    }
 
-            draw_text(
-                renderer,
-                &defaults,
-                Layout::with_offset(
-                    Vector::new(
-                        tooltip_bounds.x + padding,
-                        tooltip_bounds.y + padding,
-                    ),
-                    &text_layout,
-                ),
-                viewport,
-            )
-        });
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &<Renderer as renderer::Renderer>::Theme,
+        inherited_style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor_position: mouse::Cursor,
+    ) {
+        let style = <Renderer::Theme as container::StyleSheet>::appearance(
+            theme, self.style,
+        );
+
+        container::draw_background(renderer, &style, layout.bounds());
+
+        let defaults = renderer::Style {
+            text_color: style.text_color.unwrap_or(inherited_style.text_color),
+        };
+
+        Widget::<(), Renderer>::draw(
+            self.tooltip,
+            &widget::Tree::empty(),
+            renderer,
+            theme,
+            &defaults,
+            layout.children().next().unwrap(),
+            cursor_position,
+            &Rectangle::with_size(Size::INFINITY),
+        );
+    }
+
+    fn is_over(
+        &self,
+        _layout: Layout<'_>,
+        _renderer: &Renderer,
+        _cursor_position: Point,
+    ) -> bool {
+        false
     }
 }
