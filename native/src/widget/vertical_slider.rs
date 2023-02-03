@@ -439,17 +439,15 @@ pub fn draw<T, R>(
 
     let handle_offset = if range_start >= range_end {
         0.0
+    } else if !logarithmic_scale {
+        bounds.height * (value - range_end) / (range_start - range_end)
+            - handle_width / 2.0
     } else {
-        if !logarithmic_scale {
-            bounds.height * (value - range_end) / (range_start - range_end)
-                - handle_width / 2.0
-        } else {
-            let start_exponent = range_start.log10();
-            let end_exponent = range_end.log10();
-            let current_exponent = value.log10();
-            bounds.height * (current_exponent - end_exponent)
-                / (start_exponent - end_exponent)
-        }
+        let start_exponent = range_start.log10();
+        let end_exponent = range_end.log10();
+        let current_exponent = value.log10();
+        bounds.height * (current_exponent - end_exponent)
+            / (start_exponent - end_exponent)
     };
 
     renderer.fill_quad(
