@@ -10,7 +10,6 @@ use std::cell::RefCell;
 use std::collections::hash_map;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::Arc;
-use twox_hash::RandomXxHashBuilder64;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
@@ -311,15 +310,21 @@ fn to_family(font: Font) -> glyphon::Family<'static> {
 struct Cache<'a> {
     entries: FxHashMap<KeyHash, glyphon::Buffer<'a>>,
     recently_used: FxHashSet<KeyHash>,
-    hasher: RandomXxHashBuilder64,
+    hasher: HashBuilder,
 }
+
+#[cfg(not(target_arch = "wasm32"))]
+type HashBuilder = twox_hash::RandomXxHashBuilder64;
+
+#[cfg(target_arch = "wasm32")]
+type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
 
 impl<'a> Cache<'a> {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
             recently_used: FxHashSet::default(),
-            hasher: RandomXxHashBuilder64::default(),
+            hasher: HashBuilder::default(),
         }
     }
 
