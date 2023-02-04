@@ -276,7 +276,7 @@ impl Pipeline {
                 },
             );
 
-            let cursor = paragraph.hit(point.x as i32, point.y as i32)?;
+            let cursor = paragraph.hit(point.x, point.y)?;
 
             Some(Hit::CharOffset(cursor.index))
         })
@@ -329,21 +329,20 @@ impl<'a> Cache<'a> {
             let mut hasher = self.hasher.build_hasher();
 
             key.content.hash(&mut hasher);
-            (key.size as i32).hash(&mut hasher);
+            key.size.to_bits().hash(&mut hasher);
             key.font.hash(&mut hasher);
-            (key.bounds.width as i32).hash(&mut hasher);
-            (key.bounds.height as i32).hash(&mut hasher);
+            key.bounds.width.to_bits().hash(&mut hasher);
+            key.bounds.height.to_bits().hash(&mut hasher);
             key.color.into_rgba8().hash(&mut hasher);
 
             hasher.finish()
         };
 
         if !self.entries.contains_key(&hash) {
-            let metrics =
-                glyphon::Metrics::new(key.size as i32, (key.size * 1.2) as i32);
+            let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
             let mut buffer = glyphon::Buffer::new(&fonts, metrics);
 
-            buffer.set_size(key.bounds.width as i32, key.bounds.height as i32);
+            buffer.set_size(key.bounds.width, key.bounds.height);
             buffer.set_text(
                 key.content,
                 glyphon::Attrs::new().family(to_family(key.font)).color({
