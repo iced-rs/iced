@@ -176,14 +176,15 @@ impl Pipeline {
                 let x = section.bounds.x * scale_factor;
                 let y = section.bounds.y * scale_factor;
 
-                let max_width = buffer
+                let (total_lines, max_width) = buffer
                     .layout_runs()
-                    .fold(0.0f32, |max, run| max.max(run.line_w));
+                    .enumerate()
+                    .fold((0, 0.0), |(_, max), (i, buffer)| {
+                        (i + 1, buffer.line_w.max(max))
+                    });
 
-                let total_height = buffer.visible_lines() as f32
-                    * section.size
-                    * 1.2
-                    * scale_factor;
+                let total_height =
+                    total_lines as f32 * section.size * 1.2 * scale_factor;
 
                 let left = match section.horizontal_alignment {
                     alignment::Horizontal::Left => x,
