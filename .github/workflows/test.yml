@@ -38,4 +38,4 @@ jobs:
     - name: Check compilation of `todos` example
       run: cargo build --package todos --target wasm32-unknown-unknown
     - name: Check compilation of `integration_wgpu` example
-      run: cargo build --package integration_wgpu --target wasm32-unknown-unknown
+      run: cargo build --package integration --target wasm32-unknown-unknown
