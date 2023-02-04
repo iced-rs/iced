@@ -28,7 +28,7 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
-    width: u16,
+    width: f32,
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
@@ -55,7 +55,7 @@ where
             options,
             hovered_option,
             last_selection,
-            width: 0,
+            width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
@@ -64,7 +64,7 @@ where
     }
 
     /// Sets the width of the [`Menu`].
-    pub fn width(mut self, width: u16) -> Self {
+    pub fn width(mut self, width: f32) -> Self {
         self.width = width;
         self
     }
@@ -142,7 +142,7 @@ where
 {
     state: &'a mut Tree,
     container: Container<'a, Message, Renderer>,
-    width: u16,
+    width: f32,
     target_height: f32,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -219,7 +219,7 @@ where
                 },
             ),
         )
-        .width(Length::Units(self.width));
+        .width(self.width);
 
         let mut node = self.container.layout(renderer, &limits);
 

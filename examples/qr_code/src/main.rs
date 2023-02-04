@@ -58,7 +58,7 @@ impl Sandbox for QRGenerator {
         .padding(15);
 
         let mut content = column![title, input]
-            .width(Length::Units(700))
+            .width(700)
             .spacing(20)
             .align_items(Alignment::Center);
 

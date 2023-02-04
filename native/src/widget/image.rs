@@ -29,7 +29,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// ```
 ///
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug, Hash)]
+#[derive(Debug)]
 pub struct Image<Handle> {
     handle: Handle,
     width: Length,
@@ -49,14 +49,14 @@ impl<Handle> Image<Handle> {
     }
 
     /// Sets the width of the [`Image`] boundaries.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Image`] boundaries.
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 

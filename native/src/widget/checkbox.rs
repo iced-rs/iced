@@ -8,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
-    Widget,
+    Alignment, Clipboard, Element, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
@@ -52,7 +52,7 @@ where
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
     width: Length,
-    size: u16,
+    size: f32,
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
@@ -66,7 +66,7 @@ where
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     /// The default size of a [`Checkbox`].
-    const DEFAULT_SIZE: u16 = 20;
+    const DEFAULT_SIZE: f32 = 20.0;
 
     /// The default spacing of a [`Checkbox`].
     const DEFAULT_SPACING: u16 = 15;
@@ -102,14 +102,14 @@ where
     }
 
     /// Sets the size of the [`Checkbox`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = size.into().0;
         self
     }
 
     /// Sets the width of the [`Checkbox`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -172,11 +172,7 @@ where
             .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center)
-            .push(
-                Row::new()
-                    .width(Length::Units(self.size))
-                    .height(Length::Units(self.size)),
-            )
+            .push(Row::new().width(self.size).height(self.size))
             .push(
                 Text::new(&self.label)
                     .font(self.font.clone())

@@ -83,8 +83,8 @@ where
     }
 
     /// Sets the width of the [`PickList`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -539,7 +539,7 @@ where
             &mut state.hovered_option,
             &mut state.last_selection,
         )
-        .width(bounds.width.round() as u16)
+        .width(bounds.width)
         .padding(padding)
         .font(font)
         .style(style);

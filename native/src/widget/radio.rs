@@ -50,7 +50,7 @@ where
     on_click: Message,
     label: String,
     width: Length,
-    size: u16,
+    size: f32,
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
@@ -64,7 +64,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Radio`] button.
-    pub const DEFAULT_SIZE: u16 = 28;
+    pub const DEFAULT_SIZE: f32 = 28.0;
 
     /// The default spacing of a [`Radio`] button.
     pub const DEFAULT_SPACING: u16 = 15;
@@ -101,14 +101,14 @@ where
     }
 
     /// Sets the size of the [`Radio`] button.
-    pub fn size(mut self, size: u16) -> Self {
+    pub fn size(mut self, size: f32) -> Self {
         self.size = size;
         self
     }
 
     /// Sets the width of the [`Radio`] button.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -163,11 +163,7 @@ where
             .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center)
-            .push(
-                Row::new()
-                    .width(Length::Units(self.size))
-                    .height(Length::Units(self.size)),
-            )
+            .push(Row::new().width(self.size).height(self.size))
             .push(Text::new(&self.label).width(self.width).size(
                 self.text_size.unwrap_or_else(|| renderer.default_size()),
             ))

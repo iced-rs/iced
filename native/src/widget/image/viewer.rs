@@ -45,14 +45,14 @@ impl<Handle> Viewer<Handle> {
     }
 
     /// Sets the width of the [`Viewer`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Viewer`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -124,7 +124,7 @@ where
         // Only calculate viewport sizes if the images are constrained to a limited space.
         // If they are Fill|Portion let them expand within their alotted space.
         match expansion_size {
-            Length::Shrink | Length::Units(_) => {
+            Length::Shrink | Length::Fixed(_) => {
                 let aspect_ratio = width as f32 / height as f32;
                 let viewport_aspect_ratio = size.width / size.height;
                 if viewport_aspect_ratio > aspect_ratio {

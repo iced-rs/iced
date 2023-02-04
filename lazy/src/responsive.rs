@@ -42,7 +42,7 @@ where
             content: RefCell::new(Content {
                 size: Size::ZERO,
                 layout: layout::Node::new(Size::ZERO),
-                element: Element::new(horizontal_space(Length::Units(0))),
+                element: Element::new(horizontal_space(0)),
             }),
         }
     }

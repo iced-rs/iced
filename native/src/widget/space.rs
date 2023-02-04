@@ -15,23 +15,26 @@ pub struct Space {
 
 impl Space {
     /// Creates an amount of empty [`Space`] with the given width and height.
-    pub fn new(width: Length, height: Length) -> Self {
-        Space { width, height }
+    pub fn new(width: impl Into<Length>, height: impl Into<Length>) -> Self {
+        Space {
+            width: width.into(),
+            height: height.into(),
+        }
     }
 
     /// Creates an amount of horizontal [`Space`].
-    pub fn with_width(width: Length) -> Self {
+    pub fn with_width(width: impl Into<Length>) -> Self {
         Space {
-            width,
+            width: width.into(),
             height: Length::Shrink,
         }
     }
 
     /// Creates an amount of vertical [`Space`].
-    pub fn with_height(height: Length) -> Self {
+    pub fn with_height(height: impl Into<Length>) -> Self {
         Space {
             width: Length::Shrink,
-            height,
+            height: height.into(),
         }
     }
 }

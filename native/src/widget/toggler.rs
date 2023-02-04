@@ -38,7 +38,7 @@ where
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
-    size: u16,
+    size: f32,
     text_size: Option<u16>,
     text_alignment: alignment::Horizontal,
     spacing: u16,
@@ -52,7 +52,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: u16 = 20;
+    pub const DEFAULT_SIZE: f32 = 20.0;
 
     /// Creates a new [`Toggler`].
     ///
@@ -85,14 +85,14 @@ where
     }
 
     /// Sets the size of the [`Toggler`].
-    pub fn size(mut self, size: u16) -> Self {
+    pub fn size(mut self, size: f32) -> Self {
         self.size = size;
         self
     }
 
     /// Sets the width of the [`Toggler`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -169,11 +169,7 @@ where
             );
         }
 
-        row = row.push(
-            Row::new()
-                .width(Length::Units(2 * self.size))
-                .height(Length::Units(self.size)),
-        );
+        row = row.push(Row::new().width(2.0 * self.size).height(self.size));
 
         row.layout(renderer, limits)
     }

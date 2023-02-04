@@ -7,11 +7,9 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::{self, Operation, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
+    Point, Rectangle, Shell, Widget,
 };
-
-use std::u32;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
@@ -28,8 +26,8 @@ where
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
+    max_width: f32,
+    max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -51,8 +49,8 @@ where
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
+            max_width: f32::INFINITY,
+            max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
@@ -73,26 +71,26 @@ where
     }
 
     /// Sets the width of the [`Container`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Container`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
     /// Sets the maximum width of the [`Container`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
+    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+        self.max_width = max_width.into().0;
         self
     }
 
-    /// Sets the maximum height of the [`Container`] in pixels.
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
+    /// Sets the maximum height of the [`Container`].
+    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
+        self.max_height = max_height.into().0;
         self
     }
 
@@ -294,8 +292,8 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
+    max_width: f32,
+    max_height: f32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
