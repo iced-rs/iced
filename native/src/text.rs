@@ -2,6 +2,8 @@
 use crate::alignment;
 use crate::{Color, Point, Rectangle, Size, Vector};
 
+use std::borrow::Cow;
+
 /// A paragraph.
 #[derive(Debug, Clone, Copy)]
 pub struct Text<'a, Font> {
@@ -72,7 +74,7 @@ pub trait Renderer: crate::Renderer {
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
 
-    /// Returns the default [`Font`].
+    /// Returns the default [`Self::Font`].
     fn default_font(&self) -> Self::Font;
 
     /// Returns the default size of [`Text`].
@@ -111,6 +113,9 @@ pub trait Renderer: crate::Renderer {
         point: Point,
         nearest_only: bool,
     ) -> Option<Hit>;
+
+    /// Loads a [`Self::Font`] from its bytes.
+    fn load_font(&mut self, font: Cow<'static, [u8]>);
 
     /// Draws the given [`Text`].
     fn fill_text(&mut self, text: Text<'_, Self::Font>);

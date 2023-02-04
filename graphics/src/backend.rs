@@ -4,6 +4,8 @@ use iced_native::svg;
 use iced_native::text;
 use iced_native::{Font, Point, Size};
 
+use std::borrow::Cow;
+
 /// The graphics backend of a [`Renderer`].
 ///
 /// [`Renderer`]: crate::Renderer
@@ -64,6 +66,9 @@ pub trait Text {
         point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit>;
+
+    /// Loads a [`Font`] from its bytes.
+    fn load_font(&mut self, font: Cow<'static, [u8]>);
 }
 
 /// A graphics backend that supports image rendering.

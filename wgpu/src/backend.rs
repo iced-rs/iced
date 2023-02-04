@@ -14,6 +14,8 @@ use tracing::info_span;
 #[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 
+use std::borrow::Cow;
+
 /// A [`wgpu`] graphics backend for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
@@ -233,6 +235,10 @@ impl backend::Text for Backend {
             point,
             nearest_only,
         )
+    }
+
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        self.text_pipeline.load_font(font);
     }
 }
 

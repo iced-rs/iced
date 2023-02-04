@@ -36,6 +36,7 @@ bitflags = "1.2"
 once_cell = "1.0"
 rustc-hash = "1.1"
 twox-hash = "1.6"
+ouroboros = "0.15"
 
 [dependencies.bytemuck]
 version = "1.9"

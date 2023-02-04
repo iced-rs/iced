@@ -47,6 +47,7 @@
 pub mod clipboard;
 pub mod command;
 pub mod event;
+pub mod font;
 pub mod image;
 pub mod keyboard;
 pub mod layout;
@@ -80,8 +81,8 @@ mod debug;
 pub use iced_core::alignment;
 pub use iced_core::time;
 pub use iced_core::{
-    color, Alignment, Background, Color, ContentFit, Font, Length, Padding,
-    Pixels, Point, Rectangle, Size, Vector,
+    color, Alignment, Background, Color, ContentFit, Length, Padding, Pixels,
+    Point, Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
 pub use iced_style::application;
@@ -95,6 +96,7 @@ pub use command::Command;
 pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
+pub use font::Font;
 pub use hasher::Hasher;
 pub use layout::Layout;
 pub use overlay::Overlay;

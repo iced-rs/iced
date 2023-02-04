@@ -10,6 +10,7 @@ use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
@@ -165,6 +166,10 @@ where
             point,
             nearest_only,
         )
+    }
+
+    fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        self.backend.load_font(bytes);
     }
 
     fn fill_text(&mut self, text: Text<'_, Self::Font>) {
