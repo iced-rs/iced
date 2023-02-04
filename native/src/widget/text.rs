@@ -37,7 +37,7 @@ where
     height: Length,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -51,7 +51,7 @@ where
         Text {
             content: content.into(),
             size: None,
-            font: Default::default(),
+            font: None,
             width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -70,7 +70,7 @@ where
     ///
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.font = font.into();
+        self.font = Some(font.into());
         self
     }
 
@@ -138,8 +138,12 @@ where
 
         let bounds = limits.max();
 
-        let (width, height) =
-            renderer.measure(&self.content, size, self.font.clone(), bounds);
+        let (width, height) = renderer.measure(
+            &self.content,
+            size,
+            self.font.unwrap_or_else(|| renderer.default_font()),
+            bounds,
+        );
 
         let size = limits.resolve(Size::new(width, height));
 
@@ -156,13 +160,15 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let font = self.font.unwrap_or_else(|| renderer.default_font());
+
         draw(
             renderer,
             style,
             layout,
             &self.content,
             self.size,
-            self.font.clone(),
+            font,
             theme.appearance(self.style),
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -242,7 +248,7 @@ where
             height: self.height,
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
-            font: self.font.clone(),
+            font: self.font,
             style: self.style,
         }
     }

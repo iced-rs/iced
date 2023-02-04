@@ -27,6 +27,7 @@ pub struct Backend {
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
+    default_font: Font,
     default_text_size: f32,
 }
 
@@ -38,14 +39,7 @@ impl Backend {
         settings: Settings,
         format: wgpu::TextureFormat,
     ) -> Self {
-        let text_pipeline = text::Pipeline::new(
-            device,
-            queue,
-            format,
-            settings.default_font,
-            settings.text_multithreading,
-        );
-
+        let text_pipeline = text::Pipeline::new(device, queue, format);
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
@@ -61,6 +55,7 @@ impl Backend {
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
 
+            default_font: settings.default_font,
             default_text_size: settings.default_text_size,
         }
     }
@@ -199,9 +194,13 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::Default; // TODO
-    const CHECKMARK_ICON: char = '✓';
-    const ARROW_DOWN_ICON: char = '▼';
+    const ICON_FONT: Font = Font::Name("Iced-Icons");
+    const CHECKMARK_ICON: char = '\u{e800}';
+    const ARROW_DOWN_ICON: char = '\u{f00c}';
+
+    fn default_font(&self) -> Font {
+        self.default_font
+    }
 
     fn default_size(&self) -> f32 {
         self.default_text_size

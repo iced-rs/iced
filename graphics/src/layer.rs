@@ -63,7 +63,7 @@ impl<'a> Layer<'a> {
                 ),
                 color: Color::new(0.9, 0.9, 0.9, 1.0),
                 size: 20.0,
-                font: Font::Default,
+                font: Font::Monospace,
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Top,
             };

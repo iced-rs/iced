@@ -34,7 +34,7 @@ impl Default for Text {
             position: Point::ORIGIN,
             color: Color::BLACK,
             size: 16.0,
-            font: Font::Default,
+            font: Font::SansSerif,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
         }

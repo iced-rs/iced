@@ -112,8 +112,6 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        _default_font: Option<&[u8]>,
-        _multithreading: bool,
     ) -> Self {
         Pipeline {
             renderers: Vec::new(),
@@ -316,7 +314,11 @@ impl Pipeline {
 
 fn to_family(font: Font) -> glyphon::Family<'static> {
     match font {
-        Font::Default => glyphon::Family::SansSerif,
-        Font::External { name, .. } => glyphon::Family::Name(name),
+        Font::Name(name) => glyphon::Family::Name(name),
+        Font::SansSerif => glyphon::Family::SansSerif,
+        Font::Serif => glyphon::Family::Serif,
+        Font::Cursive => glyphon::Family::Cursive,
+        Font::Fantasy => glyphon::Family::Fantasy,
+        Font::Monospace => glyphon::Family::Monospace,
     }
 }

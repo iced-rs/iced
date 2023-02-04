@@ -31,7 +31,7 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -58,7 +58,7 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
-            font: Default::default(),
+            font: None,
             style: Default::default(),
         }
     }
@@ -82,8 +82,8 @@ where
     }
 
     /// Sets the font of the [`Menu`].
-    pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.font = Some(font.into());
         self
     }
 
@@ -311,7 +311,7 @@ where
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -491,7 +491,7 @@ where
                     ..bounds
                 },
                 size: text_size,
-                font: self.font.clone(),
+                font: self.font.unwrap_or_else(|| renderer.default_font()),
                 color: if is_selected {
                     appearance.selected_text_color
                 } else {

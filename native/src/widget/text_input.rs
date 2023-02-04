@@ -61,7 +61,7 @@ where
     placeholder: String,
     value: Value,
     is_secure: bool,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     width: Length,
     padding: Padding,
     size: Option<f32>,
@@ -92,7 +92,7 @@ where
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
-            font: Default::default(),
+            font: None,
             width: Length::Fill,
             padding: Padding::new(5.0),
             size: None,
@@ -129,7 +129,7 @@ where
     ///
     /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+        self.font = Some(font);
         self
     }
     /// Sets the width of the [`TextInput`].
@@ -179,6 +179,8 @@ where
         cursor_position: Point,
         value: Option<&Value>,
     ) {
+        let font = self.font.unwrap_or(renderer.default_font());
+
         draw(
             renderer,
             theme,
@@ -188,7 +190,7 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
-            &self.font,
+            font,
             self.is_secure,
             &self.style,
         )
@@ -258,7 +260,7 @@ where
             shell,
             &mut self.value,
             self.size,
-            &self.font,
+            self.font.unwrap_or(renderer.default_font()),
             self.is_secure,
             self.on_change.as_ref(),
             self.on_paste.as_deref(),
@@ -277,6 +279,8 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let font = self.font.unwrap_or(renderer.default_font());
+
         draw(
             renderer,
             theme,
@@ -286,7 +290,7 @@ where
             &self.value,
             &self.placeholder,
             self.size,
-            &self.font,
+            font,
             self.is_secure,
             &self.style,
         )
@@ -410,7 +414,7 @@ pub fn update<'a, Message, Renderer>(
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<f32>,
-    font: &Renderer::Font,
+    font: Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
     on_paste: Option<&dyn Fn(String) -> Message>,
@@ -459,7 +463,7 @@ where
                             find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font.clone(),
+                                font,
                                 size,
                                 &value,
                                 state,
@@ -487,7 +491,7 @@ where
                             let position = find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font.clone(),
+                                font,
                                 size,
                                 value,
                                 state,
@@ -536,7 +540,7 @@ where
                 let position = find_cursor_position(
                     renderer,
                     text_layout.bounds(),
-                    font.clone(),
+                    font,
                     size,
                     &value,
                     state,
@@ -816,7 +820,7 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
-    font: &Renderer::Font,
+    font: Renderer::Font,
     is_secure: bool,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
@@ -862,7 +866,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         position,
-                        font.clone(),
+                        font,
                     );
 
                 let is_cursor_visible = ((focus.now - focus.updated_at)
@@ -903,7 +907,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         left,
-                        font.clone(),
+                        font,
                     );
 
                 let (right_position, right_offset) =
@@ -913,7 +917,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         right,
-                        font.clone(),
+                        font,
                     );
 
                 let width = right_position - left_position;
@@ -948,7 +952,7 @@ pub fn draw<Renderer>(
     let text_width = renderer.measure_width(
         if text.is_empty() { placeholder } else { &text },
         size,
-        font.clone(),
+        font,
     );
 
     let render = |renderer: &mut Renderer| {
@@ -963,7 +967,7 @@ pub fn draw<Renderer>(
             } else {
                 theme.value_color(style)
             },
-            font: font.clone(),
+            font: font,
             bounds: Rectangle {
                 y: text_bounds.center_y(),
                 width: f32::INFINITY,
@@ -1195,8 +1199,7 @@ where
 {
     let size = size.unwrap_or_else(|| renderer.default_size());
 
-    let offset =
-        offset(renderer, text_bounds, font.clone(), size, value, state);
+    let offset = offset(renderer, text_bounds, font, size, value, state);
 
     renderer
         .hit_test(

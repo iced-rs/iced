@@ -1,5 +1,6 @@
 //! Configure your application.
 use crate::window;
+use crate::Font;
 
 /// The settings of an application.
 #[derive(Debug, Clone)]
@@ -20,22 +21,15 @@ pub struct Settings<Flags> {
     /// [`Application`]: crate::Application
     pub flags: Flags,
 
-    /// The bytes of the font that will be used by default.
+    /// The default [`Font`] to be used.
     ///
-    /// If `None` is provided, a default system font will be chosen.
-    // TODO: Add `name` for web compatibility
-    pub default_font: Option<&'static [u8]>,
+    /// By default, it uses [`Font::SansSerif`].
+    pub default_font: Font,
 
     /// The text size that will be used by default.
     ///
     /// The default value is `16.0`.
     pub default_text_size: f32,
-
-    /// If enabled, spread text workload in multiple threads when multiple cores
-    /// are available.
-    ///
-    /// By default, it is disabled.
-    pub text_multithreading: bool,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -79,7 +73,6 @@ impl<Flags> Settings<Flags> {
             window: default_settings.window,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
-            text_multithreading: default_settings.text_multithreading,
             antialiasing: default_settings.antialiasing,
             exit_on_close_request: default_settings.exit_on_close_request,
             try_opengles_first: default_settings.try_opengles_first,
@@ -96,9 +89,8 @@ where
             id: None,
             window: Default::default(),
             flags: Default::default(),
-            default_font: Default::default(),
+            default_font: Font::SansSerif,
             default_text_size: 16.0,
-            text_multithreading: false,
             antialiasing: false,
             exit_on_close_request: true,
             try_opengles_first: false,

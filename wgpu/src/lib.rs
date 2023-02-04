@@ -47,7 +47,9 @@ mod quad;
 mod text;
 mod triangle;
 
-pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
+pub use iced_graphics::{
+    Antialiasing, Color, Error, Font, Primitive, Viewport,
+};
 pub use iced_native::Theme;
 pub use wgpu;
 

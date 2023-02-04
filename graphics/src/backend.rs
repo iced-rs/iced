@@ -31,6 +31,9 @@ pub trait Text {
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
 
+    /// Returns the default [`Font`].
+    fn default_font(&self) -> Font;
+
     /// Returns the default size of text.
     fn default_size(&self) -> f32;
 

@@ -1,40 +1,29 @@
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 /// A font.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Font {
-    /// The default font.
-    ///
-    /// This is normally a font configured in a renderer or loaded from the
-    /// system.
-    Default,
+    /// The name of a font family of choice.
+    Name(&'static str),
 
-    /// An external font.
-    External {
-        /// The name of the external font
-        name: &'static str,
+    /// Serif fonts represent the formal text style for a script.
+    Serif,
 
-        /// The bytes of the external font
-        bytes: &'static [u8],
-    },
-}
+    /// Glyphs in sans-serif fonts, as the term is used in CSS, are generally low
+    /// contrast and have stroke endings that are plain — without any flaring,
+    /// cross stroke, or other ornamentation.
+    SansSerif,
 
-impl Default for Font {
-    fn default() -> Font {
-        Font::Default
-    }
-}
+    /// Glyphs in cursive fonts generally use a more informal script style, and
+    /// the result looks more like handwritten pen or brush writing than printed
+    /// letterwork.
+    Cursive,
 
-impl Hash for Font {
-    fn hash<H: Hasher>(&self, hasher: &mut H) {
-        match self {
-            Self::Default => {
-                0.hash(hasher);
-            }
-            Self::External { name, .. } => {
-                1.hash(hasher);
-                name.hash(hasher);
-            }
-        }
-    }
+    /// Fantasy fonts are primarily decorative or expressive fonts that contain
+    /// decorative or expressive representations of characters.
+    Fantasy,
+
+    /// The sole criterion of a monospace font is that all glyphs have the same
+    /// fixed width.
+    Monospace,
 }

@@ -40,12 +40,16 @@ impl Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
 
-    const ICON_FONT: Font = Font::Default;
+    const ICON_FONT: Font = Font::SansSerif;
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
 
+    fn default_font(&self) -> Self::Font {
+        Font::SansSerif
+    }
+
     fn default_size(&self) -> f32 {
-        20.0
+        16.0
     }
 
     fn measure(

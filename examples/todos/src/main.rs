@@ -466,10 +466,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 }
 
 // Fonts
-const ICONS: Font = Font::External {
-    name: "Icons",
-    bytes: include_bytes!("../../todos/fonts/icons.ttf"),
-};
+const ICONS: Font = Font::Name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())

@@ -130,6 +130,10 @@ where
     const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
 
+    fn default_font(&self) -> Self::Font {
+        self.backend().default_font()
+    }
+
     fn default_size(&self) -> f32 {
         self.backend().default_size()
     }
