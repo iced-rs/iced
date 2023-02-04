@@ -11,8 +11,8 @@ use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Tree;
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::{Appearance, StyleSheet};
@@ -30,7 +30,7 @@ where
     last_selection: &'a mut Option<T>,
     width: f32,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -76,8 +76,8 @@ where
     }
 
     /// Sets the text size of the [`Menu`].
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 
@@ -310,7 +310,7 @@ where
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -344,8 +344,9 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                f32::from(text_size + self.padding.vertical())
-                    * self.options.len() as f32,
+                text_size
+                    + f32::from(self.padding.vertical())
+                        * self.options.len() as f32,
             );
 
             limits.resolve(intrinsic)
@@ -386,7 +387,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
+                            / (text_size + f32::from(self.padding.vertical())))
                             as usize,
                     );
                 }
@@ -401,7 +402,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
+                            / (text_size + f32::from(self.padding.vertical())))
                             as usize,
                     );
 
@@ -450,7 +451,8 @@ where
 
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height = (text_size + self.padding.vertical()) as usize;
+        let option_height =
+            (text_size + f32::from(self.padding.vertical())) as usize;
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height as f32) as usize;
@@ -467,7 +469,7 @@ where
                 x: bounds.x,
                 y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
-                height: f32::from(text_size + self.padding.vertical()),
+                height: text_size + f32::from(self.padding.vertical()),
             };
 
             if is_selected {

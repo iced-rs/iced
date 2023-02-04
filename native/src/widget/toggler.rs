@@ -7,8 +7,8 @@ use crate::renderer;
 use crate::text;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Widget,
 };
 
 pub use iced_style::toggler::{Appearance, StyleSheet};
@@ -39,7 +39,7 @@ where
     label: Option<String>,
     width: Length,
     size: f32,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
     spacing: u16,
     font: Renderer::Font,
@@ -97,8 +97,8 @@ where
     }
 
     /// Sets the text size o the [`Toggler`].
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 

@@ -13,8 +13,8 @@ use crate::widget::container;
 use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
-    Widget,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -34,7 +34,7 @@ where
     selected: Option<T>,
     width: Length,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -95,8 +95,8 @@ where
     }
 
     /// Sets the text size of the [`PickList`].
-    pub fn text_size(mut self, size: u16) -> Self {
-        self.text_size = Some(size);
+    pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(size.into().0);
         self
     }
 
@@ -297,14 +297,14 @@ impl<T> Default for State<T> {
 }
 
 /// The handle to the right side of the [`PickList`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Handle<Font> {
     /// Displays an arrow icon (▼).
     ///
     /// This is the default.
     Arrow {
         /// Font size of the content.
-        size: Option<u16>,
+        size: Option<f32>,
     },
     /// A custom static handle.
     Static(Icon<Font>),
@@ -326,14 +326,14 @@ impl<Font> Default for Handle<Font> {
 }
 
 /// The icon of a [`Handle`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Icon<Font> {
     /// Font that will be used to display the `code_point`,
     pub font: Font,
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// Font size of the content.
-    pub size: Option<u16>,
+    pub size: Option<f32>,
 }
 
 /// Computes the layout of a [`PickList`].
@@ -342,7 +342,7 @@ pub fn layout<Renderer, T>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: &Renderer::Font,
     placeholder: Option<&str>,
     options: &[T],
@@ -354,7 +354,6 @@ where
     use std::f32;
 
     let limits = limits.width(width).height(Length::Shrink).pad(padding);
-
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
     let max_width = match width {
@@ -514,7 +513,7 @@ pub fn overlay<'a, T, Message, Renderer>(
     layout: Layout<'_>,
     state: &'a mut State<T>,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     options: &'a [T],
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -561,7 +560,7 @@ pub fn draw<'a, T, Renderer>(
     layout: Layout<'_>,
     cursor_position: Point,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
