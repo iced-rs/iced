@@ -967,7 +967,7 @@ pub fn draw<Renderer>(
             } else {
                 theme.value_color(style)
             },
-            font: font,
+            font,
             bounds: Rectangle {
                 y: text_bounds.center_y(),
                 width: f32::INFINITY,

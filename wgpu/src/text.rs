@@ -7,6 +7,7 @@ use iced_native::{Color, Font, Rectangle, Size};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::collections::hash_map;
 use std::hash::{BuildHasher, Hash, Hasher};
 use std::sync::Arc;
 use twox_hash::RandomXxHashBuilder64;
@@ -70,7 +71,7 @@ impl Pipeline {
         let (locale, mut db) = heads.fonts.into_locale_and_db();
 
         db.load_font_source(glyphon::fontdb::Source::Binary(Arc::new(
-            bytes.to_owned(),
+            bytes.into_owned(),
         )));
 
         self.system = Some(
@@ -241,7 +242,7 @@ impl Pipeline {
                 fields.fonts,
                 Key {
                     content,
-                    size: size,
+                    size,
                     font,
                     bounds,
                     color: Color::BLACK,
@@ -275,7 +276,7 @@ impl Pipeline {
                 fields.fonts,
                 Key {
                     content,
-                    size: size,
+                    size,
                     font,
                     bounds,
                     color: Color::BLACK,
@@ -344,9 +345,9 @@ impl<'a> Cache<'a> {
             hasher.finish()
         };
 
-        if !self.entries.contains_key(&hash) {
+        if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
-            let mut buffer = glyphon::Buffer::new(&fonts, metrics);
+            let mut buffer = glyphon::Buffer::new(fonts, metrics);
 
             buffer.set_size(key.bounds.width, key.bounds.height);
             buffer.set_text(
@@ -363,7 +364,7 @@ impl<'a> Cache<'a> {
                 }),
             );
 
-            let _ = self.entries.insert(hash, buffer);
+            let _ = entry.insert(buffer);
         }
 
         let _ = self.recently_used.insert(hash);
