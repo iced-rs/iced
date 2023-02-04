@@ -197,8 +197,8 @@ impl iced_graphics::Backend for Backend {
 
 impl backend::Text for Backend {
     const ICON_FONT: Font = Font::Name("Iced-Icons");
-    const CHECKMARK_ICON: char = '\u{e800}';
-    const ARROW_DOWN_ICON: char = '\u{f00c}';
+    const CHECKMARK_ICON: char = '\u{f00c}';
+    const ARROW_DOWN_ICON: char = '\u{e800}';
 
     fn default_font(&self) -> Font {
         self.default_font

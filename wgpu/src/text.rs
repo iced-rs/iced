@@ -45,7 +45,13 @@ impl Pipeline {
         Pipeline {
             system: Some(
                 SystemBuilder {
-                    fonts: glyphon::FontSystem::new(),
+                    fonts: glyphon::FontSystem::new_with_fonts(
+                        [glyphon::fontdb::Source::Binary(Arc::new(
+                            include_bytes!("../fonts/Iced-Icons.ttf")
+                                .as_slice(),
+                        ))]
+                        .into_iter(),
+                    ),
                     cache_builder: |fonts| glyphon::SwashCache::new(fonts),
                     measurement_cache_builder: |_| RefCell::new(Cache::new()),
                     render_cache_builder: |_| Cache::new(),
