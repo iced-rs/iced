@@ -160,15 +160,13 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let font = self.font.unwrap_or_else(|| renderer.default_font());
-
         draw(
             renderer,
             style,
             layout,
             &self.content,
             self.size,
-            font,
+            self.font,
             theme.appearance(self.style),
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -192,7 +190,7 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     content: &str,
     size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
@@ -218,7 +216,7 @@ pub fn draw<Renderer>(
         size: size.unwrap_or_else(|| renderer.default_size()),
         bounds: Rectangle { x, y, ..bounds },
         color: appearance.color.unwrap_or(style.text_color),
-        font,
+        font: font.unwrap_or_else(|| renderer.default_font()),
         horizontal_alignment,
         vertical_alignment,
     });

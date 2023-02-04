@@ -450,7 +450,8 @@ where
 
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height = (text_size + self.padding.vertical()) as usize;
+        let option_height =
+            (text_size + f32::from(self.padding.vertical())) as usize;
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height as f32) as usize;

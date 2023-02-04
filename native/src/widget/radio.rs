@@ -268,7 +268,6 @@ where
 
         {
             let label_layout = children.next().unwrap();
-            let font = self.font.unwrap_or(renderer.default_font());
 
             widget::text::draw(
                 renderer,
@@ -276,7 +275,7 @@ where
                 label_layout,
                 &self.label,
                 self.text_size,
-                font,
+                self.font,
                 widget::text::Appearance {
                     color: custom_style.text_color,
                 },

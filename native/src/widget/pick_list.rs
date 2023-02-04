@@ -163,7 +163,7 @@ where
             self.width,
             self.padding,
             self.text_size,
-            self.font.unwrap_or_else(|| renderer.default_font()),
+            self.font,
             self.placeholder.as_deref(),
             &self.options,
         )
@@ -344,7 +344,7 @@ pub fn layout<Renderer, T>(
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     placeholder: Option<&str>,
     options: &[T],
 ) -> layout::Node
@@ -363,7 +363,7 @@ where
                 let (width, _) = renderer.measure(
                     label,
                     text_size,
-                    font,
+                    font.unwrap_or_else(|| renderer.default_font()),
                     Size::new(f32::INFINITY, f32::INFINITY),
                 );
 

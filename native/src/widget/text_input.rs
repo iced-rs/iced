@@ -179,8 +179,6 @@ where
         cursor_position: Point,
         value: Option<&Value>,
     ) {
-        let font = self.font.unwrap_or(renderer.default_font());
-
         draw(
             renderer,
             theme,
@@ -190,7 +188,7 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
-            font,
+            self.font,
             self.is_secure,
             &self.style,
         )
@@ -260,7 +258,7 @@ where
             shell,
             &mut self.value,
             self.size,
-            self.font.unwrap_or(renderer.default_font()),
+            self.font,
             self.is_secure,
             self.on_change.as_ref(),
             self.on_paste.as_deref(),
@@ -279,8 +277,6 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let font = self.font.unwrap_or(renderer.default_font());
-
         draw(
             renderer,
             theme,
@@ -290,7 +286,7 @@ where
             &self.value,
             &self.placeholder,
             self.size,
-            font,
+            self.font,
             self.is_secure,
             &self.style,
         )
@@ -414,7 +410,7 @@ pub fn update<'a, Message, Renderer>(
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
     on_paste: Option<&dyn Fn(String) -> Message>,
@@ -820,7 +816,7 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     is_secure: bool,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
@@ -854,6 +850,7 @@ pub fn draw<Renderer>(
     );
 
     let text = value.to_string();
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
     let (cursor, offset) = if let Some(focus) = &state.is_focused {
@@ -1188,7 +1185,7 @@ where
 fn find_cursor_position<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     size: Option<f32>,
     value: &Value,
     state: &State,
@@ -1197,6 +1194,7 @@ fn find_cursor_position<Renderer>(
 where
     Renderer: text::Renderer,
 {
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
     let offset = offset(renderer, text_bounds, font, size, value, state);

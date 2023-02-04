@@ -236,7 +236,6 @@ where
 
         if let Some(label) = &self.label {
             let label_layout = children.next().unwrap();
-            let font = self.font.unwrap_or_else(|| renderer.default_font());
 
             crate::widget::text::draw(
                 renderer,
@@ -244,7 +243,7 @@ where
                 label_layout,
                 label,
                 self.text_size,
-                font,
+                self.font,
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
