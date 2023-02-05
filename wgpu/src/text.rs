@@ -123,10 +123,8 @@ impl Pipeline {
                 bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
             };
 
-            let text_areas: Vec<_> = sections
-                .iter()
-                .zip(keys.iter())
-                .map(|(section, key)| {
+            let text_areas =
+                sections.iter().zip(keys.iter()).map(|(section, key)| {
                     let buffer = fields
                         .render_cache
                         .get(key)
@@ -163,8 +161,7 @@ impl Pipeline {
                         top: top as i32,
                         bounds,
                     }
-                })
-                .collect();
+                });
 
             renderer
                 .prepare(
@@ -175,7 +172,7 @@ impl Pipeline {
                         width: target_size.width,
                         height: target_size.height,
                     },
-                    &text_areas,
+                    text_areas,
                     glyphon::Color::rgb(0, 0, 0),
                     &mut glyphon::SwashCache::new(fields.fonts),
                 )
