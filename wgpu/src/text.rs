@@ -344,7 +344,10 @@ impl<'a> Cache<'a> {
             let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
             let mut buffer = glyphon::Buffer::new(fonts, metrics);
 
-            buffer.set_size(key.bounds.width, key.bounds.height);
+            buffer.set_size(
+                key.bounds.width,
+                key.bounds.height.max(key.size * 1.2),
+            );
             buffer.set_text(
                 key.content,
                 glyphon::Attrs::new().family(to_family(key.font)).color({
