@@ -1,3 +1,4 @@
+//! Load and use fonts.
 use std::hash::Hash;
 
 /// A font.
@@ -26,4 +27,19 @@ pub enum Font {
     /// The sole criterion of a monospace font is that all glyphs have the same
     /// fixed width.
     Monospace,
+}
+
+/// The weight of some text.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Weight {
+    Thin,
+    ExtraLight,
+    Light,
+    Normal,
+    Medium,
+    Semibold,
+    Bold,
+    ExtraBold,
+    Black,
 }

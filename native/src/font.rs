@@ -1,5 +1,5 @@
 //! Load and use fonts.
-pub use iced_core::Font;
+pub use iced_core::font::*;
 
 use crate::command::{self, Command};
 use std::borrow::Cow;
