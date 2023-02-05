@@ -25,10 +25,6 @@ struct System {
 
     #[borrows(fonts)]
     #[not_covariant]
-    cache: glyphon::SwashCache<'this>,
-
-    #[borrows(fonts)]
-    #[not_covariant]
     measurement_cache: RefCell<Cache<'this>>,
 
     #[borrows(fonts)]
@@ -52,7 +48,6 @@ impl Pipeline {
                         ))]
                         .into_iter(),
                     ),
-                    cache_builder: |fonts| glyphon::SwashCache::new(fonts),
                     measurement_cache_builder: |_| RefCell::new(Cache::new()),
                     render_cache_builder: |_| Cache::new(),
                 }
@@ -76,7 +71,6 @@ impl Pipeline {
         self.system = Some(
             SystemBuilder {
                 fonts: glyphon::FontSystem::new_with_locale_and_db(locale, db),
-                cache_builder: |fonts| glyphon::SwashCache::new(fonts),
                 measurement_cache_builder: |_| RefCell::new(Cache::new()),
                 render_cache_builder: |_| Cache::new(),
             }
@@ -183,7 +177,7 @@ impl Pipeline {
                     },
                     &text_areas,
                     glyphon::Color::rgb(0, 0, 0),
-                    fields.cache,
+                    &mut glyphon::SwashCache::new(fields.fonts),
                 )
                 .expect("Prepare text sections");
         });
