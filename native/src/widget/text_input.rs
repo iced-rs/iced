@@ -385,13 +385,8 @@ where
     Renderer: text::Renderer,
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
-
     let padding = padding.fit(Size::ZERO, limits.max());
-
-    let limits = limits
-        .width(width)
-        .pad(padding)
-        .height(text_size as f32 * 1.2);
+    let limits = limits.width(width).pad(padding).height(text_size * 1.2);
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));
     text.move_to(Point::new(padding.left, padding.top));
