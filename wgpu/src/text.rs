@@ -209,7 +209,6 @@ impl Pipeline {
     }
 
     pub fn end_frame(&mut self) {
-        self.renderers.truncate(self.layer);
         self.system
             .as_mut()
             .unwrap()
