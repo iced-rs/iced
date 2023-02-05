@@ -350,16 +350,19 @@ impl<'a> Cache<'a> {
             );
             buffer.set_text(
                 key.content,
-                glyphon::Attrs::new().family(to_family(key.font)).color({
-                    let [r, g, b, a] = key.color.into_linear();
+                glyphon::Attrs::new()
+                    .family(to_family(key.font))
+                    .color({
+                        let [r, g, b, a] = key.color.into_linear();
 
-                    glyphon::Color::rgba(
-                        (r * 255.0) as u8,
-                        (g * 255.0) as u8,
-                        (b * 255.0) as u8,
-                        (a * 255.0) as u8,
-                    )
-                }),
+                        glyphon::Color::rgba(
+                            (r * 255.0) as u8,
+                            (g * 255.0) as u8,
+                            (b * 255.0) as u8,
+                            (a * 255.0) as u8,
+                        )
+                    })
+                    .monospaced(matches!(key.font, Font::Monospace)),
             );
 
             let _ = entry.insert(buffer);
