@@ -1,3 +1,4 @@
+use crate::buffer::Buffer;
 use crate::Transformation;
 use iced_graphics::layer;
 use iced_native::Rectangle;
@@ -12,11 +13,11 @@ use tracing::info_span;
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    constants: wgpu::BindGroup,
-    constants_buffer: wgpu::Buffer,
+    constant_layout: wgpu::BindGroupLayout,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    instances: wgpu::Buffer,
+    layers: Vec<Layer>,
+    current_layer: usize,
 }
 
 impl Pipeline {
@@ -37,22 +38,6 @@ impl Pipeline {
                     count: None,
                 }],
             });
-
-        let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu::quad uniforms buffer"),
-            size: mem::size_of::<Uniforms>() as wgpu::BufferAddress,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::quad uniforms bind group"),
-            layout: &constant_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: constants_buffer.as_entire_binding(),
-            }],
-        });
 
         let layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -148,117 +133,145 @@ impl Pipeline {
                 usage: wgpu::BufferUsages::INDEX,
             });
 
-        let instances = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu::quad instance buffer"),
-            size: mem::size_of::<layer::Quad>() as u64 * MAX_INSTANCES as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
         Pipeline {
             pipeline,
-            constants,
-            constants_buffer,
+            constant_layout,
             vertices,
             indices,
-            instances,
+            layers: Vec::new(),
+            current_layer: 0,
         }
     }
 
-    pub fn draw(
+    pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
+        queue: &wgpu::Queue,
         instances: &[layer::Quad],
         transformation: Transformation,
         scale: f32,
+    ) {
+        if self.layers.len() <= self.current_layer {
+            self.layers.push(Layer::new(device, &self.constant_layout));
+        }
+
+        let layer = &mut self.layers[self.current_layer];
+        layer.prepare(device, queue, instances, transformation, scale);
+
+        self.current_layer += 1;
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        layer: usize,
         bounds: Rectangle<u32>,
-        target: &wgpu::TextureView,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        if let Some(layer) = self.layers.get(layer) {
+            render_pass.set_pipeline(&self.pipeline);
+
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
+
+            render_pass.set_index_buffer(
+                self.indices.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
+
+            layer.draw(render_pass);
+        }
+    }
+
+    pub fn end_frame(&mut self) {
+        self.current_layer = 0;
+    }
+}
+
+#[derive(Debug)]
+struct Layer {
+    constants: wgpu::BindGroup,
+    constants_buffer: wgpu::Buffer,
+    instances: Buffer<layer::Quad>,
+    instance_count: usize,
+}
+
+impl Layer {
+    pub fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+    ) -> Self {
+        let constants_buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu::quad uniforms buffer"),
+            size: mem::size_of::<Uniforms>() as wgpu::BufferAddress,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::quad uniforms bind group"),
+            layout: &constant_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: constants_buffer.as_entire_binding(),
+            }],
+        });
+
+        let instances = Buffer::new(
+            device,
+            "iced_wgpu::quad instance buffer",
+            MAX_INSTANCES,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        );
+
+        Self {
+            constants,
+            constants_buffer,
+            instances,
+            instance_count: 0,
+        }
+    }
+
+    pub fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        instances: &[layer::Quad],
+        transformation: Transformation,
+        scale: f32,
     ) {
         #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Quad", "DRAW").entered();
+        let _ = info_span!("Wgpu::Quad", "PREPARE").entered();
 
         let uniforms = Uniforms::new(transformation, scale);
 
-        {
-            let mut constants_buffer = staging_belt.write_buffer(
-                encoder,
-                &self.constants_buffer,
-                0,
-                wgpu::BufferSize::new(mem::size_of::<Uniforms>() as u64)
-                    .unwrap(),
-                device,
-            );
+        queue.write_buffer(
+            &self.constants_buffer,
+            0,
+            bytemuck::bytes_of(&uniforms),
+        );
 
-            constants_buffer.copy_from_slice(bytemuck::bytes_of(&uniforms));
-        }
+        let _ = self.instances.resize(device, instances.len());
+        self.instances.write(queue, 0, instances);
+        self.instance_count = instances.len();
+    }
 
-        let mut i = 0;
-        let total = instances.len();
+    pub fn draw<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        #[cfg(feature = "tracing")]
+        let _ = info_span!("Wgpu::Quad", "DRAW").entered();
 
-        while i < total {
-            let end = (i + MAX_INSTANCES).min(total);
-            let amount = end - i;
+        render_pass.set_bind_group(0, &self.constants, &[]);
+        render_pass.set_vertex_buffer(1, self.instances.slice(..));
 
-            let instance_bytes = bytemuck::cast_slice(&instances[i..end]);
-
-            let mut instance_buffer = staging_belt.write_buffer(
-                encoder,
-                &self.instances,
-                0,
-                wgpu::BufferSize::new(instance_bytes.len() as u64).unwrap(),
-                device,
-            );
-
-            instance_buffer.copy_from_slice(instance_bytes);
-
-            #[cfg(feature = "tracing")]
-            let _ = info_span!("Wgpu::Quad", "BEGIN_RENDER_PASS").enter();
-
-            {
-                let mut render_pass =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu::quad render pass"),
-                        color_attachments: &[Some(
-                            wgpu::RenderPassColorAttachment {
-                                view: target,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Load,
-                                    store: true,
-                                },
-                            },
-                        )],
-                        depth_stencil_attachment: None,
-                    });
-
-                render_pass.set_pipeline(&self.pipeline);
-                render_pass.set_bind_group(0, &self.constants, &[]);
-                render_pass.set_index_buffer(
-                    self.indices.slice(..),
-                    wgpu::IndexFormat::Uint16,
-                );
-                render_pass.set_vertex_buffer(0, self.vertices.slice(..));
-                render_pass.set_vertex_buffer(1, self.instances.slice(..));
-
-                render_pass.set_scissor_rect(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    // TODO: Address anti-aliasing adjustments properly
-                    bounds.height,
-                );
-
-                render_pass.draw_indexed(
-                    0..QUAD_INDICES.len() as u32,
-                    0,
-                    0..amount as u32,
-                );
-            }
-
-            i += MAX_INSTANCES;
-        }
+        render_pass.draw_indexed(
+            0..QUAD_INDICES.len() as u32,
+            0,
+            0..self.instance_count as u32,
+        );
     }
 }
 

@@ -88,13 +88,14 @@ impl Backend {
         let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
-        for layer in layers {
+        for (i, layer) in layers.iter().enumerate() {
             self.flush(
                 device,
                 queue,
                 scale_factor,
                 transformation,
                 &layer,
+                i,
                 staging_belt,
                 encoder,
                 frame,
@@ -102,6 +103,7 @@ impl Backend {
             );
         }
 
+        self.quad_pipeline.end_frame();
         self.text_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
@@ -115,6 +117,7 @@ impl Backend {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
+        layer_index: usize,
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
@@ -127,16 +130,32 @@ impl Backend {
         }
 
         if !layer.quads.is_empty() {
-            self.quad_pipeline.draw(
+            self.quad_pipeline.prepare(
                 device,
-                staging_belt,
-                encoder,
+                queue,
                 &layer.quads,
                 transformation,
                 scale_factor,
-                bounds,
-                target,
             );
+
+            let mut render_pass =
+                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu::quad render pass"),
+                    color_attachments: &[Some(
+                        wgpu::RenderPassColorAttachment {
+                            view: target,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: true,
+                            },
+                        },
+                    )],
+                    depth_stencil_attachment: None,
+                });
+
+            self.quad_pipeline
+                .render(layer_index, bounds, &mut render_pass);
         }
 
         if !layer.meshes.is_empty() {
