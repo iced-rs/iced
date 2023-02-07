@@ -190,39 +190,12 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let _ =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some(
-                            "iced_wgpu::window::Compositor render pass",
-                        ),
-                        color_attachments: &[Some(
-                            wgpu::RenderPassColorAttachment {
-                                view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear({
-                                        let [r, g, b, a] =
-                                            background_color.into_linear();
-
-                                        wgpu::Color {
-                                            r: f64::from(r),
-                                            g: f64::from(g),
-                                            b: f64::from(b),
-                                            a: f64::from(a),
-                                        }
-                                    }),
-                                    store: true,
-                                },
-                            },
-                        )],
-                        depth_stencil_attachment: None,
-                    });
-
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
                         &self.device,
                         &self.queue,
                         &mut encoder,
+                        Some(background_color),
                         view,
                         primitives,
                         viewport,

@@ -22,7 +22,6 @@ pub struct Pipeline {
 
     layers: Vec<Layer>,
     prepare_layer: usize,
-    render_layer: usize,
 }
 
 #[derive(Debug)]
@@ -235,7 +234,7 @@ impl Layer {
     }
 
     fn render<'a>(
-        &'a mut self,
+        &'a self,
         solid: &'a solid::Pipeline,
         #[cfg(not(target_arch = "wasm32"))] gradient: &'a gradient::Pipeline,
         meshes: &[Mesh<'_>],
@@ -331,7 +330,6 @@ impl Pipeline {
 
             layers: Vec::new(),
             prepare_layer: 0,
-            render_layer: 0,
         }
     }
 
@@ -373,6 +371,7 @@ impl Pipeline {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
+        layer: usize,
         target_size: Size<u32>,
         meshes: &[Mesh<'_>],
         scale_factor: f32,
@@ -413,7 +412,7 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
-            let layer = &mut self.layers[self.render_layer];
+            let layer = &mut self.layers[layer];
 
             layer.render(
                 &self.solid,
@@ -425,8 +424,6 @@ impl Pipeline {
             );
         }
 
-        self.render_layer += 1;
-
         if let Some(blit) = &mut self.blit {
             blit.draw(encoder, target);
         }
@@ -434,7 +431,6 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.prepare_layer = 0;
-        self.render_layer = 0;
     }
 }
 

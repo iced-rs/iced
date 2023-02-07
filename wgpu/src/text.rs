@@ -16,7 +16,7 @@ pub struct Pipeline {
     system: Option<System>,
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
-    layer: usize,
+    prepare_layer: usize,
 }
 
 #[ouroboros::self_referencing]
@@ -55,7 +55,7 @@ impl Pipeline {
             ),
             renderers: Vec::new(),
             atlas: glyphon::TextAtlas::new(device, queue, format),
-            layer: 0,
+            prepare_layer: 0,
         }
     }
 
@@ -88,12 +88,12 @@ impl Pipeline {
         target_size: Size<u32>,
     ) {
         self.system.as_mut().unwrap().with_mut(|fields| {
-            if self.renderers.len() <= self.layer {
+            if self.renderers.len() <= self.prepare_layer {
                 self.renderers
                     .push(glyphon::TextRenderer::new(device, queue));
             }
 
-            let renderer = &mut self.renderers[self.layer];
+            let renderer = &mut self.renderers[self.prepare_layer];
 
             let keys: Vec<_> = sections
                 .iter()
@@ -179,35 +179,21 @@ impl Pipeline {
                     &mut glyphon::SwashCache::new(fields.fonts),
                 )
                 .expect("Prepare text sections");
+
+            self.prepare_layer += 1;
         });
     }
 
-    pub fn render(
-        &mut self,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
+    pub fn render<'a>(
+        &'a self,
+        layer: usize,
+        render_pass: &mut wgpu::RenderPass<'a>,
     ) {
-        let mut render_pass =
-            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Load,
-                        store: true,
-                    },
-                })],
-                depth_stencil_attachment: None,
-            });
-
-        let renderer = &mut self.renderers[self.layer];
+        let renderer = &self.renderers[layer];
 
         renderer
-            .render(&self.atlas, &mut render_pass)
+            .render(&self.atlas, render_pass)
             .expect("Render text");
-
-        self.layer += 1;
     }
 
     pub fn end_frame(&mut self) {
@@ -216,7 +202,7 @@ impl Pipeline {
             .unwrap()
             .with_render_cache_mut(|cache| cache.trim());
 
-        self.layer = 0;
+        self.prepare_layer = 0;
     }
 
     pub fn measure(

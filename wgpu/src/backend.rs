@@ -5,8 +5,7 @@ use crate::{Settings, Transformation};
 
 use iced_graphics::backend;
 use iced_graphics::layer::Layer;
-use iced_graphics::{Primitive, Viewport};
-use iced_native::{Font, Size};
+use iced_graphics::{Color, Font, Primitive, Size, Viewport};
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -71,6 +70,7 @@ impl Backend {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
+        clear_color: Option<Color>,
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
         viewport: &Viewport,
@@ -87,18 +87,25 @@ impl Backend {
         let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
-        for layer in layers {
-            self.flush(
-                device,
-                queue,
-                scale_factor,
-                transformation,
-                &layer,
-                encoder,
-                frame,
-                target_size,
-            );
-        }
+        self.prepare(
+            device,
+            queue,
+            encoder,
+            scale_factor,
+            transformation,
+            target_size,
+            &layers,
+        );
+
+        self.render(
+            device,
+            encoder,
+            frame,
+            clear_color,
+            scale_factor,
+            target_size,
+            &layers,
+        );
 
         self.quad_pipeline.end_frame();
         self.text_pipeline.end_frame();
@@ -108,90 +115,153 @@ impl Backend {
         self.image_pipeline.end_frame(device, queue, encoder);
     }
 
-    fn flush(
+    fn prepare(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         transformation: Transformation,
-        layer: &Layer<'_>,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
         target_size: Size<u32>,
+        layers: &[Layer<'_>],
     ) {
-        let bounds = (layer.bounds * scale_factor).snap();
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
 
-        if bounds.width < 1 || bounds.height < 1 {
-            return;
-        }
+            if bounds.width < 1 || bounds.height < 1 {
+                return;
+            }
 
-        if !layer.quads.is_empty() {
-            self.quad_pipeline.prepare(
-                device,
-                queue,
-                &layer.quads,
-                transformation,
-                scale_factor,
-            );
+            if !layer.quads.is_empty() {
+                self.quad_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.quads,
+                    transformation,
+                    scale_factor,
+                );
+            }
 
-            let mut render_pass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::quad render pass"),
-                    color_attachments: &[Some(
-                        wgpu::RenderPassColorAttachment {
-                            view: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
-                        },
-                    )],
-                    depth_stencil_attachment: None,
-                });
-
-            self.quad_pipeline.render(bounds, &mut render_pass);
-        }
-
-        if !layer.meshes.is_empty() {
-            let scaled = transformation
-                * Transformation::scale(scale_factor, scale_factor);
-
-            self.triangle_pipeline.prepare(
-                device,
-                queue,
-                &layer.meshes,
-                scaled,
-            );
-
-            self.triangle_pipeline.render(
-                device,
-                encoder,
-                target,
-                target_size,
-                &layer.meshes,
-                scale_factor,
-            );
-        }
-
-        #[cfg(any(feature = "image", feature = "svg"))]
-        {
-            if !layer.images.is_empty() {
+            if !layer.meshes.is_empty() {
                 let scaled = transformation
                     * Transformation::scale(scale_factor, scale_factor);
 
-                self.image_pipeline.prepare(
+                self.triangle_pipeline.prepare(
                     device,
                     queue,
-                    encoder,
-                    &layer.images,
+                    &layer.meshes,
                     scaled,
+                );
+            }
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            {
+                if !layer.images.is_empty() {
+                    let scaled = transformation
+                        * Transformation::scale(scale_factor, scale_factor);
+
+                    self.image_pipeline.prepare(
+                        device,
+                        queue,
+                        _encoder,
+                        &layer.images,
+                        scaled,
+                        scale_factor,
+                    );
+                }
+            }
+
+            if !layer.text.is_empty() {
+                self.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.text,
+                    layer.bounds,
+                    scale_factor,
+                    target_size,
+                );
+            }
+        }
+    }
+
+    fn render(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        clear_color: Option<Color>,
+        scale_factor: f32,
+        target_size: Size<u32>,
+        layers: &[Layer<'_>],
+    ) {
+        use std::mem::ManuallyDrop;
+
+        let mut quad_layer = 0;
+        let mut triangle_layer = 0;
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let mut image_layer = 0;
+        let mut text_layer = 0;
+
+        let mut render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+            &wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu::quad render pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: match clear_color {
+                            Some(background_color) => wgpu::LoadOp::Clear({
+                                let [r, g, b, a] =
+                                    background_color.into_linear();
+
+                                wgpu::Color {
+                                    r: f64::from(r),
+                                    g: f64::from(g),
+                                    b: f64::from(b),
+                                    a: f64::from(a),
+                                }
+                            }),
+                            None => wgpu::LoadOp::Load,
+                        },
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            },
+        ));
+
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
+
+            if bounds.width < 1 || bounds.height < 1 {
+                return;
+            }
+
+            if !layer.quads.is_empty() {
+                self.quad_pipeline
+                    .render(quad_layer, bounds, &mut render_pass);
+
+                quad_layer += 1;
+            }
+
+            if !layer.meshes.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
+                self.triangle_pipeline.render(
+                    device,
+                    encoder,
+                    target,
+                    triangle_layer,
+                    target_size,
+                    &layer.meshes,
                     scale_factor,
                 );
 
-                let mut render_pass =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu::image render pass"),
+                triangle_layer += 1;
+
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu::quad render pass"),
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: target,
@@ -203,24 +273,31 @@ impl Backend {
                             },
                         )],
                         depth_stencil_attachment: None,
-                    });
+                    },
+                ));
+            }
 
-                self.image_pipeline.render(bounds, &mut render_pass);
+            #[cfg(any(feature = "image", feature = "svg"))]
+            {
+                if !layer.images.is_empty() {
+                    self.image_pipeline.render(
+                        image_layer,
+                        bounds,
+                        &mut render_pass,
+                    );
+
+                    image_layer += 1;
+                }
+            }
+
+            if !layer.text.is_empty() {
+                self.text_pipeline.render(text_layer, &mut render_pass);
+
+                text_layer += 1;
             }
         }
 
-        if !layer.text.is_empty() {
-            self.text_pipeline.prepare(
-                device,
-                queue,
-                &layer.text,
-                layer.bounds,
-                scale_factor,
-                target_size,
-            );
-
-            self.text_pipeline.render(encoder, target);
-        }
+        let _ = ManuallyDrop::into_inner(render_pass);
     }
 }
 

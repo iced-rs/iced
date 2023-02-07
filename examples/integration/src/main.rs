@@ -250,6 +250,7 @@ pub fn main() {
                                 &device,
                                 &queue,
                                 &mut encoder,
+                                None,
                                 &view,
                                 primitive,
                                 &viewport,
