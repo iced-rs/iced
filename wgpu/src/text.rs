@@ -105,8 +105,10 @@ impl Pipeline {
                             size: section.size * scale_factor,
                             font: section.font,
                             bounds: Size {
-                                width: section.bounds.width * scale_factor,
-                                height: section.bounds.height * scale_factor,
+                                width: (section.bounds.width * scale_factor)
+                                    .ceil(),
+                                height: (section.bounds.height * scale_factor)
+                                    .ceil(),
                             },
                             color: section.color,
                         },
