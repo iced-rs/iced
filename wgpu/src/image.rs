@@ -71,7 +71,7 @@ impl Layer {
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::image constants bind group"),
-            layout: &constant_layout,
+            layout: constant_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
@@ -85,7 +85,7 @@ impl Layer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&sampler),
+                    resource: wgpu::BindingResource::Sampler(sampler),
                 },
             ],
         });
