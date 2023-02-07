@@ -218,7 +218,7 @@ impl Layer {
 
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::quad uniforms bind group"),
-            layout: &constant_layout,
+            layout: constant_layout,
             entries: &[wgpu::BindGroupEntry {
                 binding: 0,
                 resource: constants_buffer.as_entire_binding(),
