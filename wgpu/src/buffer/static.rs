@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::mem;
 
 //128 triangles/indices
-const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 128;
+const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 1_000;
 
 /// A generic buffer struct useful for items which have no alignment requirements
 /// (e.g. Vertex, Index buffers) & no dynamic offsets.
@@ -71,28 +71,15 @@ impl<T: Pod + Zeroable> Buffer<T> {
     /// Returns the size of the written bytes.
     pub fn write(
         &mut self,
-        device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
+        queue: &wgpu::Queue,
         offset: u64,
         content: &[T],
     ) -> u64 {
         let bytes = bytemuck::cast_slice(content);
         let bytes_size = bytes.len() as u64;
 
-        if let Some(buffer_size) = wgpu::BufferSize::new(bytes_size) {
-            let mut buffer = staging_belt.write_buffer(
-                encoder,
-                &self.gpu,
-                offset,
-                buffer_size,
-                device,
-            );
-
-            buffer.copy_from_slice(bytes);
-
-            self.offsets.push(offset);
-        }
+        queue.write_buffer(&self.gpu, offset, bytes);
+        self.offsets.push(offset);
 
         bytes_size
     }

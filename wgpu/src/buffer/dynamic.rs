@@ -112,25 +112,8 @@ impl<T: ShaderType + WriteInto> Buffer<T> {
     }
 
     /// Write the contents of this dynamic buffer to the GPU via staging belt command.
-    pub fn write(
-        &mut self,
-        device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
-        let size = self.cpu.get_ref().len();
-
-        if let Some(buffer_size) = wgpu::BufferSize::new(size as u64) {
-            let mut buffer = staging_belt.write_buffer(
-                encoder,
-                &self.gpu,
-                0,
-                buffer_size,
-                device,
-            );
-
-            buffer.copy_from_slice(self.cpu.get_ref());
-        }
+    pub fn write(&mut self, queue: &wgpu::Queue) {
+        queue.write_buffer(&self.gpu, 0, self.cpu.get_ref());
     }
 
     // Gets the aligned offset at the given index from the CPU buffer.
@@ -184,7 +167,7 @@ impl Internal {
     }
 
     /// Returns bytearray of aligned CPU buffer.
-    pub(super) fn get_ref(&self) -> &Vec<u8> {
+    pub(super) fn get_ref(&self) -> &[u8] {
         match self {
             Internal::Uniform(buf) => buf.as_ref(),
             #[cfg(not(target_arch = "wasm32"))]

@@ -125,9 +125,6 @@ pub fn main() {
 
     let mut resized = false;
 
-    // Initialize staging belt
-    let mut staging_belt = wgpu::util::StagingBelt::new(5 * 1024);
-
     // Initialize scene and GUI controls
     let scene = Scene::new(&device, format);
     let controls = Controls::new();
@@ -252,7 +249,6 @@ pub fn main() {
                             backend.present(
                                 &device,
                                 &queue,
-                                &mut staging_belt,
                                 &mut encoder,
                                 &view,
                                 primitive,
@@ -262,7 +258,6 @@ pub fn main() {
                         });
 
                         // Then we submit the work
-                        staging_belt.finish();
                         queue.submit(Some(encoder.finish()));
                         frame.present();
 
@@ -272,10 +267,6 @@ pub fn main() {
                                  state.mouse_interaction(),
                              ),
                          );
-
-                        // And recall staging buffers
-                        staging_belt.recall();
-
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {

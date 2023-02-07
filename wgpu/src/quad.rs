@@ -1,5 +1,4 @@
-use crate::buffer::Buffer;
-use crate::Transformation;
+use crate::{Buffer, Transformation};
 use iced_graphics::layer;
 use iced_native::Rectangle;
 
@@ -228,7 +227,7 @@ impl Layer {
         let instances = Buffer::new(
             device,
             "iced_wgpu::quad instance buffer",
-            MAX_INSTANCES,
+            INITIAL_INSTANCES,
             wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         );
 
@@ -302,7 +301,7 @@ const QUAD_VERTS: [Vertex; 4] = [
     },
 ];
 
-const MAX_INSTANCES: usize = 100_000;
+const INITIAL_INSTANCES: usize = 10_000;
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]

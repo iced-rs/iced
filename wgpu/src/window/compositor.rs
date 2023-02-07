@@ -16,14 +16,11 @@ pub struct Compositor<Theme> {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    staging_belt: wgpu::util::StagingBelt,
     format: wgpu::TextureFormat,
     theme: PhantomData<Theme>,
 }
 
 impl<Theme> Compositor<Theme> {
-    const CHUNK_SIZE: u64 = 10 * 1024;
-
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
@@ -98,15 +95,12 @@ impl<Theme> Compositor<Theme> {
             .next()
             .await?;
 
-        let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
-
         Some(Compositor {
             instance,
             settings,
             adapter,
             device,
             queue,
-            staging_belt,
             format,
             theme: PhantomData,
         })
@@ -228,7 +222,6 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                     backend.present(
                         &self.device,
                         &self.queue,
-                        &mut self.staging_belt,
                         &mut encoder,
                         view,
                         primitives,
@@ -238,12 +231,8 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 });
 
                 // Submit work
-                self.staging_belt.finish();
                 let _submission = self.queue.submit(Some(encoder.finish()));
                 frame.present();
-
-                // Recall staging buffers
-                self.staging_belt.recall();
 
                 Ok(())
             }

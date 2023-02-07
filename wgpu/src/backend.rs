@@ -70,7 +70,6 @@ impl Backend {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
@@ -95,7 +94,6 @@ impl Backend {
                 scale_factor,
                 transformation,
                 &layer,
-                staging_belt,
                 encoder,
                 frame,
                 target_size,
@@ -104,6 +102,7 @@ impl Backend {
 
         self.quad_pipeline.end_frame();
         self.text_pipeline.end_frame();
+        self.triangle_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.end_frame(device, queue, encoder);
@@ -116,7 +115,6 @@ impl Backend {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
-        staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         target_size: Size<u32>,
@@ -159,15 +157,20 @@ impl Backend {
             let scaled = transformation
                 * Transformation::scale(scale_factor, scale_factor);
 
-            self.triangle_pipeline.draw(
+            self.triangle_pipeline.prepare(
                 device,
-                staging_belt,
+                queue,
+                &layer.meshes,
+                scaled,
+            );
+
+            self.triangle_pipeline.render(
+                device,
                 encoder,
                 target,
                 target_size,
-                scaled,
-                scale_factor,
                 &layer.meshes,
+                scale_factor,
             );
         }
 
