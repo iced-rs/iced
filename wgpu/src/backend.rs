@@ -106,7 +106,7 @@ impl Backend {
         self.text_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.trim_cache(device, encoder);
+        self.image_pipeline.end_frame(device, queue, encoder);
     }
 
     fn flush(
@@ -177,16 +177,32 @@ impl Backend {
                 let scaled = transformation
                     * Transformation::scale(scale_factor, scale_factor);
 
-                self.image_pipeline.draw(
+                self.image_pipeline.prepare(
                     device,
-                    staging_belt,
+                    queue,
                     encoder,
                     &layer.images,
                     scaled,
-                    bounds,
-                    target,
                     scale_factor,
                 );
+
+                let mut render_pass =
+                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu::image render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: target,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: true,
+                                },
+                            },
+                        )],
+                        depth_stencil_attachment: None,
+                    });
+
+                self.image_pipeline.render(bounds, &mut render_pass);
             }
         }
 

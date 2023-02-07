@@ -56,7 +56,8 @@ pub use wgpu;
 pub use backend::Backend;
 pub use settings::Settings;
 
-pub(crate) use iced_graphics::Transformation;
+use crate::buffer::Buffer;
+use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;

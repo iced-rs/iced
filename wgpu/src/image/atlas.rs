@@ -185,13 +185,13 @@ impl Atlas {
 
     fn upload_allocation(
         &mut self,
-        buffer: &wgpu::Buffer,
+        data: &[u8],
         image_width: u32,
         image_height: u32,
         padding: u32,
         offset: usize,
         allocation: &Allocation,
-        encoder: &mut wgpu::CommandEncoder,
+        queue: &wgpu::Queue,
     ) {
         let (x, y) = allocation.position();
         let Size { width, height } = allocation.size();
@@ -203,15 +203,7 @@ impl Atlas {
             depth_or_array_layers: 1,
         };
 
-        encoder.copy_buffer_to_texture(
-            wgpu::ImageCopyBuffer {
-                buffer,
-                layout: wgpu::ImageDataLayout {
-                    offset: offset as u64,
-                    bytes_per_row: NonZeroU32::new(4 * image_width + padding),
-                    rows_per_image: NonZeroU32::new(image_height),
-                },
-            },
+        queue.write_texture(
             wgpu::ImageCopyTexture {
                 texture: &self.texture,
                 mip_level: 0,
@@ -221,6 +213,12 @@ impl Atlas {
                     z: layer as u32,
                 },
                 aspect: wgpu::TextureAspect::default(),
+            },
+            data,
+            wgpu::ImageDataLayout {
+                offset: offset as u64,
+                bytes_per_row: NonZeroU32::new(4 * image_width + padding),
+                rows_per_image: NonZeroU32::new(image_height),
             },
             extent,
         );
@@ -301,17 +299,19 @@ impl Atlas {
 
 impl image::Storage for Atlas {
     type Entry = Entry;
-    type State<'a> = (&'a wgpu::Device, &'a mut wgpu::CommandEncoder);
+    type State<'a> = (
+        &'a wgpu::Device,
+        &'a wgpu::Queue,
+        &'a mut wgpu::CommandEncoder,
+    );
 
     fn upload(
         &mut self,
         width: u32,
         height: u32,
         data: &[u8],
-        (device, encoder): &mut Self::State<'_>,
+        (device, queue, encoder): &mut Self::State<'_>,
     ) -> Option<Self::Entry> {
-        use wgpu::util::DeviceExt;
-
         let entry = {
             let current_size = self.layers.len();
             let entry = self.allocate(width, height)?;
@@ -344,17 +344,16 @@ impl image::Storage for Atlas {
             )
         }
 
-        let buffer =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::image staging buffer"),
-                contents: &padded_data,
-                usage: wgpu::BufferUsages::COPY_SRC,
-            });
-
         match &entry {
             Entry::Contiguous(allocation) => {
                 self.upload_allocation(
-                    &buffer, width, height, padding, 0, allocation, encoder,
+                    &padded_data,
+                    width,
+                    height,
+                    padding,
+                    0,
+                    allocation,
+                    queue,
                 );
             }
             Entry::Fragmented { fragments, .. } => {
@@ -363,13 +362,13 @@ impl image::Storage for Atlas {
                     let offset = (y * padded_width as u32 + 4 * x) as usize;
 
                     self.upload_allocation(
-                        &buffer,
+                        &padded_data,
                         width,
                         height,
                         padding,
                         offset,
                         &fragment.allocation,
-                        encoder,
+                        queue,
                     );
                 }
             }
