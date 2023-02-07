@@ -88,14 +88,13 @@ impl Backend {
         let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
-        for (i, layer) in layers.iter().enumerate() {
+        for layer in layers {
             self.flush(
                 device,
                 queue,
                 scale_factor,
                 transformation,
                 &layer,
-                i,
                 staging_belt,
                 encoder,
                 frame,
@@ -117,7 +116,6 @@ impl Backend {
         scale_factor: f32,
         transformation: Transformation,
         layer: &Layer<'_>,
-        layer_index: usize,
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
@@ -154,8 +152,7 @@ impl Backend {
                     depth_stencil_attachment: None,
                 });
 
-            self.quad_pipeline
-                .render(layer_index, bounds, &mut render_pass);
+            self.quad_pipeline.render(bounds, &mut render_pass);
         }
 
         if !layer.meshes.is_empty() {

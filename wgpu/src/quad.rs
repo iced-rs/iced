@@ -17,7 +17,8 @@ pub struct Pipeline {
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
     layers: Vec<Layer>,
-    current_layer: usize,
+    prepare_layer: usize,
+    render_layer: usize,
 }
 
 impl Pipeline {
@@ -139,7 +140,8 @@ impl Pipeline {
             vertices,
             indices,
             layers: Vec::new(),
-            current_layer: 0,
+            prepare_layer: 0,
+            render_layer: 0,
         }
     }
 
@@ -151,23 +153,22 @@ impl Pipeline {
         transformation: Transformation,
         scale: f32,
     ) {
-        if self.layers.len() <= self.current_layer {
+        if self.layers.len() <= self.prepare_layer {
             self.layers.push(Layer::new(device, &self.constant_layout));
         }
 
-        let layer = &mut self.layers[self.current_layer];
+        let layer = &mut self.layers[self.prepare_layer];
         layer.prepare(device, queue, instances, transformation, scale);
 
-        self.current_layer += 1;
+        self.prepare_layer += 1;
     }
 
     pub fn render<'a>(
-        &'a self,
-        layer: usize,
+        &'a mut self,
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
-        if let Some(layer) = self.layers.get(layer) {
+        if let Some(layer) = self.layers.get(self.render_layer) {
             render_pass.set_pipeline(&self.pipeline);
 
             render_pass.set_scissor_rect(
@@ -184,11 +185,14 @@ impl Pipeline {
             render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
             layer.draw(render_pass);
+
+            self.render_layer += 1;
         }
     }
 
     pub fn end_frame(&mut self) {
-        self.current_layer = 0;
+        self.prepare_layer = 0;
+        self.render_layer = 0;
     }
 }
 
