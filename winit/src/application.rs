@@ -185,7 +185,9 @@ where
         };
     }
 
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+    let (mut compositor, renderer) =
+        C::new(compositor_settings, Some(&window))?;
+    let surface = compositor.create_surface(&window)?;
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
@@ -194,6 +196,7 @@ where
         let run_instance = run_instance::<A, E, C>(
             application,
             compositor,
+            surface,
             renderer,
             runtime,
             proxy,
@@ -258,6 +261,7 @@ where
 async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
+    mut surface: C::Surface,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
@@ -281,7 +285,6 @@ async fn run_instance<A, E, C>(
 
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(&window);
     let mut should_exit = false;
 
     let mut state = State::new(&application, &window);

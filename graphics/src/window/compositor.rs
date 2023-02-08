@@ -28,7 +28,7 @@ pub trait Compositor: Sized {
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,
-    ) -> Self::Surface;
+    ) -> Result<Self::Surface, Error>;
 
     /// Configures a new [`Surface`] with the given dimensions.
     ///
