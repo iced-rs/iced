@@ -86,7 +86,7 @@ impl Pipeline {
         bounds: Rectangle,
         scale_factor: f32,
         target_size: Size<u32>,
-    ) {
+    ) -> bool {
         self.system.as_mut().unwrap().with_mut(|fields| {
             if self.renderers.len() <= self.prepare_layer {
                 self.renderers
@@ -165,23 +165,39 @@ impl Pipeline {
                     }
                 });
 
-            renderer
-                .prepare(
-                    device,
-                    queue,
-                    &mut self.atlas,
-                    glyphon::Resolution {
-                        width: target_size.width,
-                        height: target_size.height,
-                    },
-                    text_areas,
-                    glyphon::Color::rgb(0, 0, 0),
-                    &mut glyphon::SwashCache::new(fields.fonts),
-                )
-                .expect("Prepare text sections");
+            let result = renderer.prepare(
+                device,
+                queue,
+                &mut self.atlas,
+                glyphon::Resolution {
+                    width: target_size.width,
+                    height: target_size.height,
+                },
+                text_areas,
+                glyphon::Color::rgb(0, 0, 0),
+                &mut glyphon::SwashCache::new(fields.fonts),
+            );
 
-            self.prepare_layer += 1;
-        });
+            match result {
+                Ok(()) => {
+                    self.prepare_layer += 1;
+
+                    true
+                }
+                Err(glyphon::PrepareError::AtlasFull(content_type)) => {
+                    self.prepare_layer = 0;
+
+                    if self.atlas.grow(device, content_type) {
+                        false
+                    } else {
+                        // If the atlas cannot grow, then all bets are off.
+                        // Instead of panicking, we will just pray that the result
+                        // will be somewhat readable...
+                        true
+                    }
+                }
+            }
+        })
     }
 
     pub fn render<'a>(
@@ -205,6 +221,8 @@ impl Pipeline {
     }
 
     pub fn end_frame(&mut self) {
+        self.atlas.trim();
+
         self.system
             .as_mut()
             .unwrap()

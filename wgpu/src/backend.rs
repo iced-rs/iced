@@ -93,9 +93,16 @@ impl Backend {
             encoder,
             scale_factor,
             transformation,
-            target_size,
             &layers,
         );
+
+        while !self.prepare_text(
+            device,
+            queue,
+            scale_factor,
+            target_size,
+            &layers,
+        ) {}
 
         self.render(
             device,
@@ -115,6 +122,38 @@ impl Backend {
         self.image_pipeline.end_frame(device, queue, encoder);
     }
 
+    fn prepare_text(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        scale_factor: f32,
+        target_size: Size<u32>,
+        layers: &[Layer<'_>],
+    ) -> bool {
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
+
+            if bounds.width < 1 || bounds.height < 1 {
+                continue;
+            }
+
+            if !layer.text.is_empty() {
+                if !self.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.text,
+                    layer.bounds,
+                    scale_factor,
+                    target_size,
+                ) {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
+
     fn prepare(
         &mut self,
         device: &wgpu::Device,
@@ -122,14 +161,13 @@ impl Backend {
         _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         transformation: Transformation,
-        target_size: Size<u32>,
         layers: &[Layer<'_>],
     ) {
         for layer in layers {
             let bounds = (layer.bounds * scale_factor).snap();
 
             if bounds.width < 1 || bounds.height < 1 {
-                return;
+                continue;
             }
 
             if !layer.quads.is_empty() {
@@ -169,17 +207,6 @@ impl Backend {
                         scale_factor,
                     );
                 }
-            }
-
-            if !layer.text.is_empty() {
-                self.text_pipeline.prepare(
-                    device,
-                    queue,
-                    &layer.text,
-                    layer.bounds,
-                    scale_factor,
-                    target_size,
-                );
             }
         }
     }
