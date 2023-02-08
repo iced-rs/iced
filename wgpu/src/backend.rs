@@ -291,7 +291,8 @@ impl Backend {
             }
 
             if !layer.text.is_empty() {
-                self.text_pipeline.render(text_layer, &mut render_pass);
+                self.text_pipeline
+                    .render(text_layer, bounds, &mut render_pass);
 
                 text_layer += 1;
             }

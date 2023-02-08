@@ -187,9 +187,17 @@ impl Pipeline {
     pub fn render<'a>(
         &'a self,
         layer: usize,
+        bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         let renderer = &self.renderers[layer];
+
+        render_pass.set_scissor_rect(
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height,
+        );
 
         renderer
             .render(&self.atlas, render_pass)
