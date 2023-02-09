@@ -2,8 +2,7 @@ use bytemuck::{Pod, Zeroable};
 use std::marker::PhantomData;
 use std::mem;
 
-//128 triangles/indices
-const DEFAULT_STATIC_BUFFER_COUNT: wgpu::BufferAddress = 1_000;
+const DEFAULT_COUNT: wgpu::BufferAddress = 128;
 
 /// A generic buffer struct useful for items which have no alignment requirements
 /// (e.g. Vertex, Index buffers) & no dynamic offsets.
@@ -25,7 +24,7 @@ impl<T: Pod + Zeroable> Buffer<T> {
         label: &'static str,
         usages: wgpu::BufferUsages,
     ) -> Self {
-        let size = (mem::size_of::<T>() as u64) * DEFAULT_STATIC_BUFFER_COUNT;
+        let size = (mem::size_of::<T>() as u64) * DEFAULT_COUNT;
 
         Self {
             offsets: Vec::new(),
@@ -57,9 +56,13 @@ impl<T: Pod + Zeroable> Buffer<T> {
         let size = (mem::size_of::<T>() * new_count) as u64;
 
         if self.size < size {
+            self.size =
+                (mem::size_of::<T>() * (new_count + new_count / 2)) as u64;
+
+            self.gpu =
+                Self::gpu_buffer(device, self.label, self.size, self.usages);
+
             self.offsets.clear();
-            self.size = size;
-            self.gpu = Self::gpu_buffer(device, self.label, size, self.usages);
             true
         } else {
             false

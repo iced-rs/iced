@@ -43,7 +43,7 @@ impl Layer {
         Self {
             index_buffer: Buffer::new(
                 device,
-                "iced_wgpu::triangle vertex buffer",
+                "iced_wgpu::triangle index buffer",
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             ),
             index_strides: Vec::new(),
