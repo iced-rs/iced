@@ -187,6 +187,7 @@ impl Pipeline {
                 Err(glyphon::PrepareError::AtlasFull(content_type)) => {
                     self.prepare_layer = 0;
 
+                    #[allow(clippy::needless_bool)]
                     if self.atlas.grow(device, content_type) {
                         false
                     } else {

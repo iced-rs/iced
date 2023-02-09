@@ -137,17 +137,17 @@ impl Backend {
                 continue;
             }
 
-            if !layer.text.is_empty() {
-                if !self.text_pipeline.prepare(
+            if !layer.text.is_empty()
+                && !self.text_pipeline.prepare(
                     device,
                     queue,
                     &layer.text,
                     layer.bounds,
                     scale_factor,
                     target_size,
-                ) {
-                    return false;
-                }
+                )
+            {
+                return false;
             }
         }
 
