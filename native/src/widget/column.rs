@@ -4,7 +4,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::widget::{Operation, Tree};
+use crate::widget::{self, Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
     Shell, Widget,
@@ -13,6 +13,7 @@ use crate::{
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
+    id: Option<Id>,
     spacing: u16,
     padding: Padding,
     width: Length,
@@ -33,6 +34,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Column {
+            id: None,
             spacing: 0,
             padding: Padding::ZERO,
             width: Length::Shrink,
@@ -41,6 +43,12 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
             align_items: Alignment::Start,
             children,
         }
+    }
+
+    /// Sets the [`Id`] of the [`Column`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -148,17 +156,20 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
-            self.children
-                .iter()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
-                    child
-                        .as_widget()
-                        .operate(state, layout, renderer, operation);
-                })
-        });
+        operation.container(
+            self.id.as_ref().map(|id| &id.0),
+            &mut |operation| {
+                self.children
+                    .iter()
+                    .zip(&mut tree.children)
+                    .zip(layout.children())
+                    .for_each(|((child, state), layout)| {
+                        child
+                            .as_widget()
+                            .operate(state, layout, renderer, operation);
+                    })
+            },
+        );
     }
 
     fn on_event(
@@ -260,5 +271,29 @@ where
 {
     fn from(column: Column<'a, Message, Renderer>) -> Self {
         Self::new(column)
+    }
+}
+
+/// The identifier of a [`Column`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
     }
 }
