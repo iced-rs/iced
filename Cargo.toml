@@ -38,7 +38,6 @@ system = ["iced_winit/system"]
 # Enables chrome traces
 chrome-trace = [
     "iced_winit/chrome-trace",
-    "iced_glutin?/trace",
     "iced_wgpu?/tracing",
 ]
 
@@ -50,7 +49,6 @@ members = [
     "core",
     "futures",
     "graphics",
-    "glutin",
     "lazy",
     "native",
     "style",
@@ -65,7 +63,6 @@ iced_futures = { version = "0.6", path = "futures" }
 iced_native = { version = "0.9", path = "native" }
 iced_graphics = { version = "0.7", path = "graphics" }
 iced_winit = { version = "0.8", path = "winit", features = ["application"] }
-iced_glutin = { version = "0.7", path = "glutin", optional = true }
 thiserror = "1.0"
 
 [dependencies.image_rs]

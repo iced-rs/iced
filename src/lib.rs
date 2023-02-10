@@ -182,17 +182,8 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
-use iced_winit as runtime;
-
-#[cfg(feature = "glow")]
-use iced_glutin as runtime;
-
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_wgpu as renderer;
-
-#[cfg(feature = "glow")]
-use iced_glow as renderer;
+use iced_winit as runtime;
 
 pub use iced_native::theme;
 pub use runtime::event;

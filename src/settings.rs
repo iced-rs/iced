@@ -49,15 +49,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
-
-    /// Whether the [`Application`] should try to build the context
-    /// using OpenGL ES first then OpenGL.
-    ///
-    /// By default, it is disabled.
-    /// **Note:** Only works for the `glow` backend.
-    ///
-    /// [`Application`]: crate::Application
-    pub try_opengles_first: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -75,7 +66,6 @@ impl<Flags> Settings<Flags> {
             default_text_size: default_settings.default_text_size,
             antialiasing: default_settings.antialiasing,
             exit_on_close_request: default_settings.exit_on_close_request,
-            try_opengles_first: default_settings.try_opengles_first,
         }
     }
 }
@@ -93,7 +83,6 @@ where
             default_text_size: 16.0,
             antialiasing: false,
             exit_on_close_request: true,
-            try_opengles_first: false,
         }
     }
 }
@@ -105,7 +94,6 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
             window: settings.window.into(),
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
-            try_opengles_first: settings.try_opengles_first,
         }
     }
 }
