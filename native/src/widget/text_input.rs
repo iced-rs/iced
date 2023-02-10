@@ -1193,17 +1193,26 @@ where
     let size = size.unwrap_or_else(|| renderer.default_size());
 
     let offset = offset(renderer, text_bounds, font, size, value, state);
+    let value = value.to_string();
 
-    renderer
+    let char_offset = renderer
         .hit_test(
-            &value.to_string(),
+            &value,
             size,
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
         )
-        .map(text::Hit::cursor)
+        .map(text::Hit::cursor)?;
+
+    Some(
+        unicode_segmentation::UnicodeSegmentation::graphemes(
+            &value[..char_offset],
+            true,
+        )
+        .count(),
+    )
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
