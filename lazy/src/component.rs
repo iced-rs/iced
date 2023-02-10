@@ -563,4 +563,11 @@ where
 
         event_status
     }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
+    }
 }
