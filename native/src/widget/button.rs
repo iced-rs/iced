@@ -8,7 +8,7 @@ use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
-use crate::widget::{self, Operation};
+use crate::widget::Operation;
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
@@ -56,7 +56,6 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    id: Option<Id>,
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -73,7 +72,6 @@ where
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Button {
-            id: None,
             content: content.into(),
             on_press: None,
             width: Length::Shrink,
@@ -81,12 +79,6 @@ where
             padding: Padding::new(5),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
-    }
-
-    /// Sets the [`Id`] of the [`Button`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
-        self
     }
 
     /// Sets the width of the [`Button`].
@@ -180,17 +172,14 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(None, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn on_event(
@@ -462,29 +451,5 @@ pub fn mouse_interaction(
         mouse::Interaction::Pointer
     } else {
         mouse::Interaction::default()
-    }
-}
-
-/// The identifier of a [`Button`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
     }
 }

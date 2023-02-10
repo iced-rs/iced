@@ -5,7 +5,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::widget::{self, Operation, Tree};
+use crate::widget::{Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Widget,
@@ -24,7 +24,6 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    id: Option<Id>,
     padding: Padding,
     width: Length,
     height: Length,
@@ -47,7 +46,6 @@ where
         T: Into<Element<'a, Message, Renderer>>,
     {
         Container {
-            id: None,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -58,12 +56,6 @@ where
             style: Default::default(),
             content: content.into(),
         }
-    }
-
-    /// Sets the [`Id`] of the [`Container`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
-        self
     }
 
     /// Sets the [`Padding`] of the [`Container`].
@@ -180,17 +172,14 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(None, &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn on_event(
@@ -342,29 +331,5 @@ pub fn draw_background<Renderer>(
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
-    }
-}
-
-/// The identifier of a [`Container`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
     }
 }

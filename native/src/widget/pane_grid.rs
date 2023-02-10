@@ -101,7 +101,6 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
-    id: Option<Id>,
     contents: Contents<'a, Content<'a, Message, Renderer>>,
     width: Length,
     height: Length,
@@ -148,7 +147,6 @@ where
         };
 
         Self {
-            id: None,
             contents,
             width: Length::Fill,
             height: Length::Fill,
@@ -158,12 +156,6 @@ where
             on_resize: None,
             style: Default::default(),
         }
-    }
-
-    /// Sets the [`Id`] of the [`PaneGrid`].
-    pub fn id(mut self, id: Id) -> Self {
-        self.id = Some(id);
-        self
     }
 
     /// Sets the width of the [`PaneGrid`].
@@ -305,18 +297,15 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            &mut |operation| {
-                self.contents
-                    .iter()
-                    .zip(&mut tree.children)
-                    .zip(layout.children())
-                    .for_each(|(((_pane, content), state), layout)| {
-                        content.operate(state, layout, renderer, operation);
-                    })
-            },
-        );
+        operation.container(None, &mut |operation| {
+            self.contents
+                .iter()
+                .zip(&mut tree.children)
+                .zip(layout.children())
+                .for_each(|(((_pane, content), state), layout)| {
+                    content.operate(state, layout, renderer, operation);
+                })
+        });
     }
 
     fn on_event(
@@ -1005,29 +994,5 @@ impl<'a, T> Contents<'a, T> {
 
     fn is_maximized(&self) -> bool {
         matches!(self, Self::Maximized(..))
-    }
-}
-
-/// The identifier of a [`PaneGrid`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
     }
 }
