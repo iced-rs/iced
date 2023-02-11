@@ -147,11 +147,15 @@ where
     #[cfg(target_arch = "wasm32")]
     let target = settings.window.platform_specific.target.clone();
 
-    let builder = settings.window.into_builder(
-        &application.title(),
-        event_loop.primary_monitor(),
-        settings.id,
-    );
+    let should_be_visible = settings.window.visible;
+    let builder = settings
+        .window
+        .into_builder(
+            &application.title(),
+            event_loop.primary_monitor(),
+            settings.id,
+        )
+        .with_visible(false);
 
     log::info!("Window builder: {:#?}", builder);
 
@@ -202,6 +206,7 @@ where
             control_sender,
             init_command,
             window,
+            should_be_visible,
             settings.exit_on_close_request,
         );
 
@@ -268,6 +273,7 @@ async fn run_instance<A, E, C>(
     mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
     window: winit::window::Window,
+    should_be_visible: bool,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
@@ -294,6 +300,10 @@ async fn run_instance<A, E, C>(
         physical_size.width,
         physical_size.height,
     );
+
+    if should_be_visible {
+        window.set_visible(true);
+    }
 
     run_command(
         &application,
