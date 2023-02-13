@@ -1060,7 +1060,7 @@ impl text_input::StyleSheet for Theme {
             border_radius: 2.0,
             border_width: 1.0,
             border_color: palette.primary.strong.color,
-            handle_color: palette.primary.weak.text,
+            handle_color: palette.background.weak.text,
         }
     }
 
