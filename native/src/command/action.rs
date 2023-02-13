@@ -66,7 +66,7 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::Clipboard({action:?})")
             }
             Self::IME(action) => {
-                write!(f, "Action::IME({:?})", action)
+                write!(f, "Action::IME({action:?})")
             }
             Self::Window(action) => write!(f, "Action::Window({action:?})"),
             Self::System(action) => write!(f, "Action::System({action:?})"),
