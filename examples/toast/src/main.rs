@@ -185,7 +185,7 @@ mod toast {
         Vector,
     };
     use iced_native::widget::{tree, Operation, Tree};
-    use iced_native::{event, layout, mouse, overlay, renderer, window};
+    use iced_native::{event, layout, mouse, overlay, renderer, window, IME};
     use iced_native::{Clipboard, Event, Layout, Shell, Widget};
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
@@ -391,6 +391,7 @@ mod toast {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             self.content.as_widget_mut().on_event(
@@ -400,6 +401,7 @@ mod toast {
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         }
@@ -518,6 +520,7 @@ mod toast {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
@@ -567,6 +570,7 @@ mod toast {
                         cursor_position,
                         renderer,
                         clipboard,
+                        ime,
                         &mut local_shell,
                     );
 

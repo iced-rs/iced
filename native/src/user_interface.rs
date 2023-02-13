@@ -7,9 +7,7 @@ use crate::widget;
 use crate::window;
 use crate::{application, IME};
 use crate::{
-    
     Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
-, Vector,
 };
 
 /// A set of interactive graphical elements with a specific [`Layout`].
