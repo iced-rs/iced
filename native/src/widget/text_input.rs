@@ -31,6 +31,47 @@ use crate::{
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
+/// The position of the [`Handle`].
+#[derive(Clone, Default, Debug)]
+pub enum HandlePosition {
+    /// Position the handle to the left.
+    Left,
+    /// Position the handle to the left.
+    ///
+    /// This is the default.
+    #[default]
+    Right,
+}
+
+/// The content of the [`Handle`].
+#[derive(Clone)]
+pub struct Handle<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    /// Font that will be used to display the `text`.
+    pub font: Renderer::Font,
+    /// Text that will be shown.
+    pub text: String,
+    /// Font size of the content.
+    pub size: Option<u16>,
+    /// Position of the handle.
+    pub position: HandlePosition,
+}
+
+impl<Renderer> std::fmt::Debug for Handle<Renderer>
+where
+    Renderer: text::Renderer,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Handle")
+            .field("text", &self.text)
+            .field("size", &self.size)
+            .field("position", &self.position)
+            .finish()
+    }
+}
+
 /// A field that can be filled with text.
 ///
 /// # Example
@@ -68,6 +109,7 @@ where
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    handle: Option<Handle<Renderer>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -99,6 +141,7 @@ where
             on_change: Box::new(on_change),
             on_paste: None,
             on_submit: None,
+            handle: None,
             style: Default::default(),
         }
     }
@@ -132,6 +175,13 @@ where
         self.font = font;
         self
     }
+
+    /// Sets the [`Handle`] of the [`TextInput`].
+    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
+        self.handle = Some(handle);
+        self
+    }
+
     /// Sets the width of the [`TextInput`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
@@ -188,8 +238,10 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
+            self.padding,
             &self.font,
             self.is_secure,
+            self.handle.as_ref(),
             &self.style,
         )
     }
@@ -286,8 +338,10 @@ where
             &self.value,
             &self.placeholder,
             self.size,
+            self.padding,
             &self.font,
             self.is_secure,
+            self.handle.as_ref(),
             &self.style,
         )
     }
@@ -812,8 +866,10 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
+    padding: Padding,
     font: &Renderer::Font,
     is_secure: bool,
+    handle: Option<&Handle<Renderer>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
@@ -823,7 +879,37 @@ pub fn draw<Renderer>(
     let value = secure_value.as_ref().unwrap_or(value);
 
     let bounds = layout.bounds();
-    let text_bounds = layout.children().next().unwrap().bounds();
+    let text_bounds = {
+        let bounds = layout.children().next().unwrap().bounds();
+        if let Some(handle) = handle {
+            let Handle {
+                font,
+                size,
+                text,
+                position,
+            } = handle;
+
+            let padding = f32::from(padding.horizontal());
+            let size = size.unwrap_or_else(|| renderer.default_size());
+            let width =
+                renderer.measure_width(text.as_str(), size, font.clone());
+
+            match position {
+                HandlePosition::Left => Rectangle {
+                    x: bounds.x + (width + padding),
+                    width: bounds.width - (width + padding),
+                    ..bounds
+                },
+                HandlePosition::Right => Rectangle {
+                    x: bounds.x,
+                    width: bounds.width - (width + padding),
+                    ..bounds
+                },
+            }
+        } else {
+            bounds
+        }
+    };
 
     let is_mouse_over = bounds.contains(cursor_position);
 
@@ -844,6 +930,37 @@ pub fn draw<Renderer>(
         },
         appearance.background,
     );
+
+    if let Some(handle) = handle {
+        let Handle {
+            size,
+            font,
+            text,
+            position,
+        } = handle;
+
+        let padding = f32::from(padding.horizontal());
+        let size = size.unwrap_or_else(|| renderer.default_size());
+        let width = renderer.measure_width(text.as_str(), size, font.clone());
+
+        renderer.fill_text(Text {
+            content: text,
+            size: f32::from(size),
+            font: font.clone(),
+            color: appearance.handle_color,
+            bounds: Rectangle {
+                x: match position {
+                    HandlePosition::Left => bounds.x + width + padding,
+                    HandlePosition::Right => bounds.x + bounds.width - padding,
+                },
+                y: bounds.center_y() - f32::from(size) / 2.0,
+                height: f32::from(size),
+                ..bounds
+            },
+            horizontal_alignment: alignment::Horizontal::Right,
+            vertical_alignment: alignment::Vertical::Top,
+        });
+    }
 
     let text = value.to_string();
     let size = size.unwrap_or_else(|| renderer.default_size());
