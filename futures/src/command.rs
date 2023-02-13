@@ -1,4 +1,5 @@
 /// A set of asynchronous actions to be performed by some runtime.
+#[must_use = "`Command` must be returned to runtime to take effect"]
 #[derive(Debug)]
 pub struct Command<T>(Internal<T>);
 

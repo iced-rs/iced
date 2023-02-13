@@ -54,7 +54,7 @@ impl Version {
                 String::from("#version 120\n#define in varying"),
             ),
             // OpenGL 1.1+
-            _ => panic!("Incompatible context version: {:?}", version),
+            _ => panic!("Incompatible context version: {version:?}"),
         };
 
         log::info!("Shader directive: {}", vertex.lines().next().unwrap());

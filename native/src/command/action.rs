@@ -63,13 +63,13 @@ impl<T> fmt::Debug for Action<T> {
         match self {
             Self::Future(_) => write!(f, "Action::Future"),
             Self::Clipboard(action) => {
-                write!(f, "Action::Clipboard({:?})", action)
+                write!(f, "Action::Clipboard({action:?})")
             }
             Self::IME(action) => {
                 write!(f, "Action::IME({:?})", action)
             }
-            Self::Window(action) => write!(f, "Action::Window({:?})", action),
-            Self::System(action) => write!(f, "Action::System({:?})", action),
+            Self::Window(action) => write!(f, "Action::Window({action:?})"),
+            Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
         }
     }

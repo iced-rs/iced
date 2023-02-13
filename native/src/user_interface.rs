@@ -6,7 +6,9 @@ use crate::renderer;
 use crate::widget;
 use crate::window;
 use crate::{application, IME};
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -205,7 +207,7 @@ where
             let bounds = self.bounds;
 
             let mut overlay = manual_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds);
+            let mut layout = overlay.layout(renderer, bounds, Vector::ZERO);
             let mut event_statuses = Vec::new();
 
             for event in events.iter().cloned() {
@@ -255,7 +257,7 @@ where
                     overlay = manual_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|| {
-                        layout = overlay.layout(renderer, bounds);
+                        layout = overlay.layout(renderer, bounds, Vector::ZERO);
                     });
                 }
 
@@ -264,7 +266,11 @@ where
                 }
             }
 
-            let base_cursor = if layout.bounds().contains(cursor_position) {
+            let base_cursor = if manual_overlay
+                .as_ref()
+                .unwrap()
+                .is_over(Layout::new(&layout), cursor_position)
+            {
                 // TODO: Type-safe cursor availability
                 Point::new(-1.0, -1.0)
             } else {
@@ -437,10 +443,9 @@ where
             .as_widget_mut()
             .overlay(&mut self.state, Layout::new(&self.base), renderer)
         {
-            let overlay_layout = self
-                .overlay
-                .take()
-                .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
+            let overlay_layout = self.overlay.take().unwrap_or_else(|| {
+                overlay.layout(renderer, self.bounds, Vector::ZERO)
+            });
 
             let new_cursor_position =
                 if overlay_layout.bounds().contains(cursor_position) {
@@ -511,7 +516,8 @@ where
                             );
                         });
 
-                        if overlay_bounds.contains(cursor_position) {
+                        if overlay.is_over(Layout::new(layout), cursor_position)
+                        {
                             overlay_interaction
                         } else {
                             base_interaction
@@ -540,7 +546,8 @@ where
             renderer,
         ) {
             if self.overlay.is_none() {
-                self.overlay = Some(overlay.layout(renderer, self.bounds));
+                self.overlay =
+                    Some(overlay.layout(renderer, self.bounds, Vector::ZERO));
             }
 
             overlay.operate(
