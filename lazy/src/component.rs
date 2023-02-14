@@ -311,6 +311,8 @@ where
         }
 
         self.with_element(|element| {
+            tree.diff_children(std::slice::from_ref(&element));
+
             element.as_widget().operate(
                 &mut tree.children[0],
                 layout,
