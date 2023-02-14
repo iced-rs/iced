@@ -224,7 +224,7 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
-            tree.state.downcast_ref::<State<T>>(),
+            || tree.state.downcast_ref::<State<T>>(),
         )
     }
 
@@ -322,32 +322,6 @@ pub enum Handle<Font> {
 impl<Font> Default for Handle<Font> {
     fn default() -> Self {
         Self::Arrow { size: None }
-    }
-}
-
-impl<Font: Clone> Handle<Font> {
-    fn content<Renderer: text::Renderer<Font = Font>>(
-        &self,
-        is_open: bool,
-    ) -> Option<(Font, char, Option<u16>)> {
-        match self {
-            Self::Arrow { size } => {
-                Some((Renderer::ICON_FONT, Renderer::ARROW_DOWN_ICON, *size))
-            }
-            Self::Static(Icon {
-                font,
-                code_point,
-                size,
-            }) => Some((font.clone(), *code_point, *size)),
-            Self::Dynamic { open, closed } => {
-                if is_open {
-                    Some((open.font.clone(), open.code_point, open.size))
-                } else {
-                    Some((closed.font.clone(), closed.code_point, closed.size))
-                }
-            }
-            Self::None => None,
-        }
     }
 }
 
@@ -593,7 +567,7 @@ pub fn draw<'a, T, Renderer>(
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    state: &State<T>,
+    state: impl FnOnce() -> &'a State<T>,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -619,9 +593,26 @@ pub fn draw<'a, T, Renderer>(
         style.background,
     );
 
-    if let Some((font, code_point, size)) =
-        handle.content::<Renderer>(state.is_open)
-    {
+    let handle = match handle {
+        Handle::Arrow { size } => {
+            Some((Renderer::ICON_FONT, Renderer::ARROW_DOWN_ICON, *size))
+        }
+        Handle::Static(Icon {
+            font,
+            code_point,
+            size,
+        }) => Some((font.clone(), *code_point, *size)),
+        Handle::Dynamic { open, closed } => {
+            if state().is_open {
+                Some((open.font.clone(), open.code_point, open.size))
+            } else {
+                Some((closed.font.clone(), closed.code_point, closed.size))
+            }
+        }
+        Handle::None => None,
+    };
+
+    if let Some((font, code_point, size)) = handle {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
