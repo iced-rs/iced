@@ -224,7 +224,7 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
-            || tree.state.downcast_ref::<State<T>>(),
+            tree.state.downcast_ref::<State<T>>(),
         )
     }
 
@@ -593,13 +593,12 @@ pub fn draw<'a, T, Renderer>(
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    state: impl FnOnce() -> &'a State<T>,
+    state: &State<T>,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
     T: ToString + 'a,
 {
-    let state = state();
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
     let is_selected = selected.is_some();
