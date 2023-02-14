@@ -20,49 +20,20 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
-/// The content of the [`Handle`].
-#[derive(Clone)]
-pub struct HandleContent<Renderer>
-where
-    Renderer: text::Renderer,
-{
+/// The icon of a [`Handle`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Icon<Font> {
     /// Font that will be used to display the `text`,
-    pub font: Renderer::Font,
+    pub font: Font,
     /// Text that will be shown.
     pub text: String,
     /// Font size of the content.
     pub size: Option<u16>,
 }
 
-impl<Renderer> std::fmt::Debug for HandleContent<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("HandleIcon")
-            .field("text", &self.text)
-            .field("size", &self.size)
-            .finish()
-    }
-}
-
-impl<Renderer> PartialEq for HandleContent<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn eq(&self, other: &Self) -> bool {
-        self.text.eq(&other.text) && self.size.eq(&other.size)
-    }
-}
-
-impl<Renderer> Eq for HandleContent<Renderer> where Renderer: text::Renderer {}
-
 /// The handle to the right side of the [`PickList`].
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
+pub enum Handle<Font> {
     /// Displays an arrow icon (▼).
     ///
     /// This is the default.
@@ -71,42 +42,36 @@ where
         size: Option<u16>,
     },
     /// A custom static handle.
-    Static(HandleContent<Renderer>),
+    Static(Icon<Font>),
     /// A custom dynamic handle.
     Dynamic {
-        /// The [`HandleContent`] used when [`PickList`] is closed.
-        closed: HandleContent<Renderer>,
-        /// The [`HandleContent`] used when [`PickList`] is open.
-        open: HandleContent<Renderer>,
+        /// The [`Icon`] used when [`PickList`] is closed.
+        closed: Icon<Font>,
+        /// The [`Icon`] used when [`PickList`] is open.
+        open: Icon<Font>,
     },
     /// No handle will be shown.
     None,
 }
 
-impl<Renderer> Default for Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
+impl<Font> Default for Handle<Font> {
     fn default() -> Self {
         Self::Arrow { size: None }
     }
 }
 
-impl<Renderer> Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn content(
+impl<Font: Clone> Handle<Font> {
+    fn content<Renderer: text::Renderer<Font = Font>>(
         &self,
         is_open: bool,
-    ) -> Option<(Renderer::Font, String, Option<u16>)> {
+    ) -> Option<(Font, String, Option<u16>)> {
         match self {
             Self::Arrow { size } => Some((
                 Renderer::ICON_FONT,
                 Renderer::ARROW_DOWN_ICON.to_string(),
                 *size,
             )),
-            Self::Static(HandleContent { font, text, size }) => {
+            Self::Static(Icon { font, text, size }) => {
                 Some((font.clone(), text.clone(), *size))
             }
             Self::Dynamic { open, closed } => {
@@ -141,7 +106,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    handle: Handle<Renderer>,
+    handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -212,7 +177,7 @@ where
     }
 
     /// Sets the [`Handle`] of the [`PickList`].
-    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
+    pub fn handle(mut self, handle: Handle<Renderer::Font>) -> Self {
         self.handle = handle;
         self
     }
@@ -630,7 +595,7 @@ pub fn draw<'a, T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    handle: &Handle<Renderer>,
+    handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State<T>,
 ) where
@@ -659,7 +624,8 @@ pub fn draw<'a, T, Renderer>(
         style.background,
     );
 
-    if let Some((font, text, size)) = handle.content(state.is_open) {
+    if let Some((font, text, size)) = handle.content::<Renderer>(state.is_open)
+    {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
