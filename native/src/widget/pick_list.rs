@@ -20,76 +20,6 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
-/// The icon of a [`Handle`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Icon<Font> {
-    /// Font that will be used to display the `text`,
-    pub font: Font,
-    /// Text that will be shown.
-    pub text: String,
-    /// Font size of the content.
-    pub size: Option<u16>,
-}
-
-/// The handle to the right side of the [`PickList`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Handle<Font> {
-    /// Displays an arrow icon (▼).
-    ///
-    /// This is the default.
-    Arrow {
-        /// Font size of the content.
-        size: Option<u16>,
-    },
-    /// A custom static handle.
-    Static(Icon<Font>),
-    /// A custom dynamic handle.
-    Dynamic {
-        /// The [`Icon`] used when [`PickList`] is closed.
-        closed: Icon<Font>,
-        /// The [`Icon`] used when [`PickList`] is open.
-        open: Icon<Font>,
-    },
-    /// No handle will be shown.
-    None,
-}
-
-impl<Font> Default for Handle<Font> {
-    fn default() -> Self {
-        Self::Arrow { size: None }
-    }
-}
-
-impl<Font: Clone> Handle<Font> {
-    fn content<Renderer: text::Renderer<Font = Font>>(
-        &self,
-        is_open: bool,
-    ) -> Option<(Font, String, Option<u16>)> {
-        match self {
-            Self::Arrow { size } => Some((
-                Renderer::ICON_FONT,
-                Renderer::ARROW_DOWN_ICON.to_string(),
-                *size,
-            )),
-            Self::Static(Icon { font, text, size }) => {
-                Some((font.clone(), text.clone(), *size))
-            }
-            Self::Dynamic { open, closed } => {
-                if is_open {
-                    Some((open.font.clone(), open.text.clone(), open.size))
-                } else {
-                    Some((
-                        closed.font.clone(),
-                        closed.text.clone(),
-                        closed.size,
-                    ))
-                }
-            }
-            Self::None => None,
-        }
-    }
-}
-
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
 pub struct PickList<'a, T, Message, Renderer>
@@ -364,6 +294,76 @@ impl<T> Default for State<T> {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The handle to the right side of the [`PickList`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Handle<Font> {
+    /// Displays an arrow icon (▼).
+    ///
+    /// This is the default.
+    Arrow {
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// A custom static handle.
+    Static(Icon<Font>),
+    /// A custom dynamic handle.
+    Dynamic {
+        /// The [`Icon`] used when [`PickList`] is closed.
+        closed: Icon<Font>,
+        /// The [`Icon`] used when [`PickList`] is open.
+        open: Icon<Font>,
+    },
+    /// No handle will be shown.
+    None,
+}
+
+impl<Font> Default for Handle<Font> {
+    fn default() -> Self {
+        Self::Arrow { size: None }
+    }
+}
+
+impl<Font: Clone> Handle<Font> {
+    fn content<Renderer: text::Renderer<Font = Font>>(
+        &self,
+        is_open: bool,
+    ) -> Option<(Font, String, Option<u16>)> {
+        match self {
+            Self::Arrow { size } => Some((
+                Renderer::ICON_FONT,
+                Renderer::ARROW_DOWN_ICON.to_string(),
+                *size,
+            )),
+            Self::Static(Icon { font, text, size }) => {
+                Some((font.clone(), text.clone(), *size))
+            }
+            Self::Dynamic { open, closed } => {
+                if is_open {
+                    Some((open.font.clone(), open.text.clone(), open.size))
+                } else {
+                    Some((
+                        closed.font.clone(),
+                        closed.text.clone(),
+                        closed.size,
+                    ))
+                }
+            }
+            Self::None => None,
+        }
+    }
+}
+
+/// The icon of a [`Handle`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Icon<Font> {
+    /// Font that will be used to display the `text`,
+    pub font: Font,
+    /// Text that will be shown.
+    pub text: String,
+    /// Font size of the content.
+    pub size: Option<u16>,
 }
 
 /// Computes the layout of a [`PickList`].
