@@ -329,25 +329,21 @@ impl<Font: Clone> Handle<Font> {
     fn content<Renderer: text::Renderer<Font = Font>>(
         &self,
         is_open: bool,
-    ) -> Option<(Font, String, Option<u16>)> {
+    ) -> Option<(Font, char, Option<u16>)> {
         match self {
-            Self::Arrow { size } => Some((
-                Renderer::ICON_FONT,
-                Renderer::ARROW_DOWN_ICON.to_string(),
-                *size,
-            )),
-            Self::Static(Icon { font, text, size }) => {
-                Some((font.clone(), text.clone(), *size))
+            Self::Arrow { size } => {
+                Some((Renderer::ICON_FONT, Renderer::ARROW_DOWN_ICON, *size))
             }
+            Self::Static(Icon {
+                font,
+                code_point,
+                size,
+            }) => Some((font.clone(), *code_point, *size)),
             Self::Dynamic { open, closed } => {
                 if is_open {
-                    Some((open.font.clone(), open.text.clone(), open.size))
+                    Some((open.font.clone(), open.code_point, open.size))
                 } else {
-                    Some((
-                        closed.font.clone(),
-                        closed.text.clone(),
-                        closed.size,
-                    ))
+                    Some((closed.font.clone(), closed.code_point, closed.size))
                 }
             }
             Self::None => None,
@@ -358,10 +354,10 @@ impl<Font: Clone> Handle<Font> {
 /// The icon of a [`Handle`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Icon<Font> {
-    /// Font that will be used to display the `text`,
+    /// Font that will be used to display the `code_point`,
     pub font: Font,
-    /// Text that will be shown.
-    pub text: String,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
     /// Font size of the content.
     pub size: Option<u16>,
 }
@@ -624,12 +620,13 @@ pub fn draw<'a, T, Renderer>(
         style.background,
     );
 
-    if let Some((font, text, size)) = handle.content::<Renderer>(state.is_open)
+    if let Some((font, code_point, size)) =
+        handle.content::<Renderer>(state.is_open)
     {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
-            content: &text,
+            content: &code_point.to_string(),
             size,
             font,
             color: style.handle_color,
