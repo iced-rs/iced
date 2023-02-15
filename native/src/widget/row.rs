@@ -7,7 +7,7 @@ use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
     Alignment, Clipboard, Element, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Widget,
+    Shell, Size, Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -127,7 +127,28 @@ where
             self.spacing,
             self.align_items,
             &mut self.children,
+            layout::flex::LayoutMode::PerformLayout,
         )
+    }
+
+    fn measure(
+        &mut self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> Size {
+        let limits = limits.width(self.width).height(self.height);
+
+        layout::flex::resolve(
+            layout::flex::Axis::Horizontal,
+            renderer,
+            &limits,
+            self.padding,
+            self.spacing as f32,
+            self.align_items,
+            &mut self.children,
+            layout::flex::LayoutMode::MeasureSize,
+        )
+        .size()
     }
 
     fn operate(

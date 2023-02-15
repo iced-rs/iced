@@ -54,6 +54,15 @@ impl Axis {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Whether a full (recursive) layout should be performed or the size of the container measured
+pub enum LayoutMode {
+    /// Only the size of the container needs to be measured
+    MeasureSize,
+    /// A full recursive layout should be performed
+    PerformLayout,
+}
+
 /// Computes the flex layout with the given axis and limits, applying spacing,
 /// padding and alignment to the items as needed.
 ///
@@ -66,6 +75,7 @@ pub fn resolve<Message, Renderer>(
     spacing: f32,
     align_items: Alignment,
     items: &mut [Element<'_, Message, Renderer>],
+    mode: LayoutMode,
 ) -> Node
 where
     Renderer: crate::Renderer,
@@ -97,9 +107,8 @@ where
                 let child_limits =
                     Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-                let layout =
-                    child.as_widget_mut().layout(renderer, &child_limits);
-                let size = layout.size();
+                let size =
+                    child.as_widget_mut().measure(renderer, &child_limits);
 
                 fill_cross = fill_cross.max(axis.cross(size));
             }
@@ -133,16 +142,27 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.as_widget_mut().layout(renderer, &child_limits);
-            let size = layout.size();
+            let size = match mode {
+                LayoutMode::MeasureSize => {
+                    let size =
+                        child.as_widget_mut().measure(renderer, &child_limits);
+                    nodes[i] = Node::new(size);
+                    size
+                }
+                LayoutMode::PerformLayout => {
+                    let layout =
+                        child.as_widget_mut().layout(renderer, &child_limits);
+                    let size = layout.size();
+                    nodes[i] = layout;
+                    size
+                }
+            };
 
             available -= axis.main(size);
 
             if align_items != Alignment::Fill {
                 cross = cross.max(axis.cross(size));
             }
-
-            nodes[i] = layout;
         } else {
             fill_sum += fill_factor;
         }
@@ -182,13 +202,25 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.as_widget_mut().layout(renderer, &child_limits);
+            let size = match mode {
+                LayoutMode::MeasureSize => {
+                    let size =
+                        child.as_widget_mut().measure(renderer, &child_limits);
+                    nodes[i] = Node::new(size);
+                    size
+                }
+                LayoutMode::PerformLayout => {
+                    let layout =
+                        child.as_widget_mut().layout(renderer, &child_limits);
+                    let size = layout.size();
+                    nodes[i] = layout;
+                    size
+                }
+            };
 
             if align_items != Alignment::Fill {
-                cross = cross.max(axis.cross(layout.size()));
+                cross = cross.max(axis.cross(size));
             }
-
-            nodes[i] = layout;
         }
     }
 

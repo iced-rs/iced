@@ -6,7 +6,7 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
+    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Size, Widget,
 };
 
 use std::any::Any;
@@ -285,6 +285,14 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         self.widget.layout(renderer, limits)
+    }
+
+    fn measure(
+        &mut self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> Size {
+        self.widget.measure(renderer, limits)
     }
 
     fn operate(
