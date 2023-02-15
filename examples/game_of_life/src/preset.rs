@@ -1,6 +1,7 @@
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Preset {
     Custom,
+    #[default]
     Xkcd,
     Glider,
     SmallExploder,
@@ -111,12 +112,6 @@ impl Preset {
                     })
             })
             .collect()
-    }
-}
-
-impl Default for Preset {
-    fn default() -> Preset {
-        Preset::Xkcd
     }
 }
 

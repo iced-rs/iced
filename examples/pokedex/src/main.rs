@@ -41,7 +41,7 @@ impl Application for Pokedex {
             Pokedex::Errored { .. } => "Whoops!",
         };
 
-        format!("{} - Pokédex", subtitle)
+        format!("{subtitle} - Pokédex")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -157,8 +157,7 @@ impl Pokemon {
         };
 
         let fetch_entry = async {
-            let url =
-                format!("https://pokeapi.co/api/v2/pokemon-species/{}", id);
+            let url = format!("https://pokeapi.co/api/v2/pokemon-species/{id}");
 
             reqwest::get(&url).await?.json().await
         };
@@ -187,8 +186,7 @@ impl Pokemon {
 
     async fn fetch_image(id: u16) -> Result<image::Handle, reqwest::Error> {
         let url = format!(
-            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{}.png",
-            id
+            "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/{id}.png"
         );
 
         #[cfg(not(target_arch = "wasm32"))]

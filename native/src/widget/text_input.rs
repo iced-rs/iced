@@ -389,8 +389,8 @@ where
     let padding = padding.fit(Size::ZERO, limits.max());
 
     let limits = limits
-        .pad(padding)
         .width(width)
+        .pad(padding)
         .height(Length::Units(text_size));
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));

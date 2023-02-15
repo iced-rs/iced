@@ -1,0 +1,10 @@
+[package]
+name = "toast"
+version = "0.1.0"
+authors = ["tarkah <admin@tarkah.dev>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = [] }
+iced_native = { path = "../../native" }

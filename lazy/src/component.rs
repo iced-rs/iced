@@ -227,6 +227,10 @@ where
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
+        if let Some(redraw_request) = local_shell.redraw_request() {
+            shell.request_redraw(redraw_request);
+        }
+
         if !local_messages.is_empty() {
             let mut heads = self.state.take().unwrap().into_heads();
 
@@ -307,6 +311,8 @@ where
         }
 
         self.with_element(|element| {
+            tree.diff_children(std::slice::from_ref(&element));
+
             element.as_widget().operate(
                 &mut tree.children[0],
                 layout,
@@ -451,9 +457,9 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let vector = position - overlay.position();
+            let translation = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, translation)
         })
         .unwrap_or_default()
     }
@@ -558,5 +564,12 @@ where
         }
 
         event_status
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
     }
 }

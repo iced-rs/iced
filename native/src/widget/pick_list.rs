@@ -20,60 +20,6 @@ use std::borrow::Cow;
 
 pub use iced_style::pick_list::{Appearance, StyleSheet};
 
-/// The handle to the right side of the [`PickList`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    /// Displays an arrow icon (▼).
-    ///
-    /// This is the default.
-    Arrow {
-        /// Font size of the content.
-        size: Option<u16>,
-    },
-    /// A custom handle.
-    Custom {
-        /// Font that will be used to display the `text`,
-        font: Renderer::Font,
-        /// Text that will be shown.
-        text: String,
-        /// Font size of the content.
-        size: Option<u16>,
-    },
-    /// No handle will be shown.
-    None,
-}
-
-impl<Renderer> Default for Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn default() -> Self {
-        Self::Arrow { size: None }
-    }
-}
-
-impl<Renderer> Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn content(&self) -> Option<(Renderer::Font, String, Option<u16>)> {
-        match self {
-            Self::Arrow { size } => Some((
-                Renderer::ICON_FONT,
-                Renderer::ARROW_DOWN_ICON.to_string(),
-                *size,
-            )),
-            Self::Custom { font, text, size } => {
-                Some((font.clone(), text.clone(), *size))
-            }
-            Self::None => None,
-        }
-    }
-}
-
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
 pub struct PickList<'a, T, Message, Renderer>
@@ -90,7 +36,7 @@ where
     padding: Padding,
     text_size: Option<u16>,
     font: Renderer::Font,
-    handle: Handle<Renderer>,
+    handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -161,7 +107,7 @@ where
     }
 
     /// Sets the [`Handle`] of the [`PickList`].
-    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
+    pub fn handle(mut self, handle: Handle<Renderer::Font>) -> Self {
         self.handle = handle;
         self
     }
@@ -258,7 +204,7 @@ where
 
     fn draw(
         &self,
-        _tree: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,
@@ -278,6 +224,7 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
+            || tree.state.downcast_ref::<State<T>>(),
         )
     }
 
@@ -347,6 +294,46 @@ impl<T> Default for State<T> {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// The handle to the right side of the [`PickList`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Handle<Font> {
+    /// Displays an arrow icon (▼).
+    ///
+    /// This is the default.
+    Arrow {
+        /// Font size of the content.
+        size: Option<u16>,
+    },
+    /// A custom static handle.
+    Static(Icon<Font>),
+    /// A custom dynamic handle.
+    Dynamic {
+        /// The [`Icon`] used when [`PickList`] is closed.
+        closed: Icon<Font>,
+        /// The [`Icon`] used when [`PickList`] is open.
+        open: Icon<Font>,
+    },
+    /// No handle will be shown.
+    None,
+}
+
+impl<Font> Default for Handle<Font> {
+    fn default() -> Self {
+        Self::Arrow { size: None }
+    }
+}
+
+/// The icon of a [`Handle`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Icon<Font> {
+    /// Font that will be used to display the `code_point`,
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
+    /// Font size of the content.
+    pub size: Option<u16>,
 }
 
 /// Computes the layout of a [`PickList`].
@@ -568,7 +555,7 @@ where
 }
 
 /// Draws a [`PickList`].
-pub fn draw<T, Renderer>(
+pub fn draw<'a, T, Renderer>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     layout: Layout<'_>,
@@ -578,12 +565,13 @@ pub fn draw<T, Renderer>(
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
-    handle: &Handle<Renderer>,
+    handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    state: impl FnOnce() -> &'a State<T>,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
-    T: ToString,
+    T: ToString + 'a,
 {
     let bounds = layout.bounds();
     let is_mouse_over = bounds.contains(cursor_position);
@@ -605,11 +593,30 @@ pub fn draw<T, Renderer>(
         style.background,
     );
 
-    if let Some((font, text, size)) = handle.content() {
+    let handle = match handle {
+        Handle::Arrow { size } => {
+            Some((Renderer::ICON_FONT, Renderer::ARROW_DOWN_ICON, *size))
+        }
+        Handle::Static(Icon {
+            font,
+            code_point,
+            size,
+        }) => Some((font.clone(), *code_point, *size)),
+        Handle::Dynamic { open, closed } => {
+            if state().is_open {
+                Some((open.font.clone(), open.code_point, open.size))
+            } else {
+                Some((closed.font.clone(), closed.code_point, closed.size))
+            }
+        }
+        Handle::None => None,
+    };
+
+    if let Some((font, code_point, size)) = handle {
         let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
 
         renderer.fill_text(Text {
-            content: &text,
+            content: &code_point.to_string(),
             size,
             font,
             color: style.handle_color,

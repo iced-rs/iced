@@ -10,6 +10,7 @@ impl crate::Executor for Executor {
         Ok(Self)
     }
 
+    #[allow(clippy::let_underscore_future)]
     fn spawn(&self, future: impl Future<Output = ()> + Send + 'static) {
         let _ = async_std::task::spawn(future);
     }

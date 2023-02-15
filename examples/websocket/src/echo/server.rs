@@ -41,7 +41,7 @@ async fn user_connected(ws: WebSocket) {
     tokio::task::spawn(async move {
         while let Some(message) = rx.next().await {
             user_ws_tx.send(message).await.unwrap_or_else(|e| {
-                eprintln!("websocket send error: {}", e);
+                eprintln!("websocket send error: {e}");
             });
         }
     });

@@ -25,6 +25,11 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
+    /// Returns true if the [`Shell`] contains no published messages
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
     /// Publish the given `Message` for an application to process it.
     pub fn publish(&mut self, message: Message) {
         self.messages.push(message);
