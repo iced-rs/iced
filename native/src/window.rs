@@ -21,6 +21,7 @@ pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
 use crate::time::Instant;
+use crate::window;
 
 /// Subscribes to the frames of the window of the running application.
 ///
@@ -42,6 +43,8 @@ pub fn frames() -> Subscription<Frame> {
 /// The returned `Frame` for a framerate subscription.
 #[derive(Debug)]
 pub struct Frame {
+    /// The `window::Id` that the `Frame` was produced in.
     pub id: Id,
+    /// The `Instant` at which the frame was produced.
     pub at: Instant,
 }

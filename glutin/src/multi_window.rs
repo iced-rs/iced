@@ -34,6 +34,7 @@ use std::num::NonZeroU32;
 
 #[cfg(feature = "tracing")]
 use tracing::{info_span, instrument::Instrument};
+use iced_native::widget::operation;
 
 #[allow(unsafe_code)]
 const ONE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
@@ -294,7 +295,7 @@ where
         );
 
         #[cfg(feature = "tracing")]
-            let run_instance =
+        let run_instance =
             run_instance.instrument(info_span!("Application", "LOOP"));
 
         run_instance
@@ -380,7 +381,7 @@ async fn run_instance<A, E, C>(
 
     let mut clipboard =
         Clipboard::connect(windows.values().next().expect("No window found"));
-    let mut cache = user_interface::Cache::default();
+    let mut caches = HashMap::new();
     let mut current_context_window = None;
     let mut window_ids: HashMap<_, _> = windows
         .iter()
@@ -422,23 +423,20 @@ async fn run_instance<A, E, C>(
         let _ = interfaces.insert(id, user_interface);
     }
 
-    {
-        let state = states.values().next().expect("No state found.");
+    run_command(
+        &application,
+        &mut caches,
+        &states,
+        &mut renderer,
+        init_command,
+        &mut runtime,
+        &mut clipboard,
+        &mut proxy,
+        &mut debug,
+        &windows,
+        || compositor.fetch_information(),
+    );
 
-        run_command(
-            &application,
-            &mut cache,
-            state,
-            &mut renderer,
-            init_command,
-            &mut runtime,
-            &mut clipboard,
-            &mut proxy,
-            &mut debug,
-            &windows,
-            || compositor.fetch_information(),
-        );
-    }
     runtime.track(application.subscription().map(Event::Application));
 
     let mut mouse_interaction = mouse::Interaction::default();
@@ -501,8 +499,7 @@ async fn run_instance<A, E, C>(
                             user_interface::State::Outdated
                         )
                     {
-                        let state = &mut states.get_mut(&id).unwrap();
-                        let pure_states: HashMap<_, _> =
+                        let user_interfaces: HashMap<_, _> =
                             ManuallyDrop::into_inner(interfaces)
                                 .drain()
                                 .map(|(id, interface)| {
@@ -513,8 +510,8 @@ async fn run_instance<A, E, C>(
                         // Update application
                         update(
                             &mut application,
-                            &mut cache,
-                            state,
+                            &mut caches,
+                            &states,
                             &mut renderer,
                             &mut runtime,
                             &mut clipboard,
@@ -526,7 +523,7 @@ async fn run_instance<A, E, C>(
                         );
 
                         // Update window
-                        state.synchronize(
+                        states.get_mut(&id).unwrap().synchronize(
                             &application,
                             id,
                             windows.get(&id).expect("No window found with ID."),
@@ -539,7 +536,7 @@ async fn run_instance<A, E, C>(
                             &mut renderer,
                             &mut debug,
                             &states,
-                            pure_states,
+                            user_interfaces,
                         ));
 
                         if should_exit {
@@ -590,7 +587,8 @@ async fn run_instance<A, E, C>(
             event::Event::UserEvent(event) => match event {
                 Event::Application(message) => messages.push(message),
                 Event::WindowCreated(id, window) => {
-                    let state = multi_window::State::new(&application, id, &window);
+                    let state =
+                        multi_window::State::new(&application, id, &window);
                     let user_interface = multi_window::build_user_interface(
                         &application,
                         user_interface::Cache::default(),
@@ -768,7 +766,10 @@ async fn run_instance<A, E, C>(
                             ));
                         }
                     } else {
-                        log::error!("Window state not found for id: {:?}", window_id);
+                        log::error!(
+                            "Window state not found for id: {:?}",
+                            window_id
+                        );
                     }
                 } else {
                     log::error!("Window not found for id: {:?}", window_id);
@@ -786,8 +787,8 @@ async fn run_instance<A, E, C>(
 /// resulting [`Command`], and tracking its [`Subscription`].
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
-    cache: &mut user_interface::Cache,
-    state: &multi_window::State<A>,
+    caches: &mut HashMap<window::Id, user_interface::Cache>,
+    states: &HashMap<window::Id, multi_window::State<A>>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     clipboard: &mut Clipboard,
@@ -797,6 +798,7 @@ pub fn update<A: Application, E: Executor>(
     windows: &HashMap<window::Id, winit::window::Window>,
     graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
 ) where
+    A: Application + 'static,
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
@@ -808,8 +810,8 @@ pub fn update<A: Application, E: Executor>(
 
         run_command(
             application,
-            cache,
-            state,
+            caches,
+            &states,
             renderer,
             command,
             runtime,
@@ -828,8 +830,8 @@ pub fn update<A: Application, E: Executor>(
 /// Runs the actions of a [`Command`].
 pub fn run_command<A, E>(
     application: &A,
-    cache: &mut user_interface::Cache,
-    state: &multi_window::State<A>,
+    caches: &mut HashMap<window::Id, user_interface::Cache>,
+    states: &HashMap<window::Id, multi_window::State<A>>,
     renderer: &mut A::Renderer,
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
@@ -839,7 +841,7 @@ pub fn run_command<A, E>(
     windows: &HashMap<window::Id, winit::window::Window>,
     _graphics_info: impl FnOnce() -> iced_graphics::compositor::Information + Copy,
 ) where
-    A: Application,
+    A: Application + 'static,
     E: Executor,
     <A::Renderer as crate::Renderer>::Theme: StyleSheet,
 {
@@ -967,38 +969,42 @@ pub fn run_command<A, E>(
                 }
             },
             command::Action::Widget(action) => {
-                use crate::widget::operation;
-
-                let mut current_cache = std::mem::take(cache);
+                let mut current_caches = std::mem::take(caches);
                 let mut current_operation = Some(action.into_operation());
 
-                let mut user_interface = multi_window::build_user_interface(
+                let mut user_interfaces = multi_window::build_user_interfaces(
                     application,
-                    current_cache,
                     renderer,
-                    state.logical_size(),
                     debug,
-                    window::Id::MAIN, // TODO(derezzedex): run the operation on every widget tree
+                    states,
+                    current_caches,
                 );
 
                 while let Some(mut operation) = current_operation.take() {
-                    user_interface.operate(renderer, operation.as_mut());
+                    for user_interface in user_interfaces.values_mut() {
+                        user_interface.operate(renderer, operation.as_mut());
 
-                    match operation.finish() {
-                        operation::Outcome::None => {}
-                        operation::Outcome::Some(message) => {
-                            proxy
-                                .send_event(Event::Application(message))
-                                .expect("Send message to event loop");
-                        }
-                        operation::Outcome::Chain(next) => {
-                            current_operation = Some(next);
+                        match operation.finish() {
+                            operation::Outcome::None => {}
+                            operation::Outcome::Some(message) => {
+                                proxy
+                                    .send_event(Event::Application(message))
+                                    .expect("Send message to event loop");
+                            }
+                            operation::Outcome::Chain(next) => {
+                                current_operation = Some(next);
+                            }
                         }
                     }
                 }
 
-                current_cache = user_interface.into_cache();
-                *cache = current_cache;
+                let user_interfaces: HashMap<_, _> = user_interfaces
+                    .drain()
+                    .map(|(id, interface)| (id, interface.into_cache()))
+                    .collect();
+
+                current_caches = user_interfaces;
+                *caches = current_caches;
             }
         }
     }
@@ -1010,7 +1016,7 @@ pub fn build_user_interfaces<'a, A>(
     renderer: &mut A::Renderer,
     debug: &mut Debug,
     states: &HashMap<window::Id, multi_window::State<A>>,
-    mut pure_states: HashMap<window::Id, user_interface::Cache>,
+    mut user_interfaces: HashMap<window::Id, user_interface::Cache>,
 ) -> HashMap<
     window::Id,
     iced_winit::UserInterface<
@@ -1025,7 +1031,7 @@ where
 {
     let mut interfaces = HashMap::new();
 
-    for (id, pure_state) in pure_states.drain() {
+    for (id, pure_state) in user_interfaces.drain() {
         let state = &states.get(&id).unwrap();
 
         let user_interface = multi_window::build_user_interface(

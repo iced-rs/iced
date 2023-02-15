@@ -12,6 +12,7 @@ use iced::{Color, Command, Element, Length, Settings, Size, Subscription};
 use iced_lazy::responsive;
 use iced_native::{event, subscription, Event};
 
+use iced_native::widget::scrollable::{Properties, RelativeOffset};
 use iced_native::window::Id;
 use std::collections::HashMap;
 
@@ -56,6 +57,7 @@ enum WindowMessage {
     CloseFocused,
     SelectedWindow(pane_grid::Pane, SelectableWindow),
     CloseWindow,
+    SnapToggle,
 }
 
 impl Application for Example {
@@ -94,6 +96,25 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         let Message::Window(id, message) = message;
         match message {
+            WindowMessage::SnapToggle => {
+                let window = self.windows.get_mut(&id).unwrap();
+
+                if let Some(focused) = &window.focus {
+                    let pane = window.panes.get_mut(focused).unwrap();
+
+                    let cmd = scrollable::snap_to(
+                        pane.scrollable_id.clone(),
+                        if pane.snapped {
+                            RelativeOffset::START
+                        } else {
+                            RelativeOffset::END
+                        },
+                    );
+
+                    pane.snapped = !pane.snapped;
+                    return cmd;
+                }
+            }
             WindowMessage::Split(axis, pane) => {
                 let window = self.windows.get_mut(&id).unwrap();
                 let result = window.panes.split(
@@ -311,7 +332,13 @@ impl Application for Example {
                     });
 
                 pane_grid::Content::new(responsive(move |size| {
-                    view_content(id, total_panes, pane.is_pinned, size)
+                    view_content(
+                        id,
+                        pane.scrollable_id.clone(),
+                        total_panes,
+                        pane.is_pinned,
+                        size,
+                    )
                 }))
                 .title_bar(title_bar)
                 .style(if is_focused {
@@ -403,24 +430,29 @@ impl std::fmt::Display for SelectableWindow {
 #[derive(Debug)]
 struct Pane {
     id: usize,
+    pub scrollable_id: scrollable::Id,
     pub axis: pane_grid::Axis,
     pub is_pinned: bool,
     pub is_moving: bool,
+    pub snapped: bool,
 }
 
 impl Pane {
     fn new(id: usize, axis: pane_grid::Axis) -> Self {
         Self {
             id,
+            scrollable_id: scrollable::Id::new(format!("{:?}", id)),
             axis,
             is_pinned: false,
             is_moving: false,
+            snapped: false,
         }
     }
 }
 
 fn view_content<'a>(
     pane: pane_grid::Pane,
+    scrollable_id: scrollable::Id,
     total_panes: usize,
     is_pinned: bool,
     size: Size,
@@ -445,7 +477,8 @@ fn view_content<'a>(
         button(
             "Split vertically",
             WindowMessage::Split(pane_grid::Axis::Vertical, pane),
-        )
+        ),
+        button("Snap", WindowMessage::SnapToggle,)
     ]
     .spacing(5)
     .max_width(150);
@@ -462,15 +495,22 @@ fn view_content<'a>(
         controls,
     ]
     .width(Length::Fill)
+    .height(Length::Units(800))
     .spacing(10)
     .align_items(Alignment::Center);
 
-    container(scrollable(content))
+    Element::from(
+        container(
+            scrollable(content)
+                .vertical_scroll(Properties::new())
+                .id(scrollable_id),
+        )
         .width(Length::Fill)
         .height(Length::Fill)
         .padding(5)
-        .center_y()
-        .into()
+        .center_y(),
+    )
+    .explain(Color::default())
 }
 
 fn view_controls<'a>(
