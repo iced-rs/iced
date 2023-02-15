@@ -957,7 +957,7 @@ pub fn run_command<A, E>(
                         y,
                     });
                 }
-                window::Action::SetMode(mode) => {
+                window::Action::ChangeMode(mode) => {
                     let window = windows.get(&id).expect("No window found");
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(

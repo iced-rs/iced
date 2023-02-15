@@ -60,7 +60,7 @@ pub fn move_to<Message>(id: window::Id, x: i32, y: i32) -> Command<Message> {
 
 /// Changes the [`Mode`] of the window.
 pub fn change_mode<Message>(id: window::Id, mode: Mode) -> Command<Message> {
-    Command::single(command::Action::Window(id, window::Action::SetMode(mode)))
+    Command::single(command::Action::Window(id, window::Action::ChangeMode(mode)))
 }
 
 /// Fetches the current [`Mode`] of the window.

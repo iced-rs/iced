@@ -1,4 +1,4 @@
-use crate::window::{Mode, UserAttention};
+use crate::window::{Mode, UserAttention, Settings};
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -16,7 +16,7 @@ pub enum Action<T> {
     /// Spawns a new window with the provided [`window::Settings`].
     Spawn {
         /// The settings of the [`Window`].
-        settings: window::Settings,
+        settings: Settings,
     },
     /// Resize the window.
     Resize {
