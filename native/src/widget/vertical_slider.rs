@@ -162,7 +162,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {

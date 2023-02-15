@@ -274,18 +274,20 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let (content_layout, content_iter) =
+            self.contents.layout_and_mut_iterator();
         layout(
             renderer,
             limits,
-            self.contents.layout(),
+            content_layout,
             self.width,
             self.height,
             self.spacing,
-            self.contents.iter(),
+            content_iter,
             |content, renderer, limits| content.layout(renderer, limits),
         )
     }
@@ -981,6 +983,24 @@ impl<'a, T> Contents<'a, T> {
             ),
             Contents::Maximized(pane, content, _) => {
                 Box::new(std::iter::once((*pane, content)))
+            }
+        }
+    }
+
+    fn layout_and_mut_iterator(
+        &mut self,
+    ) -> (&Node, Box<dyn Iterator<Item = (Pane, &mut T)> + '_>) {
+        match self {
+            Contents::All(contents, state) => {
+                let layout = state.layout();
+                let iter = Box::new(
+                    contents.iter_mut().map(|(pane, content)| (*pane, content)),
+                );
+                (layout, iter)
+            }
+            Contents::Maximized(pane, content, layout) => {
+                let iter = Box::new(std::iter::once((*pane, content)));
+                (layout, iter)
             }
         }
     }

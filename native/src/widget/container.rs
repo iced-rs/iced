@@ -151,7 +151,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -166,7 +166,7 @@ where
             self.horizontal_alignment,
             self.vertical_alignment,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
+                self.content.as_widget_mut().layout(renderer, limits)
             },
         )
     }

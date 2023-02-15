@@ -121,7 +121,7 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -137,7 +137,7 @@ where
             self.padding,
             self.spacing,
             self.align_items,
-            &self.children,
+            &mut self.children,
         )
     }
 

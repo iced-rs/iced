@@ -55,10 +55,10 @@ where
 
     fn layout<Message>(
         &mut self,
-        element: &Element<'_, Message, Self>,
+        element: &mut Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.as_widget().layout(self, limits);
+        let layout = element.as_widget_mut().layout(self, limits);
 
         self.backend.trim_measurements();
 

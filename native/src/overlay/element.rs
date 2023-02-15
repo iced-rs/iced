@@ -54,7 +54,7 @@ where
 
     /// Computes the layout of the [`Element`] in the given bounds.
     pub fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         translation: Vector,
@@ -147,7 +147,7 @@ where
     Renderer: crate::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

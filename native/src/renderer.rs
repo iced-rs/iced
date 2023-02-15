@@ -18,10 +18,10 @@ pub trait Renderer: Sized {
     /// after layouting. For instance, trimming the measurements cache.
     fn layout<Message>(
         &mut self,
-        element: &Element<'_, Message, Self>,
+        element: &mut Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        element.as_widget().layout(self, limits)
+        element.as_widget_mut().layout(self, limits)
     }
 
     /// Draws the primitives recorded in the given closure in a new layer.

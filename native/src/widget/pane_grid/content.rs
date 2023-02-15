@@ -149,11 +149,11 @@ where
     }
 
     pub(crate) fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        if let Some(title_bar) = &self.title_bar {
+        if let Some(title_bar) = &mut self.title_bar {
             let max_size = limits.max();
 
             let title_bar_layout = title_bar
@@ -161,7 +161,7 @@ where
 
             let title_bar_size = title_bar_layout.size();
 
-            let mut body_layout = self.body.as_widget().layout(
+            let mut body_layout = self.body.as_widget_mut().layout(
                 renderer,
                 &layout::Limits::new(
                     Size::ZERO,
@@ -179,7 +179,7 @@ where
                 vec![title_bar_layout, body_layout],
             )
         } else {
-            self.body.as_widget().layout(renderer, limits)
+            self.body.as_widget_mut().layout(renderer, limits)
         }
     }
 

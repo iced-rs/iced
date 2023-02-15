@@ -131,7 +131,7 @@ where
     /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node;

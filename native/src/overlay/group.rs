@@ -63,7 +63,7 @@ where
     Renderer: crate::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
@@ -73,7 +73,7 @@ where
         layout::Node::with_children(
             bounds,
             self.children
-                .iter()
+                .iter_mut()
                 .map(|child| child.layout(renderer, bounds, translation))
                 .collect(),
         )

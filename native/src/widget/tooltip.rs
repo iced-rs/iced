@@ -123,11 +123,11 @@ where
     }
 
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits)
+        self.content.as_widget_mut().layout(renderer, limits)
     }
 
     fn on_event(
@@ -188,7 +188,9 @@ where
             viewport,
         );
 
-        let tooltip = &self.tooltip;
+        todo!();
+
+        let tooltip = &mut self.tooltip;
 
         draw(
             renderer,

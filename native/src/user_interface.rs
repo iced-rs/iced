@@ -97,13 +97,13 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
+        let base = renderer
+            .layout(&mut root, &layout::Limits::new(Size::ZERO, bounds));
 
         UserInterface {
             root,
@@ -236,7 +236,7 @@ where
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
                     self.base = renderer.layout(
-                        &self.root,
+                        &mut self.root,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -320,7 +320,7 @@ where
 
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
-                        &self.root,
+                        &mut self.root,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -431,7 +431,7 @@ where
 
         let viewport = Rectangle::with_size(self.bounds);
 
-        let base_cursor = if let Some(overlay) = self
+        let base_cursor = if let Some(mut overlay) = self
             .root
             .as_widget_mut()
             .overlay(&mut self.state, Layout::new(&self.base), renderer)

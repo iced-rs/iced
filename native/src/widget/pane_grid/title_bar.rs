@@ -212,7 +212,7 @@ where
     }
 
     pub(crate) fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -221,14 +221,14 @@ where
 
         let title_layout = self
             .content
-            .as_widget()
+            .as_widget_mut()
             .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
 
         let title_size = title_layout.size();
 
-        let mut node = if let Some(controls) = &self.controls {
+        let mut node = if let Some(controls) = &mut self.controls {
             let mut controls_layout = controls
-                .as_widget()
+                .as_widget_mut()
                 .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
 
             let controls_size = controls_layout.size();
