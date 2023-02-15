@@ -92,7 +92,7 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
+use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell, Size};
 
 /// A component that displays information and allows interaction.
 ///
@@ -135,6 +135,17 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node;
+
+    /// Returns the intrinsic (content based) [`Size`] of the [`Widget`].
+    ///
+    /// This [`Size`] is used by the parent widget to compute a final size for the widget
+    fn measure(
+        &mut self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> Size {
+        self.layout(renderer, limits).size()
+    }
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
