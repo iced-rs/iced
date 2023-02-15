@@ -25,6 +25,7 @@ pub use iced_native::application::{Appearance, StyleSheet};
 use iced_native::window::Action;
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
+use std::time::Instant;
 
 #[cfg(feature = "trace")]
 pub use crate::Profiler;
@@ -402,7 +403,7 @@ async fn run_instance<A, E, C>(
                     let (filtered, remaining): (Vec<_>, Vec<_>) =
                         events.iter().cloned().partition(
                             |(window_id, _event): &(
-                                Option<crate::window::Id>,
+                                Option<window::Id>,
                                 iced_native::event::Event,
                             )| {
                                 *window_id == Some(id) || *window_id == None
@@ -410,10 +411,14 @@ async fn run_instance<A, E, C>(
                         );
 
                     events.retain(|el| remaining.contains(el));
-                    let filtered: Vec<_> = filtered
+                    let mut filtered: Vec<_> = filtered
                         .into_iter()
                         .map(|(_id, event)| event)
                         .collect();
+                    filtered.push(iced_native::Event::Window(
+                        id,
+                        window::Event::RedrawRequested(Instant::now()),
+                    ));
 
                     let cursor_position =
                         states.get(&id).unwrap().cursor_position();
@@ -450,7 +455,7 @@ async fn run_instance<A, E, C>(
                             user_interface::State::Outdated,
                         )
                     {
-                        let state = &mut states.get_mut(&id).unwrap();
+                        let state = states.get_mut(&id).unwrap();
                         let pure_states: HashMap<_, _> =
                             ManuallyDrop::into_inner(interfaces)
                                 .drain()

@@ -30,9 +30,18 @@ use crate::time::Instant;
 ///
 /// In any case, this [`Subscription`] is useful to smoothly draw application-driven
 /// animations without missing any frames.
-pub fn frames() -> Subscription<Instant> {
+pub fn frames() -> Subscription<Frame> {
     subscription::raw_events(|event, _status| match event {
-        crate::Event::Window(_, Event::RedrawRequested(at)) => Some(at),
+        crate::Event::Window(id, Event::RedrawRequested(at)) => {
+            Some(Frame { id, at })
+        }
         _ => None,
     })
+}
+
+/// The returned `Frame` for a framerate subscription.
+#[derive(Debug)]
+pub struct Frame {
+    pub id: Id,
+    pub at: Instant,
 }
