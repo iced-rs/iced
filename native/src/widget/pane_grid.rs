@@ -402,7 +402,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -411,9 +411,11 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        let (content_layout, content_iter) =
+            self.contents.layout_and_mut_iterator();
         draw(
             tree.state.downcast_ref(),
-            self.contents.layout(),
+            content_layout,
             layout,
             cursor_position,
             renderer,
@@ -423,8 +425,7 @@ where
             self.spacing,
             self.on_resize.as_ref().map(|(leeway, _)| *leeway),
             &self.style,
-            self.contents
-                .iter()
+            content_iter
                 .zip(&tree.children)
                 .map(|((pane, content), tree)| (pane, (content, tree))),
             |(content, tree),

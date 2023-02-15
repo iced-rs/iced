@@ -276,7 +276,7 @@ mod modal {
             cursor_position: Point,
             viewport: &Rectangle,
         ) {
-            self.base.as_widget().draw(
+            self.base.as_widget_mut().draw(
                 &state.children[0],
                 renderer,
                 theme,
@@ -424,7 +424,7 @@ mod modal {
                 },
             );
 
-            self.content.as_widget().draw(
+            self.content.as_widget_mut().draw(
                 self.tree,
                 renderer,
                 theme,

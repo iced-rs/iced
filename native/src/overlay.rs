@@ -36,7 +36,7 @@ where
 
     /// Draws the [`Overlay`] using the associated `Renderer`.
     fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,

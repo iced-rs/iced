@@ -269,7 +269,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -436,7 +436,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         _state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,

@@ -215,7 +215,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -237,7 +237,7 @@ where
             || tree.state.downcast_ref::<State>(),
         );
 
-        self.content.as_widget().draw(
+        self.content.as_widget_mut().draw(
             &tree.children[0],
             renderer,
             theme,

@@ -215,7 +215,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -226,11 +226,11 @@ where
     ) {
         for ((child, state), layout) in self
             .children
-            .iter()
+            .iter_mut()
             .zip(&tree.children)
             .zip(layout.children())
         {
-            child.as_widget().draw(
+            child.as_widget_mut().draw(
                 state,
                 renderer,
                 theme,

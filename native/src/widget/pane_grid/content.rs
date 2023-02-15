@@ -89,7 +89,7 @@ where
     ///
     /// [`Renderer`]: crate::Renderer
     pub fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -108,14 +108,14 @@ where
             container::draw_background(renderer, &style, bounds);
         }
 
-        if let Some(title_bar) = &self.title_bar {
+        if let Some(title_bar) = &mut self.title_bar {
             let mut children = layout.children();
             let title_bar_layout = children.next().unwrap();
             let body_layout = children.next().unwrap();
 
             let show_controls = bounds.contains(cursor_position);
 
-            self.body.as_widget().draw(
+            self.body.as_widget_mut().draw(
                 &tree.children[0],
                 renderer,
                 theme,
@@ -136,7 +136,7 @@ where
                 show_controls,
             );
         } else {
-            self.body.as_widget().draw(
+            self.body.as_widget_mut().draw(
                 &tree.children[0],
                 renderer,
                 theme,

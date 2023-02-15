@@ -216,7 +216,7 @@ where
             layout,
             &self.view,
             |tree, renderer, layout, element| {
-                element.as_widget().draw(
+                element.as_widget_mut().draw(
                     tree,
                     renderer,
                     theme,

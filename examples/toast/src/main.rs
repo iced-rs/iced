@@ -414,7 +414,7 @@ mod toast {
             cursor_position: Point,
             viewport: &Rectangle,
         ) {
-            self.content.as_widget().draw(
+            self.content.as_widget_mut().draw(
                 &state.children[0],
                 renderer,
                 theme,
@@ -597,7 +597,7 @@ mod toast {
                 .zip(self.state.iter())
                 .zip(layout.children())
             {
-                child.as_widget().draw(
+                child.as_widget_mut().draw(
                     state,
                     renderer,
                     theme,

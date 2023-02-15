@@ -138,7 +138,7 @@ where
 
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
-        &self,
+        &mut self,
         state: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,

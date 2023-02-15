@@ -62,7 +62,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         _state: &Tree,
         _renderer: &mut Renderer,
         _theme: &Renderer::Theme,

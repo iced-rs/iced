@@ -169,7 +169,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -178,7 +178,7 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
-        self.content.as_widget().draw(
+        self.content.as_widget_mut().draw(
             &tree.children[0],
             renderer,
             theme,
@@ -187,8 +187,6 @@ where
             cursor_position,
             viewport,
         );
-
-        todo!();
 
         let tooltip = &mut self.tooltip;
 
@@ -204,10 +202,11 @@ where
             self.padding,
             self.snap_within_viewport,
             &self.style,
-            |renderer, limits| {
+            tooltip,
+            |tooltip, renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
             },
-            |renderer, defaults, layout, cursor_position, viewport| {
+            |tooltip, renderer, defaults, layout, cursor_position, viewport| {
                 Widget::<(), Renderer>::draw(
                     tooltip,
                     &Tree::empty(),
@@ -266,7 +265,7 @@ pub enum Position {
 }
 
 /// Draws a [`Tooltip`].
-pub fn draw<Renderer>(
+pub fn draw<Renderer, Tooltip>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     inherited_style: &renderer::Style,
@@ -278,8 +277,14 @@ pub fn draw<Renderer>(
     padding: f32,
     snap_within_viewport: bool,
     style: &<Renderer::Theme as container::StyleSheet>::Style,
-    layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+    tooltip: &mut Tooltip,
+    layout_text: impl FnOnce(
+        &mut Tooltip,
+        &Renderer,
+        &layout::Limits,
+    ) -> layout::Node,
     draw_text: impl FnOnce(
+        &mut Tooltip,
         &mut Renderer,
         &renderer::Style,
         Layout<'_>,
@@ -287,6 +292,7 @@ pub fn draw<Renderer>(
         &Rectangle,
     ),
 ) where
+    Tooltip: Widget<(), Renderer>,
     Renderer: crate::Renderer,
     Renderer::Theme: container::StyleSheet,
 {
@@ -302,6 +308,7 @@ pub fn draw<Renderer>(
         };
 
         let text_layout = layout_text(
+            tooltip,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
@@ -372,6 +379,7 @@ pub fn draw<Renderer>(
             container::draw_background(renderer, &style, tooltip_bounds);
 
             draw_text(
+                tooltip,
                 renderer,
                 &defaults,
                 Layout::with_offset(

@@ -116,7 +116,7 @@ where
     ///
     /// [`Renderer`]: crate::Renderer
     pub fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -143,7 +143,7 @@ where
         let title_layout = children.next().unwrap();
         let mut show_title = true;
 
-        if let Some(controls) = &self.controls {
+        if let Some(controls) = &mut self.controls {
             if show_controls || self.always_show_controls {
                 let controls_layout = children.next().unwrap();
                 if title_layout.bounds().width + controls_layout.bounds().width
@@ -152,7 +152,7 @@ where
                     show_title = false;
                 }
 
-                controls.as_widget().draw(
+                controls.as_widget_mut().draw(
                     &tree.children[1],
                     renderer,
                     theme,
@@ -165,7 +165,7 @@ where
         }
 
         if show_title {
-            self.content.as_widget().draw(
+            self.content.as_widget_mut().draw(
                 &tree.children[0],
                 renderer,
                 theme,

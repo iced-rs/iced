@@ -230,7 +230,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
@@ -243,7 +243,7 @@ where
 
         draw_background(renderer, &style, layout.bounds());
 
-        self.content.as_widget().draw(
+        self.content.as_widget_mut().draw(
             &tree.children[0],
             renderer,
             theme,

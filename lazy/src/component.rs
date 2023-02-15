@@ -333,7 +333,7 @@ where
         viewport: &Rectangle,
     ) {
         self.with_element(|element| {
-            element.as_widget().draw(
+            element.as_widget_mut().draw(
                 &tree.children[0],
                 renderer,
                 theme,

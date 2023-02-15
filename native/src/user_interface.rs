@@ -455,7 +455,7 @@ where
             cursor_position
         };
 
-        self.root.as_widget().draw(
+        self.root.as_widget_mut().draw(
             &self.state,
             renderer,
             theme,
@@ -490,7 +490,7 @@ where
             .and_then(|layout| {
                 root.as_widget_mut()
                     .overlay(&mut self.state, Layout::new(base), renderer)
-                    .map(|overlay| {
+                    .map(|mut overlay| {
                         let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(layout),
                             cursor_position,

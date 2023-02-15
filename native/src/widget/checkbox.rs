@@ -228,7 +228,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         _tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,

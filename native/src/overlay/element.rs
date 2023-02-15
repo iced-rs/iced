@@ -101,7 +101,7 @@ where
 
     /// Draws the [`Element`] and its children using the given [`Layout`].
     pub fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -253,7 +253,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,

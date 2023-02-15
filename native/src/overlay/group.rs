@@ -105,14 +105,14 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         renderer: &mut Renderer,
         theme: &<Renderer as crate::Renderer>::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
     ) {
-        for (child, layout) in self.children.iter().zip(layout.children()) {
+        for (child, layout) in self.children.iter_mut().zip(layout.children()) {
             child.draw(renderer, theme, style, layout, cursor_position);
         }
     }

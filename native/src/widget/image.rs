@@ -179,7 +179,7 @@ where
     }
 
     fn draw(
-        &self,
+        &mut self,
         _state: &Tree,
         renderer: &mut Renderer,
         _theme: &Renderer::Theme,
