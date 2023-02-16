@@ -13,13 +13,13 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct Example {
     value: String,
-    is_showing_handle: bool,
+    is_showing_icon: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Changed(String),
-    ToggleHandle(bool),
+    ToggleIcon(bool),
 }
 
 impl Sandbox for Example {
@@ -36,27 +36,27 @@ impl Sandbox for Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::Changed(value) => self.value = value,
-            Message::ToggleHandle(_) => {
-                self.is_showing_handle = !self.is_showing_handle
+            Message::ToggleIcon(_) => {
+                self.is_showing_icon = !self.is_showing_icon
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
         let checkbox =
-            checkbox("Handle", self.is_showing_handle, Message::ToggleHandle)
+            checkbox("Icon", self.is_showing_icon, Message::ToggleIcon)
                 .spacing(5)
                 .text_size(16);
 
         let mut text_input =
             text_input("Placeholder", self.value.as_str(), Message::Changed);
 
-        if self.is_showing_handle {
-            text_input = text_input.handle(text_input::Handle {
+        if self.is_showing_icon {
+            text_input = text_input.icon(text_input::Icon {
                 font: ICON_FONT,
-                text: String::from('\u{e900}'),
+                code_point: '\u{e900}',
                 size: Some(18),
-                position: text_input::HandlePosition::Right,
+                position: text_input::IconPosition::Right,
             });
         }
 

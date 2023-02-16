@@ -31,41 +31,38 @@ use crate::{
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
-/// The position of the [`Handle`].
+/// The position of the [`Icon`].
 #[derive(Clone, Default, Debug)]
-pub enum HandlePosition {
-    /// Position the handle to the left.
+pub enum IconPosition {
+    /// Position the [`Icon`] to the left.
     Left,
-    /// Position the handle to the left.
+    /// Position the [`Icon`] to the left.
     ///
     /// This is the default.
     #[default]
     Right,
 }
 
-/// The content of the [`Handle`].
+/// The content of the [`Icon`].
 #[derive(Clone)]
-pub struct Handle<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    /// Font that will be used to display the `text`.
-    pub font: Renderer::Font,
-    /// Text that will be shown.
-    pub text: String,
+pub struct Icon<Font> {
+    /// Font that will be used to display the `code_point`.
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
     /// Font size of the content.
     pub size: Option<u16>,
-    /// Position of the handle.
-    pub position: HandlePosition,
+    /// Position of the icon.
+    pub position: IconPosition,
 }
 
-impl<Renderer> std::fmt::Debug for Handle<Renderer>
+impl<Renderer> std::fmt::Debug for Icon<Renderer>
 where
     Renderer: text::Renderer,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Handle")
-            .field("text", &self.text)
+        f.debug_struct("Icon")
+            .field("code_point", &self.code_point)
             .field("size", &self.size)
             .field("position", &self.position)
             .finish()
@@ -109,7 +106,7 @@ where
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
-    handle: Option<Handle<Renderer>>,
+    icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -141,7 +138,7 @@ where
             on_change: Box::new(on_change),
             on_paste: None,
             on_submit: None,
-            handle: None,
+            icon: None,
             style: Default::default(),
         }
     }
@@ -176,9 +173,9 @@ where
         self
     }
 
-    /// Sets the [`Handle`] of the [`TextInput`].
-    pub fn handle(mut self, handle: Handle<Renderer>) -> Self {
-        self.handle = Some(handle);
+    /// Sets the [`Icon`] of the [`TextInput`].
+    pub fn icon(mut self, icon: Icon<Renderer::Font>) -> Self {
+        self.icon = Some(icon);
         self
     }
 
@@ -241,7 +238,7 @@ where
             self.padding,
             &self.font,
             self.is_secure,
-            self.handle.as_ref(),
+            self.icon.as_ref(),
             &self.style,
         )
     }
@@ -341,7 +338,7 @@ where
             self.padding,
             &self.font,
             self.is_secure,
-            self.handle.as_ref(),
+            self.icon.as_ref(),
             &self.style,
         )
     }
@@ -869,7 +866,7 @@ pub fn draw<Renderer>(
     padding: Padding,
     font: &Renderer::Font,
     is_secure: bool,
-    handle: Option<&Handle<Renderer>>,
+    icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
@@ -881,26 +878,29 @@ pub fn draw<Renderer>(
     let bounds = layout.bounds();
     let text_bounds = {
         let bounds = layout.children().next().unwrap().bounds();
-        if let Some(handle) = handle {
-            let Handle {
+        if let Some(icon) = icon {
+            let Icon {
                 font,
                 size,
-                text,
+                code_point,
                 position,
-            } = handle;
+            } = icon;
 
             let padding = f32::from(padding.horizontal());
             let size = size.unwrap_or_else(|| renderer.default_size());
-            let width =
-                renderer.measure_width(text.as_str(), size, font.clone());
+            let width = renderer.measure_width(
+                &code_point.to_string(),
+                size,
+                font.clone(),
+            );
 
             match position {
-                HandlePosition::Left => Rectangle {
+                IconPosition::Left => Rectangle {
                     x: bounds.x + (width + padding),
                     width: bounds.width - (width + padding),
                     ..bounds
                 },
-                HandlePosition::Right => Rectangle {
+                IconPosition::Right => Rectangle {
                     x: bounds.x,
                     width: bounds.width - (width + padding),
                     ..bounds
@@ -931,27 +931,28 @@ pub fn draw<Renderer>(
         appearance.background,
     );
 
-    if let Some(handle) = handle {
-        let Handle {
+    if let Some(icon) = icon {
+        let Icon {
             size,
             font,
-            text,
+            code_point,
             position,
-        } = handle;
+        } = icon;
 
         let padding = f32::from(padding.horizontal());
         let size = size.unwrap_or_else(|| renderer.default_size());
-        let width = renderer.measure_width(text.as_str(), size, font.clone());
+        let width =
+            renderer.measure_width(&code_point.to_string(), size, font.clone());
 
         renderer.fill_text(Text {
-            content: text,
+            content: &code_point.to_string(),
             size: f32::from(size),
             font: font.clone(),
-            color: appearance.handle_color,
+            color: appearance.icon_color,
             bounds: Rectangle {
                 x: match position {
-                    HandlePosition::Left => bounds.x + width + padding,
-                    HandlePosition::Right => bounds.x + bounds.width - padding,
+                    IconPosition::Left => bounds.x + width + padding,
+                    IconPosition::Right => bounds.x + bounds.width - padding,
                 },
                 y: bounds.center_y() - f32::from(size) / 2.0,
                 height: f32::from(size),
