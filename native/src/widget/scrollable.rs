@@ -208,14 +208,17 @@ where
 
         operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
 
-        operation.container(None, &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
-        });
+        operation.container(
+            self.id.as_ref().map(|id| &id.0),
+            &mut |operation| {
+                self.content.as_widget().operate(
+                    &mut tree.children[0],
+                    layout.children().next().unwrap(),
+                    renderer,
+                    operation,
+                );
+            },
+        );
     }
 
     fn on_event(
