@@ -41,7 +41,7 @@ where
     size: f32,
     text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
-    spacing: u16,
+    spacing: f32,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -78,7 +78,7 @@ where
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
-            spacing: 0,
+            spacing: 0.0,
             font: Renderer::Font::default(),
             style: Default::default(),
         }
@@ -109,8 +109,8 @@ where
     }
 
     /// Sets the spacing between the [`Toggler`] and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 

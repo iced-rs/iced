@@ -13,7 +13,7 @@ use crate::{
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
-    spacing: u16,
+    spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
@@ -33,7 +33,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Column {
-            spacing: 0,
+            spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -48,8 +48,8 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.spacing = units;
+    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.spacing = amount.into().0;
         self
     }
 
@@ -135,7 +135,7 @@ where
             renderer,
             &limits,
             self.padding,
-            self.spacing as f32,
+            self.spacing,
             self.align_items,
             &self.children,
         )

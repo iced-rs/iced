@@ -51,7 +51,7 @@ where
     label: String,
     width: Length,
     size: f32,
-    spacing: u16,
+    spacing: f32,
     text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -67,7 +67,7 @@ where
     pub const DEFAULT_SIZE: f32 = 28.0;
 
     /// The default spacing of a [`Radio`] button.
-    pub const DEFAULT_SPACING: u16 = 15;
+    pub const DEFAULT_SPACING: f32 = 15.0;
 
     /// Creates a new [`Radio`] button.
     ///
@@ -113,8 +113,8 @@ where
     }
 
     /// Sets the spacing between the [`Radio`] button and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 

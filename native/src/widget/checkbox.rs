@@ -53,7 +53,7 @@ where
     label: String,
     width: Length,
     size: f32,
-    spacing: u16,
+    spacing: f32,
     text_size: Option<f32>,
     font: Renderer::Font,
     icon: Icon<Renderer::Font>,
@@ -69,7 +69,7 @@ where
     const DEFAULT_SIZE: f32 = 20.0;
 
     /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: u16 = 15;
+    const DEFAULT_SPACING: f32 = 15.0;
 
     /// Creates a new [`Checkbox`].
     ///
@@ -114,8 +114,8 @@ where
     }
 
     /// Sets the spacing between the [`Checkbox`] and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 
