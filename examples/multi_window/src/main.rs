@@ -441,7 +441,7 @@ impl Pane {
     fn new(id: usize, axis: pane_grid::Axis) -> Self {
         Self {
             id,
-            scrollable_id: scrollable::Id::new(format!("{:?}", id)),
+            scrollable_id: scrollable::Id::unique(),
             axis,
             is_pinned: false,
             is_moving: false,
@@ -495,7 +495,7 @@ fn view_content<'a>(
         controls,
     ]
     .width(Length::Fill)
-    .height(Length::Units(800))
+    .height(800)
     .spacing(10)
     .align_items(Alignment::Center);
 

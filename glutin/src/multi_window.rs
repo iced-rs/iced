@@ -25,16 +25,15 @@ use glutin::surface::{GlSurface, SwapInterval};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use crate::application::gl_surface;
-use iced_native::window::Action;
 use iced_winit::multi_window::Event;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::mem::ManuallyDrop;
 use std::num::NonZeroU32;
 
+use iced_native::widget::operation;
 #[cfg(feature = "tracing")]
 use tracing::{info_span, instrument::Instrument};
-use iced_native::widget::operation;
 
 #[allow(unsafe_code)]
 const ONE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
@@ -937,15 +936,26 @@ pub fn run_command<A, E>(
                     let window = windows.get(&id).expect("No window found!");
                     window.set_decorations(!window.is_decorated());
                 }
-                Action::RequestUserAttention(attention_type) => {
+                window::Action::RequestUserAttention(attention_type) => {
                     let window = windows.get(&id).expect("No window found!");
                     window.request_user_attention(
                         attention_type.map(conversion::user_attention),
                     );
                 }
-                Action::GainFocus => {
+                window::Action::GainFocus => {
                     let window = windows.get(&id).expect("No window found!");
                     window.focus_window();
+                }
+                window::Action::ChangeAlwaysOnTop(on_top) => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_always_on_top(on_top);
+                }
+                window::Action::FetchId(tag) => {
+                    let window = windows.get(&id).expect("No window found!");
+
+                    proxy
+                        .send_event(Event::Application(tag(window.id().into())))
+                        .expect("Send message to event loop.")
                 }
             },
             command::Action::System(action) => match action {

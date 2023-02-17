@@ -122,7 +122,7 @@ pub fn fetch_id<Message>(
     id: window::Id,
     f: impl FnOnce(u64) -> Message + 'static,
 ) -> Command<Message> {
-    Command::single(command::Action::Window(id: window::Id, window::Action::FetchId(Box::new(
+    Command::single(command::Action::Window(id, window::Action::FetchId(Box::new(
         f,
     ))))
 }

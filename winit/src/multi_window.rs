@@ -4,12 +4,12 @@ mod state;
 pub use state::State;
 
 use crate::clipboard::{self, Clipboard};
+use crate::conversion;
 use crate::mouse;
 use crate::renderer;
 use crate::settings;
 use crate::widget::operation;
 use crate::window;
-use crate::conversion;
 use crate::{
     Command, Debug, Element, Error, Executor, Proxy, Renderer, Runtime,
     Settings, Size, Subscription,
@@ -22,7 +22,6 @@ use iced_native::user_interface::{self, UserInterface};
 
 pub use iced_native::application::{Appearance, StyleSheet};
 
-use iced_native::window::Action;
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 use std::time::Instant;
@@ -147,6 +146,7 @@ where
     /// while a scale factor of `0.5` will shrink them to half their size.
     ///
     /// By default, it returns `1.0`.
+    #[allow(unused_variables)]
     fn scale_factor(&self, window: window::Id) -> f64 {
         1.0
     }
@@ -470,7 +470,7 @@ async fn run_instance<A, E, C>(
                             user_interface::State::Outdated,
                         )
                     {
-                        let user_interfaces: HashMap<_, _> =
+                        let cached_interfaces: HashMap<_, _> =
                             ManuallyDrop::into_inner(interfaces)
                                 .drain()
                                 .map(
@@ -510,7 +510,7 @@ async fn run_instance<A, E, C>(
                             &mut renderer,
                             &mut debug,
                             &states,
-                            user_interfaces,
+                            cached_interfaces,
                         ));
 
                         if application.should_exit() {
@@ -1057,9 +1057,20 @@ pub fn run_command<A, E>(
                         attention_type.map(conversion::user_attention),
                     );
                 }
-                Action::GainFocus => {
+                window::Action::GainFocus => {
                     let window = windows.get(&id).expect("No window found!");
                     window.focus_window();
+                }
+                window::Action::ChangeAlwaysOnTop(on_top) => {
+                    let window = windows.get(&id).expect("No window found!");
+                    window.set_always_on_top(on_top);
+                }
+                window::Action::FetchId(tag) => {
+                    let window = windows.get(&id).expect("No window found!");
+
+                    proxy
+                        .send_event(Event::Application(tag(window.id().into())))
+                        .expect("Send message to event loop.")
                 }
             },
             command::Action::System(action) => match action {
