@@ -9,7 +9,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
-    data: Arc<Data>,
+    data: Data,
 }
 
 impl Handle {
@@ -33,7 +33,7 @@ impl Handle {
         Self::from_data(Data::Rgba {
             width,
             height,
-            pixels: ImageBytes::new(pixels),
+            pixels: Bytes::new(pixels),
         })
     }
 
@@ -46,7 +46,7 @@ impl Handle {
     pub fn from_memory(
         bytes: impl AsRef<[u8]> + Clone + Send + Sync + 'static,
     ) -> Handle {
-        Self::from_data(Data::Bytes(ImageBytes::new(bytes)))
+        Self::from_data(Data::Bytes(Bytes::new(bytes)))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -55,7 +55,7 @@ impl Handle {
 
         Handle {
             id: hasher.finish(),
-            data: Arc::new(data),
+            data,
         }
     }
 
@@ -85,55 +85,38 @@ impl Hash for Handle {
     }
 }
 
-/// Wrapper around raw image data.
+/// A wrapper around raw image data.
 ///
-/// Behaves like a `&[u8]`.
-pub struct ImageBytes(Box<dyn ImageBytesTrait>);
+/// It behaves like a `&[u8]`.
+#[derive(Clone)]
+pub struct Bytes(Arc<dyn AsRef<[u8]> + Send + Sync + 'static>);
 
-trait ImageBytesTrait: AsRef<[u8]> + Send + Sync + 'static {
-    fn clone_boxed(&self) -> Box<dyn ImageBytesTrait>;
-}
-
-impl<T: AsRef<[u8]> + Clone + Send + Sync + 'static> ImageBytesTrait for T {
-    fn clone_boxed(&self) -> Box<dyn ImageBytesTrait> {
-        Box::new(self.clone())
+impl Bytes {
+    /// Creates new [`Bytes`] around `data`.
+    pub fn new(data: impl AsRef<[u8]> + Clone + Send + Sync + 'static) -> Self {
+        Self(Arc::new(data))
     }
 }
 
-impl ImageBytes {
-    /// Creates a new `ImageBytes` around `data`.
-    pub fn new(
-        data: impl AsRef<[u8]> + Clone + Send + Sync + 'static,
-    ) -> ImageBytes {
-        Self(Box::new(data))
-    }
-}
-
-impl Clone for ImageBytes {
-    fn clone(&self) -> Self {
-        ImageBytes(self.0.clone_boxed())
-    }
-}
-
-impl std::fmt::Debug for ImageBytes {
+impl std::fmt::Debug for Bytes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.as_ref().as_ref().fmt(f)
     }
 }
 
-impl std::hash::Hash for ImageBytes {
+impl std::hash::Hash for Bytes {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.0.as_ref().as_ref().hash(state);
     }
 }
 
-impl AsRef<[u8]> for ImageBytes {
+impl AsRef<[u8]> for Bytes {
     fn as_ref(&self) -> &[u8] {
         self.0.as_ref().as_ref()
     }
 }
 
-impl std::ops::Deref for ImageBytes {
+impl std::ops::Deref for Bytes {
     type Target = [u8];
 
     fn deref(&self) -> &[u8] {
@@ -148,7 +131,7 @@ pub enum Data {
     Path(PathBuf),
 
     /// In-memory data
-    Bytes(ImageBytes),
+    Bytes(Bytes),
 
     /// Decoded image pixels in RGBA format.
     Rgba {
@@ -157,7 +140,7 @@ pub enum Data {
         /// The height of the image.
         height: u32,
         /// The pixels.
-        pixels: ImageBytes,
+        pixels: Bytes,
     },
 }
 
