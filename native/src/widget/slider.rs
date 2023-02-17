@@ -8,8 +8,8 @@ use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -122,8 +122,8 @@ where
     }
 
     /// Sets the height of the [`Slider`].
-    pub fn height(mut self, height: f32) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Pixels>) -> Self {
+        self.height = height.into().0;
         self
     }
 

@@ -9,7 +9,7 @@ use crate::event::{self, Event};
 use crate::widget::tree::{self, Tree};
 use crate::{
     layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
-    Layout, Length, Point, Rectangle, Shell, Size, Widget,
+    Layout, Length, Pixels, Point, Rectangle, Shell, Size, Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -110,8 +110,8 @@ where
     }
 
     /// Sets the width of the [`VerticalSlider`].
-    pub fn width(mut self, width: f32) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = width.into().0;
         self
     }
 
