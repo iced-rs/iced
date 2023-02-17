@@ -470,7 +470,7 @@ async fn run_instance<A, E, C>(
                             user_interface::State::Outdated,
                         )
                     {
-                        let cached_interfaces: HashMap<_, _> =
+                        let mut cached_interfaces: HashMap<_, _> =
                             ManuallyDrop::into_inner(interfaces)
                                 .drain()
                                 .map(
@@ -486,7 +486,7 @@ async fn run_instance<A, E, C>(
                         // Update application
                         update(
                             &mut application,
-                            &mut caches,
+                            &mut cached_interfaces,
                             &states,
                             &mut renderer,
                             &mut runtime,
