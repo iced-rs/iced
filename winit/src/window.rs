@@ -23,13 +23,17 @@ pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
 }
 
 /// Maximizes the window.
-pub fn maximize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Maximize(value)))
+pub fn maximize<Message>(maximized: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Maximize(
+        maximized,
+    )))
 }
 
 /// Minimes the window.
-pub fn minimize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Minimize(value)))
+pub fn minimize<Message>(minimized: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Minimize(
+        minimized,
+    )))
 }
 
 /// Moves a window to the given logical coordinates.
@@ -83,4 +87,11 @@ pub fn request_user_attention<Message>(
 /// user experience.
 pub fn gain_focus<Message>() -> Command<Message> {
     Command::single(command::Action::Window(window::Action::GainFocus))
+}
+
+/// Changes whether or not the window will always be on top of other windows.
+pub fn change_always_on_top<Message>(on_top: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeAlwaysOnTop(
+        on_top,
+    )))
 }
