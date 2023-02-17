@@ -38,18 +38,18 @@ pub fn resize<Message>(
 }
 
 /// Maximizes the window.
-pub fn maximize<Message>(id: window::Id, value: bool) -> Command<Message> {
+pub fn maximize<Message>(id: window::Id, maximized: bool) -> Command<Message> {
     Command::single(command::Action::Window(
         id,
-        window::Action::Maximize(value),
+        window::Action::Maximize(maximized),
     ))
 }
 
 /// Minimes the window.
-pub fn minimize<Message>(id: window::Id, value: bool) -> Command<Message> {
+pub fn minimize<Message>(id: window::Id, minimized: bool) -> Command<Message> {
     Command::single(command::Action::Window(
         id,
-        window::Action::Minimize(value),
+        window::Action::Minimize(minimized),
     ))
 }
 
@@ -108,4 +108,21 @@ pub fn request_user_attention<Message>(
 /// user experience.
 pub fn gain_focus<Message>(id: window::Id) -> Command<Message> {
     Command::single(command::Action::Window(id, window::Action::GainFocus))
+}
+
+/// Changes whether or not the window will always be on top of other windows.
+pub fn change_always_on_top<Message>(id: window::Id, on_top: bool) -> Command<Message> {
+    Command::single(command::Action::Window(id, window::Action::ChangeAlwaysOnTop(
+        on_top,
+    )))
+}
+
+/// Fetches an identifier unique to the window.
+pub fn fetch_id<Message>(
+    id: window::Id,
+    f: impl FnOnce(u64) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(id: window::Id, window::Action::FetchId(Box::new(
+        f,
+    ))))
 }

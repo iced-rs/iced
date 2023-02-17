@@ -38,11 +38,11 @@ impl Sandbox for Slider {
 
         let h_slider =
             container(slider(0..=100, value, Message::SliderChanged))
-                .width(Length::Units(250));
+                .width(250);
 
         let v_slider =
             container(vertical_slider(0..=100, value, Message::SliderChanged))
-                .height(Length::Units(200));
+                .height(200);
 
         let text = text(format!("{value}"));
 

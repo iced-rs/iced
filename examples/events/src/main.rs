@@ -93,7 +93,7 @@ impl Application for Events {
                 .width(Length::Fill)
                 .horizontal_alignment(alignment::Horizontal::Center),
         )
-        .width(Length::Units(100))
+        .width(100)
         .padding(10)
         .on_press(Message::Exit);
 

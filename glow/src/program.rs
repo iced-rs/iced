@@ -17,17 +17,17 @@ impl Version {
         ) {
             // OpenGL 3.0+
             (3, 0 | 1 | 2, false) => (
-                format!("#version 1{}0", version.minor + 3),
+                format!("#version 1{}0\n#extension GL_ARB_explicit_attrib_location : enable", version.minor + 3),
                 format!(
-                    "#version 1{}0\n#define HIGHER_THAN_300 1",
+                    "#version 1{}0\n#extension GL_ARB_explicit_attrib_location : enable\n#define HIGHER_THAN_300 1",
                     version.minor + 3
                 ),
             ),
             // OpenGL 3.3+
             (3 | 4, _, false) => (
-                format!("#version {}{}0", version.major, version.minor),
+                format!("#version {}{}0\n#extension GL_ARB_explicit_attrib_location : enable", version.major, version.minor),
                 format!(
-                    "#version {}{}0\n#define HIGHER_THAN_300 1",
+                    "#version {}{}0\n#extension GL_ARB_explicit_attrib_location : enable\n#define HIGHER_THAN_300 1",
                     version.major, version.minor
                 ),
             ),

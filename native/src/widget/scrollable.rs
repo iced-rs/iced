@@ -10,8 +10,8 @@ use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Background, Clipboard, Color, Command, Element, Layout, Length, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Command, Element, Layout, Length, Pixels,
+    Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::scrollable::StyleSheet;
@@ -66,8 +66,8 @@ where
     }
 
     /// Sets the height of the [`Scrollable`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -108,17 +108,17 @@ where
 /// Properties of a scrollbar within a [`Scrollable`].
 #[derive(Debug)]
 pub struct Properties {
-    width: u16,
-    margin: u16,
-    scroller_width: u16,
+    width: f32,
+    margin: f32,
+    scroller_width: f32,
 }
 
 impl Default for Properties {
     fn default() -> Self {
         Self {
-            width: 10,
-            margin: 0,
-            scroller_width: 10,
+            width: 10.0,
+            margin: 0.0,
+            scroller_width: 10.0,
         }
     }
 }
@@ -131,21 +131,21 @@ impl Properties {
 
     /// Sets the scrollbar width of the [`Scrollable`] .
     /// Silently enforces a minimum width of 1.
-    pub fn width(mut self, width: u16) -> Self {
-        self.width = width.max(1);
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = width.into().0.max(1.0);
         self
     }
 
     /// Sets the scrollbar margin of the [`Scrollable`] .
-    pub fn margin(mut self, margin: u16) -> Self {
-        self.margin = margin;
+    pub fn margin(mut self, margin: impl Into<Pixels>) -> Self {
+        self.margin = margin.into().0;
         self
     }
 
     /// Sets the scroller width of the [`Scrollable`] .
     /// Silently enforces a minimum width of 1.
-    pub fn scroller_width(mut self, scroller_width: u16) -> Self {
-        self.scroller_width = scroller_width.max(1);
+    pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
+        self.scroller_width = scroller_width.into().0.max(1.0);
         self
     }
 }
@@ -208,14 +208,17 @@ where
 
         operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
 
-        operation.container(None, &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
-        });
+        operation.container(
+            self.id.as_ref().map(|id| &id.0),
+            &mut |operation| {
+                self.content.as_widget().operate(
+                    &mut tree.children[0],
+                    layout.children().next().unwrap(),
+                    renderer,
+                    operation,
+                );
+            },
+        );
     }
 
     fn on_event(
@@ -395,11 +398,11 @@ pub fn layout<Renderer>(
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits
-        .max_height(u32::MAX)
+        .max_height(f32::INFINITY)
         .max_width(if horizontal_enabled {
-            u32::MAX
+            f32::INFINITY
         } else {
-            limits.max().width as u32
+            limits.max().width
         })
         .width(width)
         .height(height);
@@ -1097,26 +1100,27 @@ impl Scrollbars {
 
             // Adjust the height of the vertical scrollbar if the horizontal scrollbar
             // is present
-            let x_scrollbar_height = show_scrollbar_x.map_or(0.0, |h| {
-                (h.width.max(h.scroller_width) + h.margin) as f32
-            });
+            let x_scrollbar_height = show_scrollbar_x
+                .map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
 
-            let total_scrollbar_width = width.max(scroller_width) + 2 * margin;
+            let total_scrollbar_width =
+                width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
-                x: bounds.x + bounds.width - total_scrollbar_width as f32,
+                x: bounds.x + bounds.width - total_scrollbar_width,
                 y: bounds.y,
-                width: total_scrollbar_width as f32,
+                width: total_scrollbar_width,
                 height: (bounds.height - x_scrollbar_height).max(0.0),
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
                 x: bounds.x + bounds.width
-                    - f32::from(total_scrollbar_width / 2 + width / 2),
+                    - total_scrollbar_width / 2.0
+                    - width / 2.0,
                 y: bounds.y,
-                width: width as f32,
+                width,
                 height: (bounds.height - x_scrollbar_height).max(0.0),
             };
 
@@ -1127,10 +1131,11 @@ impl Scrollbars {
 
             let scroller_bounds = Rectangle {
                 x: bounds.x + bounds.width
-                    - f32::from(total_scrollbar_width / 2 + scroller_width / 2),
+                    - total_scrollbar_width / 2.0
+                    - scroller_width / 2.0,
                 y: (scrollbar_bounds.y + scroller_offset - x_scrollbar_height)
                     .max(0.0),
-                width: scroller_width as f32,
+                width: scroller_width,
                 height: scroller_height,
             };
 
@@ -1155,27 +1160,28 @@ impl Scrollbars {
             // Need to adjust the width of the horizontal scrollbar if the vertical scrollbar
             // is present
             let scrollbar_y_width = y_scrollbar.map_or(0.0, |_| {
-                (vertical.width.max(vertical.scroller_width) + vertical.margin)
-                    as f32
+                vertical.width.max(vertical.scroller_width) + vertical.margin
             });
 
-            let total_scrollbar_height = width.max(scroller_width) + 2 * margin;
+            let total_scrollbar_height =
+                width.max(scroller_width) + 2.0 * margin;
 
             // Total bounds of the scrollbar + margin + scroller width
             let total_scrollbar_bounds = Rectangle {
                 x: bounds.x,
-                y: bounds.y + bounds.height - total_scrollbar_height as f32,
+                y: bounds.y + bounds.height - total_scrollbar_height,
                 width: (bounds.width - scrollbar_y_width).max(0.0),
-                height: total_scrollbar_height as f32,
+                height: total_scrollbar_height,
             };
 
             // Bounds of just the scrollbar
             let scrollbar_bounds = Rectangle {
                 x: bounds.x,
                 y: bounds.y + bounds.height
-                    - f32::from(total_scrollbar_height / 2 + width / 2),
+                    - total_scrollbar_height / 2.0
+                    - width / 2.0,
                 width: (bounds.width - scrollbar_y_width).max(0.0),
-                height: width as f32,
+                height: width,
             };
 
             let ratio = bounds.width / content_bounds.width;
@@ -1187,11 +1193,10 @@ impl Scrollbars {
                 x: (scrollbar_bounds.x + scroller_offset - scrollbar_y_width)
                     .max(0.0),
                 y: bounds.y + bounds.height
-                    - f32::from(
-                        total_scrollbar_height / 2 + scroller_width / 2,
-                    ),
+                    - total_scrollbar_height / 2.0
+                    - scroller_width / 2.0,
                 width: scroller_length,
-                height: scroller_width as f32,
+                height: scroller_width,
             };
 
             Some(Scrollbar {

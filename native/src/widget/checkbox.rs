@@ -8,11 +8,22 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
-    Widget,
+    Alignment, Clipboard, Element, Layout, Length, Pixels, Point, Rectangle,
+    Shell, Widget,
 };
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
+
+/// The icon in a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct Icon<Font> {
+    /// Font that will be used to display the `code_point`,
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
+    /// Font size of the content.
+    pub size: Option<f32>,
+}
 
 /// A box that can be checked.
 ///
@@ -41,10 +52,11 @@ where
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: String,
     width: Length,
-    size: u16,
-    spacing: u16,
-    text_size: Option<u16>,
+    size: f32,
+    spacing: f32,
+    text_size: Option<f32>,
     font: Renderer::Font,
+    icon: Icon<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -54,10 +66,10 @@ where
     Renderer::Theme: StyleSheet + widget::text::StyleSheet,
 {
     /// The default size of a [`Checkbox`].
-    const DEFAULT_SIZE: u16 = 20;
+    const DEFAULT_SIZE: f32 = 20.0;
 
     /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: u16 = 15;
+    const DEFAULT_SPACING: f32 = 15.0;
 
     /// Creates a new [`Checkbox`].
     ///
@@ -80,31 +92,36 @@ where
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
+            icon: Icon {
+                font: Renderer::ICON_FONT,
+                code_point: Renderer::CHECKMARK_ICON,
+                size: None,
+            },
             style: Default::default(),
         }
     }
 
     /// Sets the size of the [`Checkbox`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = size.into().0;
         self
     }
 
     /// Sets the width of the [`Checkbox`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the spacing between the [`Checkbox`] and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 
     /// Sets the text size of the [`Checkbox`].
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 
@@ -113,6 +130,12 @@ where
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the [`Icon`] of the [`Checkbox`].
+    pub fn icon(mut self, icon: Icon<Renderer::Font>) -> Self {
+        self.icon = icon;
         self
     }
 
@@ -149,11 +172,7 @@ where
             .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center)
-            .push(
-                Row::new()
-                    .width(Length::Units(self.size))
-                    .height(Length::Units(self.size)),
-            )
+            .push(Row::new().width(self.size).height(self.size))
             .push(
                 Text::new(&self.label)
                     .font(self.font.clone())
@@ -243,17 +262,24 @@ where
                 custom_style.background,
             );
 
+            let Icon {
+                font,
+                code_point,
+                size,
+            } = &self.icon;
+            let size = size.map(f32::from).unwrap_or(bounds.height * 0.7);
+
             if self.is_checked {
                 renderer.fill_text(text::Text {
-                    content: &Renderer::CHECKMARK_ICON.to_string(),
-                    font: Renderer::ICON_FONT,
-                    size: bounds.height * 0.7,
+                    content: &code_point.to_string(),
+                    font: font.clone(),
+                    size,
                     bounds: Rectangle {
                         x: bounds.center_x(),
                         y: bounds.center_y(),
                         ..bounds
                     },
-                    color: custom_style.checkmark_color,
+                    color: custom_style.icon_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
                 });

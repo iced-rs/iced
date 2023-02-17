@@ -25,7 +25,7 @@ use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
 use crate::window;
 use crate::{
-    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
 
@@ -64,7 +64,7 @@ where
     font: Renderer::Font,
     width: Length,
     padding: Padding,
-    size: Option<u16>,
+    size: Option<f32>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -94,7 +94,7 @@ where
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
-            padding: Padding::new(5),
+            padding: Padding::new(5.0),
             size: None,
             on_change: Box::new(on_change),
             on_paste: None,
@@ -133,8 +133,8 @@ where
         self
     }
     /// Sets the width of the [`TextInput`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -145,8 +145,8 @@ where
     }
 
     /// Sets the text size of the [`TextInput`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = Some(size);
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = Some(size.into().0);
         self
     }
 
@@ -379,7 +379,7 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    size: Option<u16>,
+    size: Option<f32>,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -387,14 +387,10 @@ where
     let text_size = size.unwrap_or_else(|| renderer.default_size());
 
     let padding = padding.fit(Size::ZERO, limits.max());
-
-    let limits = limits
-        .width(width)
-        .pad(padding)
-        .height(Length::Units(text_size));
+    let limits = limits.width(width).pad(padding).height(text_size);
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-    text.move_to(Point::new(padding.left.into(), padding.top.into()));
+    text.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(text.size().pad(padding), vec![text])
 }
@@ -409,7 +405,7 @@ pub fn update<'a, Message, Renderer>(
     clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
-    size: Option<u16>,
+    size: Option<f32>,
     font: &Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
@@ -815,7 +811,7 @@ pub fn draw<Renderer>(
     state: &State,
     value: &Value,
     placeholder: &str,
-    size: Option<u16>,
+    size: Option<f32>,
     font: &Renderer::Font,
     is_secure: bool,
     style: &<Renderer::Theme as StyleSheet>::Style,
@@ -969,7 +965,7 @@ pub fn draw<Renderer>(
                 width: f32::INFINITY,
                 ..text_bounds
             },
-            size: f32::from(size),
+            size,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
         });
@@ -1128,7 +1124,7 @@ fn offset<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     font: Renderer::Font,
-    size: u16,
+    size: f32,
     value: &Value,
     state: &State,
 ) -> f32
@@ -1162,7 +1158,7 @@ fn measure_cursor_and_scroll_offset<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     value: &Value,
-    size: u16,
+    size: f32,
     cursor_index: usize,
     font: Renderer::Font,
 ) -> (f32, f32)
@@ -1185,7 +1181,7 @@ fn find_cursor_position<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     font: Renderer::Font,
-    size: Option<u16>,
+    size: Option<f32>,
     value: &Value,
     state: &State,
     x: f32,
@@ -1201,7 +1197,7 @@ where
     renderer
         .hit_test(
             &value.to_string(),
-            size.into(),
+            size,
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),

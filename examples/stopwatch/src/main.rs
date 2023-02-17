@@ -105,7 +105,7 @@ impl Application for Stopwatch {
                 text(label).horizontal_alignment(alignment::Horizontal::Center),
             )
             .padding(10)
-            .width(Length::Units(80))
+            .width(80)
         };
 
         let toggle_button = {

@@ -33,29 +33,29 @@ use crate::Size;
 /// let widget = Widget::new().padding([10, 20]);        // top/bottom, left/right
 /// let widget = Widget::new().padding([5, 10, 15, 20]); // top, right, bottom, left
 /// ```
-#[derive(Debug, Hash, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct Padding {
     /// Top padding
-    pub top: u16,
+    pub top: f32,
     /// Right padding
-    pub right: u16,
+    pub right: f32,
     /// Bottom padding
-    pub bottom: u16,
+    pub bottom: f32,
     /// Left padding
-    pub left: u16,
+    pub left: f32,
 }
 
 impl Padding {
     /// Padding of zero
     pub const ZERO: Padding = Padding {
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
+        top: 0.0,
+        right: 0.0,
+        bottom: 0.0,
+        left: 0.0,
     };
 
     /// Create a Padding that is equal on all sides
-    pub const fn new(padding: u16) -> Padding {
+    pub const fn new(padding: f32) -> Padding {
         Padding {
             top: padding,
             right: padding,
@@ -65,12 +65,12 @@ impl Padding {
     }
 
     /// Returns the total amount of vertical [`Padding`].
-    pub fn vertical(self) -> u16 {
+    pub fn vertical(self) -> f32 {
         self.top + self.bottom
     }
 
     /// Returns the total amount of horizontal [`Padding`].
-    pub fn horizontal(self) -> u16 {
+    pub fn horizontal(self) -> f32 {
         self.left + self.right
     }
 
@@ -79,16 +79,49 @@ impl Padding {
         let available = (outer - inner).max(Size::ZERO);
 
         Padding {
-            top: self.top.min((available.height as u16) / 2),
-            right: self.right.min((available.width as u16) / 2),
-            bottom: self.bottom.min((available.height as u16) / 2),
-            left: self.left.min((available.width as u16) / 2),
+            top: self.top.min(available.height / 2.0),
+            right: self.right.min(available.width / 2.0),
+            bottom: self.bottom.min(available.height / 2.0),
+            left: self.left.min(available.width / 2.0),
         }
     }
 }
 
 impl From<u16> for Padding {
     fn from(p: u16) -> Self {
+        Padding {
+            top: f32::from(p),
+            right: f32::from(p),
+            bottom: f32::from(p),
+            left: f32::from(p),
+        }
+    }
+}
+
+impl From<[u16; 2]> for Padding {
+    fn from(p: [u16; 2]) -> Self {
+        Padding {
+            top: f32::from(p[0]),
+            right: f32::from(p[1]),
+            bottom: f32::from(p[0]),
+            left: f32::from(p[1]),
+        }
+    }
+}
+
+impl From<[u16; 4]> for Padding {
+    fn from(p: [u16; 4]) -> Self {
+        Padding {
+            top: f32::from(p[0]),
+            right: f32::from(p[1]),
+            bottom: f32::from(p[2]),
+            left: f32::from(p[3]),
+        }
+    }
+}
+
+impl From<f32> for Padding {
+    fn from(p: f32) -> Self {
         Padding {
             top: p,
             right: p,
@@ -98,8 +131,8 @@ impl From<u16> for Padding {
     }
 }
 
-impl From<[u16; 2]> for Padding {
-    fn from(p: [u16; 2]) -> Self {
+impl From<[f32; 2]> for Padding {
+    fn from(p: [f32; 2]) -> Self {
         Padding {
             top: p[0],
             right: p[1],
@@ -109,8 +142,8 @@ impl From<[u16; 2]> for Padding {
     }
 }
 
-impl From<[u16; 4]> for Padding {
-    fn from(p: [u16; 4]) -> Self {
+impl From<[f32; 4]> for Padding {
+    fn from(p: [f32; 4]) -> Self {
         Padding {
             top: p[0],
             right: p[1],

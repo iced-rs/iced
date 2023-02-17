@@ -6,14 +6,14 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Length, Padding, Point, Rectangle, Shell,
-    Widget,
+    Alignment, Clipboard, Element, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Widget,
 };
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Renderer> {
-    spacing: u16,
+    spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
@@ -32,7 +32,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Row {
-            spacing: 0,
+            spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -46,8 +46,8 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.spacing = units;
+    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.spacing = amount.into().0;
         self
     }
 
@@ -58,14 +58,14 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 
     /// Sets the width of the [`Row`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Row`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -124,7 +124,7 @@ where
             renderer,
             &limits,
             self.padding,
-            self.spacing as f32,
+            self.spacing,
             self.align_items,
             &self.children,
         )
