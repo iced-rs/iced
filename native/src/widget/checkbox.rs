@@ -14,6 +14,17 @@ use crate::{
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
 
+/// The icon in a [`Checkbox`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Icon<Font> {
+    /// Font that will be used to display the `code_point`,
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
+    /// Font size of the content.
+    pub size: Option<u16>,
+}
+
 /// A box that can be checked.
 ///
 /// # Example
@@ -45,6 +56,7 @@ where
     spacing: u16,
     text_size: Option<u16>,
     font: Renderer::Font,
+    icon: Icon<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -80,6 +92,11 @@ where
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
             font: Renderer::Font::default(),
+            icon: Icon {
+                font: Renderer::ICON_FONT,
+                code_point: Renderer::CHECKMARK_ICON,
+                size: None,
+            },
             style: Default::default(),
         }
     }
@@ -113,6 +130,12 @@ where
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.font = font;
+        self
+    }
+
+    /// Sets the [`Icon`] of the [`Checkbox`].
+    pub fn icon(mut self, icon: Icon<Renderer::Font>) -> Self {
+        self.icon = icon;
         self
     }
 
@@ -243,17 +266,24 @@ where
                 custom_style.background,
             );
 
+            let Icon {
+                font,
+                code_point,
+                size,
+            } = &self.icon;
+            let size = size.map(f32::from).unwrap_or(bounds.height * 0.7);
+
             if self.is_checked {
                 renderer.fill_text(text::Text {
-                    content: &Renderer::CHECKMARK_ICON.to_string(),
-                    font: Renderer::ICON_FONT,
-                    size: bounds.height * 0.7,
+                    content: &code_point.to_string(),
+                    font: font.clone(),
+                    size,
                     bounds: Rectangle {
                         x: bounds.center_x(),
                         y: bounds.center_y(),
                         ..bounds
                     },
-                    color: custom_style.checkmark_color,
+                    color: custom_style.icon_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
                 });
