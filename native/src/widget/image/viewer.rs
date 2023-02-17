@@ -6,8 +6,8 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -15,7 +15,7 @@ use std::hash::Hash;
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
 pub struct Viewer<Handle> {
-    padding: u16,
+    padding: f32,
     width: Length,
     height: Length,
     min_scale: f32,
@@ -28,7 +28,7 @@ impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
     pub fn new(handle: Handle) -> Self {
         Viewer {
-            padding: 0,
+            padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
             min_scale: 0.25,
@@ -39,8 +39,8 @@ impl<Handle> Viewer<Handle> {
     }
 
     /// Sets the padding of the [`Viewer`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding = padding.into().0;
         self
     }
 
