@@ -73,20 +73,20 @@ pub trait Renderer: crate::Renderer {
     const ARROW_DOWN_ICON: char;
 
     /// Returns the default size of [`Text`].
-    fn default_size(&self) -> u16;
+    fn default_size(&self) -> f32;
 
     /// Measures the text in the given bounds and returns the minimum boundaries
     /// that can fit the contents.
     fn measure(
         &self,
         content: &str,
-        size: u16,
+        size: f32,
         font: Self::Font,
         bounds: Size,
     ) -> (f32, f32);
 
     /// Measures the width of the text as if it were laid out in a single line.
-    fn measure_width(&self, content: &str, size: u16, font: Self::Font) -> f32 {
+    fn measure_width(&self, content: &str, size: f32, font: Self::Font) -> f32 {
         let (width, _) = self.measure(content, size, font, Size::INFINITY);
 
         width

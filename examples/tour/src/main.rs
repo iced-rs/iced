@@ -513,14 +513,14 @@ impl<'a> Step {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(vertical_space(Length::Units(4096)))
+            .push(vertical_space(4096))
             .push(
                 text("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(vertical_space(Length::Units(4096)))
+            .push(vertical_space(4096))
             .push(ferris(300))
             .push(
                 text("You made it!")
@@ -605,7 +605,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         } else {
             image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
         }
-        .width(Length::Units(width)),
+        .width(width),
     )
     .width(Length::Fill)
     .center_x()
@@ -616,7 +616,7 @@ fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
         text(label).horizontal_alignment(alignment::Horizontal::Center),
     )
     .padding(12)
-    .width(Length::Units(100))
+    .width(100)
 }
 
 fn color_slider<'a>(

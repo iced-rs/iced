@@ -13,8 +13,8 @@ use crate::widget::container;
 use crate::widget::scrollable;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Element, Layout, Length, Padding, Point, Rectangle, Shell, Size,
-    Widget,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Widget,
 };
 use std::borrow::Cow;
 
@@ -34,7 +34,7 @@ where
     selected: Option<T>,
     width: Length,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -53,7 +53,7 @@ where
         From<<Renderer::Theme as StyleSheet>::Style>,
 {
     /// The default padding of a [`PickList`].
-    pub const DEFAULT_PADDING: Padding = Padding::new(5);
+    pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
     /// Creates a new [`PickList`] with the given list of options, the current
     /// selected value, and the message to produce when an option is selected.
@@ -83,8 +83,8 @@ where
     }
 
     /// Sets the width of the [`PickList`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -95,8 +95,8 @@ where
     }
 
     /// Sets the text size of the [`PickList`].
-    pub fn text_size(mut self, size: u16) -> Self {
-        self.text_size = Some(size);
+    pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(size.into().0);
         self
     }
 
@@ -297,14 +297,14 @@ impl<T> Default for State<T> {
 }
 
 /// The handle to the right side of the [`PickList`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Handle<Font> {
     /// Displays an arrow icon (▼).
     ///
     /// This is the default.
     Arrow {
         /// Font size of the content.
-        size: Option<u16>,
+        size: Option<f32>,
     },
     /// A custom static handle.
     Static(Icon<Font>),
@@ -326,14 +326,14 @@ impl<Font> Default for Handle<Font> {
 }
 
 /// The icon of a [`Handle`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Icon<Font> {
     /// Font that will be used to display the `code_point`,
     pub font: Font,
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// Font size of the content.
-    pub size: Option<u16>,
+    pub size: Option<f32>,
 }
 
 /// Computes the layout of a [`PickList`].
@@ -342,7 +342,7 @@ pub fn layout<Renderer, T>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: &Renderer::Font,
     placeholder: Option<&str>,
     options: &[T],
@@ -354,12 +354,11 @@ where
     use std::f32;
 
     let limits = limits.width(width).height(Length::Shrink).pad(padding);
-
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
     let max_width = match width {
         Length::Shrink => {
-            let measure = |label: &str| -> u32 {
+            let measure = |label: &str| -> f32 {
                 let (width, _) = renderer.measure(
                     label,
                     text_size,
@@ -367,26 +366,25 @@ where
                     Size::new(f32::INFINITY, f32::INFINITY),
                 );
 
-                width.round() as u32
+                width.round()
             };
 
             let labels = options.iter().map(ToString::to_string);
 
-            let labels_width =
-                labels.map(|label| measure(&label)).max().unwrap_or(100);
+            let labels_width = labels
+                .map(|label| measure(&label))
+                .fold(100.0, |candidate, current| current.max(candidate));
 
-            let placeholder_width = placeholder.map(measure).unwrap_or(100);
+            let placeholder_width = placeholder.map(measure).unwrap_or(100.0);
 
             labels_width.max(placeholder_width)
         }
-        _ => 0,
+        _ => 0.0,
     };
 
     let size = {
-        let intrinsic = Size::new(
-            max_width as f32 + f32::from(text_size) + f32::from(padding.left),
-            f32::from(text_size),
-        );
+        let intrinsic =
+            Size::new(max_width + text_size + padding.left, text_size);
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -514,7 +512,7 @@ pub fn overlay<'a, T, Message, Renderer>(
     layout: Layout<'_>,
     state: &'a mut State<T>,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     options: &'a [T],
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -539,7 +537,7 @@ where
             &mut state.hovered_option,
             &mut state.last_selection,
         )
-        .width(bounds.width.round() as u16)
+        .width(bounds.width)
         .padding(padding)
         .font(font)
         .style(style);
@@ -561,7 +559,7 @@ pub fn draw<'a, T, Renderer>(
     layout: Layout<'_>,
     cursor_position: Point,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: &Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
@@ -613,7 +611,7 @@ pub fn draw<'a, T, Renderer>(
     };
 
     if let Some((font, code_point, size)) = handle {
-        let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
+        let size = size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: &code_point.to_string(),
@@ -621,7 +619,7 @@ pub fn draw<'a, T, Renderer>(
             font,
             color: style.handle_color,
             bounds: Rectangle {
-                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
+                x: bounds.x + bounds.width - padding.horizontal(),
                 y: bounds.center_y() - size / 2.0,
                 height: size,
                 ..bounds
@@ -634,8 +632,7 @@ pub fn draw<'a, T, Renderer>(
     let label = selected.map(ToString::to_string);
 
     if let Some(label) = label.as_deref().or(placeholder) {
-        let text_size =
-            f32::from(text_size.unwrap_or_else(|| renderer.default_size()));
+        let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: label,
@@ -647,9 +644,9 @@ pub fn draw<'a, T, Renderer>(
                 style.placeholder_color
             },
             bounds: Rectangle {
-                x: bounds.x + f32::from(padding.left),
+                x: bounds.x + padding.left,
                 y: bounds.center_y() - text_size / 2.0,
-                width: bounds.width - f32::from(padding.horizontal()),
+                width: bounds.width - padding.horizontal(),
                 height: text_size,
             },
             horizontal_alignment: alignment::Horizontal::Left,

@@ -301,11 +301,11 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
         }
 
         row![
-            text(C::LABEL).width(Length::Units(50)),
+            text(C::LABEL).width(50),
             slider(cr1, c1, move |v| C::new(v, c2, c3)),
             slider(cr2, c2, move |v| C::new(c1, v, c3)),
             slider(cr3, c3, move |v| C::new(c1, c2, v)),
-            text(color.to_string()).width(Length::Units(185)).size(14),
+            text(color.to_string()).width(185).size(14),
         ]
         .spacing(10)
         .align_items(Alignment::Center)

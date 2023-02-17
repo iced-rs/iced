@@ -22,7 +22,7 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
-    default_text_size: u16,
+    default_text_size: f32,
 }
 
 impl Backend {
@@ -228,7 +228,7 @@ impl backend::Text for Backend {
     const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = font::ARROW_DOWN_ICON;
 
-    fn default_size(&self) -> u16 {
+    fn default_size(&self) -> f32 {
         self.default_text_size
     }
 

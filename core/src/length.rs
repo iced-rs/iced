@@ -1,5 +1,5 @@
 /// The strategy used to fill space in a specific dimension.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
     /// Fill all the remaining space
     Fill,
@@ -17,7 +17,7 @@ pub enum Length {
     Shrink,
 
     /// Fill a fixed amount of space
-    Units(u16),
+    Fixed(f32),
 }
 
 impl Length {
@@ -31,13 +31,19 @@ impl Length {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
             Length::Shrink => 0,
-            Length::Units(_) => 0,
+            Length::Fixed(_) => 0,
         }
+    }
+}
+
+impl From<f32> for Length {
+    fn from(amount: f32) -> Self {
+        Length::Fixed(amount)
     }
 }
 
 impl From<u16> for Length {
     fn from(units: u16) -> Self {
-        Length::Units(units)
+        Length::Fixed(f32::from(units))
     }
 }

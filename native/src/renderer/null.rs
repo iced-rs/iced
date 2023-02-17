@@ -44,14 +44,14 @@ impl text::Renderer for Null {
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
 
-    fn default_size(&self) -> u16 {
-        20
+    fn default_size(&self) -> f32 {
+        20.0
     }
 
     fn measure(
         &self,
         _content: &str,
-        _size: u16,
+        _size: f32,
         _font: Font,
         _bounds: Size,
     ) -> (f32, f32) {

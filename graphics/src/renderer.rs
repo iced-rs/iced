@@ -130,19 +130,18 @@ where
     const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
 
-    fn default_size(&self) -> u16 {
+    fn default_size(&self) -> f32 {
         self.backend().default_size()
     }
 
     fn measure(
         &self,
         content: &str,
-        size: u16,
+        size: f32,
         font: Font,
         bounds: Size,
     ) -> (f32, f32) {
-        self.backend()
-            .measure(content, f32::from(size), font, bounds)
+        self.backend().measure(content, size, font, bounds)
     }
 
     fn hit_test(
