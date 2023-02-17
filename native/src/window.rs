@@ -21,7 +21,6 @@ pub use user_attention::UserAttention;
 
 use crate::subscription::{self, Subscription};
 use crate::time::Instant;
-use crate::window;
 
 /// Subscribes to the frames of the window of the running application.
 ///

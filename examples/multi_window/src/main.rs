@@ -499,18 +499,17 @@ fn view_content<'a>(
     .spacing(10)
     .align_items(Alignment::Center);
 
-    Element::from(
-        container(
-            scrollable(content)
-                .vertical_scroll(Properties::new())
-                .id(scrollable_id),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(5)
-        .center_y(),
+    container(
+        scrollable(content)
+            .height(Length::Fill)
+            .vertical_scroll(Properties::new())
+            .id(scrollable_id),
     )
-    .explain(Color::default())
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .padding(5)
+    .center_y()
+    .into()
 }
 
 fn view_controls<'a>(

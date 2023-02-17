@@ -9,7 +9,7 @@ use crate::renderer;
 use crate::settings;
 use crate::widget::operation;
 use crate::window;
-use crate::{conversion, multi_window};
+use crate::conversion;
 use crate::{
     Command, Debug, Element, Error, Executor, Proxy, Renderer, Runtime,
     Settings, Size, Subscription,
@@ -237,7 +237,8 @@ where
 
     let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
 
-    let (mut sender, receiver) = mpsc::unbounded();
+    let (mut event_sender, event_receiver) = mpsc::unbounded();
+    let (control_sender, mut control_receiver) = mpsc::unbounded();
 
     let mut instance = Box::pin({
         let run_instance = run_instance::<A, E, C>(
@@ -247,7 +248,8 @@ where
             runtime,
             proxy,
             debug,
-            receiver,
+            event_receiver,
+            control_sender,
             init_command,
             windows,
             settings.exit_on_close_request,
@@ -299,13 +301,19 @@ where
         };
 
         if let Some(event) = event {
-            sender.start_send(event).expect("Send event");
+            event_sender.start_send(event).expect("Send event");
 
             let poll = instance.as_mut().poll(&mut context);
 
-            *control_flow = match poll {
-                task::Poll::Pending => ControlFlow::Wait,
-                task::Poll::Ready(_) => ControlFlow::Exit,
+            match poll {
+                task::Poll::Pending => {
+                    if let Ok(Some(flow)) = control_receiver.try_next() {
+                        *control_flow = flow;
+                    }
+                }
+                task::Poll::Ready(_) => {
+                    *control_flow = ControlFlow::Exit;
+                }
             };
         }
     })
@@ -318,9 +326,10 @@ async fn run_instance<A, E, C>(
     mut runtime: Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
     mut proxy: winit::event_loop::EventLoopProxy<Event<A::Message>>,
     mut debug: Debug,
-    mut receiver: mpsc::UnboundedReceiver<
+    mut event_receiver: mpsc::UnboundedReceiver<
         winit::event::Event<'_, Event<A::Message>>,
     >,
+    mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
     mut windows: HashMap<window::Id, winit::window::Window>,
     _exit_on_close_request: bool,
@@ -332,6 +341,7 @@ async fn run_instance<A, E, C>(
 {
     use iced_futures::futures::stream::StreamExt;
     use winit::event;
+    use winit::event_loop::ControlFlow;
 
     let mut clipboard =
         Clipboard::connect(windows.values().next().expect("No window found"));
@@ -390,11 +400,20 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
+    let mut redraw_pending = false;
 
     debug.startup_finished();
 
-    'main: while let Some(event) = receiver.next().await {
+    'main: while let Some(event) = event_receiver.next().await {
         match event {
+            event::Event::NewEvents(start_cause) => {
+                redraw_pending = matches!(
+                    start_cause,
+                    event::StartCause::Init
+                        | event::StartCause::Poll
+                        | event::StartCause::ResumeTimeReached { .. }
+                );
+            }
             event::Event::MainEventsCleared => {
                 for id in states.keys().copied().collect::<Vec<_>>() {
                     let (filtered, remaining): (Vec<_>, Vec<_>) =
@@ -408,29 +427,27 @@ async fn run_instance<A, E, C>(
                         );
 
                     events.retain(|el| remaining.contains(el));
-                    let mut filtered: Vec<_> = filtered
+                    let window_events: Vec<_> = filtered
                         .into_iter()
                         .map(|(_id, event)| event)
                         .collect();
-                    filtered.push(iced_native::Event::Window(
-                        id,
-                        window::Event::RedrawRequested(Instant::now()),
-                    ));
 
-                    let cursor_position =
-                        states.get(&id).unwrap().cursor_position();
-                    let window = windows.get(&id).unwrap();
-
-                    if filtered.is_empty() && messages.is_empty() {
+                    if !redraw_pending
+                        && window_events.is_empty()
+                        && messages.is_empty()
+                    {
                         continue;
                     }
 
                     debug.event_processing_started();
 
+                    let cursor_position =
+                        states.get(&id).unwrap().cursor_position();
+
                     let (interface_state, statuses) = {
                         let user_interface = interfaces.get_mut(&id).unwrap();
                         user_interface.update(
-                            &filtered,
+                            &window_events,
                             cursor_position,
                             &mut renderer,
                             &mut clipboard,
@@ -440,7 +457,8 @@ async fn run_instance<A, E, C>(
 
                     debug.event_processing_finished();
 
-                    for event in filtered.into_iter().zip(statuses.into_iter())
+                    for event in
+                        window_events.into_iter().zip(statuses.into_iter())
                     {
                         runtime.broadcast(event);
                     }
@@ -487,8 +505,6 @@ async fn run_instance<A, E, C>(
                             windows.get(&id).expect("No window found with ID."),
                         );
 
-                        let should_exit = application.should_exit();
-
                         interfaces = ManuallyDrop::new(build_user_interfaces(
                             &application,
                             &mut renderer,
@@ -497,17 +513,35 @@ async fn run_instance<A, E, C>(
                             user_interfaces,
                         ));
 
-                        if should_exit {
+                        if application.should_exit() {
                             break 'main;
                         }
                     }
 
+                    // TODO: Avoid redrawing all the time by forcing widgets to
+                    // request redraws on state changes
+                    //
+                    // Then, we can use the `interface_state` here to decide if a redraw
+                    // is needed right away, or simply wait until a specific time.
+                    let redraw_event = iced_native::Event::Window(
+                        id,
+                        window::Event::RedrawRequested(Instant::now()),
+                    );
+
+                    let (interface_state, _) =
+                        interfaces.get_mut(&id).unwrap().update(
+                            &[redraw_event.clone()],
+                            cursor_position,
+                            &mut renderer,
+                            &mut clipboard,
+                            &mut messages,
+                        );
+
                     debug.draw_started();
                     let new_mouse_interaction = {
-                        let user_interface = interfaces.get_mut(&id).unwrap();
                         let state = states.get(&id).unwrap();
 
-                        user_interface.draw(
+                        interfaces.get_mut(&id).unwrap().draw(
                             &mut renderer,
                             state.theme(),
                             &renderer::Style {
@@ -517,6 +551,8 @@ async fn run_instance<A, E, C>(
                         )
                     };
                     debug.draw_finished();
+
+                    let window = windows.get(&id).unwrap();
 
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
@@ -528,6 +564,28 @@ async fn run_instance<A, E, C>(
 
                     for window in windows.values() {
                         window.request_redraw();
+
+                        runtime.broadcast((
+                            redraw_event.clone(),
+                            crate::event::Status::Ignored,
+                        ));
+
+                        let _ =
+                            control_sender.start_send(match interface_state {
+                                user_interface::State::Updated {
+                                    redraw_request: Some(redraw_request),
+                                } => match redraw_request {
+                                    window::RedrawRequest::NextFrame => {
+                                        ControlFlow::Poll
+                                    }
+                                    window::RedrawRequest::At(at) => {
+                                        ControlFlow::WaitUntil(at)
+                                    }
+                                },
+                                _ => ControlFlow::Wait,
+                            });
+
+                        redraw_pending = false;
                     }
                 }
             }
