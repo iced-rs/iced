@@ -15,14 +15,14 @@ use crate::{
 pub use iced_style::checkbox::{Appearance, StyleSheet};
 
 /// The icon in a [`Checkbox`].
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Icon<Font> {
     /// Font that will be used to display the `code_point`,
     pub font: Font,
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// Font size of the content.
-    pub size: Option<u16>,
+    pub size: Option<f32>,
 }
 
 /// A box that can be checked.
