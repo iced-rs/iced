@@ -794,6 +794,11 @@ pub fn run_command<A, E>(
                 window::Action::ChangeAlwaysOnTop(on_top) => {
                     window.set_always_on_top(on_top);
                 }
+                window::Action::FetchId(tag) => {
+                    proxy
+                        .send_event(tag(window.id().into()))
+                        .expect("Send message to event loop");
+                }
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {

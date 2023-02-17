@@ -95,3 +95,12 @@ pub fn change_always_on_top<Message>(on_top: bool) -> Command<Message> {
         on_top,
     )))
 }
+
+/// Fetches an identifier unique to the window.
+pub fn fetch_id<Message>(
+    f: impl FnOnce(u64) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::FetchId(Box::new(
+        f,
+    ))))
+}

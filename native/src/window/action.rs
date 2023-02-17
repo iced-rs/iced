@@ -76,6 +76,8 @@ pub enum Action<T> {
     ///
     /// - **Web / Wayland:** Unsupported.
     ChangeAlwaysOnTop(bool),
+    /// Fetch an identifier unique to the window.
+    FetchId(Box<dyn FnOnce(u64) -> T + 'static>),
 }
 
 impl<T> Action<T> {
@@ -105,6 +107,7 @@ impl<T> Action<T> {
             Self::ChangeAlwaysOnTop(on_top) => {
                 Action::ChangeAlwaysOnTop(on_top)
             }
+            Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
         }
     }
 }
@@ -138,6 +141,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeAlwaysOnTop(on_top) => {
                 write!(f, "Action::AlwaysOnTop({on_top})")
             }
+            Self::FetchId(_) => write!(f, "Action::FetchId"),
         }
     }
 }
