@@ -70,6 +70,12 @@ pub enum Action<T> {
     ///
     /// - **Web / Wayland:** Unsupported.
     GainFocus,
+    /// Change whether or not the window will always be on top of other windows.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland:** Unsupported.
+    ChangeAlwaysOnTop(bool),
 }
 
 impl<T> Action<T> {
@@ -85,8 +91,8 @@ impl<T> Action<T> {
             Self::Close => Action::Close,
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
-            Self::Maximize(bool) => Action::Maximize(bool),
-            Self::Minimize(bool) => Action::Minimize(bool),
+            Self::Maximize(maximized) => Action::Maximize(maximized),
+            Self::Minimize(minimized) => Action::Minimize(minimized),
             Self::Move { x, y } => Action::Move { x, y },
             Self::ChangeMode(mode) => Action::ChangeMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
@@ -96,6 +102,9 @@ impl<T> Action<T> {
                 Action::RequestUserAttention(attention_type)
             }
             Self::GainFocus => Action::GainFocus,
+            Self::ChangeAlwaysOnTop(on_top) => {
+                Action::ChangeAlwaysOnTop(on_top)
+            }
         }
     }
 }
@@ -109,8 +118,12 @@ impl<T> fmt::Debug for Action<T> {
                 f,
                 "Action::Resize {{ widget: {width}, height: {height} }}"
             ),
-            Self::Maximize(value) => write!(f, "Action::Maximize({value})"),
-            Self::Minimize(value) => write!(f, "Action::Minimize({value}"),
+            Self::Maximize(maximized) => {
+                write!(f, "Action::Maximize({maximized})")
+            }
+            Self::Minimize(minimized) => {
+                write!(f, "Action::Minimize({minimized}")
+            }
             Self::Move { x, y } => {
                 write!(f, "Action::Move {{ x: {x}, y: {y} }}")
             }
@@ -122,6 +135,9 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RequestUserAttention")
             }
             Self::GainFocus => write!(f, "Action::GainFocus"),
+            Self::ChangeAlwaysOnTop(on_top) => {
+                write!(f, "Action::AlwaysOnTop({on_top})")
+            }
         }
     }
 }

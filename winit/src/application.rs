@@ -747,11 +747,11 @@ pub fn run_command<A, E>(
                         height,
                     });
                 }
-                window::Action::Maximize(value) => {
-                    window.set_maximized(value);
+                window::Action::Maximize(maximized) => {
+                    window.set_maximized(maximized);
                 }
-                window::Action::Minimize(value) => {
-                    window.set_minimized(value);
+                window::Action::Minimize(minimized) => {
+                    window.set_minimized(minimized);
                 }
                 window::Action::Move { x, y } => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
@@ -781,13 +781,19 @@ pub fn run_command<A, E>(
                     window.set_maximized(!window.is_maximized())
                 }
                 window::Action::ToggleDecorations => {
-                    window.set_decorations(!window.is_decorated())
+                    window.set_decorations(!window.is_decorated());
                 }
-                window::Action::RequestUserAttention(user_attention) => window
-                    .request_user_attention(
+                window::Action::RequestUserAttention(user_attention) => {
+                    window.request_user_attention(
                         user_attention.map(conversion::user_attention),
-                    ),
-                window::Action::GainFocus => window.focus_window(),
+                    );
+                }
+                window::Action::GainFocus => {
+                    window.focus_window();
+                }
+                window::Action::ChangeAlwaysOnTop(on_top) => {
+                    window.set_always_on_top(on_top);
+                }
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
