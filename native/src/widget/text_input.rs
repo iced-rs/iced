@@ -94,7 +94,7 @@ where
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
-            padding: Padding::new(5),
+            padding: Padding::new(5.0),
             size: None,
             on_change: Box::new(on_change),
             on_paste: None,
@@ -390,7 +390,7 @@ where
     let limits = limits.width(width).pad(padding).height(text_size);
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-    text.move_to(Point::new(padding.left.into(), padding.top.into()));
+    text.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(text.size().pad(padding), vec![text])
 }
@@ -965,7 +965,7 @@ pub fn draw<Renderer>(
                 width: f32::INFINITY,
                 ..text_bounds
             },
-            size: f32::from(size),
+            size,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
         });
@@ -1197,7 +1197,7 @@ where
     renderer
         .hit_test(
             &value.to_string(),
-            size.into(),
+            size,
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),

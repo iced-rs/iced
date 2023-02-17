@@ -310,7 +310,7 @@ pub fn layout<Renderer>(
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size());
 
-    content.move_to(Point::new(padding.left.into(), padding.top.into()));
+    content.move_to(Point::new(padding.left, padding.top));
     content.align(
         Alignment::from(horizontal_alignment),
         Alignment::from(vertical_alignment),

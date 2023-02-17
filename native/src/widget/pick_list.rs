@@ -53,7 +53,7 @@ where
         From<<Renderer::Theme as StyleSheet>::Style>,
 {
     /// The default padding of a [`PickList`].
-    pub const DEFAULT_PADDING: Padding = Padding::new(5);
+    pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
     /// Creates a new [`PickList`] with the given list of options, the current
     /// selected value, and the message to produce when an option is selected.
@@ -358,7 +358,7 @@ where
 
     let max_width = match width {
         Length::Shrink => {
-            let measure = |label: &str| -> u32 {
+            let measure = |label: &str| -> f32 {
                 let (width, _) = renderer.measure(
                     label,
                     text_size,
@@ -366,26 +366,25 @@ where
                     Size::new(f32::INFINITY, f32::INFINITY),
                 );
 
-                width.round() as u32
+                width.round()
             };
 
             let labels = options.iter().map(ToString::to_string);
 
-            let labels_width =
-                labels.map(|label| measure(&label)).max().unwrap_or(100);
+            let labels_width = labels
+                .map(|label| measure(&label))
+                .fold(100.0, |candidate, current| current.max(candidate));
 
-            let placeholder_width = placeholder.map(measure).unwrap_or(100);
+            let placeholder_width = placeholder.map(measure).unwrap_or(100.0);
 
             labels_width.max(placeholder_width)
         }
-        _ => 0,
+        _ => 0.0,
     };
 
     let size = {
-        let intrinsic = Size::new(
-            max_width as f32 + f32::from(text_size) + f32::from(padding.left),
-            f32::from(text_size),
-        );
+        let intrinsic =
+            Size::new(max_width + text_size + padding.left, text_size);
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -612,7 +611,7 @@ pub fn draw<'a, T, Renderer>(
     };
 
     if let Some((font, code_point, size)) = handle {
-        let size = f32::from(size.unwrap_or_else(|| renderer.default_size()));
+        let size = size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: &code_point.to_string(),
@@ -620,7 +619,7 @@ pub fn draw<'a, T, Renderer>(
             font,
             color: style.handle_color,
             bounds: Rectangle {
-                x: bounds.x + bounds.width - f32::from(padding.horizontal()),
+                x: bounds.x + bounds.width - padding.horizontal(),
                 y: bounds.center_y() - size / 2.0,
                 height: size,
                 ..bounds
@@ -633,8 +632,7 @@ pub fn draw<'a, T, Renderer>(
     let label = selected.map(ToString::to_string);
 
     if let Some(label) = label.as_deref().or(placeholder) {
-        let text_size =
-            f32::from(text_size.unwrap_or_else(|| renderer.default_size()));
+        let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: label,
@@ -646,9 +644,9 @@ pub fn draw<'a, T, Renderer>(
                 style.placeholder_color
             },
             bounds: Rectangle {
-                x: bounds.x + f32::from(padding.left),
+                x: bounds.x + padding.left,
                 y: bounds.center_y() - text_size / 2.0,
-                width: bounds.width - f32::from(padding.horizontal()),
+                width: bounds.width - padding.horizontal(),
                 height: text_size,
             },
             horizontal_alignment: alignment::Horizontal::Left,

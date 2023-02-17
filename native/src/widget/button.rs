@@ -76,7 +76,7 @@ where
             on_press: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            padding: Padding::new(5),
+            padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
     }
@@ -434,7 +434,7 @@ pub fn layout<Renderer>(
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size()).pad(padding);
 
-    content.move_to(Point::new(padding.left.into(), padding.top.into()));
+    content.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(size, vec![content])
 }

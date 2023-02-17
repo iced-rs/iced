@@ -114,10 +114,7 @@ impl Limits {
 
     /// Shrinks the current [`Limits`] to account for the given padding.
     pub fn pad(&self, padding: Padding) -> Limits {
-        self.shrink(Size::new(
-            padding.horizontal() as f32,
-            padding.vertical() as f32,
-        ))
+        self.shrink(Size::new(padding.horizontal(), padding.vertical()))
     }
 
     /// Shrinks the current [`Limits`] by the given [`Size`].
