@@ -85,8 +85,8 @@ where
     }
 
     /// Sets the size of the [`Toggler`].
-    pub fn size(mut self, size: f32) -> Self {
-        self.size = size;
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = size.into().0;
         self
     }
 

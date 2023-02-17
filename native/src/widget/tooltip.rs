@@ -9,8 +9,8 @@ use crate::widget::container;
 use crate::widget::overlay;
 use crate::widget::{Text, Tree};
 use crate::{
-    Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::borrow::Cow;
@@ -59,7 +59,7 @@ where
     }
 
     /// Sets the size of the text of the [`Tooltip`].
-    pub fn size(mut self, size: u16) -> Self {
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
         self.tooltip = self.tooltip.size(size);
         self
     }
