@@ -409,9 +409,14 @@ where
         .unwrap_or(event::Status::Ignored)
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn is_over(
+        &self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
         self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, cursor_position)
+            overlay.is_over(layout, renderer, cursor_position)
         })
         .unwrap_or_default()
     }
