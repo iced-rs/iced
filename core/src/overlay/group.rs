@@ -160,6 +160,21 @@ where
                 child.is_over(layout, renderer, cursor_position)
             })
     }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        let children = self
+            .children
+            .iter_mut()
+            .zip(layout.children())
+            .filter_map(|(child, layout)| child.overlay(layout, renderer))
+            .collect::<Vec<_>>();
+
+        (!children.is_empty()).then(|| Group::with_children(children).overlay())
+    }
 }
 
 impl<'a, Message, Renderer> From<Group<'a, Message, Renderer>>

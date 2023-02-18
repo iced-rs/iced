@@ -270,4 +270,14 @@ where
     ) -> bool {
         self.content.is_over(layout, renderer, cursor_position)
     }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<Element<'b, B, Renderer>> {
+        self.content
+            .overlay(layout, renderer)
+            .map(|overlay| overlay.map(self.mapper))
+    }
 }
