@@ -100,14 +100,25 @@ where
         ) where
             Renderer: renderer::Renderer,
         {
-            let layout = layouts.next().unwrap();
+            if let Some(layout) = layouts.next() {
+                renderer.with_layer(layout.bounds(), |renderer| {
+                    element.draw(renderer, theme, style, layout, cursor);
+                });
 
-            renderer.with_layer(layout.bounds(), |renderer| {
-                element.draw(renderer, theme, style, layout, cursor);
-            });
+                renderer.with_layer(layout.bounds(), |renderer| {
+                    element.draw(renderer, theme, style, layout, cursor);
+                });
 
-            if let Some(mut overlay) = element.overlay(layout, renderer) {
-                recurse(&mut overlay, layouts, renderer, theme, style, cursor);
+                if let Some(mut overlay) = element.overlay(layout, renderer) {
+                    recurse(
+                        &mut overlay,
+                        layouts,
+                        renderer,
+                        theme,
+                        style,
+                        cursor,
+                    );
+                }
             }
         }
 
@@ -132,12 +143,12 @@ where
         ) where
             Renderer: renderer::Renderer,
         {
-            let layout = layouts.next().unwrap();
+            if let Some(layout) = layouts.next() {
+                element.operate(layout, renderer, operation);
 
-            element.operate(layout, renderer, operation);
-
-            if let Some(mut overlay) = element.overlay(layout, renderer) {
-                recurse(&mut overlay, layouts, renderer, operation);
+                if let Some(mut overlay) = element.overlay(layout, renderer) {
+                    recurse(&mut overlay, layouts, renderer, operation);
+                }
             }
         }
 
@@ -167,10 +178,10 @@ where
         where
             Renderer: renderer::Renderer,
         {
-            let layout = layouts.next().unwrap();
-
-            let status =
-                if let Some(mut overlay) = element.overlay(layout, renderer) {
+            if let Some(layout) = layouts.next() {
+                let status = if let Some(mut overlay) =
+                    element.overlay(layout, renderer)
+                {
                     recurse(
                         &mut overlay,
                         layouts,
@@ -184,11 +195,15 @@ where
                     event::Status::Ignored
                 };
 
-            if matches!(status, event::Status::Ignored) {
-                element
-                    .on_event(event, layout, cursor, renderer, clipboard, shell)
+                if matches!(status, event::Status::Ignored) {
+                    element.on_event(
+                        event, layout, cursor, renderer, clipboard, shell,
+                    )
+                } else {
+                    status
+                }
             } else {
-                status
+                event::Status::Ignored
             }
         }
 
@@ -218,41 +233,44 @@ where
             cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
-        ) -> mouse::Interaction
+        ) -> Option<mouse::Interaction>
         where
             Renderer: renderer::Renderer,
         {
-            let layout = layouts.next().unwrap();
+            let layout = layouts.next()?;
+            let cursor_position = cursor.position()?;
 
-            if let Some(cursor_position) = cursor.position() {
-                match element.overlay(layout, renderer) {
-                    Some(mut overlay)
-                        if overlay.is_over(
-                            layout,
-                            renderer,
-                            cursor_position,
-                        ) =>
-                    {
-                        return recurse(
+            if !element.is_over(layout, renderer, cursor_position) {
+                return None;
+            }
+
+            Some(
+                element
+                    .overlay(layout, renderer)
+                    .and_then(|mut overlay| {
+                        recurse(
                             &mut overlay,
                             layouts,
                             cursor,
                             viewport,
                             renderer,
-                        );
-                    }
-                    _ => {}
-                }
-            }
-
-            element.mouse_interaction(layout, cursor, viewport, renderer)
+                        )
+                    })
+                    .unwrap_or_else(|| {
+                        element.mouse_interaction(
+                            layout, cursor, viewport, renderer,
+                        )
+                    }),
+            )
         }
 
-        self.overlay.with_element_mut(|element| {
-            let layouts = layout.children();
+        self.overlay
+            .with_element_mut(|element| {
+                let layouts = layout.children();
 
-            recurse(element, layouts, cursor, viewport, renderer)
-        })
+                recurse(element, layouts, cursor, viewport, renderer)
+            })
+            .unwrap_or_default()
     }
 
     fn is_over(
@@ -270,16 +288,16 @@ where
         where
             Renderer: renderer::Renderer,
         {
-            let layout = layouts.next().unwrap();
+            if let Some(layout) = layouts.next() {
+                if element.is_over(layout, renderer, cursor_position) {
+                    return true;
+                }
 
-            let is_over = element.is_over(layout, renderer, cursor_position);
-
-            if is_over {
-                return true;
-            }
-
-            if let Some(mut overlay) = element.overlay(layout, renderer) {
-                recurse(&mut overlay, layouts, renderer, cursor_position)
+                if let Some(mut overlay) = element.overlay(layout, renderer) {
+                    recurse(&mut overlay, layouts, renderer, cursor_position)
+                } else {
+                    false
+                }
             } else {
                 false
             }
