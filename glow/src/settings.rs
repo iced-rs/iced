@@ -4,7 +4,7 @@ pub use iced_graphics::Antialiasing;
 /// The settings of a [`Backend`].
 ///
 /// [`Backend`]: crate::Backend
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The bytes of the font that will be used by default.
     ///
@@ -13,8 +13,8 @@ pub struct Settings {
 
     /// The default size of text.
     ///
-    /// By default, it will be set to 20.
-    pub default_text_size: u16,
+    /// By default, it will be set to `20.0`.
+    pub default_text_size: f32,
 
     /// If enabled, spread text workload in multiple threads when multiple cores
     /// are available.
@@ -32,7 +32,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             default_font: None,
-            default_text_size: 20,
+            default_text_size: 20.0,
             text_multithreading: false,
             antialiasing: None,
         }

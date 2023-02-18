@@ -100,13 +100,13 @@ impl<Message, Theme, P> Canvas<Message, Theme, P>
 where
     P: Program<Message, Theme>,
 {
-    const DEFAULT_SIZE: u16 = 100;
+    const DEFAULT_SIZE: f32 = 100.0;
 
     /// Creates a new [`Canvas`].
     pub fn new(program: P) -> Self {
         Canvas {
-            width: Length::Units(Self::DEFAULT_SIZE),
-            height: Length::Units(Self::DEFAULT_SIZE),
+            width: Length::Fixed(Self::DEFAULT_SIZE),
+            height: Length::Fixed(Self::DEFAULT_SIZE),
             program,
             message_: PhantomData,
             theme_: PhantomData,
@@ -114,14 +114,14 @@ where
     }
 
     /// Sets the width of the [`Canvas`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Canvas`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 }

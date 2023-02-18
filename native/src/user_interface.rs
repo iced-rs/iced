@@ -266,16 +266,16 @@ where
                 }
             }
 
-            let base_cursor = if manual_overlay
+            let base_cursor = manual_overlay
                 .as_ref()
-                .unwrap()
-                .is_over(Layout::new(&layout), cursor_position)
-            {
-                // TODO: Type-safe cursor availability
-                Point::new(-1.0, -1.0)
-            } else {
-                cursor_position
-            };
+                .filter(|overlay| {
+                    overlay.is_over(Layout::new(&layout), cursor_position)
+                })
+                .map(|_| {
+                    // TODO: Type-safe cursor availability
+                    Point::new(-1.0, -1.0)
+                })
+                .unwrap_or(cursor_position);
 
             self.overlay = Some(layout);
 

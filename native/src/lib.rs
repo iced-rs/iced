@@ -82,7 +82,7 @@ pub use iced_core::alignment;
 pub use iced_core::time;
 pub use iced_core::{
     color, Alignment, Background, Color, ContentFit, Font, Length, Padding,
-    Point, Rectangle, Size, Vector,
+    Pixels, Point, Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
 pub use iced_style::application;

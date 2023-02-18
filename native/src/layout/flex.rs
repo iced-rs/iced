@@ -191,7 +191,7 @@ where
         }
     }
 
-    let pad = axis.pack(padding.left as f32, padding.top as f32);
+    let pad = axis.pack(padding.left, padding.top);
     let mut main = pad.0;
 
     for (i, node) in nodes.iter_mut().enumerate() {

@@ -376,6 +376,13 @@ where
         })
         .unwrap_or(iced_native::event::Status::Ignored)
     }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
+    }
 }
 
 impl<'a, Message, Renderer, Dependency, View>

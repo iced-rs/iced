@@ -127,7 +127,7 @@ mod numeric_input {
                         .horizontal_alignment(alignment::Horizontal::Center)
                         .vertical_alignment(alignment::Vertical::Center),
                 )
-                .width(Length::Units(50))
+                .width(50)
                 .on_press(on_press)
             };
 

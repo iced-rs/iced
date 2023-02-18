@@ -8,8 +8,8 @@ use crate::text;
 use crate::widget::{self, Row, Text, Tree};
 use crate::IME;
 use crate::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Widget,
 };
 
 pub use iced_style::toggler::{Appearance, StyleSheet};
@@ -39,10 +39,10 @@ where
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
     label: Option<String>,
     width: Length,
-    size: u16,
-    text_size: Option<u16>,
+    size: f32,
+    text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
-    spacing: u16,
+    spacing: f32,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -53,7 +53,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: u16 = 20;
+    pub const DEFAULT_SIZE: f32 = 20.0;
 
     /// Creates a new [`Toggler`].
     ///
@@ -79,27 +79,27 @@ where
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
-            spacing: 0,
+            spacing: 0.0,
             font: Renderer::Font::default(),
             style: Default::default(),
         }
     }
 
     /// Sets the size of the [`Toggler`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = size.into().0;
         self
     }
 
     /// Sets the width of the [`Toggler`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the text size o the [`Toggler`].
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 
@@ -110,8 +110,8 @@ where
     }
 
     /// Sets the spacing between the [`Toggler`] and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 
@@ -170,11 +170,7 @@ where
             );
         }
 
-        row = row.push(
-            Row::new()
-                .width(Length::Units(2 * self.size))
-                .height(Length::Units(self.size)),
-        );
+        row = row.push(Row::new().width(2.0 * self.size).height(self.size));
 
         row.layout(renderer, limits)
     }

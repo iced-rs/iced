@@ -249,10 +249,7 @@ where
             )
         };
 
-        node.move_to(Point::new(
-            self.padding.left.into(),
-            self.padding.top.into(),
-        ));
+        node.move_to(Point::new(self.padding.left, self.padding.top));
 
         layout::Node::with_children(node.size().pad(self.padding), vec![node])
     }

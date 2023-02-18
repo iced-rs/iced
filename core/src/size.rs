@@ -29,8 +29,8 @@ impl Size {
     /// Increments the [`Size`] to account for the given padding.
     pub fn pad(&self, padding: Padding) -> Self {
         Size {
-            width: self.width + padding.horizontal() as f32,
-            height: self.height + padding.vertical() as f32,
+            width: self.width + padding.horizontal(),
+            height: self.height + padding.vertical(),
         }
     }
 

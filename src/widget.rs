@@ -31,7 +31,7 @@ pub mod button {
 
 pub mod checkbox {
     //! Show toggle controls using checkboxes.
-    pub use iced_native::widget::checkbox::{Appearance, StyleSheet};
+    pub use iced_native::widget::checkbox::{Appearance, Icon, StyleSheet};
 
     /// A box that can be checked.
     pub type Checkbox<'a, Message, Renderer = crate::Renderer> =
@@ -80,7 +80,9 @@ pub mod pane_grid {
 
 pub mod pick_list {
     //! Display a dropdown list of selectable values.
-    pub use iced_native::widget::pick_list::{Appearance, Handle, StyleSheet};
+    pub use iced_native::widget::pick_list::{
+        Appearance, Handle, Icon, StyleSheet,
+    };
 
     /// A widget allowing the selection of a single value from a list of options.
     pub type PickList<'a, T, Message, Renderer = crate::Renderer> =

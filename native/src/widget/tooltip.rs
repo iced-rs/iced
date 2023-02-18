@@ -10,8 +10,8 @@ use crate::widget::overlay;
 use crate::widget::{Text, Tree};
 use crate::IME;
 use crate::{
-    Clipboard, Element, Event, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Element, Event, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::borrow::Cow;
@@ -26,8 +26,8 @@ where
     content: Element<'a, Message, Renderer>,
     tooltip: Text<'a, Renderer>,
     position: Position,
-    gap: u16,
-    padding: u16,
+    gap: f32,
+    padding: f32,
     snap_within_viewport: bool,
     style: <Renderer::Theme as container::StyleSheet>::Style,
 }
@@ -38,7 +38,7 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
-    const DEFAULT_PADDING: u16 = 5;
+    const DEFAULT_PADDING: f32 = 5.0;
 
     /// Creates a new [`Tooltip`].
     ///
@@ -52,7 +52,7 @@ where
             content: content.into(),
             tooltip: Text::new(tooltip),
             position,
-            gap: 0,
+            gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             style: Default::default(),
@@ -60,7 +60,7 @@ where
     }
 
     /// Sets the size of the text of the [`Tooltip`].
-    pub fn size(mut self, size: u16) -> Self {
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
         self.tooltip = self.tooltip.size(size);
         self
     }
@@ -74,14 +74,14 @@ where
     }
 
     /// Sets the gap between the content and its [`Tooltip`].
-    pub fn gap(mut self, gap: u16) -> Self {
-        self.gap = gap;
+    pub fn gap(mut self, gap: impl Into<Pixels>) -> Self {
+        self.gap = gap.into().0;
         self
     }
 
     /// Sets the padding of the [`Tooltip`].
-    pub fn padding(mut self, padding: u16) -> Self {
-        self.padding = padding;
+    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding = padding.into().0;
         self
     }
 
@@ -275,8 +275,8 @@ pub fn draw<Renderer>(
     cursor_position: Point,
     viewport: &Rectangle,
     position: Position,
-    gap: u16,
-    padding: u16,
+    gap: f32,
+    padding: f32,
     snap_within_viewport: bool,
     style: &<Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
@@ -296,7 +296,6 @@ pub fn draw<Renderer>(
     let bounds = layout.bounds();
 
     if bounds.contains(cursor_position) {
-        let gap = f32::from(gap);
         let style = theme.appearance(style);
 
         let defaults = renderer::Style {
@@ -314,7 +313,6 @@ pub fn draw<Renderer>(
             .pad(Padding::new(padding)),
         );
 
-        let padding = f32::from(padding);
         let text_bounds = text_layout.bounds();
         let x_center = bounds.x + (bounds.width - text_bounds.width) / 2.0;
         let y_center = bounds.y + (bounds.height - text_bounds.height) / 2.0;

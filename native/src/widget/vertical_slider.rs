@@ -9,7 +9,8 @@ use crate::event::{self, Event};
 use crate::widget::tree::{self, Tree};
 use crate::{
     layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
-    Layout, Length, Point, Rectangle, Shell, Size, Widget, IME,
+ Point,  IME,
+    Layout, Length, Pixels, Point, Rectangle, Shell, Size, Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -47,7 +48,7 @@ where
     value: T,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
-    width: u16,
+    width: f32,
     height: Length,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -60,7 +61,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default width of a [`VerticalSlider`].
-    pub const DEFAULT_WIDTH: u16 = 22;
+    pub const DEFAULT_WIDTH: f32 = 22.0;
 
     /// Creates a new [`VerticalSlider`].
     ///
@@ -110,14 +111,14 @@ where
     }
 
     /// Sets the width of the [`VerticalSlider`].
-    pub fn width(mut self, width: u16) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Pixels>) -> Self {
+        self.width = width.into().0;
         self
     }
 
     /// Sets the height of the [`VerticalSlider`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -166,9 +167,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits =
-            limits.width(Length::Units(self.width)).height(self.height);
-
+        let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)

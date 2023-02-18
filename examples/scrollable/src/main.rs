@@ -187,9 +187,9 @@ impl Application for ScrollableDemo {
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        vertical_space(Length::Units(1200)),
+                        vertical_space(1200),
                         text("Middle!"),
-                        vertical_space(Length::Units(1200)),
+                        vertical_space(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -211,13 +211,13 @@ impl Application for ScrollableDemo {
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        horizontal_space(Length::Units(1200)),
+                        horizontal_space(1200),
                         text("Middle!"),
-                        horizontal_space(Length::Units(1200)),
+                        horizontal_space(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
-                    .height(Length::Units(450))
+                    .height(450)
                     .align_items(Alignment::Center)
                     .padding([0, 40, 0, 40])
                     .spacing(40),
@@ -237,26 +237,26 @@ impl Application for ScrollableDemo {
                     row![
                         column![
                             text("Let's do some scrolling!"),
-                            vertical_space(Length::Units(2400))
+                            vertical_space(2400)
                         ],
                         scroll_to_end_button(),
                         text("Horizontal - Beginning!"),
-                        horizontal_space(Length::Units(1200)),
+                        horizontal_space(1200),
                         //vertical content
                         column![
                             text("Horizontal - Middle!"),
                             scroll_to_end_button(),
                             text("Vertical - Beginning!"),
-                            vertical_space(Length::Units(1200)),
+                            vertical_space(1200),
                             text("Vertical - Middle!"),
-                            vertical_space(Length::Units(1200)),
+                            vertical_space(1200),
                             text("Vertical - End!"),
                             scroll_to_beginning_button(),
-                            vertical_space(Length::Units(40)),
+                            vertical_space(40),
                         ]
                         .align_items(Alignment::Fill)
                         .spacing(40),
-                        horizontal_space(Length::Units(1200)),
+                        horizontal_space(1200),
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]

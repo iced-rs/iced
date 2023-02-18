@@ -313,6 +313,8 @@ where
         }
 
         self.with_element(|element| {
+            tree.diff_children(std::slice::from_ref(&element));
+
             element.as_widget().operate(
                 &mut tree.children[0],
                 layout,
@@ -566,5 +568,12 @@ where
         }
 
         event_status
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
     }
 }
