@@ -1,10 +1,11 @@
 use iced::theme::{self, Theme};
 use iced::widget::{
-    button, checkbox, column, container, horizontal_rule, progress_bar, radio,
-    row, scrollable, slider, text, text_input, toggler, vertical_rule,
-    vertical_space,
+    button, checkbox, column, container, horizontal_rule, pick_list,
+    progress_bar, radio, row, scrollable, slider, text, text_input, toggler,
+    vertical_rule, vertical_space,
 };
 use iced::{Alignment, Color, Element, Length, Sandbox, Settings};
+use std::fmt::{Display, Formatter};
 
 pub fn main() -> iced::Result {
     Styling::run(Settings::default())
@@ -17,6 +18,7 @@ struct Styling {
     slider_value: f32,
     checkbox_value: bool,
     toggler_value: bool,
+    picklist_value: Option<PicklistValues>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -29,12 +31,36 @@ enum ThemeType {
 #[derive(Debug, Clone)]
 enum Message {
     ThemeChanged(ThemeType),
+    PickListValueChanged(PicklistValues),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
     CheckboxToggled(bool),
     TogglerToggled(bool),
 }
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+enum PicklistValues {
+    ValueA,
+    ValueB,
+    ValueC,
+}
+
+impl Display for PicklistValues {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            PicklistValues::ValueA => write!(f, "Value A"),
+            PicklistValues::ValueB => write!(f, "Value B"),
+            PicklistValues::ValueC => write!(f, "Value C"),
+        }
+    }
+}
+
+const PICKLIST_VALUES: [PicklistValues; 3] = [
+    PicklistValues::ValueA,
+    PicklistValues::ValueB,
+    PicklistValues::ValueC,
+];
 
 impl Sandbox for Styling {
     type Message = Message;
@@ -67,6 +93,9 @@ impl Sandbox for Styling {
             Message::SliderChanged(value) => self.slider_value = value,
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
+            Message::PickListValueChanged(value) => {
+                self.picklist_value = Some(value)
+            }
         }
     }
 
@@ -127,8 +156,16 @@ impl Sandbox for Styling {
         .width(Length::Shrink)
         .spacing(10);
 
+        let pick_list = pick_list(
+            PICKLIST_VALUES.as_slice(),
+            self.picklist_value.clone(),
+            Message::PickListValueChanged,
+        )
+        .width(Length::Fill);
+
         let content = column![
             choose_theme,
+            pick_list,
             horizontal_rule(38),
             row![text_input, button].spacing(10),
             slider,
