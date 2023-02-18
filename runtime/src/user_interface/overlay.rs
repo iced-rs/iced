@@ -224,16 +224,28 @@ where
         {
             let layout = layouts.next().unwrap();
 
-            let interaction =
-                if let Some(mut overlay) = element.overlay(layout, renderer) {
-                    recurse(&mut overlay, layouts, cursor, viewport, renderer)
-                } else {
-                    mouse::Interaction::default()
-                };
+            if let Some(cursor_position) = cursor.position() {
+                match element.overlay(layout, renderer) {
+                    Some(mut overlay)
+                        if overlay.is_over(
+                            layout,
+                            renderer,
+                            cursor_position,
+                        ) =>
+                    {
+                        return recurse(
+                            &mut overlay,
+                            layouts,
+                            cursor,
+                            viewport,
+                            renderer,
+                        );
+                    }
+                    _ => {}
+                }
+            }
 
-            element
-                .mouse_interaction(layout, cursor, viewport, renderer)
-                .max(interaction)
+            element.mouse_interaction(layout, cursor, viewport, renderer)
         }
 
         self.overlay.with_element_mut(|element| {
