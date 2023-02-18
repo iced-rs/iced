@@ -440,12 +440,13 @@ where
                 overlay.layout(renderer, self.bounds, Vector::ZERO)
             });
 
-            let new_cursor_position =
-                if overlay_layout.bounds().contains(cursor_position) {
-                    Point::new(-1.0, -1.0)
-                } else {
-                    cursor_position
-                };
+            let new_cursor_position = if overlay
+                .is_over(Layout::new(&overlay_layout), cursor_position)
+            {
+                Point::new(-1.0, -1.0)
+            } else {
+                cursor_position
+            };
 
             self.overlay = Some(overlay_layout);
 
