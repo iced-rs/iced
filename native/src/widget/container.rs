@@ -5,13 +5,11 @@ use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::widget::{Operation, Tree};
+use crate::widget::{self, Operation, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
+    Point, Rectangle, Shell, Widget,
 };
-
-use std::u32;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
@@ -24,11 +22,12 @@ where
     Renderer: crate::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: Option<Id>,
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
+    max_width: f32,
+    max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -46,16 +45,23 @@ where
         T: Into<Element<'a, Message, Renderer>>,
     {
         Container {
+            id: None,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            max_width: u32::MAX,
-            max_height: u32::MAX,
+            max_width: f32::INFINITY,
+            max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
             content: content.into(),
         }
+    }
+
+    /// Sets the [`Id`] of the [`Container`].
+    pub fn id(mut self, id: Id) -> Self {
+        self.id = Some(id);
+        self
     }
 
     /// Sets the [`Padding`] of the [`Container`].
@@ -65,26 +71,26 @@ where
     }
 
     /// Sets the width of the [`Container`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Container`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
     /// Sets the maximum width of the [`Container`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
+    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+        self.max_width = max_width.into().0;
         self
     }
 
-    /// Sets the maximum height of the [`Container`] in pixels.
-    pub fn max_height(mut self, max_height: u32) -> Self {
-        self.max_height = max_height;
+    /// Sets the maximum height of the [`Container`].
+    pub fn max_height(mut self, max_height: impl Into<Pixels>) -> Self {
+        self.max_height = max_height.into().0;
         self
     }
 
@@ -172,14 +178,17 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
-        });
+        operation.container(
+            self.id.as_ref().map(|id| &id.0),
+            &mut |operation| {
+                self.content.as_widget().operate(
+                    &mut tree.children[0],
+                    layout.children().next().unwrap(),
+                    renderer,
+                    operation,
+                );
+            },
+        );
     }
 
     fn on_event(
@@ -283,8 +292,8 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    max_width: u32,
-    max_height: u32,
+    max_width: f32,
+    max_height: f32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
@@ -301,7 +310,7 @@ pub fn layout<Renderer>(
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size());
 
-    content.move_to(Point::new(padding.left.into(), padding.top.into()));
+    content.move_to(Point::new(padding.left, padding.top));
     content.align(
         Alignment::from(horizontal_alignment),
         Alignment::from(vertical_alignment),
@@ -331,5 +340,29 @@ pub fn draw_background<Renderer>(
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
+    }
+}
+
+/// The identifier of a [`Container`].
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Id(widget::Id);
+
+impl Id {
+    /// Creates a custom [`Id`].
+    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
+        Self(widget::Id::new(id))
+    }
+
+    /// Creates a unique [`Id`].
+    ///
+    /// This function produces a different [`Id`] every time it is called.
+    pub fn unique() -> Self {
+        Self(widget::Id::unique())
+    }
+}
+
+impl From<Id> for widget::Id {
+    fn from(id: Id) -> Self {
+        id.0
     }
 }

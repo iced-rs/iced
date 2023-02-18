@@ -11,8 +11,8 @@ use crate::widget::container::{self, Container};
 use crate::widget::scrollable::{self, Scrollable};
 use crate::widget::Tree;
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::menu::{Appearance, StyleSheet};
@@ -28,9 +28,9 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
-    width: u16,
+    width: f32,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -55,7 +55,7 @@ where
             options,
             hovered_option,
             last_selection,
-            width: 0,
+            width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
@@ -64,7 +64,7 @@ where
     }
 
     /// Sets the width of the [`Menu`].
-    pub fn width(mut self, width: u16) -> Self {
+    pub fn width(mut self, width: f32) -> Self {
         self.width = width;
         self
     }
@@ -76,8 +76,8 @@ where
     }
 
     /// Sets the text size of the [`Menu`].
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 
@@ -142,7 +142,7 @@ where
 {
     state: &'a mut Tree,
     container: Container<'a, Message, Renderer>,
-    width: u16,
+    width: f32,
     target_height: f32,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -219,7 +219,7 @@ where
                 },
             ),
         )
-        .width(Length::Units(self.width));
+        .width(self.width);
 
         let mut node = self.container.layout(renderer, &limits);
 
@@ -281,10 +281,7 @@ where
 
         renderer.fill_quad(
             renderer::Quad {
-                bounds: Rectangle {
-                    width: bounds.width - 1.0,
-                    ..bounds
-                },
+                bounds,
                 border_color: appearance.border_color,
                 border_width: appearance.border_width,
                 border_radius: appearance.border_radius.into(),
@@ -313,7 +310,7 @@ where
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     padding: Padding,
-    text_size: Option<u16>,
+    text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -347,7 +344,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                f32::from(text_size + self.padding.vertical())
+                (text_size + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -389,7 +386,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
+                            / (text_size + self.padding.vertical()))
                             as usize,
                     );
                 }
@@ -404,7 +401,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / f32::from(text_size + self.padding.vertical()))
+                            / (text_size + self.padding.vertical()))
                             as usize,
                     );
 
@@ -470,7 +467,7 @@ where
                 x: bounds.x,
                 y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
-                height: f32::from(text_size + self.padding.vertical()),
+                height: text_size + self.padding.vertical(),
             };
 
             if is_selected {
@@ -488,12 +485,12 @@ where
             renderer.fill_text(Text {
                 content: &option.to_string(),
                 bounds: Rectangle {
-                    x: bounds.x + self.padding.left as f32,
+                    x: bounds.x + self.padding.left,
                     y: bounds.center_y(),
                     width: f32::INFINITY,
                     ..bounds
                 },
-                size: f32::from(text_size),
+                size: text_size,
                 font: self.font.clone(),
                 color: if is_selected {
                     appearance.selected_text_color

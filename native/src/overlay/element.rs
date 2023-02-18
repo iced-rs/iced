@@ -7,6 +7,8 @@ use crate::renderer;
 use crate::widget;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
+use std::any::Any;
+
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
@@ -51,8 +53,14 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
-        self.overlay.layout(renderer, bounds, self.position)
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        translation: Vector,
+    ) -> layout::Node {
+        self.overlay
+            .layout(renderer, bounds, self.position + translation)
     }
 
     /// Processes a runtime [`Event`].
@@ -112,6 +120,11 @@ where
         operation: &mut dyn widget::Operation<Message>,
     ) {
         self.overlay.operate(layout, renderer, operation);
+    }
+
+    /// Returns true if the cursor is over the [`Element`].
+    pub fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.overlay.is_over(layout, cursor_position)
     }
 }
 
@@ -188,6 +201,10 @@ where
             ) {
                 self.operation.text_input(state, id)
             }
+
+            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+                self.operation.custom(state, id);
+            }
         }
 
         self.content
@@ -245,5 +262,9 @@ where
     ) {
         self.content
             .draw(renderer, theme, style, layout, cursor_position)
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.content.is_over(layout, cursor_position)
     }
 }

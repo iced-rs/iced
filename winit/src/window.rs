@@ -22,14 +22,18 @@ pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
     }))
 }
 
-/// Sets the window to maximized or back.
-pub fn maximize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Maximize(value)))
+/// Maximizes the window.
+pub fn maximize<Message>(maximized: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Maximize(
+        maximized,
+    )))
 }
 
-/// Set the window to minimized or back.
-pub fn minimize<Message>(value: bool) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::Minimize(value)))
+/// Minimes the window.
+pub fn minimize<Message>(minimized: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::Minimize(
+        minimized,
+    )))
 }
 
 /// Moves a window to the given logical coordinates.
@@ -38,13 +42,8 @@ pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
 }
 
 /// Sets the [`Mode`] of the window.
-pub fn set_mode<Message>(mode: Mode) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::SetMode(mode)))
-}
-
-/// Sets the window to maximized or back.
-pub fn toggle_maximize<Message>() -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::ToggleMaximize))
+pub fn change_mode<Message>(mode: Mode) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeMode(mode)))
 }
 
 /// Fetches the current [`Mode`] of the window.
@@ -54,4 +53,54 @@ pub fn fetch_mode<Message>(
     Command::single(command::Action::Window(window::Action::FetchMode(
         Box::new(f),
     )))
+}
+
+/// Toggles the window to maximized or back.
+pub fn toggle_maximize<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ToggleMaximize))
+}
+
+/// Toggles the window decorations.
+pub fn toggle_decorations<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ToggleDecorations))
+}
+
+/// Request user attention to the window, this has no effect if the application
+/// is already focused. How requesting for user attention manifests is platform dependent,
+/// see [`UserAttention`] for details.
+///
+/// Providing `None` will unset the request for user attention. Unsetting the request for
+/// user attention might not be done automatically by the WM when the window receives input.
+pub fn request_user_attention<Message>(
+    user_attention: Option<UserAttention>,
+) -> Command<Message> {
+    Command::single(command::Action::Window(
+        window::Action::RequestUserAttention(user_attention),
+    ))
+}
+
+/// Brings the window to the front and sets input focus. Has no effect if the window is
+/// already in focus, minimized, or not visible.
+///
+/// This [`Command`] steals input focus from other applications. Do not use this method unless
+/// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
+/// user experience.
+pub fn gain_focus<Message>() -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::GainFocus))
+}
+
+/// Changes whether or not the window will always be on top of other windows.
+pub fn change_always_on_top<Message>(on_top: bool) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeAlwaysOnTop(
+        on_top,
+    )))
+}
+
+/// Fetches an identifier unique to the window.
+pub fn fetch_id<Message>(
+    f: impl FnOnce(u64) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::FetchId(Box::new(
+        f,
+    ))))
 }

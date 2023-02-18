@@ -15,10 +15,10 @@ A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
 <a href="https://gfycat.com/littlesanehalicore">
-  <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" height="350px">
+  <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" width="275px">
 </a>
 <a href="https://gfycat.com/politeadorableiberianmole">
-  <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" height="350px">
+  <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" width="273px">
 </a>
 
 </div>
@@ -68,7 +68,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.7"
+iced = "0.8"
 ```
 
 If your project is using a Rust edition older than 2021, then you will need to
@@ -215,7 +215,7 @@ cargo run --features iced/glow --package game_of_life
 and then use it in your project with
 
 ```toml
-iced = { version = "0.7", default-features = false, features = ["glow"] }
+iced = { version = "0.8", default-features = false, features = ["glow"] }
 ```
 
 __NOTE:__ Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,

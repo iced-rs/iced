@@ -29,7 +29,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 /// ```
 ///
 /// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug, Hash)]
+#[derive(Debug)]
 pub struct Image<Handle> {
     handle: Handle,
     width: Length,
@@ -49,14 +49,14 @@ impl<Handle> Image<Handle> {
     }
 
     /// Sets the width of the [`Image`] boundaries.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Image`] boundaries.
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -111,6 +111,45 @@ where
     layout::Node::new(final_size)
 }
 
+/// Draws an [`Image`]
+pub fn draw<Renderer, Handle>(
+    renderer: &mut Renderer,
+    layout: Layout<'_>,
+    handle: &Handle,
+    content_fit: ContentFit,
+) where
+    Renderer: image::Renderer<Handle = Handle>,
+    Handle: Clone + Hash,
+{
+    let Size { width, height } = renderer.dimensions(handle);
+    let image_size = Size::new(width as f32, height as f32);
+
+    let bounds = layout.bounds();
+    let adjusted_fit = content_fit.fit(image_size, bounds.size());
+
+    let render = |renderer: &mut Renderer| {
+        let offset = Vector::new(
+            (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
+            (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
+        );
+
+        let drawing_bounds = Rectangle {
+            width: adjusted_fit.width,
+            height: adjusted_fit.height,
+            ..bounds
+        };
+
+        renderer.draw(handle.clone(), drawing_bounds + offset)
+    };
+
+    if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
+    {
+        renderer.with_layer(bounds, render);
+    } else {
+        render(renderer)
+    }
+}
+
 impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -149,34 +188,7 @@ where
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
-        let image_size = Size::new(width as f32, height as f32);
-
-        let bounds = layout.bounds();
-        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
-
-        let render = |renderer: &mut Renderer| {
-            let offset = Vector::new(
-                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-            );
-
-            let drawing_bounds = Rectangle {
-                width: adjusted_fit.width,
-                height: adjusted_fit.height,
-                ..bounds
-            };
-
-            renderer.draw(self.handle.clone(), drawing_bounds + offset)
-        };
-
-        if adjusted_fit.width > bounds.width
-            || adjusted_fit.height > bounds.height
-        {
-            renderer.with_layer(bounds, render);
-        } else {
-            render(renderer)
-        }
+        draw(renderer, layout, &self.handle, self.content_fit)
     }
 }
 

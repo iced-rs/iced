@@ -49,7 +49,7 @@ impl Scene {
                     .expect("Cannot create shader");
                 gl.shader_source(
                     shader,
-                    &format!("{}\n{}", shader_version, shader_source),
+                    &format!("{shader_version}\n{shader_source}"),
                 );
                 gl.compile_shader(shader);
                 if !gl.get_shader_compile_status(shader) {

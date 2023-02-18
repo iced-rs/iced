@@ -6,8 +6,8 @@ use iced_core::{Background, Color};
 pub struct Appearance {
     /// The [`Background`] of the checkbox.
     pub background: Background,
-    /// The checkmark [`Color`] of the checkbox.
-    pub checkmark_color: Color,
+    /// The icon [`Color`] of the checkbox.
+    pub icon_color: Color,
     /// The border radius of the checkbox.
     pub border_radius: f32,
     /// The border width of the checkbox.

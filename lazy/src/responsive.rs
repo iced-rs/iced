@@ -42,7 +42,7 @@ where
             content: RefCell::new(Content {
                 size: Size::ZERO,
                 layout: layout::Node::new(Size::ZERO),
-                element: Element::new(horizontal_space(Length::Units(0))),
+                element: Element::new(horizontal_space(0)),
             }),
         }
     }
@@ -356,9 +356,9 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let vector = position - overlay.position();
+            let translation = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, translation)
         })
         .unwrap_or_default()
     }
@@ -414,5 +414,12 @@ where
             )
         })
         .unwrap_or(iced_native::event::Status::Ignored)
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
     }
 }
