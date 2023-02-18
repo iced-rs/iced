@@ -4,7 +4,7 @@ use crate::event::{self, Event};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::widget::{self,Operation, Tree};
+use crate::widget::{self, Operation, Tree};
 use crate::{layout, IME};
 
 use crate::{

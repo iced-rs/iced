@@ -304,7 +304,6 @@ async fn run_instance<A, E, C>(
     );
     let ime = IME::new();
 
-
     if should_be_visible {
         window.set_visible(true);
     }

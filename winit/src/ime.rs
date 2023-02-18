@@ -17,11 +17,9 @@ enum RequestKind {
 
 /// IME related setting interface.
 ///
-/// This is the wrapper of winit window reference so youd don't have to care about cost of initialize this struct.
-///
 /// need to recreate every frame.
 ///
-/// when application::update and UserInterface::update finished ,call change_ime_enabled_or_disable.
+/// when `application::update` and `UserInterface::update` finished ,call `change_ime_enabled_or_disable`.
 
 #[derive(Debug, Default)]
 pub struct IME {
@@ -31,6 +29,7 @@ pub struct IME {
 }
 
 impl IME {
+    #[must_use]
     /// create manager.
     pub fn new() -> Self {
         Self::default()
@@ -41,45 +40,42 @@ impl IME {
     ///
     pub fn apply_request(&self, window: &Window) {
         if let Ok(force) = self.force.read() {
-            match *force {
-                Some(allowed) => {
-                    window.set_ime_allowed(allowed);
-                }
-                None => {
-                    if let Ok(requests) = self.requests.read() {
-                        #[cfg(target_os = "macos")]
-                        if let Some(RequestKind::SetPositionWithReenable(
-                            x,
-                            y,
-                        )) = requests.iter().find(|kind| {
+            if let Some(allowed) = *force {
+                window.set_ime_allowed(allowed);
+            } else {
+                if let Ok(requests) = self.requests.read() {
+                    #[cfg(target_os = "macos")]
+                    if let Some(RequestKind::SetPositionWithReenable(x, y)) =
+                        requests.iter().find(|kind| {
                             matches!(
                                 kind,
                                 RequestKind::SetPositionWithReenable(_, _)
                             )
-                        }) {
-                            window.set_ime_allowed(false);
-                            window.set_ime_position(
-                                winit::dpi::LogicalPosition { x: *x, y: *y },
-                            );
-                            window.set_ime_allowed(true);
-                        }
-                        // this is needed to eliminate exisiting buffer of IME.
-                        // if this block is absent preedit of other text input is copied.
-                        if requests
-                            .iter()
-                            .any(|kind| matches!(kind, RequestKind::Outside))
-                        {
-                            window.set_ime_allowed(false);
-                        }
+                        })
+                    {
+                        window.set_ime_allowed(false);
+                        window.set_ime_position(winit::dpi::LogicalPosition {
+                            x: *x,
+                            y: *y,
+                        });
+                        window.set_ime_allowed(true);
                     }
-                    if let Ok(mut requests) = self.requests.write() {
-                        if !requests.is_empty() {
-                            let allowed =
-                                requests.drain(..).fold(false, |sum, x| {
-                                    sum | matches!(x, RequestKind::Inside)
-                                });
-                            window.set_ime_allowed(allowed);
-                        }
+                    // this is needed to eliminate exisiting buffer of IME.
+                    // if this block is absent preedit of other text input is copied.
+                    if requests
+                        .iter()
+                        .any(|kind| matches!(kind, RequestKind::Outside))
+                    {
+                        window.set_ime_allowed(false);
+                    }
+                }
+                if let Ok(mut requests) = self.requests.write() {
+                    if !requests.is_empty() {
+                        let allowed =
+                            requests.drain(..).fold(false, |sum, x| {
+                                sum | matches!(x, RequestKind::Inside)
+                            });
+                        window.set_ime_allowed(allowed);
                     }
                 }
             }
@@ -107,7 +103,7 @@ impl IME {
         }
     }
 
-    /// remove the rquest of set_ime_allowed
+    /// remove the rquest of `set_ime_allowed`
     pub fn unlock_set_ime_allowed(&self) {
         if let Ok(mut guard) = self.force.write() {
             *guard = None;
@@ -117,7 +113,7 @@ impl IME {
 
 impl iced_native::ime::IME for IME {
     fn set_ime_position(&self, x: i32, y: i32) {
-        self.set_ime_position(x, y)
+        self.set_ime_position(x, y);
     }
 
     fn inside(&self) {

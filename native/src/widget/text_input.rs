@@ -1117,7 +1117,7 @@ pub fn draw<Renderer>(
                 width: f32::INFINITY,
                 ..text_bounds
             },
-            size: f32::from(size),
+            size,
             color,
             font: font.clone(),
             horizontal_alignment: alignment::Horizontal::Left,
@@ -1144,9 +1144,9 @@ pub fn draw<Renderer>(
                             bounds: Rectangle {
                                 x: offset,
                                 y: if idx == 1 {
-                                    text_bounds.y + size as f32 - 2.0
+                                    text_bounds.y + size - 2.0
                                 } else {
-                                    text_bounds.y + size as f32
+                                    text_bounds.y + size
                                 },
                                 width,
                                 height: if idx == 1 { 3.0 } else { 1.0 },
