@@ -9,6 +9,7 @@ use crate::core::{
 };
 
 use std::cell::RefCell;
+use std::iter::Peekable;
 
 /// An [`Overlay`] container that displays nested overlays
 #[allow(missing_debug_implementations)]
@@ -92,7 +93,7 @@ where
     ) {
         fn recurse<'a, Message, Renderer>(
             element: &mut overlay::Element<'_, Message, Renderer>,
-            mut layouts: impl Iterator<Item = Layout<'a>>,
+            mut layouts: Peekable<impl Iterator<Item = Layout<'a>>>,
             renderer: &mut Renderer,
             theme: &<Renderer as renderer::Renderer>::Theme,
             style: &renderer::Style,
@@ -101,12 +102,33 @@ where
             Renderer: renderer::Renderer,
         {
             if let Some(layout) = layouts.next() {
-                renderer.with_layer(layout.bounds(), |renderer| {
-                    element.draw(renderer, theme, style, layout, cursor);
-                });
+                let is_over = cursor
+                    .position()
+                    .and_then(|cursor_position| {
+                        layouts.peek().and_then(|nested_layout| {
+                            element.overlay(layout, renderer).map(|overlay| {
+                                overlay.is_over(
+                                    *nested_layout,
+                                    renderer,
+                                    cursor_position,
+                                )
+                            })
+                        })
+                    })
+                    .unwrap_or_default();
 
                 renderer.with_layer(layout.bounds(), |renderer| {
-                    element.draw(renderer, theme, style, layout, cursor);
+                    element.draw(
+                        renderer,
+                        theme,
+                        style,
+                        layout,
+                        if is_over {
+                            mouse::Cursor::Unavailable
+                        } else {
+                            cursor
+                        },
+                    );
                 });
 
                 if let Some(mut overlay) = element.overlay(layout, renderer) {
@@ -123,7 +145,7 @@ where
         }
 
         self.overlay.with_element_mut(|element| {
-            let layouts = layout.children();
+            let layouts = layout.children().peekable();
 
             recurse(element, layouts, renderer, theme, style, cursor);
         })
