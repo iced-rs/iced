@@ -1,5 +1,5 @@
 use iced::alignment::{self, Alignment};
-use iced::executor;
+use iced::{executor, time};
 use iced::keyboard;
 use iced::multi_window::Application;
 use iced::theme::{self, Theme};
@@ -15,6 +15,7 @@ use iced_native::{event, subscription, Event};
 use iced_native::widget::scrollable::{Properties, RelativeOffset};
 use iced_native::window::Id;
 use std::collections::HashMap;
+use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -25,6 +26,7 @@ pub fn main() -> iced::Result {
 struct Example {
     windows: HashMap<window::Id, Window>,
     panes_created: usize,
+    count: usize,
     _focused: window::Id,
 }
 
@@ -39,6 +41,7 @@ struct Window {
 #[derive(Debug, Clone)]
 enum Message {
     Window(window::Id, WindowMessage),
+    CountIncremented(Instant),
 }
 
 #[derive(Debug, Clone)]
@@ -80,6 +83,7 @@ impl Application for Example {
             Example {
                 windows: HashMap::from([(window::Id::MAIN, window)]),
                 panes_created: 1,
+                count: 0,
                 _focused: window::Id::MAIN,
             },
             Command::none(),
@@ -94,44 +98,29 @@ impl Application for Example {
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
-        let Message::Window(id, message) = message;
         match message {
-            WindowMessage::SnapToggle => {
-                let window = self.windows.get_mut(&id).unwrap();
+            Message::Window(id, message) => match message {
+                WindowMessage::SnapToggle => {
+                    let window = self.windows.get_mut(&id).unwrap();
 
-                if let Some(focused) = &window.focus {
-                    let pane = window.panes.get_mut(focused).unwrap();
+                    if let Some(focused) = &window.focus {
+                        let pane = window.panes.get_mut(focused).unwrap();
 
-                    let cmd = scrollable::snap_to(
-                        pane.scrollable_id.clone(),
-                        if pane.snapped {
-                            RelativeOffset::START
-                        } else {
-                            RelativeOffset::END
-                        },
-                    );
+                        let cmd = scrollable::snap_to(
+                            pane.scrollable_id.clone(),
+                            if pane.snapped {
+                                RelativeOffset::START
+                            } else {
+                                RelativeOffset::END
+                            },
+                        );
 
-                    pane.snapped = !pane.snapped;
-                    return cmd;
+                        pane.snapped = !pane.snapped;
+                        return cmd;
+                    }
                 }
-            }
-            WindowMessage::Split(axis, pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                let result = window.panes.split(
-                    axis,
-                    &pane,
-                    Pane::new(self.panes_created, axis),
-                );
-
-                if let Some((pane, _)) = result {
-                    window.focus = Some(pane);
-                }
-
-                self.panes_created += 1;
-            }
-            WindowMessage::SplitFocused(axis) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some(pane) = window.focus {
+                WindowMessage::Split(axis, pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
                     let result = window.panes.split(
                         axis,
                         &pane,
@@ -144,112 +133,131 @@ impl Application for Example {
 
                     self.panes_created += 1;
                 }
-            }
-            WindowMessage::FocusAdjacent(direction) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some(pane) = window.focus {
-                    if let Some(adjacent) =
-                        window.panes.adjacent(&pane, direction)
-                    {
-                        window.focus = Some(adjacent);
+                WindowMessage::SplitFocused(axis) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some(pane) = window.focus {
+                        let result = window.panes.split(
+                            axis,
+                            &pane,
+                            Pane::new(self.panes_created, axis),
+                        );
+
+                        if let Some((pane, _)) = result {
+                            window.focus = Some(pane);
+                        }
+
+                        self.panes_created += 1;
                     }
                 }
-            }
-            WindowMessage::Clicked(pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                window.focus = Some(pane);
-            }
-            WindowMessage::CloseWindow => {
-                let _ = self.windows.remove(&id);
-                return window::close(id);
-            }
-            WindowMessage::Resized(pane_grid::ResizeEvent { split, ratio }) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                window.panes.resize(&split, ratio);
-            }
-            WindowMessage::SelectedWindow(pane, selected) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                let (mut pane, _) = window.panes.close(&pane).unwrap();
-                pane.is_moving = false;
-
-                if let Some(window) = self.windows.get_mut(&selected.0) {
-                    let (&first_pane, _) = window.panes.iter().next().unwrap();
-                    let result =
-                        window.panes.split(pane.axis, &first_pane, pane);
-
-                    if let Some((pane, _)) = result {
-                        window.focus = Some(pane);
+                WindowMessage::FocusAdjacent(direction) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some(pane) = window.focus {
+                        if let Some(adjacent) =
+                            window.panes.adjacent(&pane, direction)
+                        {
+                            window.focus = Some(adjacent);
+                        }
                     }
                 }
-            }
-            WindowMessage::ToggleMoving(pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some(pane) = window.panes.get_mut(&pane) {
-                    pane.is_moving = !pane.is_moving;
+                WindowMessage::Clicked(pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    window.focus = Some(pane);
                 }
-            }
-            WindowMessage::TitleChanged(title) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                window.title = title;
-            }
-            WindowMessage::PopOut(pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some((popped, sibling)) = window.panes.close(&pane) {
-                    window.focus = Some(sibling);
+                WindowMessage::CloseWindow => {
+                    let _ = self.windows.remove(&id);
+                    return window::close(id);
+                }
+                WindowMessage::Resized(pane_grid::ResizeEvent { split, ratio }) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    window.panes.resize(&split, ratio);
+                }
+                WindowMessage::SelectedWindow(pane, selected) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    let (mut pane, _) = window.panes.close(&pane).unwrap();
+                    pane.is_moving = false;
 
-                    let (panes, _) = pane_grid::State::new(popped);
-                    let window = Window {
-                        panes,
-                        focus: None,
-                        title: format!("New window ({})", self.windows.len()),
-                        scale: 1.0 + (self.windows.len() as f64 / 10.0),
-                    };
+                    if let Some(window) = self.windows.get_mut(&selected.0) {
+                        let (&first_pane, _) = window.panes.iter().next().unwrap();
+                        let result =
+                            window.panes.split(pane.axis, &first_pane, pane);
 
-                    let window_id = window::Id::new(self.windows.len());
-                    self.windows.insert(window_id, window);
-                    return window::spawn(window_id, Default::default());
+                        if let Some((pane, _)) = result {
+                            window.focus = Some(pane);
+                        }
+                    }
                 }
-            }
-            WindowMessage::Dragged(pane_grid::DragEvent::Dropped {
-                pane,
-                target,
-            }) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                window.panes.swap(&pane, &target);
-            }
-            // WindowMessage::Dragged(pane_grid::DragEvent::Picked { pane }) => {
-            //     println!("Picked {pane:?}");
-            // }
-            WindowMessage::Dragged(_) => {}
-            WindowMessage::TogglePin(pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some(Pane { is_pinned, .. }) =
-                    window.panes.get_mut(&pane)
-                {
-                    *is_pinned = !*is_pinned;
+                WindowMessage::ToggleMoving(pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some(pane) = window.panes.get_mut(&pane) {
+                        pane.is_moving = !pane.is_moving;
+                    }
                 }
-            }
-            WindowMessage::Close(pane) => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some((_, sibling)) = window.panes.close(&pane) {
-                    window.focus = Some(sibling);
+                WindowMessage::TitleChanged(title) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    window.title = title;
                 }
-            }
-            WindowMessage::CloseFocused => {
-                let window = self.windows.get_mut(&id).unwrap();
-                if let Some(pane) = window.focus {
+                WindowMessage::PopOut(pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some((popped, sibling)) = window.panes.close(&pane) {
+                        window.focus = Some(sibling);
+
+                        let (panes, _) = pane_grid::State::new(popped);
+                        let window = Window {
+                            panes,
+                            focus: None,
+                            title: format!("New window ({})", self.windows.len()),
+                            scale: 1.0 + (self.windows.len() as f64 / 10.0),
+                        };
+
+                        let window_id = window::Id::new(self.windows.len());
+                        self.windows.insert(window_id, window);
+                        return window::spawn(window_id, Default::default());
+                    }
+                }
+                WindowMessage::Dragged(pane_grid::DragEvent::Dropped {
+                                           pane,
+                                           target,
+                                       }) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    window.panes.swap(&pane, &target);
+                }
+                // WindowMessage::Dragged(pane_grid::DragEvent::Picked { pane }) => {
+                //     println!("Picked {pane:?}");
+                // }
+                WindowMessage::Dragged(_) => {}
+                WindowMessage::TogglePin(pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
                     if let Some(Pane { is_pinned, .. }) =
-                        window.panes.get(&pane)
+                        window.panes.get_mut(&pane)
                     {
-                        if !is_pinned {
-                            if let Some((_, sibling)) =
-                                window.panes.close(&pane)
-                            {
-                                window.focus = Some(sibling);
+                        *is_pinned = !*is_pinned;
+                    }
+                }
+                WindowMessage::Close(pane) => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some((_, sibling)) = window.panes.close(&pane) {
+                        window.focus = Some(sibling);
+                    }
+                }
+                WindowMessage::CloseFocused => {
+                    let window = self.windows.get_mut(&id).unwrap();
+                    if let Some(pane) = window.focus {
+                        if let Some(Pane { is_pinned, .. }) =
+                            window.panes.get(&pane)
+                        {
+                            if !is_pinned {
+                                if let Some((_, sibling)) =
+                                    window.panes.close(&pane)
+                                {
+                                    window.focus = Some(sibling);
+                                }
                             }
                         }
                     }
                 }
+            },
+            Message::CountIncremented(_) => {
+                self.count += 1;
             }
         }
 
@@ -257,23 +265,26 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, status| {
-            if let event::Status::Captured = status {
-                return None;
-            }
+        Subscription::batch(vec![
+            subscription::events_with(|event, status| {
+                if let event::Status::Captured = status {
+                    return None;
+                }
 
-            match event {
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    modifiers,
-                    key_code,
-                }) if modifiers.command() => {
-                    handle_hotkey(key_code).map(|message| {
-                        Message::Window(window::Id::new(0usize), message)
-                    })
-                } // TODO(derezzedex)
-                _ => None,
-            }
-        })
+                match event {
+                    Event::Keyboard(keyboard::Event::KeyPressed {
+                                        modifiers,
+                                        key_code,
+                                    }) if modifiers.command() => {
+                        handle_hotkey(key_code).map(|message| {
+                            Message::Window(window::Id::new(0usize), message)
+                        })
+                    } // TODO(derezzedex)
+                    _ => None,
+                }
+            }),
+            time::every(Duration::from_secs(1)).map(Message::CountIncremented),
+        ])
     }
 
     fn view(&self, window_id: window::Id) -> Element<Message> {
@@ -335,6 +346,7 @@ impl Application for Example {
                     view_content(
                         id,
                         pane.scrollable_id.clone(),
+                        self.count,
                         total_panes,
                         pane.is_pinned,
                         size,
@@ -453,6 +465,7 @@ impl Pane {
 fn view_content<'a>(
     pane: pane_grid::Pane,
     scrollable_id: scrollable::Id,
+    count: usize,
     total_panes: usize,
     is_pinned: bool,
     size: Size,
@@ -493,6 +506,7 @@ fn view_content<'a>(
     let content = column![
         text(format!("{}x{}", size.width, size.height)).size(24),
         controls,
+        text(format!("{count}")).size(48),
     ]
     .width(Length::Fill)
     .height(800)

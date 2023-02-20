@@ -47,7 +47,7 @@ chrome-trace = [
     "iced_glow?/tracing",
 ]
 # Enables experimental multi-window support
-multi_window = ["iced_winit/multi_window", "iced_glutin/multi_window"]
+multi_window = ["iced_winit/multi_window", "iced_glutin?/multi_window"]
 
 [badges]
 maintenance = { status = "actively-developed" }

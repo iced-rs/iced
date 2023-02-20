@@ -416,6 +416,7 @@ async fn run_instance<A, E, C>(
             }
             event::Event::MainEventsCleared => {
                 for id in states.keys().copied().collect::<Vec<_>>() {
+                    // Partition events into only events for this window
                     let (filtered, remaining): (Vec<_>, Vec<_>) =
                         events.iter().cloned().partition(
                             |(window_id, _event): &(
@@ -426,7 +427,9 @@ async fn run_instance<A, E, C>(
                             },
                         );
 
+                    // Only retain events which have not been processed for next iteration
                     events.retain(|el| remaining.contains(el));
+
                     let window_events: Vec<_> = filtered
                         .into_iter()
                         .map(|(_id, event)| event)
@@ -439,8 +442,8 @@ async fn run_instance<A, E, C>(
                         continue;
                     }
 
+                    // Process winit events for window
                     debug.event_processing_started();
-
                     let cursor_position =
                         states.get(&id).unwrap().cursor_position();
 
@@ -455,15 +458,16 @@ async fn run_instance<A, E, C>(
                         )
                     };
 
-                    debug.event_processing_finished();
-
                     for event in
                         window_events.into_iter().zip(statuses.into_iter())
                     {
                         runtime.broadcast(event);
                     }
+                    debug.event_processing_finished();
 
-                    // TODO(derezzedex): Should we redraw every window? We can't know what changed.
+                    // Update application with app message(s)
+                    // Note: without tying an app message to a window ID, we must redraw all windows
+                    // as we cannot know what changed without some kind of damage tracking.
                     if !messages.is_empty()
                         || matches!(
                             interface_state,
@@ -498,7 +502,7 @@ async fn run_instance<A, E, C>(
                             || compositor.fetch_information(),
                         );
 
-                        // Update window
+                        // synchronize window state with application state.
                         states.get_mut(&id).unwrap().synchronize(
                             &application,
                             id,
@@ -564,29 +568,29 @@ async fn run_instance<A, E, C>(
 
                     for window in windows.values() {
                         window.request_redraw();
-
-                        runtime.broadcast((
-                            redraw_event.clone(),
-                            crate::event::Status::Ignored,
-                        ));
-
-                        let _ =
-                            control_sender.start_send(match interface_state {
-                                user_interface::State::Updated {
-                                    redraw_request: Some(redraw_request),
-                                } => match redraw_request {
-                                    window::RedrawRequest::NextFrame => {
-                                        ControlFlow::Poll
-                                    }
-                                    window::RedrawRequest::At(at) => {
-                                        ControlFlow::WaitUntil(at)
-                                    }
-                                },
-                                _ => ControlFlow::Wait,
-                            });
-
-                        redraw_pending = false;
                     }
+
+                    runtime.broadcast((
+                        redraw_event.clone(),
+                        crate::event::Status::Ignored,
+                    ));
+
+                    let _ =
+                        control_sender.start_send(match interface_state {
+                            user_interface::State::Updated {
+                                redraw_request: Some(redraw_request),
+                            } => match redraw_request {
+                                window::RedrawRequest::NextFrame => {
+                                    ControlFlow::Poll
+                                }
+                                window::RedrawRequest::At(at) => {
+                                    ControlFlow::WaitUntil(at)
+                                }
+                            },
+                            _ => ControlFlow::Wait,
+                        });
+
+                    redraw_pending = false;
                 }
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
