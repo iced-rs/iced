@@ -8,7 +8,7 @@ use crate::renderer;
 use crate::widget::{self, Operation, Tree};
 use crate::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Widget,
+    Point, Rectangle, Shell, Size, Widget,
 };
 
 pub use iced_style::container::{Appearance, StyleSheet};
@@ -126,6 +126,16 @@ where
         self.style = style.into();
         self
     }
+
+    /// Computes limits for layout based on parent limits and own sizes
+    fn compute_limits(&self, parent_limits: &layout::Limits) -> layout::Limits {
+        parent_limits
+            .loose()
+            .max_width(self.max_width)
+            .max_height(self.max_height)
+            .width(self.width)
+            .height(self.height)
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -157,11 +167,7 @@ where
     ) -> layout::Node {
         layout(
             renderer,
-            limits,
-            self.width,
-            self.height,
-            self.max_width,
-            self.max_height,
+            &self.compute_limits(limits),
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -169,6 +175,21 @@ where
                 self.content.as_widget_mut().layout(renderer, limits)
             },
         )
+    }
+
+    fn measure(
+        &mut self,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> Size {
+        let limits = self.compute_limits(limits);
+        let content_size = self
+            .content
+            .as_widget_mut()
+            .measure(renderer, &limits.pad(self.padding).loose());
+        let padding = self.padding.fit(content_size, limits.max());
+        let size = limits.pad(padding).resolve(content_size).pad(padding);
+        size
     }
 
     fn operate(
@@ -290,22 +311,11 @@ where
 pub fn layout<Renderer>(
     renderer: &Renderer,
     limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    max_width: f32,
-    max_height: f32,
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .loose()
-        .max_width(max_width)
-        .max_height(max_height)
-        .width(width)
-        .height(height);
-
     let mut content = layout_content(renderer, &limits.pad(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size());
