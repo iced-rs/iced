@@ -423,8 +423,8 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.width * (value - range_start) / (range_end - range_start)
-            - handle_width / 2.0
+        (bounds.width - handle_width) * (value - range_start)
+            / (range_end - range_start)
     };
 
     renderer.fill_quad(
