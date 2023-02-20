@@ -36,9 +36,14 @@ impl Node {
         self.bounds
     }
 
-    /// Returns the children of the [`Node`].
+    /// Returns a view into the children of the [`Node`].
     pub fn children(&self) -> &[Node] {
         &self.children
+    }
+
+    /// Consumes the [`Node`] and returns the children of the [`Node`].
+    pub fn into_children(self) -> Vec<Node> {
+        self.children
     }
 
     /// Aligns the [`Node`] in the given space.
