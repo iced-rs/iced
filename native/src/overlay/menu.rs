@@ -344,7 +344,8 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                text_size + self.padding.vertical() * self.options.len() as f32,
+                (text_size + self.padding.vertical())
+                    * self.options.len() as f32,
             );
 
             limits.resolve(intrinsic)

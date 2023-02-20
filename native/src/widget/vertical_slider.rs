@@ -416,8 +416,8 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.height * (value - range_end) / (range_start - range_end)
-            - handle_width / 2.0
+        (bounds.height - handle_width) * (value - range_end)
+            / (range_start - range_end)
     };
 
     renderer.fill_quad(
