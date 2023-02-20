@@ -1,14 +1,12 @@
 //! Implement your own event loop to drive a user interface.
-mod overlay;
-
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Point, Rectangle, Size};
-use crate::core::{Element, Layout, Shell};
+use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///

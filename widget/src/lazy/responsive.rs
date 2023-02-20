@@ -9,6 +9,7 @@ use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
 };
 use crate::horizontal_space;
+use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
 use std::cell::{RefCell, RefMut};
@@ -298,13 +299,13 @@ where
                 element
                     .as_widget_mut()
                     .overlay(tree, content_layout, renderer)
+                    .map(|overlay| RefCell::new(Nested::new(overlay)))
             },
         }
         .build();
 
-        let has_overlay = overlay.with_overlay(|overlay| {
-            overlay.as_ref().map(overlay::Element::position)
-        });
+        let has_overlay =
+            overlay.with_overlay_maybe(|overlay| overlay.position());
 
         has_overlay
             .map(|position| overlay::Element::new(position, Box::new(overlay)))
@@ -329,23 +330,27 @@ struct Overlay<'a, 'b, Message, Renderer> {
     types: PhantomData<Message>,
 
     #[borrows(mut content, mut tree)]
-    #[covariant]
-    overlay: Option<overlay::Element<'this, Message, Renderer>>,
+    #[not_covariant]
+    overlay: Option<RefCell<Nested<'this, Message, Renderer>>>,
 }
 
 impl<'a, 'b, Message, Renderer> Overlay<'a, 'b, Message, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&overlay::Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.borrow_overlay().as_ref().map(f)
+        self.with_overlay(|overlay| {
+            overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
+        })
     }
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut overlay::Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.with_overlay_mut(|overlay| overlay.as_mut().map(f))
+        self.with_overlay_mut(|overlay| {
+            overlay.as_mut().map(|nested| (f)(nested.get_mut()))
+        })
     }
 }
 
@@ -361,9 +366,7 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let translation = position - overlay.position();
-
-            overlay.layout(renderer, bounds, translation)
+            overlay.layout(renderer, bounds, position)
         })
         .unwrap_or_default()
     }
