@@ -81,6 +81,12 @@ impl Node {
         self.bounds.y = position.y;
     }
 
+    /// Set the [`Node`] to the given size.
+    pub fn set_size(&mut self, size: Size) {
+        self.bounds.width = size.width;
+        self.bounds.height = size.height;
+    }
+
     /// Translates the [`Node`] by the given translation.
     pub fn translate(self, translation: Vector) -> Self {
         Self {
