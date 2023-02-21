@@ -100,11 +100,24 @@ where
     })
 }
 
+/// Returns a [`Subscription`] that will call the given function to create and
+/// asynchronously run the given [`Stream`].
+pub fn run<S, Message>(builder: fn() -> S) -> Subscription<Message>
+where
+    S: Stream<Item = Message> + MaybeSend + 'static,
+    Message: 'static,
+{
+    Subscription::from_recipe(Runner {
+        id: builder,
+        spawn: move |_| builder(),
+    })
+}
+
 /// Returns a [`Subscription`] that will create and asynchronously run the
 /// given [`Stream`].
 ///
 /// The `id` will be used to uniquely identify the [`Subscription`].
-pub fn run<I, S, Message>(id: I, stream: S) -> Subscription<Message>
+pub fn run_with_id<I, S, Message>(id: I, stream: S) -> Subscription<Message>
 where
     I: Hash + 'static,
     S: Stream<Item = Message> + MaybeSend + 'static,
@@ -199,7 +212,7 @@ where
     use futures::future::{self, FutureExt};
     use futures::stream::StreamExt;
 
-    run(
+    run_with_id(
         id,
         futures::stream::unfold(initial, move |state| f(state).map(Some))
             .filter_map(future::ready),
