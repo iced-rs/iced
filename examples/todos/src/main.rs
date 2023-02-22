@@ -460,7 +460,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .style(Color::from([0.7, 0.7, 0.7])),
     )
     .width(Length::Fill)
-    .height(Length::Units(200))
+    .height(200)
     .center_y()
     .into()
 }
@@ -474,7 +474,7 @@ const ICONS: Font = Font::External {
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
-        .width(Length::Units(20))
+        .width(20)
         .horizontal_alignment(alignment::Horizontal::Center)
         .size(20)
 }

@@ -38,7 +38,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default height of a [`ProgressBar`].
-    pub const DEFAULT_HEIGHT: u16 = 30;
+    pub const DEFAULT_HEIGHT: f32 = 30.0;
 
     /// Creates a new [`ProgressBar`].
     ///
@@ -56,14 +56,14 @@ where
     }
 
     /// Sets the width of the [`ProgressBar`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`ProgressBar`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = Some(height);
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = Some(height.into());
         self
     }
 
@@ -87,7 +87,7 @@ where
     }
 
     fn height(&self) -> Length {
-        self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT))
+        self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT))
     }
 
     fn layout(
@@ -97,7 +97,7 @@ where
     ) -> layout::Node {
         let limits = limits
             .width(self.width)
-            .height(self.height.unwrap_or(Length::Units(Self::DEFAULT_HEIGHT)));
+            .height(self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)));
 
         let size = limits.resolve(Size::ZERO);
 

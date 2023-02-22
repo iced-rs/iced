@@ -21,8 +21,8 @@ use crate::{
 /// The [`integration_opengl`] & [`integration_wgpu`] examples use a
 /// [`UserInterface`] to integrate Iced in an existing graphical application.
 ///
-/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.7/examples/integration_opengl
-/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.7/examples/integration_wgpu
+/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.8/examples/integration_opengl
+/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/examples/integration_wgpu
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -263,16 +263,16 @@ where
                 }
             }
 
-            let base_cursor = if manual_overlay
+            let base_cursor = manual_overlay
                 .as_ref()
-                .unwrap()
-                .is_over(Layout::new(&layout), cursor_position)
-            {
-                // TODO: Type-safe cursor availability
-                Point::new(-1.0, -1.0)
-            } else {
-                cursor_position
-            };
+                .filter(|overlay| {
+                    overlay.is_over(Layout::new(&layout), cursor_position)
+                })
+                .map(|_| {
+                    // TODO: Type-safe cursor availability
+                    Point::new(-1.0, -1.0)
+                })
+                .unwrap_or(cursor_position);
 
             self.overlay = Some(layout);
 
@@ -440,12 +440,13 @@ where
                 overlay.layout(renderer, self.bounds, Vector::ZERO)
             });
 
-            let new_cursor_position =
-                if overlay_layout.bounds().contains(cursor_position) {
-                    Point::new(-1.0, -1.0)
-                } else {
-                    cursor_position
-                };
+            let new_cursor_position = if overlay
+                .is_over(Layout::new(&overlay_layout), cursor_position)
+            {
+                Point::new(-1.0, -1.0)
+            } else {
+                cursor_position
+            };
 
             self.overlay = Some(overlay_layout);
 

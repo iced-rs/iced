@@ -156,7 +156,7 @@ impl Application for App {
                 ]
                 .spacing(20),
             )
-            .width(Length::Units(300))
+            .width(300)
             .padding(10)
             .style(theme::Container::Box);
 

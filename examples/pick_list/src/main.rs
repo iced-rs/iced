@@ -43,10 +43,10 @@ impl Sandbox for Example {
         .placeholder("Choose a language...");
 
         let content = column![
-            vertical_space(Length::Units(600)),
+            vertical_space(600),
             "Which is your favorite language?",
             pick_list,
-            vertical_space(Length::Units(600)),
+            vertical_space(600),
         ]
         .width(Length::Fill)
         .align_items(Alignment::Center)

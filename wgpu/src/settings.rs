@@ -4,7 +4,7 @@ pub use crate::Antialiasing;
 /// The settings of a [`Backend`].
 ///
 /// [`Backend`]: crate::Backend
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The present mode of the [`Backend`].
     ///
@@ -21,8 +21,8 @@ pub struct Settings {
 
     /// The default size of text.
     ///
-    /// By default, it will be set to 20.
-    pub default_text_size: u16,
+    /// By default, it will be set to `16.0`.
+    pub default_text_size: f32,
 
     /// If enabled, spread text workload in multiple threads when multiple cores
     /// are available.
@@ -66,7 +66,7 @@ impl Default for Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             internal_backend: wgpu::Backends::all(),
             default_font: None,
-            default_text_size: 20,
+            default_text_size: 20.0,
             text_multithreading: false,
             antialiasing: None,
         }

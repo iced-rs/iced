@@ -6,18 +6,18 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget::{Operation, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Layout, Length, Padding, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Point,
+    Rectangle, Shell, Widget,
 };
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
 pub struct Column<'a, Message, Renderer> {
-    spacing: u16,
+    spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
-    max_width: u32,
+    max_width: f32,
     align_items: Alignment,
     children: Vec<Element<'a, Message, Renderer>>,
 }
@@ -33,11 +33,11 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Column {
-            spacing: 0,
+            spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            max_width: u32::MAX,
+            max_width: f32::INFINITY,
             align_items: Alignment::Start,
             children,
         }
@@ -48,8 +48,8 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.spacing = units;
+    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.spacing = amount.into().0;
         self
     }
 
@@ -60,20 +60,20 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
     }
 
     /// Sets the width of the [`Column`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Column`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
     /// Sets the maximum width of the [`Column`].
-    pub fn max_width(mut self, max_width: u32) -> Self {
-        self.max_width = max_width;
+    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+        self.max_width = max_width.into().0;
         self
     }
 
@@ -135,7 +135,7 @@ where
             renderer,
             &limits,
             self.padding,
-            self.spacing as f32,
+            self.spacing,
             self.align_items,
             &self.children,
         )

@@ -320,7 +320,7 @@ impl checkbox::StyleSheet for Theme {
 }
 
 fn checkbox_appearance(
-    checkmark_color: Color,
+    icon_color: Color,
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
@@ -331,7 +331,7 @@ fn checkbox_appearance(
         } else {
             base.color
         }),
-        checkmark_color,
+        icon_color,
         border_radius: 2.0,
         border_width: 1.0,
         border_color: accent.color,

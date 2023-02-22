@@ -4,7 +4,7 @@ use crate::layout;
 use crate::renderer;
 use crate::text;
 use crate::widget::Tree;
-use crate::{Element, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget};
 
 use std::borrow::Cow;
 
@@ -32,7 +32,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     content: Cow<'a, str>,
-    size: Option<u16>,
+    size: Option<f32>,
     width: Length,
     height: Length,
     horizontal_alignment: alignment::Horizontal,
@@ -61,8 +61,8 @@ where
     }
 
     /// Sets the size of the [`Text`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = Some(size);
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = Some(size.into().0);
         self
     }
 
@@ -84,14 +84,14 @@ where
     }
 
     /// Sets the width of the [`Text`] boundaries.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Text`] boundaries.
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -185,7 +185,7 @@ pub fn draw<Renderer>(
     style: &renderer::Style,
     layout: Layout<'_>,
     content: &str,
-    size: Option<u16>,
+    size: Option<f32>,
     font: Renderer::Font,
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
@@ -209,7 +209,7 @@ pub fn draw<Renderer>(
 
     renderer.fill_text(crate::text::Text {
         content,
-        size: f32::from(size.unwrap_or_else(|| renderer.default_size())),
+        size: size.unwrap_or_else(|| renderer.default_size()),
         bounds: Rectangle { x, y, ..bounds },
         color: appearance.color.unwrap_or(style.text_color),
         font,

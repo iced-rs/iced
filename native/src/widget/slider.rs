@@ -8,8 +8,8 @@ use crate::renderer;
 use crate::touch;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Size, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -54,7 +54,7 @@ where
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
     width: Length,
-    height: u16,
+    height: f32,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -66,7 +66,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
-    pub const DEFAULT_HEIGHT: u16 = 22;
+    pub const DEFAULT_HEIGHT: f32 = 22.0;
 
     /// Creates a new [`Slider`].
     ///
@@ -116,14 +116,14 @@ where
     }
 
     /// Sets the width of the [`Slider`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Slider`].
-    pub fn height(mut self, height: u16) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Pixels>) -> Self {
+        self.height = height.into().0;
         self
     }
 
@@ -172,9 +172,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits =
-            limits.width(self.width).height(Length::Units(self.height));
-
+        let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
         layout::Node::new(size)
@@ -423,8 +421,8 @@ pub fn draw<T, R>(
     let handle_offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.width * (value - range_start) / (range_end - range_start)
-            - handle_width / 2.0
+        (bounds.width - handle_width) * (value - range_start)
+            / (range_end - range_start)
     };
 
     renderer.fill_quad(

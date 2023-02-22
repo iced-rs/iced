@@ -7,7 +7,7 @@
 //! ![The foundations of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.7/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
 //! [`iced_web`]: https://github.com/iced-rs/iced_web
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
@@ -35,6 +35,7 @@ mod content_fit;
 mod font;
 mod length;
 mod padding;
+mod pixels;
 mod point;
 mod rectangle;
 mod size;
@@ -47,6 +48,7 @@ pub use content_fit::ContentFit;
 pub use font::Font;
 pub use length::Length;
 pub use padding::Padding;
+pub use pixels::Pixels;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use size::Size;
