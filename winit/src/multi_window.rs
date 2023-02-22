@@ -502,12 +502,16 @@ async fn run_instance<A, E, C>(
                             || compositor.fetch_information(),
                         );
 
-                        // synchronize window state with application state.
-                        states.get_mut(&id).unwrap().synchronize(
-                            &application,
-                            id,
-                            windows.get(&id).expect("No window found with ID."),
-                        );
+                        // synchronize window states with application states.
+                        for (id, state) in states.iter_mut() {
+                            state.synchronize(
+                                &application,
+                                *id,
+                                windows
+                                    .get(id)
+                                    .expect("No window found with ID."),
+                            );
+                        }
 
                         interfaces = ManuallyDrop::new(build_user_interfaces(
                             &application,
@@ -575,20 +579,19 @@ async fn run_instance<A, E, C>(
                         crate::event::Status::Ignored,
                     ));
 
-                    let _ =
-                        control_sender.start_send(match interface_state {
-                            user_interface::State::Updated {
-                                redraw_request: Some(redraw_request),
-                            } => match redraw_request {
-                                window::RedrawRequest::NextFrame => {
-                                    ControlFlow::Poll
-                                }
-                                window::RedrawRequest::At(at) => {
-                                    ControlFlow::WaitUntil(at)
-                                }
-                            },
-                            _ => ControlFlow::Wait,
-                        });
+                    let _ = control_sender.start_send(match interface_state {
+                        user_interface::State::Updated {
+                            redraw_request: Some(redraw_request),
+                        } => match redraw_request {
+                            window::RedrawRequest::NextFrame => {
+                                ControlFlow::Poll
+                            }
+                            window::RedrawRequest::At(at) => {
+                                ControlFlow::WaitUntil(at)
+                            }
+                        },
+                        _ => ControlFlow::Wait,
+                    });
 
                     redraw_pending = false;
                 }
