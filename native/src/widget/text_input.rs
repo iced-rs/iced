@@ -68,6 +68,7 @@ where
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_unfocus: Option<Message>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -99,6 +100,7 @@ where
             on_change: Box::new(on_change),
             on_paste: None,
             on_submit: None,
+            on_unfocus: None,
             style: Default::default(),
         }
     }
@@ -154,6 +156,13 @@ where
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`]
+    /// passes from a focused to an unfocused state.
+    pub fn on_unfocus(mut self, message: Message) -> Self {
+        self.on_unfocus = Some(message);
         self
     }
 
@@ -263,6 +272,7 @@ where
             self.on_change.as_ref(),
             self.on_paste.as_deref(),
             &self.on_submit,
+            &self.on_unfocus,
             || tree.state.downcast_mut::<State>(),
         )
     }
@@ -411,6 +421,7 @@ pub fn update<'a, Message, Renderer>(
     on_change: &dyn Fn(String) -> Message,
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
+    on_unfocus: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
 where
@@ -433,6 +444,11 @@ where
                     })
                 })
             } else {
+                if state.is_focused.is_some() {
+                    if let Some(on_unfocus) = on_unfocus.clone() {
+                        shell.publish(on_unfocus);
+                    }
+                }
                 None
             };
 
@@ -735,6 +751,9 @@ where
                     }
                     keyboard::KeyCode::Escape => {
                         state.is_focused = None;
+                        if let Some(on_unfocus) = on_unfocus.clone() {
+                            shell.publish(on_unfocus);
+                        }
                         state.is_dragging = false;
                         state.is_pasting = None;
 
