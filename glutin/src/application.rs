@@ -71,7 +71,7 @@ where
             settings.id,
         );
 
-        log::info!("Window builder: {:#?}", builder);
+        log::debug!("Window builder: {:#?}", builder);
 
         let opengl_builder = ContextBuilder::new()
             .with_vsync(true)
