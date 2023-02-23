@@ -1,5 +1,15 @@
 use crate::window::{Icon, Position};
 
+#[cfg(target_os = "macos")]
+#[path = "settings/macos.rs"]
+mod platform;
+
+#[cfg(not(target_os = "macos"))]
+#[path = "settings/other.rs"]
+mod platform;
+
+pub use platform::PlatformSpecific;
+
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -32,6 +42,9 @@ pub struct Settings {
 
     /// The icon of the window.
     pub icon: Option<Icon>,
+
+    /// Platform specific settings.
+    pub platform_specific: platform::PlatformSpecific,
 }
 
 impl Default for Settings {
@@ -47,6 +60,7 @@ impl Default for Settings {
             transparent: false,
             always_on_top: false,
             icon: None,
+            platform_specific: Default::default(),
         }
     }
 }
@@ -64,7 +78,9 @@ impl From<Settings> for iced_winit::settings::Window {
             transparent: settings.transparent,
             always_on_top: settings.always_on_top,
             icon: settings.icon.map(Icon::into),
-            platform_specific: Default::default(),
+            platform_specific: iced_winit::settings::PlatformSpecific::from(
+                settings.platform_specific,
+            ),
         }
     }
 }
