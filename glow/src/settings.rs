@@ -43,7 +43,7 @@ impl std::fmt::Debug for Settings {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Settings")
             // Instead of printing the font bytes, we simply show a `bool` indicating if using a default font or not.
-            .field("default_font", &self.default_font.is_none())
+            .field("default_font", &self.default_font.is_some())
             .field("default_text_size", &self.default_text_size)
             .field("text_multithreading", &self.text_multithreading)
             .field("antialiasing", &self.antialiasing)
