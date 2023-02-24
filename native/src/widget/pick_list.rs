@@ -600,12 +600,12 @@ pub fn draw<'a, T, Renderer>(
             font,
             code_point,
             size,
-        }) => Some((font.clone(), *code_point, *size)),
+        }) => Some((*font, *code_point, *size)),
         Handle::Dynamic { open, closed } => {
             if state().is_open {
-                Some((open.font.clone(), open.code_point, open.size))
+                Some((open.font, open.code_point, open.size))
             } else {
-                Some((closed.font.clone(), closed.code_point, closed.size))
+                Some((closed.font, closed.code_point, closed.size))
             }
         }
         Handle::None => None,

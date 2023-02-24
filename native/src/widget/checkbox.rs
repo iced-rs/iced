@@ -272,7 +272,7 @@ where
             if self.is_checked {
                 renderer.fill_text(text::Text {
                     content: &code_point.to_string(),
-                    font: font.clone(),
+                    font: *font,
                     size,
                     bounds: Rectangle {
                         x: bounds.center_x(),
