@@ -267,7 +267,7 @@ where
                 code_point,
                 size,
             } = &self.icon;
-            let size = size.map(f32::from).unwrap_or(bounds.height * 0.7);
+            let size = size.unwrap_or(bounds.height * 0.7);
 
             if self.is_checked {
                 renderer.fill_text(text::Text {
