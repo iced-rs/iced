@@ -43,8 +43,11 @@ impl<B: Backend, T> Renderer<B, T> {
 
     /// Runs the given closure with the [`Backend`] and the recorded primitives
     /// of the [`Renderer`].
-    pub fn with_primitives(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
-        f(&mut self.backend, &self.primitives);
+    pub fn with_primitives<O>(
+        &mut self,
+        f: impl FnOnce(&mut B, &[Primitive]) -> O,
+    ) -> O {
+        f(&mut self.backend, &self.primitives)
     }
 }
 

@@ -198,11 +198,11 @@ pub trait Application: Sized {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: if settings.antialiasing {
-                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+                Some(crate::renderer::Antialiasing::MSAAx4)
             } else {
                 None
             },
-            ..crate::renderer::Settings::from_env()
+            ..crate::renderer::Settings::default()
         };
 
         Ok(crate::runtime::application::run::<

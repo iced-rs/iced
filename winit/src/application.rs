@@ -17,8 +17,8 @@ use crate::{
 
 use iced_futures::futures;
 use iced_futures::futures::channel::mpsc;
-use iced_graphics::compositor;
 use iced_graphics::window;
+use iced_graphics::window::compositor;
 use iced_native::program::Program;
 use iced_native::time::Instant;
 use iced_native::user_interface::{self, UserInterface};

@@ -1,6 +1,6 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::compositor::Information;
+use crate::window::compositor::Information;
 use crate::{Color, Error, Size, Viewport};
 
 use core::ffi::c_void;

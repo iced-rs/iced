@@ -1,0 +1,26 @@
+[package]
+name = "iced_renderer"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+image = ["iced_wgpu/image"]
+svg = ["iced_wgpu/svg"]
+tracing = ["iced_wgpu/tracing"]
+
+[dependencies]
+raw-window-handle = "0.5"
+
+[dependencies.iced_native]
+version = "0.9"
+path = "../native"
+
+[dependencies.iced_graphics]
+version = "0.7"
+path = "../graphics"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+iced_wgpu = { version = "0.9", path = "../wgpu" }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced_wgpu = { version = "0.9", path = "../wgpu", features = ["webgl"] }

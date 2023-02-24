@@ -182,7 +182,7 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-use iced_wgpu as renderer;
+use iced_renderer as renderer;
 use iced_winit as runtime;
 
 pub use iced_native::theme;
