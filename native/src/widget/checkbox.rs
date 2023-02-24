@@ -55,7 +55,7 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -91,7 +91,7 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
-            font: Renderer::Font::default(),
+            font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
@@ -128,8 +128,8 @@ where
     /// Sets the [`Font`] of the text of the [`Checkbox`].
     ///
     /// [`Font`]: crate::text::Renderer::Font
-    pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.font = Some(font.into());
         self
     }
 
@@ -175,7 +175,7 @@ where
             .push(Row::new().width(self.size).height(self.size))
             .push(
                 Text::new(&self.label)
-                    .font(self.font.clone())
+                    .font(self.font.unwrap_or_else(|| renderer.default_font()))
                     .width(self.width)
                     .size(
                         self.text_size
@@ -267,12 +267,12 @@ where
                 code_point,
                 size,
             } = &self.icon;
-            let size = size.map(f32::from).unwrap_or(bounds.height * 0.7);
+            let size = size.unwrap_or(bounds.height * 0.7);
 
             if self.is_checked {
                 renderer.fill_text(text::Text {
                     content: &code_point.to_string(),
-                    font: font.clone(),
+                    font: *font,
                     size,
                     bounds: Rectangle {
                         x: bounds.center_x(),
@@ -295,7 +295,7 @@ where
                 label_layout,
                 &self.label,
                 self.text_size,
-                self.font.clone(),
+                self.font,
                 widget::text::Appearance {
                     color: custom_style.text_color,
                 },

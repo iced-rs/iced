@@ -47,14 +47,17 @@ mod quad;
 mod text;
 mod triangle;
 
-pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
+pub use iced_graphics::{
+    Antialiasing, Color, Error, Font, Primitive, Viewport,
+};
 pub use iced_native::Theme;
 pub use wgpu;
 
 pub use backend::Backend;
 pub use settings::Settings;
 
-pub(crate) use iced_graphics::Transformation;
+use crate::buffer::Buffer;
+use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;

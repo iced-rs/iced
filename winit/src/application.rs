@@ -851,6 +851,16 @@ pub fn run_command<A, E>(
                 current_cache = user_interface.into_cache();
                 *cache = current_cache;
             }
+            command::Action::LoadFont { bytes, tagger } => {
+                use crate::text::Renderer;
+
+                // TODO: Error handling (?)
+                renderer.load_font(bytes);
+
+                proxy
+                    .send_event(tagger(Ok(())))
+                    .expect("Send message to event loop");
+            }
         }
     }
 }

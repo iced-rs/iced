@@ -4,11 +4,8 @@ use crate::triangle;
 use crate::{Settings, Transformation};
 
 use iced_graphics::backend;
-use iced_graphics::font;
 use iced_graphics::layer::Layer;
-use iced_graphics::{Primitive, Viewport};
-use iced_native::alignment;
-use iced_native::{Font, Size};
+use iced_graphics::{Color, Font, Primitive, Size, Viewport};
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -16,11 +13,13 @@ use tracing::info_span;
 #[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 
+use std::borrow::Cow;
+
 /// A [`wgpu`] graphics backend for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
@@ -29,6 +28,7 @@ pub struct Backend {
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
+    default_font: Font,
     default_text_size: f32,
 }
 
@@ -36,16 +36,11 @@ impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         settings: Settings,
         format: wgpu::TextureFormat,
     ) -> Self {
-        let text_pipeline = text::Pipeline::new(
-            device,
-            format,
-            settings.default_font,
-            settings.text_multithreading,
-        );
-
+        let text_pipeline = text::Pipeline::new(device, queue, format);
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
@@ -61,6 +56,7 @@ impl Backend {
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
 
+            default_font: settings.default_font,
             default_text_size: settings.default_text_size,
         }
     }
@@ -72,8 +68,9 @@ impl Backend {
     pub fn present<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
+        clear_color: Option<Color>,
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
         viewport: &Viewport,
@@ -90,167 +87,245 @@ impl Backend {
         let mut layers = Layer::generate(primitives, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
-        for layer in layers {
-            self.flush(
-                device,
-                scale_factor,
-                transformation,
-                &layer,
-                staging_belt,
-                encoder,
-                frame,
-                target_size,
-            );
-        }
+        self.prepare(
+            device,
+            queue,
+            encoder,
+            scale_factor,
+            transformation,
+            &layers,
+        );
+
+        while !self.prepare_text(
+            device,
+            queue,
+            scale_factor,
+            target_size,
+            &layers,
+        ) {}
+
+        self.render(
+            device,
+            encoder,
+            frame,
+            clear_color,
+            scale_factor,
+            target_size,
+            &layers,
+        );
+
+        self.quad_pipeline.end_frame();
+        self.text_pipeline.end_frame();
+        self.triangle_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.trim_cache(device, encoder);
+        self.image_pipeline.end_frame(device, queue, encoder);
     }
 
-    fn flush(
+    fn prepare_text(
         &mut self,
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        scale_factor: f32,
+        target_size: Size<u32>,
+        layers: &[Layer<'_>],
+    ) -> bool {
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
+
+            if bounds.width < 1 || bounds.height < 1 {
+                continue;
+            }
+
+            if !layer.text.is_empty()
+                && !self.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.text,
+                    layer.bounds,
+                    scale_factor,
+                    target_size,
+                )
+            {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         transformation: Transformation,
-        layer: &Layer<'_>,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        target_size: Size<u32>,
+        layers: &[Layer<'_>],
     ) {
-        let bounds = (layer.bounds * scale_factor).snap();
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
 
-        if bounds.width < 1 || bounds.height < 1 {
-            return;
-        }
+            if bounds.width < 1 || bounds.height < 1 {
+                continue;
+            }
 
-        if !layer.quads.is_empty() {
-            self.quad_pipeline.draw(
-                device,
-                staging_belt,
-                encoder,
-                &layer.quads,
-                transformation,
-                scale_factor,
-                bounds,
-                target,
-            );
-        }
-
-        if !layer.meshes.is_empty() {
-            let scaled = transformation
-                * Transformation::scale(scale_factor, scale_factor);
-
-            self.triangle_pipeline.draw(
-                device,
-                staging_belt,
-                encoder,
-                target,
-                target_size,
-                scaled,
-                scale_factor,
-                &layer.meshes,
-            );
-        }
-
-        #[cfg(any(feature = "image", feature = "svg"))]
-        {
-            if !layer.images.is_empty() {
-                let scaled = transformation
-                    * Transformation::scale(scale_factor, scale_factor);
-
-                self.image_pipeline.draw(
+            if !layer.quads.is_empty() {
+                self.quad_pipeline.prepare(
                     device,
-                    staging_belt,
-                    encoder,
-                    &layer.images,
-                    scaled,
-                    bounds,
-                    target,
+                    queue,
+                    &layer.quads,
+                    transformation,
                     scale_factor,
                 );
             }
-        }
 
-        if !layer.text.is_empty() {
-            for text in layer.text.iter() {
-                // Target physical coordinates directly to avoid blurry text
-                let text = wgpu_glyph::Section {
-                    // TODO: We `round` here to avoid rerasterizing text when
-                    // its position changes slightly. This can make text feel a
-                    // bit "jumpy". We may be able to do better once we improve
-                    // our text rendering/caching pipeline.
-                    screen_position: (
-                        (text.bounds.x * scale_factor).round(),
-                        (text.bounds.y * scale_factor).round(),
-                    ),
-                    // TODO: Fix precision issues with some scale factors.
-                    //
-                    // The `ceil` here can cause some words to render on the
-                    // same line when they should not.
-                    //
-                    // Ideally, `wgpu_glyph` should be able to compute layout
-                    // using logical positions, and then apply the proper
-                    // scaling when rendering. This would ensure that both
-                    // measuring and rendering follow the same layout rules.
-                    bounds: (
-                        (text.bounds.width * scale_factor).ceil(),
-                        (text.bounds.height * scale_factor).ceil(),
-                    ),
-                    text: vec![wgpu_glyph::Text {
-                        text: text.content,
-                        scale: wgpu_glyph::ab_glyph::PxScale {
-                            x: text.size * scale_factor,
-                            y: text.size * scale_factor,
-                        },
-                        font_id: self.text_pipeline.find_font(text.font),
-                        extra: wgpu_glyph::Extra {
-                            color: text.color,
-                            z: 0.0,
-                        },
-                    }],
-                    layout: wgpu_glyph::Layout::default()
-                        .h_align(match text.horizontal_alignment {
-                            alignment::Horizontal::Left => {
-                                wgpu_glyph::HorizontalAlign::Left
-                            }
-                            alignment::Horizontal::Center => {
-                                wgpu_glyph::HorizontalAlign::Center
-                            }
-                            alignment::Horizontal::Right => {
-                                wgpu_glyph::HorizontalAlign::Right
-                            }
-                        })
-                        .v_align(match text.vertical_alignment {
-                            alignment::Vertical::Top => {
-                                wgpu_glyph::VerticalAlign::Top
-                            }
-                            alignment::Vertical::Center => {
-                                wgpu_glyph::VerticalAlign::Center
-                            }
-                            alignment::Vertical::Bottom => {
-                                wgpu_glyph::VerticalAlign::Bottom
-                            }
-                        }),
-                };
+            if !layer.meshes.is_empty() {
+                let scaled = transformation
+                    * Transformation::scale(scale_factor, scale_factor);
 
-                self.text_pipeline.queue(text);
+                self.triangle_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.meshes,
+                    scaled,
+                );
             }
 
-            self.text_pipeline.draw_queued(
-                device,
-                staging_belt,
-                encoder,
-                target,
-                transformation,
-                wgpu_glyph::Region {
-                    x: bounds.x,
-                    y: bounds.y,
-                    width: bounds.width,
-                    height: bounds.height,
-                },
-            );
+            #[cfg(any(feature = "image", feature = "svg"))]
+            {
+                if !layer.images.is_empty() {
+                    let scaled = transformation
+                        * Transformation::scale(scale_factor, scale_factor);
+
+                    self.image_pipeline.prepare(
+                        device,
+                        queue,
+                        _encoder,
+                        &layer.images,
+                        scaled,
+                        scale_factor,
+                    );
+                }
+            }
         }
+    }
+
+    fn render(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        clear_color: Option<Color>,
+        scale_factor: f32,
+        target_size: Size<u32>,
+        layers: &[Layer<'_>],
+    ) {
+        use std::mem::ManuallyDrop;
+
+        let mut quad_layer = 0;
+        let mut triangle_layer = 0;
+        #[cfg(any(feature = "image", feature = "svg"))]
+        let mut image_layer = 0;
+        let mut text_layer = 0;
+
+        let mut render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+            &wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu::quad render pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: match clear_color {
+                            Some(background_color) => wgpu::LoadOp::Clear({
+                                let [r, g, b, a] =
+                                    background_color.into_linear();
+
+                                wgpu::Color {
+                                    r: f64::from(r),
+                                    g: f64::from(g),
+                                    b: f64::from(b),
+                                    a: f64::from(a),
+                                }
+                            }),
+                            None => wgpu::LoadOp::Load,
+                        },
+                        store: true,
+                    },
+                })],
+                depth_stencil_attachment: None,
+            },
+        ));
+
+        for layer in layers {
+            let bounds = (layer.bounds * scale_factor).snap();
+
+            if bounds.width < 1 || bounds.height < 1 {
+                return;
+            }
+
+            if !layer.quads.is_empty() {
+                self.quad_pipeline
+                    .render(quad_layer, bounds, &mut render_pass);
+
+                quad_layer += 1;
+            }
+
+            if !layer.meshes.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
+                self.triangle_pipeline.render(
+                    device,
+                    encoder,
+                    target,
+                    triangle_layer,
+                    target_size,
+                    &layer.meshes,
+                    scale_factor,
+                );
+
+                triangle_layer += 1;
+
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu::quad render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: target,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: true,
+                                },
+                            },
+                        )],
+                        depth_stencil_attachment: None,
+                    },
+                ));
+            }
+
+            #[cfg(any(feature = "image", feature = "svg"))]
+            {
+                if !layer.images.is_empty() {
+                    self.image_pipeline.render(
+                        image_layer,
+                        bounds,
+                        &mut render_pass,
+                    );
+
+                    image_layer += 1;
+                }
+            }
+
+            if !layer.text.is_empty() {
+                self.text_pipeline
+                    .render(text_layer, bounds, &mut render_pass);
+
+                text_layer += 1;
+            }
+        }
+
+        let _ = ManuallyDrop::into_inner(render_pass);
     }
 }
 
@@ -261,9 +336,13 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = font::ICONS;
-    const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
-    const ARROW_DOWN_ICON: char = font::ARROW_DOWN_ICON;
+    const ICON_FONT: Font = Font::Name("Iced-Icons");
+    const CHECKMARK_ICON: char = '\u{f00c}';
+    const ARROW_DOWN_ICON: char = '\u{e800}';
+
+    fn default_font(&self) -> Font {
+        self.default_font
+    }
 
     fn default_size(&self) -> f32 {
         self.default_text_size
@@ -296,6 +375,10 @@ impl backend::Text for Backend {
             point,
             nearest_only,
         )
+    }
+
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        self.text_pipeline.load_font(font);
     }
 }
 

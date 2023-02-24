@@ -31,7 +31,7 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -58,7 +58,7 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
-            font: Default::default(),
+            font: None,
             style: Default::default(),
         }
     }
@@ -82,8 +82,8 @@ where
     }
 
     /// Sets the font of the [`Menu`].
-    pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.font = Some(font.into());
         self
     }
 
@@ -311,7 +311,7 @@ where
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -344,7 +344,7 @@ where
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (text_size + self.padding.vertical())
+                (text_size * 1.2 + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -386,7 +386,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / (text_size + self.padding.vertical()))
+                            / (text_size * 1.2 + self.padding.vertical()))
                             as usize,
                     );
                 }
@@ -401,7 +401,7 @@ where
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / (text_size + self.padding.vertical()))
+                            / (text_size * 1.2 + self.padding.vertical()))
                             as usize,
                     );
 
@@ -450,7 +450,8 @@ where
 
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height = (text_size + self.padding.vertical()) as usize;
+        let option_height =
+            (text_size * 1.2 + self.padding.vertical()) as usize;
 
         let offset = viewport.y - bounds.y;
         let start = (offset / option_height as f32) as usize;
@@ -467,7 +468,7 @@ where
                 x: bounds.x,
                 y: bounds.y + (option_height * i) as f32,
                 width: bounds.width,
-                height: text_size + self.padding.vertical(),
+                height: text_size * 1.2 + self.padding.vertical(),
             };
 
             if is_selected {
@@ -491,7 +492,7 @@ where
                     ..bounds
                 },
                 size: text_size,
-                font: self.font.clone(),
+                font: self.font.unwrap_or_else(|| renderer.default_font()),
                 color: if is_selected {
                     appearance.selected_text_color
                 } else {

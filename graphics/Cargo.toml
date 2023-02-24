@@ -26,9 +26,6 @@ dds = ["image_rs/dds"]
 farbfeld = ["image_rs/farbfeld"]
 canvas = ["lyon"]
 qr_code = ["qrcode", "canvas"]
-font-source = ["font-kit"]
-font-fallback = []
-font-icons = []
 opengl = []
 image_rs = ["kamadak-exif"]
 
@@ -59,10 +56,6 @@ optional = true
 version = "0.12"
 optional = true
 default-features = false
-
-[dependencies.font-kit]
-version = "0.10"
-optional = true
 
 [dependencies.image_rs]
 version = "0.24"

@@ -1,6 +1,8 @@
 //! Draw and interact with text.
 use crate::alignment;
-use crate::{Color, Point, Rectangle, Size, Vector};
+use crate::{Color, Point, Rectangle, Size};
+
+use std::borrow::Cow;
 
 /// A paragraph.
 #[derive(Debug, Clone, Copy)]
@@ -32,10 +34,6 @@ pub struct Text<'a, Font> {
 pub enum Hit {
     /// The point was within the bounds of the returned character index.
     CharOffset(usize),
-    /// The provided point was not within the bounds of a glyph. The index
-    /// of the character with the closest centeroid position is returned,
-    /// as well as its delta.
-    NearestCharOffset(usize, Vector),
 }
 
 impl Hit {
@@ -43,13 +41,6 @@ impl Hit {
     pub fn cursor(self) -> usize {
         match self {
             Self::CharOffset(i) => i,
-            Self::NearestCharOffset(i, delta) => {
-                if delta.x > f32::EPSILON {
-                    i + 1
-                } else {
-                    i
-                }
-            }
         }
     }
 }
@@ -57,7 +48,7 @@ impl Hit {
 /// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
-    type Font: Default + Clone;
+    type Font: Copy;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;
@@ -71,6 +62,9 @@ pub trait Renderer: crate::Renderer {
     ///
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
+
+    /// Returns the default [`Self::Font`].
+    fn default_font(&self) -> Self::Font;
 
     /// Returns the default size of [`Text`].
     fn default_size(&self) -> f32;
@@ -108,6 +102,9 @@ pub trait Renderer: crate::Renderer {
         point: Point,
         nearest_only: bool,
     ) -> Option<Hit>;
+
+    /// Loads a [`Self::Font`] from its bytes.
+    fn load_font(&mut self, font: Cow<'static, [u8]>);
 
     /// Draws the given [`Text`].
     fn fill_text(&mut self, text: Text<'_, Self::Font>);

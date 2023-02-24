@@ -10,6 +10,7 @@ use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
 
 pub use iced_native::renderer::Style;
 
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
@@ -130,6 +131,10 @@ where
     const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
 
+    fn default_font(&self) -> Self::Font {
+        self.backend().default_font()
+    }
+
     fn default_size(&self) -> f32 {
         self.backend().default_size()
     }
@@ -161,6 +166,10 @@ where
             point,
             nearest_only,
         )
+    }
+
+    fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        self.backend.load_font(bytes);
     }
 
     fn fill_text(&mut self, text: Text<'_, Self::Font>) {

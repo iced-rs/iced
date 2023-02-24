@@ -16,14 +16,11 @@ pub struct Compositor<Theme> {
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
-    staging_belt: wgpu::util::StagingBelt,
     format: wgpu::TextureFormat,
     theme: PhantomData<Theme>,
 }
 
 impl<Theme> Compositor<Theme> {
-    const CHUNK_SIZE: u64 = 10 * 1024;
-
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
@@ -98,15 +95,12 @@ impl<Theme> Compositor<Theme> {
             .next()
             .await?;
 
-        let staging_belt = wgpu::util::StagingBelt::new(Self::CHUNK_SIZE);
-
         Some(Compositor {
             instance,
             settings,
             adapter,
             device,
             queue,
-            staging_belt,
             format,
             theme: PhantomData,
         })
@@ -114,7 +108,7 @@ impl<Theme> Compositor<Theme> {
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
-        Backend::new(&self.device, self.settings, self.format)
+        Backend::new(&self.device, &self.queue, self.settings, self.format)
     }
 }
 
@@ -196,39 +190,12 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                     .texture
                     .create_view(&wgpu::TextureViewDescriptor::default());
 
-                let _ =
-                    encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        label: Some(
-                            "iced_wgpu::window::Compositor render pass",
-                        ),
-                        color_attachments: &[Some(
-                            wgpu::RenderPassColorAttachment {
-                                view,
-                                resolve_target: None,
-                                ops: wgpu::Operations {
-                                    load: wgpu::LoadOp::Clear({
-                                        let [r, g, b, a] =
-                                            background_color.into_linear();
-
-                                        wgpu::Color {
-                                            r: f64::from(r),
-                                            g: f64::from(g),
-                                            b: f64::from(b),
-                                            a: f64::from(a),
-                                        }
-                                    }),
-                                    store: true,
-                                },
-                            },
-                        )],
-                        depth_stencil_attachment: None,
-                    });
-
                 renderer.with_primitives(|backend, primitives| {
                     backend.present(
                         &self.device,
-                        &mut self.staging_belt,
+                        &self.queue,
                         &mut encoder,
+                        Some(background_color),
                         view,
                         primitives,
                         viewport,
@@ -237,12 +204,8 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 });
 
                 // Submit work
-                self.staging_belt.finish();
                 let _submission = self.queue.submit(Some(encoder.finish()));
                 frame.present();
-
-                // Recall staging buffers
-                self.staging_belt.recall();
 
                 Ok(())
             }

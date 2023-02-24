@@ -182,20 +182,12 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
-use iced_winit as runtime;
-
-#[cfg(feature = "glow")]
-use iced_glutin as runtime;
-
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
 use iced_wgpu as renderer;
-
-#[cfg(feature = "glow")]
-use iced_glow as renderer;
+use iced_winit as runtime;
 
 pub use iced_native::theme;
 pub use runtime::event;
+pub use runtime::font;
 pub use runtime::subscription;
 
 pub use application::Application;
@@ -203,6 +195,7 @@ pub use element::Element;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
+pub use font::Font;
 pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
@@ -213,8 +206,8 @@ pub use theme::Theme;
 pub use runtime::alignment;
 pub use runtime::futures;
 pub use runtime::{
-    color, Alignment, Background, Color, Command, ContentFit, Font, Length,
-    Padding, Point, Rectangle, Size, Vector,
+    color, Alignment, Background, Color, Command, ContentFit, Length, Padding,
+    Point, Rectangle, Size, Vector,
 };
 
 #[cfg(feature = "system")]

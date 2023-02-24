@@ -61,7 +61,7 @@ where
     placeholder: String,
     value: Value,
     is_secure: bool,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     width: Length,
     padding: Padding,
     size: Option<f32>,
@@ -92,7 +92,7 @@ where
             placeholder: String::from(placeholder),
             value: Value::new(value),
             is_secure: false,
-            font: Default::default(),
+            font: None,
             width: Length::Fill,
             padding: Padding::new(5.0),
             size: None,
@@ -129,7 +129,7 @@ where
     ///
     /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+        self.font = Some(font);
         self
     }
     /// Sets the width of the [`TextInput`].
@@ -188,7 +188,7 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
-            &self.font,
+            self.font,
             self.is_secure,
             &self.style,
         )
@@ -258,7 +258,7 @@ where
             shell,
             &mut self.value,
             self.size,
-            &self.font,
+            self.font,
             self.is_secure,
             self.on_change.as_ref(),
             self.on_paste.as_deref(),
@@ -286,7 +286,7 @@ where
             &self.value,
             &self.placeholder,
             self.size,
-            &self.font,
+            self.font,
             self.is_secure,
             &self.style,
         )
@@ -385,9 +385,8 @@ where
     Renderer: text::Renderer,
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
-
     let padding = padding.fit(Size::ZERO, limits.max());
-    let limits = limits.width(width).pad(padding).height(text_size);
+    let limits = limits.width(width).pad(padding).height(text_size * 1.2);
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));
     text.move_to(Point::new(padding.left, padding.top));
@@ -406,7 +405,7 @@ pub fn update<'a, Message, Renderer>(
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<f32>,
-    font: &Renderer::Font,
+    font: Option<Renderer::Font>,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
     on_paste: Option<&dyn Fn(String) -> Message>,
@@ -455,7 +454,7 @@ where
                             find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font.clone(),
+                                font,
                                 size,
                                 &value,
                                 state,
@@ -483,7 +482,7 @@ where
                             let position = find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font.clone(),
+                                font,
                                 size,
                                 value,
                                 state,
@@ -532,7 +531,7 @@ where
                 let position = find_cursor_position(
                     renderer,
                     text_layout.bounds(),
-                    font.clone(),
+                    font,
                     size,
                     &value,
                     state,
@@ -812,7 +811,7 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
-    font: &Renderer::Font,
+    font: Option<Renderer::Font>,
     is_secure: bool,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
@@ -846,6 +845,7 @@ pub fn draw<Renderer>(
     );
 
     let text = value.to_string();
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
     let (cursor, offset) = if let Some(focus) = &state.is_focused {
@@ -858,7 +858,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         position,
-                        font.clone(),
+                        font,
                     );
 
                 let is_cursor_visible = ((focus.now - focus.updated_at)
@@ -899,7 +899,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         left,
-                        font.clone(),
+                        font,
                     );
 
                 let (right_position, right_offset) =
@@ -909,7 +909,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         right,
-                        font.clone(),
+                        font,
                     );
 
                 let width = right_position - left_position;
@@ -944,7 +944,7 @@ pub fn draw<Renderer>(
     let text_width = renderer.measure_width(
         if text.is_empty() { placeholder } else { &text },
         size,
-        font.clone(),
+        font,
     );
 
     let render = |renderer: &mut Renderer| {
@@ -959,7 +959,7 @@ pub fn draw<Renderer>(
             } else {
                 theme.value_color(style)
             },
-            font: font.clone(),
+            font,
             bounds: Rectangle {
                 y: text_bounds.center_y(),
                 width: f32::INFINITY,
@@ -1180,7 +1180,7 @@ where
 fn find_cursor_position<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     size: Option<f32>,
     value: &Value,
     state: &State,
@@ -1189,21 +1189,30 @@ fn find_cursor_position<Renderer>(
 where
     Renderer: text::Renderer,
 {
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
-    let offset =
-        offset(renderer, text_bounds, font.clone(), size, value, state);
+    let offset = offset(renderer, text_bounds, font, size, value, state);
+    let value = value.to_string();
 
-    renderer
+    let char_offset = renderer
         .hit_test(
-            &value.to_string(),
+            &value,
             size,
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
         )
-        .map(text::Hit::cursor)
+        .map(text::Hit::cursor)?;
+
+    Some(
+        unicode_segmentation::UnicodeSegmentation::graphemes(
+            &value[..char_offset],
+            true,
+        )
+        .count(),
+    )
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;

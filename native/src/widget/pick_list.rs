@@ -35,7 +35,7 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -70,7 +70,7 @@ where
             width: Length::Shrink,
             padding: Self::DEFAULT_PADDING,
             text_size: None,
-            font: Default::default(),
+            font: None,
             handle: Default::default(),
             style: Default::default(),
         }
@@ -101,8 +101,8 @@ where
     }
 
     /// Sets the font of the [`PickList`].
-    pub fn font(mut self, font: Renderer::Font) -> Self {
-        self.font = font;
+    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
+        self.font = Some(font.into());
         self
     }
 
@@ -163,7 +163,7 @@ where
             self.width,
             self.padding,
             self.text_size,
-            &self.font,
+            self.font,
             self.placeholder.as_deref(),
             &self.options,
         )
@@ -212,6 +212,7 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let font = self.font.unwrap_or_else(|| renderer.default_font());
         draw(
             renderer,
             theme,
@@ -219,7 +220,7 @@ where
             cursor_position,
             self.padding,
             self.text_size,
-            &self.font,
+            font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
             &self.handle,
@@ -232,7 +233,7 @@ where
         &'b mut self,
         tree: &'b mut Tree,
         layout: Layout<'_>,
-        _renderer: &Renderer,
+        renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         let state = tree.state.downcast_mut::<State<T>>();
 
@@ -241,7 +242,7 @@ where
             state,
             self.padding,
             self.text_size,
-            self.font.clone(),
+            self.font.unwrap_or_else(|| renderer.default_font()),
             &self.options,
             self.style.clone(),
         )
@@ -343,7 +344,7 @@ pub fn layout<Renderer, T>(
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
-    font: &Renderer::Font,
+    font: Option<Renderer::Font>,
     placeholder: Option<&str>,
     options: &[T],
 ) -> layout::Node
@@ -362,7 +363,7 @@ where
                 let (width, _) = renderer.measure(
                     label,
                     text_size,
-                    font.clone(),
+                    font.unwrap_or_else(|| renderer.default_font()),
                     Size::new(f32::INFINITY, f32::INFINITY),
                 );
 
@@ -384,7 +385,7 @@ where
 
     let size = {
         let intrinsic =
-            Size::new(max_width + text_size + padding.left, text_size);
+            Size::new(max_width + text_size + padding.left, text_size * 1.2);
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -560,7 +561,7 @@ pub fn draw<'a, T, Renderer>(
     cursor_position: Point,
     padding: Padding,
     text_size: Option<f32>,
-    font: &Renderer::Font,
+    font: Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
@@ -599,12 +600,12 @@ pub fn draw<'a, T, Renderer>(
             font,
             code_point,
             size,
-        }) => Some((font.clone(), *code_point, *size)),
+        }) => Some((*font, *code_point, *size)),
         Handle::Dynamic { open, closed } => {
             if state().is_open {
-                Some((open.font.clone(), open.code_point, open.size))
+                Some((open.font, open.code_point, open.size))
             } else {
-                Some((closed.font.clone(), closed.code_point, closed.size))
+                Some((closed.font, closed.code_point, closed.size))
             }
         }
         Handle::None => None,
@@ -620,12 +621,12 @@ pub fn draw<'a, T, Renderer>(
             color: style.handle_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - padding.horizontal(),
-                y: bounds.center_y() - size / 2.0,
-                height: size,
+                y: bounds.center_y(),
+                height: size * 1.2,
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Right,
-            vertical_alignment: alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Center,
         });
     }
 
@@ -637,7 +638,7 @@ pub fn draw<'a, T, Renderer>(
         renderer.fill_text(Text {
             content: label,
             size: text_size,
-            font: font.clone(),
+            font,
             color: if is_selected {
                 style.text_color
             } else {
@@ -645,12 +646,12 @@ pub fn draw<'a, T, Renderer>(
             },
             bounds: Rectangle {
                 x: bounds.x + padding.left,
-                y: bounds.center_y() - text_size / 2.0,
+                y: bounds.center_y(),
                 width: bounds.width - padding.horizontal(),
-                height: text_size,
+                height: text_size * 1.2,
             },
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Center,
         });
     }
 }

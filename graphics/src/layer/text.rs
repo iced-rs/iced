@@ -1,4 +1,4 @@
-use crate::{alignment, Font, Rectangle};
+use crate::{alignment, Color, Font, Rectangle};
 
 /// A paragraph of text.
 #[derive(Debug, Clone, Copy)]
@@ -10,7 +10,7 @@ pub struct Text<'a> {
     pub bounds: Rectangle,
 
     /// The color of the [`Text`], in __linear RGB_.
-    pub color: [f32; 4],
+    pub color: Color,
 
     /// The size of the [`Text`].
     pub size: f32,

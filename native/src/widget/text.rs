@@ -37,7 +37,7 @@ where
     height: Length,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -51,7 +51,7 @@ where
         Text {
             content: content.into(),
             size: None,
-            font: Default::default(),
+            font: None,
             width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -70,7 +70,7 @@ where
     ///
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.font = font.into();
+        self.font = Some(font.into());
         self
     }
 
@@ -138,8 +138,12 @@ where
 
         let bounds = limits.max();
 
-        let (width, height) =
-            renderer.measure(&self.content, size, self.font.clone(), bounds);
+        let (width, height) = renderer.measure(
+            &self.content,
+            size,
+            self.font.unwrap_or_else(|| renderer.default_font()),
+            bounds,
+        );
 
         let size = limits.resolve(Size::new(width, height));
 
@@ -162,7 +166,7 @@ where
             layout,
             &self.content,
             self.size,
-            self.font.clone(),
+            self.font,
             theme.appearance(self.style),
             self.horizontal_alignment,
             self.vertical_alignment,
@@ -186,7 +190,7 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     content: &str,
     size: Option<f32>,
-    font: Renderer::Font,
+    font: Option<Renderer::Font>,
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
@@ -212,7 +216,7 @@ pub fn draw<Renderer>(
         size: size.unwrap_or_else(|| renderer.default_size()),
         bounds: Rectangle { x, y, ..bounds },
         color: appearance.color.unwrap_or(style.text_color),
-        font,
+        font: font.unwrap_or_else(|| renderer.default_font()),
         horizontal_alignment,
         vertical_alignment,
     });
@@ -242,7 +246,7 @@ where
             height: self.height,
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
-            font: self.font.clone(),
+            font: self.font,
             style: self.style,
         }
     }

@@ -2,6 +2,8 @@ use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
 use crate::{Background, Font, Point, Rectangle, Size, Theme, Vector};
 
+use std::borrow::Cow;
+
 /// A renderer that does nothing.
 ///
 /// It can be useful if you are writing tests!
@@ -40,13 +42,19 @@ impl Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
 
-    const ICON_FONT: Font = Font::Default;
+    const ICON_FONT: Font = Font::SansSerif;
     const CHECKMARK_ICON: char = '0';
     const ARROW_DOWN_ICON: char = '0';
 
-    fn default_size(&self) -> f32 {
-        20.0
+    fn default_font(&self) -> Self::Font {
+        Font::SansSerif
     }
+
+    fn default_size(&self) -> f32 {
+        16.0
+    }
+
+    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
     fn measure(
         &self,
