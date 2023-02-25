@@ -77,12 +77,14 @@ impl Padding {
     /// Fits the [`Padding`] between the provided `inner` and `outer` [`Size`].
     pub fn fit(self, inner: Size, outer: Size) -> Self {
         let available = (outer - inner).max(Size::ZERO);
+        let new_top = self.top.min(available.height);
+        let new_left = self.left.min(available.width);
 
         Padding {
-            top: self.top.min(available.height / 2.0),
-            right: self.right.min(available.width / 2.0),
-            bottom: self.bottom.min(available.height / 2.0),
-            left: self.left.min(available.width / 2.0),
+            top: new_top,
+            bottom: self.bottom.min(available.height - new_top),
+            left: new_left,
+            right: self.right.min(available.width - new_left),
         }
     }
 }
