@@ -52,14 +52,16 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,
+        width: u32,
+        height: u32,
     ) -> Surface {
         match self {
             Self::Wgpu(compositor) => {
-                Surface::Wgpu(compositor.create_surface(window))
+                Surface::Wgpu(compositor.create_surface(window, width, height))
             }
-            Self::TinySkia(compositor) => {
-                Surface::TinySkia(compositor.create_surface(window))
-            }
+            Self::TinySkia(compositor) => Surface::TinySkia(
+                compositor.create_surface(window, width, height),
+            ),
         }
     }
 

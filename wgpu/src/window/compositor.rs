@@ -201,11 +201,15 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,
+        width: u32,
+        height: u32,
     ) -> wgpu::Surface {
         #[allow(unsafe_code)]
-        unsafe {
-            self.instance.create_surface(window)
-        }
+        let mut surface = unsafe { self.instance.create_surface(window) };
+
+        self.configure_surface(&mut surface, width, height);
+
+        surface
     }
 
     fn configure_surface(

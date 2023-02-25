@@ -1,7 +1,8 @@
-use crate::{Font, Settings, Size};
+use crate::{Color, Font, Settings, Size, Viewport};
 
 use iced_graphics::backend;
 use iced_graphics::text;
+use iced_graphics::Primitive;
 
 use std::borrow::Cow;
 
@@ -17,6 +18,22 @@ impl Backend {
             default_text_size: settings.default_text_size,
         }
     }
+
+    pub fn draw<T: AsRef<str>>(
+        &mut self,
+        pixels: &mut tiny_skia::Pixmap,
+        _primitives: &[Primitive],
+        _viewport: &Viewport,
+        background_color: Color,
+        _overlay: &[T],
+    ) {
+        pixels.fill(into_color(background_color));
+    }
+}
+
+fn into_color(color: Color) -> tiny_skia::Color {
+    tiny_skia::Color::from_rgba(color.r, color.g, color.b, color.a)
+        .expect("Convert color from iced to tiny_skia")
 }
 
 impl iced_graphics::Backend for Backend {

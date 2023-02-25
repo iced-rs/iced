@@ -285,21 +285,18 @@ async fn run_instance<A, E, C>(
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let mut clipboard = Clipboard::connect(&window);
-    let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(&window);
-    let mut should_exit = false;
-
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
-
     let physical_size = state.physical_size();
 
-    compositor.configure_surface(
-        &mut surface,
+    let mut clipboard = Clipboard::connect(&window);
+    let mut cache = user_interface::Cache::default();
+    let mut surface = compositor.create_surface(
+        &window,
         physical_size.width,
         physical_size.height,
     );
+    let mut should_exit = false;
 
     if should_be_visible {
         window.set_visible(true);
