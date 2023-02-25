@@ -9,7 +9,13 @@ pub enum Backend {
     Wgpu(iced_wgpu::Backend),
 }
 
-impl iced_graphics::Backend for Backend {}
+impl iced_graphics::Backend for Backend {
+    fn trim_measurements(&mut self) {
+        match self {
+            Self::Wgpu(backend) => backend.trim_measurements(),
+        }
+    }
+}
 
 impl backend::Text for Backend {
     const ICON_FONT: Font = Font::Name("Iced-Icons");
