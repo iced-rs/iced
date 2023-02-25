@@ -58,7 +58,8 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     ) {
         surface.pixels = tiny_skia::Pixmap::new(width, height)
             .expect("Create pixmap for window");
-        surface.buffer = vec![0; (width * height) as usize];
+
+        surface.buffer.resize((width * height) as usize, 0);
     }
 
     fn fetch_information(&self) -> Information {
