@@ -50,6 +50,7 @@ members = [
     "native",
     "renderer",
     "style",
+    "tiny_skia",
     "wgpu",
     "winit",
     "examples/*",

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-image = ["iced_wgpu/image"]
-svg = ["iced_wgpu/svg"]
+image = ["iced_wgpu/image", "iced_tiny_skia/image"]
+svg = ["iced_wgpu/svg", "iced_tiny_skia/svg"]
 tracing = ["iced_wgpu/tracing"]
 
 [dependencies]
@@ -18,6 +18,10 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
+
+[dependencies.iced_tiny_skia]
+version = "0.1"
+path = "../tiny_skia"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced_wgpu = { version = "0.9", path = "../wgpu" }

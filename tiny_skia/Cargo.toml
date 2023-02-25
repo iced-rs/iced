@@ -1,0 +1,21 @@
+[package]
+name = "iced_tiny_skia"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+image = []
+svg = []
+
+[dependencies]
+raw-window-handle = "0.5"
+softbuffer = "0.2"
+tiny-skia = "0.8"
+
+[dependencies.iced_native]
+version = "0.9"
+path = "../native"
+
+[dependencies.iced_graphics]
+version = "0.7"
+path = "../graphics"

@@ -7,12 +7,14 @@ use std::borrow::Cow;
 
 pub enum Backend {
     Wgpu(iced_wgpu::Backend),
+    TinySkia(iced_tiny_skia::Backend),
 }
 
 impl iced_graphics::Backend for Backend {
     fn trim_measurements(&mut self) {
         match self {
             Self::Wgpu(backend) => backend.trim_measurements(),
+            Self::TinySkia(backend) => backend.trim_measurements(),
         }
     }
 }
@@ -25,12 +27,14 @@ impl backend::Text for Backend {
     fn default_font(&self) -> Font {
         match self {
             Self::Wgpu(backend) => backend.default_font(),
+            Self::TinySkia(backend) => backend.default_font(),
         }
     }
 
     fn default_size(&self) -> f32 {
         match self {
             Self::Wgpu(backend) => backend.default_size(),
+            Self::TinySkia(backend) => backend.default_size(),
         }
     }
 
@@ -43,6 +47,9 @@ impl backend::Text for Backend {
     ) -> (f32, f32) {
         match self {
             Self::Wgpu(backend) => {
+                backend.measure(contents, size, font, bounds)
+            }
+            Self::TinySkia(backend) => {
                 backend.measure(contents, size, font, bounds)
             }
         }
@@ -66,12 +73,23 @@ impl backend::Text for Backend {
                 position,
                 nearest_only,
             ),
+            Self::TinySkia(backend) => backend.hit_test(
+                contents,
+                size,
+                font,
+                bounds,
+                position,
+                nearest_only,
+            ),
         }
     }
 
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         match self {
             Self::Wgpu(backend) => {
+                backend.load_font(font);
+            }
+            Self::TinySkia(backend) => {
                 backend.load_font(font);
             }
         }
@@ -83,6 +101,7 @@ impl backend::Image for Backend {
     fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
         match self {
             Self::Wgpu(backend) => backend.dimensions(handle),
+            Self::TinySkia(backend) => backend.dimensions(handle),
         }
     }
 }
@@ -95,6 +114,7 @@ impl backend::Svg for Backend {
     ) -> Size<u32> {
         match self {
             Self::Wgpu(backend) => backend.viewport_dimensions(handle),
+            Self::TinySkia(backend) => backend.viewport_dimensions(handle),
         }
     }
 }

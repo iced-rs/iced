@@ -6,10 +6,12 @@ pub use iced_graphics::window::compositor::{Information, SurfaceError};
 
 pub enum Compositor<Theme> {
     Wgpu(iced_wgpu::window::Compositor<Theme>),
+    TinySkia(iced_tiny_skia::window::Compositor<Theme>),
 }
 
 pub enum Surface {
     Wgpu(iced_wgpu::window::Surface),
+    TinySkia(iced_tiny_skia::window::Surface),
 }
 
 impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
@@ -19,21 +21,31 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
 
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
-        compatible_window: Option<&W>,
+        _compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error> {
-        let (compositor, backend) = iced_wgpu::window::compositor::new(
-            iced_wgpu::Settings {
+        //let (compositor, backend) = iced_wgpu::window::compositor::new(
+        //    iced_wgpu::Settings {
+        //        default_font: settings.default_font,
+        //        default_text_size: settings.default_text_size,
+        //        antialiasing: settings.antialiasing,
+        //        ..iced_wgpu::Settings::from_env()
+        //    },
+        //    compatible_window,
+        //)?;
+
+        //Ok((
+        //    Self::Wgpu(compositor),
+        //    Renderer::new(Backend::Wgpu(backend)),
+        //))
+        let (compositor, backend) =
+            iced_tiny_skia::window::compositor::new(iced_tiny_skia::Settings {
                 default_font: settings.default_font,
                 default_text_size: settings.default_text_size,
-                antialiasing: settings.antialiasing,
-                ..iced_wgpu::Settings::from_env()
-            },
-            compatible_window,
-        )?;
+            });
 
         Ok((
-            Self::Wgpu(compositor),
-            Renderer::new(Backend::Wgpu(backend)),
+            Self::TinySkia(compositor),
+            Renderer::new(Backend::TinySkia(backend)),
         ))
     }
 
@@ -44,6 +56,9 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
         match self {
             Self::Wgpu(compositor) => {
                 Surface::Wgpu(compositor.create_surface(window))
+            }
+            Self::TinySkia(compositor) => {
+                Surface::TinySkia(compositor.create_surface(window))
             }
         }
     }
@@ -58,12 +73,17 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
             (Self::Wgpu(compositor), Surface::Wgpu(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
+            (Self::TinySkia(compositor), Surface::TinySkia(surface)) => {
+                compositor.configure_surface(surface, width, height);
+            }
+            _ => unreachable!(),
         }
     }
 
     fn fetch_information(&self) -> Information {
         match self {
             Self::Wgpu(compositor) => compositor.fetch_information(),
+            Self::TinySkia(compositor) => compositor.fetch_information(),
         }
     }
 
@@ -90,6 +110,20 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                     background_color,
                     overlay,
                 ),
+                (
+                    Self::TinySkia(compositor),
+                    Backend::TinySkia(backend),
+                    Surface::TinySkia(surface),
+                ) => iced_tiny_skia::window::compositor::present(
+                    compositor,
+                    backend,
+                    surface,
+                    primitives,
+                    viewport,
+                    background_color,
+                    overlay,
+                ),
+                _ => unreachable!(),
             }
         })
     }
