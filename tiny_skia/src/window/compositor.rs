@@ -12,7 +12,6 @@ pub struct Compositor<Theme> {
 
 pub struct Surface {
     window: softbuffer::GraphicsContext,
-    pixels: tiny_skia::Pixmap,
     buffer: Vec<u32>,
 }
 
@@ -40,13 +39,9 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
             unsafe { softbuffer::GraphicsContext::new(window, window) }
                 .expect("Create softbuffer for window");
 
-        let pixels = tiny_skia::Pixmap::new(width, height)
-            .expect("Create pixmap for window");
-
         Surface {
             window,
-            pixels,
-            buffer: vec![0; (width * height) as usize],
+            buffer: vec![0; width as usize * height as usize],
         }
     }
 
@@ -56,9 +51,6 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
-        surface.pixels = tiny_skia::Pixmap::new(width, height)
-            .expect("Create pixmap for window");
-
         surface.buffer.resize((width * height) as usize, 0);
     }
 
@@ -110,26 +102,26 @@ pub fn present<Theme, T: AsRef<str>>(
     background_color: Color,
     overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
+    let physical_size = viewport.physical_size();
+
     backend.draw(
-        &mut surface.pixels,
+        &mut tiny_skia::PixmapMut::from_bytes(
+            bytemuck::cast_slice_mut(&mut surface.buffer),
+            physical_size.width,
+            physical_size.height,
+        )
+        .expect("Create pixel map"),
         primitives,
         viewport,
         background_color,
         overlay,
     );
 
-    for (i, pixel) in surface.pixels.pixels_mut().iter().enumerate() {
-        surface.buffer[i] = u32::from(pixel.red()) << 16
-            | u32::from(pixel.green()) << 8
-            | u32::from(pixel.blue());
-    }
-
     surface.window.set_buffer(
         &surface.buffer,
-        surface.pixels.width() as u16,
-        surface.pixels.height() as u16,
+        physical_size.width as u16,
+        physical_size.height as u16,
     );
 
-    // TODO
     Ok(())
 }

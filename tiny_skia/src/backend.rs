@@ -21,7 +21,7 @@ impl Backend {
 
     pub fn draw<T: AsRef<str>>(
         &mut self,
-        pixels: &mut tiny_skia::Pixmap,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
@@ -39,7 +39,7 @@ impl Backend {
 
 fn draw_primitive(
     primitive: &Primitive,
-    pixels: &mut tiny_skia::Pixmap,
+    pixels: &mut tiny_skia::PixmapMut<'_>,
     clip_mask: Option<&tiny_skia::ClipMask>,
     scale_factor: f32,
     translation: Vector,
@@ -153,12 +153,12 @@ fn draw_primitive(
 }
 
 fn into_color(color: Color) -> tiny_skia::Color {
-    tiny_skia::Color::from_rgba(color.r, color.g, color.b, color.a)
+    tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a)
         .expect("Convert color from iced to tiny_skia")
 }
 
 fn rectangular_clip_mask(
-    pixels: &tiny_skia::Pixmap,
+    pixels: &tiny_skia::PixmapMut<'_>,
     bounds: Rectangle,
 ) -> tiny_skia::ClipMask {
     let mut clip_mask = tiny_skia::ClipMask::new();

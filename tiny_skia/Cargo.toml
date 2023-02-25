@@ -11,6 +11,7 @@ svg = []
 raw-window-handle = "0.5"
 softbuffer = "0.2"
 tiny-skia = "0.8"
+bytemuck = "1"
 
 [dependencies.iced_native]
 version = "0.9"
