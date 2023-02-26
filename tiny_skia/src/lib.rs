@@ -2,6 +2,7 @@ pub mod window;
 
 mod backend;
 mod settings;
+mod text;
 
 pub use backend::Backend;
 pub use settings::Settings;

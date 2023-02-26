@@ -9,6 +9,7 @@ use std::borrow::Cow;
 pub struct Backend {
     default_font: Font,
     default_text_size: f32,
+    text_pipeline: crate::text::Pipeline,
 }
 
 impl Backend {
@@ -16,6 +17,7 @@ impl Backend {
         Self {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
+            text_pipeline: crate::text::Pipeline::new(),
         }
     }
 
@@ -32,123 +34,161 @@ impl Backend {
         let scale_factor = viewport.scale_factor() as f32;
 
         for primitive in primitives {
-            draw_primitive(primitive, pixels, None, scale_factor, Vector::ZERO);
+            self.draw_primitive(
+                primitive,
+                pixels,
+                None,
+                scale_factor,
+                Vector::ZERO,
+            );
         }
+
+        self.text_pipeline.end_frame();
     }
-}
 
-fn draw_primitive(
-    primitive: &Primitive,
-    pixels: &mut tiny_skia::PixmapMut<'_>,
-    clip_mask: Option<&tiny_skia::ClipMask>,
-    scale_factor: f32,
-    translation: Vector,
-) {
-    match primitive {
-        Primitive::None => {}
-        Primitive::Quad {
-            bounds,
-            background,
-            border_radius: _, // TODO
-            border_width,
-            border_color,
-        } => {
-            let transform = tiny_skia::Transform::from_translate(
-                translation.x,
-                translation.y,
-            )
-            .post_scale(scale_factor, scale_factor);
-
-            let path = tiny_skia::PathBuilder::from_rect(
-                tiny_skia::Rect::from_xywh(
-                    bounds.x,
-                    bounds.y,
-                    bounds.width,
-                    bounds.height,
+    fn draw_primitive(
+        &mut self,
+        primitive: &Primitive,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::ClipMask>,
+        scale_factor: f32,
+        translation: Vector,
+    ) {
+        match primitive {
+            Primitive::None => {}
+            Primitive::Quad {
+                bounds,
+                background,
+                border_radius: _, // TODO
+                border_width,
+                border_color,
+            } => {
+                let transform = tiny_skia::Transform::from_translate(
+                    translation.x,
+                    translation.y,
                 )
-                .expect("Create quad rectangle"),
-            );
+                .post_scale(scale_factor, scale_factor);
 
-            pixels.fill_path(
-                &path,
-                &tiny_skia::Paint {
-                    shader: match background {
-                        Background::Color(color) => {
-                            tiny_skia::Shader::SolidColor(into_color(*color))
-                        }
-                    },
-                    anti_alias: true,
-                    ..tiny_skia::Paint::default()
-                },
-                tiny_skia::FillRule::EvenOdd,
-                transform,
-                clip_mask,
-            );
+                let path = tiny_skia::PathBuilder::from_rect(
+                    tiny_skia::Rect::from_xywh(
+                        bounds.x,
+                        bounds.y,
+                        bounds.width,
+                        bounds.height,
+                    )
+                    .expect("Create quad rectangle"),
+                );
 
-            if *border_width > 0.0 {
-                pixels.stroke_path(
+                pixels.fill_path(
                     &path,
                     &tiny_skia::Paint {
-                        shader: tiny_skia::Shader::SolidColor(into_color(
-                            *border_color,
-                        )),
+                        shader: match background {
+                            Background::Color(color) => {
+                                tiny_skia::Shader::SolidColor(into_color(
+                                    *color,
+                                ))
+                            }
+                        },
                         anti_alias: true,
                         ..tiny_skia::Paint::default()
                     },
-                    &tiny_skia::Stroke {
-                        width: *border_width,
-                        ..tiny_skia::Stroke::default()
-                    },
+                    tiny_skia::FillRule::EvenOdd,
                     transform,
                     clip_mask,
                 );
+
+                if *border_width > 0.0 {
+                    pixels.stroke_path(
+                        &path,
+                        &tiny_skia::Paint {
+                            shader: tiny_skia::Shader::SolidColor(into_color(
+                                *border_color,
+                            )),
+                            anti_alias: true,
+                            ..tiny_skia::Paint::default()
+                        },
+                        &tiny_skia::Stroke {
+                            width: *border_width,
+                            ..tiny_skia::Stroke::default()
+                        },
+                        transform,
+                        clip_mask,
+                    );
+                }
             }
-        }
-        Primitive::Text { .. } => {
-            // TODO
-        }
-        Primitive::Image { .. } => {
-            // TODO
-        }
-        Primitive::Svg { .. } => {
-            // TODO
-        }
-        Primitive::Group { primitives } => {
-            for primitive in primitives {
-                draw_primitive(
-                    primitive,
+            Primitive::Text {
+                content,
+                bounds,
+                color,
+                size,
+                font,
+                horizontal_alignment,
+                vertical_alignment,
+            } => {
+                self.text_pipeline.draw(
+                    content,
+                    (*bounds + translation) * scale_factor,
+                    *color,
+                    *size * scale_factor,
+                    *font,
+                    *horizontal_alignment,
+                    *vertical_alignment,
+                    pixels,
+                    clip_mask,
+                );
+            }
+            Primitive::Image { .. } => {
+                // TODO
+            }
+            Primitive::Svg { .. } => {
+                // TODO
+            }
+            Primitive::Group { primitives } => {
+                for primitive in primitives {
+                    self.draw_primitive(
+                        primitive,
+                        pixels,
+                        clip_mask,
+                        scale_factor,
+                        translation,
+                    );
+                }
+            }
+            Primitive::Translate {
+                translation: offset,
+                content,
+            } => {
+                self.draw_primitive(
+                    content,
+                    pixels,
+                    clip_mask,
+                    scale_factor,
+                    translation + *offset,
+                );
+            }
+            Primitive::Clip { bounds, content } => {
+                self.draw_primitive(
+                    content,
+                    pixels,
+                    Some(&rectangular_clip_mask(
+                        pixels,
+                        *bounds * scale_factor,
+                    )),
+                    scale_factor,
+                    translation,
+                );
+            }
+            Primitive::Cached { cache } => {
+                self.draw_primitive(
+                    cache,
                     pixels,
                     clip_mask,
                     scale_factor,
                     translation,
                 );
             }
+            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {}
         }
-        Primitive::Translate {
-            translation: offset,
-            content,
-        } => {
-            draw_primitive(
-                content,
-                pixels,
-                clip_mask,
-                scale_factor,
-                translation + *offset,
-            );
-        }
-        Primitive::Clip { bounds, content } => {
-            draw_primitive(
-                content,
-                pixels,
-                Some(&rectangular_clip_mask(pixels, *bounds * scale_factor)),
-                scale_factor,
-                translation,
-            );
-        }
-        Primitive::Cached { cache } => {
-            draw_primitive(cache, pixels, clip_mask, scale_factor, translation);
-        }
-        Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {}
     }
 }
 
@@ -185,7 +225,7 @@ fn rectangular_clip_mask(
 
 impl iced_graphics::Backend for Backend {
     fn trim_measurements(&mut self) {
-        // TODO
+        self.text_pipeline.trim_measurement_cache();
     }
 }
 
@@ -204,30 +244,35 @@ impl backend::Text for Backend {
 
     fn measure(
         &self,
-        _contents: &str,
-        _size: f32,
-        _font: Font,
-        _bounds: Size,
+        contents: &str,
+        size: f32,
+        font: Font,
+        bounds: Size,
     ) -> (f32, f32) {
-        // TODO
-        (0.0, 0.0)
+        self.text_pipeline.measure(contents, size, font, bounds)
     }
 
     fn hit_test(
         &self,
-        _contents: &str,
-        _size: f32,
-        _font: Font,
-        _bounds: Size,
-        _point: iced_native::Point,
-        _nearest_only: bool,
+        contents: &str,
+        size: f32,
+        font: Font,
+        bounds: Size,
+        point: iced_native::Point,
+        nearest_only: bool,
     ) -> Option<text::Hit> {
-        // TODO
-        None
+        self.text_pipeline.hit_test(
+            contents,
+            size,
+            font,
+            bounds,
+            point,
+            nearest_only,
+        )
     }
 
-    fn load_font(&mut self, _font: Cow<'static, [u8]>) {
-        // TODO
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        self.text_pipeline.load_font(font);
     }
 }
 

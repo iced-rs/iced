@@ -12,6 +12,8 @@ raw-window-handle = "0.5"
 softbuffer = "0.2"
 tiny-skia = "0.8"
 bytemuck = "1"
+rustc-hash = "1.1"
+ouroboros = "0.15"
 
 [dependencies.iced_native]
 version = "0.9"
@@ -20,3 +22,16 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
+
+[dependencies.cosmic-text]
+features = ["std", "swash"]
+git = "https://github.com/hecrj/cosmic-text"
+rev = "dc83efbf00a2efb4118403538e8a47bfd69c3e5e"
+
+[dependencies.twox-hash]
+version = "1.6"
+default-features = false
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
+version = "1.6.1"
+features = ["std"]
