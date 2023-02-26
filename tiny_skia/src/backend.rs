@@ -85,7 +85,7 @@ impl Backend {
             Primitive::Quad {
                 bounds,
                 background,
-                border_radius: _, // TODO
+                border_radius,
                 border_width,
                 border_color,
             } => {
@@ -95,15 +95,7 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                let path = tiny_skia::PathBuilder::from_rect(
-                    tiny_skia::Rect::from_xywh(
-                        bounds.x,
-                        bounds.y,
-                        bounds.width,
-                        bounds.height,
-                    )
-                    .expect("Create quad rectangle"),
-                );
+                let path = rounded_rectangle(*bounds, *border_radius);
 
                 pixels.fill_path(
                     &path,
@@ -221,6 +213,74 @@ impl Backend {
 fn into_color(color: Color) -> tiny_skia::Color {
     tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a)
         .expect("Convert color from iced to tiny_skia")
+}
+
+fn rounded_rectangle(
+    bounds: Rectangle,
+    border_radius: [f32; 4],
+) -> tiny_skia::Path {
+    let [top_left, top_right, bottom_right, bottom_left] = border_radius;
+
+    if top_left == top_right
+        && top_left == bottom_right
+        && top_left == bottom_left
+        && top_left == bounds.width / 2.0
+        && top_left == bounds.height / 2.0
+    {
+        return tiny_skia::PathBuilder::from_circle(
+            bounds.x + bounds.width / 2.0,
+            bounds.y + bounds.height / 2.0,
+            top_left,
+        )
+        .expect("Build circle path");
+    }
+
+    let mut builder = tiny_skia::PathBuilder::new();
+
+    builder.move_to(bounds.x + top_left, bounds.y);
+    builder.line_to(bounds.x + bounds.width - top_right, bounds.y);
+
+    if top_right > 0.0 {
+        builder.quad_to(
+            bounds.x + bounds.width,
+            bounds.y,
+            bounds.x + bounds.width,
+            bounds.y + top_right,
+        );
+    }
+
+    builder.line_to(
+        bounds.x + bounds.width,
+        bounds.y + bounds.height - bottom_right,
+    );
+
+    if bottom_right > 0.0 {
+        builder.quad_to(
+            bounds.x + bounds.width,
+            bounds.y + bounds.height,
+            bounds.x + bounds.width - bottom_right,
+            bounds.y + bounds.height,
+        );
+    }
+
+    builder.line_to(bounds.x + bottom_left, bounds.y + bounds.height);
+
+    if bottom_right > 0.0 {
+        builder.quad_to(
+            bounds.x,
+            bounds.y + bounds.height,
+            bounds.x,
+            bounds.y + bounds.height - bottom_left,
+        );
+    }
+
+    builder.line_to(bounds.x, bounds.y + top_left);
+
+    if top_left > 0.0 {
+        builder.quad_to(bounds.x, bounds.y, bounds.x + top_left, bounds.y);
+    }
+
+    builder.finish().expect("Build rounded rectangle path")
 }
 
 fn rectangular_clip_mask(
