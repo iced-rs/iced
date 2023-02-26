@@ -76,8 +76,8 @@ impl Pipeline {
         color: Color,
         size: f32,
         font: Font,
-        _horizontal_alignment: alignment::Horizontal, // TODO
-        _vertical_alignment: alignment::Vertical,     // TODO
+        horizontal_alignment: alignment::Horizontal,
+        vertical_alignment: alignment::Vertical,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::ClipMask>,
     ) {
@@ -90,6 +90,27 @@ impl Pipeline {
             };
 
             let (_, buffer) = fields.render_cache.allocate(&fields.fonts, key);
+
+            let (total_lines, max_width) = buffer
+                .layout_runs()
+                .enumerate()
+                .fold((0, 0.0), |(_, max), (i, buffer)| {
+                    (i + 1, buffer.line_w.max(max))
+                });
+
+            let total_height = total_lines as f32 * size * 1.2;
+
+            let x = match horizontal_alignment {
+                alignment::Horizontal::Left => bounds.x,
+                alignment::Horizontal::Center => bounds.x - max_width / 2.0,
+                alignment::Horizontal::Right => bounds.x - max_width,
+            };
+
+            let y = match vertical_alignment {
+                alignment::Vertical::Top => bounds.y,
+                alignment::Vertical::Center => bounds.y - total_height / 2.0,
+                alignment::Vertical::Bottom => bounds.y - total_height,
+            };
 
             let mut swash = cosmic_text::SwashCache::new(&fields.fonts);
 
@@ -159,10 +180,8 @@ impl Pipeline {
                         .expect("Create glyph pixel map");
 
                         pixels.draw_pixmap(
-                            bounds.x as i32
-                                + glyph.x_int
-                                + image.placement.left,
-                            bounds.y as i32 - glyph.y_int - image.placement.top
+                            x as i32 + glyph.x_int + image.placement.left,
+                            y as i32 - glyph.y_int - image.placement.top
                                 + run.line_y as i32,
                             pixmap,
                             &tiny_skia::PixmapPaint::default(),
