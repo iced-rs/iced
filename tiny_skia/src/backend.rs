@@ -1,5 +1,6 @@
 use crate::{Color, Font, Settings, Size, Viewport};
 
+use iced_graphics::alignment;
 use iced_graphics::backend;
 use iced_graphics::text;
 use iced_graphics::{Background, Primitive, Rectangle, Vector};
@@ -27,7 +28,7 @@ impl Backend {
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
-        _overlay: &[T],
+        overlay: &[T],
     ) {
         pixels.fill(into_color(background_color));
 
@@ -36,6 +37,31 @@ impl Backend {
         for primitive in primitives {
             self.draw_primitive(
                 primitive,
+                pixels,
+                None,
+                scale_factor,
+                Vector::ZERO,
+            );
+        }
+
+        for (i, text) in overlay.iter().enumerate() {
+            const OVERLAY_TEXT_SIZE: f32 = 20.0;
+
+            self.draw_primitive(
+                &Primitive::Text {
+                    content: text.as_ref().to_owned(),
+                    size: OVERLAY_TEXT_SIZE,
+                    bounds: Rectangle {
+                        x: 10.0,
+                        y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
+                        width: f32::INFINITY,
+                        height: f32::INFINITY,
+                    },
+                    color: Color::BLACK,
+                    font: Font::Monospace,
+                    horizontal_alignment: alignment::Horizontal::Left,
+                    vertical_alignment: alignment::Vertical::Top,
+                },
                 pixels,
                 None,
                 scale_factor,
