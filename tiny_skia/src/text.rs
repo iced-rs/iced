@@ -157,13 +157,17 @@ impl Pipeline {
                                 for _y in 0..image.placement.height {
                                     for _x in 0..image.placement.width {
                                         // TODO: Blend alpha
-                                        buffer[i] = (image.data[i + 3] as u32)
-                                            << 24
-                                            | (image.data[i + 2] as u32) << 16
-                                            | (image.data[i + 1] as u32) << 8
-                                            | image.data[i] as u32;
+                                        buffer[i >> 2] =
+                                            tiny_skia::ColorU8::from_rgba(
+                                                image.data[i + 2],
+                                                image.data[i + 1],
+                                                image.data[i],
+                                                image.data[i + 3],
+                                            )
+                                            .premultiply()
+                                            .get();
 
-                                        i += 1;
+                                        i += 4;
                                     }
                                 }
                             }
