@@ -123,7 +123,7 @@ impl Pipeline {
                         .allocate(glyph.cache_key, color, &mut swash)
                     {
                         let pixmap = tiny_skia::PixmapRef::from_bytes(
-                            bytemuck::cast_slice(&buffer),
+                            buffer,
                             placement.width,
                             placement.height,
                         )
@@ -266,7 +266,6 @@ impl GlyphCache {
                 return None;
             }
 
-            // TODO: Cache glyph rasterization
             let mut buffer = vec![0u32; glyph_size];
 
             match image.content {
