@@ -26,7 +26,7 @@ use crate::core::window::Icon;
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
-use winit::window::WindowBuilder;
+use winit::window::{WindowBuilder, WindowLevel};
 
 use std::fmt;
 
@@ -121,6 +121,10 @@ impl Window {
 
         let (width, height) = self.size;
 
+        let window_level = match self.always_on_top {
+            true => WindowLevel::AlwaysOnTop,
+            false => WindowLevel::Normal,
+        };
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
@@ -128,7 +132,7 @@ impl Window {
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
-            .with_always_on_top(self.always_on_top)
+            .with_window_level(window_level)
             .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
