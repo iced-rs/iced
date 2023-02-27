@@ -146,7 +146,9 @@ impl Application for WebSocket {
                 }
             }
 
-            row![input, button].spacing(10).align_items(Alignment::Fill)
+            row![input, button]
+                .spacing(10)
+                .align_items(Alignment::Center)
         };
 
         column![message_log, new_message_input]
