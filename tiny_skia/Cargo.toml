@@ -27,7 +27,7 @@ path = "../graphics"
 [dependencies.cosmic-text]
 features = ["std", "swash"]
 git = "https://github.com/hecrj/cosmic-text"
-rev = "dc83efbf00a2efb4118403538e8a47bfd69c3e5e"
+rev = "81080c1b9498933b43c1889601a7ea6a3d16e161"
 
 [dependencies.twox-hash]
 version = "1.6"

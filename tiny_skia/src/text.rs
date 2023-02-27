@@ -13,6 +13,7 @@ use std::sync::Arc;
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
     system: Option<System>,
+    glyph_cache: GlyphCache,
 }
 
 #[ouroboros::self_referencing]
@@ -45,6 +46,7 @@ impl Pipeline {
                 }
                 .build(),
             ),
+            glyph_cache: GlyphCache::new(),
         }
     }
 
@@ -116,76 +118,20 @@ impl Pipeline {
 
             for run in buffer.layout_runs() {
                 for glyph in run.glyphs {
-                    // TODO: Outline support
-                    if let Some(image) = swash.get_image(glyph.cache_key) {
-                        let glyph_size = image.placement.width as usize
-                            * image.placement.height as usize;
-
-                        if glyph_size == 0 {
-                            continue;
-                        }
-
-                        // TODO: Cache glyph rasterization
-                        let mut buffer = vec![0u32; glyph_size];
-
-                        match image.content {
-                            cosmic_text::SwashContent::Mask => {
-                                let mut i = 0;
-
-                                // TODO: Blend alpha
-                                let [r, g, b, _a] = color.into_rgba8();
-
-                                for _y in 0..image.placement.height {
-                                    for _x in 0..image.placement.width {
-                                        buffer[i] =
-                                            tiny_skia::ColorU8::from_rgba(
-                                                b,
-                                                g,
-                                                r,
-                                                image.data[i],
-                                            )
-                                            .premultiply()
-                                            .get();
-
-                                        i += 1;
-                                    }
-                                }
-                            }
-                            cosmic_text::SwashContent::Color => {
-                                let mut i = 0;
-
-                                for _y in 0..image.placement.height {
-                                    for _x in 0..image.placement.width {
-                                        // TODO: Blend alpha
-                                        buffer[i >> 2] =
-                                            tiny_skia::ColorU8::from_rgba(
-                                                image.data[i + 2],
-                                                image.data[i + 1],
-                                                image.data[i],
-                                                image.data[i + 3],
-                                            )
-                                            .premultiply()
-                                            .get();
-
-                                        i += 4;
-                                    }
-                                }
-                            }
-                            cosmic_text::SwashContent::SubpixelMask => {
-                                // TODO
-                            }
-                        }
-
+                    if let Some((buffer, placement)) = self
+                        .glyph_cache
+                        .allocate(glyph.cache_key, color, &mut swash)
+                    {
                         let pixmap = tiny_skia::PixmapRef::from_bytes(
                             bytemuck::cast_slice(&buffer),
-                            image.placement.width,
-                            image.placement.height,
+                            placement.width,
+                            placement.height,
                         )
                         .expect("Create glyph pixel map");
 
                         pixels.draw_pixmap(
-                            x as i32 + glyph.x_int + image.placement.left,
-                            y as i32 - glyph.y_int - image.placement.top
+                            x as i32 + glyph.x_int + placement.left,
+                            y as i32 - glyph.y_int - placement.top
                                 + run.line_y as i32,
                             pixmap,
                             &tiny_skia::PixmapPaint::default(),
@@ -203,6 +149,8 @@ impl Pipeline {
             .as_mut()
             .unwrap()
             .with_render_cache_mut(|cache| cache.trim());
+
+        self.glyph_cache.trim();
     }
 
     pub fn measure(
@@ -280,6 +228,113 @@ fn to_family(font: Font) -> cosmic_text::Family<'static> {
         Font::Cursive => cosmic_text::Family::Cursive,
         Font::Fantasy => cosmic_text::Family::Fantasy,
         Font::Monospace => cosmic_text::Family::Monospace,
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct GlyphCache {
+    entries: FxHashMap<
+        (cosmic_text::CacheKey, [u8; 3]),
+        (Vec<u32>, cosmic_text::Placement),
+    >,
+    recently_used: FxHashSet<(cosmic_text::CacheKey, [u8; 3])>,
+    trim_count: usize,
+}
+
+impl GlyphCache {
+    fn new() -> Self {
+        GlyphCache::default()
+    }
+
+    fn allocate(
+        &mut self,
+        cache_key: cosmic_text::CacheKey,
+        color: Color,
+        swash: &mut cosmic_text::SwashCache<'_>,
+    ) -> Option<(&[u8], cosmic_text::Placement)> {
+        let [r, g, b, _a] = color.into_rgba8();
+        let key = (cache_key, [r, g, b]);
+
+        if let hash_map::Entry::Vacant(entry) = self.entries.entry(key) {
+            // TODO: Outline support
+            let image = swash.get_image(cache_key).as_ref()?;
+
+            let glyph_size = image.placement.width as usize
+                * image.placement.height as usize;
+
+            if glyph_size == 0 {
+                return None;
+            }
+
+            // TODO: Cache glyph rasterization
+            let mut buffer = vec![0u32; glyph_size];
+
+            match image.content {
+                cosmic_text::SwashContent::Mask => {
+                    let mut i = 0;
+
+                    // TODO: Blend alpha
+
+                    for _y in 0..image.placement.height {
+                        for _x in 0..image.placement.width {
+                            buffer[i] = tiny_skia::ColorU8::from_rgba(
+                                b,
+                                g,
+                                r,
+                                image.data[i],
+                            )
+                            .premultiply()
+                            .get();
+
+                            i += 1;
+                        }
+                    }
+                }
+                cosmic_text::SwashContent::Color => {
+                    let mut i = 0;
+
+                    for _y in 0..image.placement.height {
+                        for _x in 0..image.placement.width {
+                            // TODO: Blend alpha
+                            buffer[i >> 2] = tiny_skia::ColorU8::from_rgba(
+                                image.data[i + 2],
+                                image.data[i + 1],
+                                image.data[i],
+                                image.data[i + 3],
+                            )
+                            .premultiply()
+                            .get();
+
+                            i += 4;
+                        }
+                    }
+                }
+                cosmic_text::SwashContent::SubpixelMask => {
+                    // TODO
+                }
+            }
+
+            entry.insert((buffer, image.placement));
+        }
+
+        self.recently_used.insert(key);
+
+        self.entries.get(&key).map(|(buffer, placement)| {
+            (bytemuck::cast_slice(buffer.as_slice()), *placement)
+        })
+    }
+
+    pub fn trim(&mut self) {
+        if self.trim_count > 300 {
+            self.entries
+                .retain(|key, _| self.recently_used.contains(key));
+
+            self.recently_used.clear();
+
+            self.trim_count = 0;
+        } else {
+            self.trim_count += 1;
+        }
     }
 }
 
