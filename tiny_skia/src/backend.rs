@@ -241,46 +241,106 @@ fn rounded_rectangle(
     builder.line_to(bounds.x + bounds.width - top_right, bounds.y);
 
     if top_right > 0.0 {
-        builder.quad_to(
-            bounds.x + bounds.width,
+        arc_to(
+            &mut builder,
+            bounds.x + bounds.width - top_right,
             bounds.y,
             bounds.x + bounds.width,
             bounds.y + top_right,
+            top_right,
         );
     }
 
-    builder.line_to(
+    maybe_line_to(
+        &mut builder,
         bounds.x + bounds.width,
         bounds.y + bounds.height - bottom_right,
     );
 
     if bottom_right > 0.0 {
-        builder.quad_to(
+        arc_to(
+            &mut builder,
             bounds.x + bounds.width,
-            bounds.y + bounds.height,
+            bounds.y + bounds.height - bottom_right,
             bounds.x + bounds.width - bottom_right,
             bounds.y + bounds.height,
+            bottom_right,
         );
     }
 
-    builder.line_to(bounds.x + bottom_left, bounds.y + bounds.height);
+    maybe_line_to(
+        &mut builder,
+        bounds.x + bottom_left,
+        bounds.y + bounds.height,
+    );
 
     if bottom_right > 0.0 {
-        builder.quad_to(
-            bounds.x,
+        arc_to(
+            &mut builder,
+            bounds.x + bottom_left,
             bounds.y + bounds.height,
             bounds.x,
             bounds.y + bounds.height - bottom_left,
+            bottom_left,
         );
     }
 
-    builder.line_to(bounds.x, bounds.y + top_left);
+    maybe_line_to(&mut builder, bounds.x, bounds.y + top_left);
 
     if top_left > 0.0 {
-        builder.quad_to(bounds.x, bounds.y, bounds.x + top_left, bounds.y);
+        arc_to(
+            &mut builder,
+            bounds.x,
+            bounds.y + top_left,
+            bounds.x + top_left,
+            bounds.y,
+            top_left,
+        );
     }
 
     builder.finish().expect("Build rounded rectangle path")
+}
+
+fn maybe_line_to(path: &mut tiny_skia::PathBuilder, x: f32, y: f32) {
+    if path.last_point() != Some(tiny_skia::Point { x, y }) {
+        path.line_to(x, y);
+    }
+}
+
+fn arc_to(
+    path: &mut tiny_skia::PathBuilder,
+    x_from: f32,
+    y_from: f32,
+    x_to: f32,
+    y_to: f32,
+    radius: f32,
+) {
+    let svg_arc = kurbo::SvgArc {
+        from: kurbo::Point::new(f64::from(x_from), f64::from(y_from)),
+        to: kurbo::Point::new(f64::from(x_to), f64::from(y_to)),
+        radii: kurbo::Vec2::new(f64::from(radius), f64::from(radius)),
+        x_rotation: 0.0,
+        large_arc: false,
+        sweep: true,
+    };
+
+    match kurbo::Arc::from_svg_arc(&svg_arc) {
+        Some(arc) => {
+            arc.to_cubic_beziers(0.1, |p1, p2, p| {
+                path.cubic_to(
+                    p1.x as f32,
+                    p1.y as f32,
+                    p2.x as f32,
+                    p2.y as f32,
+                    p.x as f32,
+                    p.y as f32,
+                );
+            });
+        }
+        None => {
+            path.line_to(x_to as f32, y_to as f32);
+        }
+    }
 }
 
 fn rectangular_clip_mask(
