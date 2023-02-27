@@ -221,6 +221,22 @@ fn rounded_rectangle(
 ) -> tiny_skia::Path {
     let [top_left, top_right, bottom_right, bottom_left] = border_radius;
 
+    if top_left == 0.0
+        && top_right == 0.0
+        && bottom_right == 0.0
+        && bottom_left == 0.0
+    {
+        return tiny_skia::PathBuilder::from_rect(
+            tiny_skia::Rect::from_xywh(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            )
+            .expect("Build quad rectangle"),
+        );
+    }
+
     if top_left == top_right
         && top_left == bottom_right
         && top_left == bottom_left
