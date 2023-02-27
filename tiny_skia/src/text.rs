@@ -89,7 +89,7 @@ impl Pipeline {
                 size,
             };
 
-            let (_, buffer) = fields.render_cache.allocate(&fields.fonts, key);
+            let (_, buffer) = fields.render_cache.allocate(fields.fonts, key);
 
             let (total_lines, max_width) = buffer
                 .layout_runs()
@@ -112,7 +112,7 @@ impl Pipeline {
                 alignment::Vertical::Bottom => bounds.y - total_height,
             };
 
-            let mut swash = cosmic_text::SwashCache::new(&fields.fonts);
+            let mut swash = cosmic_text::SwashCache::new(fields.fonts);
 
             for run in buffer.layout_runs() {
                 for glyph in run.glyphs {

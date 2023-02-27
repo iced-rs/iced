@@ -5,6 +5,7 @@ use iced_graphics::text;
 
 use std::borrow::Cow;
 
+#[allow(clippy::large_enum_variant)]
 pub enum Backend {
     Wgpu(iced_wgpu::Backend),
     TinySkia(iced_tiny_skia::Backend),
