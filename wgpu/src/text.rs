@@ -2,7 +2,7 @@ pub use iced_native::text::Hit;
 
 use iced_graphics::layer::Text;
 use iced_native::alignment;
-use iced_native::{Color, Font, Rectangle, Size};
+use iced_native::{Font, Rectangle, Size};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -110,7 +110,6 @@ impl Pipeline {
                                 height: (section.bounds.height * scale_factor)
                                     .ceil(),
                             },
-                            color: section.color,
                         },
                     );
 
@@ -162,6 +161,16 @@ impl Pipeline {
                         left: left as i32,
                         top: top as i32,
                         bounds,
+                        default_color: {
+                            let [r, g, b, a] = section.color.into_linear();
+
+                            glyphon::Color::rgba(
+                                (r * 255.0) as u8,
+                                (g * 255.0) as u8,
+                                (b * 255.0) as u8,
+                                (a * 255.0) as u8,
+                            )
+                        },
                     }
                 });
 
@@ -174,7 +183,6 @@ impl Pipeline {
                     height: target_size.height,
                 },
                 text_areas,
-                glyphon::Color::rgb(0, 0, 0),
                 &mut glyphon::SwashCache::new(fields.fonts),
             );
 
@@ -249,7 +257,6 @@ impl Pipeline {
                     size,
                     font,
                     bounds,
-                    color: Color::BLACK,
                 },
             );
 
@@ -283,7 +290,6 @@ impl Pipeline {
                     size,
                     font,
                     bounds,
-                    color: Color::BLACK,
                 },
             );
 
@@ -354,7 +360,6 @@ impl<'a> Cache<'a> {
             key.font.hash(&mut hasher);
             key.bounds.width.to_bits().hash(&mut hasher);
             key.bounds.height.to_bits().hash(&mut hasher);
-            key.color.into_rgba8().hash(&mut hasher);
 
             hasher.finish()
         };
@@ -371,16 +376,6 @@ impl<'a> Cache<'a> {
                 key.content,
                 glyphon::Attrs::new()
                     .family(to_family(key.font))
-                    .color({
-                        let [r, g, b, a] = key.color.into_linear();
-
-                        glyphon::Color::rgba(
-                            (r * 255.0) as u8,
-                            (g * 255.0) as u8,
-                            (b * 255.0) as u8,
-                            (a * 255.0) as u8,
-                        )
-                    })
                     .monospaced(matches!(key.font, Font::Monospace)),
             );
 
@@ -412,7 +407,6 @@ struct Key<'a> {
     size: f32,
     font: Font,
     bounds: Size,
-    color: Color,
 }
 
 type KeyHash = u64;
