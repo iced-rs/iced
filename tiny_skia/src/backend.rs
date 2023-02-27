@@ -354,7 +354,7 @@ fn arc_to(
             });
         }
         None => {
-            path.line_to(x_to as f32, y_to as f32);
+            path.line_to(x_to, y_to);
         }
     }
 }
