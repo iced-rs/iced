@@ -88,7 +88,7 @@ where
         settings.id,
     );
 
-    log::info!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {:#?}", builder);
 
     #[allow(unsafe_code)]
     let (display, window, surface, context) = unsafe {

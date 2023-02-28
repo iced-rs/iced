@@ -155,7 +155,7 @@ where
         )
         .with_visible(false);
 
-    log::info!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {:#?}", builder);
 
     let window = builder
         .build(&event_loop)

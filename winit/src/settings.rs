@@ -24,8 +24,11 @@ pub use platform::PlatformSpecific;
 use crate::conversion;
 use crate::Icon;
 use crate::Position;
+
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
+
+use std::fmt;
 
 /// The settings of an application.
 #[derive(Debug, Clone, Default)]
@@ -64,7 +67,7 @@ pub struct Settings<Flags> {
 }
 
 /// The window settings of an application.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
@@ -98,6 +101,24 @@ pub struct Window {
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
+}
+
+impl fmt::Debug for Window {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Window")
+            .field("size", &self.size)
+            .field("position", &self.position)
+            .field("min_size", &self.min_size)
+            .field("max_size", &self.max_size)
+            .field("visible", &self.visible)
+            .field("resizable", &self.resizable)
+            .field("decorations", &self.decorations)
+            .field("transparent", &self.transparent)
+            .field("always_on_top", &self.always_on_top)
+            .field("icon", &self.icon.is_some())
+            .field("platform_specific", &self.platform_specific)
+            .finish()
+    }
 }
 
 impl Window {

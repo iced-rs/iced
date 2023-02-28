@@ -6,8 +6,14 @@ use std::io;
 use std::path::Path;
 
 /// The icon of a window.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Icon(winit::window::Icon);
+
+impl fmt::Debug for Icon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Icon").field(&format_args!("_")).finish()
+    }
+}
 
 impl Icon {
     /// Creates an icon from 32bpp RGBA data.
