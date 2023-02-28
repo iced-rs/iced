@@ -161,7 +161,9 @@ impl Window {
             target_os = "openbsd"
         ))]
         {
-            use ::winit::platform::unix::WindowBuilderExtUnix;
+            // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
+            // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
+            use ::winit::platform::x11::WindowBuilderExtWayland;
 
             if let Some(id) = _id {
                 window_builder = window_builder.with_name(id.clone(), id);
