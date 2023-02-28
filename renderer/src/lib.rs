@@ -1,3 +1,4 @@
+pub mod widget;
 pub mod window;
 
 mod backend;

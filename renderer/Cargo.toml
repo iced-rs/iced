@@ -6,6 +6,8 @@ edition = "2021"
 [features]
 image = ["iced_wgpu/image", "iced_tiny_skia/image"]
 svg = ["iced_wgpu/svg", "iced_tiny_skia/svg"]
+canvas = ["iced_graphics/canvas"]
+qr_code = ["iced_graphics/qr_code"]
 tracing = ["iced_wgpu/tracing"]
 
 [dependencies]

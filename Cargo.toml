@@ -17,9 +17,9 @@ image = ["iced_renderer/image", "image_rs"]
 # Enables the `Svg` widget
 svg = ["iced_renderer/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_graphics/canvas"]
+canvas = ["iced_renderer/canvas"]
 # Enables the `QRCode` widget
-qr_code = ["iced_graphics/qr_code"]
+qr_code = ["iced_renderer/qr_code"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -60,7 +60,6 @@ members = [
 iced_core = { version = "0.8", path = "core" }
 iced_futures = { version = "0.6", path = "futures" }
 iced_native = { version = "0.9", path = "native" }
-iced_graphics = { version = "0.7", path = "graphics" }
 iced_renderer = { version = "0.1", path = "renderer" }
 iced_winit = { version = "0.8", path = "winit", features = ["application"] }
 thiserror = "1.0"

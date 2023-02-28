@@ -165,7 +165,7 @@ pub use vertical_slider::VerticalSlider;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
-pub use iced_graphics::widget::canvas;
+pub use iced_renderer::widget::canvas;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
@@ -192,7 +192,7 @@ pub mod image {
 
 #[cfg(feature = "qr_code")]
 #[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
-pub use iced_graphics::widget::qr_code;
+pub use iced_renderer::widget::qr_code;
 
 #[cfg(feature = "svg")]
 #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]

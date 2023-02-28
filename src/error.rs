@@ -13,7 +13,7 @@ pub enum Error {
 
     /// The application graphics context could not be created.
     #[error("the application graphics context could not be created")]
-    GraphicsCreationFailed(iced_graphics::Error),
+    GraphicsCreationFailed(iced_renderer::Error),
 }
 
 impl From<iced_winit::Error> for Error {
