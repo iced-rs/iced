@@ -179,9 +179,9 @@ impl Window {
         {
             use winit::platform::windows::WindowBuilderExtWindows;
 
-            // if let Some(parent) = self.platform_specific.parent {
-            //     window_builder = window_builder.with_parent_window(parent);
-            // }
+            if let Some(parent) = self.platform_specific.parent {
+                window_builder = window_builder.with_parent_window(parent);
+            }
 
             window_builder = window_builder
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
@@ -227,7 +227,7 @@ impl From<iced_native::window::Settings> for Window {
     fn from(settings: iced_native::window::Settings) -> Self {
         Self {
             size: settings.size,
-            position: Position::from(settings.position),
+            position: settings.position,
             min_size: settings.min_size,
             max_size: settings.max_size,
             visible: settings.visible,

@@ -734,7 +734,7 @@ pub fn run_command<A, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(_id, action) => match action {
+            command::Action::Window(_, action) => match action {
                 window::Action::Close => {
                     *should_exit = true;
                 }

@@ -1,4 +1,4 @@
-//! Create interactive, native cross-platform applications.
+//! Create interactive, native cross-platform applications for WGPU.
 mod state;
 
 pub use state::State;
@@ -31,17 +31,14 @@ pub use crate::Profiler;
 #[cfg(feature = "trace")]
 use tracing::{info_span, instrument::Instrument};
 
-/// TODO(derezzedex)
-// This is the an wrapper around the `Application::Message` associate type
-// to allows the `shell` to create internal messages, while still having
-// the current user specified custom messages.
+/// This is a wrapper around the `Application::Message` associate type
+/// to allows the `shell` to create internal messages, while still having
+/// the current user specified custom messages.
 #[derive(Debug)]
 pub enum Event<Message> {
     /// An [`Application`] generated message
     Application(Message),
-    /// TODO(derezzedex)
-    // Create a wrapper variant of `window::Event` type instead
-    // (maybe we should also allow users to listen/react to those internal messages?)
+    /// A message which spawns a new window.
     NewWindow {
         /// The [window::Id] of the newly spawned [`Window`].
         id: window::Id,
@@ -50,9 +47,9 @@ pub enum Event<Message> {
         /// The title of the newly spawned [`Window`].
         title: String,
     },
-    /// TODO(derezzedex)
+    /// Close a window.
     CloseWindow(window::Id),
-    /// TODO(derezzedex)
+    /// A message for when the window has finished being created.
     WindowCreated(window::Id, winit::window::Window),
 }
 
@@ -90,7 +87,7 @@ where
     /// background by shells.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
-    /// Returns the widgets to display in the [`Program`].
+    /// Returns the widgets to display for the `window` in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
     fn view(
@@ -108,7 +105,7 @@ where
     /// load state from a file, perform an initial HTTP request, etc.
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
-    /// Returns the current title of the current [`Application`] window.
+    /// Returns the current title of each [`Application`] window.
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
@@ -137,7 +134,7 @@ where
         Subscription::none()
     }
 
-    /// Returns the scale factor of the [`Application`].
+    /// Returns the scale factor of the window of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
     /// (i.e. zooming).
@@ -1142,7 +1139,7 @@ pub fn run_command<A, E>(
     }
 }
 
-/// TODO(derezzedex)
+/// Build the user interfaces for every window.
 pub fn build_user_interfaces<'a, A>(
     application: &'a A,
     renderer: &mut A::Renderer,

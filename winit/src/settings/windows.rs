@@ -4,7 +4,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PlatformSpecific {
     /// Parent window
-    // pub parent: Option<winit::platform::windows::HWND>,
+    pub parent: Option<winit::platform::windows::HWND>,
 
     /// Drag and drop support
     pub drag_and_drop: bool,
@@ -13,7 +13,7 @@ pub struct PlatformSpecific {
 impl Default for PlatformSpecific {
     fn default() -> Self {
         Self {
-            // parent: None,
+            parent: None,
             drag_and_drop: true,
         }
     }

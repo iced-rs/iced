@@ -13,32 +13,13 @@ use iced_winit::futures::channel::mpsc;
 use iced_winit::renderer;
 use iced_winit::time::Instant;
 use iced_winit::user_interface;
-use iced_winit::winit;
 use iced_winit::{Clipboard, Command, Debug, Event, Proxy, Settings};
 
-use glutin::config::{
-    Config, ConfigSurfaceTypes, ConfigTemplateBuilder, GlConfig,
-};
-use glutin::context::{
-    ContextApi, ContextAttributesBuilder, NotCurrentContext,
-    NotCurrentGlContextSurfaceAccessor,
-    PossiblyCurrentContextGlSurfaceAccessor, PossiblyCurrentGlContext,
-};
-use glutin::display::{Display, DisplayApiPreference, GlDisplay};
-use glutin::surface::{
-    GlSurface, Surface, SurfaceAttributesBuilder, WindowSurface,
-};
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-
-use std::ffi::CString;
+use glutin::window::Window;
 use std::mem::ManuallyDrop;
-use std::num::NonZeroU32;
 
-#[cfg(feature = "trace")]
+#[cfg(feature = "tracing")]
 use tracing::{info_span, instrument::Instrument};
-
-#[allow(unsafe_code)]
-const ONE: NonZeroU32 = unsafe { NonZeroU32::new_unchecked(1) };
 
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
@@ -54,8 +35,9 @@ where
 {
     use futures::task;
     use futures::Future;
-    use winit::event_loop::EventLoopBuilder;
-    use winit::platform::run_return::EventLoopExtRunReturn;
+    use glutin::event_loop::EventLoopBuilder;
+    use glutin::platform::run_return::EventLoopExtRunReturn;
+    use glutin::ContextBuilder;
 
     #[cfg(feature = "trace")]
     let _guard = iced_winit::Profiler::init();
@@ -63,7 +45,7 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    #[cfg(feature = "trace")]
+    #[cfg(feature = "tracing")]
     let _ = info_span!("Application::Glutin", "RUN").entered();
 
     let mut event_loop = EventLoopBuilder::with_user_event().build();
@@ -82,204 +64,73 @@ where
         runtime.enter(|| A::new(flags))
     };
 
-    let builder = settings.window.into_builder(
-        &application.title(),
-        event_loop.primary_monitor(),
-        settings.id,
-    );
+    let context = {
+        let builder = settings.window.into_builder(
+            &application.title(),
+            event_loop.primary_monitor(),
+            settings.id,
+        );
 
-    log::debug!("Window builder: {:#?}", builder);
+        log::debug!("Window builder: {:#?}", builder);
 
-    #[allow(unsafe_code)]
-    let (display, window, surface, context) = unsafe {
-        struct Configuration(Config);
-        use std::fmt;
-        impl fmt::Debug for Configuration {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                let config = &self.0;
+        let opengl_builder = ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(C::sample_count(&compositor_settings) as u16);
 
-                f.debug_struct("Configuration")
-                    .field("raw", &config)
-                    .field("samples", &config.num_samples())
-                    .field("buffer_type", &config.color_buffer_type())
-                    .field("surface_type", &config.config_surface_types())
-                    .field("depth", &config.depth_size())
-                    .field("alpha", &config.alpha_size())
-                    .field("stencil", &config.stencil_size())
-                    .field("float_pixels", &config.float_pixels())
-                    .field("srgb", &config.srgb_capable())
-                    .field("api", &config.api())
-                    .finish()
-            }
-        }
+        let opengles_builder = opengl_builder.clone().with_gl(
+            glutin::GlRequest::Specific(glutin::Api::OpenGlEs, (2, 0)),
+        );
 
-        impl AsRef<Config> for Configuration {
-            fn as_ref(&self) -> &Config {
-                &self.0
-            }
-        }
-
-        let display_handle = event_loop.raw_display_handle();
-
-        #[cfg(all(
-            any(windows, target_os = "macos"),
-            not(target_arch = "wasm32")
-        ))]
-        let (window, window_handle) = {
-            let window = builder
-                .build(&event_loop)
-                .map_err(Error::WindowCreationFailed)?;
-
-            let handle = window.raw_window_handle();
-
-            (window, handle)
+        let (first_builder, second_builder) = if settings.try_opengles_first {
+            (opengles_builder, opengl_builder)
+        } else {
+            (opengl_builder, opengles_builder)
         };
 
-        #[cfg(target_arch = "wasm32")]
-        let preference = Err(Error::GraphicsCreationFailed(
-            iced_graphics::Error::BackendError(format!(
-                "target not supported by backend"
-            )),
-        ))?;
+        log::info!("Trying first builder: {:#?}", first_builder);
 
-        #[cfg(all(windows, not(target_arch = "wasm32")))]
-        let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
-
-        #[cfg(all(target_os = "macos", not(target_arch = "wasm32")))]
-        let preference = DisplayApiPreference::Cgl;
-
-        #[cfg(all(
-            unix,
-            not(target_os = "macos"),
-            not(target_arch = "wasm32")
-        ))]
-        let preference = DisplayApiPreference::GlxThenEgl(Box::new(
-            winit::platform::unix::register_xlib_error_hook,
-        ));
-
-        let display =
-            Display::new(display_handle, preference).map_err(|error| {
-                Error::GraphicsCreationFailed(
-                    iced_graphics::Error::BackendError(format!(
-                        "failed to create display: {error}"
-                    )),
-                )
-            })?;
-
-        log::debug!("Display: {}", display.version_string());
-
-        let samples = C::sample_count(&compositor_settings) as u8;
-        let mut template = ConfigTemplateBuilder::new()
-            .with_surface_type(ConfigSurfaceTypes::WINDOW);
-
-        if samples != 0 {
-            template = template.with_multisampling(samples);
-        }
-
-        #[cfg(all(windows, not(target_arch = "wasm32")))]
-        let template = template.compatible_with_native_window(window_handle);
-
-        log::debug!("Searching for display configurations");
-        let configuration = display
-            .find_configs(template.build())
-            .map_err(|_| {
-                Error::GraphicsCreationFailed(
-                    iced_graphics::Error::NoAvailablePixelFormat,
-                )
-            })?
-            .map(Configuration)
-            .inspect(|config| {
-                log::trace!("{config:#?}");
-            })
-            .min_by_key(|config| {
-                config.as_ref().num_samples().saturating_sub(samples)
-            })
-            .ok_or(Error::GraphicsCreationFailed(
-                iced_graphics::Error::NoAvailablePixelFormat,
-            ))?;
-
-        log::debug!("Selected: {configuration:#?}");
-
-        #[cfg(all(
-            unix,
-            not(target_os = "macos"),
-            not(target_arch = "wasm32")
-        ))]
-        let (window, window_handle) = {
-            use glutin::platform::x11::X11GlConfigExt;
-            let builder =
-                if let Some(visual) = configuration.as_ref().x11_visual() {
-                    use winit::platform::unix::WindowBuilderExtUnix;
-                    builder.with_x11_visual(visual.into_raw())
-                } else {
-                    builder
-                };
-
-            let window = builder
-                .build(&event_loop)
-                .map_err(Error::WindowCreationFailed)?;
-
-            let handle = window.raw_window_handle();
-
-            (window, handle)
-        };
-
-        let attributes =
-            ContextAttributesBuilder::new().build(Some(window_handle));
-        let fallback_attributes = ContextAttributesBuilder::new()
-            .with_context_api(ContextApi::Gles(None))
-            .build(Some(window_handle));
-
-        let context = display
-            .create_context(configuration.as_ref(), &attributes)
+        let context = first_builder
+            .build_windowed(builder.clone(), &event_loop)
             .or_else(|_| {
-                display.create_context(
-                    configuration.as_ref(),
-                    &fallback_attributes,
-                )
+                log::info!("Trying second builder: {:#?}", second_builder);
+                second_builder.build_windowed(builder, &event_loop)
             })
             .map_err(|error| {
-                Error::GraphicsCreationFailed(
-                    iced_graphics::Error::BackendError(format!(
-                        "failed to create context: {error}"
-                    )),
-                )
+                use glutin::CreationError;
+                use iced_graphics::Error as ContextError;
+
+                match error {
+                    CreationError::Window(error) => {
+                        Error::WindowCreationFailed(error)
+                    }
+                    CreationError::OpenGlVersionNotSupported => {
+                        Error::GraphicsCreationFailed(
+                            ContextError::VersionNotSupported,
+                        )
+                    }
+                    CreationError::NoAvailablePixelFormat => {
+                        Error::GraphicsCreationFailed(
+                            ContextError::NoAvailablePixelFormat,
+                        )
+                    }
+                    error => Error::GraphicsCreationFailed(
+                        ContextError::BackendError(error.to_string()),
+                    ),
+                }
             })?;
 
-        let surface = gl_surface(&display, configuration.as_ref(), &window)
-            .map_err(|error| {
-                Error::GraphicsCreationFailed(
-                    iced_graphics::Error::BackendError(format!(
-                        "failed to create surface: {error}"
-                    )),
-                )
-            })?;
-
-        let context = {
-            context
-                .make_current(&surface)
-                .expect("make context current")
-        };
-
-        if let Err(error) = surface.set_swap_interval(
-            &context,
-            glutin::surface::SwapInterval::Wait(ONE),
-        ) {
-            log::error!("set swap interval failed: {}", error);
+        #[allow(unsafe_code)]
+        unsafe {
+            context.make_current().expect("Make OpenGL context current")
         }
-
-        (display, window, surface, context)
     };
 
     #[allow(unsafe_code)]
     let (compositor, renderer) = unsafe {
         C::new(compositor_settings, |address| {
-            let address = CString::new(address).expect("address error");
-            display.get_proc_address(address.as_c_str())
+            context.get_proc_address(address)
         })?
     };
-
-    let context = { context.make_not_current().expect("make context current") };
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
@@ -294,14 +145,12 @@ where
             debug,
             event_receiver,
             control_sender,
-            window,
-            surface,
             context,
             init_command,
             settings.exit_on_close_request,
         );
 
-        #[cfg(feature = "trace")]
+        #[cfg(feature = "tracing")]
         let run_instance =
             run_instance.instrument(info_span!("Application", "LOOP"));
 
@@ -311,22 +160,22 @@ where
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
     let _ = event_loop.run_return(move |event, _, control_flow| {
-        use winit::event_loop::ControlFlow;
+        use glutin::event_loop::ControlFlow;
 
         if let ControlFlow::ExitWithCode(_) = control_flow {
             return;
         }
 
         let event = match event {
-            winit::event::Event::WindowEvent {
+            glutin::event::Event::WindowEvent {
                 event:
-                    winit::event::WindowEvent::ScaleFactorChanged {
+                    glutin::event::WindowEvent::ScaleFactorChanged {
                         new_inner_size,
                         ..
                     },
                 window_id,
-            } => Some(winit::event::Event::WindowEvent {
-                event: winit::event::WindowEvent::Resized(*new_inner_size),
+            } => Some(glutin::event::Event::WindowEvent {
+                event: glutin::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
             _ => event.to_static(),
@@ -358,13 +207,13 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    mut proxy: glutin::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
-    mut event_receiver: mpsc::UnboundedReceiver<winit::event::Event<'_, A::Message>, >,
-    mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
-    window: winit::window::Window,
-    surface: Surface<WindowSurface>,
-    context: NotCurrentContext,
+    mut event_receiver: mpsc::UnboundedReceiver<
+        glutin::event::Event<'_, A::Message>,
+    >,
+    mut control_sender: mpsc::UnboundedSender<glutin::event_loop::ControlFlow>,
+    mut context: glutin::ContextWrapper<glutin::PossiblyCurrent, Window>,
     init_command: Command<A::Message>,
     exit_on_close_request: bool,
 ) where
@@ -373,19 +222,13 @@ async fn run_instance<A, E, C>(
     C: window::GLCompositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as iced_native::Renderer>::Theme: StyleSheet,
 {
+    use glutin::event;
+    use glutin::event_loop::ControlFlow;
     use iced_winit::futures::stream::StreamExt;
-    use winit::event_loop::ControlFlow;
-    use winit::event;
 
-    let context = {
-        context
-            .make_current(&surface)
-            .expect("make context current")
-    };
-
-    let mut clipboard = Clipboard::connect(&window);
+    let mut clipboard = Clipboard::connect(context.window());
     let mut cache = user_interface::Cache::default();
-    let mut state = application::State::new(&application, &window);
+    let mut state = application::State::new(&application, context.window());
     let mut viewport_version = state.viewport_version();
     let mut should_exit = false;
 
@@ -400,7 +243,7 @@ async fn run_instance<A, E, C>(
         &mut should_exit,
         &mut proxy,
         &mut debug,
-        &window,
+        context.window(),
         || compositor.fetch_information(),
     );
     runtime.track(application.subscription());
@@ -473,12 +316,12 @@ async fn run_instance<A, E, C>(
                         &mut proxy,
                         &mut debug,
                         &mut messages,
-                        &window,
+                        context.window(),
                         || compositor.fetch_information(),
                     );
 
                     // Update window
-                    state.synchronize(&application, &window);
+                    state.synchronize(&application, context.window());
 
                     user_interface =
                         ManuallyDrop::new(application::build_user_interface(
@@ -524,15 +367,16 @@ async fn run_instance<A, E, C>(
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
-                    window.set_cursor_icon(conversion::mouse_interaction(
-                        new_mouse_interaction,
-                    ));
+                    context.window().set_cursor_icon(
+                        conversion::mouse_interaction(new_mouse_interaction),
+                    );
 
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                window.request_redraw();
-                runtime.broadcast((redraw_event, crate::event::Status::Ignored));
+                context.window().request_redraw();
+                runtime
+                    .broadcast((redraw_event, crate::event::Status::Ignored));
 
                 let _ = control_sender.start_send(match interface_state {
                     user_interface::State::Updated {
@@ -564,15 +408,18 @@ async fn run_instance<A, E, C>(
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
-                #[cfg(feature = "trace")]
+                #[cfg(feature = "tracing")]
                 let _ = info_span!("Application", "FRAME").entered();
 
                 debug.render_started();
 
-                if !context.is_current() {
-                    context
-                        .make_current(&surface)
-                        .expect("Make OpenGL context current");
+                #[allow(unsafe_code)]
+                unsafe {
+                    if !context.is_current() {
+                        context = context
+                            .make_current()
+                            .expect("Make OpenGL context current");
+                    }
                 }
 
                 let current_viewport_version = state.viewport_version();
@@ -600,18 +447,19 @@ async fn run_instance<A, E, C>(
                     debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {
-                        window.set_cursor_icon(conversion::mouse_interaction(
-                            new_mouse_interaction,
-                        ));
+                        context.window().set_cursor_icon(
+                            conversion::mouse_interaction(
+                                new_mouse_interaction,
+                            ),
+                        );
 
                         mouse_interaction = new_mouse_interaction;
                     }
 
-                    surface.resize(
-                        &context,
-                        NonZeroU32::new(physical_size.width).unwrap_or(ONE),
-                        NonZeroU32::new(physical_size.height).unwrap_or(ONE),
-                    );
+                    context.resize(glutin::dpi::PhysicalSize::new(
+                        physical_size.width,
+                        physical_size.height,
+                    ));
 
                     compositor.resize_viewport(physical_size);
 
@@ -625,7 +473,7 @@ async fn run_instance<A, E, C>(
                     &debug.overlay(),
                 );
 
-                surface.swap_buffers(&context).expect("Swap buffers");
+                context.swap_buffers().expect("Swap buffers");
 
                 debug.render_finished();
 
@@ -642,7 +490,7 @@ async fn run_instance<A, E, C>(
                     break;
                 }
 
-                state.update(&window, &window_event, &mut debug);
+                state.update(context.window(), &window_event, &mut debug);
 
                 if let Some(event) = conversion::window_event(
                     crate::window::Id::MAIN,
@@ -659,24 +507,4 @@ async fn run_instance<A, E, C>(
 
     // Manually drop the user interface
     drop(ManuallyDrop::into_inner(user_interface));
-}
-
-#[allow(unsafe_code)]
-/// Creates a new [`glutin::Surface<WindowSurface>`].
-pub fn gl_surface(
-    display: &Display,
-    gl_config: &Config,
-    window: &winit::window::Window,
-) -> Result<Surface<WindowSurface>, glutin::error::Error> {
-    let (width, height) = window.inner_size().into();
-
-    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new()
-        .with_srgb(Some(true))
-        .build(
-            window.raw_window_handle(),
-            NonZeroU32::new(width).unwrap_or(ONE),
-            NonZeroU32::new(height).unwrap_or(ONE),
-        );
-
-    unsafe { display.create_window_surface(gl_config, &surface_attributes) }
 }

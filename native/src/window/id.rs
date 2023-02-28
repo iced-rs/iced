@@ -4,12 +4,10 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// The ID of the window.
-///
-/// This is not necessarily the same as the window ID fetched from `winit::window::Window`.
 pub struct Id(u64);
 
 impl Id {
-    /// TODO(derezzedex): maybe change `u64` to an enum `Type::{Single, Multi(u64)}`
+    /// The reserved window ID for the primary window in an Iced application.
     pub const MAIN: Self = Id(0);
 
     /// Creates a new unique window ID.

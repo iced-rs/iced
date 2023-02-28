@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
-/// The state of a windowed [`Application`].
+/// The state of a multi-windowed [`Application`].
 #[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
@@ -29,7 +29,7 @@ impl<A: Application> State<A>
 where
     <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
-    /// Creates a new [`State`] for the provided [`Application`]'s window.
+    /// Creates a new [`State`] for the provided [`Application`]'s `window`.
     pub fn new(
         application: &A,
         window_id: window::Id,
@@ -116,8 +116,7 @@ where
         self.appearance.text_color
     }
 
-    /// Processes the provided window event and updates the [`State`]
-    /// accordingly.
+    /// Processes the provided window event and updates the [`State`] accordingly.
     pub fn update(
         &mut self,
         window: &Window,

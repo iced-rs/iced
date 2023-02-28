@@ -13,7 +13,6 @@ use iced_glow::{Backend, Renderer, Settings, Viewport};
 use iced_glutin::conversion;
 use iced_glutin::glutin;
 use iced_glutin::renderer;
-use iced_glutin::window;
 use iced_glutin::{program, Clipboard, Color, Debug, Size};
 
 pub fn main() {
@@ -31,8 +30,7 @@ pub fn main() {
             .unwrap();
 
         unsafe {
-            let windowed_context =
-                windowed_context.make_current(todo!("derezzedex")).unwrap();
+            let windowed_context = windowed_context.make_current().unwrap();
 
             let gl = glow::Context::from_loader_function(|s| {
                 windowed_context.get_proc_address(s) as *const _
@@ -109,7 +107,7 @@ pub fn main() {
 
                 // Map window event to iced event
                 if let Some(event) = iced_winit::conversion::window_event(
-                    window::Id::MAIN,
+                    iced_winit::window::Id::MAIN,
                     &event,
                     windowed_context.window().scale_factor(),
                     modifiers,
@@ -182,7 +180,7 @@ pub fn main() {
                     ),
                 );
 
-                windowed_context.swap_buffers(todo!("derezzedex")).unwrap();
+                windowed_context.swap_buffers().unwrap();
             }
             _ => (),
         }
