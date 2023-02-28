@@ -257,7 +257,7 @@ impl GlyphCache {
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(key) {
             // TODO: Outline support
-            let image = swash.get_image(cache_key).as_ref()?;
+            let image = swash.get_image_uncached(cache_key)?;
 
             let glyph_size = image.placement.width as usize
                 * image.placement.height as usize;
