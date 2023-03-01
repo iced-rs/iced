@@ -1,5 +1,5 @@
 //! Build and draw curves.
-use iced_native::{Point, Vector};
+use crate::{Point, Vector};
 
 /// A segment of a differentiable curve.
 #[derive(Debug, Clone, Copy)]

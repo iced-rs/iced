@@ -9,6 +9,7 @@ repository = "https://github.com/iced-rs/iced"
 
 [dependencies]
 bitflags = "1.2"
+thiserror = "1"
 
 [dependencies.palette]
 version = "0.6"

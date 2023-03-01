@@ -4,10 +4,18 @@ mod backend;
 mod settings;
 mod text;
 
+#[cfg(feature = "canvas")]
+pub mod canvas;
+
+pub use iced_graphics::primitive;
+
 pub use backend::Backend;
+pub use primitive::Primitive;
 pub use settings::Settings;
 
-pub use iced_graphics::{Color, Error, Font, Point, Size, Vector, Viewport};
+pub use iced_graphics::{
+    Color, Error, Font, Point, Rectangle, Size, Vector, Viewport,
+};
 
 /// A [`tiny-skia`] graphics renderer for [`iced`].
 ///

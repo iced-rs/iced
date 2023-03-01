@@ -1,4 +1,4 @@
-use iced_native::{Point, Rectangle};
+use crate::{Point, Rectangle};
 
 /// The mouse cursor state.
 #[derive(Debug, Clone, Copy, PartialEq)]

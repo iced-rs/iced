@@ -7,18 +7,16 @@ mod builder;
 pub use arc::Arc;
 pub use builder::Builder;
 
-use crate::widget::canvas::LineDash;
+pub use lyon_path;
 
-use iced_native::{Point, Size};
-use lyon::algorithms::walk::{walk_along_path, RepeatedPattern, WalkerEvent};
-use lyon::path::iterator::PathIterator;
+use crate::{Point, Size};
 
 /// An immutable set of points that may or may not be connected.
 ///
 /// A single [`Path`] can represent different kinds of 2D shapes!
 #[derive(Debug, Clone)]
 pub struct Path {
-    raw: lyon::path::Path,
+    raw: lyon_path::Path,
 }
 
 impl Path {
@@ -56,54 +54,14 @@ impl Path {
     }
 
     #[inline]
-    pub(crate) fn raw(&self) -> &lyon::path::Path {
+    pub fn raw(&self) -> &lyon_path::Path {
         &self.raw
     }
 
     #[inline]
-    pub(crate) fn transformed(
-        &self,
-        transform: &lyon::math::Transform,
-    ) -> Path {
+    pub fn transform(&self, transform: &lyon_path::math::Transform) -> Path {
         Path {
             raw: self.raw.clone().transformed(transform),
         }
     }
-}
-
-pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
-    Path::new(|builder| {
-        let segments_odd = (line_dash.segments.len() % 2 == 1)
-            .then(|| [line_dash.segments, line_dash.segments].concat());
-
-        let mut draw_line = false;
-
-        walk_along_path(
-            path.raw().iter().flattened(0.01),
-            0.0,
-            lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
-            &mut RepeatedPattern {
-                callback: |event: WalkerEvent<'_>| {
-                    let point = Point {
-                        x: event.position.x,
-                        y: event.position.y,
-                    };
-
-                    if draw_line {
-                        builder.line_to(point);
-                    } else {
-                        builder.move_to(point);
-                    }
-
-                    draw_line = !draw_line;
-
-                    true
-                },
-                index: line_dash.offset,
-                intervals: segments_odd
-                    .as_deref()
-                    .unwrap_or(line_dash.segments),
-            },
-        );
-    })
 }

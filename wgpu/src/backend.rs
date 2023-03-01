@@ -1,11 +1,10 @@
 use crate::quad;
 use crate::text;
 use crate::triangle;
-use crate::{Settings, Transformation};
+use crate::{Layer, Primitive, Settings, Transformation};
 
 use iced_graphics::backend;
-use iced_graphics::layer::Layer;
-use iced_graphics::{Color, Font, Primitive, Size, Viewport};
+use iced_graphics::{Color, Font, Size, Viewport};
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -330,6 +329,8 @@ impl Backend {
 }
 
 impl iced_graphics::Backend for Backend {
+    type Geometry = ();
+
     fn trim_measurements(&mut self) {
         self.text_pipeline.trim_measurement_cache()
     }

@@ -64,7 +64,7 @@ mod bezier {
     use iced::widget::canvas::{
         self, Canvas, Cursor, Frame, Geometry, Path, Stroke,
     };
-    use iced::{Element, Length, Point, Rectangle, Theme};
+    use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
     pub struct State {
@@ -92,7 +92,7 @@ mod bezier {
         curves: &'a [Curve],
     }
 
-    impl<'a> canvas::Program<Curve> for Bezier<'a> {
+    impl<'a> canvas::Program<Curve, Renderer> for Bezier<'a> {
         type State = Option<Pending>;
 
         fn update(
@@ -152,22 +152,26 @@ mod bezier {
         fn draw(
             &self,
             state: &Self::State,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {
-            let content =
-                self.state.cache.draw(bounds.size(), |frame: &mut Frame| {
+            let content = self.state.cache.draw(
+                renderer,
+                bounds.size(),
+                |frame: &mut Frame| {
                     Curve::draw_all(self.curves, frame);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
                         Stroke::default().with_width(2.0),
                     );
-                });
+                },
+            );
 
             if let Some(pending) = state {
-                let pending_curve = pending.draw(bounds, cursor);
+                let pending_curve = pending.draw(renderer, bounds, cursor);
 
                 vec![content, pending_curve]
             } else {
@@ -216,8 +220,13 @@ mod bezier {
     }
 
     impl Pending {
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Geometry {
-            let mut frame = Frame::new(bounds.size());
+        fn draw(
+            &self,
+            renderer: &Renderer,
+            bounds: Rectangle,
+            cursor: Cursor,
+        ) -> Geometry {
+            let mut frame = Frame::new(renderer, bounds.size());
 
             if let Some(cursor_position) = cursor.position_in(&bounds) {
                 match *self {

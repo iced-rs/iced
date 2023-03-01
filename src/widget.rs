@@ -170,9 +170,10 @@ pub use iced_renderer::widget::canvas;
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 /// Creates a new [`Canvas`].
-pub fn canvas<P, Message, Theme>(program: P) -> Canvas<Message, Theme, P>
+pub fn canvas<P, Message, Renderer>(program: P) -> Canvas<Message, Renderer, P>
 where
-    P: canvas::Program<Message, Theme>,
+    Renderer: canvas::Renderer,
+    P: canvas::Program<Message, Renderer>,
 {
     Canvas::new(program)
 }

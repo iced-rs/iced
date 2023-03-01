@@ -2,12 +2,12 @@
 mod msaa;
 
 use crate::buffer::r#static::Buffer;
+use crate::layer::mesh::{self, Mesh};
 use crate::settings;
 use crate::Transformation;
 
-use iced_graphics::layer::mesh::{self, Mesh};
-use iced_graphics::triangle::ColoredVertex2D;
 use iced_graphics::Size;
+
 #[cfg(feature = "tracing")]
 use tracing::info_span;
 
@@ -468,6 +468,7 @@ mod solid {
     use crate::settings;
     use crate::triangle;
     use encase::ShaderType;
+    use iced_graphics::primitive;
     use iced_graphics::Transformation;
 
     #[derive(Debug)]
@@ -478,7 +479,7 @@ mod solid {
 
     #[derive(Debug)]
     pub struct Layer {
-        pub vertices: Buffer<triangle::ColoredVertex2D>,
+        pub vertices: Buffer<primitive::ColoredVertex2D>,
         pub uniforms: dynamic::Buffer<Uniforms>,
         pub constants: wgpu::BindGroup,
     }
@@ -596,7 +597,7 @@ mod solid {
                         entry_point: "vs_main",
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<
-                                triangle::ColoredVertex2D,
+                                primitive::ColoredVertex2D,
                             >()
                                 as u64,
                             step_mode: wgpu::VertexStepMode::Vertex,
@@ -637,7 +638,7 @@ mod gradient {
 
     use encase::ShaderType;
     use glam::{IVec4, Vec4};
-    use iced_graphics::triangle::Vertex2D;
+    use iced_graphics::primitive;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -647,7 +648,7 @@ mod gradient {
 
     #[derive(Debug)]
     pub struct Layer {
-        pub vertices: Buffer<Vertex2D>,
+        pub vertices: Buffer<primitive::Vertex2D>,
         pub uniforms: dynamic::Buffer<Uniforms>,
         pub storage: dynamic::Buffer<Storage>,
         pub constants: wgpu::BindGroup,
@@ -810,34 +811,38 @@ mod gradient {
                     ),
                 });
 
-            let pipeline = device.create_render_pipeline(
-                &wgpu::RenderPipelineDescriptor {
-                    label: Some("iced_wgpu::triangle::gradient pipeline"),
-                    layout: Some(&layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "vs_main",
-                        buffers: &[wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<Vertex2D>()
-                                as u64,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &wgpu::vertex_attr_array!(
-                                // Position
-                                0 => Float32x2,
-                            ),
-                        }],
+            let pipeline =
+                device.create_render_pipeline(
+                    &wgpu::RenderPipelineDescriptor {
+                        label: Some("iced_wgpu::triangle::gradient pipeline"),
+                        layout: Some(&layout),
+                        vertex: wgpu::VertexState {
+                            module: &shader,
+                            entry_point: "vs_main",
+                            buffers: &[wgpu::VertexBufferLayout {
+                                array_stride: std::mem::size_of::<
+                                    primitive::Vertex2D,
+                                >(
+                                )
+                                    as u64,
+                                step_mode: wgpu::VertexStepMode::Vertex,
+                                attributes: &wgpu::vertex_attr_array!(
+                                    // Position
+                                    0 => Float32x2,
+                                ),
+                            }],
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &shader,
+                            entry_point: "fs_main",
+                            targets: &[triangle::fragment_target(format)],
+                        }),
+                        primitive: triangle::primitive_state(),
+                        depth_stencil: None,
+                        multisample: triangle::multisample_state(antialiasing),
+                        multiview: None,
                     },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "fs_main",
-                        targets: &[triangle::fragment_target(format)],
-                    }),
-                    primitive: triangle::primitive_state(),
-                    depth_stencil: None,
-                    multisample: triangle::multisample_state(antialiasing),
-                    multiview: None,
-                },
-            );
+                );
 
             Self {
                 pipeline,

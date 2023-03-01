@@ -25,7 +25,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    missing_docs,
+    //missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,
@@ -38,7 +38,9 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 
+pub mod layer;
 pub mod settings;
+pub mod widget;
 pub mod window;
 
 mod backend;
@@ -47,16 +49,23 @@ mod quad;
 mod text;
 mod triangle;
 
+pub use iced_graphics::primitive;
 pub use iced_graphics::{
-    Antialiasing, Color, Error, Font, Primitive, Viewport,
+    Antialiasing, Color, Error, Font, Gradient, Point, Rectangle, Size, Vector,
+    Viewport,
 };
+pub use iced_native::alignment;
+
 pub use iced_native::Theme;
 pub use wgpu;
 
 pub use backend::Backend;
+pub use layer::Layer;
+pub use primitive::Primitive;
 pub use settings::Settings;
 
-use crate::buffer::Buffer;
+use buffer::Buffer;
+
 use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]

@@ -10,10 +10,11 @@ pub use mesh::Mesh;
 pub use quad::Quad;
 pub use text::Text;
 
-use crate::alignment;
-use crate::{
-    Background, Color, Font, Point, Primitive, Rectangle, Size, Vector,
-    Viewport,
+use crate::Primitive;
+
+use iced_graphics::alignment;
+use iced_graphics::{
+    Background, Color, Font, Point, Rectangle, Size, Vector, Viewport,
 };
 
 /// A group of primitives that should be clipped together.
@@ -110,18 +111,6 @@ impl<'a> Layer<'a> {
         current_layer: usize,
     ) {
         match primitive {
-            Primitive::None => {}
-            Primitive::Group { primitives } => {
-                // TODO: Inspect a bit and regroup (?)
-                for primitive in primitives {
-                    Self::process_primitive(
-                        layers,
-                        translation,
-                        primitive,
-                        current_layer,
-                    )
-                }
-            }
             Primitive::Text {
                 content,
                 bounds,
@@ -167,6 +156,27 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
+            Primitive::Image { handle, bounds } => {
+                let layer = &mut layers[current_layer];
+
+                layer.images.push(Image::Raster {
+                    handle: handle.clone(),
+                    bounds: *bounds + translation,
+                });
+            }
+            Primitive::Svg {
+                handle,
+                color,
+                bounds,
+            } => {
+                let layer = &mut layers[current_layer];
+
+                layer.images.push(Image::Vector {
+                    handle: handle.clone(),
+                    color: *color,
+                    bounds: *bounds + translation,
+                });
+            }
             Primitive::SolidMesh { buffers, size } => {
                 let layer = &mut layers[current_layer];
 
@@ -206,6 +216,17 @@ impl<'a> Layer<'a> {
                     });
                 }
             }
+            Primitive::Group { primitives } => {
+                // TODO: Inspect a bit and regroup (?)
+                for primitive in primitives {
+                    Self::process_primitive(
+                        layers,
+                        translation,
+                        primitive,
+                        current_layer,
+                    )
+                }
+            }
             Primitive::Clip { bounds, content } => {
                 let layer = &mut layers[current_layer];
                 let translated_bounds = *bounds + translation;
@@ -236,34 +257,17 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            Primitive::Cached { cache } => {
+            Primitive::Cache { content } => {
                 Self::process_primitive(
                     layers,
                     translation,
-                    cache,
+                    content,
                     current_layer,
                 );
             }
-            Primitive::Image { handle, bounds } => {
-                let layer = &mut layers[current_layer];
-
-                layer.images.push(Image::Raster {
-                    handle: handle.clone(),
-                    bounds: *bounds + translation,
-                });
-            }
-            Primitive::Svg {
-                handle,
-                color,
-                bounds,
-            } => {
-                let layer = &mut layers[current_layer];
-
-                layer.images.push(Image::Vector {
-                    handle: handle.clone(),
-                    color: *color,
-                    bounds: *bounds + translation,
-                });
+            Primitive::Fill { .. } | Primitive::Stroke { .. } => {
+                // Unsupported!
+                // TODO: Draw a placeholder (?)
             }
         }
     }

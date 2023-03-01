@@ -1,7 +1,8 @@
 //! Encode and display information in a QR code.
-use crate::renderer::{self, Renderer};
 use crate::widget::canvas;
-use crate::Backend;
+use crate::Renderer;
+
+use iced_graphics::renderer;
 
 use iced_native::layout;
 use iced_native::widget::Tree;
@@ -48,10 +49,7 @@ impl<'a> QRCode<'a> {
     }
 }
 
-impl<'a, Message, B, T> Widget<Message, Renderer<B, T>> for QRCode<'a>
-where
-    B: Backend,
-{
+impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
     fn width(&self) -> Length {
         Length::Shrink
     }
@@ -62,7 +60,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B, T>,
+        _renderer: &Renderer<Theme>,
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
@@ -74,8 +72,8 @@ where
     fn draw(
         &self,
         _state: &Tree,
-        renderer: &mut Renderer<B, T>,
-        _theme: &T,
+        renderer: &mut Renderer<Theme>,
+        _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
@@ -87,50 +85,52 @@ where
         let side_length = self.state.width + 2 * QUIET_ZONE;
 
         // Reuse cache if possible
-        let geometry = self.state.cache.draw(bounds.size(), |frame| {
-            // Scale units to cell size
-            frame.scale(f32::from(self.cell_size));
+        let geometry =
+            self.state.cache.draw(renderer, bounds.size(), |frame| {
+                // Scale units to cell size
+                frame.scale(f32::from(self.cell_size));
 
-            // Draw background
-            frame.fill_rectangle(
-                Point::ORIGIN,
-                Size::new(side_length as f32, side_length as f32),
-                self.light,
-            );
+                // Draw background
+                frame.fill_rectangle(
+                    Point::ORIGIN,
+                    Size::new(side_length as f32, side_length as f32),
+                    self.light,
+                );
 
-            // Avoid drawing on the quiet zone
-            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
+                // Avoid drawing on the quiet zone
+                frame.translate(Vector::new(
+                    QUIET_ZONE as f32,
+                    QUIET_ZONE as f32,
+                ));
 
-            // Draw contents
-            self.state
-                .contents
-                .iter()
-                .enumerate()
-                .filter(|(_, value)| **value == qrcode::Color::Dark)
-                .for_each(|(index, _)| {
-                    let row = index / self.state.width;
-                    let column = index % self.state.width;
+                // Draw contents
+                self.state
+                    .contents
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, value)| **value == qrcode::Color::Dark)
+                    .for_each(|(index, _)| {
+                        let row = index / self.state.width;
+                        let column = index % self.state.width;
 
-                    frame.fill_rectangle(
-                        Point::new(column as f32, row as f32),
-                        Size::UNIT,
-                        self.dark,
-                    );
-                });
-        });
+                        frame.fill_rectangle(
+                            Point::new(column as f32, row as f32),
+                            Size::UNIT,
+                            self.dark,
+                        );
+                    });
+            });
 
         let translation = Vector::new(bounds.x, bounds.y);
 
         renderer.with_translation(translation, |renderer| {
-            renderer.draw_primitive(geometry.into_primitive());
+            renderer.draw_primitive(geometry.0);
         });
     }
 }
 
-impl<'a, Message, B, T> From<QRCode<'a>>
-    for Element<'a, Message, Renderer<B, T>>
-where
-    B: Backend,
+impl<'a, Message, Theme> From<QRCode<'a>>
+    for Element<'a, Message, Renderer<Theme>>
 {
     fn from(qr_code: QRCode<'a>) -> Self {
         Self::new(qr_code)

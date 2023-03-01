@@ -1,7 +1,6 @@
-use crate::{Backend, Color, Error, Renderer, Settings, Viewport};
+use crate::{Backend, Color, Error, Primitive, Renderer, Settings, Viewport};
 
 use iced_graphics::window::compositor::{self, Information, SurfaceError};
-use iced_graphics::Primitive;
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;

@@ -1,35 +1,37 @@
 use crate::widget::canvas::path::{arc, Arc, Path};
+use crate::{Point, Size};
 
-use iced_native::{Point, Size};
-use lyon::path::builder::SvgPathBuilder;
+use lyon_path::builder::{self, SvgPathBuilder};
+use lyon_path::geom;
+use lyon_path::math;
 
 /// A [`Path`] builder.
 ///
 /// Once a [`Path`] is built, it can no longer be mutated.
 #[allow(missing_debug_implementations)]
 pub struct Builder {
-    raw: lyon::path::builder::WithSvg<lyon::path::path::BuilderImpl>,
+    raw: builder::WithSvg<lyon_path::path::BuilderImpl>,
 }
 
 impl Builder {
     /// Creates a new [`Builder`].
     pub fn new() -> Builder {
         Builder {
-            raw: lyon::path::Path::builder().with_svg(),
+            raw: lyon_path::Path::builder().with_svg(),
         }
     }
 
     /// Moves the starting point of a new sub-path to the given `Point`.
     #[inline]
     pub fn move_to(&mut self, point: Point) {
-        let _ = self.raw.move_to(lyon::math::Point::new(point.x, point.y));
+        let _ = self.raw.move_to(math::Point::new(point.x, point.y));
     }
 
     /// Connects the last point in the [`Path`] to the given `Point` with a
     /// straight line.
     #[inline]
     pub fn line_to(&mut self, point: Point) {
-        let _ = self.raw.line_to(lyon::math::Point::new(point.x, point.y));
+        let _ = self.raw.line_to(math::Point::new(point.x, point.y));
     }
 
     /// Adds an [`Arc`] to the [`Path`] from `start_angle` to `end_angle` in
@@ -53,8 +55,6 @@ impl Builder {
     /// See [the HTML5 specification of `arcTo`](https://html.spec.whatwg.org/multipage/canvas.html#building-paths:dom-context-2d-arcto)
     /// for more details and examples.
     pub fn arc_to(&mut self, a: Point, b: Point, radius: f32) {
-        use lyon::{math, path};
-
         let start = self.raw.current_position();
         let mid = math::Point::new(a.x, a.y);
         let end = math::Point::new(b.x, b.y);
@@ -92,7 +92,7 @@ impl Builder {
         self.raw.arc_to(
             math::Vector::new(radius, radius),
             math::Angle::radians(0.0),
-            path::ArcFlags {
+            lyon_path::ArcFlags {
                 large_arc: false,
                 sweep,
             },
@@ -102,8 +102,6 @@ impl Builder {
 
     /// Adds an ellipse to the [`Path`] using a clockwise direction.
     pub fn ellipse(&mut self, arc: arc::Elliptical) {
-        use lyon::{geom, math};
-
         let arc = geom::Arc {
             center: math::Point::new(arc.center.x, arc.center.y),
             radii: math::Vector::new(arc.radii.x, arc.radii.y),
@@ -128,8 +126,6 @@ impl Builder {
         control_b: Point,
         to: Point,
     ) {
-        use lyon::math;
-
         let _ = self.raw.cubic_bezier_to(
             math::Point::new(control_a.x, control_a.y),
             math::Point::new(control_b.x, control_b.y),
@@ -141,8 +137,6 @@ impl Builder {
     /// and its end point.
     #[inline]
     pub fn quadratic_curve_to(&mut self, control: Point, to: Point) {
-        use lyon::math;
-
         let _ = self.raw.quadratic_bezier_to(
             math::Point::new(control.x, control.y),
             math::Point::new(to.x, to.y),

@@ -4,7 +4,9 @@ use crate::Primitive;
 use iced_native::Size;
 use std::{cell::RefCell, sync::Arc};
 
+#[derive(Default)]
 enum State {
+    #[default]
     Empty,
     Filled {
         bounds: Size,
@@ -12,11 +14,6 @@ enum State {
     },
 }
 
-impl Default for State {
-    fn default() -> Self {
-        State::Empty
-    }
-}
 /// A simple cache that stores generated [`Geometry`] to avoid recomputation.
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
@@ -62,8 +59,8 @@ impl Cache {
         } = self.state.borrow().deref()
         {
             if *cached_bounds == bounds {
-                return Geometry::from_primitive(Primitive::Cached {
-                    cache: primitive.clone(),
+                return Geometry::from_primitive(Primitive::Cache {
+                    content: primitive.clone(),
                 });
             }
         }
@@ -71,18 +68,14 @@ impl Cache {
         let mut frame = Frame::new(bounds);
         draw_fn(&mut frame);
 
-        let primitive = {
-            let geometry = frame.into_geometry();
-
-            Arc::new(geometry.into_primitive())
-        };
+        let primitive = Arc::new(frame.into_primitive());
 
         *self.state.borrow_mut() = State::Filled {
             bounds,
             primitive: primitive.clone(),
         };
 
-        Geometry::from_primitive(Primitive::Cached { cache: primitive })
+        Geometry::from_primitive(Primitive::Cache { content: primitive })
     }
 }
 

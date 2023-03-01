@@ -1,6 +1,7 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
 use crate::{Primitive, Vector};
+
 use iced_native::image;
 use iced_native::layout;
 use iced_native::renderer;
@@ -70,19 +71,13 @@ where
     }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        let current_primitives = std::mem::take(&mut self.primitives);
+        let current = std::mem::take(&mut self.primitives);
 
         f(self);
 
-        let layer_primitives =
-            std::mem::replace(&mut self.primitives, current_primitives);
+        let layer = std::mem::replace(&mut self.primitives, current);
 
-        self.primitives.push(Primitive::Clip {
-            bounds,
-            content: Box::new(Primitive::Group {
-                primitives: layer_primitives,
-            }),
-        });
+        self.primitives.push(Primitive::group(layer).clip(bounds));
     }
 
     fn with_translation(
@@ -90,19 +85,14 @@ where
         translation: Vector,
         f: impl FnOnce(&mut Self),
     ) {
-        let current_primitives = std::mem::take(&mut self.primitives);
+        let current = std::mem::take(&mut self.primitives);
 
         f(self);
 
-        let layer_primitives =
-            std::mem::replace(&mut self.primitives, current_primitives);
+        let layer = std::mem::replace(&mut self.primitives, current);
 
-        self.primitives.push(Primitive::Translate {
-            translation,
-            content: Box::new(Primitive::Group {
-                primitives: layer_primitives,
-            }),
-        });
+        self.primitives
+            .push(Primitive::group(layer).translate(translation));
     }
 
     fn fill_quad(
@@ -199,7 +189,7 @@ where
     }
 
     fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
-        self.draw_primitive(Primitive::Image { handle, bounds })
+        self.primitives.push(Primitive::Image { handle, bounds })
     }
 }
 
@@ -217,10 +207,23 @@ where
         color: Option<Color>,
         bounds: Rectangle,
     ) {
-        self.draw_primitive(Primitive::Svg {
+        self.primitives.push(Primitive::Svg {
             handle,
             color,
             bounds,
         })
+    }
+}
+
+#[cfg(feature = "canvas")]
+impl<B, T> iced_native::widget::canvas::Renderer for Renderer<B, T>
+where
+    B: Backend,
+{
+    type Geometry = B::Geometry;
+
+    fn draw(&mut self, layers: Vec<Self::Geometry>) {
+        self.primitives
+            .extend(layers.into_iter().map(B::Geometry::into));
     }
 }

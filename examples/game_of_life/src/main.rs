@@ -211,8 +211,8 @@ mod grid {
         Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
     };
     use iced::{
-        alignment, mouse, Color, Element, Length, Point, Rectangle, Size,
-        Theme, Vector,
+        alignment, mouse, Color, Element, Length, Point, Rectangle, Renderer,
+        Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -393,7 +393,7 @@ mod grid {
         }
     }
 
-    impl canvas::Program<Message> for Grid {
+    impl canvas::Program<Message, Renderer> for Grid {
         type State = Interaction;
 
         fn update(
@@ -536,13 +536,14 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: Cursor,
         ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
-            let life = self.life_cache.draw(bounds.size(), |frame| {
+            let life = self.life_cache.draw(renderer, bounds.size(), |frame| {
                 let background = Path::rectangle(Point::ORIGIN, frame.size());
                 frame.fill(&background, Color::from_rgb8(0x40, 0x44, 0x4B));
 
@@ -565,7 +566,7 @@ mod grid {
             });
 
             let overlay = {
-                let mut frame = Frame::new(bounds.size());
+                let mut frame = Frame::new(renderer, bounds.size());
 
                 let hovered_cell =
                     cursor.position_in(&bounds).map(|position| {
@@ -626,38 +627,40 @@ mod grid {
             if self.scaling < 0.2 || !self.show_lines {
                 vec![life, overlay]
             } else {
-                let grid = self.grid_cache.draw(bounds.size(), |frame| {
-                    frame.translate(center);
-                    frame.scale(self.scaling);
-                    frame.translate(self.translation);
-                    frame.scale(Cell::SIZE as f32);
+                let grid =
+                    self.grid_cache.draw(renderer, bounds.size(), |frame| {
+                        frame.translate(center);
+                        frame.scale(self.scaling);
+                        frame.translate(self.translation);
+                        frame.scale(Cell::SIZE as f32);
 
-                    let region = self.visible_region(frame.size());
-                    let rows = region.rows();
-                    let columns = region.columns();
-                    let (total_rows, total_columns) =
-                        (rows.clone().count(), columns.clone().count());
-                    let width = 2.0 / Cell::SIZE as f32;
-                    let color = Color::from_rgb8(70, 74, 83);
+                        let region = self.visible_region(frame.size());
+                        let rows = region.rows();
+                        let columns = region.columns();
+                        let (total_rows, total_columns) =
+                            (rows.clone().count(), columns.clone().count());
+                        let width = 2.0 / Cell::SIZE as f32;
+                        let color = Color::from_rgb8(70, 74, 83);
 
-                    frame.translate(Vector::new(-width / 2.0, -width / 2.0));
+                        frame
+                            .translate(Vector::new(-width / 2.0, -width / 2.0));
 
-                    for row in region.rows() {
-                        frame.fill_rectangle(
-                            Point::new(*columns.start() as f32, row as f32),
-                            Size::new(total_columns as f32, width),
-                            color,
-                        );
-                    }
+                        for row in region.rows() {
+                            frame.fill_rectangle(
+                                Point::new(*columns.start() as f32, row as f32),
+                                Size::new(total_columns as f32, width),
+                                color,
+                            );
+                        }
 
-                    for column in region.columns() {
-                        frame.fill_rectangle(
-                            Point::new(column as f32, *rows.start() as f32),
-                            Size::new(width, total_rows as f32),
-                            color,
-                        );
-                    }
-                });
+                        for column in region.columns() {
+                            frame.fill_rectangle(
+                                Point::new(column as f32, *rows.start() as f32),
+                                Size::new(width, total_rows as f32),
+                                color,
+                            );
+                        }
+                    });
 
                 vec![life, grid, overlay]
             }

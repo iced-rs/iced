@@ -1,7 +1,7 @@
 //! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
 pub use crate::widget::canvas::Style;
 
-use iced_native::Color;
+use crate::Color;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]
@@ -77,16 +77,6 @@ impl Default for LineCap {
     }
 }
 
-impl From<LineCap> for lyon::tessellation::LineCap {
-    fn from(line_cap: LineCap) -> lyon::tessellation::LineCap {
-        match line_cap {
-            LineCap::Butt => lyon::tessellation::LineCap::Butt,
-            LineCap::Square => lyon::tessellation::LineCap::Square,
-            LineCap::Round => lyon::tessellation::LineCap::Round,
-        }
-    }
-}
-
 /// The shape used at the corners of paths or basic shapes when they are
 /// stroked.
 #[derive(Debug, Clone, Copy)]
@@ -102,16 +92,6 @@ pub enum LineJoin {
 impl Default for LineJoin {
     fn default() -> LineJoin {
         LineJoin::Miter
-    }
-}
-
-impl From<LineJoin> for lyon::tessellation::LineJoin {
-    fn from(line_join: LineJoin) -> lyon::tessellation::LineJoin {
-        match line_join {
-            LineJoin::Miter => lyon::tessellation::LineJoin::Miter,
-            LineJoin::Round => lyon::tessellation::LineJoin::Round,
-            LineJoin::Bevel => lyon::tessellation::LineJoin::Bevel,
-        }
     }
 }
 

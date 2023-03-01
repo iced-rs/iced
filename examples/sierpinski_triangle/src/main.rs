@@ -5,8 +5,8 @@ use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{column, row, slider, text};
 use iced::{
-    Application, Color, Command, Length, Point, Rectangle, Settings, Size,
-    Theme,
+    Application, Color, Command, Length, Point, Rectangle, Renderer, Settings,
+    Size, Theme,
 };
 
 use rand::Rng;
@@ -97,7 +97,7 @@ struct SierpinskiGraph {
     cache: canvas::Cache,
 }
 
-impl canvas::Program<Message> for SierpinskiGraph {
+impl canvas::Program<Message, Renderer> for SierpinskiGraph {
     type State = ();
 
     fn update(
@@ -134,11 +134,12 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: canvas::Cursor,
     ) -> Vec<canvas::Geometry> {
-        let geom = self.cache.draw(bounds.size(), |frame| {
+        let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(
                 &canvas::Path::rectangle(Point::ORIGIN, frame.size()),
                 canvas::Stroke::default(),

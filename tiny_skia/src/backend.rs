@@ -1,9 +1,9 @@
-use crate::{Color, Font, Settings, Size, Viewport};
+use crate::{Color, Font, Primitive, Settings, Size, Viewport};
 
 use iced_graphics::alignment;
 use iced_graphics::backend;
 use iced_graphics::text;
-use iced_graphics::{Background, Primitive, Rectangle, Vector};
+use iced_graphics::{Background, Rectangle, Vector};
 
 use std::borrow::Cow;
 
@@ -81,7 +81,6 @@ impl Backend {
         translation: Vector,
     ) {
         match primitive {
-            Primitive::None => {}
             Primitive::Quad {
                 bounds,
                 background,
@@ -161,6 +160,38 @@ impl Backend {
             Primitive::Svg { .. } => {
                 // TODO
             }
+            Primitive::Fill {
+                path,
+                paint,
+                rule,
+                transform,
+            } => {
+                pixels.fill_path(
+                    path,
+                    paint,
+                    *rule,
+                    transform
+                        .post_translate(translation.x, translation.y)
+                        .post_scale(scale_factor, scale_factor),
+                    clip_mask,
+                );
+            }
+            Primitive::Stroke {
+                path,
+                paint,
+                stroke,
+                transform,
+            } => {
+                pixels.stroke_path(
+                    path,
+                    paint,
+                    stroke,
+                    transform
+                        .post_translate(translation.x, translation.y)
+                        .post_scale(scale_factor, scale_factor),
+                    clip_mask,
+                );
+            }
             Primitive::Group { primitives } => {
                 for primitive in primitives {
                     self.draw_primitive(
@@ -196,16 +227,19 @@ impl Backend {
                     translation,
                 );
             }
-            Primitive::Cached { cache } => {
+            Primitive::Cache { content } => {
                 self.draw_primitive(
-                    cache,
+                    content,
                     pixels,
                     clip_mask,
                     scale_factor,
                     translation,
                 );
             }
-            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {}
+            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
+                // Not supported!
+                // TODO: Draw a placeholder (?) / Log it (?)
+            }
         }
     }
 }
@@ -386,6 +420,8 @@ fn rectangular_clip_mask(
 }
 
 impl iced_graphics::Backend for Backend {
+    type Geometry = ();
+
     fn trim_measurements(&mut self) {
         self.text_pipeline.trim_measurement_cache();
     }

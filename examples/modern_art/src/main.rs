@@ -55,17 +55,18 @@ impl Application for ModernArt {
     }
 }
 
-impl<Message> canvas::Program<Message> for ModernArt {
+impl<Message> canvas::Program<Message, Renderer> for ModernArt {
     type State = ();
 
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        let geometry = self.cache.draw(bounds.size(), |frame| {
+        let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let num_squares = thread_rng().gen_range(0..1200);
 
             let mut i = 0;

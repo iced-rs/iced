@@ -1,5 +1,6 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
-use crate::{Color, Gradient};
+use crate::widget::canvas::Gradient;
+use crate::Color;
 
 pub use crate::widget::canvas::Style;
 
@@ -19,14 +20,14 @@ pub struct Fill {
     /// By default, it is set to `NonZero`.
     ///
     /// [1]: https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
-    pub rule: FillRule,
+    pub rule: Rule,
 }
 
 impl Default for Fill {
     fn default() -> Self {
         Self {
             style: Style::Solid(Color::BLACK),
-            rule: FillRule::NonZero,
+            rule: Rule::NonZero,
         }
     }
 }
@@ -57,16 +58,7 @@ impl From<Gradient> for Fill {
 /// [1]: https://www.w3.org/TR/SVG/painting.html#FillRuleProperty
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
-pub enum FillRule {
+pub enum Rule {
     NonZero,
     EvenOdd,
-}
-
-impl From<FillRule> for lyon::tessellation::FillRule {
-    fn from(rule: FillRule) -> lyon::tessellation::FillRule {
-        match rule {
-            FillRule::NonZero => lyon::tessellation::FillRule::NonZero,
-            FillRule::EvenOdd => lyon::tessellation::FillRule::EvenOdd,
-        }
-    }
 }

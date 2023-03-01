@@ -33,7 +33,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    missing_docs,
+    //missing_docs,
     unused_results,
     clippy::extra_unused_lifetimes,
     clippy::from_over_into,
@@ -79,6 +79,7 @@ mod debug;
 mod debug;
 
 pub use iced_core::alignment;
+pub use iced_core::gradient;
 pub use iced_core::time;
 pub use iced_core::{
     color, Alignment, Background, Color, ContentFit, Length, Padding, Pixels,
@@ -97,6 +98,7 @@ pub use debug::Debug;
 pub use element::Element;
 pub use event::Event;
 pub use font::Font;
+pub use gradient::Gradient;
 pub use hasher::Hasher;
 pub use layout::Layout;
 pub use overlay::Overlay;

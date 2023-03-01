@@ -24,8 +24,7 @@ bmp = ["image_rs/bmp"]
 hdr = ["image_rs/hdr"]
 dds = ["image_rs/dds"]
 farbfeld = ["image_rs/farbfeld"]
-canvas = ["lyon"]
-qr_code = ["qrcode", "canvas"]
+canvas = ["iced_native/canvas"]
 opengl = []
 image_rs = ["kamadak-exif"]
 
@@ -35,6 +34,7 @@ log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
 bitflags = "1.2"
+tiny-skia = "0.8"
 
 [dependencies.bytemuck]
 version = "1.4"
@@ -47,15 +47,6 @@ path = "../native"
 [dependencies.iced_style]
 version = "0.7"
 path = "../style"
-
-[dependencies.lyon]
-version = "1.0"
-optional = true
-
-[dependencies.qrcode]
-version = "0.12"
-optional = true
-default-features = false
 
 [dependencies.image_rs]
 version = "0.24"

@@ -6,7 +6,7 @@ use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Cursor, Geometry};
 use iced::{
     executor, touch, window, Application, Color, Command, Element, Length,
-    Point, Rectangle, Settings, Subscription, Theme,
+    Point, Rectangle, Renderer, Settings, Subscription, Theme,
 };
 
 use std::collections::HashMap;
@@ -95,7 +95,7 @@ impl Application for Multitouch {
     }
 }
 
-impl canvas::Program<Message> for State {
+impl canvas::Program<Message, Renderer> for State {
     type State = ();
 
     fn update(
@@ -125,11 +125,12 @@ impl canvas::Program<Message> for State {
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        let fingerweb = self.cache.draw(bounds.size(), |frame| {
+        let fingerweb = self.cache.draw(renderer, bounds.size(), |frame| {
             if self.fingers.len() < 2 {
                 return;
             }

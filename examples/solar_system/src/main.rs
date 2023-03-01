@@ -15,8 +15,8 @@ use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{Cursor, Path};
 use iced::window;
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
-    Size, Subscription, Vector,
+    Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
+    Settings, Size, Subscription, Vector,
 };
 
 use std::time::Instant;
@@ -150,30 +150,32 @@ impl State {
     }
 }
 
-impl<Message> canvas::Program<Message> for State {
+impl<Message> canvas::Program<Message, Renderer> for State {
     type State = ();
 
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<canvas::Geometry> {
         use std::f32::consts::PI;
 
-        let background = self.space_cache.draw(bounds.size(), |frame| {
-            let stars = Path::new(|path| {
-                for (p, size) in &self.stars {
-                    path.rectangle(*p, Size::new(*size, *size));
-                }
+        let background =
+            self.space_cache.draw(renderer, bounds.size(), |frame| {
+                let stars = Path::new(|path| {
+                    for (p, size) in &self.stars {
+                        path.rectangle(*p, Size::new(*size, *size));
+                    }
+                });
+
+                frame.translate(frame.center() - Point::ORIGIN);
+                frame.fill(&stars, Color::WHITE);
             });
 
-            frame.translate(frame.center() - Point::ORIGIN);
-            frame.fill(&stars, Color::WHITE);
-        });
-
-        let system = self.system_cache.draw(bounds.size(), |frame| {
+        let system = self.system_cache.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();
 
             let sun = Path::circle(center, Self::SUN_RADIUS);

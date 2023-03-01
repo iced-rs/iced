@@ -1,9 +1,10 @@
-use crate::gradient::Gradient;
-use crate::triangle;
-use crate::widget::canvas::{path, Fill, Geometry, Path, Stroke, Style, Text};
-use crate::Primitive;
+use crate::primitive::{self, Primitive};
+use crate::widget::canvas::fill::{self, Fill};
+use crate::widget::canvas::{
+    LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
+};
 
-use iced_native::{Point, Rectangle, Size, Vector};
+use iced_native::{Gradient, Point, Rectangle, Size, Vector};
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -23,9 +24,9 @@ pub struct Frame {
 }
 
 enum Buffer {
-    Solid(tessellation::VertexBuffers<triangle::ColoredVertex2D, u32>),
+    Solid(tessellation::VertexBuffers<primitive::ColoredVertex2D, u32>),
     Gradient(
-        tessellation::VertexBuffers<triangle::Vertex2D, u32>,
+        tessellation::VertexBuffers<primitive::Vertex2D, u32>,
         Gradient,
     ),
 }
@@ -196,8 +197,8 @@ impl Frame {
             .buffers
             .get_fill(&self.transforms.current.transform_style(style));
 
-        let options =
-            tessellation::FillOptions::default().with_fill_rule(rule.into());
+        let options = tessellation::FillOptions::default()
+            .with_fill_rule(into_fill_rule(rule));
 
         if self.transforms.current.is_identity {
             self.fill_tessellator.tessellate_path(
@@ -206,7 +207,7 @@ impl Frame {
                 buffer.as_mut(),
             )
         } else {
-            let path = path.transformed(&self.transforms.current.raw);
+            let path = path.transform(&self.transforms.current.raw);
 
             self.fill_tessellator.tessellate_path(
                 path.raw(),
@@ -241,8 +242,8 @@ impl Frame {
                 lyon::math::Vector::new(size.width, size.height),
             );
 
-        let options =
-            tessellation::FillOptions::default().with_fill_rule(rule.into());
+        let options = tessellation::FillOptions::default()
+            .with_fill_rule(into_fill_rule(rule));
 
         self.fill_tessellator
             .tessellate_rectangle(
@@ -264,14 +265,14 @@ impl Frame {
 
         let mut options = tessellation::StrokeOptions::default();
         options.line_width = stroke.width;
-        options.start_cap = stroke.line_cap.into();
-        options.end_cap = stroke.line_cap.into();
-        options.line_join = stroke.line_join.into();
+        options.start_cap = into_line_cap(stroke.line_cap);
+        options.end_cap = into_line_cap(stroke.line_cap);
+        options.line_join = into_line_join(stroke.line_join);
 
         let path = if stroke.line_dash.segments.is_empty() {
             Cow::Borrowed(path)
         } else {
-            Cow::Owned(path::dashed(path, stroke.line_dash))
+            Cow::Owned(dashed(path, stroke.line_dash))
         };
 
         if self.transforms.current.is_identity {
@@ -281,7 +282,7 @@ impl Frame {
                 buffer.as_mut(),
             )
         } else {
-            let path = path.transformed(&self.transforms.current.raw);
+            let path = path.transform(&self.transforms.current.raw);
 
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
@@ -344,10 +345,18 @@ impl Frame {
     /// operations in different coordinate systems.
     #[inline]
     pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
-        self.transforms.previous.push(self.transforms.current);
+        self.push_transform();
 
         f(self);
 
+        self.pop_transform();
+    }
+
+    pub fn push_transform(&mut self) {
+        self.transforms.previous.push(self.transforms.current);
+    }
+
+    pub fn pop_transform(&mut self) {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
@@ -363,13 +372,18 @@ impl Frame {
 
         f(&mut frame);
 
+        let translation = Vector::new(region.x, region.y);
+
+        self.clip(frame, translation);
+    }
+
+    pub fn clip(&mut self, frame: Frame, translation: Vector) {
+        let size = frame.size();
         let primitives = frame.into_primitives();
 
         let (text, meshes) = primitives
             .into_iter()
             .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
-
-        let translation = Vector::new(region.x, region.y);
 
         self.primitives.push(Primitive::Group {
             primitives: vec![
@@ -380,7 +394,7 @@ impl Frame {
                 Primitive::Translate {
                     translation,
                     content: Box::new(Primitive::Clip {
-                        bounds: Rectangle::with_size(region.size()),
+                        bounds: Rectangle::with_size(size),
                         content: Box::new(Primitive::Group {
                             primitives: text,
                         }),
@@ -423,11 +437,11 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Produces the [`Geometry`] representing everything drawn on the [`Frame`].
-    pub fn into_geometry(self) -> Geometry {
-        Geometry::from_primitive(Primitive::Group {
+    /// Produces the [`Primitive`] representing everything drawn on the [`Frame`].
+    pub fn into_primitive(self) -> Primitive {
+        Primitive::Group {
             primitives: self.into_primitives(),
-        })
+        }
     }
 
     fn into_primitives(mut self) -> Vec<Primitive> {
@@ -436,7 +450,7 @@ impl Frame {
                 Buffer::Solid(buffer) => {
                     if !buffer.indices.is_empty() {
                         self.primitives.push(Primitive::SolidMesh {
-                            buffers: triangle::Mesh2D {
+                            buffers: primitive::Mesh2D {
                                 vertices: buffer.vertices,
                                 indices: buffer.indices,
                             },
@@ -447,7 +461,7 @@ impl Frame {
                 Buffer::Gradient(buffer, gradient) => {
                     if !buffer.indices.is_empty() {
                         self.primitives.push(Primitive::GradientMesh {
-                            buffers: triangle::Mesh2D {
+                            buffers: primitive::Mesh2D {
                                 vertices: buffer.vertices,
                                 indices: buffer.indices,
                             },
@@ -465,31 +479,31 @@ impl Frame {
 
 struct Vertex2DBuilder;
 
-impl tessellation::FillVertexConstructor<triangle::Vertex2D>
+impl tessellation::FillVertexConstructor<primitive::Vertex2D>
     for Vertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::FillVertex<'_>,
-    ) -> triangle::Vertex2D {
+    ) -> primitive::Vertex2D {
         let position = vertex.position();
 
-        triangle::Vertex2D {
+        primitive::Vertex2D {
             position: [position.x, position.y],
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<triangle::Vertex2D>
+impl tessellation::StrokeVertexConstructor<primitive::Vertex2D>
     for Vertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> triangle::Vertex2D {
+    ) -> primitive::Vertex2D {
         let position = vertex.position();
 
-        triangle::Vertex2D {
+        primitive::Vertex2D {
             position: [position.x, position.y],
         }
     }
@@ -497,34 +511,99 @@ impl tessellation::StrokeVertexConstructor<triangle::Vertex2D>
 
 struct TriangleVertex2DBuilder([f32; 4]);
 
-impl tessellation::FillVertexConstructor<triangle::ColoredVertex2D>
+impl tessellation::FillVertexConstructor<primitive::ColoredVertex2D>
     for TriangleVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::FillVertex<'_>,
-    ) -> triangle::ColoredVertex2D {
+    ) -> primitive::ColoredVertex2D {
         let position = vertex.position();
 
-        triangle::ColoredVertex2D {
+        primitive::ColoredVertex2D {
             position: [position.x, position.y],
             color: self.0,
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<triangle::ColoredVertex2D>
+impl tessellation::StrokeVertexConstructor<primitive::ColoredVertex2D>
     for TriangleVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> triangle::ColoredVertex2D {
+    ) -> primitive::ColoredVertex2D {
         let position = vertex.position();
 
-        triangle::ColoredVertex2D {
+        primitive::ColoredVertex2D {
             position: [position.x, position.y],
             color: self.0,
         }
     }
+}
+
+fn into_line_join(line_join: LineJoin) -> lyon::tessellation::LineJoin {
+    match line_join {
+        LineJoin::Miter => lyon::tessellation::LineJoin::Miter,
+        LineJoin::Round => lyon::tessellation::LineJoin::Round,
+        LineJoin::Bevel => lyon::tessellation::LineJoin::Bevel,
+    }
+}
+
+fn into_line_cap(line_cap: LineCap) -> lyon::tessellation::LineCap {
+    match line_cap {
+        LineCap::Butt => lyon::tessellation::LineCap::Butt,
+        LineCap::Square => lyon::tessellation::LineCap::Square,
+        LineCap::Round => lyon::tessellation::LineCap::Round,
+    }
+}
+
+fn into_fill_rule(rule: fill::Rule) -> lyon::tessellation::FillRule {
+    match rule {
+        fill::Rule::NonZero => lyon::tessellation::FillRule::NonZero,
+        fill::Rule::EvenOdd => lyon::tessellation::FillRule::EvenOdd,
+    }
+}
+
+pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
+    use lyon::algorithms::walk::{
+        walk_along_path, RepeatedPattern, WalkerEvent,
+    };
+    use lyon::path::iterator::PathIterator;
+
+    Path::new(|builder| {
+        let segments_odd = (line_dash.segments.len() % 2 == 1)
+            .then(|| [line_dash.segments, line_dash.segments].concat());
+
+        let mut draw_line = false;
+
+        walk_along_path(
+            path.raw().iter().flattened(0.01),
+            0.0,
+            lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
+            &mut RepeatedPattern {
+                callback: |event: WalkerEvent<'_>| {
+                    let point = Point {
+                        x: event.position.x,
+                        y: event.position.y,
+                    };
+
+                    if draw_line {
+                        builder.line_to(point);
+                    } else {
+                        builder.move_to(point);
+                    }
+
+                    draw_line = !draw_line;
+
+                    true
+                },
+                index: line_dash.offset,
+                intervals: segments_odd
+                    .as_deref()
+                    .unwrap_or(line_dash.segments),
+            },
+        );
+    })
 }

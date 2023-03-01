@@ -26,6 +26,7 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub mod alignment;
 pub mod font;
+pub mod gradient;
 pub mod keyboard;
 pub mod mouse;
 pub mod time;
@@ -46,6 +47,7 @@ pub use background::Background;
 pub use color::Color;
 pub use content_fit::ContentFit;
 pub use font::Font;
+pub use gradient::Gradient;
 pub use length::Length;
 pub use padding::Padding;
 pub use pixels::Pixels;

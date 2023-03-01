@@ -10,9 +10,9 @@ mod rainbow {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
+    use iced_graphics::primitive::{ColoredVertex2D, Primitive};
     use iced_graphics::renderer::{self, Renderer};
-    use iced_graphics::triangle::ColoredVertex2D;
-    use iced_graphics::{Backend, Primitive};
+    use iced_graphics::Backend;
 
     use iced_native::layout;
     use iced_native::widget::{self, Widget};
@@ -59,7 +59,7 @@ mod rainbow {
             cursor_position: Point,
             _viewport: &Rectangle,
         ) {
-            use iced_graphics::triangle::Mesh2D;
+            use iced_graphics::primitive::Mesh2D;
             use iced_native::Renderer as _;
 
             let b = layout.bounds();

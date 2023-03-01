@@ -8,34 +8,26 @@ pub mod fill;
 pub mod path;
 pub mod stroke;
 
-mod cache;
 mod cursor;
-mod frame;
-mod geometry;
 mod program;
 mod style;
 mod text;
 
 pub use crate::gradient::{self, Gradient};
-pub use cache::Cache;
 pub use cursor::Cursor;
 pub use event::Event;
-pub use fill::{Fill, FillRule};
-pub use frame::Frame;
-pub use geometry::Geometry;
+pub use fill::Fill;
 pub use path::Path;
 pub use program::Program;
 pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use style::Style;
 pub use text::Text;
 
-use crate::{Backend, Primitive, Renderer};
-
-use iced_native::layout::{self, Layout};
-use iced_native::mouse;
-use iced_native::renderer;
-use iced_native::widget::tree::{self, Tree};
-use iced_native::{
+use crate::layout::{self, Layout};
+use crate::mouse;
+use crate::renderer;
+use crate::widget::tree::{self, Tree};
+use crate::{
     Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 
@@ -85,20 +77,22 @@ use std::marker::PhantomData;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<Message, Theme, P>
+pub struct Canvas<Message, Renderer, P>
 where
-    P: Program<Message, Theme>,
+    Renderer: self::Renderer,
+    P: Program<Message, Renderer>,
 {
     width: Length,
     height: Length,
     program: P,
     message_: PhantomData<Message>,
-    theme_: PhantomData<Theme>,
+    theme_: PhantomData<Renderer>,
 }
 
-impl<Message, Theme, P> Canvas<Message, Theme, P>
+impl<Message, Renderer, P> Canvas<Message, Renderer, P>
 where
-    P: Program<Message, Theme>,
+    Renderer: self::Renderer,
+    P: Program<Message, Renderer>,
 {
     const DEFAULT_SIZE: f32 = 100.0;
 
@@ -126,10 +120,11 @@ where
     }
 }
 
-impl<Message, P, B, T> Widget<Message, Renderer<B, T>> for Canvas<Message, T, P>
+impl<Message, Renderer, P> Widget<Message, Renderer>
+    for Canvas<Message, Renderer, P>
 where
-    P: Program<Message, T>,
-    B: Backend,
+    Renderer: self::Renderer,
+    P: Program<Message, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);
@@ -150,7 +145,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B, T>,
+        _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
@@ -162,23 +157,19 @@ where
     fn on_event(
         &mut self,
         tree: &mut Tree,
-        event: iced_native::Event,
+        event: crate::Event,
         layout: Layout<'_>,
         cursor_position: Point,
-        _renderer: &Renderer<B, T>,
+        _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
 
         let canvas_event = match event {
-            iced_native::Event::Mouse(mouse_event) => {
-                Some(Event::Mouse(mouse_event))
-            }
-            iced_native::Event::Touch(touch_event) => {
-                Some(Event::Touch(touch_event))
-            }
-            iced_native::Event::Keyboard(keyboard_event) => {
+            crate::Event::Mouse(mouse_event) => Some(Event::Mouse(mouse_event)),
+            crate::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
+            crate::Event::Keyboard(keyboard_event) => {
                 Some(Event::Keyboard(keyboard_event))
             }
             _ => None,
@@ -208,7 +199,7 @@ where
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
-        _renderer: &Renderer<B, T>,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let cursor = Cursor::from_window_position(cursor_position);
@@ -220,49 +211,49 @@ where
     fn draw(
         &self,
         tree: &Tree,
-        renderer: &mut Renderer<B, T>,
-        theme: &T,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        use iced_native::Renderer as _;
-
         let bounds = layout.bounds();
 
         if bounds.width < 1.0 || bounds.height < 1.0 {
             return;
         }
 
-        let translation = Vector::new(bounds.x, bounds.y);
         let cursor = Cursor::from_window_position(cursor_position);
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.with_translation(translation, |renderer| {
-            renderer.draw_primitive(Primitive::Group {
-                primitives: self
-                    .program
-                    .draw(state, theme, bounds, cursor)
-                    .into_iter()
-                    .map(Geometry::into_primitive)
-                    .collect(),
-            });
-        });
+        renderer.with_translation(
+            Vector::new(bounds.x, bounds.y),
+            |renderer| {
+                renderer.draw(
+                    self.program.draw(state, renderer, theme, bounds, cursor),
+                );
+            },
+        );
     }
 }
 
-impl<'a, Message, P, B, T> From<Canvas<Message, T, P>>
-    for Element<'a, Message, Renderer<B, T>>
+impl<'a, Message, Renderer, P> From<Canvas<Message, Renderer, P>>
+    for Element<'a, Message, Renderer>
 where
     Message: 'a,
-    P: Program<Message, T> + 'a,
-    B: Backend,
-    T: 'a,
+    Renderer: 'a + self::Renderer,
+    P: Program<Message, Renderer> + 'a,
 {
     fn from(
-        canvas: Canvas<Message, T, P>,
-    ) -> Element<'a, Message, Renderer<B, T>> {
+        canvas: Canvas<Message, Renderer, P>,
+    ) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
+}
+
+pub trait Renderer: crate::Renderer {
+    type Geometry;
+
+    fn draw(&mut self, geometry: Vec<Self::Geometry>);
 }

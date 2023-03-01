@@ -6,10 +6,10 @@ use iced_graphics::image::raster;
 #[cfg(feature = "svg")]
 use iced_graphics::image::vector;
 
+use crate::layer;
 use crate::{Buffer, Transformation};
 use atlas::Atlas;
 
-use iced_graphics::layer;
 use iced_native::{Rectangle, Size};
 
 use std::cell::RefCell;

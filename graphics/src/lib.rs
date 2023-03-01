@@ -9,7 +9,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    missing_docs,
+    //missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,
@@ -23,25 +23,19 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
 mod error;
-mod primitive;
 mod transformation;
 mod viewport;
 
 pub mod backend;
-pub mod gradient;
 pub mod image;
-pub mod layer;
 pub mod overlay;
+pub mod primitive;
 pub mod renderer;
-pub mod triangle;
-pub mod widget;
 pub mod window;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use error::Error;
-pub use gradient::Gradient;
-pub use layer::Layer;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
@@ -50,5 +44,6 @@ pub use viewport::Viewport;
 pub use iced_native::alignment;
 pub use iced_native::text;
 pub use iced_native::{
-    Alignment, Background, Color, Font, Point, Rectangle, Size, Vector,
+    Alignment, Background, Color, Font, Gradient, Point, Rectangle, Size,
+    Vector,
 };

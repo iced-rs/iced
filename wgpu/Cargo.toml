@@ -21,8 +21,7 @@ bmp = ["iced_graphics/bmp"]
 hdr = ["iced_graphics/hdr"]
 dds = ["iced_graphics/dds"]
 farbfeld = ["iced_graphics/farbfeld"]
-canvas = ["iced_graphics/canvas"]
-qr_code = ["iced_graphics/qr_code"]
+canvas = ["iced_graphics/canvas", "lyon"]
 spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 
@@ -62,16 +61,20 @@ version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
 rev = "65b481d758f50fd13fc21af2cc5ef62ddee64955"
 
-[dependencies.tracing]
-version = "0.1.6"
-optional = true
-
 [dependencies.encase]
 version = "0.3.0"
 features = ["glam"]
 
 [dependencies.glam]
 version = "0.21.3"
+
+[dependencies.lyon]
+version = "1.0"
+optional = true
+
+[dependencies.tracing]
+version = "0.1.6"
+optional = true
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

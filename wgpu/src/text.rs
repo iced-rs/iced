@@ -1,6 +1,7 @@
+use crate::layer::Text;
+
 pub use iced_native::text::Hit;
 
-use iced_graphics::layer::Text;
 use iced_native::alignment;
 use iced_native::{Color, Font, Rectangle, Size};
 
