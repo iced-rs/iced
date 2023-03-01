@@ -44,7 +44,7 @@ impl Frame {
 
         self.primitives.push(Primitive::Fill {
             path,
-            paint: into_paint(fill.style, true),
+            paint: into_paint(fill.style),
             rule: into_fill_rule(fill.rule),
             transform: self.transform,
         });
@@ -61,7 +61,10 @@ impl Frame {
 
         self.primitives.push(Primitive::Fill {
             path,
-            paint: into_paint(fill.style, false),
+            paint: tiny_skia::Paint {
+                anti_alias: false,
+                ..into_paint(fill.style)
+            },
             rule: into_fill_rule(fill.rule),
             transform: self.transform,
         });
@@ -74,7 +77,7 @@ impl Frame {
 
         self.primitives.push(Primitive::Stroke {
             path,
-            paint: into_paint(stroke.style, true),
+            paint: into_paint(stroke.style),
             stroke: skia_stroke,
             transform: self.transform,
         });
@@ -207,7 +210,7 @@ fn convert_path(path: &Path) -> tiny_skia::Path {
         .expect("Convert lyon path to tiny_skia path")
 }
 
-pub fn into_paint(style: Style, anti_alias: bool) -> tiny_skia::Paint<'static> {
+pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
     tiny_skia::Paint {
         shader: match style {
             Style::Solid(color) => tiny_skia::Shader::SolidColor(
@@ -246,7 +249,7 @@ pub fn into_paint(style: Style, anti_alias: bool) -> tiny_skia::Paint<'static> {
                 .expect("Create linear gradient"),
             },
         },
-        anti_alias,
+        anti_alias: true,
         ..Default::default()
     }
 }
