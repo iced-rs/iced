@@ -91,14 +91,6 @@ pub mod canvas;
 #[doc(no_inline)]
 pub use canvas::Canvas;
 
-#[cfg(feature = "qr_code")]
-#[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
-pub mod qr_code;
-
-#[cfg(feature = "qr_code")]
-#[doc(no_inline)]
-pub use qr_code::QRCode;
-
 pub use action::Action;
 pub use id::Id;
 pub use operation::Operation;
