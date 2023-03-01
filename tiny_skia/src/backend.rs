@@ -25,6 +25,7 @@ impl Backend {
     pub fn draw<T: AsRef<str>>(
         &mut self,
         pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: &mut tiny_skia::ClipMask,
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
@@ -38,6 +39,7 @@ impl Backend {
             self.draw_primitive(
                 primitive,
                 pixels,
+                clip_mask,
                 None,
                 scale_factor,
                 Vector::ZERO,
@@ -63,6 +65,7 @@ impl Backend {
                     vertical_alignment: alignment::Vertical::Top,
                 },
                 pixels,
+                clip_mask,
                 None,
                 scale_factor,
                 Vector::ZERO,
@@ -76,7 +79,8 @@ impl Backend {
         &mut self,
         primitive: &Primitive,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::ClipMask>,
+        clip_mask: &mut tiny_skia::ClipMask,
+        clip_bounds: Option<Rectangle>,
         scale_factor: f32,
         translation: Vector,
     ) {
@@ -95,6 +99,7 @@ impl Backend {
                 .post_scale(scale_factor, scale_factor);
 
                 let path = rounded_rectangle(*bounds, *border_radius);
+                let clip_mask = clip_bounds.map(|_| clip_mask as &_);
 
                 pixels.fill_path(
                     &path,
@@ -151,7 +156,7 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     pixels,
-                    clip_mask,
+                    clip_bounds.map(|_| clip_mask as &_),
                 );
             }
             Primitive::Image { .. } => {
@@ -173,7 +178,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_mask,
+                    clip_bounds.map(|_| clip_mask as &_),
                 );
             }
             Primitive::Stroke {
@@ -189,7 +194,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_mask,
+                    clip_bounds.map(|_| clip_mask as &_),
                 );
             }
             Primitive::Group { primitives } => {
@@ -198,6 +203,7 @@ impl Backend {
                         primitive,
                         pixels,
                         clip_mask,
+                        clip_bounds,
                         scale_factor,
                         translation,
                     );
@@ -211,27 +217,37 @@ impl Backend {
                     content,
                     pixels,
                     clip_mask,
+                    clip_bounds,
                     scale_factor,
                     translation + *offset,
                 );
             }
             Primitive::Clip { bounds, content } => {
+                let bounds = (*bounds + translation) * scale_factor;
+
+                adjust_clip_mask(clip_mask, pixels, bounds);
+
                 self.draw_primitive(
                     content,
                     pixels,
-                    Some(&rectangular_clip_mask(
-                        pixels,
-                        (*bounds + translation) * scale_factor,
-                    )),
+                    clip_mask,
+                    Some(bounds),
                     scale_factor,
                     translation,
                 );
+
+                if let Some(bounds) = clip_bounds {
+                    adjust_clip_mask(clip_mask, pixels, bounds);
+                } else {
+                    clip_mask.clear();
+                }
             }
             Primitive::Cache { content } => {
                 self.draw_primitive(
                     content,
                     pixels,
                     clip_mask,
+                    clip_bounds,
                     scale_factor,
                     translation,
                 );
@@ -393,12 +409,11 @@ fn arc_to(
     }
 }
 
-fn rectangular_clip_mask(
+fn adjust_clip_mask(
+    clip_mask: &mut tiny_skia::ClipMask,
     pixels: &tiny_skia::PixmapMut<'_>,
     bounds: Rectangle,
-) -> tiny_skia::ClipMask {
-    let mut clip_mask = tiny_skia::ClipMask::new();
-
+) {
     let path = {
         let mut builder = tiny_skia::PathBuilder::new();
         builder.push_rect(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -415,8 +430,6 @@ fn rectangular_clip_mask(
             true,
         )
         .expect("Set path of clipping area");
-
-    clip_mask
 }
 
 impl iced_graphics::Backend for Backend {

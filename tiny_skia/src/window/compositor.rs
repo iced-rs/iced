@@ -6,6 +6,7 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
 
 pub struct Compositor<Theme> {
+    clip_mask: tiny_skia::ClipMask,
     _theme: PhantomData<Theme>,
 }
 
@@ -83,9 +84,10 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
 }
 
 pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
-    // TODO
+    // TOD
     (
         Compositor {
+            clip_mask: tiny_skia::ClipMask::new(),
             _theme: PhantomData,
         },
         Backend::new(settings),
@@ -93,7 +95,7 @@ pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
 }
 
 pub fn present<Theme, T: AsRef<str>>(
-    _compositor: &mut Compositor<Theme>,
+    compositor: &mut Compositor<Theme>,
     backend: &mut Backend,
     surface: &mut Surface,
     primitives: &[Primitive],
@@ -110,6 +112,7 @@ pub fn present<Theme, T: AsRef<str>>(
             physical_size.height,
         )
         .expect("Create pixel map"),
+        &mut compositor.clip_mask,
         primitives,
         viewport,
         background_color,
