@@ -221,7 +221,7 @@ impl Backend {
                     pixels,
                     Some(&rectangular_clip_mask(
                         pixels,
-                        *bounds * scale_factor,
+                        (*bounds + translation) * scale_factor,
                     )),
                     scale_factor,
                     translation,

@@ -145,7 +145,7 @@ impl Application for GameOfLife {
             self.grid
                 .view()
                 .map(move |message| Message::Grid(message, version)),
-            controls
+            controls,
         ];
 
         container(content)
