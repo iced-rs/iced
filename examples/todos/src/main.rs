@@ -1,6 +1,6 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
-use iced::keyboard;
+use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
@@ -8,6 +8,8 @@ use iced::widget::{
     text_input, Text,
 };
 use iced::window;
+#[cfg(not(target_arch = "wasm32"))]
+use iced::window::Mode;
 use iced::{Application, Element};
 use iced::{Color, Command, Font, Length, Settings, Subscription};
 
@@ -49,7 +51,11 @@ enum Message {
     CreateTask,
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
-    TabPressed { shift: bool },
+    TabPressed {
+        shift: bool,
+    },
+    #[cfg(not(target_arch = "wasm32"))]
+    ToggleFullscreen(Mode),
 }
 
 impl Application for Todos {
@@ -155,6 +161,10 @@ impl Application for Todos {
                         } else {
                             widget::focus_next()
                         }
+                    }
+                    #[cfg(not(target_arch = "wasm32"))]
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(mode)
                     }
                     _ => Command::none(),
                 };
@@ -266,6 +276,22 @@ impl Application for Todos {
             ) => Some(Message::TabPressed {
                 shift: modifiers.shift(),
             }),
+            #[cfg(not(target_arch = "wasm32"))]
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers: Modifiers::SHIFT,
+                }),
+                event::Status::Ignored,
+            ) => match key_code {
+                KeyCode::Up => {
+                    Some(Message::ToggleFullscreen(Mode::Fullscreen))
+                }
+                KeyCode::Down => {
+                    Some(Message::ToggleFullscreen(Mode::Windowed))
+                }
+                _ => None,
+            },
             _ => None,
         })
     }
