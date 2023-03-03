@@ -16,7 +16,7 @@ use crate::{Backend, Point, Rectangle, Size, Vector};
 pub use crate::Geometry;
 
 pub enum Frame {
-    Wgpu(iced_wgpu::widget::canvas::Frame),
+    Wgpu(iced_wgpu::canvas::Frame),
     TinySkia(iced_tiny_skia::canvas::Frame),
 }
 
@@ -33,7 +33,7 @@ impl Frame {
     pub fn new<Theme>(renderer: &crate::Renderer<Theme>, size: Size) -> Self {
         match renderer.backend() {
             Backend::Wgpu(_) => {
-                Frame::Wgpu(iced_wgpu::widget::canvas::Frame::new(size))
+                Frame::Wgpu(iced_wgpu::canvas::Frame::new(size))
             }
             Backend::TinySkia(_) => {
                 Frame::TinySkia(iced_tiny_skia::canvas::Frame::new(size))
@@ -131,7 +131,7 @@ impl Frame {
     pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
         let mut frame = match self {
             Self::Wgpu(_) => {
-                Self::Wgpu(iced_wgpu::widget::canvas::Frame::new(region.size()))
+                Self::Wgpu(iced_wgpu::canvas::Frame::new(region.size()))
             }
             Self::TinySkia(_) => Self::TinySkia(
                 iced_tiny_skia::canvas::Frame::new(region.size()),

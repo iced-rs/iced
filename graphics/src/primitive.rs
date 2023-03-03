@@ -86,14 +86,14 @@ pub enum Primitive {
         /// The [`Gradient`] to apply to the mesh.
         gradient: Gradient,
     },
-    #[cfg(feature = "tiny_skia")]
+    #[cfg(feature = "tiny-skia")]
     Fill {
         path: tiny_skia::Path,
         paint: tiny_skia::Paint<'static>,
         rule: tiny_skia::FillRule,
         transform: tiny_skia::Transform,
     },
-    #[cfg(feature = "tiny_skia")]
+    #[cfg(feature = "tiny-skia")]
     Stroke {
         path: tiny_skia::Path,
         paint: tiny_skia::Paint<'static>,

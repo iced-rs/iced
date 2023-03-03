@@ -256,6 +256,9 @@ impl Backend {
                 // Not supported!
                 // TODO: Draw a placeholder (?) / Log it (?)
             }
+            _ => {
+                // Not supported!
+            }
         }
     }
 }
