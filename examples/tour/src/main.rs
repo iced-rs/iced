@@ -570,13 +570,10 @@ impl<'a> Step {
             bytes: include_bytes!("../fonts/icons.ttf"),
         };
 
-        let mut text_input = text_input(
-            "Type something to continue...",
-            value,
-            StepMessage::InputChanged,
-        )
-        .padding(10)
-        .size(30);
+        let mut text_input = text_input("Type something to continue...", value)
+            .on_change(StepMessage::InputChanged)
+            .padding(10)
+            .size(30);
 
         if is_showing_icon {
             text_input = text_input.icon(text_input::Icon {

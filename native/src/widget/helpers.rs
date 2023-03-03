@@ -171,14 +171,13 @@ where
 pub fn text_input<'a, Message, Renderer>(
     placeholder: &str,
     value: &str,
-    on_change: impl Fn(String) -> Message + 'a,
 ) -> widget::TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text_input::StyleSheet,
 {
-    widget::TextInput::new(placeholder, value, on_change)
+    widget::TextInput::new(placeholder, value)
 }
 
 /// Creates a new [`Slider`].

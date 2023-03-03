@@ -1093,4 +1093,30 @@ impl text_input::StyleSheet for Theme {
 
         palette.primary.weak.color
     }
+
+    fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
+        if let TextInput::Custom(custom) = style {
+            return custom.disabled(self);
+        }
+
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.base.color.into(),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.background.weak.color,
+            icon_color: palette.background.weak.color,
+        }
+    }
+
+    fn disabled_color(&self, style: &Self::Style) -> Color {
+        if let TextInput::Custom(custom) = style {
+            return custom.value_color(self);
+        }
+
+        let palette = self.extended_palette();
+
+        palette.secondary.strong.color
+    }
 }

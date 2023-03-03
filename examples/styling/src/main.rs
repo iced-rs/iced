@@ -90,13 +90,10 @@ impl Sandbox for Styling {
                     },
                 );
 
-        let text_input = text_input(
-            "Type something...",
-            &self.input_value,
-            Message::InputChanged,
-        )
-        .padding(10)
-        .size(20);
+        let text_input = text_input("Type something...", &self.input_value)
+            .on_change(Message::InputChanged)
+            .padding(10)
+            .size(20);
 
         let button = button("Submit")
             .padding(10)

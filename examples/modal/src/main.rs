@@ -133,18 +133,16 @@ impl Application for App {
                     column![
                         column![
                             text("Email").size(12),
-                            text_input(
-                                "abc@123.com",
-                                &self.email,
-                                Message::Email
-                            )
-                            .on_submit(Message::Submit)
-                            .padding(5),
+                            text_input("abc@123.com", &self.email,)
+                                .on_change(Message::Email)
+                                .on_submit(Message::Submit)
+                                .padding(5),
                         ]
                         .spacing(5),
                         column![
                             text("Password").size(12),
-                            text_input("", &self.password, Message::Password)
+                            text_input("", &self.password)
+                                .on_change(Message::Password)
                                 .on_submit(Message::Submit)
                                 .password()
                                 .padding(5),
