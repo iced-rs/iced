@@ -83,14 +83,6 @@ pub use tree::Tree;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
 
-#[cfg(feature = "canvas")]
-#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
-pub mod canvas;
-
-#[cfg(feature = "canvas")]
-#[doc(no_inline)]
-pub use canvas::Canvas;
-
 pub use action::Action;
 pub use id::Id;
 pub use operation::Operation;
