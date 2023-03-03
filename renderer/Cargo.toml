@@ -6,8 +6,7 @@ edition = "2021"
 [features]
 image = ["iced_wgpu/image", "iced_tiny_skia/image"]
 svg = ["iced_wgpu/svg", "iced_tiny_skia/svg"]
-canvas = ["iced_wgpu/canvas", "iced_tiny_skia/canvas"]
-qr_code = ["canvas", "qrcode"]
+geometry = ["iced_wgpu/geometry", "iced_tiny_skia/geometry"]
 tracing = ["iced_wgpu/tracing"]
 
 [dependencies]
@@ -31,8 +30,3 @@ iced_wgpu = { version = "0.9", path = "../wgpu" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 iced_wgpu = { version = "0.9", path = "../wgpu", features = ["webgl"] }
-
-[dependencies.qrcode]
-version = "0.12"
-optional = true
-default-features = false

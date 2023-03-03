@@ -8,7 +8,6 @@ license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-canvas = ["lyon_path"]
 debug = []
 
 [dependencies]
@@ -29,7 +28,3 @@ features = ["thread-pool"]
 [dependencies.iced_style]
 version = "0.7"
 path = "../style"
-
-[dependencies.lyon_path]
-version = "1"
-optional = true

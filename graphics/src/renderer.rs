@@ -215,15 +215,15 @@ where
     }
 }
 
-#[cfg(feature = "canvas")]
-impl<B, T> iced_native::widget::canvas::Renderer for Renderer<B, T>
+#[cfg(feature = "geometry")]
+impl<B, T> crate::geometry::Renderer for Renderer<B, T>
 where
     B: Backend,
 {
-    type Geometry = B::Geometry;
+    type Geometry = crate::Geometry;
 
     fn draw(&mut self, layers: Vec<Self::Geometry>) {
         self.primitives
-            .extend(layers.into_iter().map(B::Geometry::into));
+            .extend(layers.into_iter().map(crate::Geometry::into));
     }
 }

@@ -4,8 +4,8 @@ mod backend;
 mod settings;
 mod text;
 
-#[cfg(feature = "canvas")]
-pub mod canvas;
+#[cfg(feature = "geometry")]
+pub mod geometry;
 
 pub use iced_graphics::primitive;
 

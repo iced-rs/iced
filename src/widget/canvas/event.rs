@@ -1,9 +1,9 @@
 //! Handle events of a canvas.
-use crate::keyboard;
-use crate::mouse;
-use crate::touch;
+use iced_native::keyboard;
+use iced_native::mouse;
+use iced_native::touch;
 
-pub use crate::event::Status;
+pub use iced_native::event::Status;
 
 /// A [`Canvas`] event.
 ///

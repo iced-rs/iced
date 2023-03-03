@@ -97,7 +97,7 @@ struct SierpinskiGraph {
     cache: canvas::Cache,
 }
 
-impl canvas::Program<Message, Renderer> for SierpinskiGraph {
+impl canvas::Program<Message> for SierpinskiGraph {
     type State = ();
 
     fn update(

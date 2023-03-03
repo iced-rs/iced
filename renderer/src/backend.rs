@@ -1,4 +1,4 @@
-use crate::{Font, Geometry, Point, Size};
+use crate::{Font, Point, Size};
 
 use iced_graphics::backend;
 use iced_graphics::text;
@@ -12,8 +12,6 @@ pub enum Backend {
 }
 
 impl iced_graphics::Backend for Backend {
-    type Geometry = Geometry;
-
     fn trim_measurements(&mut self) {
         match self {
             Self::Wgpu(backend) => backend.trim_measurements(),

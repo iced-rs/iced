@@ -92,7 +92,7 @@ mod bezier {
         curves: &'a [Curve],
     }
 
-    impl<'a> canvas::Program<Curve, Renderer> for Bezier<'a> {
+    impl<'a> canvas::Program<Curve> for Bezier<'a> {
         type State = Option<Pending>;
 
         fn update(

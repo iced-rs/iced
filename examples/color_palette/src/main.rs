@@ -237,7 +237,7 @@ impl Theme {
     }
 }
 
-impl<Message> canvas::Program<Message, Renderer> for Theme {
+impl<Message> canvas::Program<Message> for Theme {
     type State = ();
 
     fn draw(

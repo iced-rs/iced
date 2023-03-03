@@ -1,8 +1,7 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
-use crate::widget::canvas::Gradient;
-use crate::Color;
+use crate::{Color, Gradient};
 
-pub use crate::widget::canvas::Style;
+pub use crate::geometry::Style;
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]

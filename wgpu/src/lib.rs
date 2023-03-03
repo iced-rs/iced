@@ -41,8 +41,8 @@ pub mod layer;
 pub mod settings;
 pub mod window;
 
-#[cfg(feature = "canvas")]
-pub mod canvas;
+#[cfg(feature = "geometry")]
+pub mod geometry;
 
 mod backend;
 mod buffer;

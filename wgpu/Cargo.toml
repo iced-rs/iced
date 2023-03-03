@@ -21,7 +21,7 @@ bmp = ["iced_graphics/bmp"]
 hdr = ["iced_graphics/hdr"]
 dds = ["iced_graphics/dds"]
 farbfeld = ["iced_graphics/farbfeld"]
-canvas = ["iced_graphics/canvas", "lyon"]
+geometry = ["iced_graphics/geometry", "lyon"]
 spirv = ["wgpu/spirv"]
 webgl = ["wgpu/webgl"]
 

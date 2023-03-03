@@ -1,5 +1,7 @@
-pub mod widget;
 pub mod window;
+
+#[cfg(feature = "geometry")]
+pub mod geometry;
 
 mod backend;
 mod settings;
@@ -19,12 +21,3 @@ pub use iced_graphics::{
 /// [`iced`]: https://github.com/iced-rs/iced
 pub type Renderer<Theme = iced_native::Theme> =
     iced_graphics::Renderer<Backend, Theme>;
-
-#[derive(Debug, Clone)]
-pub struct Geometry(pub(crate) Primitive);
-
-impl From<Geometry> for Primitive {
-    fn from(geometry: Geometry) -> Self {
-        geometry.0
-    }
-}

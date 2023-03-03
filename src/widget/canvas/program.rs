@@ -1,6 +1,6 @@
 use crate::widget::canvas::event::{self, Event};
 use crate::widget::canvas::mouse;
-use crate::widget::canvas::{Cursor, Renderer};
+use crate::widget::canvas::Cursor;
 use crate::Rectangle;
 
 /// The state and logic of a [`Canvas`].
@@ -9,9 +9,9 @@ use crate::Rectangle;
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program<Message, Renderer>
+pub trait Program<Message, Renderer = crate::Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
 {
     /// The internal state mutated by the [`Program`].
     type State: Default + 'static;
@@ -71,7 +71,7 @@ where
 
 impl<Message, Renderer, T> Program<Message, Renderer> for &T
 where
-    Renderer: self::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
     T: Program<Message, Renderer>,
 {
     type State = T::State;

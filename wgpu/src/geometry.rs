@@ -1,9 +1,9 @@
-use iced_graphics::primitive::{self, Primitive};
-use iced_native::widget::canvas::fill::{self, Fill};
-use iced_native::widget::canvas::{
+use iced_graphics::geometry::fill::{self, Fill};
+use iced_graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
-use iced_native::{Gradient, Point, Rectangle, Size, Vector};
+use iced_graphics::primitive::{self, Primitive};
+use iced_graphics::{Gradient, Point, Rectangle, Size, Vector};
 
 use lyon::geom::euclid;
 use lyon::tessellation;

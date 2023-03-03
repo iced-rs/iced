@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 image = []
 svg = []
-canvas = ["iced_native/canvas"]
+geometry = ["iced_graphics/geometry"]
 
 [dependencies]
 raw-window-handle = "0.5"

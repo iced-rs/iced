@@ -2,9 +2,8 @@
 use crate::widget::canvas;
 use crate::Renderer;
 
-use iced_graphics::renderer;
-
 use iced_native::layout;
+use iced_native::renderer;
 use iced_native::widget::Tree;
 use iced_native::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,

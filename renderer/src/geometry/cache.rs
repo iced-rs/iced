@@ -1,4 +1,4 @@
-use crate::widget::canvas::{Frame, Geometry};
+use crate::geometry::{Frame, Geometry};
 use crate::{Primitive, Renderer, Size};
 
 use std::cell::RefCell;

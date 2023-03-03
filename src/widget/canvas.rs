@@ -1,35 +1,22 @@
 //! Draw 2D graphics for your users.
-//!
-//! A [`Canvas`] widget can be used to draw different kinds of 2D shapes in a
-//! [`Frame`]. It can be used for animation, data visualization, game graphics,
-//! and more!
 pub mod event;
-pub mod fill;
-pub mod path;
-pub mod stroke;
 
 mod cursor;
 mod program;
-mod style;
-mod text;
 
-pub use crate::gradient::{self, Gradient};
 pub use cursor::Cursor;
 pub use event::Event;
-pub use fill::Fill;
-pub use path::Path;
 pub use program::Program;
-pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
-pub use style::Style;
-pub use text::Text;
 
-use crate::layout::{self, Layout};
-use crate::mouse;
-use crate::renderer;
-use crate::widget::tree::{self, Tree};
-use crate::{
-    Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector, Widget,
-};
+pub use iced_renderer::geometry::*;
+
+use crate::{Length, Point, Rectangle, Size, Vector};
+
+use iced_native::layout::{self, Layout};
+use iced_native::mouse;
+use iced_native::renderer;
+use iced_native::widget::tree::{self, Tree};
+use iced_native::{Clipboard, Element, Shell, Widget};
 
 use std::marker::PhantomData;
 
@@ -39,14 +26,8 @@ use std::marker::PhantomData;
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// # mod iced {
-/// #     pub mod widget {
-/// #         pub use iced_graphics::widget::canvas;
-/// #     }
-/// #     pub use iced_native::{Color, Rectangle, Theme};
-/// # }
 /// use iced::widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
-/// use iced::{Color, Rectangle, Theme};
+/// use iced::{Color, Rectangle, Theme, Renderer};
 ///
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
@@ -58,9 +39,9 @@ use std::marker::PhantomData;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
-///         let mut frame = Frame::new(bounds.size());
+///         let mut frame = Frame::new(renderer, bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
 ///         let circle = Path::circle(frame.center(), self.radius);
@@ -77,9 +58,9 @@ use std::marker::PhantomData;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<Message, Renderer, P>
+pub struct Canvas<P, Message, Renderer = crate::Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
     P: Program<Message, Renderer>,
 {
     width: Length,
@@ -89,9 +70,9 @@ where
     theme_: PhantomData<Renderer>,
 }
 
-impl<Message, Renderer, P> Canvas<Message, Renderer, P>
+impl<P, Message, Renderer> Canvas<P, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
     P: Program<Message, Renderer>,
 {
     const DEFAULT_SIZE: f32 = 100.0;
@@ -120,10 +101,10 @@ where
     }
 }
 
-impl<Message, Renderer, P> Widget<Message, Renderer>
-    for Canvas<Message, Renderer, P>
+impl<P, Message, Renderer> Widget<Message, Renderer>
+    for Canvas<P, Message, Renderer>
 where
-    Renderer: self::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
     P: Program<Message, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
@@ -157,7 +138,7 @@ where
     fn on_event(
         &mut self,
         tree: &mut Tree,
-        event: crate::Event,
+        event: iced_native::Event,
         layout: Layout<'_>,
         cursor_position: Point,
         _renderer: &Renderer,
@@ -167,9 +148,13 @@ where
         let bounds = layout.bounds();
 
         let canvas_event = match event {
-            crate::Event::Mouse(mouse_event) => Some(Event::Mouse(mouse_event)),
-            crate::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
-            crate::Event::Keyboard(keyboard_event) => {
+            iced_native::Event::Mouse(mouse_event) => {
+                Some(Event::Mouse(mouse_event))
+            }
+            iced_native::Event::Touch(touch_event) => {
+                Some(Event::Touch(touch_event))
+            }
+            iced_native::Event::Keyboard(keyboard_event) => {
                 Some(Event::Keyboard(keyboard_event))
             }
             _ => None,
@@ -238,22 +223,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer, P> From<Canvas<Message, Renderer, P>>
+impl<'a, P, Message, Renderer> From<Canvas<P, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + self::Renderer,
+    Renderer: 'a + iced_renderer::geometry::Renderer,
     P: Program<Message, Renderer> + 'a,
 {
     fn from(
-        canvas: Canvas<Message, Renderer, P>,
+        canvas: Canvas<P, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(canvas)
     }
-}
-
-pub trait Renderer: crate::Renderer {
-    type Geometry;
-
-    fn draw(&mut self, geometry: Vec<Self::Geometry>);
 }

@@ -10,8 +10,6 @@ use std::borrow::Cow;
 ///
 /// [`Renderer`]: crate::Renderer
 pub trait Backend {
-    type Geometry: Into<crate::Primitive>;
-
     /// Trims the measurements cache.
     ///
     /// This method is currently necessary to properly trim the text cache in

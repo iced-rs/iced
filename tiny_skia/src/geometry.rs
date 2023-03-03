@@ -1,9 +1,9 @@
 use crate::{Point, Primitive, Rectangle, Size, Vector};
 
-use iced_native::widget::canvas::fill::{self, Fill};
-use iced_native::widget::canvas::stroke::{self, Stroke};
-use iced_native::widget::canvas::{Path, Style, Text};
-use iced_native::Gradient;
+use iced_graphics::geometry::fill::{self, Fill};
+use iced_graphics::geometry::stroke::{self, Stroke};
+use iced_graphics::geometry::{Path, Style, Text};
+use iced_graphics::Gradient;
 
 pub struct Frame {
     size: Size,
@@ -152,7 +152,7 @@ impl Frame {
 }
 
 fn convert_path(path: &Path) -> tiny_skia::Path {
-    use iced_native::widget::canvas::path::lyon_path;
+    use iced_graphics::geometry::path::lyon_path;
 
     let mut builder = tiny_skia::PathBuilder::new();
     let mut last_point = Default::default();

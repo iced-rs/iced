@@ -17,9 +17,9 @@ image = ["iced_renderer/image", "image_rs"]
 # Enables the `Svg` widget
 svg = ["iced_renderer/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_renderer/canvas"]
+canvas = ["iced_renderer/geometry"]
 # Enables the `QRCode` widget
-qr_code = ["iced_renderer/qr_code"]
+qr_code = ["canvas", "qrcode"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -68,6 +68,11 @@ thiserror = "1.0"
 version = "0.24"
 package = "image"
 optional = true
+
+[dependencies.qrcode]
+version = "0.12"
+optional = true
+default-features = false
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

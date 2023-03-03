@@ -2,22 +2,13 @@ mod cache;
 
 pub use cache::Cache;
 
-pub use iced_native::widget::canvas::event::{self, Event};
-pub use iced_native::widget::canvas::fill::{self, Fill};
-pub use iced_native::widget::canvas::gradient::{self, Gradient};
-pub use iced_native::widget::canvas::path::{self, Path};
-pub use iced_native::widget::canvas::stroke::{self, Stroke};
-pub use iced_native::widget::canvas::{
-    Canvas, Cursor, LineCap, LineDash, LineJoin, Program, Renderer, Style, Text,
-};
+pub use iced_graphics::geometry::*;
 
 use crate::{Backend, Point, Rectangle, Size, Vector};
 
-pub use crate::Geometry;
-
 pub enum Frame {
-    Wgpu(iced_wgpu::canvas::Frame),
-    TinySkia(iced_tiny_skia::canvas::Frame),
+    Wgpu(iced_wgpu::geometry::Frame),
+    TinySkia(iced_tiny_skia::geometry::Frame),
 }
 
 macro_rules! delegate {
@@ -33,10 +24,10 @@ impl Frame {
     pub fn new<Theme>(renderer: &crate::Renderer<Theme>, size: Size) -> Self {
         match renderer.backend() {
             Backend::Wgpu(_) => {
-                Frame::Wgpu(iced_wgpu::canvas::Frame::new(size))
+                Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
             }
             Backend::TinySkia(_) => {
-                Frame::TinySkia(iced_tiny_skia::canvas::Frame::new(size))
+                Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))
             }
         }
     }
@@ -131,10 +122,10 @@ impl Frame {
     pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
         let mut frame = match self {
             Self::Wgpu(_) => {
-                Self::Wgpu(iced_wgpu::canvas::Frame::new(region.size()))
+                Self::Wgpu(iced_wgpu::geometry::Frame::new(region.size()))
             }
             Self::TinySkia(_) => Self::TinySkia(
-                iced_tiny_skia::canvas::Frame::new(region.size()),
+                iced_tiny_skia::geometry::Frame::new(region.size()),
             ),
         };
 

@@ -1,5 +1,5 @@
 //! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
-pub use crate::widget::canvas::Style;
+pub use crate::geometry::Style;
 
 use crate::Color;
 

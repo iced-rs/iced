@@ -33,6 +33,9 @@ pub mod primitive;
 pub mod renderer;
 pub mod window;
 
+#[cfg(feature = "geometry")]
+pub mod geometry;
+
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use error::Error;
@@ -40,6 +43,9 @@ pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
 pub use viewport::Viewport;
+
+#[cfg(feature = "geometry")]
+pub use geometry::Geometry;
 
 pub use iced_native::alignment;
 pub use iced_native::text;

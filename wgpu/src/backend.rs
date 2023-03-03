@@ -329,8 +329,6 @@ impl Backend {
 }
 
 impl iced_graphics::Backend for Backend {
-    type Geometry = ();
-
     fn trim_measurements(&mut self) {
         self.text_pipeline.trim_measurement_cache()
     }

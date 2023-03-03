@@ -150,7 +150,7 @@ impl State {
     }
 }
 
-impl<Message> canvas::Program<Message, Renderer> for State {
+impl<Message> canvas::Program<Message> for State {
     type State = ();
 
     fn draw(

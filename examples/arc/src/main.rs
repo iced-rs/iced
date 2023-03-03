@@ -69,7 +69,7 @@ impl Application for Arc {
     }
 }
 
-impl<Message> canvas::Program<Message, Renderer> for Arc {
+impl<Message> canvas::Program<Message> for Arc {
     type State = ();
 
     fn draw(

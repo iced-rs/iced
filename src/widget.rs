@@ -165,14 +165,14 @@ pub use vertical_slider::VerticalSlider;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
-pub use iced_renderer::widget::canvas;
+pub mod canvas;
 
 #[cfg(feature = "canvas")]
 #[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 /// Creates a new [`Canvas`].
-pub fn canvas<P, Message, Renderer>(program: P) -> Canvas<Message, Renderer, P>
+pub fn canvas<P, Message, Renderer>(program: P) -> Canvas<P, Message, Renderer>
 where
-    Renderer: canvas::Renderer,
+    Renderer: iced_renderer::geometry::Renderer,
     P: canvas::Program<Message, Renderer>,
 {
     Canvas::new(program)
@@ -193,7 +193,7 @@ pub mod image {
 
 #[cfg(feature = "qr_code")]
 #[cfg_attr(docsrs, doc(cfg(feature = "qr_code")))]
-pub use iced_renderer::widget::qr_code;
+pub mod qr_code;
 
 #[cfg(feature = "svg")]
 #[cfg_attr(docsrs, doc(cfg(feature = "svg")))]

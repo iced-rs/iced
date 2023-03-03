@@ -1,4 +1,4 @@
-use crate::widget::canvas::path::{arc, Arc, Path};
+use crate::geometry::path::{arc, Arc, Path};
 use crate::{Point, Size};
 
 use lyon_path::builder::{self, SvgPathBuilder};
