@@ -24,6 +24,7 @@ path = "../native"
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
+features = ["tiny-skia"]
 
 [dependencies.cosmic-text]
 features = ["std", "swash"]

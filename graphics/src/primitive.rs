@@ -9,6 +9,7 @@ use std::sync::Arc;
 
 /// A rendering primitive.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub enum Primitive {
     /// A text primitive
     Text {
@@ -85,12 +86,14 @@ pub enum Primitive {
         /// The [`Gradient`] to apply to the mesh.
         gradient: Gradient,
     },
+    #[cfg(feature = "tiny_skia")]
     Fill {
         path: tiny_skia::Path,
         paint: tiny_skia::Paint<'static>,
         rule: tiny_skia::FillRule,
         transform: tiny_skia::Transform,
     },
+    #[cfg(feature = "tiny_skia")]
     Stroke {
         path: tiny_skia::Path,
         paint: tiny_skia::Paint<'static>,

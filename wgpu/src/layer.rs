@@ -265,9 +265,8 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            Primitive::Fill { .. } | Primitive::Stroke { .. } => {
+            _ => {
                 // Unsupported!
-                // TODO: Draw a placeholder (?)
             }
         }
     }

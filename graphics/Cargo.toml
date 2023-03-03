@@ -34,7 +34,6 @@ log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
 bitflags = "1.2"
-tiny-skia = "0.8"
 
 [dependencies.bytemuck]
 version = "1.4"
@@ -47,6 +46,10 @@ path = "../native"
 [dependencies.iced_style]
 version = "0.7"
 path = "../style"
+
+[dependencies.tiny-skia]
+version = "0.8"
+optional = true
 
 [dependencies.image_rs]
 version = "0.24"
