@@ -4,11 +4,14 @@ mod scene;
 use controls::Controls;
 use scene::Scene;
 
-use iced_wgpu::{wgpu, Backend, Renderer, Settings, Viewport};
-use iced_winit::{
-    conversion, futures, program, renderer, winit, Clipboard, Color, Debug,
-    Size,
-};
+use iced_wgpu::graphics::Viewport;
+use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_winit::core::renderer;
+use iced_winit::core::{Color, Size};
+use iced_winit::native::program;
+use iced_winit::native::Debug;
+use iced_winit::style::Theme;
+use iced_winit::{conversion, futures, winit, Clipboard};
 
 use winit::{
     dpi::PhysicalPosition,
@@ -73,43 +76,45 @@ pub fn main() {
     let instance = wgpu::Instance::new(backend);
     let surface = unsafe { instance.create_surface(&window) };
 
-    let (format, (device, queue)) = futures::executor::block_on(async {
-        let adapter = wgpu::util::initialize_adapter_from_env_or_default(
-            &instance,
-            backend,
-            Some(&surface),
-        )
-        .await
-        .expect("No suitable GPU adapters found on the system!");
+    let (format, (device, queue)) =
+        futures::futures::executor::block_on(async {
+            let adapter = wgpu::util::initialize_adapter_from_env_or_default(
+                &instance,
+                backend,
+                Some(&surface),
+            )
+            .await
+            .expect("No suitable GPU adapters found on the system!");
 
-        let adapter_features = adapter.features();
+            let adapter_features = adapter.features();
 
-        #[cfg(target_arch = "wasm32")]
-        let needed_limits = wgpu::Limits::downlevel_webgl2_defaults()
-            .using_resolution(adapter.limits());
+            #[cfg(target_arch = "wasm32")]
+            let needed_limits = wgpu::Limits::downlevel_webgl2_defaults()
+                .using_resolution(adapter.limits());
 
-        #[cfg(not(target_arch = "wasm32"))]
-        let needed_limits = wgpu::Limits::default();
+            #[cfg(not(target_arch = "wasm32"))]
+            let needed_limits = wgpu::Limits::default();
 
-        (
-            surface
-                .get_supported_formats(&adapter)
-                .first()
-                .copied()
-                .expect("Get preferred format"),
-            adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: None,
-                        features: adapter_features & wgpu::Features::default(),
-                        limits: needed_limits,
-                    },
-                    None,
-                )
-                .await
-                .expect("Request device"),
-        )
-    });
+            (
+                surface
+                    .get_supported_formats(&adapter)
+                    .first()
+                    .copied()
+                    .expect("Get preferred format"),
+                adapter
+                    .request_device(
+                        &wgpu::DeviceDescriptor {
+                            label: None,
+                            features: adapter_features
+                                & wgpu::Features::default(),
+                            limits: needed_limits,
+                        },
+                        None,
+                    )
+                    .await
+                    .expect("Request device"),
+            )
+        });
 
     surface.configure(
         &device,
@@ -188,7 +193,7 @@ pub fn main() {
                             viewport.scale_factor(),
                         ),
                         &mut renderer,
-                        &iced_wgpu::Theme::Dark,
+                        &Theme::Dark,
                         &renderer::Style { text_color: Color::WHITE },
                         &mut clipboard,
                         &mut debug,

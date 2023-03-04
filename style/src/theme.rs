@@ -8,6 +8,7 @@ use crate::application;
 use crate::button;
 use crate::checkbox;
 use crate::container;
+use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
@@ -17,7 +18,6 @@ use crate::rule;
 use crate::scrollable;
 use crate::slider;
 use crate::svg;
-use crate::text;
 use crate::text_input;
 use crate::toggler;
 

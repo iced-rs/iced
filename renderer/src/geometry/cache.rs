@@ -1,5 +1,7 @@
+use crate::core::Size;
 use crate::geometry::{Frame, Geometry};
-use crate::{Primitive, Renderer, Size};
+use crate::graphics::Primitive;
+use crate::Renderer;
 
 use std::cell::RefCell;
 use std::sync::Arc;

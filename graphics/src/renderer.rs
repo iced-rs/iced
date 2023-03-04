@@ -1,15 +1,15 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
-use crate::{Primitive, Vector};
+use crate::Primitive;
 
-use iced_native::image;
-use iced_native::layout;
-use iced_native::renderer;
-use iced_native::svg;
-use iced_native::text::{self, Text};
-use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
-
-pub use iced_native::renderer::Style;
+use iced_core::image;
+use iced_core::layout;
+use iced_core::renderer;
+use iced_core::svg;
+use iced_core::text::{self, Text};
+use iced_core::{
+    Background, Color, Element, Font, Point, Rectangle, Size, Vector,
+};
 
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -52,7 +52,7 @@ impl<B: Backend, T> Renderer<B, T> {
     }
 }
 
-impl<B, T> iced_native::Renderer for Renderer<B, T>
+impl<B, T> iced_core::Renderer for Renderer<B, T>
 where
     B: Backend,
 {

@@ -1,7 +1,7 @@
 //! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
 pub use crate::geometry::Style;
 
-use crate::Color;
+use iced_core::Color;
 
 /// The style of a stroke.
 #[derive(Debug, Clone)]

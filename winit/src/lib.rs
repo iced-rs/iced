@@ -30,9 +30,11 @@
 #![forbid(rust_2018_idioms, unsafe_code)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
-#[doc(no_inline)]
-pub use iced_native::*;
+pub use iced_graphics as graphics;
+pub use iced_native as native;
+pub use iced_native::core;
+pub use iced_native::futures;
+pub use iced_style as style;
 pub use winit;
 
 #[cfg(feature = "application")]

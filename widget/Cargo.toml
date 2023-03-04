@@ -1,0 +1,37 @@
+[package]
+name = "iced_widget"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+lazy = ["ouroboros"]
+image = ["iced_renderer/image"]
+svg = ["iced_renderer/svg"]
+canvas = ["iced_renderer/geometry"]
+qr_code = ["canvas", "qrcode"]
+
+[dependencies]
+unicode-segmentation = "1.6"
+num-traits = "0.2"
+thiserror = "1"
+
+[dependencies.iced_native]
+version = "0.9"
+path = "../native"
+
+[dependencies.iced_renderer]
+version = "0.1"
+path = "../renderer"
+
+[dependencies.iced_style]
+version = "0.7"
+path = "../style"
+
+[dependencies.ouroboros]
+version = "0.13"
+optional = true
+
+[dependencies.qrcode]
+version = "0.12"
+optional = true
+default-features = false

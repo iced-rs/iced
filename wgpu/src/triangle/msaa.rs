@@ -1,4 +1,4 @@
-use crate::settings;
+use crate::graphics;
 
 #[derive(Debug)]
 pub struct Blit {
@@ -14,7 +14,7 @@ impl Blit {
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
-        antialiasing: settings::Antialiasing,
+        antialiasing: graphics::Antialiasing,
     ) -> Blit {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,

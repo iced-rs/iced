@@ -1,7 +1,6 @@
 //! Access the clipboard.
-pub use iced_native::clipboard::Action;
-
-use crate::command::{self, Command};
+use crate::native::clipboard::Action;
+use crate::native::command::{self, Command};
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -56,7 +55,7 @@ impl Clipboard {
     }
 }
 
-impl iced_native::Clipboard for Clipboard {
+impl crate::core::Clipboard for Clipboard {
     fn read(&self) -> Option<String> {
         self.read()
     }

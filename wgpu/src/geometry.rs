@@ -1,9 +1,9 @@
-use iced_graphics::geometry::fill::{self, Fill};
-use iced_graphics::geometry::{
+use crate::core::{Gradient, Point, Rectangle, Size, Vector};
+use crate::graphics::geometry::fill::{self, Fill};
+use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
-use iced_graphics::primitive::{self, Primitive};
-use iced_graphics::{Gradient, Point, Rectangle, Size, Vector};
+use crate::graphics::primitive::{self, Primitive};
 
 use lyon::geom::euclid;
 use lyon::tessellation;

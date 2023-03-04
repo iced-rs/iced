@@ -13,10 +13,6 @@ tracing = ["iced_wgpu/tracing"]
 raw-window-handle = "0.5"
 thiserror = "1"
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"

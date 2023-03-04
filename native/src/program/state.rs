@@ -1,9 +1,9 @@
-use crate::application;
-use crate::event::{self, Event};
-use crate::mouse;
-use crate::renderer;
+use crate::core::event::{self, Event};
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::{Clipboard, Point, Size};
 use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Point, Program, Size};
+use crate::{Command, Debug, Program};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -22,7 +22,6 @@ where
 impl<P> State<P>
 where
     P: Program + 'static,
-    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
@@ -91,7 +90,7 @@ where
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
-        theme: &<P::Renderer as crate::Renderer>::Theme,
+        theme: &<P::Renderer as iced_core::Renderer>::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
@@ -182,10 +181,7 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, P::Message, P::Renderer>
-where
-    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
-{
+) -> UserInterface<'a, P::Message, P::Renderer> {
     debug.view_started();
     let view = program.view();
     debug.view_finished();

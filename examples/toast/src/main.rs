@@ -176,17 +176,23 @@ mod toast {
     use std::fmt;
     use std::time::{Duration, Instant};
 
+    use iced::advanced;
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::overlay;
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Operation, Tree};
+    use iced::advanced::{Clipboard, Shell, Widget};
+    use iced::event::{self, Event};
+    use iced::mouse;
     use iced::theme;
     use iced::widget::{
         button, column, container, horizontal_rule, horizontal_space, row, text,
     };
+    use iced::window;
     use iced::{
         Alignment, Element, Length, Point, Rectangle, Renderer, Size, Theme,
         Vector,
     };
-    use iced_native::widget::{tree, Operation, Tree};
-    use iced_native::{event, layout, mouse, overlay, renderer, window};
-    use iced_native::{Clipboard, Event, Layout, Shell, Widget};
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
 
@@ -324,13 +330,13 @@ mod toast {
             self.content.as_widget().layout(renderer, limits)
         }
 
-        fn tag(&self) -> tree::Tag {
+        fn tag(&self) -> widget::tree::Tag {
             struct Marker(Vec<Instant>);
-            iced_native::widget::tree::Tag::of::<Marker>()
+            widget::tree::Tag::of::<Marker>()
         }
 
-        fn state(&self) -> tree::State {
-            iced_native::widget::tree::State::new(Vec::<Option<Instant>>::new())
+        fn state(&self) -> widget::tree::State {
+            widget::tree::State::new(Vec::<Option<Instant>>::new())
         }
 
         fn children(&self) -> Vec<Tree> {
@@ -584,7 +590,7 @@ mod toast {
         fn draw(
             &self,
             renderer: &mut Renderer,
-            theme: &<Renderer as iced_native::Renderer>::Theme,
+            theme: &<Renderer as advanced::Renderer>::Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
             cursor_position: Point,
@@ -613,7 +619,7 @@ mod toast {
             &mut self,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn iced_native::widget::Operation<Message>,
+            operation: &mut dyn widget::Operation<Message>,
         ) {
             operation.container(None, &mut |operation| {
                 self.toasts

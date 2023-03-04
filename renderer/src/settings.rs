@@ -1,4 +1,5 @@
-use crate::{Antialiasing, Font};
+use crate::core::Font;
+use crate::graphics::Antialiasing;
 
 /// The settings of a [`Backend`].
 ///

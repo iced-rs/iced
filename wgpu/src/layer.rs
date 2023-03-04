@@ -10,12 +10,9 @@ pub use mesh::Mesh;
 pub use quad::Quad;
 pub use text::Text;
 
-use crate::Primitive;
-
-use iced_graphics::alignment;
-use iced_graphics::{
-    Background, Color, Font, Point, Rectangle, Size, Vector, Viewport,
-};
+use crate::core::alignment;
+use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::graphics::{Primitive, Viewport};
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]

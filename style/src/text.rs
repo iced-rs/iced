@@ -1,5 +1,5 @@
 //! Change the appearance of text.
-use iced_core::Color;
+use crate::core::Color;
 
 /// The style sheet of some text.
 pub trait StyleSheet {

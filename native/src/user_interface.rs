@@ -1,14 +1,12 @@
 //! Implement your own event loop to drive a user interface.
-use crate::application;
-use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::widget;
-use crate::window;
-use crate::{
-    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::event::{self, Event};
+use crate::core::layout;
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::widget;
+use crate::core::window;
+use crate::core::{Clipboard, Point, Rectangle, Size, Vector};
+use crate::core::{Element, Layout, Shell};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -34,8 +32,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
-    Renderer::Theme: application::StyleSheet,
+    Renderer: iced_core::Renderer,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -48,24 +45,21 @@ where
     /// is naive way to set up our application loop:
     ///
     /// ```no_run
-    /// use iced_native::Size;
-    /// use iced_native::user_interface::{self, UserInterface};
-    /// use iced_wgpu::Renderer;
-    ///
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::renderer::Null as Renderer;
+    /// #     pub use iced_native::core::renderer::Null as Renderer;
     /// # }
-    /// #
-    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> Column<(), Renderer> {
-    /// #         Column::new()
-    /// #     }
+    /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn update(&mut self, _: ()) {}
     /// # }
+    /// use iced_native::core::Size;
+    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_wgpu::Renderer;
+    ///
     /// // Initialization
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
@@ -124,25 +118,21 @@ where
     /// completing [the previous example](#example):
     ///
     /// ```no_run
-    /// use iced_native::{clipboard, Size, Point};
-    /// use iced_native::user_interface::{self, UserInterface};
-    /// use iced_wgpu::Renderer;
-    ///
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::renderer::Null as Renderer;
+    /// #     pub use iced_native::core::renderer::Null as Renderer;
     /// # }
-    /// #
-    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> Column<(), Renderer> {
-    /// #         Column::new()
-    /// #     }
-    /// #     pub fn update(&mut self, message: ()) {}
+    /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn update(&mut self, _: ()) {}
     /// # }
+    /// use iced_native::core::{clipboard, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_wgpu::Renderer;
+    ///
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
@@ -357,27 +347,24 @@ where
     /// [completing the last example](#example-1):
     ///
     /// ```no_run
-    /// use iced_native::clipboard;
-    /// use iced_native::renderer;
-    /// use iced_native::user_interface::{self, UserInterface};
-    /// use iced_native::{Size, Point, Theme};
-    /// use iced_wgpu::Renderer;
-    ///
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::renderer::Null as Renderer;
+    /// #     pub use iced_native::core::renderer::Null as Renderer;
+    /// #     pub type Theme = ();
     /// # }
-    /// #
-    /// # use iced_native::widget::Column;
     /// #
     /// # pub struct Counter;
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> Column<(), Renderer> {
-    /// #         Column::new()
-    /// #     }
-    /// #     pub fn update(&mut self, message: ()) {}
+    /// #     pub fn view(&self) -> Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn update(&mut self, _: ()) {}
     /// # }
+    /// use iced_native::core::clipboard;
+    /// use iced_native::core::renderer;
+    /// use iced_native::core::{Element, Size, Point};
+    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_wgpu::{Renderer, Theme};
+    ///
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
     /// let mut renderer = Renderer::new();
@@ -386,6 +373,7 @@ where
     /// let mut clipboard = clipboard::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
+    /// let mut theme = Theme::default();
     ///
     /// loop {
     ///     // Obtain system events...
@@ -407,7 +395,7 @@ where
     ///     );
     ///
     ///     // Draw the user interface
-    ///     let mouse_cursor = user_interface.draw(&mut renderer, &Theme::default(), &renderer::Style::default(), cursor_position);
+    ///     let mouse_cursor = user_interface.draw(&mut renderer, &theme, &renderer::Style::default(), cursor_position);
     ///
     ///     cache = user_interface.into_cache();
     ///

@@ -1,6 +1,7 @@
-use crate::{Backend, Color, Error, Primitive, Renderer, Settings, Viewport};
-
-use iced_graphics::window::compositor::{self, Information, SurfaceError};
+use crate::core::Color;
+use crate::graphics::compositor::{self, Information, SurfaceError};
+use crate::graphics::{Error, Primitive, Viewport};
+use crate::{Backend, Renderer, Settings};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
@@ -15,7 +16,7 @@ pub struct Surface {
     buffer: Vec<u32>,
 }
 
-impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
+impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
     type Surface = Surface;

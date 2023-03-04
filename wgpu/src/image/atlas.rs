@@ -12,8 +12,8 @@ use allocator::Allocator;
 
 pub const SIZE: u32 = 2048;
 
-use iced_graphics::image;
-use iced_graphics::Size;
+use crate::core::Size;
+use crate::graphics::image;
 
 use std::num::NonZeroU32;
 

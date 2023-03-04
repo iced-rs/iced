@@ -1,8 +1,7 @@
-use crate::alignment;
-
-use iced_native::image;
-use iced_native::svg;
-use iced_native::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
+use iced_core::alignment;
+use iced_core::image;
+use iced_core::svg;
+use iced_core::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
 
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;

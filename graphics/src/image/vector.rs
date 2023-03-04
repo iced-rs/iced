@@ -1,9 +1,8 @@
 //! Vector image loading and caching
 use crate::image::Storage;
-use crate::Color;
 
-use iced_native::svg;
-use iced_native::Size;
+use iced_core::svg;
+use iced_core::{Color, Size};
 
 use resvg::tiny_skia;
 use resvg::usvg;

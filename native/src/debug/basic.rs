@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use crate::time;
+use crate::core::time;
 
 use std::collections::VecDeque;
 

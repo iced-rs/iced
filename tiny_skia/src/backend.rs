@@ -1,9 +1,9 @@
-use crate::{Color, Font, Primitive, Settings, Size, Viewport};
-
-use iced_graphics::alignment;
-use iced_graphics::backend;
-use iced_graphics::text;
-use iced_graphics::{Background, Rectangle, Vector};
+use crate::core::alignment;
+use crate::core::text;
+use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::graphics::backend;
+use crate::graphics::{Primitive, Viewport};
+use crate::Settings;
 
 use std::borrow::Cow;
 
@@ -470,7 +470,7 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
-        point: iced_native::Point,
+        point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
         self.text_pipeline.hit_test(
@@ -490,7 +490,7 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, _handle: &iced_native::image::Handle) -> Size<u32> {
+    fn dimensions(&self, _handle: &crate::core::image::Handle) -> Size<u32> {
         // TODO
         Size::new(0, 0)
     }
@@ -500,7 +500,7 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        _handle: &iced_native::svg::Handle,
+        _handle: &crate::core::svg::Handle,
     ) -> Size<u32> {
         // TODO
         Size::new(0, 0)

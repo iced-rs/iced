@@ -1,6 +1,8 @@
 //! Build interactive programs using The Elm Architecture.
-use crate::text;
-use crate::{Command, Element, Renderer};
+use crate::Command;
+
+use iced_core::text;
+use iced_core::{Element, Renderer};
 
 mod state;
 

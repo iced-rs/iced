@@ -50,24 +50,16 @@ mod quad;
 mod text;
 mod triangle;
 
-pub use iced_graphics::primitive;
-pub use iced_graphics::{
-    Antialiasing, Color, Error, Font, Gradient, Point, Rectangle, Size, Vector,
-    Viewport,
-};
-pub use iced_native::alignment;
+pub use iced_graphics as graphics;
+pub use iced_graphics::core;
 
-pub use iced_native::Theme;
 pub use wgpu;
 
 pub use backend::Backend;
 pub use layer::Layer;
-pub use primitive::Primitive;
 pub use settings::Settings;
 
 use buffer::Buffer;
-
-use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
@@ -76,5 +68,4 @@ mod image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer<Theme = iced_native::Theme> =
-    iced_graphics::Renderer<Backend, Theme>;
+pub type Renderer<Theme> = iced_graphics::Renderer<Backend, Theme>;

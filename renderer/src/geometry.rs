@@ -2,9 +2,9 @@ mod cache;
 
 pub use cache::Cache;
 
-pub use iced_graphics::geometry::*;
-
-use crate::{Backend, Point, Rectangle, Size, Vector};
+use crate::core::{Point, Rectangle, Size, Vector};
+use crate::graphics::geometry::{Fill, Geometry, Path, Stroke, Text};
+use crate::Backend;
 
 pub enum Frame {
     Wgpu(iced_wgpu::geometry::Frame),

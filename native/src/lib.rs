@@ -42,32 +42,19 @@
     clippy::useless_conversion
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub mod clipboard;
 pub mod command;
-pub mod event;
 pub mod font;
-pub mod image;
 pub mod keyboard;
-pub mod layout;
-pub mod mouse;
-pub mod overlay;
 pub mod program;
-pub mod renderer;
 pub mod subscription;
-pub mod svg;
 pub mod system;
-pub mod text;
-pub mod touch;
 pub mod user_interface;
 pub mod widget;
 pub mod window;
 
-mod element;
-mod hasher;
 mod runtime;
-mod shell;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.
@@ -78,35 +65,13 @@ mod debug;
 #[path = "debug/null.rs"]
 mod debug;
 
-pub use iced_core::alignment;
-pub use iced_core::gradient;
-pub use iced_core::time;
-pub use iced_core::{
-    color, Alignment, Background, Color, ContentFit, Length, Padding, Pixels,
-    Point, Rectangle, Size, Vector,
-};
-pub use iced_futures::{executor, futures};
-pub use iced_style::application;
-pub use iced_style::theme;
+pub use iced_core as core;
+pub use iced_futures as futures;
 
-#[doc(no_inline)]
-pub use executor::Executor;
-
-pub use clipboard::Clipboard;
 pub use command::Command;
 pub use debug::Debug;
-pub use element::Element;
-pub use event::Event;
 pub use font::Font;
-pub use gradient::Gradient;
-pub use hasher::Hasher;
-pub use layout::Layout;
-pub use overlay::Overlay;
 pub use program::Program;
-pub use renderer::Renderer;
 pub use runtime::Runtime;
-pub use shell::Shell;
 pub use subscription::Subscription;
-pub use theme::Theme;
 pub use user_interface::UserInterface;
-pub use widget::Widget;

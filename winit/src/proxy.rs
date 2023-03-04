@@ -1,4 +1,4 @@
-use iced_native::futures::{
+use crate::futures::futures::{
     channel::mpsc,
     task::{Context, Poll},
     Sink,

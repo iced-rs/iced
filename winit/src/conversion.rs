@@ -2,11 +2,12 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
-use crate::keyboard;
-use crate::mouse;
-use crate::touch;
-use crate::window;
-use crate::{Event, Point, Position};
+use crate::core::keyboard;
+use crate::core::mouse;
+use crate::core::touch;
+use crate::core::window;
+use crate::core::{Event, Point};
+use crate::Position;
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(

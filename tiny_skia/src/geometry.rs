@@ -1,9 +1,9 @@
-use crate::{Point, Primitive, Rectangle, Size, Vector};
-
-use iced_graphics::geometry::fill::{self, Fill};
-use iced_graphics::geometry::stroke::{self, Stroke};
-use iced_graphics::geometry::{Path, Style, Text};
-use iced_graphics::Gradient;
+use crate::core::Gradient;
+use crate::core::{Point, Rectangle, Size, Vector};
+use crate::graphics::geometry::fill::{self, Fill};
+use crate::graphics::geometry::stroke::{self, Stroke};
+use crate::graphics::geometry::{Path, Style, Text};
+use crate::graphics::Primitive;
 
 pub struct Frame {
     size: Size,

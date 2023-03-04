@@ -1,8 +1,8 @@
 //! Write a graphics backend.
-use iced_native::image;
-use iced_native::svg;
-use iced_native::text;
-use iced_native::{Font, Point, Size};
+use iced_core::image;
+use iced_core::svg;
+use iced_core::text;
+use iced_core::{Font, Point, Size};
 
 use std::borrow::Cow;
 

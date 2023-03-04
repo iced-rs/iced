@@ -1,5 +1,6 @@
 use crate::geometry::path::{arc, Arc, Path};
-use crate::{Point, Size};
+
+use iced_core::{Point, Size};
 
 use lyon_path::builder::{self, SvgPathBuilder};
 use lyon_path::geom;

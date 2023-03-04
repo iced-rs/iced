@@ -1,10 +1,12 @@
 //! Connect a window with a renderer.
-use crate::{Backend, Color, Error, Primitive, Renderer, Settings, Viewport};
+use crate::core::Color;
+use crate::graphics;
+use crate::graphics::compositor;
+use crate::graphics::{Error, Primitive, Viewport};
+use crate::{Backend, Renderer, Settings};
 
 use futures::stream::{self, StreamExt};
 
-use iced_graphics::window::compositor;
-use iced_native::futures;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::marker::PhantomData;
@@ -184,7 +186,7 @@ pub fn present<Theme, T: AsRef<str>>(
     }
 }
 
-impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
+impl<Theme> graphics::Compositor for Compositor<Theme> {
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
     type Surface = wgpu::Surface;

@@ -1,5 +1,5 @@
-use crate::alignment;
-use crate::{Color, Font, Point};
+use iced_core::alignment;
+use iced_core::{Color, Font, Point};
 
 /// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]

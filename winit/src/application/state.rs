@@ -1,6 +1,10 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
-use crate::{Application, Color, Debug, Point, Size, Viewport};
+use crate::core;
+use crate::core::{Color, Point, Size};
+use crate::graphics::Viewport;
+use crate::native::Debug;
+use crate::Application;
 
 use std::marker::PhantomData;
 use winit::event::{Touch, WindowEvent};
@@ -10,7 +14,7 @@ use winit::window::Window;
 #[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
-    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
 {
     title: String,
     scale_factor: f64,
@@ -18,14 +22,14 @@ where
     viewport_version: usize,
     cursor_position: winit::dpi::PhysicalPosition<f64>,
     modifiers: winit::event::ModifiersState,
-    theme: <A::Renderer as crate::Renderer>::Theme,
+    theme: <A::Renderer as core::Renderer>::Theme,
     appearance: application::Appearance,
     application: PhantomData<A>,
 }
 
 impl<A: Application> State<A>
 where
-    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
@@ -98,7 +102,7 @@ where
     }
 
     /// Returns the current theme of the [`State`].
-    pub fn theme(&self) -> &<A::Renderer as crate::Renderer>::Theme {
+    pub fn theme(&self) -> &<A::Renderer as core::Renderer>::Theme {
         &self.theme
     }
 

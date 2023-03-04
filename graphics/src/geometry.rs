@@ -16,7 +16,7 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use style::Style;
 pub use text::Text;
 
-pub use iced_native::gradient::{self, Gradient};
+pub use iced_core::gradient::{self, Gradient};
 
 use crate::Primitive;
 
@@ -29,7 +29,7 @@ impl From<Geometry> for Primitive {
     }
 }
 
-pub trait Renderer: iced_native::Renderer {
+pub trait Renderer: iced_core::Renderer {
     type Geometry;
 
     fn draw(&mut self, geometry: Vec<Self::Geometry>);

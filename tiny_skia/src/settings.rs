@@ -1,4 +1,4 @@
-use crate::Font;
+use crate::core::Font;
 
 /// The settings of a [`Backend`].
 ///

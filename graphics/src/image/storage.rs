@@ -1,5 +1,5 @@
 //! Store images.
-use crate::Size;
+use iced_core::Size;
 
 use std::fmt::Debug;
 

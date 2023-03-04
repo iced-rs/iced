@@ -1,7 +1,6 @@
+use crate::core::Size;
+use crate::graphics::image;
 use crate::image::atlas;
-
-use iced_graphics::image;
-use iced_graphics::Size;
 
 #[derive(Debug)]
 pub enum Entry {

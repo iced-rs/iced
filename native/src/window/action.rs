@@ -1,6 +1,6 @@
-use crate::window::{Mode, UserAttention};
+use crate::core::window::{Mode, UserAttention};
+use crate::futures::MaybeSend;
 
-use iced_futures::MaybeSend;
 use std::fmt;
 
 /// An operation to be performed on some window.

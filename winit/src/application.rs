@@ -5,25 +5,25 @@ mod state;
 
 pub use state::State;
 
-use crate::clipboard::{self, Clipboard};
 use crate::conversion;
-use crate::mouse;
-use crate::renderer;
-use crate::widget::operation;
-use crate::{
-    Command, Debug, Error, Event, Executor, Proxy, Runtime, Settings, Size,
-    Subscription,
-};
+use crate::core;
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::time::Instant;
+use crate::core::widget::operation;
+use crate::core::window;
+use crate::core::{Event, Size};
+use crate::futures::futures;
+use crate::futures::Executor;
+use crate::graphics::compositor::{self, Compositor};
+use crate::native::clipboard;
+use crate::native::program::Program;
+use crate::native::user_interface::{self, UserInterface};
+use crate::native::{Command, Debug, Runtime, Subscription};
+use crate::style::application::{Appearance, StyleSheet};
+use crate::{Clipboard, Error, Proxy, Settings};
 
-use iced_futures::futures;
-use iced_futures::futures::channel::mpsc;
-use iced_graphics::window;
-use iced_graphics::window::compositor;
-use iced_native::program::Program;
-use iced_native::time::Instant;
-use iced_native::user_interface::{self, UserInterface};
-
-pub use iced_native::application::{Appearance, StyleSheet};
+use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
 
@@ -45,7 +45,7 @@ use tracing::{info_span, instrument::Instrument};
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <Self::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -67,12 +67,12 @@ where
     fn title(&self) -> String;
 
     /// Returns the current `Theme` of the [`Application`].
-    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+    fn theme(&self) -> <Self::Renderer as core::Renderer>::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
     fn style(
         &self,
-    ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
+    ) -> <<Self::Renderer as core::Renderer>::Theme as StyleSheet>::Style {
         Default::default()
     }
 
@@ -112,8 +112,8 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    C: Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -278,10 +278,10 @@ async fn run_instance<A, E, C>(
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    C: Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
-    use iced_futures::futures::stream::StreamExt;
+    use futures::stream::StreamExt;
     use winit::event;
     use winit::event_loop::ControlFlow;
 
@@ -411,7 +411,7 @@ async fn run_instance<A, E, C>(
                 // Then, we can use the `interface_state` here to decide if a redraw
                 // is needed right away, or simply wait until a specific time.
                 let redraw_event = Event::Window(
-                    crate::window::Event::RedrawRequested(Instant::now()),
+                    window::Event::RedrawRequested(Instant::now()),
                 );
 
                 let (interface_state, _) = user_interface.update(
@@ -442,17 +442,14 @@ async fn run_instance<A, E, C>(
                 }
 
                 window.request_redraw();
-                runtime
-                    .broadcast((redraw_event, crate::event::Status::Ignored));
+                runtime.broadcast((redraw_event, core::event::Status::Ignored));
 
                 let _ = control_sender.start_send(match interface_state {
                     user_interface::State::Updated {
                         redraw_request: Some(redraw_request),
                     } => match redraw_request {
-                        crate::window::RedrawRequest::NextFrame => {
-                            ControlFlow::Poll
-                        }
-                        crate::window::RedrawRequest::At(at) => {
+                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
+                        window::RedrawRequest::At(at) => {
                             ControlFlow::WaitUntil(at)
                         }
                     },
@@ -464,9 +461,9 @@ async fn run_instance<A, E, C>(
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
             )) => {
-                use iced_native::event;
+                use crate::core::event;
 
-                events.push(iced_native::Event::PlatformSpecific(
+                events.push(Event::PlatformSpecific(
                     event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
                         url,
                     )),
@@ -615,7 +612,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Renderer>
 where
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     #[cfg(feature = "trace")]
     let view_span = info_span!("Application", "VIEW").entered();
@@ -656,7 +653,7 @@ pub fn update<A: Application, E: Executor>(
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
         #[cfg(feature = "trace")]
@@ -708,7 +705,7 @@ pub fn run_command<A, E>(
 ) where
     A: Application,
     E: Executor,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use iced_native::command;
     use iced_native::system;
@@ -767,7 +764,7 @@ pub fn run_command<A, E>(
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
                     } else {
-                        window::Mode::Hidden
+                        core::window::Mode::Hidden
                     };
 
                     proxy
@@ -849,7 +846,7 @@ pub fn run_command<A, E>(
                 *cache = current_cache;
             }
             command::Action::LoadFont { bytes, tagger } => {
-                use crate::text::Renderer;
+                use crate::core::text::Renderer;
 
                 // TODO: Error handling (?)
                 renderer.load_font(bytes);

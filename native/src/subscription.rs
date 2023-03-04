@@ -1,10 +1,9 @@
 //! Listen to external events in your application.
-use crate::event::{self, Event};
-use crate::window;
-use crate::Hasher;
-
-use iced_futures::futures::{self, Future, Stream};
-use iced_futures::{BoxStream, MaybeSend};
+use crate::core::event::{self, Event};
+use crate::core::window;
+use crate::core::Hasher;
+use crate::futures::futures::{self, Future, Stream};
+use crate::futures::{BoxStream, MaybeSend};
 
 use std::hash::Hash;
 
@@ -144,7 +143,9 @@ where
 ///
 /// ```
 /// use iced_native::subscription::{self, Subscription};
-/// use iced_native::futures::channel::mpsc;
+/// use iced_native::futures::futures;
+///
+/// use futures::channel::mpsc;
 ///
 /// pub enum Event {
 ///     Ready(mpsc::Sender<Input>),
@@ -174,7 +175,7 @@ where
 ///                 (Some(Event::Ready(sender)), State::Ready(receiver))
 ///             }
 ///             State::Ready(mut receiver) => {
-///                 use iced_native::futures::StreamExt;
+///                 use futures::StreamExt;
 ///
 ///                 // Read next input sent from `Application`
 ///                 let input = receiver.select_next_some().await;

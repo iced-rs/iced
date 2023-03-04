@@ -39,13 +39,9 @@ bitflags = "1.2"
 version = "1.4"
 features = ["derive"]
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
-[dependencies.iced_style]
-version = "0.7"
-path = "../style"
+[dependencies.iced_core]
+version = "0.8"
+path = "../core"
 
 [dependencies.tiny-skia]
 version = "0.8"

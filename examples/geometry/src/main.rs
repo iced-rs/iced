@@ -1,23 +1,13 @@
 //! This example showcases a simple native custom widget that renders using
 //! arbitrary low-level geometry.
 mod rainbow {
-    // For now, to implement a custom native widget you will need to add
-    // `iced_native` and `iced_wgpu` to your dependencies.
-    //
-    // Then, you simply need to define your widget type and implement the
-    // `iced_native::Widget` trait with the `iced_wgpu::Renderer`.
-    //
-    // Of course, you can choose to make the implementation renderer-agnostic,
-    // if you wish to, by creating your own `Renderer` trait, which could be
-    // implemented by `iced_wgpu` and other renderers.
     use iced_graphics::primitive::{ColoredVertex2D, Primitive};
-    use iced_graphics::renderer::{self, Renderer};
-    use iced_graphics::Backend;
 
-    use iced_native::layout;
-    use iced_native::widget::{self, Widget};
-    use iced_native::{
-        Element, Layout, Length, Point, Rectangle, Size, Vector,
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Widget};
+    use iced::{
+        Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
 
     #[derive(Debug, Clone, Copy, Default)]
@@ -27,10 +17,7 @@ mod rainbow {
         Rainbow
     }
 
-    impl<Message, B, T> Widget<Message, Renderer<B, T>> for Rainbow
-    where
-        B: Backend,
-    {
+    impl<Message> Widget<Message, Renderer> for Rainbow {
         fn width(&self) -> Length {
             Length::Fill
         }
@@ -41,7 +28,7 @@ mod rainbow {
 
         fn layout(
             &self,
-            _renderer: &Renderer<B, T>,
+            _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
             let size = limits.width(Length::Fill).resolve(Size::ZERO);
@@ -52,15 +39,15 @@ mod rainbow {
         fn draw(
             &self,
             _tree: &widget::Tree,
-            renderer: &mut Renderer<B, T>,
-            _theme: &T,
+            renderer: &mut Renderer,
+            _theme: &Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
             cursor_position: Point,
             _viewport: &Rectangle,
         ) {
+            use iced::advanced::Renderer as _;
             use iced_graphics::primitive::Mesh2D;
-            use iced_native::Renderer as _;
 
             let b = layout.bounds();
 
@@ -151,10 +138,7 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message, B, T> From<Rainbow> for Element<'a, Message, Renderer<B, T>>
-    where
-        B: Backend,
-    {
+    impl<'a, Message> From<Rainbow> for Element<'a, Message, Renderer> {
         fn from(rainbow: Rainbow) -> Self {
             Self::new(rainbow)
         }

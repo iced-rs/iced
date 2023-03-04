@@ -27,17 +27,17 @@ mod transformation;
 mod viewport;
 
 pub mod backend;
+pub mod compositor;
 pub mod image;
-pub mod overlay;
 pub mod primitive;
 pub mod renderer;
-pub mod window;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
+pub use compositor::Compositor;
 pub use error::Error;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
@@ -47,9 +47,4 @@ pub use viewport::Viewport;
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
 
-pub use iced_native::alignment;
-pub use iced_native::text;
-pub use iced_native::{
-    Alignment, Background, Color, Font, Gradient, Point, Rectangle, Size,
-    Vector,
-};
+pub use iced_core as core;

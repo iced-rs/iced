@@ -28,7 +28,9 @@ impl<T> Command<T> {
     }
 
     /// Creates a [`Command`] that performs a [`widget::Operation`].
-    pub fn widget(operation: impl widget::Operation<T> + 'static) -> Self {
+    pub fn widget(
+        operation: impl iced_core::widget::Operation<T> + 'static,
+    ) -> Self {
         Self(iced_futures::Command::single(Action::Widget(
             widget::Action::new(operation),
         )))

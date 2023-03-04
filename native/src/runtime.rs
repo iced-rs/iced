@@ -1,6 +1,6 @@
 //! Run commands and subscriptions.
-use crate::event::{self, Event};
-use crate::Hasher;
+use iced_core::event::{self, Event};
+use iced_core::Hasher;
 
 /// A native runtime with a generic executor and receiver of results.
 ///

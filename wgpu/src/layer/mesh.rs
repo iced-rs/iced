@@ -1,6 +1,6 @@
 //! A collection of triangle primitives.
-use crate::primitive;
-use crate::{Gradient, Point, Rectangle};
+use crate::core::{Gradient, Point, Rectangle};
+use crate::graphics::primitive;
 
 /// A mesh of triangles.
 #[derive(Debug, Clone, Copy)]

@@ -1,4 +1,5 @@
-use crate::{alignment, Color, Font, Rectangle};
+use crate::core::alignment;
+use crate::core::{Color, Font, Rectangle};
 
 /// A paragraph of text.
 #[derive(Debug, Clone, Copy)]

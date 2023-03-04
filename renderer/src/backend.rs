@@ -1,7 +1,6 @@
-use crate::{Font, Point, Size};
-
-use iced_graphics::backend;
-use iced_graphics::text;
+use crate::core::text;
+use crate::core::{Font, Point, Size};
+use crate::graphics::backend;
 
 use std::borrow::Cow;
 
@@ -99,7 +98,7 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
         match self {
             Self::Wgpu(backend) => backend.dimensions(handle),
             Self::TinySkia(backend) => backend.dimensions(handle),
@@ -111,7 +110,7 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        handle: &iced_native::svg::Handle,
+        handle: &crate::core::svg::Handle,
     ) -> Size<u32> {
         match self {
             Self::Wgpu(backend) => backend.viewport_dimensions(handle),

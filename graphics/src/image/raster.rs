@@ -1,8 +1,8 @@
 //! Raster image loading and caching.
 use crate::image::Storage;
-use crate::Size;
 
-use iced_native::image;
+use iced_core::image;
+use iced_core::Size;
 
 use bitflags::bitflags;
 use std::collections::{HashMap, HashSet};

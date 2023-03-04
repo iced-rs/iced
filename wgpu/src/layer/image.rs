@@ -1,6 +1,6 @@
-use crate::{Color, Rectangle};
-
-use iced_native::{image, svg};
+use crate::core::image;
+use crate::core::svg;
+use crate::core::{Color, Rectangle};
 
 /// A raster or vector image.
 #[derive(Debug, Clone)]

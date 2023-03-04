@@ -48,10 +48,6 @@ features = ["std"]
 version = "1.9"
 features = ["derive"]
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"

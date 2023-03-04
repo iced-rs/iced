@@ -1,8 +1,7 @@
-use crate::widget::operation::{
+use iced_core::widget::operation::{
     self, Focusable, Operation, Scrollable, TextInput,
 };
-use crate::widget::Id;
-
+use iced_core::widget::Id;
 use iced_futures::MaybeSend;
 
 use std::any::Any;

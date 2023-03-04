@@ -1,5 +1,5 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
-use crate::{Color, Gradient};
+use iced_core::{Color, Gradient};
 
 pub use crate::geometry::Style;
 

@@ -1,16 +1,17 @@
 mod atlas;
 
-#[cfg(feature = "image")]
-use iced_graphics::image::raster;
-
-#[cfg(feature = "svg")]
-use iced_graphics::image::vector;
-
-use crate::layer;
-use crate::{Buffer, Transformation};
 use atlas::Atlas;
 
-use iced_native::{Rectangle, Size};
+use crate::core::{Rectangle, Size};
+use crate::graphics::Transformation;
+use crate::layer;
+use crate::Buffer;
+
+#[cfg(feature = "image")]
+use crate::graphics::image::raster;
+
+#[cfg(feature = "svg")]
+use crate::graphics::image::vector;
 
 use std::cell::RefCell;
 use std::mem;
@@ -18,10 +19,10 @@ use std::mem;
 use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image")]
-use iced_native::image;
+use crate::core::image;
 
 #[cfg(feature = "svg")]
-use iced_native::svg;
+use crate::core::svg;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;

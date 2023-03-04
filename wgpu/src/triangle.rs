@@ -2,11 +2,9 @@
 mod msaa;
 
 use crate::buffer::r#static::Buffer;
+use crate::core::{Gradient, Size};
+use crate::graphics::{Antialiasing, Transformation};
 use crate::layer::mesh::{self, Mesh};
-use crate::settings;
-use crate::Transformation;
-
-use iced_graphics::Size;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -137,7 +135,7 @@ impl Layer {
                     gradient_vertex_offset += written_bytes;
 
                     match gradient {
-                        iced_graphics::Gradient::Linear(linear) => {
+                        Gradient::Linear(linear) => {
                             use glam::{IVec4, Vec4};
 
                             let start_offset = self.gradient.color_stop_offset;
@@ -319,7 +317,7 @@ impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
-        antialiasing: Option<settings::Antialiasing>,
+        antialiasing: Option<Antialiasing>,
     ) -> Pipeline {
         Pipeline {
             blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
@@ -453,7 +451,7 @@ fn primitive_state() -> wgpu::PrimitiveState {
 }
 
 fn multisample_state(
-    antialiasing: Option<settings::Antialiasing>,
+    antialiasing: Option<Antialiasing>,
 ) -> wgpu::MultisampleState {
     wgpu::MultisampleState {
         count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
@@ -465,11 +463,11 @@ fn multisample_state(
 mod solid {
     use crate::buffer::dynamic;
     use crate::buffer::r#static::Buffer;
-    use crate::settings;
+    use crate::graphics::primitive;
+    use crate::graphics::{Antialiasing, Transformation};
     use crate::triangle;
+
     use encase::ShaderType;
-    use iced_graphics::primitive;
-    use iced_graphics::Transformation;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -550,7 +548,7 @@ mod solid {
         pub fn new(
             device: &wgpu::Device,
             format: wgpu::TextureFormat,
-            antialiasing: Option<settings::Antialiasing>,
+            antialiasing: Option<Antialiasing>,
         ) -> Self {
             let constants_layout = device.create_bind_group_layout(
                 &wgpu::BindGroupLayoutDescriptor {
@@ -633,7 +631,7 @@ mod solid {
 mod gradient {
     use crate::buffer::dynamic;
     use crate::buffer::r#static::Buffer;
-    use crate::settings;
+    use crate::graphics::Antialiasing;
     use crate::triangle;
 
     use encase::ShaderType;
@@ -755,7 +753,7 @@ mod gradient {
         pub(super) fn new(
             device: &wgpu::Device,
             format: wgpu::TextureFormat,
-            antialiasing: Option<settings::Antialiasing>,
+            antialiasing: Option<Antialiasing>,
         ) -> Self {
             let constants_layout = device.create_bind_group_layout(
                 &wgpu::BindGroupLayoutDescriptor {

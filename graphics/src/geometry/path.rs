@@ -9,7 +9,7 @@ pub use builder::Builder;
 
 pub use lyon_path;
 
-use crate::{Point, Size};
+use iced_core::{Point, Size};
 
 /// An immutable set of points that may or may not be connected.
 ///
