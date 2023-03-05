@@ -17,12 +17,10 @@ thiserror = "1"
 version = "0.7"
 path = "../graphics"
 
+[dependencies.iced_wgpu]
+version = "0.9"
+path = "../wgpu"
+
 [dependencies.iced_tiny_skia]
 version = "0.1"
 path = "../tiny_skia"
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_wgpu = { version = "0.9", path = "../wgpu" }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_wgpu = { version = "0.9", path = "../wgpu", features = ["webgl"] }

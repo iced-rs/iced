@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced_winit = { path = "../../winit" }
-iced_wgpu = { path = "../../wgpu", features = ["webgl"] }
+iced_wgpu = { path = "../../wgpu" }
 iced_widget = { path = "../../widget" }
 env_logger = "0.8"
 
