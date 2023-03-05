@@ -1,5 +1,6 @@
 //! Change the appearance of a toggler.
 use iced_core::Color;
+use std::fmt::Debug;
 
 /// The appearance of a toggler.
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +16,7 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a toggler.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

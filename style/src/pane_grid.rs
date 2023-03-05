@@ -1,8 +1,9 @@
 //! Change the appearance of a pane grid.
 use iced_core::Color;
+use std::fmt::Debug;
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

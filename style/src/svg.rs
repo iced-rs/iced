@@ -1,6 +1,7 @@
 //! Change the appearance of a svg.
 
 use iced_core::Color;
+use std::fmt::Debug;
 
 /// The appearance of an SVG.
 #[derive(Debug, Default, Clone, Copy)]
@@ -14,7 +15,7 @@ pub struct Appearance {
 }
 
 /// The stylesheet of a svg.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

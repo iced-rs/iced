@@ -1,5 +1,6 @@
 //! Change the appearance of radio buttons.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a radio button.
 #[derive(Debug, Clone, Copy)]
@@ -17,7 +18,7 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a radio button.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

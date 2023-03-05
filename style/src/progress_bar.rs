@@ -1,5 +1,6 @@
 //! Change the appearance of a progress bar.
 use iced_core::Background;
+use std::fmt::Debug;
 
 /// The appearance of a progress bar.
 #[derive(Debug, Clone, Copy)]
@@ -13,7 +14,7 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a progress bar.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

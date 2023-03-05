@@ -1,5 +1,6 @@
 //! Change the appearance of menus.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a menu.
 #[derive(Debug, Clone, Copy)]
@@ -21,7 +22,7 @@ pub struct Appearance {
 }
 
 /// The style sheet of a menu.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default + Clone;
 

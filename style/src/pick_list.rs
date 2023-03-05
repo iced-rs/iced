@@ -1,5 +1,6 @@
 //! Change the appearance of a pick list.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a pick list.
 #[derive(Debug, Clone, Copy)]
@@ -21,7 +22,7 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a container.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default + Clone;
 

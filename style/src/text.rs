@@ -1,5 +1,6 @@
 //! Change the appearance of text.
 use iced_core::Color;
+use std::fmt::Debug;
 
 /// The style sheet of some text.
 pub trait StyleSheet {

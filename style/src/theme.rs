@@ -120,7 +120,7 @@ impl From<fn(&Theme) -> application::Appearance> for Application {
 }
 
 /// The style of a button.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Button {
     /// The primary style.
     #[default]
@@ -228,7 +228,7 @@ impl button::StyleSheet for Theme {
 }
 
 /// The style of a checkbox.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Checkbox {
     /// The primary style.
     #[default]
@@ -340,7 +340,7 @@ fn checkbox_appearance(
 }
 
 /// The style of a container.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Container {
     /// No style.
     #[default]
@@ -388,7 +388,7 @@ impl container::StyleSheet for fn(&Theme) -> container::Appearance {
 }
 
 /// The style of a slider.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Slider {
     /// The default style.
     #[default]
@@ -469,7 +469,7 @@ impl slider::StyleSheet for Theme {
 }
 
 /// The style of a menu.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub enum Menu {
     /// The default style.
     #[default]
@@ -511,7 +511,7 @@ impl From<PickList> for Menu {
 }
 
 /// The style of a pick list.
-#[derive(Clone, Default)]
+#[derive(Clone, Default, Debug)]
 pub enum PickList {
     /// The default style.
     #[default]
@@ -566,7 +566,7 @@ impl pick_list::StyleSheet for Theme {
 }
 
 /// The style of a radio button.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Radio {
     /// The default style.
     #[default]
@@ -621,7 +621,7 @@ impl radio::StyleSheet for Theme {
 }
 
 /// The style of a toggler.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Toggler {
     /// The default style.
     #[default]
@@ -688,7 +688,7 @@ impl toggler::StyleSheet for Theme {
 }
 
 /// The style of a pane grid.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum PaneGrid {
     /// The default style.
     #[default]
@@ -730,7 +730,7 @@ impl pane_grid::StyleSheet for Theme {
 }
 
 /// The style of a progress bar.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum ProgressBar {
     /// The primary style.
     #[default]
@@ -783,7 +783,7 @@ impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
 }
 
 /// The style of a rule.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Rule {
     /// The default style.
     #[default]
@@ -827,7 +827,7 @@ impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
 /**
  * Svg
  */
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Svg {
     /// No filtering to the rendered SVG.
     #[default]
@@ -863,7 +863,7 @@ impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
 }
 
 /// The style of a scrollable.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum Scrollable {
     /// The default style.
     #[default]
@@ -961,7 +961,7 @@ impl scrollable::StyleSheet for Theme {
 }
 
 /// The style of text.
-#[derive(Clone, Copy, Default)]
+#[derive(Clone, Copy, Default, Debug)]
 pub enum Text {
     /// The default style.
     #[default]
@@ -988,7 +988,7 @@ impl text::StyleSheet for Theme {
 }
 
 /// The style of a text input.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub enum TextInput {
     /// The default style.
     #[default]

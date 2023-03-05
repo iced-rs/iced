@@ -1,5 +1,6 @@
 //! Change the appearance of a checkbox.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a checkbox.
 #[derive(Debug, Clone, Copy)]
@@ -19,7 +20,7 @@ pub struct Appearance {
 }
 
 /// A set of rules that dictate the style of a checkbox.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

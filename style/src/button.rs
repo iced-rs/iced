@@ -1,5 +1,6 @@
 //! Change the apperance of a button.
 use iced_core::{Background, Color, Vector};
+use std::fmt::Debug;
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
@@ -32,7 +33,7 @@ impl std::default::Default for Appearance {
 }
 
 /// A set of rules that dictate the style of a button.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

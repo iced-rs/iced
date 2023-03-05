@@ -329,6 +329,7 @@ impl Application for ScrollableDemo {
     }
 }
 
+#[derive(Debug)]
 struct ScrollbarCustomStyle;
 
 impl scrollable::StyleSheet for ScrollbarCustomStyle {
@@ -358,6 +359,7 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
     }
 }
 
+#[derive(Debug)]
 struct ProgressBarCustomStyle;
 
 impl progress_bar::StyleSheet for ProgressBarCustomStyle {

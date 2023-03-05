@@ -1,5 +1,6 @@
 //! Change the appearance of a container.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy)]
@@ -29,7 +30,7 @@ impl std::default::Default for Appearance {
 }
 
 /// A set of rules that dictate the [`Appearance`] of a container.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

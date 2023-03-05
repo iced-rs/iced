@@ -1,5 +1,6 @@
 //! Change the appearance of a scrollable.
 use iced_core::{Background, Color};
+use std::fmt::Debug;
 
 /// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
@@ -30,7 +31,7 @@ pub struct Scroller {
 }
 
 /// A set of rules that dictate the style of a scrollable.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 

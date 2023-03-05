@@ -1,5 +1,6 @@
 //! Change the apperance of a slider.
 use iced_core::Color;
+use std::fmt::Debug;
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
@@ -41,7 +42,7 @@ pub enum HandleShape {
 }
 
 /// A set of rules that dictate the style of a slider.
-pub trait StyleSheet {
+pub trait StyleSheet: Debug {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 
