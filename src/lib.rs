@@ -193,7 +193,6 @@ pub use crate::core::{
     Rectangle, Size, Vector,
 };
 pub use crate::native::Command;
-pub use native::subscription;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -231,6 +230,13 @@ pub mod keyboard {
 pub mod mouse {
     //! Listen and react to mouse events.
     pub use crate::core::mouse::{Button, Event, Interaction, ScrollDelta};
+}
+
+pub mod subscription {
+    //! Listen to external events in your application.
+    pub use iced_futures::subscription::{
+        events, events_with, run, run_with_id, unfold, Subscription,
+    };
 }
 
 #[cfg(feature = "system")]

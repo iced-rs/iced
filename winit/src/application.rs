@@ -14,12 +14,12 @@ use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Event, Size};
 use crate::futures::futures;
-use crate::futures::Executor;
+use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
 use crate::native::clipboard;
 use crate::native::program::Program;
 use crate::native::user_interface::{self, UserInterface};
-use crate::native::{Command, Debug, Runtime, Subscription};
+use crate::native::{Command, Debug};
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -316,7 +316,7 @@ async fn run_instance<A, E, C>(
         &window,
         || compositor.fetch_information(),
     );
-    runtime.track(application.subscription());
+    runtime.track(application.subscription().into_recipes());
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
@@ -360,8 +360,10 @@ async fn run_instance<A, E, C>(
 
                 debug.event_processing_finished();
 
-                for event in events.drain(..).zip(statuses.into_iter()) {
-                    runtime.broadcast(event);
+                for (event, status) in
+                    events.drain(..).zip(statuses.into_iter())
+                {
+                    runtime.broadcast(event, status);
                 }
 
                 if !messages.is_empty()
@@ -442,7 +444,7 @@ async fn run_instance<A, E, C>(
                 }
 
                 window.request_redraw();
-                runtime.broadcast((redraw_event, core::event::Status::Ignored));
+                runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
                 let _ = control_sender.start_send(match interface_state {
                     user_interface::State::Updated {
@@ -685,7 +687,7 @@ pub fn update<A: Application, E: Executor>(
     }
 
     let subscription = application.subscription();
-    runtime.track(subscription);
+    runtime.track(subscription.into_recipes());
 }
 
 /// Runs the actions of a [`Command`].

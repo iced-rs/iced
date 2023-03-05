@@ -18,6 +18,7 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use futures;
+pub use iced_core as core;
 
 mod command;
 mod maybe_send;

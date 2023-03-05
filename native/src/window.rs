@@ -5,7 +5,7 @@ pub use action::Action;
 
 use crate::core::time::Instant;
 use crate::core::window::Event;
-use crate::subscription::{self, Subscription};
+use crate::futures::subscription::{self, Subscription};
 
 /// Subscribes to the frames of the window of the running application.
 ///

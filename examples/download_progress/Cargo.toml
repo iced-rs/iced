@@ -7,8 +7,6 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["tokio"] }
-iced_native = { path = "../../native" }
-iced_futures = { path = "../../futures" }
 
 [dependencies.reqwest]
 version = "0.11"
