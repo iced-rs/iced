@@ -14,10 +14,10 @@
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
-pub use iced_native as native;
-pub use iced_native::core;
 pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
+pub use iced_runtime as runtime;
+pub use iced_runtime::core;
 pub use iced_style as style;
 
 mod column;

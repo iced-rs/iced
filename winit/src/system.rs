@@ -1,7 +1,7 @@
 //! Access the native system.
 use crate::graphics::compositor;
-use crate::native::command::{self, Command};
-use crate::native::system::{Action, Information};
+use crate::runtime::command::{self, Command};
+use crate::runtime::system::{Action, Information};
 
 /// Query for available system information.
 pub fn fetch_information<Message>(

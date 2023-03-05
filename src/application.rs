@@ -215,7 +215,7 @@ pub trait Application: Sized {
 
 struct Instance<A: Application>(A);
 
-impl<A> crate::native::Program for Instance<A>
+impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
 {

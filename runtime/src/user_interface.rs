@@ -32,7 +32,7 @@ pub struct UserInterface<'a, Message, Renderer> {
 
 impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: crate::core::Renderer,
 {
     /// Builds a user interface for an [`Element`].
     ///
@@ -46,7 +46,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::core::renderer::Null as Renderer;
+    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
     /// # }
     /// #
     /// # pub struct Counter;
@@ -56,8 +56,8 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_native::core::Size;
-    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_runtime::core::Size;
+    /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// // Initialization
@@ -119,7 +119,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::core::renderer::Null as Renderer;
+    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
     /// # }
     /// #
     /// # pub struct Counter;
@@ -129,8 +129,8 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_native::core::{clipboard, Size, Point};
-    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_runtime::core::{clipboard, Size, Point};
+    /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::Renderer;
     ///
     /// let mut counter = Counter::new();
@@ -348,7 +348,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_native::core::renderer::Null as Renderer;
+    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
     /// #     pub type Theme = ();
     /// # }
     /// #
@@ -359,10 +359,10 @@ where
     /// #     pub fn view(&self) -> Element<(), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_native::core::clipboard;
-    /// use iced_native::core::renderer;
-    /// use iced_native::core::{Element, Size, Point};
-    /// use iced_native::user_interface::{self, UserInterface};
+    /// use iced_runtime::core::clipboard;
+    /// use iced_runtime::core::renderer;
+    /// use iced_runtime::core::{Element, Size, Point};
+    /// use iced_runtime::user_interface::{self, UserInterface};
     /// use iced_wgpu::{Renderer, Theme};
     ///
     /// let mut counter = Counter::new();

@@ -15,9 +15,9 @@ unicode-segmentation = "1.6"
 num-traits = "0.2"
 thiserror = "1"
 
-[dependencies.iced_native]
+[dependencies.iced_runtime]
 version = "0.9"
-path = "../native"
+path = "../runtime"
 
 [dependencies.iced_renderer]
 version = "0.1"

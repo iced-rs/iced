@@ -31,9 +31,9 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use iced_graphics as graphics;
-pub use iced_native as native;
-pub use iced_native::core;
-pub use iced_native::futures;
+pub use iced_runtime as runtime;
+pub use iced_runtime::core;
+pub use iced_runtime::futures;
 pub use iced_style as style;
 pub use winit;
 
@@ -42,7 +42,6 @@ pub mod application;
 pub mod clipboard;
 pub mod conversion;
 pub mod settings;
-pub mod window;
 
 #[cfg(feature = "system")]
 pub mod system;

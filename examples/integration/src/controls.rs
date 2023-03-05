@@ -1,7 +1,7 @@
 use iced_wgpu::Renderer;
 use iced_widget::{slider, text_input, Column, Row, Text};
 use iced_winit::core::{Alignment, Color, Element, Length};
-use iced_winit::native::{Command, Program};
+use iced_winit::runtime::{Command, Program};
 use iced_winit::style::Theme;
 
 pub struct Controls {

@@ -187,7 +187,7 @@ impl Pipeline {
         &self,
         content: &str,
         size: f32,
-        font: iced_native::Font,
+        font: Font,
         bounds: Size,
         point: Point,
         _nearest_only: bool,

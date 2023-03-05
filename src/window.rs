@@ -9,5 +9,4 @@ pub use position::Position;
 pub use settings::Settings;
 
 pub use crate::core::window::*;
-pub use crate::native::window::*;
-pub use crate::shell::window::*;
+pub use crate::runtime::window::*;

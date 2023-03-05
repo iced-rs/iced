@@ -45,7 +45,7 @@ members = [
     "core",
     "futures",
     "graphics",
-    "native",
+    "runtime",
     "renderer",
     "style",
     "tiny_skia",

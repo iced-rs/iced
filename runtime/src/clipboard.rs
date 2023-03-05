@@ -1,5 +1,6 @@
 //! Access the clipboard.
-use iced_futures::MaybeSend;
+use crate::command::{self, Command};
+use crate::futures::MaybeSend;
 
 use std::fmt;
 
@@ -37,4 +38,16 @@ impl<T> fmt::Debug for Action<T> {
             Self::Write(_) => write!(f, "Action::Write"),
         }
     }
+}
+
+/// Read the current contents of the clipboard.
+pub fn read<Message>(
+    f: impl Fn(Option<String>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Clipboard(Action::Read(Box::new(f))))
+}
+
+/// Write the given contents to the clipboard.
+pub fn write<Message>(contents: String) -> Command<Message> {
+    Command::single(command::Action::Clipboard(Action::Write(contents)))
 }

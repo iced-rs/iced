@@ -17,10 +17,6 @@ rustc-hash = "1.1"
 ouroboros = "0.15"
 kurbo = "0.9"
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"

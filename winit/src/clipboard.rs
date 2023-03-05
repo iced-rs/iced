@@ -1,6 +1,4 @@
 //! Access the clipboard.
-use crate::native::clipboard::Action;
-use crate::native::command::{self, Command};
 
 /// A buffer for short-term storage and transfer within and between
 /// applications.
@@ -63,16 +61,4 @@ impl crate::core::Clipboard for Clipboard {
     fn write(&mut self, contents: String) {
         self.write(contents)
     }
-}
-
-/// Read the current contents of the clipboard.
-pub fn read<Message>(
-    f: impl Fn(Option<String>) -> Message + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Read(Box::new(f))))
-}
-
-/// Write the given contents to the clipboard.
-pub fn write<Message>(contents: String) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Write(contents)))
 }

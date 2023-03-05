@@ -169,7 +169,7 @@ use iced_widget::renderer;
 use iced_widget::style;
 use iced_winit as shell;
 use iced_winit::core;
-use iced_winit::native;
+use iced_winit::runtime;
 
 pub use iced_futures::futures;
 
@@ -192,11 +192,11 @@ pub use crate::core::{
     color, Alignment, Background, Color, ContentFit, Length, Padding, Point,
     Rectangle, Size, Vector,
 };
-pub use crate::native::Command;
+pub use crate::runtime::Command;
 
 pub mod clipboard {
     //! Access the clipboard.
-    pub use crate::shell::clipboard::{read, write};
+    pub use crate::runtime::clipboard::{read, write};
 }
 
 pub mod executor {
@@ -219,7 +219,7 @@ pub mod executor {
 pub mod font {
     //! Load and use fonts.
     pub use crate::core::font::*;
-    pub use crate::native::font::*;
+    pub use crate::runtime::font::*;
 }
 
 pub mod keyboard {
@@ -242,7 +242,7 @@ pub mod subscription {
 #[cfg(feature = "system")]
 pub mod system {
     //! Retrieve system information.
-    pub use crate::native::system::Information;
+    pub use crate::runtime::system::Information;
     pub use crate::shell::system::*;
 }
 

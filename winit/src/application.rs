@@ -16,10 +16,10 @@ use crate::core::{Event, Size};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
-use crate::native::clipboard;
-use crate::native::program::Program;
-use crate::native::user_interface::{self, UserInterface};
-use crate::native::{Command, Debug};
+use crate::runtime::clipboard;
+use crate::runtime::program::Program;
+use crate::runtime::user_interface::{self, UserInterface};
+use crate::runtime::{Command, Debug};
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -709,9 +709,9 @@ pub fn run_command<A, E>(
     E: Executor,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
-    use iced_native::command;
-    use iced_native::system;
-    use iced_native::window;
+    use crate::runtime::command;
+    use crate::runtime::system;
+    use crate::runtime::window;
 
     for action in command.actions() {
         match action {

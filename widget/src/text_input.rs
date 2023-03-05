@@ -28,7 +28,7 @@ use crate::core::{
     Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
-use crate::native::Command;
+use crate::runtime::Command;
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 

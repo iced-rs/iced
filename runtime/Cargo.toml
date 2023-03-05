@@ -1,5 +1,5 @@
 [package]
-name = "iced_native"
+name = "iced_runtime"
 version = "0.9.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"

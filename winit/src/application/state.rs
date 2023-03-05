@@ -3,7 +3,7 @@ use crate::conversion;
 use crate::core;
 use crate::core::{Color, Point, Size};
 use crate::graphics::Viewport;
-use crate::native::Debug;
+use crate::runtime::Debug;
 use crate::Application;
 
 use std::marker::PhantomData;

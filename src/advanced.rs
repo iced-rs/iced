@@ -10,5 +10,5 @@ pub use crate::core::{Clipboard, Shell};
 
 pub mod subscription {
     //! Write your own subscriptions.
-    pub use crate::native::futures::subscription::{EventStream, Recipe};
+    pub use crate::runtime::futures::subscription::{EventStream, Recipe};
 }

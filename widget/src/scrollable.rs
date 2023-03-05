@@ -13,7 +13,7 @@ use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
-use crate::native::Command;
+use crate::runtime::Command;
 
 pub use crate::style::scrollable::{Scrollbar, Scroller, StyleSheet};
 pub use operation::scrollable::RelativeOffset;
