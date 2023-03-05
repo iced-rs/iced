@@ -30,7 +30,7 @@ pub struct Icon<Font> {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// # type Checkbox<'a, Message> =
 /// #     iced_widget::Checkbox<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

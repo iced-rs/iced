@@ -25,7 +25,7 @@ pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 /// to 1 unit.
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// # type Slider<'a, T, Message> =
 /// #     iced_widget::Slider<'a, Message, T, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

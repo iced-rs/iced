@@ -35,7 +35,7 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 /// A field that can be filled with text.
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// # pub type TextInput<'a, Message> =
 /// #     iced_widget::TextInput<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

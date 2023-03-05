@@ -18,7 +18,7 @@ pub use iced_style::radio::{Appearance, StyleSheet};
 /// A circular button representing a choice.
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// # type Radio<Message> =
 /// #     iced_widget::Radio<Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

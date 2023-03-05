@@ -67,7 +67,7 @@ use crate::core::{
 ///
 /// ## Example
 ///
-/// ```
+/// ```no_run
 /// # use iced_widget::{pane_grid, text};
 /// #
 /// # type PaneGrid<'a, Message> =

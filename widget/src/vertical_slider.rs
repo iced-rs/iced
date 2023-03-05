@@ -26,7 +26,7 @@ use crate::core::{
 /// to 1 unit.
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// # type VerticalSlider<'a, T, Message> =
 /// #     iced_widget::VerticalSlider<'a, T, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

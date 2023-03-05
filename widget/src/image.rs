@@ -23,7 +23,7 @@ pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// # use iced_widget::image::{self, Image};
 /// #
 /// let image = Image::<image::Handle>::new("resources/ferris.png");

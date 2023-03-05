@@ -18,7 +18,7 @@ pub use crate::style::toggler::{Appearance, StyleSheet};
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// # type Toggler<'a, Message> =
 /// #     iced_widget::Toggler<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

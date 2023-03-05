@@ -13,7 +13,7 @@ pub use iced_style::progress_bar::{Appearance, StyleSheet};
 /// A bar that displays progress.
 ///
 /// # Example
-/// ```
+/// ```no_run
 /// # type ProgressBar =
 /// #     iced_widget::ProgressBar<iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #

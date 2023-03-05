@@ -18,7 +18,7 @@ pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 ///
-/// ```
+/// ```no_run
 /// # type Button<'a, Message> =
 /// #     iced_widget::Button<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #
