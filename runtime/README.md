@@ -1,22 +1,10 @@
-# `iced_native`
+# `iced_runtime`
 [![Documentation](https://docs.rs/iced_native/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_native.svg)](https://crates.io/crates/iced_native)
 [![License](https://img.shields.io/crates/l/iced_native.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
-`iced_native` takes [`iced_core`] and builds a native runtime on top of it, featuring:
-- A custom layout engine, greatly inspired by [`druid`]
-- Event handling for all the built-in widgets
-- A renderer-agnostic API
-
-To achieve this, it introduces a bunch of reusable interfaces:
-- A `Widget` trait, which is used to implement new widgets: from layout requirements to event and drawing logic.
-- A bunch of `Renderer` traits, meant to keep the crate renderer-agnostic.
-- A `Windowed` trait, leveraging [`raw-window-handle`], which can be implemented by graphical renderers that target _windows_. Window-based shells (like [`iced_winit`]) can use this trait to stay renderer-agnostic.
-
-<p align="center">
-  <img alt="The native target" src="../docs/graphs/native.png" width="80%">
-</p>
+`iced_runtime` takes [`iced_core`] and builds a native runtime on top of it.
 
 [documentation]: https://docs.rs/iced_native
 [`iced_core`]: ../core
@@ -25,10 +13,10 @@ To achieve this, it introduces a bunch of reusable interfaces:
 [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 
 ## Installation
-Add `iced_native` as a dependency in your `Cargo.toml`:
+Add `iced_runtime` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_native = "0.9"
+iced_runtime = "0.9"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
