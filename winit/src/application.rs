@@ -818,7 +818,7 @@ pub fn run_command<A, E>(
             },
             command::Action::Widget(action) => {
                 let mut current_cache = std::mem::take(cache);
-                let mut current_operation = Some(action.into_operation());
+                let mut current_operation = Some(action);
 
                 let mut user_interface = build_user_interface(
                     application,

@@ -1,7 +1,7 @@
 use crate::clipboard;
+use crate::core::widget;
 use crate::font;
 use crate::system;
-use crate::widget;
 use crate::window;
 
 use iced_futures::MaybeSend;
@@ -28,7 +28,7 @@ pub enum Action<T> {
     System(system::Action<T>),
 
     /// Run a widget action.
-    Widget(widget::Action<T>),
+    Widget(Box<dyn widget::Operation<T>>),
 
     /// Load a font from its bytes.
     LoadFont {
@@ -59,7 +59,9 @@ impl<T> Action<T> {
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
             Self::Window(window) => Action::Window(window.map(f)),
             Self::System(system) => Action::System(system.map(f)),
-            Self::Widget(widget) => Action::Widget(widget.map(f)),
+            Self::Widget(operation) => {
+                Action::Widget(Box::new(widget::operation::map(operation, f)))
+            }
             Self::LoadFont { bytes, tagger } => Action::LoadFont {
                 bytes,
                 tagger: Box::new(move |result| f(tagger(result))),

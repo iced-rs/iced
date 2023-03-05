@@ -50,7 +50,6 @@ pub mod keyboard;
 pub mod program;
 pub mod system;
 pub mod user_interface;
-pub mod widget;
 pub mod window;
 
 // We disable debug capabilities on release builds unless the `debug` feature
