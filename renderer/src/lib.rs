@@ -1,3 +1,6 @@
+#[cfg(not(any(feature = "wgpu", feature = "tiny-skia")))]
+compile_error!("No backend selected. Enable at least one backend feature: `wgpu` or `tiny-skia`.");
+
 pub mod compositor;
 
 #[cfg(feature = "geometry")]

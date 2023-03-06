@@ -6,16 +6,26 @@ use std::borrow::Cow;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Backend {
+    #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Backend),
+    #[cfg(feature = "tiny-skia")]
     TinySkia(iced_tiny_skia::Backend),
+}
+
+macro_rules! delegate {
+    ($backend:expr, $name:ident, $body:expr) => {
+        match $backend {
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu($name) => $body,
+            #[cfg(feature = "tiny-skia")]
+            Self::TinySkia($name) => $body,
+        }
+    };
 }
 
 impl iced_graphics::Backend for Backend {
     fn trim_measurements(&mut self) {
-        match self {
-            Self::Wgpu(backend) => backend.trim_measurements(),
-            Self::TinySkia(backend) => backend.trim_measurements(),
-        }
+        delegate!(self, backend, backend.trim_measurements());
     }
 }
 
@@ -25,17 +35,11 @@ impl backend::Text for Backend {
     const ARROW_DOWN_ICON: char = '\u{e800}';
 
     fn default_font(&self) -> Font {
-        match self {
-            Self::Wgpu(backend) => backend.default_font(),
-            Self::TinySkia(backend) => backend.default_font(),
-        }
+        delegate!(self, backend, backend.default_font())
     }
 
     fn default_size(&self) -> f32 {
-        match self {
-            Self::Wgpu(backend) => backend.default_size(),
-            Self::TinySkia(backend) => backend.default_size(),
-        }
+        delegate!(self, backend, backend.default_size())
     }
 
     fn measure(
@@ -45,14 +49,7 @@ impl backend::Text for Backend {
         font: Font,
         bounds: Size,
     ) -> (f32, f32) {
-        match self {
-            Self::Wgpu(backend) => {
-                backend.measure(contents, size, font, bounds)
-            }
-            Self::TinySkia(backend) => {
-                backend.measure(contents, size, font, bounds)
-            }
-        }
+        delegate!(self, backend, backend.measure(contents, size, font, bounds))
     }
 
     fn hit_test(
@@ -64,45 +61,29 @@ impl backend::Text for Backend {
         position: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
-        match self {
-            Self::Wgpu(backend) => backend.hit_test(
+        delegate!(
+            self,
+            backend,
+            backend.hit_test(
                 contents,
                 size,
                 font,
                 bounds,
                 position,
-                nearest_only,
-            ),
-            Self::TinySkia(backend) => backend.hit_test(
-                contents,
-                size,
-                font,
-                bounds,
-                position,
-                nearest_only,
-            ),
-        }
+                nearest_only
+            )
+        )
     }
 
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
-        match self {
-            Self::Wgpu(backend) => {
-                backend.load_font(font);
-            }
-            Self::TinySkia(backend) => {
-                backend.load_font(font);
-            }
-        }
+        delegate!(self, backend, backend.load_font(font));
     }
 }
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
     fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
-        match self {
-            Self::Wgpu(backend) => backend.dimensions(handle),
-            Self::TinySkia(backend) => backend.dimensions(handle),
-        }
+        delegate!(self, backend, backend.dimensions(handle))
     }
 }
 
@@ -112,9 +93,6 @@ impl backend::Svg for Backend {
         &self,
         handle: &crate::core::svg::Handle,
     ) -> Size<u32> {
-        match self {
-            Self::Wgpu(backend) => backend.viewport_dimensions(handle),
-            Self::TinySkia(backend) => backend.viewport_dimensions(handle),
-        }
+        delegate!(self, backend, backend.viewport_dimensions(handle))
     }
 }

@@ -7,14 +7,18 @@ use crate::graphics::geometry::{Fill, Geometry, Path, Stroke, Text};
 use crate::Backend;
 
 pub enum Frame {
+    #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::geometry::Frame),
+    #[cfg(feature = "tiny-skia")]
     TinySkia(iced_tiny_skia::geometry::Frame),
 }
 
 macro_rules! delegate {
-    ($frame:expr, $name:ident => $body:expr) => {
+    ($frame:expr, $name:ident, $body:expr) => {
         match $frame {
+            #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
+            #[cfg(feature = "tiny-skia")]
             Self::TinySkia($name) => $body,
         }
     };
@@ -23,9 +27,11 @@ macro_rules! delegate {
 impl Frame {
     pub fn new<Theme>(renderer: &crate::Renderer<Theme>, size: Size) -> Self {
         match renderer.backend() {
+            #[cfg(feature = "wgpu")]
             Backend::Wgpu(_) => {
                 Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
             }
+            #[cfg(feature = "tiny-skia")]
             Backend::TinySkia(_) => {
                 Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))
             }
@@ -35,31 +41,31 @@ impl Frame {
     /// Returns the width of the [`Frame`].
     #[inline]
     pub fn width(&self) -> f32 {
-        delegate!(self, frame => frame.width())
+        delegate!(self, frame, frame.width())
     }
 
     /// Returns the height of the [`Frame`].
     #[inline]
     pub fn height(&self) -> f32 {
-        delegate!(self, frame => frame.height())
+        delegate!(self, frame, frame.height())
     }
 
     /// Returns the dimensions of the [`Frame`].
     #[inline]
     pub fn size(&self) -> Size {
-        delegate!(self, frame => frame.size())
+        delegate!(self, frame, frame.size())
     }
 
     /// Returns the coordinate of the center of the [`Frame`].
     #[inline]
     pub fn center(&self) -> Point {
-        delegate!(self, frame => frame.center())
+        delegate!(self, frame, frame.center())
     }
 
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        delegate!(self, frame => frame.fill(path, fill));
+        delegate!(self, frame, frame.fill(path, fill));
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -70,13 +76,13 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        delegate!(self, frame => frame.fill_rectangle(top_left, size, fill));
+        delegate!(self, frame, frame.fill_rectangle(top_left, size, fill));
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        delegate!(self, frame => frame.stroke(path, stroke));
+        delegate!(self, frame, frame.stroke(path, stroke));
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -95,7 +101,7 @@ impl Frame {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub fn fill_text(&mut self, text: impl Into<Text>) {
-        delegate!(self, frame => frame.fill_text(text));
+        delegate!(self, frame, frame.fill_text(text));
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
@@ -105,11 +111,11 @@ impl Frame {
     /// operations in different coordinate systems.
     #[inline]
     pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
-        delegate!(self, frame => frame.push_transform());
+        delegate!(self, frame, frame.push_transform());
 
         f(self);
 
-        delegate!(self, frame => frame.pop_transform());
+        delegate!(self, frame, frame.pop_transform());
     }
 
     /// Executes the given drawing operations within a [`Rectangle`] region,
@@ -121,9 +127,11 @@ impl Frame {
     #[inline]
     pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
         let mut frame = match self {
+            #[cfg(feature = "wgpu")]
             Self::Wgpu(_) => {
                 Self::Wgpu(iced_wgpu::geometry::Frame::new(region.size()))
             }
+            #[cfg(feature = "tiny-skia")]
             Self::TinySkia(_) => Self::TinySkia(
                 iced_tiny_skia::geometry::Frame::new(region.size()),
             ),
@@ -134,12 +142,15 @@ impl Frame {
         let translation = Vector::new(region.x, region.y);
 
         match (self, frame) {
+            #[cfg(feature = "wgpu")]
             (Self::Wgpu(target), Self::Wgpu(frame)) => {
                 target.clip(frame, translation);
             }
+            #[cfg(feature = "tiny-skia")]
             (Self::TinySkia(target), Self::TinySkia(frame)) => {
                 target.clip(frame, translation);
             }
+            #[allow(unreachable_patterns)]
             _ => unreachable!(),
         };
     }
@@ -147,22 +158,22 @@ impl Frame {
     /// Applies a translation to the current transform of the [`Frame`].
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
-        delegate!(self, frame => frame.translate(translation));
+        delegate!(self, frame, frame.translate(translation));
     }
 
     /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
-        delegate!(self, frame => frame.rotate(angle));
+        delegate!(self, frame, frame.rotate(angle));
     }
 
     /// Applies a scaling to the current transform of the [`Frame`].
     #[inline]
     pub fn scale(&mut self, scale: f32) {
-        delegate!(self, frame => frame.scale(scale));
+        delegate!(self, frame, frame.scale(scale));
     }
 
     pub fn into_geometry(self) -> Geometry {
-        Geometry(delegate!(self, frame => frame.into_primitive()))
+        Geometry(delegate!(self, frame, frame.into_primitive()))
     }
 }
