@@ -11,22 +11,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-svg = ["resvg"]
-image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
-png = ["image_rs/png"]
-jpeg = ["image_rs/jpeg"]
-jpeg_rayon = ["image_rs/jpeg_rayon"]
-gif = ["image_rs/gif"]
-webp = ["image_rs/webp"]
-pnm = ["image_rs/pnm"]
-ico = ["image_rs/ico"]
-bmp = ["image_rs/bmp"]
-hdr = ["image_rs/hdr"]
-dds = ["image_rs/dds"]
-farbfeld = ["image_rs/farbfeld"]
 geometry = ["lyon_path"]
 opengl = []
-image_rs = ["kamadak-exif"]
+image = ["dep:image", "kamadak-exif"]
 
 [dependencies]
 glam = "0.21.3"
@@ -47,14 +34,8 @@ path = "../core"
 version = "0.8"
 optional = true
 
-[dependencies.image_rs]
+[dependencies.image]
 version = "0.24"
-package = "image"
-default-features = false
-optional = true
-
-[dependencies.resvg]
-version = "0.29"
 optional = true
 
 [dependencies.kamadak-exif]

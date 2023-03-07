@@ -119,7 +119,7 @@ impl Backend {
         self.triangle_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.end_frame(device, queue, encoder);
+        self.image_pipeline.end_frame();
     }
 
     fn prepare_text(

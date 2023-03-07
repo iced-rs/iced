@@ -28,12 +28,14 @@ mod viewport;
 
 pub mod backend;
 pub mod compositor;
-pub mod image;
 pub mod primitive;
 pub mod renderer;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;
+
+#[cfg(feature = "image")]
+pub mod image;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;

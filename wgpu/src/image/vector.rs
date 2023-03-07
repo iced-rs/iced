@@ -1,8 +1,6 @@
-//! Vector image loading and caching
-use crate::image::Storage;
-
-use iced_core::svg;
-use iced_core::{Color, Size};
+use crate::core::svg;
+use crate::core::{Color, Size};
+use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
 use resvg::usvg;
@@ -32,17 +30,17 @@ impl Svg {
 }
 
 /// Caches svg vector and raster data
-#[derive(Debug)]
-pub struct Cache<T: Storage> {
+#[derive(Debug, Default)]
+pub struct Cache {
     svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32, ColorFilter), T::Entry>,
+    rasterized: HashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
     svg_hits: HashSet<u64>,
     rasterized_hits: HashSet<(u64, u32, u32, ColorFilter)>,
 }
 
 type ColorFilter = Option<[u8; 4]>;
 
-impl<T: Storage> Cache<T> {
+impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
         if self.svgs.contains_key(&handle.id()) {
@@ -73,13 +71,15 @@ impl<T: Storage> Cache<T> {
     /// Load svg and upload raster data
     pub fn upload(
         &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
         handle: &svg::Handle,
         color: Option<Color>,
         [width, height]: [f32; 2],
         scale: f32,
-        state: &mut T::State<'_>,
-        storage: &mut T,
-    ) -> Option<&T::Entry> {
+        atlas: &mut Atlas,
+    ) -> Option<&atlas::Entry> {
         let id = handle.id();
 
         let (width, height) = (
@@ -136,7 +136,9 @@ impl<T: Storage> Cache<T> {
                     });
                 }
 
-                let allocation = storage.upload(width, height, &rgba, state)?;
+                let allocation = atlas
+                    .upload(device, queue, encoder, width, height, &rgba)?;
+
                 log::debug!("allocating {} {}x{}", id, width, height);
 
                 let _ = self.svg_hits.insert(id);
@@ -150,7 +152,7 @@ impl<T: Storage> Cache<T> {
     }
 
     /// Load svg and upload raster data
-    pub fn trim(&mut self, storage: &mut T, state: &mut T::State<'_>) {
+    pub fn trim(&mut self, atlas: &mut Atlas) {
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
@@ -159,24 +161,13 @@ impl<T: Storage> Cache<T> {
             let retain = rasterized_hits.contains(k);
 
             if !retain {
-                storage.remove(entry, state);
+                atlas.remove(entry);
             }
 
             retain
         });
         self.svg_hits.clear();
         self.rasterized_hits.clear();
-    }
-}
-
-impl<T: Storage> Default for Cache<T> {
-    fn default() -> Self {
-        Self {
-            svgs: HashMap::new(),
-            rasterized: HashMap::new(),
-            svg_hits: HashSet::new(),
-            rasterized_hits: HashSet::new(),
-        }
     }
 }
 

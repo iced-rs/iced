@@ -8,21 +8,9 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-svg = ["iced_graphics/svg"]
-image = ["iced_graphics/image"]
-png = ["iced_graphics/png"]
-jpeg = ["iced_graphics/jpeg"]
-jpeg_rayon = ["iced_graphics/jpeg_rayon"]
-gif = ["iced_graphics/gif"]
-webp = ["iced_graphics/webp"]
-pnm = ["iced_graphics/pnm"]
-ico = ["iced_graphics/ico"]
-bmp = ["iced_graphics/bmp"]
-hdr = ["iced_graphics/hdr"]
-dds = ["iced_graphics/dds"]
-farbfeld = ["iced_graphics/farbfeld"]
 geometry = ["iced_graphics/geometry", "lyon"]
-spirv = ["wgpu/spirv"]
+image = ["iced_graphics/image"]
+svg = ["resvg"]
 
 [dependencies]
 wgpu = "0.14"
@@ -68,6 +56,10 @@ version = "0.21.3"
 
 [dependencies.lyon]
 version = "1.0"
+optional = true
+
+[dependencies.resvg]
+version = "0.29"
 optional = true
 
 [dependencies.tracing]
