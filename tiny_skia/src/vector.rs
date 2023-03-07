@@ -109,6 +109,7 @@ impl Cache {
 
         let id = handle.id();
 
+        #[allow(clippy::map_entry)]
         if !self.rasters.contains_key(&(id, size)) {
             let tree = self.load(handle)?;
 
