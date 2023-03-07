@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-image = []
+image = ["iced_graphics/image"]
 svg = []
 geometry = ["iced_graphics/geometry"]
 

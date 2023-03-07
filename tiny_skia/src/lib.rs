@@ -4,6 +4,9 @@ mod backend;
 mod settings;
 mod text;
 
+#[cfg(feature = "image")]
+mod raster;
+
 #[cfg(feature = "geometry")]
 pub mod geometry;
 

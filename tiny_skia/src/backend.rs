@@ -11,6 +11,9 @@ pub struct Backend {
     default_font: Font,
     default_text_size: f32,
     text_pipeline: crate::text::Pipeline,
+
+    #[cfg(feature = "image")]
+    raster_pipeline: crate::raster::Pipeline,
 }
 
 impl Backend {
@@ -19,6 +22,9 @@ impl Backend {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             text_pipeline: crate::text::Pipeline::new(),
+
+            #[cfg(feature = "image")]
+            raster_pipeline: crate::raster::Pipeline::new(),
         }
     }
 
@@ -159,8 +165,21 @@ impl Backend {
                     clip_bounds.map(|_| clip_mask as &_),
                 );
             }
-            Primitive::Image { .. } => {
-                // TODO
+            #[cfg(feature = "image")]
+            Primitive::Image { handle, bounds } => {
+                let transform = tiny_skia::Transform::from_translate(
+                    translation.x,
+                    translation.y,
+                )
+                .post_scale(scale_factor, scale_factor);
+
+                self.raster_pipeline.draw(
+                    handle,
+                    *bounds,
+                    pixels,
+                    transform,
+                    clip_bounds.map(|_| clip_mask as &_),
+                );
             }
             Primitive::Svg { .. } => {
                 // TODO
@@ -490,9 +509,8 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, _handle: &crate::core::image::Handle) -> Size<u32> {
-        // TODO
-        Size::new(0, 0)
+    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
+        self.raster_pipeline.dimensions(handle)
     }
 }
 
