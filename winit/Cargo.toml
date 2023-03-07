@@ -65,5 +65,5 @@ version = "0.3"
 features = ["Document", "Window"]
 
 [dependencies.sysinfo]
-version = "0.23"
+version = "0.28"
 optional = true

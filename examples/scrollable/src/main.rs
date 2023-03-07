@@ -254,7 +254,6 @@ impl Application for ScrollableDemo {
                             scroll_to_beginning_button(),
                             vertical_space(40),
                         ]
-                        .align_items(Alignment::Fill)
                         .spacing(40),
                         horizontal_space(1200),
                         text("Horizontal - End!"),

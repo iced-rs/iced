@@ -758,7 +758,7 @@ pub fn run_command<A, E>(
                 window::Action::ChangeMode(mode) => {
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
-                        window.primary_monitor(),
+                        window.current_monitor(),
                         mode,
                     ));
                 }

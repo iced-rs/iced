@@ -1,7 +1,7 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
 use iced::font::{self, Font};
-use iced::keyboard;
+use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
@@ -52,6 +52,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
+    ToggleFullscreen(window::Mode),
 }
 
 impl Application for Todos {
@@ -161,6 +162,9 @@ impl Application for Todos {
                         } else {
                             widget::focus_next()
                         }
+                    }
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(mode)
                     }
                     _ => Command::none(),
                 };
@@ -272,6 +276,21 @@ impl Application for Todos {
             ) => Some(Message::TabPressed {
                 shift: modifiers.shift(),
             }),
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers: Modifiers::SHIFT,
+                }),
+                event::Status::Ignored,
+            ) => match key_code {
+                KeyCode::Up => {
+                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
+                }
+                KeyCode::Down => {
+                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
+                }
+                _ => None,
+            },
             _ => None,
         })
     }

@@ -11,9 +11,6 @@ pub enum Alignment {
 
     /// Align at the end of the axis.
     End,
-
-    /// Fill the entire axis.
-    Fill,
 }
 
 impl From<Horizontal> for Alignment {
