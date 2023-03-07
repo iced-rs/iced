@@ -52,6 +52,10 @@ impl Pipeline {
             );
         }
     }
+
+    pub fn trim_cache(&mut self) {
+        self.cache.borrow_mut().trim();
+    }
 }
 
 #[derive(Default)]
@@ -97,6 +101,11 @@ impl Cache {
             )
             .expect("Build pixmap from image bytes")
         })
+    }
+
+    fn trim(&mut self) {
+        self.entries.retain(|key, _| self.hits.contains(key));
+        self.hits.clear();
     }
 }
 

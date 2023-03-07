@@ -86,6 +86,9 @@ impl Backend {
 
         self.text_pipeline.trim_cache();
 
+        #[cfg(feature = "image")]
+        self.raster_pipeline.trim_cache();
+
         #[cfg(feature = "svg")]
         self.vector_pipeline.trim_cache();
     }
