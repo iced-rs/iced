@@ -14,6 +14,9 @@ pub struct Backend {
 
     #[cfg(feature = "image")]
     raster_pipeline: crate::raster::Pipeline,
+
+    #[cfg(feature = "svg")]
+    vector_pipeline: crate::vector::Pipeline,
 }
 
 impl Backend {
@@ -25,6 +28,9 @@ impl Backend {
 
             #[cfg(feature = "image")]
             raster_pipeline: crate::raster::Pipeline::new(),
+
+            #[cfg(feature = "svg")]
+            vector_pipeline: crate::vector::Pipeline::new(),
         }
     }
 
@@ -78,7 +84,10 @@ impl Backend {
             );
         }
 
-        self.text_pipeline.end_frame();
+        self.text_pipeline.trim_cache();
+
+        #[cfg(feature = "svg")]
+        self.vector_pipeline.trim_cache();
     }
 
     fn draw_primitive(
@@ -181,8 +190,18 @@ impl Backend {
                     clip_bounds.map(|_| clip_mask as &_),
                 );
             }
-            Primitive::Svg { .. } => {
-                // TODO
+            #[cfg(feature = "svg")]
+            Primitive::Svg {
+                handle,
+                bounds,
+                color: _, // TODO: Implement color filter
+            } => {
+                self.vector_pipeline.draw(
+                    handle,
+                    (*bounds + translation) * scale_factor,
+                    pixels,
+                    clip_bounds.map(|_| clip_mask as &_),
+                );
             }
             Primitive::Fill {
                 path,
@@ -518,9 +537,8 @@ impl backend::Image for Backend {
 impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
-        _handle: &crate::core::svg::Handle,
+        handle: &crate::core::svg::Handle,
     ) -> Size<u32> {
-        // TODO
-        Size::new(0, 0)
+        self.vector_pipeline.viewport_dimensions(handle)
     }
 }

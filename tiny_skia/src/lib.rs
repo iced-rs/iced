@@ -7,6 +7,9 @@ mod text;
 #[cfg(feature = "image")]
 mod raster;
 
+#[cfg(feature = "svg")]
+mod vector;
+
 #[cfg(feature = "geometry")]
 pub mod geometry;
 

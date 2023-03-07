@@ -143,7 +143,7 @@ impl Pipeline {
         });
     }
 
-    pub fn end_frame(&mut self) {
+    pub fn trim_cache(&mut self) {
         self.system
             .as_mut()
             .unwrap()

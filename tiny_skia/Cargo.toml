@@ -5,7 +5,7 @@ edition = "2021"
 
 [features]
 image = ["iced_graphics/image"]
-svg = []
+svg = ["resvg"]
 geometry = ["iced_graphics/geometry"]
 
 [dependencies]
@@ -34,3 +34,7 @@ default-features = false
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
 version = "1.6.1"
 features = ["std"]
+
+[dependencies.resvg]
+version = "0.29"
+optional = true
