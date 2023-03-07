@@ -84,7 +84,12 @@ impl Pipeline {
     ) {
         self.system.as_mut().unwrap().with_mut(|fields| {
             let key = Key {
-                bounds: bounds.size(),
+                bounds: {
+                    let size = bounds.size();
+
+                    // TODO: Reuse buffers from layouting
+                    Size::new(size.width.ceil(), size.height.ceil())
+                },
                 content,
                 font,
                 size,
