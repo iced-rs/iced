@@ -11,23 +11,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-svg = ["resvg", "usvg", "tiny-skia"]
-image = ["png", "jpeg", "jpeg_rayon", "gif", "webp", "bmp"]
-png = ["image_rs/png"]
-jpeg = ["image_rs/jpeg"]
-jpeg_rayon = ["image_rs/jpeg_rayon"]
-gif = ["image_rs/gif"]
-webp = ["image_rs/webp"]
-pnm = ["image_rs/pnm"]
-ico = ["image_rs/ico"]
-bmp = ["image_rs/bmp"]
-hdr = ["image_rs/hdr"]
-dds = ["image_rs/dds"]
-farbfeld = ["image_rs/farbfeld"]
-canvas = ["lyon"]
-qr_code = ["qrcode", "canvas"]
+geometry = ["lyon_path"]
 opengl = []
-image_rs = ["kamadak-exif"]
+image = ["dep:image", "kamadak-exif"]
 
 [dependencies]
 glam = "0.21.3"
@@ -40,43 +26,24 @@ bitflags = "1.2"
 version = "1.4"
 features = ["derive"]
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
-[dependencies.iced_style]
-version = "0.7"
-path = "../style"
-
-[dependencies.lyon]
-version = "1.0"
-optional = true
-
-[dependencies.qrcode]
-version = "0.12"
-optional = true
-default-features = false
-
-[dependencies.image_rs]
-version = "0.24"
-package = "image"
-default-features = false
-optional = true
-
-[dependencies.resvg]
-version = "0.18"
-optional = true
-
-[dependencies.usvg]
-version = "0.18"
-optional = true
+[dependencies.iced_core]
+version = "0.8"
+path = "../core"
 
 [dependencies.tiny-skia]
-version = "0.6"
+version = "0.8"
+optional = true
+
+[dependencies.image]
+version = "0.24"
 optional = true
 
 [dependencies.kamadak-exif]
 version = "0.5"
+optional = true
+
+[dependencies.lyon_path]
+version = "1"
 optional = true
 
 [package.metadata.docs.rs]

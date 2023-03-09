@@ -1,6 +1,7 @@
-use crate::{Buffer, Transformation};
-use iced_graphics::layer;
-use iced_native::Rectangle;
+use crate::core::Rectangle;
+use crate::graphics::Transformation;
+use crate::layer;
+use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
 use std::mem;

@@ -1,9 +1,9 @@
 //! This example showcases a drawing a quad.
 mod quad {
-    use iced_native::layout::{self, Layout};
-    use iced_native::renderer;
-    use iced_native::widget::{self, Widget};
-    use iced_native::{Color, Element, Length, Point, Rectangle, Size};
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Widget};
+    use iced::{Color, Element, Length, Point, Rectangle, Size};
 
     pub struct CustomQuad {
         size: f32,

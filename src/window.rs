@@ -8,5 +8,5 @@ pub use icon::Icon;
 pub use position::Position;
 pub use settings::Settings;
 
-#[cfg(not(target_arch = "wasm32"))]
+pub use crate::core::window::*;
 pub use crate::runtime::window::*;

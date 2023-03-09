@@ -12,14 +12,21 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+default = ["wgpu", "tiny-skia"]
+# Enable the `wgpu` GPU-accelerated renderer backend
+wgpu = ["iced_renderer/wgpu"]
+# Enable the `tiny-skia` software renderer backend
+tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
-image = ["iced_wgpu/image", "image_rs"]
+image = ["iced_widget/image", "image_rs"]
 # Enables the `Svg` widget
-svg = ["iced_wgpu/svg"]
+svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
-canvas = ["iced_graphics/canvas"]
+canvas = ["iced_widget/canvas"]
 # Enables the `QRCode` widget
-qr_code = ["iced_graphics/qr_code"]
+qr_code = ["iced_widget/qr_code"]
+# Enables lazy widgets
+lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -32,11 +39,8 @@ smol = ["iced_futures/smol"]
 palette = ["iced_core/palette"]
 # Enables querying system information
 system = ["iced_winit/system"]
-# Enables chrome traces
-chrome-trace = [
-    "iced_winit/chrome-trace",
-    "iced_wgpu/tracing",
-]
+# Enables the advanced module
+advanced = []
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -46,10 +50,12 @@ members = [
     "core",
     "futures",
     "graphics",
-    "lazy",
-    "native",
+    "runtime",
+    "renderer",
     "style",
+    "tiny_skia",
     "wgpu",
+    "widget",
     "winit",
     "examples/*",
 ]
@@ -57,21 +63,15 @@ members = [
 [dependencies]
 iced_core = { version = "0.8", path = "core" }
 iced_futures = { version = "0.6", path = "futures" }
-iced_native = { version = "0.9", path = "native" }
-iced_graphics = { version = "0.7", path = "graphics" }
+iced_renderer = { version = "0.1", path = "renderer" }
+iced_widget = { version = "0.1", path = "widget" }
 iced_winit = { version = "0.8", path = "winit", features = ["application"] }
-thiserror = "1.0"
+thiserror = "1"
 
 [dependencies.image_rs]
 version = "0.24"
 package = "image"
 optional = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_wgpu = { version = "0.9", path = "wgpu" }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_wgpu = { version = "0.9", path = "wgpu", features = ["webgl"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

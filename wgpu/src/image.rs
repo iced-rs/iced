@@ -1,16 +1,17 @@
 mod atlas;
 
 #[cfg(feature = "image")]
-use iced_graphics::image::raster;
+mod raster;
 
 #[cfg(feature = "svg")]
-use iced_graphics::image::vector;
+mod vector;
 
-use crate::{Buffer, Transformation};
 use atlas::Atlas;
 
-use iced_graphics::layer;
-use iced_native::{Rectangle, Size};
+use crate::core::{Rectangle, Size};
+use crate::graphics::Transformation;
+use crate::layer;
+use crate::Buffer;
 
 use std::cell::RefCell;
 use std::mem;
@@ -18,10 +19,10 @@ use std::mem;
 use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image")]
-use iced_native::image;
+use crate::core::image;
 
 #[cfg(feature = "svg")]
-use iced_native::svg;
+use crate::core::svg;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -29,9 +30,9 @@ use tracing::info_span;
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
-    raster_cache: RefCell<raster::Cache<Atlas>>,
+    raster_cache: RefCell<raster::Cache>,
     #[cfg(feature = "svg")]
-    vector_cache: RefCell<vector::Cache<Atlas>>,
+    vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
@@ -367,8 +368,10 @@ impl Pipeline {
                 #[cfg(feature = "image")]
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
+                        device,
+                        queue,
+                        encoder,
                         handle,
-                        &mut (device, queue, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -391,11 +394,13 @@ impl Pipeline {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = vector_cache.upload(
+                        device,
+                        queue,
+                        encoder,
                         handle,
                         *color,
                         size,
                         _scale,
-                        &mut (device, queue, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -476,21 +481,12 @@ impl Pipeline {
         }
     }
 
-    pub fn end_frame(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
+    pub fn end_frame(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache
-            .borrow_mut()
-            .trim(&mut self.texture_atlas, &mut (device, queue, encoder));
+        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         #[cfg(feature = "svg")]
-        self.vector_cache
-            .borrow_mut()
-            .trim(&mut self.texture_atlas, &mut (device, queue, encoder));
+        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         self.prepare_layer = 0;
     }

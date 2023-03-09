@@ -1,0 +1,40 @@
+[package]
+name = "iced_tiny_skia"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+image = ["iced_graphics/image"]
+svg = ["resvg"]
+geometry = ["iced_graphics/geometry"]
+
+[dependencies]
+raw-window-handle = "0.5"
+softbuffer = "0.2"
+tiny-skia = "0.8"
+bytemuck = "1"
+rustc-hash = "1.1"
+ouroboros = "0.15"
+kurbo = "0.9"
+
+[dependencies.iced_graphics]
+version = "0.7"
+path = "../graphics"
+features = ["tiny-skia"]
+
+[dependencies.cosmic-text]
+features = ["std", "swash"]
+git = "https://github.com/hecrj/cosmic-text"
+rev = "81080c1b9498933b43c1889601a7ea6a3d16e161"
+
+[dependencies.twox-hash]
+version = "1.6"
+default-features = false
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
+version = "1.6.1"
+features = ["std"]
+
+[dependencies.resvg]
+version = "0.29"
+optional = true

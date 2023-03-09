@@ -6,5 +6,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["debug"] }
-iced_lazy = { path = "../../lazy" }
+iced = { path = "../..", features = ["debug", "lazy"] }

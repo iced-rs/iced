@@ -7,7 +7,9 @@ publish = false
 
 [dependencies]
 iced_winit = { path = "../../winit" }
-iced_wgpu = { path = "../../wgpu", features = ["webgl"] }
+iced_wgpu = { path = "../../wgpu" }
+iced_widget = { path = "../../widget" }
+iced_renderer = { path = "../../renderer", features = ["wgpu", "tiny-skia"] }
 env_logger = "0.8"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]

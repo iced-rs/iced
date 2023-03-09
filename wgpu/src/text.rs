@@ -1,8 +1,7 @@
-pub use iced_native::text::Hit;
-
-use iced_graphics::layer::Text;
-use iced_native::alignment;
-use iced_native::{Font, Rectangle, Size};
+use crate::core::alignment;
+use crate::core::text::Hit;
+use crate::core::{Font, Point, Rectangle, Size};
+use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -275,9 +274,9 @@ impl Pipeline {
         &self,
         content: &str,
         size: f32,
-        font: iced_native::Font,
-        bounds: iced_native::Size,
-        point: iced_native::Point,
+        font: Font,
+        bounds: Size,
+        point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
         self.system.as_ref().unwrap().with(|fields| {

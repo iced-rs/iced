@@ -13,7 +13,7 @@ categories = ["gui"]
 [features]
 trace = ["tracing", "tracing-core", "tracing-subscriber"]
 chrome-trace = ["trace", "tracing-chrome"]
-debug = ["iced_native/debug"]
+debug = ["iced_runtime/debug"]
 system = ["sysinfo"]
 application = []
 
@@ -27,17 +27,17 @@ version = "0.27"
 git = "https://github.com/iced-rs/winit.git"
 rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
 
-[dependencies.iced_native]
+[dependencies.iced_runtime]
 version = "0.9"
-path = "../native"
+path = "../runtime"
 
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
 
-[dependencies.iced_futures]
-version = "0.6"
-path = "../futures"
+[dependencies.iced_style]
+version = "0.7"
+path = "../style"
 
 [dependencies.tracing]
 version = "0.1.37"
@@ -65,5 +65,5 @@ version = "0.3"
 features = ["Document", "Window"]
 
 [dependencies.sysinfo]
-version = "0.23"
+version = "0.28"
 optional = true

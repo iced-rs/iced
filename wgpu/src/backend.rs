@@ -1,11 +1,11 @@
+use crate::core;
+use crate::core::{Color, Font, Point, Size};
+use crate::graphics::backend;
+use crate::graphics::{Primitive, Transformation, Viewport};
 use crate::quad;
 use crate::text;
 use crate::triangle;
-use crate::{Settings, Transformation};
-
-use iced_graphics::backend;
-use iced_graphics::layer::Layer;
-use iced_graphics::{Color, Font, Primitive, Size, Viewport};
+use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -119,7 +119,7 @@ impl Backend {
         self.triangle_pipeline.end_frame();
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.end_frame(device, queue, encoder);
+        self.image_pipeline.end_frame();
     }
 
     fn prepare_text(
@@ -364,9 +364,9 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
-        point: iced_native::Point,
+        point: Point,
         nearest_only: bool,
-    ) -> Option<text::Hit> {
+    ) -> Option<core::text::Hit> {
         self.text_pipeline.hit_test(
             contents,
             size,
@@ -384,17 +384,14 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &core::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)
     }
 }
 
 #[cfg(feature = "svg")]
 impl backend::Svg for Backend {
-    fn viewport_dimensions(
-        &self,
-        handle: &iced_native::svg::Handle,
-    ) -> Size<u32> {
+    fn viewport_dimensions(&self, handle: &core::svg::Handle) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

@@ -1,11 +1,9 @@
+use iced::event::{Event, MacOS, PlatformSpecific};
 use iced::executor;
+use iced::subscription;
 use iced::widget::{container, text};
 use iced::{
     Application, Command, Element, Length, Settings, Subscription, Theme,
-};
-use iced_native::{
-    event::{MacOS, PlatformSpecific},
-    Event,
 };
 
 pub fn main() -> iced::Result {
@@ -19,7 +17,7 @@ struct App {
 
 #[derive(Debug, Clone)]
 enum Message {
-    EventOccurred(iced_native::Event),
+    EventOccurred(Event),
 }
 
 impl Application for App {
@@ -52,7 +50,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced_native::subscription::events().map(Message::EventOccurred)
+        subscription::events().map(Message::EventOccurred)
     }
 
     fn view(&self) -> Element<Message> {

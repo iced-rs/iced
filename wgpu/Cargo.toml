@@ -8,23 +8,9 @@ license = "MIT AND OFL-1.1"
 repository = "https://github.com/iced-rs/iced"
 
 [features]
-svg = ["iced_graphics/svg"]
+geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
-png = ["iced_graphics/png"]
-jpeg = ["iced_graphics/jpeg"]
-jpeg_rayon = ["iced_graphics/jpeg_rayon"]
-gif = ["iced_graphics/gif"]
-webp = ["iced_graphics/webp"]
-pnm = ["iced_graphics/pnm"]
-ico = ["iced_graphics/ico"]
-bmp = ["iced_graphics/bmp"]
-hdr = ["iced_graphics/hdr"]
-dds = ["iced_graphics/dds"]
-farbfeld = ["iced_graphics/farbfeld"]
-canvas = ["iced_graphics/canvas"]
-qr_code = ["iced_graphics/qr_code"]
-spirv = ["wgpu/spirv"]
-webgl = ["wgpu/webgl"]
+svg = ["resvg"]
 
 [dependencies]
 wgpu = "0.14"
@@ -36,6 +22,9 @@ bitflags = "1.2"
 once_cell = "1.0"
 rustc-hash = "1.1"
 ouroboros = "0.15"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wgpu = { version = "0.14", features = ["webgl"] }
 
 [dependencies.twox-hash]
 version = "1.6"
@@ -49,10 +38,6 @@ features = ["std"]
 version = "1.9"
 features = ["derive"]
 
-[dependencies.iced_native]
-version = "0.9"
-path = "../native"
-
 [dependencies.iced_graphics]
 version = "0.7"
 path = "../graphics"
@@ -60,11 +45,7 @@ path = "../graphics"
 [dependencies.glyphon]
 version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
-rev = "810bc979f9005e2bd343b72b980e57e46174283f"
-
-[dependencies.tracing]
-version = "0.1.6"
-optional = true
+rev = "edd23695ad53db5f89d455c3c130172fd107d6a2"
 
 [dependencies.encase]
 version = "0.3.0"
@@ -72,6 +53,18 @@ features = ["glam"]
 
 [dependencies.glam]
 version = "0.21.3"
+
+[dependencies.lyon]
+version = "1.0"
+optional = true
+
+[dependencies.resvg]
+version = "0.29"
+optional = true
+
+[dependencies.tracing]
+version = "0.1.6"
+optional = true
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

@@ -25,7 +25,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    missing_docs,
+    //missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,
@@ -37,9 +37,12 @@
 #![forbid(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
+pub mod layer;
 pub mod settings;
 pub mod window;
+
+#[cfg(feature = "geometry")]
+pub mod geometry;
 
 mod backend;
 mod buffer;
@@ -47,17 +50,16 @@ mod quad;
 mod text;
 mod triangle;
 
-pub use iced_graphics::{
-    Antialiasing, Color, Error, Font, Primitive, Viewport,
-};
-pub use iced_native::Theme;
+pub use iced_graphics as graphics;
+pub use iced_graphics::core;
+
 pub use wgpu;
 
 pub use backend::Backend;
+pub use layer::Layer;
 pub use settings::Settings;
 
-use crate::buffer::Buffer;
-use iced_graphics::Transformation;
+use buffer::Buffer;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
@@ -66,5 +68,4 @@ mod image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer<Theme = iced_native::Theme> =
-    iced_graphics::Renderer<Backend, Theme>;
+pub type Renderer<Theme> = iced_graphics::Renderer<Backend, Theme>;
