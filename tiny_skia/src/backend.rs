@@ -197,10 +197,11 @@ impl Backend {
             Primitive::Svg {
                 handle,
                 bounds,
-                color: _, // TODO: Implement color filter
+                color,
             } => {
                 self.vector_pipeline.draw(
                     handle,
+                    *color,
                     (*bounds + translation) * scale_factor,
                     pixels,
                     clip_bounds.map(|_| clip_mask as &_),

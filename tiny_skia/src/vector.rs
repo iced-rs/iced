@@ -1,5 +1,5 @@
 use crate::core::svg::{Data, Handle};
-use crate::core::{Rectangle, Size};
+use crate::core::{Color, Rectangle, Size};
 
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -29,15 +29,16 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         handle: &Handle,
+        color: Option<Color>,
         bounds: Rectangle,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::ClipMask>,
     ) {
-        if let Some(image) = self
-            .cache
-            .borrow_mut()
-            .draw(handle, Size::new(bounds.width as u32, bounds.height as u32))
-        {
+        if let Some(image) = self.cache.borrow_mut().draw(
+            handle,
+            color,
+            Size::new(bounds.width as u32, bounds.height as u32),
+        ) {
             pixels.draw_pixmap(
                 bounds.x as i32,
                 bounds.y as i32,
@@ -58,8 +59,15 @@ impl Pipeline {
 struct Cache {
     trees: FxHashMap<u64, Option<resvg::usvg::Tree>>,
     tree_hits: FxHashSet<u64>,
-    rasters: FxHashMap<(u64, Size<u32>), tiny_skia::Pixmap>,
-    raster_hits: FxHashSet<(u64, Size<u32>)>,
+    rasters: FxHashMap<RasterKey, tiny_skia::Pixmap>,
+    raster_hits: FxHashSet<RasterKey>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct RasterKey {
+    id: u64,
+    color: Option<[u8; 4]>,
+    size: Size<u32>,
 }
 
 impl Cache {
@@ -101,16 +109,21 @@ impl Cache {
     fn draw(
         &mut self,
         handle: &Handle,
+        color: Option<Color>,
         size: Size<u32>,
     ) -> Option<tiny_skia::PixmapRef<'_>> {
         if size.width == 0 || size.height == 0 {
             return None;
         }
 
-        let id = handle.id();
+        let key = RasterKey {
+            id: handle.id(),
+            color: color.map(Color::into_rgba8),
+            size,
+        };
 
         #[allow(clippy::map_entry)]
-        if !self.rasters.contains_key(&(id, size)) {
+        if !self.rasters.contains_key(&key) {
             let tree = self.load(handle)?;
 
             let mut image = tiny_skia::Pixmap::new(size.width, size.height)?;
@@ -126,18 +139,35 @@ impl Cache {
                 image.as_mut(),
             )?;
 
-            // Swap R and B channels for `softbuffer` presentation
-            for pixel in bytemuck::cast_slice_mut::<u8, u32>(image.data_mut()) {
-                *pixel = *pixel & 0xFF00FF00
-                    | ((0x000000FF & *pixel) << 16)
-                    | ((0x00FF0000 & *pixel) >> 16);
+            if let Some([r, g, b, a]) = key.color {
+                // TODO: Blend alpha
+                let color = tiny_skia::ColorU8::from_rgba(b, g, r, a)
+                    .premultiply()
+                    .get()
+                    & 0x00FFFFFF;
+
+                // Apply color filter
+                for pixel in
+                    bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
+                {
+                    *pixel = *pixel & 0xFF000000 | color;
+                }
+            } else {
+                // Swap R and B channels for `softbuffer` presentation
+                for pixel in
+                    bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
+                {
+                    *pixel = *pixel & 0xFF00FF00
+                        | ((0x000000FF & *pixel) << 16)
+                        | ((0x00FF0000 & *pixel) >> 16);
+                }
             }
 
-            self.rasters.insert((id, size), image);
+            self.rasters.insert(key, image);
         }
 
-        self.raster_hits.insert((id, size));
-        self.rasters.get(&(id, size)).map(tiny_skia::Pixmap::as_ref)
+        self.raster_hits.insert(key);
+        self.rasters.get(&key).map(tiny_skia::Pixmap::as_ref)
     }
 
     fn trim(&mut self) {
