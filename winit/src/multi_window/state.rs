@@ -179,7 +179,7 @@ where
     /// Synchronizes the [`State`] with its [`Application`] and its respective
     /// window.
     ///
-    /// Normally an [`Application`] should be synchronized with its [`State`]
+    /// Normally, an [`Application`] should be synchronized with its [`State`]
     /// and window after calling [`Application::update`].
     ///
     /// [`Application::update`]: crate::Program::update

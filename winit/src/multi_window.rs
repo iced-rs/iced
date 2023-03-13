@@ -33,7 +33,7 @@ use tracing::{info_span, instrument::Instrument};
 
 /// This is a wrapper around the `Application::Message` associate type
 /// to allows the `shell` to create internal messages, while still having
-/// the current user specified custom messages.
+/// the current user-specified custom messages.
 #[derive(Debug)]
 pub enum Event<Message> {
     /// An [`Application`] generated message
@@ -53,9 +53,9 @@ pub enum Event<Message> {
     WindowCreated(window::Id, winit::window::Window),
 }
 
-/// An interactive, native cross-platform application.
+/// An interactive, native, cross-platform, multi-windowed application.
 ///
-/// This trait is the main entrypoint of Iced. Once implemented, you can run
+/// This trait is the main entrypoint of multi-window Iced. Once implemented, you can run
 /// your GUI application by simply calling [`run`]. It will run in
 /// its own window.
 ///
@@ -105,7 +105,7 @@ where
     /// load state from a file, perform an initial HTTP request, etc.
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
-    /// Returns the current title of each [`Application`] window.
+    /// Returns the current title of each window of the [`Application`].
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
@@ -155,7 +155,8 @@ where
         false
     }
 
-    /// Requests that the [`window`] be closed.
+    /// Returns the `Self::Message` that should be processed when a `window` is requested to
+    /// be closed.
     fn close_requested(&self, window: window::Id) -> Self::Message;
 }
 
@@ -462,9 +463,9 @@ async fn run_instance<A, E, C>(
                     }
                     debug.event_processing_finished();
 
-                    // Update application with app message(s)
-                    // Note: without tying an app message to a window ID, we must redraw all windows
-                    // as we cannot know what changed without some kind of damage tracking.
+                    // Update application with app messages
+                    // Unless we implement some kind of diffing, we must redraw all windows as we
+                    // cannot know what changed.
                     if !messages.is_empty()
                         || matches!(
                             interface_state,
@@ -612,9 +613,7 @@ async fn run_instance<A, E, C>(
                 }
                 Event::WindowCreated(id, window) => {
                     let mut surface = compositor.create_surface(&window);
-
                     let state = State::new(&application, id, &window);
-
                     let physical_size = state.physical_size();
 
                     compositor.configure_surface(
@@ -776,14 +775,12 @@ async fn run_instance<A, E, C>(
                         }
                         _ => {
                             debug.render_finished();
+                            log::error!("Error {error:?} when presenting surface.");
 
-                            // Try rendering again next frame.
-                            // TODO(derezzedex)
-                            windows
-                                .values()
-                                .next()
-                                .expect("No window found")
-                                .request_redraw();
+                            // Try rendering windows again next frame.
+                            for window in windows.values() {
+                                window.request_redraw();
+                            }
                         }
                     },
                 }
@@ -792,80 +789,45 @@ async fn run_instance<A, E, C>(
                 event: window_event,
                 window_id,
             } => {
-                // dbg!(window_id);
-                if let Some(window) =
-                    window_ids.get(&window_id).and_then(|id| windows.get(id))
-                {
-                    if let Some(state) = window_ids
+                if let (Some(window), Some(state)) = (
+                    window_ids.get(&window_id).and_then(|id| windows.get(id)),
+                    window_ids
                         .get(&window_id)
-                        .and_then(|id| states.get_mut(id))
-                    {
-                        if requests_exit(&window_event, state.modifiers()) {
-                            if let Some(id) =
-                                window_ids.get(&window_id).cloned()
-                            {
-                                let message = application.close_requested(id);
-                                messages.push(message);
-                            }
+                        .and_then(|id| states.get_mut(id)),
+                ) {
+                    if crate::application::requests_exit(&window_event, state.modifiers()) {
+                        if let Some(id) = window_ids.get(&window_id).cloned() {
+                            let message = application.close_requested(id);
+                            messages.push(message);
                         }
+                    }
 
-                        state.update(window, &window_event, &mut debug);
+                    state.update(window, &window_event, &mut debug);
 
-                        if let Some(event) = conversion::window_event(
-                            *window_ids.get(&window_id).unwrap(),
-                            &window_event,
-                            state.scale_factor(),
-                            state.modifiers(),
-                        ) {
-                            events.push((
-                                window_ids.get(&window_id).cloned(),
-                                event,
-                            ));
-                        }
-                    } else {
-                        log::error!(
-                            "No window state found for id: {:?}",
-                            window_id
-                        );
+                    if let Some(event) = conversion::window_event(
+                        *window_ids.get(&window_id).unwrap(),
+                        &window_event,
+                        state.scale_factor(),
+                        state.modifiers(),
+                    ) {
+                        events
+                            .push((window_ids.get(&window_id).cloned(), event));
                     }
                 } else {
-                    log::error!("No window found with id: {:?}", window_id);
+                    log::error!(
+                        "Could not find window or state for id: {window_id:?}"
+                    );
                 }
             }
             _ => {}
         }
     }
 
-    // Manually drop the user interface
-    // drop(ManuallyDrop::into_inner(user_interface));
+    // Manually drop the user interfaces
+    drop(ManuallyDrop::into_inner(interfaces));
 }
 
-/// Returns true if the provided event should cause an [`Application`] to
-/// exit.
-pub fn requests_exit(
-    event: &winit::event::WindowEvent<'_>,
-    _modifiers: winit::event::ModifiersState,
-) -> bool {
-    use winit::event::WindowEvent;
-
-    match event {
-        WindowEvent::CloseRequested => true,
-        #[cfg(target_os = "macos")]
-        WindowEvent::KeyboardInput {
-            input:
-                winit::event::KeyboardInput {
-                    virtual_keycode: Some(winit::event::VirtualKeyCode::Q),
-                    state: winit::event::ElementState::Pressed,
-                    ..
-                },
-            ..
-        } if _modifiers.logo() => true,
-        _ => false,
-    }
-}
-
-/// Builds a [`UserInterface`] for the provided [`Application`], logging
-/// [`struct@Debug`] information accordingly.
+/// Builds a window's [`UserInterface`] for the [`Application`].
 pub fn build_user_interface<'a, A: Application>(
     application: &'a A,
     cache: user_interface::Cache,
@@ -890,7 +852,9 @@ where
     #[cfg(feature = "trace")]
     let layout_span = info_span!("Application", "LAYOUT").entered();
     debug.layout_started();
+
     let user_interface = UserInterface::build(view, size, cache, renderer);
+
     #[cfg(feature = "trace")]
     let _ = layout_span.exit();
     debug.layout_finished();
@@ -898,7 +862,7 @@ where
     user_interface
 }
 
-/// Updates an [`Application`] by feeding it the provided messages, spawning any
+/// Updates an [`Application`] by feeding it messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
 pub fn update<A: Application, E: Executor>(
     application: &mut A,
@@ -923,7 +887,9 @@ pub fn update<A: Application, E: Executor>(
         debug.log_message(&message);
 
         debug.update_started();
+
         let command = runtime.enter(|| application.update(message));
+
         #[cfg(feature = "trace")]
         let _ = update_span.exit();
         debug.update_finished();
@@ -1023,7 +989,7 @@ pub fn run_command<A, E>(
                     let window = windows.get(&id).expect("No window found");
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
-                        window.primary_monitor(),
+                        window.current_monitor(),
                         mode,
                     ));
                 }

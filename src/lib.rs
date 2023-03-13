@@ -182,7 +182,7 @@ pub mod touch;
 pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "multi_window"))]
+#[cfg(all(not(feature = "glow"), feature = "multi-window"))]
 pub mod multi_window;
 
 #[cfg(all(not(feature = "glow"), feature = "wgpu"))]

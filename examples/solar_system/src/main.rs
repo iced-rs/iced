@@ -89,7 +89,7 @@ impl Application for SolarSystem {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        window::frames().map(|frame| Message::Tick(frame.at))
+        window::frames().map(Message::Tick)
     }
 }
 

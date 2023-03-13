@@ -139,7 +139,7 @@ pub trait Application: Sized {
         window: window::Id,
     ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
 
-    /// Returns the scale factor of the [`Application`].
+    /// Returns the scale factor of the `window` of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
     /// (i.e. zooming).
@@ -160,7 +160,8 @@ pub trait Application: Sized {
         false
     }
 
-    /// Requests that the [`window`] be closed.
+    /// Returns the `Self::Message` that should be processed when a `window` is requested to
+    /// be closed.
     fn close_requested(&self, window: window::Id) -> Self::Message;
 
     /// Runs the [`Application`].

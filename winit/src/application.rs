@@ -743,7 +743,7 @@ pub fn run_command<A, E>(
                 }
                 window::Action::Spawn { .. } => {
                     log::info!(
-                        "This is only available on `multi_window::Application`"
+                        "Spawning a window is only available with `multi_window::Application`s."
                     )
                 }
                 window::Action::Resize { width, height } => {
