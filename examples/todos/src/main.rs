@@ -435,17 +435,14 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     .into()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize,
+)]
 pub enum Filter {
+    #[default]
     All,
     Active,
     Completed,
-}
-
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::All
-    }
 }
 
 impl Filter {

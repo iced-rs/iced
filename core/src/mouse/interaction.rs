@@ -1,7 +1,8 @@
 /// The interaction of a mouse cursor.
-#[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord)]
+#[derive(Debug, Eq, PartialEq, Clone, Copy, PartialOrd, Ord, Default)]
 #[allow(missing_docs)]
 pub enum Interaction {
+    #[default]
     Idle,
     Pointer,
     Grab,
@@ -11,10 +12,4 @@ pub enum Interaction {
     Grabbing,
     ResizingHorizontally,
     ResizingVertically,
-}
-
-impl Default for Interaction {
-    fn default() -> Interaction {
-        Interaction::Idle
-    }
 }
