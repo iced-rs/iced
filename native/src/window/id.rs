@@ -4,6 +4,8 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// The ID of the window.
+///
+/// Internally Iced uses `window::Id::MAIN` as the first window spawned.
 pub struct Id(u64);
 
 impl Id {

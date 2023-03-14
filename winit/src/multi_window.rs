@@ -109,7 +109,7 @@ where
     ///
     /// This title can be dynamic! The runtime will automatically update the
     /// title of your application when necessary.
-    fn title(&self, window_id: window::Id) -> String;
+    fn title(&self, window: window::Id) -> String;
 
     /// Returns the current [`Theme`] of the [`Application`].
     fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
