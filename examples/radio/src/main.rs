@@ -7,14 +7,12 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Example {
-    default_checkbox: bool,
-    custom_checkbox: bool,
+    selected_radio: Option<Choice>,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    DefaultChecked(bool),
-    CustomChecked(bool),
+    RadioSelected(Choice),
 }
 
 impl Sandbox for Example {
@@ -30,18 +28,19 @@ impl Sandbox for Example {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::DefaultChecked(value) => self.default_checkbox = value,
-            Message::CustomChecked(value) => self.custom_checkbox = value,
+            Message::RadioSelected(value) => {
+                self.selected_radio = Some(choice);
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let selected_choice = Some(Choice::A);
+        let selected_radio = Some(Choice::A);
 
-	Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
-        Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
+	    Radio::new(Choice::A, "This is A", selected_radio, Message::RadioSelected);
+        Radio::new(Choice::B, "This is B", selected_radio, Message::RadioSelected);
 
-        let content = column![selected_choice].spacing(22);
+        let content = column![selected_radio].spacing(22);
 
         container(content)
             .width(Length::Fill)
@@ -49,5 +48,32 @@ impl Sandbox for Example {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Choice {
+    #[default]
+    A,
+    B,
+}
+
+impl Choice {
+    const ALL: [Choice; 2] = [
+        Choice::A,
+        Choice::B,
+    ];
+}
+
+impl std::fmt::Display for Choice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Choice::A => "A",
+                Choice::B => "B",
+            }
+        )
     }
 }
