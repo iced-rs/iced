@@ -25,7 +25,7 @@ impl Sandbox for Example {
     }
 
     fn title(&self) -> String {
-        String::from("Checkbox - Iced")
+        String::from("Radio - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -36,17 +36,12 @@ impl Sandbox for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let default_checkbox =
-            checkbox("Default", self.default_checkbox, Message::DefaultChecked);
-        let custom_checkbox =
-            checkbox("Custom", self.custom_checkbox, Message::CustomChecked)
-                .icon(checkbox::Icon {
-                    font: ICON_FONT,
-                    code_point: '\u{e901}',
-                    size: None,
-                });
+        let selected_choice = Some(Choice::A);
 
-        let content = column![default_checkbox, custom_checkbox].spacing(22);
+	Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
+        Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
+
+        let content = column![selected_choice].spacing(22);
 
         container(content)
             .width(Length::Fill)
