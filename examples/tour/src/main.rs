@@ -4,8 +4,10 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{alignment, widget, Degrees, Gradient, Radians, Theme};
-use iced::{Color, Element, Length, Renderer, Sandbox, Settings};
+use iced::{
+    alignment, widget, Color, Degrees, Element, Gradient, Length, Radians,
+    Renderer, Sandbox, Settings, Theme,
+};
 
 pub fn main() -> iced::Result {
     env_logger::init();

@@ -1,8 +1,8 @@
-use crate::core::Gradient;
 use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
+use crate::graphics::Gradient;
 use crate::graphics::Primitive;
 
 pub struct Frame {
@@ -230,6 +230,7 @@ pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
                     linear
                         .color_stops
                         .into_iter()
+                        .filter(|stop| stop.offset <= 1.0)
                         .map(|stop| {
                             tiny_skia::GradientStop::new(
                                 stop.offset,

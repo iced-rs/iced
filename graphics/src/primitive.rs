@@ -1,7 +1,7 @@
 use iced_core::alignment;
 use iced_core::image;
 use iced_core::svg;
-use iced_core::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
+use iced_core::{Background, Color, Font, Rectangle, Size, Vector};
 
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
@@ -158,14 +158,6 @@ pub struct Mesh2D<T> {
     pub indices: Vec<u32>,
 }
 
-/// A two-dimensional vertex.
-#[derive(Copy, Clone, Debug, Zeroable, Pod)]
-#[repr(C)]
-pub struct Vertex2D {
-    /// The vertex position in 2D space.
-    pub position: [f32; 2],
-}
-
 /// A two-dimensional vertex with a color.
 #[derive(Copy, Clone, Debug, Zeroable, Pod)]
 #[repr(C)]
@@ -176,6 +168,23 @@ pub struct ColoredVertex2D {
     /// The color of the vertex in __linear__ RGBA.
     pub color: [f32; 4],
 }
+
+/// A vertex which contains 2D position & packed gradient data.
+#[derive(Copy, Clone, Debug)]
+#[repr(C)]
+pub struct GradientVertex2D {
+    /// The vertex position in 2D space.
+    pub position: [f32; 2],
+
+    /// The packed vertex data of the gradient.
+    pub gradient: [f32; 44],
+}
+
+#[allow(unsafe_code)]
+unsafe impl Zeroable for GradientVertex2D {}
+
+#[allow(unsafe_code)]
+unsafe impl Pod for GradientVertex2D {}
 
 impl From<()> for Primitive {
     fn from(_: ()) -> Self {

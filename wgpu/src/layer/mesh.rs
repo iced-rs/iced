@@ -1,5 +1,5 @@
 //! A collection of triangle primitives.
-use crate::core::{Gradient, Point, Rectangle};
+use crate::core::{Point, Rectangle};
 use crate::graphics::primitive;
 
 /// A mesh of triangles.
@@ -62,8 +62,14 @@ pub struct AttributeCount {
     /// The total amount of solid vertices.
     pub solid_vertices: usize,
 
+    /// The total amount of solid meshes.
+    pub solids: usize,
+
     /// The total amount of gradient vertices.
     pub gradient_vertices: usize,
+
+    /// The total amount of gradient meshes.
+    pub gradients: usize,
 
     /// The total amount of indices.
     pub indices: usize,
@@ -76,10 +82,12 @@ pub fn attribute_count_of<'a>(meshes: &'a [Mesh<'a>]) -> AttributeCount {
         .fold(AttributeCount::default(), |mut count, mesh| {
             match mesh {
                 Mesh::Solid { buffers, .. } => {
+                    count.solids += 1;
                     count.solid_vertices += buffers.vertices.len();
                     count.indices += buffers.indices.len();
                 }
                 Mesh::Gradient { buffers, .. } => {
+                    count.gradients += 1;
                     count.gradient_vertices += buffers.vertices.len();
                     count.indices += buffers.indices.len();
                 }

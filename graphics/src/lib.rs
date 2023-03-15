@@ -23,6 +23,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
 mod error;
+mod gradient;
 mod transformation;
 mod viewport;
 
@@ -41,6 +42,7 @@ pub use antialiasing::Antialiasing;
 pub use backend::Backend;
 pub use compositor::Compositor;
 pub use error::Error;
+pub use gradient::Gradient;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;

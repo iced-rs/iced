@@ -7,6 +7,7 @@ pub mod quad;
 
 pub use image::Image;
 pub use mesh::Mesh;
+pub use quad::{Gradient, Solid};
 pub use text::Text;
 
 use crate::core::alignment;
@@ -154,8 +155,7 @@ impl<'a> Layer<'a> {
             } => {
                 let layer = &mut layers[current_layer];
 
-                // TODO: Move some of these computations to the GPU (?)
-                let properties = Properties {
+                let properties = quad::Properties {
                     position: [
                         bounds.x + translation.x,
                         bounds.y + translation.y,
@@ -175,10 +175,13 @@ impl<'a> Layer<'a> {
                     }
                     Background::Gradient(gradient) => {
                         let quad = quad::Gradient {
-                            gradient: (*gradient).pack(Rectangle::new(
-                                properties.position.into(),
-                                properties.size.into(),
-                            )),
+                            gradient: pack_gradient(
+                                gradient,
+                                Rectangle::new(
+                                    properties.position.into(),
+                                    properties.size.into(),
+                                ),
+                            ),
                             properties,
                         };
 
@@ -293,6 +296,37 @@ impl<'a> Layer<'a> {
             _ => {
                 // Unsupported!
             }
+        }
+    }
+}
+
+/// Packs the [`Gradient`] for use in shader code.
+fn pack_gradient(
+    gradient: &crate::core::Gradient,
+    bounds: Rectangle,
+) -> [f32; 44] {
+    match gradient {
+        crate::core::Gradient::Linear(linear) => {
+            let mut pack: [f32; 44] = [0.0; 44];
+
+            for (index, stop) in linear.color_stops.iter().enumerate().take(8) {
+                let [r, g, b, a] = stop.color.into_linear();
+
+                pack[(index * 4)] = r;
+                pack[(index * 4) + 1] = g;
+                pack[(index * 4) + 2] = b;
+                pack[(index * 4) + 3] = a;
+                pack[32 + index] = stop.offset;
+            }
+
+            let (start, end) = linear.angle.to_distance(&bounds);
+
+            pack[40] = start.x;
+            pack[41] = start.y;
+            pack[42] = end.x;
+            pack[43] = end.y;
+
+            pack
         }
     }
 }

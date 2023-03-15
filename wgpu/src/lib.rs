@@ -59,8 +59,6 @@ pub use backend::Backend;
 pub use layer::Layer;
 pub use settings::Settings;
 
-use buffer::Buffer;
-
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
 

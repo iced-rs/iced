@@ -1,4 +1,5 @@
-use iced_core::{Color, Gradient};
+use crate::core::Color;
+use crate::Gradient;
 
 /// The coloring style of some drawing.
 #[derive(Debug, Clone, PartialEq)]

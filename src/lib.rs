@@ -189,8 +189,8 @@ pub use style::theme;
 pub use crate::core::alignment;
 pub use crate::core::event;
 pub use crate::core::{
-    color, Alignment, Background, Color, ContentFit, Length, Padding, Point,
-    Rectangle, Size, Vector,
+    color, Alignment, Background, Color, ContentFit, Degrees, Gradient, Length,
+    Padding, Point, Radians, Rectangle, Size, Vector,
 };
 pub use crate::runtime::Command;
 

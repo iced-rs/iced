@@ -46,10 +46,6 @@ version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
 rev = "47050174841a4f58fc8d85c943a2117f72f19e8e"
 
-[dependencies.encase]
-version = "0.3.0"
-features = ["glam"]
-
 [dependencies.glam]
 version = "0.21.3"
 

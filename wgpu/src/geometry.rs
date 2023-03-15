@@ -1,9 +1,10 @@
-use crate::core::{Gradient, Point, Rectangle, Size, Vector};
+use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
 use crate::graphics::primitive::{self, Primitive};
+use crate::graphics::Gradient;
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -24,10 +25,7 @@ pub struct Frame {
 
 enum Buffer {
     Solid(tessellation::VertexBuffers<primitive::ColoredVertex2D, u32>),
-    Gradient(
-        tessellation::VertexBuffers<primitive::GradientVertex2D, u32>,
-        Gradient,
-    ),
+    Gradient(tessellation::VertexBuffers<primitive::GradientVertex2D, u32>),
 }
 
 struct BufferStack {
@@ -501,7 +499,7 @@ impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient.pack(),
+            gradient: pack_gradient(&self.gradient),
         }
     }
 }
@@ -515,9 +513,9 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
     ) -> primitive::GradientVertex2D {
         let position = vertex.position();
 
-        triangle::GradientVertex2D {
+        primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient.pack(),
+            gradient: pack_gradient(&self.gradient),
         }
     }
 }
@@ -619,4 +617,41 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
             },
         );
     })
+}
+
+/// Packs the [`Gradient`] for use in shader code.
+fn pack_gradient(gradient: &Gradient) -> [f32; 44] {
+    match gradient {
+        Gradient::Linear(linear) => {
+            let mut pack: [f32; 44] = [0.0; 44];
+            let mut offsets: [f32; 8] = [2.0; 8];
+
+            for (index, stop) in linear.color_stops.iter().enumerate().take(8) {
+                let [r, g, b, a] = stop.color.into_linear();
+
+                pack[(index * 4)] = r;
+                pack[(index * 4) + 1] = g;
+                pack[(index * 4) + 2] = b;
+                pack[(index * 4) + 3] = a;
+
+                offsets[index] = stop.offset;
+            }
+
+            pack[32] = offsets[0];
+            pack[33] = offsets[1];
+            pack[34] = offsets[2];
+            pack[35] = offsets[3];
+            pack[36] = offsets[4];
+            pack[37] = offsets[5];
+            pack[38] = offsets[6];
+            pack[39] = offsets[7];
+
+            pack[40] = linear.start.x;
+            pack[41] = linear.start.y;
+            pack[42] = linear.end.x;
+            pack[43] = linear.end.y;
+
+            pack
+        }
+    }
 }

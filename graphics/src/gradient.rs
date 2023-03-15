@@ -1,65 +1,46 @@
-//! For creating a Gradient.
+//! For creating a Gradient that can be used as a [`Fill`] for a mesh.
+use crate::core::Point;
 pub use linear::Linear;
 
-use crate::{Color, Radians};
-
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
 /// or conically (TBD).
 ///
-/// For a gradient which can be used as a fill on a canvas, see [`iced_graphics::Gradient`].
+/// For a gradient which can be used as a fill for a background of a widget, see [`core::Gradient`].
 pub enum Gradient {
-    /// A linear gradient interpolates colors along a direction at a specific [`Angle`].
+    /// A linear gradient interpolates colors along a direction from its `start` to its `end`
+    /// point.
     Linear(Linear),
 }
 
 impl Gradient {
     /// Creates a new linear [`linear::Builder`].
     ///
-    /// This must be defined by an angle (in [`Degrees`] or [`Radians`])
-    /// which will use the bounds of the widget as a guide.
-    pub fn linear(angle: impl Into<Radians>) -> linear::Builder {
-        linear::Builder::new(angle.into())
+    /// The `start` and `end` [`Point`]s define the absolute position of the [`Gradient`].
+    pub fn linear(start: Point, end: Point) -> linear::Builder {
+        linear::Builder::new(start, end)
     }
-
-    /// Adjust the opacity of the gradient by a multiplier applied to each color stop.
-    pub fn mul_alpha(mut self, alpha_multiplier: f32) -> Self {
-        match &mut self {
-            Gradient::Linear(linear) => {
-                for stop in &mut linear.color_stops {
-                    stop.color.a *= alpha_multiplier;
-                }
-            }
-        }
-
-        self
-    }
-}
-
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
-/// A point along the gradient vector where the specified [`color`] is unmixed.
-///
-/// [`color`]: Self::color
-pub struct ColorStop {
-    /// Offset along the gradient vector.
-    pub offset: f32,
-
-    /// The color of the gradient at the specified [`offset`].
-    ///
-    /// [`offset`]: Self::offset
-    pub color: Color,
 }
 
 pub mod linear {
     //! Linear gradient builder & definition.
-    use crate::gradient::{ColorStop, Gradient};
-    use crate::{Color, Radians};
+    use crate::Gradient;
+    use iced_core::gradient::linear::BuilderError;
+    use iced_core::gradient::ColorStop;
+    use iced_core::{Color, Point};
 
-    /// A linear gradient that can be used as a [`Background`].
+    /// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
+    ///
+    /// [`Fill`]: crate::widget::canvas::Fill
+    /// [`Stroke`]: crate::widget::canvas::Stroke
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub struct Linear {
-        /// How the [`Gradient`] is angled within its bounds.
-        pub angle: Radians,
+        /// The absolute starting position of the gradient.
+        pub start: Point,
+
+        /// The absolute ending position of the gradient.
+        pub end: Point,
+
         /// [`ColorStop`]s along the linear gradient path.
         pub color_stops: [ColorStop; 8],
     }
@@ -67,16 +48,18 @@ pub mod linear {
     /// A [`Linear`] builder.
     #[derive(Debug)]
     pub struct Builder {
-        angle: Radians,
+        start: Point,
+        end: Point,
         stops: [ColorStop; 8],
         error: Option<BuilderError>,
     }
 
     impl Builder {
         /// Creates a new [`Builder`].
-        pub fn new(angle: Radians) -> Self {
+        pub fn new(start: Point, end: Point) -> Self {
             Self {
-                angle,
+                start,
+                end,
                 stops: std::array::from_fn(|_| ColorStop {
                     offset: 2.0, //default offset = invalid
                     color: Default::default(),
@@ -135,24 +118,11 @@ pub mod linear {
                 Err(error)
             } else {
                 Ok(Gradient::Linear(Linear {
-                    angle: self.angle,
+                    start: self.start,
+                    end: self.end,
                     color_stops: self.stops,
                 }))
             }
         }
-    }
-
-    /// An error that happened when building a [`Linear`] gradient.
-    #[derive(Debug, thiserror::Error)]
-    pub enum BuilderError {
-        #[error("Gradients must contain at least one color stop.")]
-        /// Gradients must contain at least one color stop.
-        MissingColorStop,
-        #[error("Offset {0} must be a unique, finite number.")]
-        /// Offsets in a gradient must all be unique & finite.
-        DuplicateOffset(f32),
-        #[error("Offset {0} must be between 0.0..=1.0.")]
-        /// Offsets in a gradient must be between 0.0..=1.0.
-        InvalidOffset(f32),
     }
 }
