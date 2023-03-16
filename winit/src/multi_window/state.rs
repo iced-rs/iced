@@ -37,7 +37,7 @@ where
     ) -> Self {
         let title = application.title(window_id);
         let scale_factor = application.scale_factor(window_id);
-        let theme = application.theme();
+        let theme = application.theme(window_id);
         let appearance = theme.appearance(&application.style());
 
         let viewport = {
@@ -212,7 +212,7 @@ where
         }
 
         // Update theme and appearance
-        self.theme = application.theme();
+        self.theme = application.theme(window_id);
         self.appearance = self.theme.appearance(&application.style());
     }
 }

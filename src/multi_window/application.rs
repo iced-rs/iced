@@ -107,7 +107,8 @@ pub trait Application: Sized {
     /// Returns the current [`Theme`] of the [`Application`].
     ///
     /// [`Theme`]: Self::Theme
-    fn theme(&self) -> Self::Theme {
+    #[allow(unused_variables)]
+    fn theme(&self, window: window::Id) -> Self::Theme {
         Self::Theme::default()
     }
 
@@ -229,8 +230,8 @@ where
         self.0.title(window)
     }
 
-    fn theme(&self) -> A::Theme {
-        self.0.theme()
+    fn theme(&self, window: window::Id) -> A::Theme {
+        self.0.theme(window)
     }
 
     fn style(&self) -> <A::Theme as StyleSheet>::Style {

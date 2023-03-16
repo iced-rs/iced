@@ -1,5 +1,4 @@
 use iced::alignment::{self, Alignment};
-use iced::{executor, time};
 use iced::keyboard;
 use iced::multi_window::Application;
 use iced::theme::{self, Theme};
@@ -8,6 +7,7 @@ use iced::widget::{
     button, column, container, pick_list, row, scrollable, text, text_input,
 };
 use iced::window;
+use iced::{executor, time};
 use iced::{Color, Command, Element, Length, Settings, Size, Subscription};
 use iced_lazy::responsive;
 use iced_native::{event, subscription, Event};
@@ -34,6 +34,7 @@ struct Example {
 struct Window {
     title: String,
     scale: f64,
+    theme: Theme,
     panes: pane_grid::State<Pane>,
     focus: Option<pane_grid::Pane>,
 }
@@ -77,6 +78,7 @@ impl Application for Example {
             focus: None,
             title: String::from("Default window"),
             scale: 1.0,
+            theme: Theme::default(),
         };
 
         (
@@ -167,7 +169,10 @@ impl Application for Example {
                     let _ = self.windows.remove(&id);
                     return window::close(id);
                 }
-                WindowMessage::Resized(pane_grid::ResizeEvent { split, ratio }) => {
+                WindowMessage::Resized(pane_grid::ResizeEvent {
+                    split,
+                    ratio,
+                }) => {
                     let window = self.windows.get_mut(&id).unwrap();
                     window.panes.resize(&split, ratio);
                 }
@@ -177,7 +182,8 @@ impl Application for Example {
                     pane.is_moving = false;
 
                     if let Some(window) = self.windows.get_mut(&selected.0) {
-                        let (&first_pane, _) = window.panes.iter().next().unwrap();
+                        let (&first_pane, _) =
+                            window.panes.iter().next().unwrap();
                         let result =
                             window.panes.split(pane.axis, &first_pane, pane);
 
@@ -205,8 +211,16 @@ impl Application for Example {
                         let window = Window {
                             panes,
                             focus: None,
-                            title: format!("New window ({})", self.windows.len()),
+                            title: format!(
+                                "New window ({})",
+                                self.windows.len()
+                            ),
                             scale: 1.0 + (self.windows.len() as f64 / 10.0),
+                            theme: if self.windows.len() % 2 == 0 {
+                                Theme::Light
+                            } else {
+                                Theme::Dark
+                            },
                         };
 
                         let window_id = window::Id::new(self.windows.len());
@@ -215,15 +229,12 @@ impl Application for Example {
                     }
                 }
                 WindowMessage::Dragged(pane_grid::DragEvent::Dropped {
-                                           pane,
-                                           target,
-                                       }) => {
+                    pane,
+                    target,
+                }) => {
                     let window = self.windows.get_mut(&id).unwrap();
                     window.panes.swap(&pane, &target);
                 }
-                // WindowMessage::Dragged(pane_grid::DragEvent::Picked { pane }) => {
-                //     println!("Picked {pane:?}");
-                // }
                 WindowMessage::Dragged(_) => {}
                 WindowMessage::TogglePin(pane) => {
                     let window = self.windows.get_mut(&id).unwrap();
@@ -273,9 +284,9 @@ impl Application for Example {
 
                 match event {
                     Event::Keyboard(keyboard::Event::KeyPressed {
-                                        modifiers,
-                                        key_code,
-                                    }) if modifiers.command() => {
+                        modifiers,
+                        key_code,
+                    }) if modifiers.command() => {
                         handle_hotkey(key_code).map(|message| {
                             Message::Window(window::Id::new(0usize), message)
                         })
@@ -390,6 +401,10 @@ impl Application for Example {
 
     fn scale_factor(&self, window: Id) -> f64 {
         self.windows.get(&window).map(|w| w.scale).unwrap_or(1.0)
+    }
+
+    fn theme(&self, window: Id) -> Theme {
+        self.windows.get(&window).expect("Window not found!").theme.clone()
     }
 }
 

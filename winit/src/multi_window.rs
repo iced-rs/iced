@@ -112,7 +112,7 @@ where
     fn title(&self, window: window::Id) -> String;
 
     /// Returns the current [`Theme`] of the [`Application`].
-    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+    fn theme(&self, window: window::Id) -> <Self::Renderer as crate::Renderer>::Theme;
 
     /// Returns the [`Style`] variation of the [`Theme`].
     fn style(
