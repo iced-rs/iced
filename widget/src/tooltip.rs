@@ -353,7 +353,7 @@ where
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .pad(Padding::new(self.padding)),
+            .shrink(Padding::new(self.padding)),
         );
 
         let text_bounds = text_layout.bounds();

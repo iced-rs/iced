@@ -692,11 +692,7 @@ fn ferris<'a>(
 }
 
 fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
-    iced::widget::button(
-        text(label).horizontal_alignment(alignment::Horizontal::Center),
-    )
-    .padding(12)
-    .width(100)
+    iced::widget::button(text(label)).padding([12, 24])
 }
 
 fn color_slider<'a>(

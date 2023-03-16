@@ -59,9 +59,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
-        layout::Node::new(limits.resolve(Size::ZERO))
+        layout::Node::new(limits.resolve(Size::ZERO, self.width, self.height))
     }
 
     fn draw(

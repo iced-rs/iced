@@ -79,12 +79,10 @@ impl Application for SierpinskiEmulator {
             row![
                 text(format!("Iteration: {:?}", self.graph.iteration)),
                 slider(0..=10000, self.graph.iteration, Message::IterationSet)
-                    .width(Length::Fill)
             ]
             .padding(10)
             .spacing(20),
         ]
-        .width(Length::Fill)
         .align_items(iced::Alignment::Center)
         .into()
     }

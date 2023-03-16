@@ -35,7 +35,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
+            width: Length::Fill,
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
@@ -126,15 +126,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .max_width(self.max_width)
-            .width(self.width)
-            .height(self.height);
+        let limits = limits.max_width(self.max_width);
 
         layout::flex::resolve(
             layout::flex::Axis::Vertical,
             renderer,
             &limits,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align_items,

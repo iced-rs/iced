@@ -85,7 +85,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
-        let size = limits.resolve(Size::ZERO);
+        let size = limits.resolve(Size::ZERO, self.width, self.height);
 
         layout::Node::new(size)
     }

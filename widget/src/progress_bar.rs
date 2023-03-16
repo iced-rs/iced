@@ -99,11 +99,11 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits
-            .width(self.width)
-            .height(self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)));
-
-        let size = limits.resolve(Size::ZERO);
+        let size = limits.resolve(
+            Size::ZERO,
+            self.width,
+            self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
+        );
 
         layout::Node::new(size)
     }

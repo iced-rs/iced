@@ -393,7 +393,7 @@ where
 {
     use std::f32;
 
-    let limits = limits.width(width).height(Length::Shrink).pad(padding);
+    let limits = limits.width(width).height(Length::Shrink);
     let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -451,7 +451,10 @@ where
             f32::from(text_line_height.to_absolute(text_size)),
         );
 
-        limits.resolve(intrinsic).pad(padding)
+        limits
+            .shrink(padding)
+            .resolve(intrinsic, width, Length::Shrink)
+            .expand(padding)
     };
 
     layout::Node::new(size)

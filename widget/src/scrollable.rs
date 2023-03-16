@@ -489,7 +489,7 @@ pub fn layout<Renderer>(
     );
 
     let content = layout_content(renderer, &child_limits);
-    let size = limits.resolve(content.size());
+    let size = limits.resolve(content.size(), width, height);
 
     layout::Node::with_children(size, vec![content])
 }

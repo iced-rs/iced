@@ -350,7 +350,7 @@ where
         }
 
         internal.editor.update(
-            limits.pad(self.padding).max(),
+            limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,

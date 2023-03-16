@@ -116,7 +116,6 @@ impl Application for WebSocket {
                         .map(Element::from)
                         .collect(),
                 )
-                .width(Length::Fill)
                 .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
@@ -149,7 +148,6 @@ impl Application for WebSocket {
         };
 
         column![message_log, new_message_input]
-            .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
             .spacing(10)

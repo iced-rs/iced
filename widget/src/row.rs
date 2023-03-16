@@ -34,7 +34,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         Row {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Shrink,
+            width: Length::Fill,
             height: Length::Shrink,
             align_items: Alignment::Start,
             children,
@@ -118,12 +118,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             &limits,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align_items,

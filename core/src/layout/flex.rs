@@ -20,7 +20,7 @@ use crate::Element;
 
 use crate::layout::{Limits, Node};
 use crate::widget;
-use crate::{Alignment, Padding, Point, Size};
+use crate::{Alignment, Length, Padding, Point, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -63,6 +63,8 @@ pub fn resolve<Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,
+    width: Length,
+    height: Length,
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
@@ -72,12 +74,12 @@ pub fn resolve<Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
-    let limits = limits.pad(padding);
+    let limits = limits.width(width).height(height).shrink(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max());
 
     let mut fill_sum = 0;
-    let mut cross = axis.cross(limits.min()).max(axis.cross(limits.fill()));
+    let mut cross = 0.0f32;
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
@@ -109,7 +111,16 @@ where
         }
     }
 
-    let remaining = available.max(0.0);
+    let remaining = match axis {
+        Axis::Horizontal => match width {
+            Length::Shrink => 0.0,
+            _ => available.max(0.0),
+        },
+        Axis::Vertical => match height {
+            Length::Shrink => 0.0,
+            _ => available.max(0.0),
+        },
+    };
 
     for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
         let fill_factor = match axis {
@@ -154,18 +165,18 @@ where
 
         let (x, y) = axis.pack(main, pad.1);
 
-        node.move_to(Point::new(x, y));
+        node.move_to_mut(Point::new(x, y));
 
         match axis {
             Axis::Horizontal => {
-                node.align(
+                node.align_mut(
                     Alignment::Start,
                     align_items,
                     Size::new(0.0, cross),
                 );
             }
             Axis::Vertical => {
-                node.align(
+                node.align_mut(
                     align_items,
                     Alignment::Start,
                     Size::new(cross, 0.0),
@@ -179,7 +190,7 @@ where
     }
 
     let (width, height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(Size::new(width, height));
+    let size = limits.resolve(Size::new(width, height), width, height);
 
-    Node::with_children(size.pad(padding), nodes)
+    Node::with_children(size.expand(padding), nodes)
 }

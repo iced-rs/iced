@@ -433,13 +433,18 @@ pub fn layout(
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(&limits.pad(padding));
+    let content = layout_content(&limits.shrink(padding));
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size()).pad(padding);
 
-    content.move_to(Point::new(padding.left, padding.top));
+    let size = limits
+        .shrink(padding)
+        .resolve(content.size(), width, height)
+        .expand(padding);
 
-    layout::Node::with_children(size, vec![content])
+    layout::Node::with_children(
+        size,
+        vec![content.move_to(Point::new(padding.left, padding.top))],
+    )
 }
 
 /// Returns the [`mouse::Interaction`] of a [`Button`].

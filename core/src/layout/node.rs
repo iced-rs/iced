@@ -1,4 +1,4 @@
-use crate::{Alignment, Point, Rectangle, Size, Vector};
+use crate::{Alignment, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
@@ -26,6 +26,14 @@ impl Node {
         }
     }
 
+    /// Creates a new [`Node`] that wraps a single child with some [`Padding`].
+    pub fn container(child: Self, padding: Padding) -> Self {
+        Self::with_children(
+            child.bounds.size().expand(padding),
+            vec![child.move_to(Point::new(padding.left, padding.top))],
+        )
+    }
+
     /// Returns the [`Size`] of the [`Node`].
     pub fn size(&self) -> Size {
         Size::new(self.bounds.width, self.bounds.height)
@@ -43,6 +51,17 @@ impl Node {
 
     /// Aligns the [`Node`] in the given space.
     pub fn align(
+        mut self,
+        horizontal_alignment: Alignment,
+        vertical_alignment: Alignment,
+        space: Size,
+    ) -> Self {
+        self.align_mut(horizontal_alignment, vertical_alignment, space);
+        self
+    }
+
+    /// Mutable reference version of [`align`].
+    pub fn align_mut(
         &mut self,
         horizontal_alignment: Alignment,
         vertical_alignment: Alignment,
@@ -70,7 +89,13 @@ impl Node {
     }
 
     /// Moves the [`Node`] to the given position.
-    pub fn move_to(&mut self, position: Point) {
+    pub fn move_to(mut self, position: Point) -> Self {
+        self.move_to_mut(position);
+        self
+    }
+
+    /// Mutable reference version of [`move_to`].
+    pub fn move_to_mut(&mut self, position: Point) {
         self.bounds.x = position.x;
         self.bounds.y = position.y;
     }

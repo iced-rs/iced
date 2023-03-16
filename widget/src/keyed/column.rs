@@ -196,6 +196,8 @@ where
             layout::flex::Axis::Vertical,
             renderer,
             &limits,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align_items,

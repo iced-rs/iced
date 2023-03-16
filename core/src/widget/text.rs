@@ -224,7 +224,7 @@ where
         shaping,
     });
 
-    let size = limits.resolve(paragraph.min_bounds());
+    let size = limits.resolve(paragraph.min_bounds(), width, height);
 
     layout::Node::new(size)
 }

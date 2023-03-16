@@ -113,10 +113,11 @@ where
     ) -> layout::Node {
         let Size { width, height } = renderer.dimensions(&self.handle);
 
-        let mut size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(Size::new(width as f32, height as f32));
+        let mut size = limits.resolve(
+            Size::new(width as f32, height as f32),
+            self.width,
+            self.height,
+        );
 
         let expansion_size = if height > width {
             self.width

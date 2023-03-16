@@ -48,7 +48,6 @@ impl Sandbox for Example {
             pick_list,
             vertical_space(600),
         ]
-        .width(Length::Fill)
         .align_items(Alignment::Center)
         .spacing(10);
 

@@ -312,24 +312,27 @@ pub fn layout(
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits
-        .loose()
-        .max_width(max_width)
-        .max_height(max_height)
         .width(width)
-        .height(height);
+        .height(height)
+        .max_width(max_width)
+        .max_height(max_height);
 
-    let mut content = layout_content(&limits.pad(padding).loose());
+    let content = layout_content(&limits.shrink(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size());
+    let size = limits
+        .shrink(padding)
+        .resolve(content.size(), width, height);
 
-    content.move_to(Point::new(padding.left, padding.top));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
-
-    layout::Node::with_children(size.pad(padding), vec![content])
+    layout::Node::with_children(
+        size.expand(padding),
+        vec![content
+            .move_to(Point::new(padding.left, padding.top))
+            .align(
+                Alignment::from(horizontal_alignment),
+                Alignment::from(vertical_alignment),
+                size,
+            )],
+    )
 }
 
 /// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.
