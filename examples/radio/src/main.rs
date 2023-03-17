@@ -1,4 +1,4 @@
-use iced::widget::{column, container, Radio};
+use iced::widget::{column, container, radio};
 use iced::{Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
@@ -37,10 +37,10 @@ impl Sandbox for Example {
     fn view(&self) -> Element<Message> {
         let selected_radio = Some(Choice::A);
 
-	    Radio::new(Choice::A, "This is A", selected_radio, Message::RadioSelected);
-        Radio::new(Choice::B, "This is B", selected_radio, Message::RadioSelected);
-
-        let content = column![selected_radio].spacing(22);
+        let content = column![
+	    Radio::new(Choice::A, "This is A", selected_radio, Message::RadioSelected),
+            Radio::new(Choice::B, "This is B", selected_radio, Message::RadioSelected),
+        ];
 
         container(content)
             .width(Length::Fill)
