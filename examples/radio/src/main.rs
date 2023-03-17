@@ -7,7 +7,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Example {
-    selected_radio: Option<Choice>,
+    radio: Option<Choice>,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -29,18 +29,44 @@ impl Sandbox for Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::RadioSelected(value) => {
-                self.selected_radio = Some(choice);
+                self.radio = Some(value);
             }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let selected_radio = Some(Choice::A);
+	let a_checkbox = radio(
+            "A",
+            Choice::A,
+            self.radio,
+            Message::RadioSelected,
+        );
+
+        let b_checkbox = radio(
+	    "B",
+            Choice::B,
+            self.radio,
+            Message::RadioSelected,
+        );
+
+        let c_checkbox = radio(
+            "C",
+            Choice::C,
+            self.radio,
+            Message::RadioSelected,
+        );
+
+        let all_checkbox = radio("All of the above", Choice::All, self.radio, Message::RadioSelected);
 
         let content = column![
-	    Radio::new(Choice::A, "This is A", selected_radio, Message::RadioSelected),
-            Radio::new(Choice::B, "This is B", selected_radio, Message::RadioSelected),
-        ];
+            a_checkbox,
+            b_checkbox,
+            c_checkbox,
+            all_checkbox,
+        ]
+	.spacing(20)
+        .padding(20)
+        .max_width(600);
 
         container(content)
             .width(Length::Fill)
@@ -51,29 +77,10 @@ impl Sandbox for Example {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Choice {
-    #[default]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Choice {
     A,
     B,
-}
-
-impl Choice {
-    const ALL: [Choice; 2] = [
-        Choice::A,
-        Choice::B,
-    ];
-}
-
-impl std::fmt::Display for Choice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Choice::A => "A",
-                Choice::B => "B",
-            }
-        )
-    }
+    C,
+    All,
 }
