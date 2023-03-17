@@ -267,6 +267,14 @@ impl Backend {
             Primitive::Clip { bounds, content } => {
                 let bounds = (*bounds + translation) * scale_factor;
 
+                if bounds.x + bounds.width <= 0.0
+                    || bounds.y + bounds.height <= 0.0
+                    || bounds.x as u32 >= pixels.width()
+                    || bounds.y as u32 >= pixels.height()
+                {
+                    return;
+                }
+
                 adjust_clip_mask(clip_mask, pixels, bounds);
 
                 self.draw_primitive(
