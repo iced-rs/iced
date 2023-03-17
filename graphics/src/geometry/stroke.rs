@@ -59,9 +59,10 @@ impl<'a> Default for Stroke<'a> {
 }
 
 /// The shape used at the end of open subpaths when they are stroked.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum LineCap {
     /// The stroke for each sub-path does not extend beyond its two endpoints.
+    #[default]
     Butt,
     /// At the end of each sub-path, the shape representing the stroke will be
     /// extended by a square.
@@ -71,28 +72,17 @@ pub enum LineCap {
     Round,
 }
 
-impl Default for LineCap {
-    fn default() -> LineCap {
-        LineCap::Butt
-    }
-}
-
 /// The shape used at the corners of paths or basic shapes when they are
 /// stroked.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum LineJoin {
     /// A sharp corner.
+    #[default]
     Miter,
     /// A round corner.
     Round,
     /// A bevelled corner.
     Bevel,
-}
-
-impl Default for LineJoin {
-    fn default() -> LineJoin {
-        LineJoin::Miter
-    }
 }
 
 /// The dash pattern used when stroking the line.

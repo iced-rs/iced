@@ -6,7 +6,7 @@ The __[`main`]__ file contains all the code of the example.
 
 You can run it with `cargo run`:
 ```
-cargo run --package pick_list
+cargo run --package checkbox
 ```
 
 [`main`]: src/main.rs
