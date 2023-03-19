@@ -11,62 +11,31 @@ use std::sync::Arc;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    system: Option<System>,
+    font_system: RefCell<cosmic_text::FontSystem>,
     glyph_cache: GlyphCache,
-}
-
-#[ouroboros::self_referencing]
-struct System {
-    fonts: cosmic_text::FontSystem,
-
-    #[borrows(fonts)]
-    #[not_covariant]
-    measurement_cache: RefCell<Cache<'this>>,
-
-    #[borrows(fonts)]
-    #[not_covariant]
-    render_cache: Cache<'this>,
+    measurement_cache: RefCell<Cache>,
+    render_cache: Cache,
 }
 
 impl Pipeline {
     pub fn new() -> Self {
         Pipeline {
-            system: Some(
-                SystemBuilder {
-                    fonts: cosmic_text::FontSystem::new_with_fonts(
-                        [cosmic_text::fontdb::Source::Binary(Arc::new(
-                            include_bytes!("../../wgpu/fonts/Iced-Icons.ttf")
-                                .as_slice(),
-                        ))]
-                        .into_iter(),
-                    ),
-                    measurement_cache_builder: |_| RefCell::new(Cache::new()),
-                    render_cache_builder: |_| Cache::new(),
-                }
-                .build(),
-            ),
+            font_system: RefCell::new(cosmic_text::FontSystem::new_with_fonts(
+                [cosmic_text::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../../wgpu/fonts/Iced-Icons.ttf")
+                        .as_slice(),
+                ))]
+                .into_iter(),
+            )),
             glyph_cache: GlyphCache::new(),
+            measurement_cache: RefCell::new(Cache::new()),
+            render_cache: Cache::new(),
         }
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        let heads = self.system.take().unwrap().into_heads();
-
-        let (locale, mut db) = heads.fonts.into_locale_and_db();
-
-        db.load_font_source(cosmic_text::fontdb::Source::Binary(Arc::new(
-            bytes.into_owned(),
-        )));
-
-        self.system = Some(
-            SystemBuilder {
-                fonts: cosmic_text::FontSystem::new_with_locale_and_db(
-                    locale, db,
-                ),
-                measurement_cache_builder: |_| RefCell::new(Cache::new()),
-                render_cache_builder: |_| Cache::new(),
-            }
-            .build(),
+        self.font_system.get_mut().db_mut().load_font_source(
+            cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
     }
 
@@ -82,78 +51,75 @@ impl Pipeline {
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::ClipMask>,
     ) {
-        self.system.as_mut().unwrap().with_mut(|fields| {
-            let key = Key {
-                bounds: {
-                    let size = bounds.size();
+        let font_system = self.font_system.get_mut();
+        let key = Key {
+            bounds: {
+                let size = bounds.size();
 
-                    // TODO: Reuse buffers from layouting
-                    Size::new(size.width.ceil(), size.height.ceil())
-                },
-                content,
-                font,
-                size,
-            };
+                // TODO: Reuse buffers from layouting
+                Size::new(size.width.ceil(), size.height.ceil())
+            },
+            content,
+            font,
+            size,
+        };
 
-            let (_, buffer) = fields.render_cache.allocate(fields.fonts, key);
+        let (_, buffer) = self.render_cache.allocate(font_system, key);
 
-            let (total_lines, max_width) = buffer
-                .layout_runs()
-                .enumerate()
-                .fold((0, 0.0), |(_, max), (i, buffer)| {
-                    (i + 1, buffer.line_w.max(max))
-                });
+        let (total_lines, max_width) = buffer
+            .layout_runs()
+            .enumerate()
+            .fold((0, 0.0), |(_, max), (i, buffer)| {
+                (i + 1, buffer.line_w.max(max))
+            });
 
-            let total_height = total_lines as f32 * size * 1.2;
+        let total_height = total_lines as f32 * size * 1.2;
 
-            let x = match horizontal_alignment {
-                alignment::Horizontal::Left => bounds.x,
-                alignment::Horizontal::Center => bounds.x - max_width / 2.0,
-                alignment::Horizontal::Right => bounds.x - max_width,
-            };
+        let x = match horizontal_alignment {
+            alignment::Horizontal::Left => bounds.x,
+            alignment::Horizontal::Center => bounds.x - max_width / 2.0,
+            alignment::Horizontal::Right => bounds.x - max_width,
+        };
 
-            let y = match vertical_alignment {
-                alignment::Vertical::Top => bounds.y,
-                alignment::Vertical::Center => bounds.y - total_height / 2.0,
-                alignment::Vertical::Bottom => bounds.y - total_height,
-            };
+        let y = match vertical_alignment {
+            alignment::Vertical::Top => bounds.y,
+            alignment::Vertical::Center => bounds.y - total_height / 2.0,
+            alignment::Vertical::Bottom => bounds.y - total_height,
+        };
 
-            let mut swash = cosmic_text::SwashCache::new(fields.fonts);
+        let mut swash = cosmic_text::SwashCache::new();
 
-            for run in buffer.layout_runs() {
-                for glyph in run.glyphs {
-                    if let Some((buffer, placement)) = self
-                        .glyph_cache
-                        .allocate(glyph.cache_key, color, &mut swash)
-                    {
-                        let pixmap = tiny_skia::PixmapRef::from_bytes(
-                            buffer,
-                            placement.width,
-                            placement.height,
-                        )
-                        .expect("Create glyph pixel map");
+        for run in buffer.layout_runs() {
+            for glyph in run.glyphs {
+                if let Some((buffer, placement)) = self.glyph_cache.allocate(
+                    glyph.cache_key,
+                    color,
+                    font_system,
+                    &mut swash,
+                ) {
+                    let pixmap = tiny_skia::PixmapRef::from_bytes(
+                        buffer,
+                        placement.width,
+                        placement.height,
+                    )
+                    .expect("Create glyph pixel map");
 
-                        pixels.draw_pixmap(
-                            x as i32 + glyph.x_int + placement.left,
-                            y as i32 - glyph.y_int - placement.top
-                                + run.line_y as i32,
-                            pixmap,
-                            &tiny_skia::PixmapPaint::default(),
-                            tiny_skia::Transform::identity(),
-                            clip_mask,
-                        );
-                    }
+                    pixels.draw_pixmap(
+                        x as i32 + glyph.x_int + placement.left,
+                        y as i32 - glyph.y_int - placement.top
+                            + run.line_y as i32,
+                        pixmap,
+                        &tiny_skia::PixmapPaint::default(),
+                        tiny_skia::Transform::identity(),
+                        clip_mask,
+                    );
                 }
             }
-        });
+        }
     }
 
     pub fn trim_cache(&mut self) {
-        self.system
-            .as_mut()
-            .unwrap()
-            .with_render_cache_mut(|cache| cache.trim());
-
+        self.render_cache.trim();
         self.glyph_cache.trim();
     }
 
@@ -164,28 +130,26 @@ impl Pipeline {
         font: Font,
         bounds: Size,
     ) -> (f32, f32) {
-        self.system.as_ref().unwrap().with(|fields| {
-            let mut measurement_cache = fields.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-            let (_, paragraph) = measurement_cache.allocate(
-                fields.fonts,
-                Key {
-                    content,
-                    size,
-                    font,
-                    bounds,
-                },
-            );
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                font,
+                bounds,
+            },
+        );
 
-            let (total_lines, max_width) = paragraph
-                .layout_runs()
-                .enumerate()
-                .fold((0, 0.0), |(_, max), (i, buffer)| {
-                    (i + 1, buffer.line_w.max(max))
-                });
+        let (total_lines, max_width) = paragraph
+            .layout_runs()
+            .enumerate()
+            .fold((0, 0.0), |(_, max), (i, buffer)| {
+                (i + 1, buffer.line_w.max(max))
+            });
 
-            (max_width, size * 1.2 * total_lines as f32)
-        })
+        (max_width, size * 1.2 * total_lines as f32)
     }
 
     pub fn hit_test(
@@ -197,30 +161,25 @@ impl Pipeline {
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        self.system.as_ref().unwrap().with(|fields| {
-            let mut measurement_cache = fields.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-            let (_, paragraph) = measurement_cache.allocate(
-                fields.fonts,
-                Key {
-                    content,
-                    size,
-                    font,
-                    bounds,
-                },
-            );
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                font,
+                bounds,
+            },
+        );
 
-            let cursor = paragraph.hit(point.x, point.y)?;
+        let cursor = paragraph.hit(point.x, point.y)?;
 
-            Some(Hit::CharOffset(cursor.index))
-        })
+        Some(Hit::CharOffset(cursor.index))
     }
 
     pub fn trim_measurement_cache(&mut self) {
-        self.system
-            .as_mut()
-            .unwrap()
-            .with_measurement_cache_mut(|cache| cache.borrow_mut().trim());
+        self.measurement_cache.borrow_mut().trim();
     }
 }
 
@@ -256,14 +215,15 @@ impl GlyphCache {
         &mut self,
         cache_key: cosmic_text::CacheKey,
         color: Color,
-        swash: &mut cosmic_text::SwashCache<'_>,
+        font_system: &mut cosmic_text::FontSystem,
+        swash: &mut cosmic_text::SwashCache,
     ) -> Option<(&[u8], cosmic_text::Placement)> {
         let [r, g, b, _a] = color.into_rgba8();
         let key = (cache_key, [r, g, b]);
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(key) {
             // TODO: Outline support
-            let image = swash.get_image_uncached(cache_key)?;
+            let image = swash.get_image_uncached(font_system, cache_key)?;
 
             let glyph_size = image.placement.width as usize
                 * image.placement.height as usize;
@@ -343,8 +303,8 @@ impl GlyphCache {
     }
 }
 
-struct Cache<'a> {
-    entries: FxHashMap<KeyHash, cosmic_text::Buffer<'a>>,
+struct Cache {
+    entries: FxHashMap<KeyHash, cosmic_text::Buffer>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
 }
@@ -355,7 +315,7 @@ type HashBuilder = twox_hash::RandomXxHashBuilder64;
 #[cfg(target_arch = "wasm32")]
 type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
 
-impl<'a> Cache<'a> {
+impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
@@ -366,9 +326,9 @@ impl<'a> Cache<'a> {
 
     fn allocate(
         &mut self,
-        fonts: &'a cosmic_text::FontSystem,
+        font_system: &mut cosmic_text::FontSystem,
         key: Key<'_>,
-    ) -> (KeyHash, &mut cosmic_text::Buffer<'a>) {
+    ) -> (KeyHash, &mut cosmic_text::Buffer) {
         let hash = {
             let mut hasher = self.hasher.build_hasher();
 
@@ -383,13 +343,15 @@ impl<'a> Cache<'a> {
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = cosmic_text::Metrics::new(key.size, key.size * 1.2);
-            let mut buffer = cosmic_text::Buffer::new(fonts, metrics);
+            let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
 
             buffer.set_size(
+                font_system,
                 key.bounds.width,
                 key.bounds.height.max(key.size * 1.2),
             );
             buffer.set_text(
+                font_system,
                 key.content,
                 cosmic_text::Attrs::new()
                     .family(to_family(key.font))

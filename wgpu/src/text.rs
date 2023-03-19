@@ -12,23 +12,12 @@ use std::sync::Arc;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    system: Option<System>,
+    font_system: RefCell<glyphon::FontSystem>,
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     prepare_layer: usize,
-}
-
-#[ouroboros::self_referencing]
-struct System {
-    fonts: glyphon::FontSystem,
-
-    #[borrows(fonts)]
-    #[not_covariant]
-    measurement_cache: RefCell<Cache<'this>>,
-
-    #[borrows(fonts)]
-    #[not_covariant]
-    render_cache: Cache<'this>,
+    measurement_cache: RefCell<Cache>,
+    render_cache: Cache,
 }
 
 impl Pipeline {
@@ -38,42 +27,23 @@ impl Pipeline {
         format: wgpu::TextureFormat,
     ) -> Self {
         Pipeline {
-            system: Some(
-                SystemBuilder {
-                    fonts: glyphon::FontSystem::new_with_fonts(
-                        [glyphon::fontdb::Source::Binary(Arc::new(
-                            include_bytes!("../fonts/Iced-Icons.ttf")
-                                .as_slice(),
-                        ))]
-                        .into_iter(),
-                    ),
-                    measurement_cache_builder: |_| RefCell::new(Cache::new()),
-                    render_cache_builder: |_| Cache::new(),
-                }
-                .build(),
-            ),
+            font_system: RefCell::new(glyphon::FontSystem::new_with_fonts(
+                [glyphon::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                ))]
+                .into_iter(),
+            )),
             renderers: Vec::new(),
             atlas: glyphon::TextAtlas::new(device, queue, format),
             prepare_layer: 0,
+            measurement_cache: RefCell::new(Cache::new()),
+            render_cache: Cache::new(),
         }
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        let heads = self.system.take().unwrap().into_heads();
-
-        let (locale, mut db) = heads.fonts.into_locale_and_db();
-
-        db.load_font_source(glyphon::fontdb::Source::Binary(Arc::new(
-            bytes.into_owned(),
-        )));
-
-        self.system = Some(
-            SystemBuilder {
-                fonts: glyphon::FontSystem::new_with_locale_and_db(locale, db),
-                measurement_cache_builder: |_| RefCell::new(Cache::new()),
-                render_cache_builder: |_| Cache::new(),
-            }
-            .build(),
+        self.font_system.get_mut().db_mut().load_font_source(
+            glyphon::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
     }
 
@@ -86,126 +56,123 @@ impl Pipeline {
         scale_factor: f32,
         target_size: Size<u32>,
     ) -> bool {
-        self.system.as_mut().unwrap().with_mut(|fields| {
-            if self.renderers.len() <= self.prepare_layer {
-                self.renderers
-                    .push(glyphon::TextRenderer::new(device, queue));
+        if self.renderers.len() <= self.prepare_layer {
+            self.renderers
+                .push(glyphon::TextRenderer::new(device, queue));
+        }
+
+        let font_system = self.font_system.get_mut();
+        let renderer = &mut self.renderers[self.prepare_layer];
+
+        let keys: Vec<_> = sections
+            .iter()
+            .map(|section| {
+                let (key, _) = self.render_cache.allocate(
+                    font_system,
+                    Key {
+                        content: section.content,
+                        size: section.size * scale_factor,
+                        font: section.font,
+                        bounds: Size {
+                            width: (section.bounds.width * scale_factor).ceil(),
+                            height: (section.bounds.height * scale_factor)
+                                .ceil(),
+                        },
+                    },
+                );
+
+                key
+            })
+            .collect();
+
+        let bounds = glyphon::TextBounds {
+            left: (bounds.x * scale_factor) as i32,
+            top: (bounds.y * scale_factor) as i32,
+            right: ((bounds.x + bounds.width) * scale_factor) as i32,
+            bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
+        };
+
+        let text_areas =
+            sections.iter().zip(keys.iter()).map(|(section, key)| {
+                let buffer =
+                    self.render_cache.get(key).expect("Get cached buffer");
+
+                let x = section.bounds.x * scale_factor;
+                let y = section.bounds.y * scale_factor;
+
+                let (total_lines, max_width) = buffer
+                    .layout_runs()
+                    .enumerate()
+                    .fold((0, 0.0), |(_, max), (i, buffer)| {
+                        (i + 1, buffer.line_w.max(max))
+                    });
+
+                let total_height =
+                    total_lines as f32 * section.size * 1.2 * scale_factor;
+
+                let left = match section.horizontal_alignment {
+                    alignment::Horizontal::Left => x,
+                    alignment::Horizontal::Center => x - max_width / 2.0,
+                    alignment::Horizontal::Right => x - max_width,
+                };
+
+                let top = match section.vertical_alignment {
+                    alignment::Vertical::Top => y,
+                    alignment::Vertical::Center => y - total_height / 2.0,
+                    alignment::Vertical::Bottom => y - total_height,
+                };
+
+                glyphon::TextArea {
+                    buffer,
+                    left: left as i32,
+                    top: top as i32,
+                    bounds,
+                    default_color: {
+                        let [r, g, b, a] = section.color.into_linear();
+
+                        glyphon::Color::rgba(
+                            (r * 255.0) as u8,
+                            (g * 255.0) as u8,
+                            (b * 255.0) as u8,
+                            (a * 255.0) as u8,
+                        )
+                    },
+                }
+            });
+
+        let result = renderer.prepare(
+            device,
+            queue,
+            font_system,
+            &mut self.atlas,
+            glyphon::Resolution {
+                width: target_size.width,
+                height: target_size.height,
+            },
+            text_areas,
+            &mut glyphon::SwashCache::new(),
+        );
+
+        match result {
+            Ok(()) => {
+                self.prepare_layer += 1;
+
+                true
             }
+            Err(glyphon::PrepareError::AtlasFull(content_type)) => {
+                self.prepare_layer = 0;
 
-            let renderer = &mut self.renderers[self.prepare_layer];
-
-            let keys: Vec<_> = sections
-                .iter()
-                .map(|section| {
-                    let (key, _) = fields.render_cache.allocate(
-                        fields.fonts,
-                        Key {
-                            content: section.content,
-                            size: section.size * scale_factor,
-                            font: section.font,
-                            bounds: Size {
-                                width: (section.bounds.width * scale_factor)
-                                    .ceil(),
-                                height: (section.bounds.height * scale_factor)
-                                    .ceil(),
-                            },
-                        },
-                    );
-
-                    key
-                })
-                .collect();
-
-            let bounds = glyphon::TextBounds {
-                left: (bounds.x * scale_factor) as i32,
-                top: (bounds.y * scale_factor) as i32,
-                right: ((bounds.x + bounds.width) * scale_factor) as i32,
-                bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
-            };
-
-            let text_areas =
-                sections.iter().zip(keys.iter()).map(|(section, key)| {
-                    let buffer = fields
-                        .render_cache
-                        .get(key)
-                        .expect("Get cached buffer");
-
-                    let x = section.bounds.x * scale_factor;
-                    let y = section.bounds.y * scale_factor;
-
-                    let (total_lines, max_width) = buffer
-                        .layout_runs()
-                        .enumerate()
-                        .fold((0, 0.0), |(_, max), (i, buffer)| {
-                            (i + 1, buffer.line_w.max(max))
-                        });
-
-                    let total_height =
-                        total_lines as f32 * section.size * 1.2 * scale_factor;
-
-                    let left = match section.horizontal_alignment {
-                        alignment::Horizontal::Left => x,
-                        alignment::Horizontal::Center => x - max_width / 2.0,
-                        alignment::Horizontal::Right => x - max_width,
-                    };
-
-                    let top = match section.vertical_alignment {
-                        alignment::Vertical::Top => y,
-                        alignment::Vertical::Center => y - total_height / 2.0,
-                        alignment::Vertical::Bottom => y - total_height,
-                    };
-
-                    glyphon::TextArea {
-                        buffer,
-                        left: left as i32,
-                        top: top as i32,
-                        bounds,
-                        default_color: {
-                            let [r, g, b, a] = section.color.into_linear();
-
-                            glyphon::Color::rgba(
-                                (r * 255.0) as u8,
-                                (g * 255.0) as u8,
-                                (b * 255.0) as u8,
-                                (a * 255.0) as u8,
-                            )
-                        },
-                    }
-                });
-
-            let result = renderer.prepare(
-                device,
-                queue,
-                &mut self.atlas,
-                glyphon::Resolution {
-                    width: target_size.width,
-                    height: target_size.height,
-                },
-                text_areas,
-                &mut glyphon::SwashCache::new(fields.fonts),
-            );
-
-            match result {
-                Ok(()) => {
-                    self.prepare_layer += 1;
-
+                #[allow(clippy::needless_bool)]
+                if self.atlas.grow(device, content_type) {
+                    false
+                } else {
+                    // If the atlas cannot grow, then all bets are off.
+                    // Instead of panicking, we will just pray that the result
+                    // will be somewhat readable...
                     true
                 }
-                Err(glyphon::PrepareError::AtlasFull(content_type)) => {
-                    self.prepare_layer = 0;
-
-                    #[allow(clippy::needless_bool)]
-                    if self.atlas.grow(device, content_type) {
-                        false
-                    } else {
-                        // If the atlas cannot grow, then all bets are off.
-                        // Instead of panicking, we will just pray that the result
-                        // will be somewhat readable...
-                        true
-                    }
-                }
             }
-        })
+        }
     }
 
     pub fn render<'a>(
@@ -230,11 +197,7 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.atlas.trim();
-
-        self.system
-            .as_mut()
-            .unwrap()
-            .with_render_cache_mut(|cache| cache.trim());
+        self.render_cache.trim();
 
         self.prepare_layer = 0;
     }
@@ -246,28 +209,26 @@ impl Pipeline {
         font: Font,
         bounds: Size,
     ) -> (f32, f32) {
-        self.system.as_ref().unwrap().with(|fields| {
-            let mut measurement_cache = fields.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-            let (_, paragraph) = measurement_cache.allocate(
-                fields.fonts,
-                Key {
-                    content,
-                    size,
-                    font,
-                    bounds,
-                },
-            );
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                font,
+                bounds,
+            },
+        );
 
-            let (total_lines, max_width) = paragraph
-                .layout_runs()
-                .enumerate()
-                .fold((0, 0.0), |(_, max), (i, buffer)| {
-                    (i + 1, buffer.line_w.max(max))
-                });
+        let (total_lines, max_width) = paragraph
+            .layout_runs()
+            .enumerate()
+            .fold((0, 0.0), |(_, max), (i, buffer)| {
+                (i + 1, buffer.line_w.max(max))
+            });
 
-            (max_width, size * 1.2 * total_lines as f32)
-        })
+        (max_width, size * 1.2 * total_lines as f32)
     }
 
     pub fn hit_test(
@@ -279,30 +240,25 @@ impl Pipeline {
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        self.system.as_ref().unwrap().with(|fields| {
-            let mut measurement_cache = fields.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-            let (_, paragraph) = measurement_cache.allocate(
-                fields.fonts,
-                Key {
-                    content,
-                    size,
-                    font,
-                    bounds,
-                },
-            );
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                font,
+                bounds,
+            },
+        );
 
-            let cursor = paragraph.hit(point.x, point.y)?;
+        let cursor = paragraph.hit(point.x, point.y)?;
 
-            Some(Hit::CharOffset(cursor.index))
-        })
+        Some(Hit::CharOffset(cursor.index))
     }
 
     pub fn trim_measurement_cache(&mut self) {
-        self.system
-            .as_mut()
-            .unwrap()
-            .with_measurement_cache_mut(|cache| cache.borrow_mut().trim());
+        self.measurement_cache.borrow_mut().trim();
     }
 }
 
@@ -317,8 +273,8 @@ fn to_family(font: Font) -> glyphon::Family<'static> {
     }
 }
 
-struct Cache<'a> {
-    entries: FxHashMap<KeyHash, glyphon::Buffer<'a>>,
+struct Cache {
+    entries: FxHashMap<KeyHash, glyphon::Buffer>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
 }
@@ -329,7 +285,7 @@ type HashBuilder = twox_hash::RandomXxHashBuilder64;
 #[cfg(target_arch = "wasm32")]
 type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
 
-impl<'a> Cache<'a> {
+impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
@@ -338,15 +294,15 @@ impl<'a> Cache<'a> {
         }
     }
 
-    fn get(&self, key: &KeyHash) -> Option<&glyphon::Buffer<'a>> {
+    fn get(&self, key: &KeyHash) -> Option<&glyphon::Buffer> {
         self.entries.get(key)
     }
 
     fn allocate(
         &mut self,
-        fonts: &'a glyphon::FontSystem,
+        font_system: &mut glyphon::FontSystem,
         key: Key<'_>,
-    ) -> (KeyHash, &mut glyphon::Buffer<'a>) {
+    ) -> (KeyHash, &mut glyphon::Buffer) {
         let hash = {
             let mut hasher = self.hasher.build_hasher();
 
@@ -361,13 +317,15 @@ impl<'a> Cache<'a> {
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
-            let mut buffer = glyphon::Buffer::new(fonts, metrics);
+            let mut buffer = glyphon::Buffer::new(font_system, metrics);
 
             buffer.set_size(
+                font_system,
                 key.bounds.width,
                 key.bounds.height.max(key.size * 1.2),
             );
             buffer.set_text(
+                font_system,
                 key.content,
                 glyphon::Attrs::new()
                     .family(to_family(key.font))

@@ -14,7 +14,6 @@ softbuffer = "0.2"
 tiny-skia = "0.8"
 bytemuck = "1"
 rustc-hash = "1.1"
-ouroboros = "0.15"
 kurbo = "0.9"
 
 [dependencies.iced_graphics]
@@ -24,8 +23,8 @@ features = ["tiny-skia"]
 
 [dependencies.cosmic-text]
 features = ["std", "swash"]
-git = "https://github.com/hecrj/cosmic-text"
-rev = "81080c1b9498933b43c1889601a7ea6a3d16e161"
+git = "https://github.com/pop-os/cosmic-text"
+rev = "e788c175ec31094b04dcacbc0537dba4433afcfc"
 
 [dependencies.twox-hash]
 version = "1.6"
