@@ -179,13 +179,17 @@ where
                 .unwrap_or(None)
         });
 
-        let _ = match target {
-            Some(node) => node
-                .replace_child(&canvas, &node)
-                .expect(&format!("Could not replace #{}", node.id())),
-            None => body
-                .append_child(&canvas)
-                .expect("Append canvas to HTML body"),
+        match target {
+            Some(node) => {
+                let _ = node
+                    .replace_with_with_node_1(&canvas)
+                    .expect(&format!("Could not replace #{}", node.id()));
+            }
+            None => {
+                let _ = body
+                    .append_child(&canvas)
+                    .expect("Append canvas to HTML body");
+            }
         };
     }
 
