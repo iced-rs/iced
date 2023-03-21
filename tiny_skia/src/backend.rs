@@ -17,6 +17,9 @@ pub struct Backend {
 
     #[cfg(feature = "svg")]
     vector_pipeline: crate::vector::Pipeline,
+
+    last_primitives: Vec<Primitive>,
+    last_background_color: Color,
 }
 
 impl Backend {
@@ -31,6 +34,9 @@ impl Backend {
 
             #[cfg(feature = "svg")]
             vector_pipeline: crate::vector::Pipeline::new(),
+
+            last_primitives: Vec::new(),
+            last_background_color: Color::BLACK,
         }
     }
 
@@ -43,9 +49,47 @@ impl Backend {
         background_color: Color,
         overlay: &[T],
     ) {
-        pixels.fill(into_color(background_color));
+        let damage = if self.last_background_color == background_color {
+            Primitive::damage_list(&self.last_primitives, primitives)
+        } else {
+            vec![Rectangle::with_size(viewport.logical_size())]
+        };
+
+        if damage.is_empty() {
+            return;
+        }
+
+        self.last_primitives = primitives.to_vec();
+        self.last_background_color = background_color;
 
         let scale_factor = viewport.scale_factor() as f32;
+
+        dbg!(&damage);
+
+        for region in &damage {
+            let region = *region * scale_factor;
+
+            pixels.fill_path(
+                &tiny_skia::PathBuilder::from_rect(
+                    tiny_skia::Rect::from_xywh(
+                        region.x,
+                        region.y,
+                        region.width.min(viewport.physical_width() as f32),
+                        region.height.min(viewport.physical_height() as f32),
+                    )
+                    .expect("Create damage rectangle"),
+                ),
+                &tiny_skia::Paint {
+                    shader: tiny_skia::Shader::SolidColor(into_color(
+                        background_color,
+                    )),
+                    ..Default::default()
+                },
+                tiny_skia::FillRule::default(),
+                tiny_skia::Transform::identity(),
+                None,
+            );
+        }
 
         for primitive in primitives {
             self.draw_primitive(
@@ -55,6 +99,7 @@ impl Backend {
                 None,
                 scale_factor,
                 Vector::ZERO,
+                &damage,
             );
         }
 
@@ -81,6 +126,7 @@ impl Backend {
                 None,
                 scale_factor,
                 Vector::ZERO,
+                &[],
             );
         }
 
@@ -101,6 +147,7 @@ impl Backend {
         clip_bounds: Option<Rectangle>,
         scale_factor: f32,
         translation: Vector,
+        damage: &[Rectangle],
     ) {
         match primitive {
             Primitive::Quad {
@@ -110,6 +157,10 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
+                if !damage.iter().any(|damage| damage.intersects(bounds)) {
+                    return;
+                }
+
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
                     translation.y,
@@ -165,6 +216,13 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
+                if !damage
+                    .iter()
+                    .any(|damage| damage.intersects(&primitive.bounds()))
+                {
+                    return;
+                }
+
                 self.text_pipeline.draw(
                     content,
                     (*bounds + translation) * scale_factor,
@@ -179,6 +237,10 @@ impl Backend {
             }
             #[cfg(feature = "image")]
             Primitive::Image { handle, bounds } => {
+                if !damage.iter().any(|damage| damage.intersects(bounds)) {
+                    return;
+                }
+
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
                     translation.y,
@@ -248,6 +310,7 @@ impl Backend {
                         clip_bounds,
                         scale_factor,
                         translation,
+                        damage,
                     );
                 }
             }
@@ -262,6 +325,7 @@ impl Backend {
                     clip_bounds,
                     scale_factor,
                     translation + *offset,
+                    damage,
                 );
             }
             Primitive::Clip { bounds, content } => {
@@ -284,6 +348,7 @@ impl Backend {
                     Some(bounds),
                     scale_factor,
                     translation,
+                    damage,
                 );
 
                 if let Some(bounds) = clip_bounds {
@@ -300,6 +365,7 @@ impl Backend {
                     clip_bounds,
                     scale_factor,
                     translation,
+                    damage,
                 );
             }
             Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {

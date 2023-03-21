@@ -86,3 +86,6 @@ incremental = false
 opt-level = 3
 overflow-checks = false
 strip = "debuginfo"
+
+[patch.crates-io]
+tiny-skia = { version = "0.8", git = "https://github.com/hecrj/tiny-skia.git", rev = "213890dcbb3754d51533f5b558d9f5ffa3bf6da1" }

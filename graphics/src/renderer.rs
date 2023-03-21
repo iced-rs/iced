@@ -32,7 +32,7 @@ impl<B: Backend, T> Renderer<B, T> {
         }
     }
 
-    /// Returns the [`Backend`] of the [`Renderer`].
+    /// Returns a reference to the [`Backend`] of the [`Renderer`].
     pub fn backend(&self) -> &B {
         &self.backend
     }

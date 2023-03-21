@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 /// A handle of some image data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Handle {
     id: u64,
     data: Data,
@@ -155,6 +155,34 @@ impl std::fmt::Debug for Data {
         }
     }
 }
+
+impl PartialEq for Data {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Path(a), Self::Path(b)) => a == b,
+            (Self::Bytes(a), Self::Bytes(b)) => a.as_ref() == b.as_ref(),
+            (
+                Self::Rgba {
+                    width: width_a,
+                    height: height_a,
+                    pixels: pixels_a,
+                },
+                Self::Rgba {
+                    width: width_b,
+                    height: height_b,
+                    pixels: pixels_b,
+                },
+            ) => {
+                width_a == width_b
+                    && height_a == height_b
+                    && pixels_a.as_ref() == pixels_b.as_ref()
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Data {}
 
 /// A [`Renderer`] that can render raster graphics.
 ///
