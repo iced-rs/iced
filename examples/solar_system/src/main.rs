@@ -215,8 +215,7 @@ impl<Message> canvas::Program<Message> for State {
                 )
                 .add_stop(0.2, Color::from_rgb(0.15, 0.50, 1.0))
                 .add_stop(0.8, Color::from_rgb(0.0, 0.20, 0.47))
-                .build()
-                .expect("Build Earth fill gradient");
+                .build();
 
                 frame.fill(&earth, earth_fill);
 

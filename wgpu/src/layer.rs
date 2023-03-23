@@ -309,14 +309,15 @@ fn pack_gradient(
         crate::core::Gradient::Linear(linear) => {
             let mut pack: [f32; 44] = [0.0; 44];
 
-            for (index, stop) in linear.color_stops.iter().enumerate().take(8) {
-                let [r, g, b, a] = stop.color.into_linear();
+            for (index, stop) in linear.color_stops.iter().enumerate() {
+                let [r, g, b, a] =
+                    stop.map_or(Color::default(), |s| s.color).into_linear();
 
                 pack[(index * 4)] = r;
                 pack[(index * 4) + 1] = g;
                 pack[(index * 4) + 2] = b;
                 pack[(index * 4) + 3] = a;
-                pack[32 + index] = stop.offset;
+                pack[32 + index] = stop.map_or(2.0, |s| s.offset);
             }
 
             let (start, end) = linear.angle.to_distance(&bounds);

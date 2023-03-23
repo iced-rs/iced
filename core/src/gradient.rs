@@ -26,7 +26,7 @@ impl Gradient {
     pub fn mul_alpha(mut self, alpha_multiplier: f32) -> Self {
         match &mut self {
             Gradient::Linear(linear) => {
-                for stop in &mut linear.color_stops {
+                for stop in linear.color_stops.iter_mut().flatten() {
                     stop.color.a *= alpha_multiplier;
                 }
             }
@@ -54,6 +54,7 @@ pub mod linear {
     //! Linear gradient builder & definition.
     use crate::gradient::{ColorStop, Gradient};
     use crate::{Color, Radians};
+    use std::cmp::Ordering;
 
     /// A linear gradient that can be used as a [`Background`].
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -61,15 +62,14 @@ pub mod linear {
         /// How the [`Gradient`] is angled within its bounds.
         pub angle: Radians,
         /// [`ColorStop`]s along the linear gradient path.
-        pub color_stops: [ColorStop; 8],
+        pub color_stops: [Option<ColorStop>; 8],
     }
 
     /// A [`Linear`] builder.
     #[derive(Debug)]
     pub struct Builder {
         angle: Radians,
-        stops: [ColorStop; 8],
-        error: Option<BuilderError>,
+        stops: [Option<ColorStop>; 8],
     }
 
     impl Builder {
@@ -77,11 +77,7 @@ pub mod linear {
         pub fn new(angle: Radians) -> Self {
             Self {
                 angle,
-                stops: std::array::from_fn(|_| ColorStop {
-                    offset: 2.0, //default offset = invalid
-                    color: Default::default(),
-                }),
-                error: None,
+                stops: [None; 8],
             }
         }
 
@@ -92,20 +88,27 @@ pub mod linear {
         /// Any stop added after the 8th will be silently ignored.
         pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
             if offset.is_finite() && (0.0..=1.0).contains(&offset) {
-                match self.stops.binary_search_by(|stop| {
-                    stop.offset.partial_cmp(&offset).unwrap()
+                match self.stops.binary_search_by(|stop| match stop {
+                    None => Ordering::Greater,
+                    Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
                 }) {
-                    Ok(_) => {
-                        self.error = Some(BuilderError::DuplicateOffset(offset))
+                    Ok(index) => {
+                        if index < 8 {
+                            self.stops[index] =
+                                Some(ColorStop { offset, color });
+                        }
                     }
                     Err(index) => {
                         if index < 8 {
-                            self.stops[index] = ColorStop { offset, color };
+                            self.stops[index] =
+                                Some(ColorStop { offset, color });
                         }
                     }
                 }
             } else {
-                self.error = Some(BuilderError::InvalidOffset(offset))
+                log::warn!(
+                    "Gradient: ColorStop must be within 0.0..=1.0 range."
+                );
             };
 
             self
@@ -128,31 +131,11 @@ pub mod linear {
         /// Builds the linear [`Gradient`] of this [`Builder`].
         ///
         /// Returns `BuilderError` if gradient in invalid.
-        pub fn build(self) -> Result<Gradient, BuilderError> {
-            if self.stops.is_empty() {
-                Err(BuilderError::MissingColorStop)
-            } else if let Some(error) = self.error {
-                Err(error)
-            } else {
-                Ok(Gradient::Linear(Linear {
-                    angle: self.angle,
-                    color_stops: self.stops,
-                }))
-            }
+        pub fn build(self) -> Gradient {
+            Gradient::Linear(Linear {
+                angle: self.angle,
+                color_stops: self.stops,
+            })
         }
-    }
-
-    /// An error that happened when building a [`Linear`] gradient.
-    #[derive(Debug, thiserror::Error)]
-    pub enum BuilderError {
-        #[error("Gradients must contain at least one color stop.")]
-        /// Gradients must contain at least one color stop.
-        MissingColorStop,
-        #[error("Offset {0} must be a unique, finite number.")]
-        /// Offsets in a gradient must all be unique & finite.
-        DuplicateOffset(f32),
-        #[error("Offset {0} must be between 0.0..=1.0.")]
-        /// Offsets in a gradient must be between 0.0..=1.0.
-        InvalidOffset(f32),
     }
 }

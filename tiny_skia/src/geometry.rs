@@ -218,19 +218,11 @@ pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
                     .expect("Create color"),
             ),
             Style::Gradient(gradient) => match gradient {
-                Gradient::Linear(linear) => tiny_skia::LinearGradient::new(
-                    tiny_skia::Point {
-                        x: linear.start.x,
-                        y: linear.start.y,
-                    },
-                    tiny_skia::Point {
-                        x: linear.end.x,
-                        y: linear.end.y,
-                    },
-                    linear
+                Gradient::Linear(linear) => {
+                    let stops: Vec<tiny_skia::GradientStop> = linear
                         .color_stops
                         .into_iter()
-                        .filter(|stop| stop.offset <= 1.0)
+                        .flatten()
                         .map(|stop| {
                             tiny_skia::GradientStop::new(
                                 stop.offset,
@@ -243,11 +235,30 @@ pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
                                 .expect("Create color"),
                             )
                         })
-                        .collect(),
-                    tiny_skia::SpreadMode::Pad,
-                    tiny_skia::Transform::identity(),
-                )
-                .expect("Create linear gradient"),
+                        .collect();
+
+                    tiny_skia::LinearGradient::new(
+                        tiny_skia::Point {
+                            x: linear.start.x,
+                            y: linear.start.y,
+                        },
+                        tiny_skia::Point {
+                            x: linear.end.x,
+                            y: linear.end.y,
+                        },
+                        if stops.is_empty() {
+                            vec![tiny_skia::GradientStop::new(
+                                0.0,
+                                tiny_skia::Color::BLACK,
+                            )]
+                        } else {
+                            stops
+                        },
+                        tiny_skia::SpreadMode::Pad,
+                        tiny_skia::Transform::identity(),
+                    )
+                    .expect("Create linear gradient")
+                }
             },
         },
         anti_alias: true,

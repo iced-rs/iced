@@ -25,9 +25,9 @@ impl Gradient {
 pub mod linear {
     //! Linear gradient builder & definition.
     use crate::Gradient;
-    use iced_core::gradient::linear::BuilderError;
     use iced_core::gradient::ColorStop;
     use iced_core::{Color, Point};
+    use std::cmp::Ordering;
 
     /// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
     ///
@@ -42,7 +42,7 @@ pub mod linear {
         pub end: Point,
 
         /// [`ColorStop`]s along the linear gradient path.
-        pub color_stops: [ColorStop; 8],
+        pub color_stops: [Option<ColorStop>; 8],
     }
 
     /// A [`Linear`] builder.
@@ -50,8 +50,7 @@ pub mod linear {
     pub struct Builder {
         start: Point,
         end: Point,
-        stops: [ColorStop; 8],
-        error: Option<BuilderError>,
+        stops: [Option<ColorStop>; 8],
     }
 
     impl Builder {
@@ -60,11 +59,7 @@ pub mod linear {
             Self {
                 start,
                 end,
-                stops: std::array::from_fn(|_| ColorStop {
-                    offset: 2.0, //default offset = invalid
-                    color: Default::default(),
-                }),
-                error: None,
+                stops: [None; 8],
             }
         }
 
@@ -75,20 +70,27 @@ pub mod linear {
         /// Any stop added after the 8th will be silently ignored.
         pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
             if offset.is_finite() && (0.0..=1.0).contains(&offset) {
-                match self.stops.binary_search_by(|stop| {
-                    stop.offset.partial_cmp(&offset).unwrap()
+                match self.stops.binary_search_by(|stop| match stop {
+                    None => Ordering::Greater,
+                    Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
                 }) {
-                    Ok(_) => {
-                        self.error = Some(BuilderError::DuplicateOffset(offset))
+                    Ok(index) => {
+                        if index < 8 {
+                            self.stops[index] =
+                                Some(ColorStop { offset, color });
+                        }
                     }
                     Err(index) => {
                         if index < 8 {
-                            self.stops[index] = ColorStop { offset, color };
+                            self.stops[index] =
+                                Some(ColorStop { offset, color });
                         }
                     }
                 }
             } else {
-                self.error = Some(BuilderError::InvalidOffset(offset))
+                log::warn!(
+                    "Gradient: ColorStop must be within 0.0..=1.0 range."
+                );
             };
 
             self
@@ -111,18 +113,12 @@ pub mod linear {
         /// Builds the linear [`Gradient`] of this [`Builder`].
         ///
         /// Returns `BuilderError` if gradient in invalid.
-        pub fn build(self) -> Result<Gradient, BuilderError> {
-            if self.stops.is_empty() {
-                Err(BuilderError::MissingColorStop)
-            } else if let Some(error) = self.error {
-                Err(error)
-            } else {
-                Ok(Gradient::Linear(Linear {
-                    start: self.start,
-                    end: self.end,
-                    color_stops: self.stops,
-                }))
-            }
+        pub fn build(self) -> Gradient {
+            Gradient::Linear(Linear {
+                start: self.start,
+                end: self.end,
+                color_stops: self.stops,
+            })
         }
     }
 }

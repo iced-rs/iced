@@ -626,15 +626,17 @@ fn pack_gradient(gradient: &Gradient) -> [f32; 44] {
             let mut pack: [f32; 44] = [0.0; 44];
             let mut offsets: [f32; 8] = [2.0; 8];
 
-            for (index, stop) in linear.color_stops.iter().enumerate().take(8) {
-                let [r, g, b, a] = stop.color.into_linear();
+            for (index, stop) in linear.color_stops.iter().enumerate() {
+                let [r, g, b, a] = stop
+                    .map_or(crate::core::Color::default(), |s| s.color)
+                    .into_linear();
 
                 pack[(index * 4)] = r;
                 pack[(index * 4) + 1] = g;
                 pack[(index * 4) + 2] = b;
                 pack[(index * 4) + 3] = a;
 
-                offsets[index] = stop.offset;
+                offsets[index] = stop.map_or(2.0, |s| s.offset);
             }
 
             pack[32] = offsets[0];

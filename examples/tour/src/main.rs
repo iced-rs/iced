@@ -690,7 +690,6 @@ impl widget::button::StyleSheet for CustomButtonStyle {
                     .add_stop(0.0, Palette::LIGHT.primary)
                     .add_stop(1.0, Color::from_rgb8(54, 80, 168))
                     .build()
-                    .expect("Build gradient")
                     .into(),
                 text_color: Color::WHITE,
                 border_radius: 5.0,
@@ -703,7 +702,6 @@ impl widget::button::StyleSheet for CustomButtonStyle {
                 .add_stop(0.0, Color::from_rgb8(194, 194, 194))
                 .add_stop(1.0, Color::from_rgb8(126, 126, 126))
                 .build()
-                .expect("Build gradient")
                 .into(),
                 text_color: Color::WHITE,
                 border_radius: 5.0,
