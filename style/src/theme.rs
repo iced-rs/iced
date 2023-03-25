@@ -906,7 +906,7 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered_scrollbar(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => {
                 let palette = self.extended_palette();
@@ -924,21 +924,21 @@ impl scrollable::StyleSheet for Theme {
                     },
                 }
             }
-            Scrollable::Custom(custom) => custom.hovered(self),
+            Scrollable::Custom(custom) => custom.hovered_scrollbar(self),
         }
     }
 
     fn dragging(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
+            Scrollable::Default => self.hovered_scrollbar(style),
             Scrollable::Custom(custom) => custom.dragging(self),
         }
     }
 
-    fn focused(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => self.active(style),
-            Scrollable::Custom(custom) => custom.focused(self),
+            Scrollable::Custom(custom) => custom.hovered(self),
         }
     }
 
@@ -949,10 +949,10 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered_scrollbar_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
-            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
+            Scrollable::Default => self.hovered_scrollbar(style),
+            Scrollable::Custom(custom) => custom.hovered_scrollbar_horizontal(self),
         }
     }
 
@@ -966,13 +966,13 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn focused_horizontal(
+    fn hovered_horizontal(
         &self,
         style: &Self::Style,
     ) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => self.active_horizontal(style),
-            Scrollable::Custom(custom) => custom.focused_horizontal(self),
+            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
         }
     }
 }
