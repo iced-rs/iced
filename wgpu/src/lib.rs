@@ -46,6 +46,7 @@ pub mod geometry;
 
 mod backend;
 mod buffer;
+mod offscreen;
 mod quad;
 mod text;
 mod triangle;

@@ -7,6 +7,7 @@ use crate::command::{self, Command};
 use crate::core::time::Instant;
 use crate::core::window::{Event, Icon, Level, Mode, UserAttention};
 use crate::futures::subscription::{self, Subscription};
+use crate::screenshot::Screenshot;
 
 /// Subscribes to the frames of the window of the running application.
 ///
@@ -114,4 +115,11 @@ pub fn fetch_id<Message>(
 /// Changes the [`Icon`] of the window.
 pub fn change_icon<Message>(icon: Icon) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeIcon(icon)))
+}
+
+/// Captures a [`Screenshot`] from the window.
+pub fn screenshot<Message>(
+    f: impl FnOnce(Screenshot) -> Message + Send + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::Screenshot(Box::new(f))))
 }

@@ -1,6 +1,7 @@
 use crate::core::window::{Icon, Level, Mode, UserAttention};
 use crate::futures::MaybeSend;
 
+use crate::screenshot::Screenshot;
 use std::fmt;
 
 /// An operation to be performed on some window.
@@ -89,6 +90,8 @@ pub enum Action<T> {
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Icon),
+    /// Screenshot the viewport of the window.
+    Screenshot(Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }
 
 impl<T> Action<T> {
@@ -118,6 +121,11 @@ impl<T> Action<T> {
             Self::ChangeLevel(level) => Action::ChangeLevel(level),
             Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
             Self::ChangeIcon(icon) => Action::ChangeIcon(icon),
+            Self::Screenshot(tag) => {
+                Action::Screenshot(Box::new(move |screenshot| {
+                    f(tag(screenshot))
+                }))
+            }
         }
     }
 }
@@ -155,6 +163,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeIcon(_icon) => {
                 write!(f, "Action::ChangeIcon(icon)")
             }
+            Self::Screenshot(_) => write!(f, "Action::Screenshot"),
         }
     }
 }

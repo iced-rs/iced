@@ -1,5 +1,5 @@
 //! Connect a window with a renderer.
-use crate::core::Color;
+use crate::core::{Color, Size};
 use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::compositor;
@@ -282,5 +282,146 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
                 overlay,
             )
         })
+    }
+
+    fn screenshot<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        _surface: &mut Self::Surface,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8> {
+        renderer.with_primitives(|backend, primitives| {
+            screenshot(
+                self,
+                backend,
+                primitives,
+                viewport,
+                background_color,
+                overlay,
+            )
+        })
+    }
+}
+
+/// Renders the current surface to an offscreen buffer.
+///
+/// Returns RGBA bytes of the texture data.
+pub fn screenshot<Theme, T: AsRef<str>>(
+    compositor: &Compositor<Theme>,
+    backend: &mut Backend,
+    primitives: &[Primitive],
+    viewport: &Viewport,
+    background_color: Color,
+    overlay: &[T],
+) -> Vec<u8> {
+    let mut encoder = compositor.device.create_command_encoder(
+        &wgpu::CommandEncoderDescriptor {
+            label: Some("iced_wgpu.offscreen.encoder"),
+        },
+    );
+
+    let dimensions = BufferDimensions::new(viewport.physical_size());
+
+    let texture_extent = wgpu::Extent3d {
+        width: dimensions.width,
+        height: dimensions.height,
+        depth_or_array_layers: 1,
+    };
+
+    let texture = compositor.device.create_texture(&wgpu::TextureDescriptor {
+        label: Some("iced_wgpu.offscreen.source_texture"),
+        size: texture_extent,
+        mip_level_count: 1,
+        sample_count: 1,
+        dimension: wgpu::TextureDimension::D2,
+        format: compositor.format,
+        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+            | wgpu::TextureUsages::COPY_SRC
+            | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
+    });
+
+    let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+    let rgba_texture = backend.offscreen(
+        &compositor.device,
+        &compositor.queue,
+        &mut encoder,
+        Some(background_color),
+        &view,
+        compositor.format,
+        primitives,
+        viewport,
+        overlay,
+        texture_extent,
+    );
+
+    let output_buffer =
+        compositor.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu.offscreen.output_texture_buffer"),
+            size: (dimensions.padded_bytes_per_row * dimensions.height as usize)
+                as u64,
+            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+    encoder.copy_texture_to_buffer(
+        rgba_texture.unwrap_or(texture).as_image_copy(),
+        wgpu::ImageCopyBuffer {
+            buffer: &output_buffer,
+            layout: wgpu::ImageDataLayout {
+                offset: 0,
+                bytes_per_row: Some(dimensions.padded_bytes_per_row as u32),
+                rows_per_image: None,
+            },
+        },
+        texture_extent,
+    );
+
+    let index = compositor.queue.submit(Some(encoder.finish()));
+
+    let slice = output_buffer.slice(..);
+    slice.map_async(wgpu::MapMode::Read, |_| {});
+
+    let _ = compositor
+        .device
+        .poll(wgpu::Maintain::WaitForSubmissionIndex(index));
+
+    let mapped_buffer = slice.get_mapped_range();
+
+    mapped_buffer.chunks(dimensions.padded_bytes_per_row).fold(
+        vec![],
+        |mut acc, row| {
+            acc.extend(&row[..dimensions.unpadded_bytes_per_row]);
+            acc
+        },
+    )
+}
+
+#[derive(Clone, Copy, Debug)]
+struct BufferDimensions {
+    width: u32,
+    height: u32,
+    unpadded_bytes_per_row: usize,
+    padded_bytes_per_row: usize,
+}
+
+impl BufferDimensions {
+    fn new(size: Size<u32>) -> Self {
+        let unpadded_bytes_per_row = size.width as usize * 4; //slice of buffer per row; always RGBA
+        let alignment = wgpu::COPY_BYTES_PER_ROW_ALIGNMENT as usize; //256
+        let padded_bytes_per_row_padding =
+            (alignment - unpadded_bytes_per_row % alignment) % alignment;
+        let padded_bytes_per_row =
+            unpadded_bytes_per_row + padded_bytes_per_row_padding;
+
+        Self {
+            width: size.width,
+            height: size.height,
+            unpadded_bytes_per_row,
+            padded_bytes_per_row,
+        }
     }
 }

@@ -136,6 +136,36 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             }
         })
     }
+
+    fn screenshot<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        surface: &mut Self::Surface,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8> {
+        renderer.with_primitives(|backend, primitives| match (self, backend, surface) {
+            (Self::TinySkia(_compositor), crate::Backend::TinySkia(backend), Surface::TinySkia(surface)) => {
+                iced_tiny_skia::window::compositor::screenshot(surface, backend, primitives, viewport, background_color, overlay)
+            },
+            #[cfg(feature = "wgpu")]
+            (Self::Wgpu(compositor), crate::Backend::Wgpu(backend), Surface::Wgpu(_)) => {
+                iced_wgpu::window::compositor::screenshot(
+                    compositor,
+                    backend,
+                    primitives,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            },
+            #[allow(unreachable_patterns)]
+            _ => panic!(
+                "The provided renderer or backend are not compatible with the compositor."
+            ),
+        })
+    }
 }
 
 enum Candidate {
