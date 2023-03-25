@@ -9,7 +9,7 @@ tiny-skia = ["iced_tiny_skia"]
 image = ["iced_wgpu/image", "iced_tiny_skia/image"]
 svg = ["iced_wgpu/svg", "iced_tiny_skia/svg"]
 geometry = ["iced_graphics/geometry", "iced_wgpu?/geometry", "iced_tiny_skia?/geometry"]
-tracing = ["iced_wgpu/tracing"]
+tracing = ["iced_wgpu?/tracing", "iced_tiny_skia?/tracing"]
 
 [dependencies]
 raw-window-handle = "0.5"

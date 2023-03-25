@@ -59,6 +59,18 @@ pub trait Compositor: Sized {
         background_color: Color,
         overlay: &[T],
     ) -> Result<(), SurfaceError>;
+
+    /// Renders the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
+    /// the texture.
+    ///
+    /// [`Renderer`]: Self::Renderer;
+    fn render_offscreen<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8>;
 }
 
 /// Result of an unsuccessful call to [`Compositor::present`].
@@ -82,7 +94,7 @@ pub enum SurfaceError {
     OutOfMemory,
 }
 
-/// Contains informations about the graphics (e.g. graphics adapter, graphics backend).
+/// Contains information about the graphics (e.g. graphics adapter, graphics backend).
 #[derive(Debug)]
 pub struct Information {
     /// Contains the graphics adapter.

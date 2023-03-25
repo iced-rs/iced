@@ -33,6 +33,9 @@ impl Pipeline {
         transform: tiny_skia::Transform,
         clip_mask: Option<&tiny_skia::ClipMask>,
     ) {
+        #[cfg(feature = "tracing")]
+        let _ = tracing::info_span!("iced_tiny_skia::RASTER_DRAW");
+
         if let Some(image) = self.cache.borrow_mut().allocate(handle) {
             let width_scale = bounds.width / image.width() as f32;
             let height_scale = bounds.height / image.height() as f32;

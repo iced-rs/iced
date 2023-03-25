@@ -1,5 +1,5 @@
 use crate::core::Color;
-use crate::graphics::compositor::{self, Information, SurfaceError};
+use crate::graphics::compositor::{Information, SurfaceError};
 use crate::graphics::{Error, Primitive, Viewport};
 use crate::{Backend, Renderer, Settings};
 
@@ -82,10 +82,29 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             )
         })
     }
+
+    fn render_offscreen<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8> {
+        renderer.with_primitives(|backend, primitives| {
+            render_offscreen(
+                self,
+                backend,
+                primitives,
+                viewport,
+                background_color,
+                overlay,
+            )
+        })
+    }
 }
 
 pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
-    // TOD
+    // TODO
     (
         Compositor {
             clip_mask: tiny_skia::ClipMask::new(),
@@ -103,7 +122,7 @@ pub fn present<Theme, T: AsRef<str>>(
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
-) -> Result<(), compositor::SurfaceError> {
+) -> Result<(), SurfaceError> {
     let physical_size = viewport.physical_size();
 
     backend.draw(
@@ -127,4 +146,53 @@ pub fn present<Theme, T: AsRef<str>>(
     );
 
     Ok(())
+}
+
+pub fn render_offscreen<Theme, T: AsRef<str>>(
+    compositor: &mut Compositor<Theme>,
+    backend: &mut Backend,
+    primitives: &[Primitive],
+    viewport: &Viewport,
+    background_color: Color,
+    overlay: &[T],
+) -> Vec<u8> {
+    #[cfg(feature = "tracing")]
+    let _ = tracing::info_span!("iced_tiny_skia::RENDER_OFFSCREEN").entered();
+
+    let size = viewport.physical_size();
+
+    let mut offscreen_buffer: Vec<u32> =
+        vec![0; size.width as usize * size.height as usize];
+
+    backend.draw(
+        &mut tiny_skia::PixmapMut::from_bytes(
+            bytemuck::cast_slice_mut(&mut offscreen_buffer),
+            size.width,
+            size.height,
+        )
+        .expect("Create offscreen pixel map"),
+        &mut compositor.clip_mask,
+        primitives,
+        viewport,
+        background_color,
+        overlay,
+    );
+
+    offscreen_buffer.iter().fold(
+        Vec::with_capacity(offscreen_buffer.len() * 4),
+        |mut acc, pixel| {
+            const A_MASK: u32 = 0xFF_000000;
+            const R_MASK: u32 = 0x00_FF_0000;
+            const G_MASK: u32 = 0x0000_FF_00;
+            const B_MASK: u32 = 0x000000_FF;
+
+            let a = ((A_MASK & pixel) >> 24) as u8;
+            let r = ((R_MASK & pixel) >> 16) as u8;
+            let g = ((G_MASK & pixel) >> 8) as u8;
+            let b = (B_MASK & pixel) as u8;
+
+            acc.extend([r, g, b, a]);
+            acc
+        },
+    )
 }

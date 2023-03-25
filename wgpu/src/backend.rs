@@ -1,10 +1,10 @@
-use crate::core;
 use crate::core::{Color, Font, Point, Size};
 use crate::graphics::backend;
 use crate::graphics::{Primitive, Transformation, Viewport};
 use crate::quad;
 use crate::text;
 use crate::triangle;
+use crate::{core, offscreen};
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -24,10 +24,10 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
+    offscreen_pipeline: offscreen::Pipeline,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
-
     default_font: Font,
     default_text_size: f32,
 }
@@ -44,6 +44,7 @@ impl Backend {
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
+        let offscreen_pipeline = offscreen::Pipeline::new(device);
 
         #[cfg(any(feature = "image", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(device, format);
@@ -52,6 +53,7 @@ impl Backend {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
+            offscreen_pipeline,
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
@@ -120,6 +122,99 @@ impl Backend {
 
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.end_frame();
+    }
+
+    /// Performs an offscreen render pass. If the `format` selected by WGPU is not
+    /// `wgpu::TextureFormat::Rgba8UnormSrgb`, a conversion compute pipeline will run.
+    ///
+    /// Returns `None` if the `frame` is `Rgba8UnormSrgb`, else returns the newly
+    /// converted texture view in `Rgba8UnormSrgb`.
+    pub fn offscreen<T: AsRef<str>>(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        clear_color: Option<Color>,
+        frame: &wgpu::TextureView,
+        format: wgpu::TextureFormat,
+        primitives: &[Primitive],
+        viewport: &Viewport,
+        overlay_text: &[T],
+        texture_extent: wgpu::Extent3d,
+    ) -> Option<wgpu::Texture> {
+        #[cfg(feature = "tracing")]
+        let _ = info_span!("iced_wgpu::offscreen", "DRAW").entered();
+
+        let target_size = viewport.physical_size();
+        let scale_factor = viewport.scale_factor() as f32;
+        let transformation = viewport.projection();
+
+        let mut layers = Layer::generate(primitives, viewport);
+        layers.push(Layer::overlay(overlay_text, viewport));
+
+        self.prepare(
+            device,
+            queue,
+            encoder,
+            scale_factor,
+            transformation,
+            &layers,
+        );
+
+        while !self.prepare_text(
+            device,
+            queue,
+            scale_factor,
+            target_size,
+            &layers,
+        ) {}
+
+        self.render(
+            device,
+            encoder,
+            frame,
+            clear_color,
+            scale_factor,
+            target_size,
+            &layers,
+        );
+
+        self.quad_pipeline.end_frame();
+        self.text_pipeline.end_frame();
+        self.triangle_pipeline.end_frame();
+
+        #[cfg(any(feature = "image", feature = "svg"))]
+        self.image_pipeline.end_frame();
+
+        if format != wgpu::TextureFormat::Rgba8UnormSrgb {
+            log::info!("Texture format is {format:?}; performing conversion to rgba8..");
+
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("iced_wgpu::offscreen rgba8 source texture"),
+                size: texture_extent,
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::STORAGE_BINDING
+                    | wgpu::TextureUsages::COPY_SRC,
+            });
+
+            let view =
+                texture.create_view(&wgpu::TextureViewDescriptor::default());
+
+            self.offscreen_pipeline.convert(
+                device,
+                texture_extent,
+                frame,
+                &view,
+                encoder,
+            );
+
+            return Some(texture);
+        }
+
+        None
     }
 
     fn prepare_text(

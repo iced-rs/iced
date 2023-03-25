@@ -34,3 +34,7 @@ features = ["std"]
 [dependencies.resvg]
 version = "0.29"
 optional = true
+
+[dependencies.tracing]
+version = "0.1.6"
+optional = true

@@ -43,6 +43,9 @@ impl Backend {
         background_color: Color,
         overlay: &[T],
     ) {
+        #[cfg(feature = "tracing")]
+        let _ = tracing::info_span!("iced_tiny_skia::DRAW").entered();
+
         pixels.fill(into_color(background_color));
 
         let scale_factor = viewport.scale_factor() as f32;

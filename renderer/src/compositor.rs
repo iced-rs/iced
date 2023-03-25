@@ -182,4 +182,41 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             }
         })
     }
+
+    fn render_offscreen<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8> {
+        renderer.with_primitives(|backend, primitives| match (self, backend) {
+            #[cfg(feature = "wgpu")]
+            (Self::Wgpu(compositor), crate::Backend::Wgpu(backend)) => {
+                iced_wgpu::window::compositor::render_offscreen(
+                    compositor,
+                    backend,
+                    primitives,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            },
+            #[cfg(feature = "tiny-skia")]
+            (Self::TinySkia(compositor), crate::Backend::TinySkia(backend)) => {
+                iced_tiny_skia::window::compositor::render_offscreen(
+                    compositor,
+                    backend,
+                    primitives,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            }
+            #[allow(unreachable_patterns)]
+            _ => panic!(
+                "The provided renderer or backend are not compatible with the compositor."
+            ),
+        })
+    }
 }

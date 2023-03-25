@@ -1,6 +1,7 @@
 use crate::core::window::{Mode, UserAttention};
 use crate::futures::MaybeSend;
 
+use crate::screenshot::Screenshot;
 use std::fmt;
 
 /// An operation to be performed on some window.
@@ -78,6 +79,8 @@ pub enum Action<T> {
     ChangeAlwaysOnTop(bool),
     /// Fetch an identifier unique to the window.
     FetchId(Box<dyn FnOnce(u64) -> T + 'static>),
+    /// Screenshot the viewport of the window.
+    Screenshot(Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }
 
 impl<T> Action<T> {
@@ -108,6 +111,11 @@ impl<T> Action<T> {
                 Action::ChangeAlwaysOnTop(on_top)
             }
             Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
+            Self::Screenshot(tag) => {
+                Action::Screenshot(Box::new(move |screenshot| {
+                    f(tag(screenshot))
+                }))
+            }
         }
     }
 }
@@ -142,6 +150,7 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::AlwaysOnTop({on_top})")
             }
             Self::FetchId(_) => write!(f, "Action::FetchId"),
+            Self::Screenshot(_) => write!(f, "Action::Screenshot"),
         }
     }
 }
