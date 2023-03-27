@@ -123,11 +123,11 @@ where
 
     let max_cross = match axis {
         Axis::Horizontal => match height {
-            Length::Shrink => cross,
+            Length::Shrink if cross > 0.0 => cross,
             _ => max_cross,
         },
         Axis::Vertical => match width {
-            Length::Shrink => cross,
+            Length::Shrink if cross > 0.0 => cross,
             _ => max_cross,
         },
     };
@@ -154,8 +154,7 @@ where
             let (min_width, min_height) =
                 axis.pack(min_main, axis.cross(limits.min()));
 
-            let (max_width, max_height) = axis
-                .pack(max_main, max_cross * fill_cross_factor.max(1) as f32);
+            let (max_width, max_height) = axis.pack(max_main, max_cross);
 
             let child_limits = Limits::new(
                 Size::new(min_width, min_height),
