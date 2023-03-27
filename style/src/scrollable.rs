@@ -65,6 +65,6 @@ pub trait StyleSheet {
 
     /// Produces the style of a horizontal scrollbar that is being dragged.
     fn dragging_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered(style, true)
+        self.hovered_horizontal(style, true)
     }
 }
