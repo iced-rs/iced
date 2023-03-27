@@ -857,10 +857,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     let style = if state.y_scroller_grabbed_at.is_some() {
                         theme.dragging(style)
-                    } else if mouse_over_y_scrollbar {
-                        theme.hovered_scrollbar(style)
                     } else if mouse_over_scrollable {
-                        theme.hovered(style)
+                        theme.hovered(style, mouse_over_y_scrollbar)
                     } else {
                         theme.active(style)
                     };
@@ -872,10 +870,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     let style = if state.x_scroller_grabbed_at.is_some() {
                         theme.dragging_horizontal(style)
-                    } else if mouse_over_x_scrollbar {
-                        theme.hovered_scrollbar_horizontal(style)
                     } else if mouse_over_scrollable {
-                        theme.hovered_horizontal(style)
+                        theme.hovered_horizontal(style, mouse_over_x_scrollbar)
                     } else {
                         theme.active_horizontal(style)
                     };
