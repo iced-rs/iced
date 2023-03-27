@@ -35,7 +35,7 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         Column {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,

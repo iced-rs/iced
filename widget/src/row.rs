@@ -34,7 +34,7 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         Row {
             spacing: 0.0,
             padding: Padding::ZERO,
-            width: Length::Fill,
+            width: Length::Shrink,
             height: Length::Shrink,
             align_items: Alignment::Start,
             children,
