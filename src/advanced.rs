@@ -8,6 +8,7 @@ pub use crate::core::svg;
 pub use crate::core::text::{self, Text};
 pub use crate::core::widget::{self, Widget};
 pub use crate::core::{Clipboard, Shell};
+pub use crate::renderer::graphics;
 
 pub mod subscription {
     //! Write your own subscriptions.
