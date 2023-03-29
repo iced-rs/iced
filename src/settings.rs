@@ -79,7 +79,7 @@ where
             id: None,
             window: Default::default(),
             flags: Default::default(),
-            default_font: Font::SansSerif,
+            default_font: Default::default(),
             default_text_size: 16.0,
             antialiasing: false,
             exit_on_close_request: true,

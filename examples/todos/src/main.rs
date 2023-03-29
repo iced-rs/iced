@@ -392,10 +392,14 @@ impl Task {
 
                 row![
                     text_input,
-                    button(row![delete_icon(), "Delete"].spacing(10))
-                        .on_press(TaskMessage::Delete)
-                        .padding(10)
-                        .style(theme::Button::Destructive)
+                    button(
+                        row![delete_icon(), "Delete"]
+                            .spacing(10)
+                            .align_items(Alignment::Center)
+                    )
+                    .on_press(TaskMessage::Delete)
+                    .padding(10)
+                    .style(theme::Button::Destructive)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -487,14 +491,13 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 }
 
 // Fonts
-const ICONS: Font = Font::Name("Iced-Todos-Icons");
+const ICONS: Font = Font::with_name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
         .width(20)
         .horizontal_alignment(alignment::Horizontal::Center)
-        .size(20)
 }
 
 fn edit_icon() -> Text<'static> {

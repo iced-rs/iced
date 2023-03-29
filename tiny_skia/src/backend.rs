@@ -72,7 +72,7 @@ impl Backend {
                         height: f32::INFINITY,
                     },
                     color: Color::BLACK,
-                    font: Font::Monospace,
+                    font: Font::MONOSPACE,
                     horizontal_alignment: alignment::Horizontal::Left,
                     vertical_alignment: alignment::Vertical::Top,
                 },
@@ -492,7 +492,7 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::Name("Iced-Icons");
+    const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
     const ARROW_DOWN_ICON: char = '\u{e800}';
 

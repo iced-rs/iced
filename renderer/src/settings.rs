@@ -23,7 +23,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
-            default_font: Font::SansSerif,
+            default_font: Font::default(),
             default_text_size: 16.0,
             antialiasing: None,
         }

@@ -1,6 +1,7 @@
 use crate::core::alignment;
+use crate::core::font::{self, Font};
 use crate::core::text::Hit;
-use crate::core::{Font, Point, Rectangle, Size};
+use crate::core::{Point, Rectangle, Size};
 use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -262,14 +263,28 @@ impl Pipeline {
     }
 }
 
-fn to_family(font: Font) -> glyphon::Family<'static> {
-    match font {
-        Font::Name(name) => glyphon::Family::Name(name),
-        Font::SansSerif => glyphon::Family::SansSerif,
-        Font::Serif => glyphon::Family::Serif,
-        Font::Cursive => glyphon::Family::Cursive,
-        Font::Fantasy => glyphon::Family::Fantasy,
-        Font::Monospace => glyphon::Family::Monospace,
+fn to_family(family: font::Family) -> glyphon::Family<'static> {
+    match family {
+        font::Family::Name(name) => glyphon::Family::Name(name),
+        font::Family::SansSerif => glyphon::Family::SansSerif,
+        font::Family::Serif => glyphon::Family::Serif,
+        font::Family::Cursive => glyphon::Family::Cursive,
+        font::Family::Fantasy => glyphon::Family::Fantasy,
+        font::Family::Monospace => glyphon::Family::Monospace,
+    }
+}
+
+fn to_weight(weight: font::Weight) -> glyphon::Weight {
+    match weight {
+        font::Weight::Thin => glyphon::Weight::THIN,
+        font::Weight::ExtraLight => glyphon::Weight::EXTRA_LIGHT,
+        font::Weight::Light => glyphon::Weight::LIGHT,
+        font::Weight::Normal => glyphon::Weight::NORMAL,
+        font::Weight::Medium => glyphon::Weight::MEDIUM,
+        font::Weight::Semibold => glyphon::Weight::SEMIBOLD,
+        font::Weight::Bold => glyphon::Weight::BOLD,
+        font::Weight::ExtraBold => glyphon::Weight::EXTRA_BOLD,
+        font::Weight::Black => glyphon::Weight::BLACK,
     }
 }
 
@@ -328,8 +343,15 @@ impl Cache {
                 font_system,
                 key.content,
                 glyphon::Attrs::new()
-                    .family(to_family(key.font))
-                    .monospaced(matches!(key.font, Font::Monospace)),
+                    .family(to_family(key.font.family))
+                    .weight(to_weight(key.font.weight))
+                    .monospaced(
+                        key.font.monospaced
+                            || matches!(
+                                key.font.family,
+                                font::Family::Monospace
+                            ),
+                    ),
             );
 
             let _ = entry.insert(buffer);

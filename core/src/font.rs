@@ -2,8 +2,44 @@
 use std::hash::Hash;
 
 /// A font.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Font {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Font {
+    /// The [`Family`] of the [`Font`].
+    pub family: Family,
+    /// The [`Weight`] of the [`Font`].
+    pub weight: Weight,
+    /// Whether if the [`Font`] is monospaced or not.
+    pub monospaced: bool,
+}
+
+impl Font {
+    /// A non-monospaced sans-serif font with normal [`Weight`].
+    pub const DEFAULT: Font = Font {
+        family: Family::SansSerif,
+        weight: Weight::Normal,
+        monospaced: false,
+    };
+
+    /// A monospaced font with normal [`Weight`].
+    pub const MONOSPACE: Font = Font {
+        family: Family::Monospace,
+        monospaced: true,
+        ..Self::DEFAULT
+    };
+
+    /// Creates a non-monospaced [`Font`] with the given [`Family::Name`] and
+    /// normal [`Weight`].
+    pub const fn with_name(name: &'static str) -> Self {
+        Font {
+            family: Family::Name(name),
+            ..Self::DEFAULT
+        }
+    }
+}
+
+/// A font family.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Family {
     /// The name of a font family of choice.
     Name(&'static str),
 
@@ -13,6 +49,7 @@ pub enum Font {
     /// Glyphs in sans-serif fonts, as the term is used in CSS, are generally low
     /// contrast and have stroke endings that are plain — without any flaring,
     /// cross stroke, or other ornamentation.
+    #[default]
     SansSerif,
 
     /// Glyphs in cursive fonts generally use a more informal script style, and
@@ -31,11 +68,12 @@ pub enum Font {
 
 /// The weight of some text.
 #[allow(missing_docs)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum Weight {
     Thin,
     ExtraLight,
     Light,
+    #[default]
     Normal,
     Medium,
     Semibold,

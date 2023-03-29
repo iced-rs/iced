@@ -3,7 +3,7 @@ use iced::font::{self, Font};
 use iced::widget::{checkbox, column, container};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
-const ICON_FONT: Font = Font::Name("icons");
+const ICON_FONT: Font = Font::with_name("icons");
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())

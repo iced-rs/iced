@@ -58,7 +58,7 @@ impl Default for Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
             internal_backend: wgpu::Backends::all(),
-            default_font: Font::SansSerif,
+            default_font: Font::default(),
             default_text_size: 16.0,
             antialiasing: None,
         }

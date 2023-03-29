@@ -1,6 +1,7 @@
 use crate::core::alignment;
+use crate::core::font::{self, Font};
 use crate::core::text::Hit;
-use crate::core::{Color, Font, Point, Rectangle, Size};
+use crate::core::{Color, Point, Rectangle, Size};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -183,14 +184,28 @@ impl Pipeline {
     }
 }
 
-fn to_family(font: Font) -> cosmic_text::Family<'static> {
-    match font {
-        Font::Name(name) => cosmic_text::Family::Name(name),
-        Font::SansSerif => cosmic_text::Family::SansSerif,
-        Font::Serif => cosmic_text::Family::Serif,
-        Font::Cursive => cosmic_text::Family::Cursive,
-        Font::Fantasy => cosmic_text::Family::Fantasy,
-        Font::Monospace => cosmic_text::Family::Monospace,
+fn to_family(family: font::Family) -> cosmic_text::Family<'static> {
+    match family {
+        font::Family::Name(name) => cosmic_text::Family::Name(name),
+        font::Family::SansSerif => cosmic_text::Family::SansSerif,
+        font::Family::Serif => cosmic_text::Family::Serif,
+        font::Family::Cursive => cosmic_text::Family::Cursive,
+        font::Family::Fantasy => cosmic_text::Family::Fantasy,
+        font::Family::Monospace => cosmic_text::Family::Monospace,
+    }
+}
+
+fn to_weight(weight: font::Weight) -> cosmic_text::Weight {
+    match weight {
+        font::Weight::Thin => cosmic_text::Weight::THIN,
+        font::Weight::ExtraLight => cosmic_text::Weight::EXTRA_LIGHT,
+        font::Weight::Light => cosmic_text::Weight::LIGHT,
+        font::Weight::Normal => cosmic_text::Weight::NORMAL,
+        font::Weight::Medium => cosmic_text::Weight::MEDIUM,
+        font::Weight::Semibold => cosmic_text::Weight::SEMIBOLD,
+        font::Weight::Bold => cosmic_text::Weight::BOLD,
+        font::Weight::ExtraBold => cosmic_text::Weight::EXTRA_BOLD,
+        font::Weight::Black => cosmic_text::Weight::BLACK,
     }
 }
 
@@ -354,8 +369,15 @@ impl Cache {
                 font_system,
                 key.content,
                 cosmic_text::Attrs::new()
-                    .family(to_family(key.font))
-                    .monospaced(matches!(key.font, Font::Monospace)),
+                    .family(to_family(key.font.family))
+                    .weight(to_weight(key.font.weight))
+                    .monospaced(
+                        key.font.monospaced
+                            || matches!(
+                                key.font.family,
+                                font::Family::Monospace
+                            ),
+                    ),
             );
 
             let _ = entry.insert(buffer);
