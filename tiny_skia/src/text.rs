@@ -209,6 +209,20 @@ fn to_weight(weight: font::Weight) -> cosmic_text::Weight {
     }
 }
 
+fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
+    match stretch {
+        font::Stretch::UltraCondensed => cosmic_text::Stretch::UltraCondensed,
+        font::Stretch::ExtraCondensed => cosmic_text::Stretch::ExtraCondensed,
+        font::Stretch::Condensed => cosmic_text::Stretch::Condensed,
+        font::Stretch::SemiCondensed => cosmic_text::Stretch::SemiCondensed,
+        font::Stretch::Normal => cosmic_text::Stretch::Normal,
+        font::Stretch::SemiExpanded => cosmic_text::Stretch::SemiExpanded,
+        font::Stretch::Expanded => cosmic_text::Stretch::Expanded,
+        font::Stretch::ExtraExpanded => cosmic_text::Stretch::ExtraExpanded,
+        font::Stretch::UltraExpanded => cosmic_text::Stretch::UltraExpanded,
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct GlyphCache {
     entries: FxHashMap<
@@ -371,6 +385,7 @@ impl Cache {
                 cosmic_text::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
+                    .stretch(to_stretch(key.font.stretch))
                     .monospaced(
                         key.font.monospaced
                             || matches!(

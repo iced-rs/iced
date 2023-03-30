@@ -8,6 +8,8 @@ pub struct Font {
     pub family: Family,
     /// The [`Weight`] of the [`Font`].
     pub weight: Weight,
+    /// The [`Stretch`] of the [`Font`].
+    pub stretch: Stretch,
     /// Whether if the [`Font`] is monospaced or not.
     pub monospaced: bool,
 }
@@ -17,6 +19,7 @@ impl Font {
     pub const DEFAULT: Font = Font {
         family: Family::SansSerif,
         weight: Weight::Normal,
+        stretch: Stretch::Normal,
         monospaced: false,
     };
 
@@ -80,4 +83,20 @@ pub enum Weight {
     Bold,
     ExtraBold,
     Black,
+}
+
+/// The width of some text.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Stretch {
+    UltraCondensed,
+    ExtraCondensed,
+    Condensed,
+    SemiCondensed,
+    #[default]
+    Normal,
+    SemiExpanded,
+    Expanded,
+    ExtraExpanded,
+    UltraExpanded,
 }

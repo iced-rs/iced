@@ -288,6 +288,20 @@ fn to_weight(weight: font::Weight) -> glyphon::Weight {
     }
 }
 
+fn to_stretch(stretch: font::Stretch) -> glyphon::Stretch {
+    match stretch {
+        font::Stretch::UltraCondensed => glyphon::Stretch::UltraCondensed,
+        font::Stretch::ExtraCondensed => glyphon::Stretch::ExtraCondensed,
+        font::Stretch::Condensed => glyphon::Stretch::Condensed,
+        font::Stretch::SemiCondensed => glyphon::Stretch::SemiCondensed,
+        font::Stretch::Normal => glyphon::Stretch::Normal,
+        font::Stretch::SemiExpanded => glyphon::Stretch::SemiExpanded,
+        font::Stretch::Expanded => glyphon::Stretch::Expanded,
+        font::Stretch::ExtraExpanded => glyphon::Stretch::ExtraExpanded,
+        font::Stretch::UltraExpanded => glyphon::Stretch::UltraExpanded,
+    }
+}
+
 struct Cache {
     entries: FxHashMap<KeyHash, glyphon::Buffer>,
     recently_used: FxHashSet<KeyHash>,
@@ -345,6 +359,7 @@ impl Cache {
                 glyphon::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
+                    .stretch(to_stretch(key.font.stretch))
                     .monospaced(
                         key.font.monospaced
                             || matches!(
