@@ -125,7 +125,12 @@ impl Frame {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    pub fn clip(&mut self, _frame: Self, _translation: Vector) {}
+    pub fn clip(&mut self, frame: Self, translation: Vector) {
+        self.primitives.push(Primitive::Translate {
+            translation,
+            content: Box::new(frame.into_primitive()),
+        });
+    }
 
     pub fn translate(&mut self, translation: Vector) {
         self.transform =
