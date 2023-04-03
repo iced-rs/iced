@@ -1,5 +1,6 @@
 //! Listen to external events in your application.
 use crate::event::{self, Event};
+use crate::window;
 use crate::Hasher;
 
 use iced_futures::futures::{self, Future, Stream};
@@ -33,7 +34,7 @@ pub type Tracker =
 
 pub use iced_futures::subscription::Recipe;
 
-/// Returns a [`Subscription`] to all the runtime events.
+/// Returns a [`Subscription`] to all the ignored runtime events.
 ///
 /// This subscription will notify your application of any [`Event`] that was
 /// not captured by any widget.
@@ -58,8 +59,36 @@ pub fn events_with<Message>(
 where
     Message: 'static + MaybeSend,
 {
+    #[derive(Hash)]
+    struct EventsWith;
+
     Subscription::from_recipe(Runner {
-        id: f,
+        id: (EventsWith, f),
+        spawn: move |events| {
+            use futures::future;
+            use futures::stream::StreamExt;
+
+            events.filter_map(move |(event, status)| {
+                future::ready(match event {
+                    Event::Window(window::Event::RedrawRequested(_)) => None,
+                    _ => f(event, status),
+                })
+            })
+        },
+    })
+}
+
+pub(crate) fn raw_events<Message>(
+    f: fn(Event, event::Status) -> Option<Message>,
+) -> Subscription<Message>
+where
+    Message: 'static + MaybeSend,
+{
+    #[derive(Hash)]
+    struct RawEvents;
+
+    Subscription::from_recipe(Runner {
+        id: (RawEvents, f),
         spawn: move |events| {
             use futures::future;
             use futures::stream::StreamExt;
@@ -71,11 +100,24 @@ where
     })
 }
 
+/// Returns a [`Subscription`] that will call the given function to create and
+/// asynchronously run the given [`Stream`].
+pub fn run<S, Message>(builder: fn() -> S) -> Subscription<Message>
+where
+    S: Stream<Item = Message> + MaybeSend + 'static,
+    Message: 'static,
+{
+    Subscription::from_recipe(Runner {
+        id: builder,
+        spawn: move |_| builder(),
+    })
+}
+
 /// Returns a [`Subscription`] that will create and asynchronously run the
 /// given [`Stream`].
 ///
 /// The `id` will be used to uniquely identify the [`Subscription`].
-pub fn run<I, S, Message>(id: I, stream: S) -> Subscription<Message>
+pub fn run_with_id<I, S, Message>(id: I, stream: S) -> Subscription<Message>
 where
     I: Hash + 'static,
     S: Stream<Item = Message> + MaybeSend + 'static,
@@ -155,7 +197,7 @@ where
 /// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
 /// connection open.
 ///
-/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.6/examples/websocket
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.8/examples/websocket
 pub fn unfold<I, T, Fut, Message>(
     id: I,
     initial: T,
@@ -170,7 +212,7 @@ where
     use futures::future::{self, FutureExt};
     use futures::stream::StreamExt;
 
-    run(
+    run_with_id(
         id,
         futures::stream::unfold(initial, move |state| f(state).map(Some))
             .filter_map(future::ready),

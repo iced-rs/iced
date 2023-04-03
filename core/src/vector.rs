@@ -15,6 +15,11 @@ impl<T> Vector<T> {
     }
 }
 
+impl Vector {
+    /// The zero [`Vector`].
+    pub const ZERO: Self = Self::new(0.0, 0.0);
+}
+
 impl<T> std::ops::Add for Vector<T>
 where
     T: std::ops::Add<Output = T>,

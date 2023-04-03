@@ -48,7 +48,7 @@ impl Program for Controls {
         let text = &self.text;
 
         let sliders = Row::new()
-            .width(Length::Units(500))
+            .width(500)
             .spacing(20)
             .push(
                 slider(0.0..=1.0, background_color.r, move |r| {
@@ -96,7 +96,7 @@ impl Program for Controls {
                             )
                             .push(sliders)
                             .push(
-                                Text::new(format!("{:?}", background_color))
+                                Text::new(format!("{background_color:?}"))
                                     .size(14)
                                     .style(Color::WHITE),
                             )

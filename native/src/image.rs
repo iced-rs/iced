@@ -1,7 +1,6 @@
 //! Load and draw raster graphics.
 use crate::{Hasher, Rectangle, Size};
 
-use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -10,7 +9,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct Handle {
     id: u64,
-    data: Arc<Data>,
+    data: Data,
 }
 
 impl Handle {
@@ -29,12 +28,12 @@ impl Handle {
     pub fn from_pixels(
         width: u32,
         height: u32,
-        pixels: impl Into<Cow<'static, [u8]>>,
+        pixels: impl AsRef<[u8]> + Send + Sync + 'static,
     ) -> Handle {
         Self::from_data(Data::Rgba {
             width,
             height,
-            pixels: pixels.into(),
+            pixels: Bytes::new(pixels),
         })
     }
 
@@ -44,8 +43,10 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: impl Into<Cow<'static, [u8]>>) -> Handle {
-        Self::from_data(Data::Bytes(bytes.into()))
+    pub fn from_memory(
+        bytes: impl AsRef<[u8]> + Send + Sync + 'static,
+    ) -> Handle {
+        Self::from_data(Data::Bytes(Bytes::new(bytes)))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -54,7 +55,7 @@ impl Handle {
 
         Handle {
             id: hasher.finish(),
-            data: Arc::new(data),
+            data,
         }
     }
 
@@ -84,6 +85,45 @@ impl Hash for Handle {
     }
 }
 
+/// A wrapper around raw image data.
+///
+/// It behaves like a `&[u8]`.
+#[derive(Clone)]
+pub struct Bytes(Arc<dyn AsRef<[u8]> + Send + Sync + 'static>);
+
+impl Bytes {
+    /// Creates new [`Bytes`] around `data`.
+    pub fn new(data: impl AsRef<[u8]> + Send + Sync + 'static) -> Self {
+        Self(Arc::new(data))
+    }
+}
+
+impl std::fmt::Debug for Bytes {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.as_ref().as_ref().fmt(f)
+    }
+}
+
+impl std::hash::Hash for Bytes {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.0.as_ref().as_ref().hash(state);
+    }
+}
+
+impl AsRef<[u8]> for Bytes {
+    fn as_ref(&self) -> &[u8] {
+        self.0.as_ref().as_ref()
+    }
+}
+
+impl std::ops::Deref for Bytes {
+    type Target = [u8];
+
+    fn deref(&self) -> &[u8] {
+        self.0.as_ref().as_ref()
+    }
+}
+
 /// The data of a raster image.
 #[derive(Clone, Hash)]
 pub enum Data {
@@ -91,7 +131,7 @@ pub enum Data {
     Path(PathBuf),
 
     /// In-memory data
-    Bytes(Cow<'static, [u8]>),
+    Bytes(Bytes),
 
     /// Decoded image pixels in RGBA format.
     Rgba {
@@ -100,17 +140,17 @@ pub enum Data {
         /// The height of the image.
         height: u32,
         /// The pixels.
-        pixels: Cow<'static, [u8]>,
+        pixels: Bytes,
     },
 }
 
 impl std::fmt::Debug for Data {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Path(path) => write!(f, "Path({path:?})"),
             Data::Bytes(_) => write!(f, "Bytes(...)"),
             Data::Rgba { width, height, .. } => {
-                write!(f, "Pixels({} * {})", width, height)
+                write!(f, "Pixels({width} * {height})")
             }
         }
     }

@@ -127,7 +127,8 @@ mod numeric_input {
                         .horizontal_alignment(alignment::Horizontal::Center)
                         .vertical_alignment(alignment::Vertical::Center),
                 )
-                .width(Length::Units(50))
+                .width(40)
+                .height(40)
                 .on_press(on_press)
             };
 
@@ -145,7 +146,7 @@ mod numeric_input {
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
-            .align_items(Alignment::Fill)
+            .align_items(Alignment::Center)
             .spacing(10)
             .into()
         }

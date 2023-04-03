@@ -18,12 +18,14 @@ use crate::layout;
 use crate::mouse::{self, click};
 use crate::renderer;
 use crate::text::{self, Text};
+use crate::time::{Duration, Instant};
 use crate::touch;
 use crate::widget;
 use crate::widget::operation::{self, Operation};
 use crate::widget::tree::{self, Tree};
+use crate::window;
 use crate::{
-    Clipboard, Color, Command, Element, Layout, Length, Padding, Point,
+    Clipboard, Color, Command, Element, Layout, Length, Padding, Pixels, Point,
     Rectangle, Shell, Size, Vector, Widget,
 };
 
@@ -62,7 +64,7 @@ where
     font: Renderer::Font,
     width: Length,
     padding: Padding,
-    size: Option<u16>,
+    size: Option<f32>,
     on_change: Box<dyn Fn(String) -> Message + 'a>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -92,7 +94,7 @@ where
             is_secure: false,
             font: Default::default(),
             width: Length::Fill,
-            padding: Padding::new(5),
+            padding: Padding::new(5.0),
             size: None,
             on_change: Box::new(on_change),
             on_paste: None,
@@ -131,8 +133,8 @@ where
         self
     }
     /// Sets the width of the [`TextInput`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -143,8 +145,8 @@ where
     }
 
     /// Sets the text size of the [`TextInput`].
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = Some(size);
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = Some(size.into().0);
         self
     }
 
@@ -377,7 +379,7 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    size: Option<u16>,
+    size: Option<f32>,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -385,14 +387,10 @@ where
     let text_size = size.unwrap_or_else(|| renderer.default_size());
 
     let padding = padding.fit(Size::ZERO, limits.max());
-
-    let limits = limits
-        .pad(padding)
-        .width(width)
-        .height(Length::Units(text_size));
+    let limits = limits.width(width).pad(padding).height(text_size);
 
     let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-    text.move_to(Point::new(padding.left.into(), padding.top.into()));
+    text.move_to(Point::new(padding.left, padding.top));
 
     layout::Node::with_children(text.size().pad(padding), vec![text])
 }
@@ -407,7 +405,7 @@ pub fn update<'a, Message, Renderer>(
     clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
-    size: Option<u16>,
+    size: Option<f32>,
     font: &Renderer::Font,
     is_secure: bool,
     on_change: &dyn Fn(String) -> Message,
@@ -425,7 +423,18 @@ where
             let state = state();
             let is_clicked = layout.bounds().contains(cursor_position);
 
-            state.is_focused = is_clicked;
+            state.is_focused = if is_clicked {
+                state.is_focused.or_else(|| {
+                    let now = Instant::now();
+
+                    Some(Focus {
+                        updated_at: now,
+                        now,
+                    })
+                })
+            } else {
+                None
+            };
 
             if is_clicked {
                 let text_layout = layout.children().next().unwrap();
@@ -454,9 +463,17 @@ where
                             )
                         } else {
                             None
-                        };
+                        }
+                        .unwrap_or(0);
 
-                        state.cursor.move_to(position.unwrap_or(0));
+                        if state.keyboard_modifiers.shift() {
+                            state.cursor.select_range(
+                                state.cursor.start(value),
+                                position,
+                            );
+                        } else {
+                            state.cursor.move_to(position);
+                        }
                         state.is_dragging = true;
                     }
                     click::Kind::Double => {
@@ -533,26 +550,30 @@ where
         Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
             let state = state();
 
-            if state.is_focused
-                && state.is_pasting.is_none()
-                && !state.keyboard_modifiers.command()
-                && !c.is_control()
-            {
-                let mut editor = Editor::new(value, &mut state.cursor);
+            if let Some(focus) = &mut state.is_focused {
+                if state.is_pasting.is_none()
+                    && !state.keyboard_modifiers.command()
+                    && !c.is_control()
+                {
+                    let mut editor = Editor::new(value, &mut state.cursor);
 
-                editor.insert(c);
+                    editor.insert(c);
 
-                let message = (on_change)(editor.contents());
-                shell.publish(message);
+                    let message = (on_change)(editor.contents());
+                    shell.publish(message);
 
-                return event::Status::Captured;
+                    focus.updated_at = Instant::now();
+
+                    return event::Status::Captured;
+                }
             }
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
             let state = state();
 
-            if state.is_focused {
+            if let Some(focus) = &mut state.is_focused {
                 let modifiers = state.keyboard_modifiers;
+                focus.updated_at = Instant::now();
 
                 match key_code {
                     keyboard::KeyCode::Enter
@@ -713,7 +734,7 @@ where
                         state.cursor.select_all(value);
                     }
                     keyboard::KeyCode::Escape => {
-                        state.is_focused = false;
+                        state.is_focused = None;
                         state.is_dragging = false;
                         state.is_pasting = None;
 
@@ -734,7 +755,7 @@ where
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
             let state = state();
 
-            if state.is_focused {
+            if state.is_focused.is_some() {
                 match key_code {
                     keyboard::KeyCode::V => {
                         state.is_pasting = None;
@@ -757,6 +778,21 @@ where
 
             state.keyboard_modifiers = modifiers;
         }
+        Event::Window(window::Event::RedrawRequested(now)) => {
+            let state = state();
+
+            if let Some(focus) = &mut state.is_focused {
+                focus.now = now;
+
+                let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                    - (now - focus.updated_at).as_millis()
+                        % CURSOR_BLINK_INTERVAL_MILLIS;
+
+                shell.request_redraw(window::RedrawRequest::At(
+                    now + Duration::from_millis(millis_until_redraw as u64),
+                ));
+            }
+        }
         _ => {}
     }
 
@@ -775,7 +811,7 @@ pub fn draw<Renderer>(
     state: &State,
     value: &Value,
     placeholder: &str,
-    size: Option<u16>,
+    size: Option<f32>,
     font: &Renderer::Font,
     is_secure: bool,
     style: &<Renderer::Theme as StyleSheet>::Style,
@@ -812,7 +848,7 @@ pub fn draw<Renderer>(
     let text = value.to_string();
     let size = size.unwrap_or_else(|| renderer.default_size());
 
-    let (cursor, offset) = if state.is_focused() {
+    let (cursor, offset) = if let Some(focus) = &state.is_focused {
         match state.cursor.state(value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
@@ -825,7 +861,13 @@ pub fn draw<Renderer>(
                         font.clone(),
                     );
 
-                (
+                let is_cursor_visible = ((focus.now - focus.updated_at)
+                    .as_millis()
+                    / CURSOR_BLINK_INTERVAL_MILLIS)
+                    % 2
+                    == 0;
+
+                let cursor = if is_cursor_visible {
                     Some((
                         renderer::Quad {
                             bounds: Rectangle {
@@ -839,9 +881,12 @@ pub fn draw<Renderer>(
                             border_color: Color::TRANSPARENT,
                         },
                         theme.value_color(style),
-                    )),
-                    offset,
-                )
+                    ))
+                } else {
+                    None
+                };
+
+                (cursor, offset)
             }
             cursor::State::Selection { start, end } => {
                 let left = start.min(end);
@@ -920,7 +965,7 @@ pub fn draw<Renderer>(
                 width: f32::INFINITY,
                 ..text_bounds
             },
-            size: f32::from(size),
+            size,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
         });
@@ -950,13 +995,19 @@ pub fn mouse_interaction(
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State {
-    is_focused: bool,
+    is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
     // TODO: Add stateful horizontal scrolling offset
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Focus {
+    updated_at: Instant,
+    now: Instant,
 }
 
 impl State {
@@ -968,7 +1019,7 @@ impl State {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
-            is_focused: true,
+            is_focused: None,
             is_dragging: false,
             is_pasting: None,
             last_click: None,
@@ -979,7 +1030,7 @@ impl State {
 
     /// Returns whether the [`TextInput`] is currently focused or not.
     pub fn is_focused(&self) -> bool {
-        self.is_focused
+        self.is_focused.is_some()
     }
 
     /// Returns the [`Cursor`] of the [`TextInput`].
@@ -989,13 +1040,19 @@ impl State {
 
     /// Focuses the [`TextInput`].
     pub fn focus(&mut self) {
-        self.is_focused = true;
+        let now = Instant::now();
+
+        self.is_focused = Some(Focus {
+            updated_at: now,
+            now,
+        });
+
         self.move_cursor_to_end();
     }
 
     /// Unfocuses the [`TextInput`].
     pub fn unfocus(&mut self) {
-        self.is_focused = false;
+        self.is_focused = None;
     }
 
     /// Moves the [`Cursor`] of the [`TextInput`] to the front of the input text.
@@ -1067,7 +1124,7 @@ fn offset<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     font: Renderer::Font,
-    size: u16,
+    size: f32,
     value: &Value,
     state: &State,
 ) -> f32
@@ -1101,7 +1158,7 @@ fn measure_cursor_and_scroll_offset<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     value: &Value,
-    size: u16,
+    size: f32,
     cursor_index: usize,
     font: Renderer::Font,
 ) -> (f32, f32)
@@ -1124,7 +1181,7 @@ fn find_cursor_position<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
     font: Renderer::Font,
-    size: Option<u16>,
+    size: Option<f32>,
     value: &Value,
     state: &State,
     x: f32,
@@ -1140,7 +1197,7 @@ where
     renderer
         .hit_test(
             &value.to_string(),
-            size.into(),
+            size,
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
@@ -1148,3 +1205,5 @@ where
         )
         .map(text::Hit::cursor)
 }
+
+const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;

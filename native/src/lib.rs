@@ -23,8 +23,8 @@
 //! - Build a new renderer, see the [renderer] module.
 //! - Build a custom widget, start at the [`Widget`] trait.
 //!
-//! [`iced_core`]: https://github.com/iced-rs/iced/tree/0.6/core
-//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/0.6/winit
+//! [`iced_core`]: https://github.com/iced-rs/iced/tree/0.8/core
+//! [`iced_winit`]: https://github.com/iced-rs/iced/tree/0.8/winit
 //! [`druid`]: https://github.com/xi-editor/druid
 //! [`raw-window-handle`]: https://github.com/rust-windowing/raw-window-handle
 //! [renderer]: crate::renderer
@@ -81,7 +81,7 @@ pub use iced_core::alignment;
 pub use iced_core::time;
 pub use iced_core::{
     color, Alignment, Background, Color, ContentFit, Font, Length, Padding,
-    Point, Rectangle, Size, Vector,
+    Pixels, Point, Rectangle, Size, Vector,
 };
 pub use iced_futures::{executor, futures};
 pub use iced_style::application;

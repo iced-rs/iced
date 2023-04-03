@@ -78,7 +78,7 @@ impl Sandbox for Styling {
                     column![text("Choose a theme:")].spacing(10),
                     |column, theme| {
                         column.push(radio(
-                            format!("{:?}", theme),
+                            format!("{theme:?}"),
                             *theme,
                             Some(match self.theme {
                                 Theme::Light => ThemeType::Light,
@@ -108,14 +108,10 @@ impl Sandbox for Styling {
         let progress_bar = progress_bar(0.0..=100.0, self.slider_value);
 
         let scrollable = scrollable(
-            column![
-                "Scroll me!",
-                vertical_space(Length::Units(800)),
-                "You did it!"
-            ]
-            .width(Length::Fill),
+            column!["Scroll me!", vertical_space(800), "You did it!"]
+                .width(Length::Fill),
         )
-        .height(Length::Units(100));
+        .height(100);
 
         let checkbox = checkbox(
             "Check me!",
@@ -143,7 +139,7 @@ impl Sandbox for Styling {
                 column![checkbox, toggler].spacing(20)
             ]
             .spacing(10)
-            .height(Length::Units(100))
+            .height(100)
             .align_items(Alignment::Center),
         ]
         .spacing(20)

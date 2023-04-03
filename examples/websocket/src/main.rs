@@ -81,7 +81,10 @@ impl Application for WebSocket {
                 echo::Event::MessageReceived(message) => {
                     self.messages.push(message);
 
-                    scrollable::snap_to(MESSAGE_LOG.clone(), 1.0)
+                    scrollable::snap_to(
+                        MESSAGE_LOG.clone(),
+                        scrollable::RelativeOffset::END,
+                    )
                 }
             },
             Message::Server => Command::none(),
@@ -143,7 +146,9 @@ impl Application for WebSocket {
                 }
             }
 
-            row![input, button].spacing(10).align_items(Alignment::Fill)
+            row![input, button]
+                .spacing(10)
+                .align_items(Alignment::Center)
         };
 
         column![message_log, new_message_input]

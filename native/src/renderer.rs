@@ -16,9 +16,9 @@ pub trait Renderer: Sized {
     ///
     /// You should override this if you need to perform any operations before or
     /// after layouting. For instance, trimming the measurements cache.
-    fn layout<'a, Message>(
+    fn layout<Message>(
         &mut self,
-        element: &Element<'a, Message, Self>,
+        element: &Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
         element.as_widget().layout(self, limits)
@@ -36,11 +36,11 @@ pub trait Renderer: Sized {
         f: impl FnOnce(&mut Self),
     );
 
-    /// Clears all of the recorded primitives in the [`Renderer`].
-    fn clear(&mut self);
-
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);
+
+    /// Clears all of the recorded primitives in the [`Renderer`].
+    fn clear(&mut self);
 }
 
 /// A polygon with four sides.

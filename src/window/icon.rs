@@ -6,8 +6,14 @@ use std::io;
 use std::path::Path;
 
 /// The icon of a window.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Icon(iced_winit::winit::window::Icon);
+
+impl fmt::Debug for Icon {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Icon").field(&format_args!("_")).finish()
+    }
+}
 
 impl Icon {
     /// Creates an icon from 32bpp RGBA data.
@@ -133,10 +139,9 @@ impl fmt::Display for Error {
             Error::InvalidData { byte_count } => {
                 write!(
                     f,
-                    "The provided RGBA data (with length {:?}) isn't divisble by \
+                    "The provided RGBA data (with length {byte_count:?}) isn't divisble by \
                 4. Therefore, it cannot be safely interpreted as 32bpp RGBA \
-                pixels.",
-                    byte_count,
+                pixels."
                 )
             }
             Error::DimensionsMismatch {
@@ -146,20 +151,18 @@ impl fmt::Display for Error {
             } => {
                 write!(
                     f,
-                    "The number of RGBA pixels ({:?}) does not match the provided \
-                dimensions ({:?}x{:?}).",
-                    pixel_count, width, height,
+                    "The number of RGBA pixels ({pixel_count:?}) does not match the provided \
+                dimensions ({width:?}x{height:?})."
                 )
             }
             Error::OsError(e) => write!(
                 f,
                 "The underlying OS failed to create the window \
-                icon: {:?}",
-                e
+                icon: {e:?}"
             ),
             #[cfg(feature = "image_rs")]
             Error::ImageError(e) => {
-                write!(f, "Unable to create icon from a file: {:?}", e)
+                write!(f, "Unable to create icon from a file: {e:?}")
             }
         }
     }

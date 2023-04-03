@@ -10,6 +10,9 @@ use iced_graphics::{Primitive, Viewport};
 use iced_native::alignment;
 use iced_native::{Font, Size};
 
+#[cfg(feature = "tracing")]
+use tracing::info_span;
+
 #[cfg(any(feature = "image", feature = "svg"))]
 use crate::image;
 
@@ -26,7 +29,7 @@ pub struct Backend {
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
-    default_text_size: u16,
+    default_text_size: f32,
 }
 
 impl Backend {
@@ -77,6 +80,8 @@ impl Backend {
         overlay_text: &[T],
     ) {
         log::debug!("Drawing");
+        #[cfg(feature = "tracing")]
+        let _ = info_span!("Wgpu::Backend", "PRESENT").entered();
 
         let target_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
@@ -260,7 +265,7 @@ impl backend::Text for Backend {
     const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = font::ARROW_DOWN_ICON;
 
-    fn default_size(&self) -> u16 {
+    fn default_size(&self) -> f32 {
         self.default_text_size
     }
 

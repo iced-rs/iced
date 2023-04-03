@@ -1,6 +1,6 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
-use iced::keyboard;
+use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
@@ -50,6 +50,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
+    ToggleFullscreen(window::Mode),
 }
 
 impl Application for Todos {
@@ -155,6 +156,9 @@ impl Application for Todos {
                         } else {
                             widget::focus_next()
                         }
+                    }
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(mode)
                     }
                     _ => Command::none(),
                 };
@@ -266,6 +270,21 @@ impl Application for Todos {
             ) => Some(Message::TabPressed {
                 shift: modifiers.shift(),
             }),
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers: Modifiers::SHIFT,
+                }),
+                event::Status::Ignored,
+            ) => match key_code {
+                KeyCode::Up => {
+                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
+                }
+                KeyCode::Down => {
+                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
+                }
+                _ => None,
+            },
             _ => None,
         })
     }
@@ -303,7 +322,7 @@ pub enum TaskMessage {
 
 impl Task {
     fn text_input_id(i: usize) -> text_input::Id {
-        text_input::Id::new(format!("task-{}", i))
+        text_input::Id::new(format!("task-{i}"))
     }
 
     fn new(description: String) -> Self {
@@ -416,17 +435,14 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     .into()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize,
+)]
 pub enum Filter {
+    #[default]
     All,
     Active,
     Completed,
-}
-
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::All
-    }
 }
 
 impl Filter {
@@ -460,7 +476,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .style(Color::from([0.7, 0.7, 0.7])),
     )
     .width(Length::Fill)
-    .height(Length::Units(200))
+    .height(200)
     .center_y()
     .into()
 }
@@ -474,7 +490,7 @@ const ICONS: Font = Font::External {
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
-        .width(Length::Units(20))
+        .width(20)
         .horizontal_alignment(alignment::Horizontal::Center)
         .size(20)
 }

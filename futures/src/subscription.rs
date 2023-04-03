@@ -20,6 +20,7 @@ use crate::BoxStream;
 /// `Hasher`.
 ///
 /// [`Command`]: crate::Command
+#[must_use = "`Subscription` must be returned to runtime to take effect"]
 pub struct Subscription<Hasher, Event, Output> {
     recipes: Vec<Box<dyn Recipe<Hasher, Event, Output = Output>>>,
 }
@@ -125,9 +126,9 @@ impl<I, O, H> std::fmt::Debug for Subscription<I, O, H> {
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
 /// to listen to time.
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.6/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.6/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.6/examples/stopwatch
+/// [examples]: https://github.com/iced-rs/iced/tree/0.8/examples
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.8/examples/download_progress
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.8/examples/stopwatch
 pub trait Recipe<Hasher: std::hash::Hasher, Event> {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].

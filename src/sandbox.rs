@@ -34,19 +34,19 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.6/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.6/examples/bezier_tool
-/// [`counter`]: https://github.com/iced-rs/iced/tree/0.6/examples/counter
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.6/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.6/examples/geometry
-/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.6/examples/pane_grid
-/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.6/examples/progress_bar
-/// [`styling`]: https://github.com/iced-rs/iced/tree/0.6/examples/styling
-/// [`svg`]: https://github.com/iced-rs/iced/tree/0.6/examples/svg
-/// [`tour`]: https://github.com/iced-rs/iced/tree/0.6/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.8/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.8/examples/bezier_tool
+/// [`counter`]: https://github.com/iced-rs/iced/tree/0.8/examples/counter
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.8/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.8/examples/geometry
+/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.8/examples/pane_grid
+/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.8/examples/progress_bar
+/// [`styling`]: https://github.com/iced-rs/iced/tree/0.8/examples/styling
+/// [`svg`]: https://github.com/iced-rs/iced/tree/0.8/examples/svg
+/// [`tour`]: https://github.com/iced-rs/iced/tree/0.8/examples/tour
 /// [`Canvas widget`]: crate::widget::Canvas
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.6/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/wgpu
 /// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///
@@ -140,13 +140,6 @@ pub trait Sandbox {
         1.0
     }
 
-    /// Returns whether the [`Sandbox`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
-    }
-
     /// Runs the [`Sandbox`].
     ///
     /// On native platforms, this method will take control of the current thread
@@ -202,9 +195,5 @@ where
 
     fn scale_factor(&self) -> f64 {
         T::scale_factor(self)
-    }
-
-    fn should_exit(&self) -> bool {
-        T::should_exit(self)
     }
 }

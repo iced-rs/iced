@@ -1,7 +1,7 @@
 //! Helper functions to create pure widgets.
 use crate::overlay;
 use crate::widget;
-use crate::{Element, Length};
+use crate::{Element, Length, Pixels};
 
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
@@ -129,7 +129,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::checkbox::StyleSheet + widget::text::StyleSheet,
 {
-    widget::Checkbox::new(is_checked, label, f)
+    widget::Checkbox::new(label, is_checked, f)
 }
 
 /// Creates a new [`Radio`].
@@ -162,7 +162,7 @@ where
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::toggler::StyleSheet,
 {
-    widget::Toggler::new(is_checked, label, f)
+    widget::Toggler::new(label, is_checked, f)
 }
 
 /// Creates a new [`TextInput`].
@@ -247,21 +247,23 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> widget::Image<Handle> {
 /// Creates a new horizontal [`Space`] with the given [`Length`].
 ///
 /// [`Space`]: widget::Space
-pub fn horizontal_space(width: Length) -> widget::Space {
+pub fn horizontal_space(width: impl Into<Length>) -> widget::Space {
     widget::Space::with_width(width)
 }
 
 /// Creates a new vertical [`Space`] with the given [`Length`].
 ///
 /// [`Space`]: widget::Space
-pub fn vertical_space(height: Length) -> widget::Space {
+pub fn vertical_space(height: impl Into<Length>) -> widget::Space {
     widget::Space::with_height(height)
 }
 
 /// Creates a horizontal [`Rule`] with the given height.
 ///
 /// [`Rule`]: widget::Rule
-pub fn horizontal_rule<Renderer>(height: u16) -> widget::Rule<Renderer>
+pub fn horizontal_rule<Renderer>(
+    height: impl Into<Pixels>,
+) -> widget::Rule<Renderer>
 where
     Renderer: crate::Renderer,
     Renderer::Theme: widget::rule::StyleSheet,
@@ -272,7 +274,9 @@ where
 /// Creates a vertical [`Rule`] with the given width.
 ///
 /// [`Rule`]: widget::Rule
-pub fn vertical_rule<Renderer>(width: u16) -> widget::Rule<Renderer>
+pub fn vertical_rule<Renderer>(
+    width: impl Into<Pixels>,
+) -> widget::Rule<Renderer>
 where
     Renderer: crate::Renderer,
     Renderer::Theme: widget::rule::StyleSheet,

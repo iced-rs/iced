@@ -2,7 +2,9 @@
 use crate::layout;
 use crate::renderer;
 use crate::widget::Tree;
-use crate::{Color, Element, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::{
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+};
 
 pub use iced_style::rule::{Appearance, FillMode, StyleSheet};
 
@@ -25,19 +27,19 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// Creates a horizontal [`Rule`] with the given height.
-    pub fn horizontal(height: u16) -> Self {
+    pub fn horizontal(height: impl Into<Pixels>) -> Self {
         Rule {
             width: Length::Fill,
-            height: Length::Units(height),
+            height: Length::Fixed(height.into().0),
             is_horizontal: true,
             style: Default::default(),
         }
     }
 
     /// Creates a vertical [`Rule`] with the given width.
-    pub fn vertical(width: u16) -> Self {
+    pub fn vertical(width: impl Into<Pixels>) -> Self {
         Rule {
-            width: Length::Units(width),
+            width: Length::Fixed(width.into().0),
             height: Length::Fill,
             is_horizontal: false,
             style: Default::default(),

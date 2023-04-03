@@ -9,16 +9,17 @@ use iced_native::Element;
 use iced_native::{Clipboard, Hasher, Length, Point, Rectangle, Shell, Size};
 
 use ouroboros::self_referencing;
-use std::cell::{Ref, RefCell, RefMut};
+use std::cell::RefCell;
 use std::hash::{Hash, Hasher as H};
-use std::marker::PhantomData;
 use std::rc::Rc;
 
 #[allow(missing_debug_implementations)]
 pub struct Lazy<'a, Message, Renderer, Dependency, View> {
     dependency: Dependency,
-    view: Box<dyn Fn() -> View + 'a>,
-    element: RefCell<Option<Rc<RefCell<Element<'static, Message, Renderer>>>>>,
+    view: Box<dyn Fn(&Dependency) -> View + 'a>,
+    element: RefCell<
+        Option<Rc<RefCell<Option<Element<'static, Message, Renderer>>>>>,
+    >,
 }
 
 impl<'a, Message, Renderer, Dependency, View>
@@ -27,7 +28,10 @@ where
     Dependency: Hash + 'a,
     View: Into<Element<'static, Message, Renderer>>,
 {
-    pub fn new(dependency: Dependency, view: impl Fn() -> View + 'a) -> Self {
+    pub fn new(
+        dependency: Dependency,
+        view: impl Fn(&Dependency) -> View + 'a,
+    ) -> Self {
         Self {
             dependency,
             view: Box::new(view),
@@ -37,21 +41,35 @@ where
 
     fn with_element<T>(
         &self,
-        f: impl FnOnce(Ref<Element<Message, Renderer>>) -> T,
+        f: impl FnOnce(&Element<Message, Renderer>) -> T,
     ) -> T {
-        f(self.element.borrow().as_ref().unwrap().borrow())
+        f(self
+            .element
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .borrow()
+            .as_ref()
+            .unwrap())
     }
 
     fn with_element_mut<T>(
         &self,
-        f: impl FnOnce(RefMut<Element<Message, Renderer>>) -> T,
+        f: impl FnOnce(&mut Element<Message, Renderer>) -> T,
     ) -> T {
-        f(self.element.borrow().as_ref().unwrap().borrow_mut())
+        f(self
+            .element
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .borrow_mut()
+            .as_mut()
+            .unwrap())
     }
 }
 
 struct Internal<Message, Renderer> {
-    element: Rc<RefCell<Element<'static, Message, Renderer>>>,
+    element: Rc<RefCell<Option<Element<'static, Message, Renderer>>>>,
     hash: u64,
 }
 
@@ -73,7 +91,8 @@ where
         self.dependency.hash(&mut hasher);
         let hash = hasher.finish();
 
-        let element = Rc::new(RefCell::new((self.view)().into()));
+        let element =
+            Rc::new(RefCell::new(Some((self.view)(&self.dependency).into())));
 
         (*self.element.borrow_mut()) = Some(element.clone());
 
@@ -81,9 +100,7 @@ where
     }
 
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(
-            self.element.borrow().as_ref().unwrap().borrow().as_widget(),
-        )]
+        self.with_element(|element| vec![Tree::new(element.as_widget())])
     }
 
     fn diff(&self, tree: &mut Tree) {
@@ -96,13 +113,13 @@ where
         if current.hash != new_hash {
             current.hash = new_hash;
 
-            let element = (self.view)().into();
-            current.element = Rc::new(RefCell::new(element));
+            let element = (self.view)(&self.dependency).into();
+            current.element = Rc::new(RefCell::new(Some(element)));
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
-            tree.diff_children(std::slice::from_ref(
-                &self.element.borrow().as_ref().unwrap().borrow().as_widget(),
-            ));
+            self.with_element(|element| {
+                tree.diff_children(std::slice::from_ref(&element.as_widget()))
+            });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
         }
@@ -153,7 +170,7 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.with_element_mut(|mut element| {
+        self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
                 &mut tree.children[0],
                 event,
@@ -214,23 +231,27 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        let overlay = OverlayBuilder {
-            cached: self,
-            tree: &mut tree.children[0],
-            types: PhantomData,
-            overlay_builder: |cached, tree| {
-                Rc::get_mut(cached.element.get_mut().as_mut().unwrap())
+        let overlay = Overlay(Some(
+            InnerBuilder {
+                cell: self.element.borrow().as_ref().unwrap().clone(),
+                element: self
+                    .element
+                    .borrow()
+                    .as_ref()
                     .unwrap()
-                    .get_mut()
-                    .as_widget_mut()
-                    .overlay(tree, layout, renderer)
-            },
-        }
-        .build();
+                    .borrow_mut()
+                    .take()
+                    .unwrap(),
+                tree: &mut tree.children[0],
+                overlay_builder: |element, tree| {
+                    element.as_widget_mut().overlay(tree, layout, renderer)
+                },
+            }
+            .build(),
+        ));
 
-        let has_overlay = overlay.with_overlay(|overlay| {
-            overlay.as_ref().map(overlay::Element::position)
-        });
+        let has_overlay = overlay
+            .with_overlay_maybe(|overlay| overlay::Element::position(overlay));
 
         has_overlay
             .map(|position| overlay::Element::new(position, Box::new(overlay)))
@@ -238,37 +259,50 @@ where
 }
 
 #[self_referencing]
-struct Overlay<'a, 'b, Message, Renderer, Dependency, View> {
-    cached: &'a mut Lazy<'b, Message, Renderer, Dependency, View>,
+struct Inner<'a, Message, Renderer>
+where
+    Message: 'a,
+    Renderer: 'a,
+{
+    cell: Rc<RefCell<Option<Element<'static, Message, Renderer>>>>,
+    element: Element<'static, Message, Renderer>,
     tree: &'a mut Tree,
-    types: PhantomData<(Message, Dependency, View)>,
 
-    #[borrows(mut cached, mut tree)]
+    #[borrows(mut element, mut tree)]
     #[covariant]
     overlay: Option<overlay::Element<'this, Message, Renderer>>,
 }
 
-impl<'a, 'b, Message, Renderer, Dependency, View>
-    Overlay<'a, 'b, Message, Renderer, Dependency, View>
-{
+struct Overlay<'a, Message, Renderer>(Option<Inner<'a, Message, Renderer>>);
+
+impl<'a, Message, Renderer> Drop for Overlay<'a, Message, Renderer> {
+    fn drop(&mut self) {
+        let heads = self.0.take().unwrap().into_heads();
+        (*heads.cell.borrow_mut()) = Some(heads.element);
+    }
+}
+
+impl<'a, Message, Renderer> Overlay<'a, Message, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
         f: impl FnOnce(&overlay::Element<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.borrow_overlay().as_ref().map(f)
+        self.0.as_ref().unwrap().borrow_overlay().as_ref().map(f)
     }
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
         f: impl FnOnce(&mut overlay::Element<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.with_overlay_mut(|overlay| overlay.as_mut().map(f))
+        self.0
+            .as_mut()
+            .unwrap()
+            .with_overlay_mut(|overlay| overlay.as_mut().map(f))
     }
 }
 
-impl<'a, 'b, Message, Renderer, Dependency, View>
-    overlay::Overlay<Message, Renderer>
-    for Overlay<'a, 'b, Message, Renderer, Dependency, View>
+impl<'a, Message, Renderer> overlay::Overlay<Message, Renderer>
+    for Overlay<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
@@ -279,9 +313,9 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let vector = position - overlay.position();
+            let translation = position - overlay.position();
 
-            overlay.layout(renderer, bounds).translate(vector)
+            overlay.layout(renderer, bounds, translation)
         })
         .unwrap_or_default()
     }
@@ -337,6 +371,13 @@ where
             )
         })
         .unwrap_or(iced_native::event::Status::Ignored)
+    }
+
+    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        self.with_overlay_maybe(|overlay| {
+            overlay.is_over(layout, cursor_position)
+        })
+        .unwrap_or_default()
     }
 }
 

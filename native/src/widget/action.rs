@@ -1,8 +1,11 @@
-use crate::widget::operation::{self, Focusable, Operation, Scrollable};
+use crate::widget::operation::{
+    self, Focusable, Operation, Scrollable, TextInput,
+};
 use crate::widget::Id;
 
 use iced_futures::MaybeSend;
 
+use std::any::Any;
 use std::rc::Rc;
 
 /// An operation to be performed on the widget tree.
@@ -84,6 +87,18 @@ where
             ) {
                 self.operation.focusable(state, id);
             }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn TextInput,
+                id: Option<&Id>,
+            ) {
+                self.operation.text_input(state, id);
+            }
+
+            fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
+                self.operation.custom(state, id);
+            }
         }
 
         let Self { operation, .. } = self;
@@ -116,6 +131,10 @@ where
         id: Option<&Id>,
     ) {
         self.operation.text_input(state, id);
+    }
+
+    fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
+        self.operation.custom(state, id);
     }
 
     fn finish(&self) -> operation::Outcome<B> {

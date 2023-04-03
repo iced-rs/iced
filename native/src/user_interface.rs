@@ -5,7 +5,10 @@ use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::window;
+use crate::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 
 /// A set of interactive graphical elements with a specific [`Layout`].
 ///
@@ -18,8 +21,8 @@ use crate::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 /// The [`integration_opengl`] & [`integration_wgpu`] examples use a
 /// [`UserInterface`] to integrate Iced in an existing graphical application.
 ///
-/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.6/examples/integration_opengl
-/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.6/examples/integration_wgpu
+/// [`integration_opengl`]: https://github.com/iced-rs/iced/tree/0.8/examples/integration_opengl
+/// [`integration_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/examples/integration_wgpu
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -188,7 +191,9 @@ where
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
 
-        let mut state = State::Updated;
+        let mut outdated = false;
+        let mut redraw_request = None;
+
         let mut manual_overlay =
             ManuallyDrop::new(self.root.as_widget_mut().overlay(
                 &mut self.state,
@@ -200,7 +205,7 @@ where
             let bounds = self.bounds;
 
             let mut overlay = manual_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds);
+            let mut layout = overlay.layout(renderer, bounds, Vector::ZERO);
             let mut event_statuses = Vec::new();
 
             for event in events.iter().cloned() {
@@ -216,6 +221,16 @@ where
                 );
 
                 event_statuses.push(event_status);
+
+                match (redraw_request, shell.redraw_request()) {
+                    (None, Some(at)) => {
+                        redraw_request = Some(at);
+                    }
+                    (Some(current), Some(new)) if new < current => {
+                        redraw_request = Some(new);
+                    }
+                    _ => {}
+                }
 
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
@@ -239,21 +254,25 @@ where
                     overlay = manual_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|| {
-                        layout = overlay.layout(renderer, bounds);
+                        layout = overlay.layout(renderer, bounds, Vector::ZERO);
                     });
                 }
 
                 if shell.are_widgets_invalid() {
-                    state = State::Outdated;
+                    outdated = true;
                 }
             }
 
-            let base_cursor = if layout.bounds().contains(cursor_position) {
-                // TODO: Type-safe cursor availability
-                Point::new(-1.0, -1.0)
-            } else {
-                cursor_position
-            };
+            let base_cursor = manual_overlay
+                .as_ref()
+                .filter(|overlay| {
+                    overlay.is_over(Layout::new(&layout), cursor_position)
+                })
+                .map(|_| {
+                    // TODO: Type-safe cursor availability
+                    Point::new(-1.0, -1.0)
+                })
+                .unwrap_or(cursor_position);
 
             self.overlay = Some(layout);
 
@@ -289,6 +308,16 @@ where
                     self.overlay = None;
                 }
 
+                match (redraw_request, shell.redraw_request()) {
+                    (None, Some(at)) => {
+                        redraw_request = Some(at);
+                    }
+                    (Some(current), Some(new)) if new < current => {
+                        redraw_request = Some(new);
+                    }
+                    _ => {}
+                }
+
                 shell.revalidate_layout(|| {
                     self.base = renderer.layout(
                         &self.root,
@@ -299,14 +328,21 @@ where
                 });
 
                 if shell.are_widgets_invalid() {
-                    state = State::Outdated;
+                    outdated = true;
                 }
 
                 event_status.merge(overlay_status)
             })
             .collect();
 
-        (state, event_statuses)
+        (
+            if outdated {
+                State::Outdated
+            } else {
+                State::Updated { redraw_request }
+            },
+            event_statuses,
+        )
     }
 
     /// Draws the [`UserInterface`] with the provided [`Renderer`].
@@ -400,17 +436,17 @@ where
             .as_widget_mut()
             .overlay(&mut self.state, Layout::new(&self.base), renderer)
         {
-            let overlay_layout = self
-                .overlay
-                .take()
-                .unwrap_or_else(|| overlay.layout(renderer, self.bounds));
+            let overlay_layout = self.overlay.take().unwrap_or_else(|| {
+                overlay.layout(renderer, self.bounds, Vector::ZERO)
+            });
 
-            let new_cursor_position =
-                if overlay_layout.bounds().contains(cursor_position) {
-                    Point::new(-1.0, -1.0)
-                } else {
-                    cursor_position
-                };
+            let new_cursor_position = if overlay
+                .is_over(Layout::new(&overlay_layout), cursor_position)
+            {
+                Point::new(-1.0, -1.0)
+            } else {
+                cursor_position
+            };
 
             self.overlay = Some(overlay_layout);
 
@@ -474,7 +510,8 @@ where
                             );
                         });
 
-                        if overlay_bounds.contains(cursor_position) {
+                        if overlay.is_over(Layout::new(layout), cursor_position)
+                        {
                             overlay_interaction
                         } else {
                             base_interaction
@@ -503,7 +540,8 @@ where
             renderer,
         ) {
             if self.overlay.is_none() {
-                self.overlay = Some(overlay.layout(renderer, self.bounds));
+                self.overlay =
+                    Some(overlay.layout(renderer, self.bounds, Vector::ZERO));
             }
 
             overlay.operate(
@@ -559,5 +597,8 @@ pub enum State {
 
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
-    Updated,
+    Updated {
+        /// The [`Instant`] when a redraw should be performed.
+        redraw_request: Option<window::RedrawRequest>,
+    },
 }

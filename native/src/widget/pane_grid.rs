@@ -6,7 +6,7 @@
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
 //! drag and drop, and hotkey support.
 //!
-//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.6/examples/pane_grid
+//! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.8/examples/pane_grid
 mod axis;
 mod configuration;
 mod content;
@@ -35,15 +35,15 @@ pub use iced_style::pane_grid::{Line, StyleSheet};
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
-use crate::overlay;
+use crate::overlay::{self, Group};
 use crate::renderer;
 use crate::touch;
 use crate::widget;
 use crate::widget::container;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -104,10 +104,10 @@ where
     contents: Contents<'a, Content<'a, Message, Renderer>>,
     width: Length,
     height: Length,
-    spacing: u16,
+    spacing: f32,
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
-    on_resize: Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
+    on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -150,7 +150,7 @@ where
             contents,
             width: Length::Fill,
             height: Length::Fill,
-            spacing: 0,
+            spacing: 0.0,
             on_click: None,
             on_drag: None,
             on_resize: None,
@@ -159,20 +159,20 @@ where
     }
 
     /// Sets the width of the [`PaneGrid`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`PaneGrid`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
     /// Sets the spacing _between_ the panes of the [`PaneGrid`].
-    pub fn spacing(mut self, units: u16) -> Self {
-        self.spacing = units;
+    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
+        self.spacing = amount.into().0;
         self
     }
 
@@ -205,11 +205,11 @@ where
     /// The grabbable area of a split will have a length of `spacing + leeway`,
     /// properly centered. In other words, a length of
     /// `(spacing + leeway) / 2.0` on either side of the split line.
-    pub fn on_resize<F>(mut self, leeway: u16, f: F) -> Self
+    pub fn on_resize<F>(mut self, leeway: impl Into<Pixels>, f: F) -> Self
     where
         F: 'a + Fn(ResizeEvent) -> Message,
     {
-        self.on_resize = Some((leeway, Box::new(f)));
+        self.on_resize = Some((leeway.into().0, Box::new(f)));
         self
     }
 
@@ -450,14 +450,17 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'_, Message, Renderer>> {
-        self.contents
+        let children = self
+            .contents
             .iter_mut()
             .zip(&mut tree.children)
             .zip(layout.children())
-            .filter_map(|(((_, pane), tree), layout)| {
-                pane.overlay(tree, layout, renderer)
+            .filter_map(|(((_, content), state), layout)| {
+                content.overlay(state, layout, renderer)
             })
-            .next()
+            .collect::<Vec<_>>();
+
+        (!children.is_empty()).then(|| Group::with_children(children).overlay())
     }
 }
 
@@ -482,14 +485,14 @@ pub fn layout<Renderer, T>(
     node: &Node,
     width: Length,
     height: Length,
-    spacing: u16,
+    spacing: f32,
     contents: impl Iterator<Item = (Pane, T)>,
     layout_content: impl Fn(T, &Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
     let size = limits.resolve(Size::ZERO);
 
-    let regions = node.pane_regions(f32::from(spacing), size);
+    let regions = node.pane_regions(spacing, size);
     let children = contents
         .filter_map(|(pane, content)| {
             let region = regions.get(&pane)?;
@@ -519,11 +522,11 @@ pub fn update<'a, Message, T: Draggable>(
     layout: Layout<'_>,
     cursor_position: Point,
     shell: &mut Shell<'_, Message>,
-    spacing: u16,
+    spacing: f32,
     contents: impl Iterator<Item = (Pane, T)>,
     on_click: &Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
-    on_resize: &Option<(u16, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
+    on_resize: &Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
 ) -> event::Status {
     let mut event_status = event::Status::Ignored;
 
@@ -543,13 +546,13 @@ pub fn update<'a, Message, T: Draggable>(
                         );
 
                         let splits = node.split_regions(
-                            f32::from(spacing),
+                            spacing,
                             Size::new(bounds.width, bounds.height),
                         );
 
                         let clicked_split = hovered_split(
                             splits.iter(),
-                            f32::from(spacing + leeway),
+                            spacing + leeway,
                             relative_cursor,
                         );
 
@@ -621,7 +624,7 @@ pub fn update<'a, Message, T: Draggable>(
                     let bounds = layout.bounds();
 
                     let splits = node.split_regions(
-                        f32::from(spacing),
+                        spacing,
                         Size::new(bounds.width, bounds.height),
                     );
 
@@ -695,8 +698,8 @@ pub fn mouse_interaction(
     node: &Node,
     layout: Layout<'_>,
     cursor_position: Point,
-    spacing: u16,
-    resize_leeway: Option<u16>,
+    spacing: f32,
+    resize_leeway: Option<f32>,
 ) -> Option<mouse::Interaction> {
     if action.picked_pane().is_some() {
         return Some(mouse::Interaction::Grabbing);
@@ -707,20 +710,15 @@ pub fn mouse_interaction(
             resize_leeway.and_then(|leeway| {
                 let bounds = layout.bounds();
 
-                let splits =
-                    node.split_regions(f32::from(spacing), bounds.size());
+                let splits = node.split_regions(spacing, bounds.size());
 
                 let relative_cursor = Point::new(
                     cursor_position.x - bounds.x,
                     cursor_position.y - bounds.y,
                 );
 
-                hovered_split(
-                    splits.iter(),
-                    f32::from(spacing + leeway),
-                    relative_cursor,
-                )
-                .map(|(_, axis, _)| axis)
+                hovered_split(splits.iter(), spacing + leeway, relative_cursor)
+                    .map(|(_, axis, _)| axis)
             })
         });
 
@@ -744,8 +742,8 @@ pub fn draw<Renderer, T>(
     theme: &Renderer::Theme,
     default_style: &renderer::Style,
     viewport: &Rectangle,
-    spacing: u16,
-    resize_leeway: Option<u16>,
+    spacing: f32,
+    resize_leeway: Option<f32>,
     style: &<Renderer::Theme as StyleSheet>::Style,
     contents: impl Iterator<Item = (Pane, T)>,
     draw_pane: impl Fn(
@@ -767,12 +765,11 @@ pub fn draw<Renderer, T>(
         .and_then(|(split, axis)| {
             let bounds = layout.bounds();
 
-            let splits = node.split_regions(f32::from(spacing), bounds.size());
+            let splits = node.split_regions(spacing, bounds.size());
 
             let (_axis, region, ratio) = splits.get(&split)?;
 
-            let region =
-                axis.split_line_bounds(*region, *ratio, f32::from(spacing));
+            let region = axis.split_line_bounds(*region, *ratio, spacing);
 
             Some((axis, region + Vector::new(bounds.x, bounds.y), true))
         })
@@ -785,12 +782,11 @@ pub fn draw<Renderer, T>(
                     cursor_position.y - bounds.y,
                 );
 
-                let splits =
-                    node.split_regions(f32::from(spacing), bounds.size());
+                let splits = node.split_regions(spacing, bounds.size());
 
                 let (_split, axis, region) = hovered_split(
                     splits.iter(),
-                    f32::from(spacing + leeway),
+                    spacing + leeway,
                     relative_cursor,
                 )?;
 

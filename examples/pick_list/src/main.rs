@@ -43,10 +43,10 @@ impl Sandbox for Example {
         .placeholder("Choose a language...");
 
         let content = column![
-            vertical_space(Length::Units(600)),
+            vertical_space(600),
             "Which is your favorite language?",
             pick_list,
-            vertical_space(Length::Units(600)),
+            vertical_space(600),
         ]
         .width(Length::Fill)
         .align_items(Alignment::Center)
@@ -61,8 +61,9 @@ impl Sandbox for Example {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Language {
+    #[default]
     Rust,
     Elm,
     Ruby,
@@ -82,12 +83,6 @@ impl Language {
         Language::Javascript,
         Language::Other,
     ];
-}
-
-impl Default for Language {
-    fn default() -> Language {
-        Language::Rust
-    }
 }
 
 impl std::fmt::Display for Language {

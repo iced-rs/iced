@@ -6,8 +6,8 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -15,7 +15,7 @@ use std::hash::Hash;
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
 pub struct Viewer<Handle> {
-    padding: u16,
+    padding: f32,
     width: Length,
     height: Length,
     min_scale: f32,
@@ -28,7 +28,7 @@ impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
     pub fn new(handle: Handle) -> Self {
         Viewer {
-            padding: 0,
+            padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
             min_scale: 0.25,
@@ -39,20 +39,20 @@ impl<Handle> Viewer<Handle> {
     }
 
     /// Sets the padding of the [`Viewer`].
-    pub fn padding(mut self, units: u16) -> Self {
-        self.padding = units;
+    pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
+        self.padding = padding.into().0;
         self
     }
 
     /// Sets the width of the [`Viewer`].
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the height of the [`Viewer`].
-    pub fn height(mut self, height: Length) -> Self {
-        self.height = height;
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
         self
     }
 
@@ -124,7 +124,7 @@ where
         // Only calculate viewport sizes if the images are constrained to a limited space.
         // If they are Fill|Portion let them expand within their alotted space.
         match expansion_size {
-            Length::Shrink | Length::Units(_) => {
+            Length::Shrink | Length::Fixed(_) => {
                 let aspect_ratio = width as f32 / height as f32;
                 let viewport_aspect_ratio = size.width / size.height;
                 if viewport_aspect_ratio > aspect_ratio {

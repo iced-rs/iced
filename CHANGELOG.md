@@ -6,6 +6,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2023-02-18
+### Added
+- Generic pixel units. [#1711](https://github.com/iced-rs/iced/pull/1711)
+- `custom` method to `widget::Operation` trait. [#1649](https://github.com/iced-rs/iced/pull/1649)
+- `Group` overlay. [#1655](https://github.com/iced-rs/iced/pull/1655)
+- Standalone `draw` helper for `image`. [#1682](https://github.com/iced-rs/iced/pull/1682)
+- Dynamic `pick_list::Handle`. [#1675](https://github.com/iced-rs/iced/pull/1675)
+- `Id` support for `Container`. [#1695](https://github.com/iced-rs/iced/pull/1695)
+- Custom `Checkbox` icon support. [#1707](https://github.com/iced-rs/iced/pull/1707)
+- `window` action to change always on top setting. [#1587](https://github.com/iced-rs/iced/pull/1587)
+- `window` action to fetch its unique identifier. [#1589](https://github.com/iced-rs/iced/pull/1589)
+
+### Changed
+- Annotated `Command` and `Subscription` with `#[must_use]`. [#1676](https://github.com/iced-rs/iced/pull/1676)
+- Replaced `Fn` with `FnOnce` in `canvas::Cache::draw`. [#1694](https://github.com/iced-rs/iced/pull/1694)
+- Used `[default]` on enum in `game_of_life` example. [#1660](https://github.com/iced-rs/iced/pull/1660)
+- Made `QRCode` hide when data is empty in `qr_code` example. [#1665](https://github.com/iced-rs/iced/pull/1665)
+- Replaced `Cow` with `Bytes` in `image` to accept any kind of data that implements `AsRef<[u8]>`. [#1551](https://github.com/iced-rs/iced/pull/1551)
+
+### Fixed
+- Blank window on application startup. [#1698](https://github.com/iced-rs/iced/pull/1698)
+- Off-by-one pixel error on `pick_list` width. [#1679](https://github.com/iced-rs/iced/pull/1679)
+- Missing `text_input` implementation in `operation::Map`. [#1678](https://github.com/iced-rs/iced/pull/1678)
+- Widget-driven animations for `Component`. [#1685](https://github.com/iced-rs/iced/pull/1685)
+- Layout translation in `overlay::Group`. [#1686](https://github.com/iced-rs/iced/pull/1686)
+- Missing `is_over` implementation for overlays of `iced_lazy` widgets. [#1699](https://github.com/iced-rs/iced/pull/1699)
+- Panic when overlay event processing removes overlay. [#1700](https://github.com/iced-rs/iced/pull/1700)
+- Panic when using operations with components in certain cases. [#1701](https://github.com/iced-rs/iced/pull/1701)
+- `TextInput` width when using padding. [#1706](https://github.com/iced-rs/iced/pull/1706)
+- `iced_glow` crash on some hardware. [#1703](https://github.com/iced-rs/iced/pull/1703)
+- Height of `overlay::Menu`. [#1714](https://github.com/iced-rs/iced/pull/1714)
+- Size of images in `README`. [#1659](https://github.com/iced-rs/iced/pull/1659)
+- New `clippy` lints. [#1681](https://github.com/iced-rs/iced/pull/1681)
+
+Many thanks to...
+
+- @13r0ck
+- @bungoboingo
+- @casperstorm
+- @frey
+- @greatest-ape
+- @ids1024
+- @Jedsek
+- @nicksenger
+- @Night-Hunter-NF
+- @sdroege
+- @Sn-Kinos
+- @sushigiri
+- @tarkah
+
+## [0.7.0] - 2023-01-14
+### Added
+- Widget-driven animations. [#1647](https://github.com/iced-rs/iced/pull/1647)
+- Multidirectional scrolling support for `Scrollable`. [#1550](https://github.com/iced-rs/iced/pull/1550)
+- `VerticalSlider` widget. [#1596](https://github.com/iced-rs/iced/pull/1596)
+- `Shift+Click` text selection support in `TextInput`. [#1622](https://github.com/iced-rs/iced/pull/1622)
+- Profiling support with the `chrome-trace` feature. [#1565](https://github.com/iced-rs/iced/pull/1565)
+- Customization of the handle of a `PickList`. [#1562](https://github.com/iced-rs/iced/pull/1562)
+- `window` action to request user attention. [#1584](https://github.com/iced-rs/iced/pull/1584)
+- `window` action to gain focus. [#1585](https://github.com/iced-rs/iced/pull/1585)
+- `window` action to toggle decorations. [#1588](https://github.com/iced-rs/iced/pull/1588)
+- `Copy` implementation for `gradient::Location`. [#1636](https://github.com/iced-rs/iced/pull/1636)
+
+### Changed
+- Replaced `Application::should_exit` with a `window::close` action. [#1606](https://github.com/iced-rs/iced/pull/1606)
+- Made `focusable::Count` fields public. [#1635](https://github.com/iced-rs/iced/pull/1635)
+- Added `Dependency` argument to the closure of `Lazy`. [#1646](https://github.com/iced-rs/iced/pull/1646)
+- Switched arguments order of `Toggler::new` for consistency. [#1616](https://github.com/iced-rs/iced/pull/1616)
+- Switched arguments order of `Checkbox::new` for consistency. [#1633](https://github.com/iced-rs/iced/pull/1633)
+
+### Fixed
+- Compilation error in `iced_glow` when the `image` feature is enabled but `svg` isn't. [#1593](https://github.com/iced-rs/iced/pull/1593)
+- Widget operations for `Responsive` widget. [#1615](https://github.com/iced-rs/iced/pull/1615)
+- Overlay placement for `Responsive`. [#1638](https://github.com/iced-rs/iced/pull/1638)
+- `overlay` implementation for `Lazy`. [#1644](https://github.com/iced-rs/iced/pull/1644)
+- Minor typo in documentation. [#1624](https://github.com/iced-rs/iced/pull/1624)
+- Links in documentation. [#1634](https://github.com/iced-rs/iced/pull/1634)
+- Missing comment in documentation. [#1648](https://github.com/iced-rs/iced/pull/1648)
+
+Many thanks to...
+
+- @13r0ck
+- @Araxeus
+- @ben-wallis
+- @bungoboingo
+- @casperstorm
+- @nicksenger
+- @Night-Hunter-NF
+- @rpitasky
+- @rs017991
+- @tarkah
+- @wiktor-k
+
 ## [0.6.0] - 2022-12-07
 ### Added
 - Support for non-uniform border radius for `Primitive::Quad`. [#1506](https://github.com/iced-rs/iced/pull/1506)
@@ -321,7 +414,9 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/iced-rs/iced/compare/0.7.0...0.8.0
+[0.7.0]: https://github.com/iced-rs/iced/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/iced-rs/iced/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/iced-rs/iced/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/iced-rs/iced/compare/0.4.1...0.4.2

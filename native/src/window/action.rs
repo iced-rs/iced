@@ -1,4 +1,4 @@
-use crate::window::{Icon, Mode};
+use crate::window::{Icon, Mode, UserAttention};
 
 use iced_futures::MaybeSend;
 use std::fmt;
@@ -33,9 +33,11 @@ pub enum Action<T> {
         /// The new logical y location of the window
         y: i32,
     },
-    /// Set the [`Mode`] of the window.
-    SetMode(Mode),
-    /// Sets the window to maximized or back
+    /// Change the [`Mode`] of the window.
+    ChangeMode(Mode),
+    /// Fetch the current [`Mode`] of the window.
+    FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
+    /// Toggle the window to maximized or back
     ToggleMaximize,
     /// Sets the window icon.
     ///
@@ -52,13 +54,45 @@ pub enum Action<T> {
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
     SetWindowIcon(Option<Icon>),
-    /// Toggles whether window has decorations
+    /// Toggle whether window has decorations.
+    ///
     /// ## Platform-specific
     /// - **X11:** Not implemented.
     /// - **Web:** Unsupported.
     ToggleDecorations,
-    /// Fetch the current [`Mode`] of the window.
-    FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
+    /// Request user attention to the window, this has no effect if the application
+    /// is already focused. How requesting for user attention manifests is platform dependent,
+    /// see [`UserAttention`] for details.
+    ///
+    /// Providing `None` will unset the request for user attention. Unsetting the request for
+    /// user attention might not be done automatically by the WM when the window receives input.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **iOS / Android / Web:** Unsupported.
+    /// - **macOS:** `None` has no effect.
+    /// - **X11:** Requests for user attention must be manually cleared.
+    /// - **Wayland:** Requires `xdg_activation_v1` protocol, `None` has no effect.
+    RequestUserAttention(Option<UserAttention>),
+    /// Bring the window to the front and sets input focus. Has no effect if the window is
+    /// already in focus, minimized, or not visible.
+    ///
+    /// This method steals input focus from other applications. Do not use this method unless
+    /// you are certain that's what the user wants. Focus stealing can cause an extremely disruptive
+    /// user experience.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland:** Unsupported.
+    GainFocus,
+    /// Change whether or not the window will always be on top of other windows.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland:** Unsupported.
+    ChangeAlwaysOnTop(bool),
+    /// Fetch an identifier unique to the window.
+    FetchId(Box<dyn FnOnce(u64) -> T + 'static>),
 }
 
 impl<T> Action<T> {
@@ -74,14 +108,22 @@ impl<T> Action<T> {
             Self::Close => Action::Close,
             Self::Drag => Action::Drag,
             Self::Resize { width, height } => Action::Resize { width, height },
-            Self::Maximize(bool) => Action::Maximize(bool),
-            Self::Minimize(bool) => Action::Minimize(bool),
+            Self::Maximize(maximized) => Action::Maximize(maximized),
+            Self::Minimize(minimized) => Action::Minimize(minimized),
             Self::Move { x, y } => Action::Move { x, y },
-            Self::SetMode(mode) => Action::SetMode(mode),
+            Self::ChangeMode(mode) => Action::ChangeMode(mode),
+            Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
             Self::SetWindowIcon(icon) => Action::SetWindowIcon(icon),
             Self::ToggleDecorations => Action::ToggleDecorations,
-            Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
+            Self::RequestUserAttention(attention_type) => {
+                Action::RequestUserAttention(attention_type)
+            }
+            Self::GainFocus => Action::GainFocus,
+            Self::ChangeAlwaysOnTop(on_top) => {
+                Action::ChangeAlwaysOnTop(on_top)
+            }
+            Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
         }
     }
 }
@@ -93,21 +135,32 @@ impl<T> fmt::Debug for Action<T> {
             Self::Drag => write!(f, "Action::Drag"),
             Self::Resize { width, height } => write!(
                 f,
-                "Action::Resize {{ widget: {}, height: {} }}",
-                width, height
+                "Action::Resize {{ widget: {width}, height: {height} }}"
             ),
-            Self::Maximize(value) => write!(f, "Action::Maximize({})", value),
-            Self::Minimize(value) => write!(f, "Action::Minimize({}", value),
-            Self::Move { x, y } => {
-                write!(f, "Action::Move {{ x: {}, y: {} }}", x, y)
+            Self::Maximize(maximized) => {
+                write!(f, "Action::Maximize({maximized})")
             }
-            Self::SetMode(mode) => write!(f, "Action::SetMode({:?})", mode),
+            Self::Minimize(minimized) => {
+                write!(f, "Action::Minimize({minimized}")
+            }
+            Self::Move { x, y } => {
+                write!(f, "Action::Move {{ x: {x}, y: {y} }}")
+            }
+            Self::ChangeMode(mode) => write!(f, "Action::SetMode({mode:?})"),
+            Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::SetWindowIcon(_icon) => {
                 write!(f, "Action::SetWindowIcon(icon)")
             }
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
-            Self::FetchMode(_) => write!(f, "Action::FetchMode"),
+            Self::RequestUserAttention(_) => {
+                write!(f, "Action::RequestUserAttention")
+            }
+            Self::GainFocus => write!(f, "Action::GainFocus"),
+            Self::ChangeAlwaysOnTop(on_top) => {
+                write!(f, "Action::AlwaysOnTop({on_top})")
+            }
+            Self::FetchId(_) => write!(f, "Action::FetchId"),
         }
     }
 }

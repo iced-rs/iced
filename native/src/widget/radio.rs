@@ -8,8 +8,8 @@ use crate::text;
 use crate::touch;
 use crate::widget::{self, Row, Text, Tree};
 use crate::{
-    Alignment, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Widget,
+    Alignment, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Widget,
 };
 
 pub use iced_style::radio::{Appearance, StyleSheet};
@@ -50,9 +50,9 @@ where
     on_click: Message,
     label: String,
     width: Length,
-    size: u16,
-    spacing: u16,
-    text_size: Option<u16>,
+    size: f32,
+    spacing: f32,
+    text_size: Option<f32>,
     font: Renderer::Font,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -64,10 +64,10 @@ where
     Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Radio`] button.
-    pub const DEFAULT_SIZE: u16 = 28;
+    pub const DEFAULT_SIZE: f32 = 28.0;
 
     /// The default spacing of a [`Radio`] button.
-    pub const DEFAULT_SPACING: u16 = 15;
+    pub const DEFAULT_SPACING: f32 = 15.0;
 
     /// Creates a new [`Radio`] button.
     ///
@@ -101,26 +101,26 @@ where
     }
 
     /// Sets the size of the [`Radio`] button.
-    pub fn size(mut self, size: u16) -> Self {
-        self.size = size;
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.size = size.into().0;
         self
     }
 
     /// Sets the width of the [`Radio`] button.
-    pub fn width(mut self, width: Length) -> Self {
-        self.width = width;
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
     /// Sets the spacing between the [`Radio`] button and the text.
-    pub fn spacing(mut self, spacing: u16) -> Self {
-        self.spacing = spacing;
+    pub fn spacing(mut self, spacing: impl Into<Pixels>) -> Self {
+        self.spacing = spacing.into().0;
         self
     }
 
     /// Sets the text size of the [`Radio`] button.
-    pub fn text_size(mut self, text_size: u16) -> Self {
-        self.text_size = Some(text_size);
+    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(text_size.into().0);
         self
     }
 
@@ -163,11 +163,7 @@ where
             .width(self.width)
             .spacing(self.spacing)
             .align_items(Alignment::Center)
-            .push(
-                Row::new()
-                    .width(Length::Units(self.size))
-                    .height(Length::Units(self.size)),
-            )
+            .push(Row::new().width(self.size).height(self.size))
             .push(Text::new(&self.label).width(self.width).size(
                 self.text_size.unwrap_or_else(|| renderer.default_size()),
             ))
