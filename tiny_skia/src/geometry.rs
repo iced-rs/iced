@@ -39,7 +39,7 @@ impl Frame {
     }
 
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let path = convert_path(path);
+        let Some(path) = convert_path(path) else { return };
         let fill = fill.into();
 
         self.primitives.push(Primitive::Fill {
@@ -56,7 +56,7 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let path = convert_path(&Path::rectangle(top_left, size));
+        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else { return };
         let fill = fill.into();
 
         self.primitives.push(Primitive::Fill {
@@ -71,7 +71,8 @@ impl Frame {
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let path = convert_path(path);
+        let Some(path) = convert_path(path) else { return };
+
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
 
@@ -151,7 +152,7 @@ impl Frame {
     }
 }
 
-fn convert_path(path: &Path) -> tiny_skia::Path {
+fn convert_path(path: &Path) -> Option<tiny_skia::Path> {
     use iced_graphics::geometry::path::lyon_path;
 
     let mut builder = tiny_skia::PathBuilder::new();
@@ -205,9 +206,14 @@ fn convert_path(path: &Path) -> tiny_skia::Path {
         }
     }
 
-    builder
-        .finish()
-        .expect("Convert lyon path to tiny_skia path")
+    let result = builder.finish();
+
+    #[cfg(debug_assertions)]
+    if result.is_none() {
+        log::warn!("Invalid path: {:?}", path.raw());
+    }
+
+    result
 }
 
 pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {

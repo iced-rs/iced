@@ -15,6 +15,7 @@ tiny-skia = "0.8"
 bytemuck = "1"
 rustc-hash = "1.1"
 kurbo = "0.9"
+log = "0.4"
 
 [dependencies.iced_graphics]
 version = "0.7"
