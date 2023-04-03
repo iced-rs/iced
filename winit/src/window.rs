@@ -8,6 +8,26 @@ pub use window::{frames, Event, Mode, RedrawRequest, UserAttention};
 #[derive(Debug, Clone)]
 pub struct Icon(pub winit::window::Icon);
 
+impl From<window::Icon> for Icon {
+    fn from(value: window::Icon) -> Self {
+        let (rgba, width, height) = value.into_raw();
+        Icon(winit::window::Icon::from_rgba(rgba, width, height).unwrap())
+    }
+}
+
+impl From<Icon> for winit::window::Icon {
+    fn from(value: Icon) -> Self {
+        value.0
+    }
+}
+
+/// Set the window icon
+pub fn set_icon<Message>(icon: Option<window::Icon>) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::SetWindowIcon(
+        icon,
+    )))
+}
+
 /// Closes the current window and exits the application.
 pub fn close<Message>() -> Command<Message> {
     Command::single(command::Action::Window(window::Action::Close))
@@ -59,17 +79,6 @@ pub fn fetch_mode<Message>(
     )))
 }
 
-impl From<iced_native::window::Icon> for Icon {
-    fn from(value: iced_native::window::Icon) -> Self {
-        let (rgba, width, height) = value.into_raw();
-        Icon(winit::window::Icon::from_rgba(rgba, width, height).unwrap())
-    }
-}
-
-impl From<Icon> for winit::window::Icon {
-    fn from(value: Icon) -> Self {
-        value.0
-    }
 /// Toggles the window to maximized or back.
 pub fn toggle_maximize<Message>() -> Command<Message> {
     Command::single(command::Action::Window(window::Action::ToggleMaximize))

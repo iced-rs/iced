@@ -8,7 +8,7 @@ mod user_attention;
 
 pub use action::Action;
 pub use event::Event;
-pub use icon::Icon;
+pub use icon::{BadIcon, Icon};
 pub use mode::Mode;
 pub use redraw_request::RedrawRequest;
 pub use user_attention::UserAttention;
