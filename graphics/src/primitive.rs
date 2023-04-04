@@ -230,7 +230,11 @@ impl Primitive {
                 },
             ) => {
                 if bounds_a == bounds_b {
-                    return content_a.damage(content_b);
+                    return content_a
+                        .damage(content_b)
+                        .into_iter()
+                        .filter_map(|r| r.intersection(bounds_a))
+                        .collect();
                 } else {
                     return vec![*bounds_a, *bounds_b];
                 }
@@ -246,7 +250,11 @@ impl Primitive {
                 },
             ) => {
                 if translation_a == translation_b {
-                    return content_a.damage(content_b);
+                    return content_a
+                        .damage(content_b)
+                        .into_iter()
+                        .map(|r| r + *translation_a)
+                        .collect();
                 }
             }
             (

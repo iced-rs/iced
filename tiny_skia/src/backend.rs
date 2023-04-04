@@ -20,6 +20,7 @@ pub struct Backend {
 
     last_primitives: Vec<Primitive>,
     last_background_color: Color,
+    last_size: Size<u32>,
 }
 
 impl Backend {
@@ -37,6 +38,7 @@ impl Backend {
 
             last_primitives: Vec::new(),
             last_background_color: Color::BLACK,
+            last_size: Size::new(0, 0),
         }
     }
 
@@ -47,9 +49,13 @@ impl Backend {
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
+        _overlay: &[T],
     ) {
-        let damage = if self.last_background_color == background_color {
+        let physical_size = viewport.physical_size();
+
+        let damage = if self.last_background_color == background_color
+            && self.last_size == physical_size
+        {
             Primitive::damage_list(&self.last_primitives, primitives)
         } else {
             vec![Rectangle::with_size(viewport.logical_size())]
@@ -61,24 +67,46 @@ impl Backend {
 
         self.last_primitives = primitives.to_vec();
         self.last_background_color = background_color;
+        self.last_size = physical_size;
 
         let scale_factor = viewport.scale_factor() as f32;
+        let physical_bounds = Rectangle {
+            x: 0.0,
+            y: 0.0,
+            width: physical_size.width as f32,
+            height: physical_size.height as f32,
+        };
 
-        dbg!(&damage);
+        dbg!(damage.len());
 
-        for region in &damage {
+        'draw_regions: for (i, region) in damage.iter().enumerate() {
+            for previous in damage.iter().take(i) {
+                if previous.contains(region.position())
+                    && previous.contains(
+                        region.position()
+                            + Vector::new(region.width, region.height),
+                    )
+                {
+                    continue 'draw_regions;
+                }
+            }
+
             let region = *region * scale_factor;
 
+            let Some(region) = physical_bounds.intersection(&region) else { continue };
+
+            let path = tiny_skia::PathBuilder::from_rect(
+                tiny_skia::Rect::from_xywh(
+                    region.x,
+                    region.y,
+                    region.width.min(viewport.physical_width() as f32),
+                    region.height.min(viewport.physical_height() as f32),
+                )
+                .expect("Create damage rectangle"),
+            );
+
             pixels.fill_path(
-                &tiny_skia::PathBuilder::from_rect(
-                    tiny_skia::Rect::from_xywh(
-                        region.x,
-                        region.y,
-                        region.width.min(viewport.physical_width() as f32),
-                        region.height.min(viewport.physical_height() as f32),
-                    )
-                    .expect("Create damage rectangle"),
-                ),
+                &path,
                 &tiny_skia::Paint {
                     shader: tiny_skia::Shader::SolidColor(into_color(
                         background_color,
@@ -89,46 +117,63 @@ impl Backend {
                 tiny_skia::Transform::identity(),
                 None,
             );
+
+            adjust_clip_mask(clip_mask, pixels, region);
+
+            for primitive in primitives {
+                self.draw_primitive(
+                    primitive,
+                    pixels,
+                    clip_mask,
+                    region,
+                    scale_factor,
+                    Vector::ZERO,
+                );
+            }
+
+            //pixels.stroke_path(
+            //    &path,
+            //    &tiny_skia::Paint {
+            //        shader: tiny_skia::Shader::SolidColor(into_color(
+            //            Color::from_rgb(1.0, 0.0, 0.0),
+            //        )),
+            //        anti_alias: true,
+            //        ..tiny_skia::Paint::default()
+            //    },
+            //    &tiny_skia::Stroke {
+            //        width: 1.0,
+            //        ..tiny_skia::Stroke::default()
+            //    },
+            //    tiny_skia::Transform::identity(),
+            //    None,
+            //);
         }
 
-        for primitive in primitives {
-            self.draw_primitive(
-                primitive,
-                pixels,
-                clip_mask,
-                None,
-                scale_factor,
-                Vector::ZERO,
-                &damage,
-            );
-        }
+        //for (i, text) in overlay.iter().enumerate() {
+        //    const OVERLAY_TEXT_SIZE: f32 = 20.0;
 
-        for (i, text) in overlay.iter().enumerate() {
-            const OVERLAY_TEXT_SIZE: f32 = 20.0;
-
-            self.draw_primitive(
-                &Primitive::Text {
-                    content: text.as_ref().to_owned(),
-                    size: OVERLAY_TEXT_SIZE,
-                    bounds: Rectangle {
-                        x: 10.0,
-                        y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
-                        width: f32::INFINITY,
-                        height: f32::INFINITY,
-                    },
-                    color: Color::BLACK,
-                    font: Font::MONOSPACE,
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Top,
-                },
-                pixels,
-                clip_mask,
-                None,
-                scale_factor,
-                Vector::ZERO,
-                &[],
-            );
-        }
+        //    self.draw_primitive(
+        //        &Primitive::Text {
+        //            content: text.as_ref().to_owned(),
+        //            size: OVERLAY_TEXT_SIZE,
+        //            bounds: Rectangle {
+        //                x: 10.0,
+        //                y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
+        //                width: f32::INFINITY,
+        //                height: f32::INFINITY,
+        //            },
+        //            color: Color::BLACK,
+        //            font: Font::MONOSPACE,
+        //            horizontal_alignment: alignment::Horizontal::Left,
+        //            vertical_alignment: alignment::Vertical::Top,
+        //        },
+        //        pixels,
+        //        clip_mask,
+        //        Rectangle::EMPTY,
+        //        scale_factor,
+        //        Vector::ZERO,
+        //    );
+        //}
 
         self.text_pipeline.trim_cache();
 
@@ -144,10 +189,9 @@ impl Backend {
         primitive: &Primitive,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: &mut tiny_skia::ClipMask,
-        clip_bounds: Option<Rectangle>,
+        clip_bounds: Rectangle,
         scale_factor: f32,
         translation: Vector,
-        damage: &[Rectangle],
     ) {
         match primitive {
             Primitive::Quad {
@@ -157,7 +201,9 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
-                if !damage.iter().any(|damage| damage.intersects(bounds)) {
+                if !clip_bounds
+                    .intersects(&((*bounds + translation) * scale_factor))
+                {
                     return;
                 }
 
@@ -168,7 +214,6 @@ impl Backend {
                 .post_scale(scale_factor, scale_factor);
 
                 let path = rounded_rectangle(*bounds, *border_radius);
-                let clip_mask = clip_bounds.map(|_| clip_mask as &_);
 
                 pixels.fill_path(
                     &path,
@@ -185,7 +230,7 @@ impl Backend {
                     },
                     tiny_skia::FillRule::EvenOdd,
                     transform,
-                    clip_mask,
+                    Some(clip_mask),
                 );
 
                 if *border_width > 0.0 {
@@ -203,7 +248,7 @@ impl Backend {
                             ..tiny_skia::Stroke::default()
                         },
                         transform,
-                        clip_mask,
+                        Some(clip_mask),
                     );
                 }
             }
@@ -216,10 +261,9 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
-                if !damage
-                    .iter()
-                    .any(|damage| damage.intersects(&primitive.bounds()))
-                {
+                if !clip_bounds.intersects(
+                    &((primitive.bounds() + translation) * scale_factor),
+                ) {
                     return;
                 }
 
@@ -232,12 +276,14 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     pixels,
-                    clip_bounds.map(|_| clip_mask as &_),
+                    Some(clip_mask),
                 );
             }
             #[cfg(feature = "image")]
             Primitive::Image { handle, bounds } => {
-                if !damage.iter().any(|damage| damage.intersects(bounds)) {
+                if !clip_bounds
+                    .intersects(&((*bounds + translation) * scale_factor))
+                {
                     return;
                 }
 
@@ -252,7 +298,7 @@ impl Backend {
                     *bounds,
                     pixels,
                     transform,
-                    clip_bounds.map(|_| clip_mask as &_),
+                    Some(clip_mask),
                 );
             }
             #[cfg(feature = "svg")]
@@ -275,6 +321,20 @@ impl Backend {
                 rule,
                 transform,
             } => {
+                let bounds = path.bounds();
+
+                if !clip_bounds.intersects(
+                    &((Rectangle {
+                        x: bounds.x(),
+                        y: bounds.y(),
+                        width: bounds.width(),
+                        height: bounds.height(),
+                    } + translation)
+                        * scale_factor),
+                ) {
+                    return;
+                }
+
                 pixels.fill_path(
                     path,
                     paint,
@@ -282,7 +342,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_bounds.map(|_| clip_mask as &_),
+                    Some(clip_mask),
                 );
             }
             Primitive::Stroke {
@@ -291,6 +351,20 @@ impl Backend {
                 stroke,
                 transform,
             } => {
+                let bounds = path.bounds();
+
+                if !clip_bounds.intersects(
+                    &((Rectangle {
+                        x: bounds.x(),
+                        y: bounds.y(),
+                        width: bounds.width(),
+                        height: bounds.height(),
+                    } + translation)
+                        * scale_factor),
+                ) {
+                    return;
+                }
+
                 pixels.stroke_path(
                     path,
                     paint,
@@ -298,7 +372,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_bounds.map(|_| clip_mask as &_),
+                    Some(clip_mask),
                 );
             }
             Primitive::Group { primitives } => {
@@ -310,7 +384,6 @@ impl Backend {
                         clip_bounds,
                         scale_factor,
                         translation,
-                        damage,
                     );
                 }
             }
@@ -325,7 +398,6 @@ impl Backend {
                     clip_bounds,
                     scale_factor,
                     translation + *offset,
-                    damage,
                 );
             }
             Primitive::Clip { bounds, content } => {
@@ -339,22 +411,19 @@ impl Backend {
                     return;
                 }
 
-                adjust_clip_mask(clip_mask, pixels, bounds);
-
-                self.draw_primitive(
-                    content,
-                    pixels,
-                    clip_mask,
-                    Some(bounds),
-                    scale_factor,
-                    translation,
-                    damage,
-                );
-
-                if let Some(bounds) = clip_bounds {
+                if let Some(bounds) = clip_bounds.intersection(&bounds) {
                     adjust_clip_mask(clip_mask, pixels, bounds);
-                } else {
-                    clip_mask.clear();
+
+                    self.draw_primitive(
+                        content,
+                        pixels,
+                        clip_mask,
+                        bounds,
+                        scale_factor,
+                        translation,
+                    );
+
+                    adjust_clip_mask(clip_mask, pixels, clip_bounds);
                 }
             }
             Primitive::Cache { content } => {
@@ -365,7 +434,6 @@ impl Backend {
                     clip_bounds,
                     scale_factor,
                     translation,
-                    damage,
                 );
             }
             Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
