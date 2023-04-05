@@ -50,7 +50,7 @@ impl Backend {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
-    ) {
+    ) -> bool {
         let physical_size = viewport.physical_size();
 
         let damage = if self.last_background_color == background_color
@@ -62,7 +62,7 @@ impl Backend {
         };
 
         if damage.is_empty() {
-            return;
+            return false;
         }
 
         self.last_primitives = primitives.to_vec();
@@ -179,6 +179,8 @@ impl Backend {
 
         #[cfg(feature = "svg")]
         self.vector_pipeline.trim_cache();
+
+        true
     }
 
     fn draw_primitive(

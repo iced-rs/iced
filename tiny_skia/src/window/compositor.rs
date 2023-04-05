@@ -106,7 +106,7 @@ pub fn present<Theme, T: AsRef<str>>(
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
 
-    backend.draw(
+    let drawn = backend.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut surface.buffer),
             physical_size.width,
@@ -120,11 +120,13 @@ pub fn present<Theme, T: AsRef<str>>(
         overlay,
     );
 
-    surface.window.set_buffer(
-        &surface.buffer,
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
+    if drawn {
+        surface.window.set_buffer(
+            &surface.buffer,
+            physical_size.width as u16,
+            physical_size.height as u16,
+        );
+    }
 
     Ok(())
 }
