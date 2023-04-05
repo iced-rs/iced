@@ -74,7 +74,30 @@ impl Backend {
         let damage = group_damage(damage, scale_factor, physical_size);
 
         if !overlay.is_empty() {
-            pixels.fill(into_color(background_color));
+            let path = tiny_skia::PathBuilder::from_rect(
+                tiny_skia::Rect::from_xywh(
+                    0.0,
+                    0.0,
+                    physical_size.width as f32,
+                    physical_size.height as f32,
+                )
+                .expect("Create damage rectangle"),
+            );
+
+            pixels.fill_path(
+                &path,
+                &tiny_skia::Paint {
+                    shader: tiny_skia::Shader::SolidColor(into_color(Color {
+                        a: 0.1,
+                        ..background_color
+                    })),
+                    anti_alias: false,
+                    ..Default::default()
+                },
+                tiny_skia::FillRule::default(),
+                tiny_skia::Transform::identity(),
+                None,
+            );
         }
 
         for region in damage {
@@ -135,42 +158,42 @@ impl Backend {
             }
         }
 
-        if !overlay.is_empty() {
-            let bounds = Rectangle {
-                x: 0.0,
-                y: 0.0,
-                width: viewport.physical_width() as f32,
-                height: viewport.physical_height() as f32,
-            };
+        //if !overlay.is_empty() {
+        //    let bounds = Rectangle {
+        //        x: 0.0,
+        //        y: 0.0,
+        //        width: viewport.physical_width() as f32,
+        //        height: viewport.physical_height() as f32,
+        //    };
 
-            adjust_clip_mask(clip_mask, pixels, bounds);
+        //    adjust_clip_mask(clip_mask, pixels, bounds);
 
-            for (i, text) in overlay.iter().enumerate() {
-                const OVERLAY_TEXT_SIZE: f32 = 20.0;
+        //    for (i, text) in overlay.iter().enumerate() {
+        //        const OVERLAY_TEXT_SIZE: f32 = 20.0;
 
-                self.draw_primitive(
-                    &Primitive::Text {
-                        content: text.as_ref().to_owned(),
-                        size: OVERLAY_TEXT_SIZE,
-                        bounds: Rectangle {
-                            x: 10.0,
-                            y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
-                            width: bounds.width - 1.0,
-                            height: bounds.height - 1.0,
-                        },
-                        color: Color::BLACK,
-                        font: Font::MONOSPACE,
-                        horizontal_alignment: alignment::Horizontal::Left,
-                        vertical_alignment: alignment::Vertical::Top,
-                    },
-                    pixels,
-                    clip_mask,
-                    bounds,
-                    scale_factor,
-                    Vector::ZERO,
-                );
-            }
-        }
+        //        self.draw_primitive(
+        //            &Primitive::Text {
+        //                content: text.as_ref().to_owned(),
+        //                size: OVERLAY_TEXT_SIZE,
+        //                bounds: Rectangle {
+        //                    x: 10.0,
+        //                    y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
+        //                    width: bounds.width - 1.0,
+        //                    height: bounds.height - 1.0,
+        //                },
+        //                color: Color::BLACK,
+        //                font: Font::MONOSPACE,
+        //                horizontal_alignment: alignment::Horizontal::Left,
+        //                vertical_alignment: alignment::Vertical::Top,
+        //            },
+        //            pixels,
+        //            clip_mask,
+        //            bounds,
+        //            scale_factor,
+        //            Vector::ZERO,
+        //        );
+        //    }
+        //}
 
         self.text_pipeline.trim_cache();
 
