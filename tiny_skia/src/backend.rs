@@ -49,7 +49,7 @@ impl Backend {
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
-        _overlay: &[T],
+        overlay: &[T],
     ) {
         let physical_size = viewport.physical_size();
 
@@ -70,37 +70,20 @@ impl Backend {
         self.last_size = physical_size;
 
         let scale_factor = viewport.scale_factor() as f32;
-        let physical_bounds = Rectangle {
-            x: 0.0,
-            y: 0.0,
-            width: physical_size.width as f32,
-            height: physical_size.height as f32,
-        };
 
-        dbg!(damage.len());
+        let damage = group_damage(damage, scale_factor, physical_size);
 
-        'draw_regions: for (i, region) in damage.iter().enumerate() {
-            for previous in damage.iter().take(i) {
-                if previous.contains(region.position())
-                    && previous.contains(
-                        region.position()
-                            + Vector::new(region.width, region.height),
-                    )
-                {
-                    continue 'draw_regions;
-                }
-            }
+        if !overlay.is_empty() {
+            pixels.fill(into_color(background_color));
+        }
 
-            let region = *region * scale_factor;
-
-            let Some(region) = physical_bounds.intersection(&region) else { continue };
-
+        for region in damage {
             let path = tiny_skia::PathBuilder::from_rect(
                 tiny_skia::Rect::from_xywh(
                     region.x,
                     region.y,
-                    region.width.min(viewport.physical_width() as f32),
-                    region.height.min(viewport.physical_height() as f32),
+                    region.width,
+                    region.height,
                 )
                 .expect("Create damage rectangle"),
             );
@@ -111,6 +94,7 @@ impl Backend {
                     shader: tiny_skia::Shader::SolidColor(into_color(
                         background_color,
                     )),
+                    anti_alias: false,
                     ..Default::default()
                 },
                 tiny_skia::FillRule::default(),
@@ -131,49 +115,62 @@ impl Backend {
                 );
             }
 
-            //pixels.stroke_path(
-            //    &path,
-            //    &tiny_skia::Paint {
-            //        shader: tiny_skia::Shader::SolidColor(into_color(
-            //            Color::from_rgb(1.0, 0.0, 0.0),
-            //        )),
-            //        anti_alias: true,
-            //        ..tiny_skia::Paint::default()
-            //    },
-            //    &tiny_skia::Stroke {
-            //        width: 1.0,
-            //        ..tiny_skia::Stroke::default()
-            //    },
-            //    tiny_skia::Transform::identity(),
-            //    None,
-            //);
+            if !overlay.is_empty() {
+                pixels.stroke_path(
+                    &path,
+                    &tiny_skia::Paint {
+                        shader: tiny_skia::Shader::SolidColor(into_color(
+                            Color::from_rgb(1.0, 0.0, 0.0),
+                        )),
+                        anti_alias: false,
+                        ..tiny_skia::Paint::default()
+                    },
+                    &tiny_skia::Stroke {
+                        width: 1.0,
+                        ..tiny_skia::Stroke::default()
+                    },
+                    tiny_skia::Transform::identity(),
+                    None,
+                );
+            }
         }
 
-        //for (i, text) in overlay.iter().enumerate() {
-        //    const OVERLAY_TEXT_SIZE: f32 = 20.0;
+        if !overlay.is_empty() {
+            let bounds = Rectangle {
+                x: 0.0,
+                y: 0.0,
+                width: viewport.physical_width() as f32,
+                height: viewport.physical_height() as f32,
+            };
 
-        //    self.draw_primitive(
-        //        &Primitive::Text {
-        //            content: text.as_ref().to_owned(),
-        //            size: OVERLAY_TEXT_SIZE,
-        //            bounds: Rectangle {
-        //                x: 10.0,
-        //                y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
-        //                width: f32::INFINITY,
-        //                height: f32::INFINITY,
-        //            },
-        //            color: Color::BLACK,
-        //            font: Font::MONOSPACE,
-        //            horizontal_alignment: alignment::Horizontal::Left,
-        //            vertical_alignment: alignment::Vertical::Top,
-        //        },
-        //        pixels,
-        //        clip_mask,
-        //        Rectangle::EMPTY,
-        //        scale_factor,
-        //        Vector::ZERO,
-        //    );
-        //}
+            adjust_clip_mask(clip_mask, pixels, bounds);
+
+            for (i, text) in overlay.iter().enumerate() {
+                const OVERLAY_TEXT_SIZE: f32 = 20.0;
+
+                self.draw_primitive(
+                    &Primitive::Text {
+                        content: text.as_ref().to_owned(),
+                        size: OVERLAY_TEXT_SIZE,
+                        bounds: Rectangle {
+                            x: 10.0,
+                            y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
+                            width: bounds.width - 1.0,
+                            height: bounds.height - 1.0,
+                        },
+                        color: Color::BLACK,
+                        font: Font::MONOSPACE,
+                        horizontal_alignment: alignment::Horizontal::Left,
+                        vertical_alignment: alignment::Vertical::Top,
+                    },
+                    pixels,
+                    clip_mask,
+                    bounds,
+                    scale_factor,
+                    Vector::ZERO,
+                );
+            }
+        }
 
         self.text_pipeline.trim_cache();
 
@@ -201,11 +198,14 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
-                if !clip_bounds
-                    .intersects(&((*bounds + translation) * scale_factor))
-                {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then(|| clip_mask as &_);
 
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
@@ -230,7 +230,7 @@ impl Backend {
                     },
                     tiny_skia::FillRule::EvenOdd,
                     transform,
-                    Some(clip_mask),
+                    clip_mask,
                 );
 
                 if *border_width > 0.0 {
@@ -248,7 +248,7 @@ impl Backend {
                             ..tiny_skia::Stroke::default()
                         },
                         transform,
-                        Some(clip_mask),
+                        clip_mask,
                     );
                 }
             }
@@ -261,11 +261,15 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
-                if !clip_bounds.intersects(
-                    &((primitive.bounds() + translation) * scale_factor),
-                ) {
+                let physical_bounds =
+                    (primitive.bounds() + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then(|| clip_mask as &_);
 
                 self.text_pipeline.draw(
                     content,
@@ -276,7 +280,7 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     pixels,
-                    Some(clip_mask),
+                    clip_mask,
                 );
             }
             #[cfg(feature = "image")]
@@ -323,17 +327,20 @@ impl Backend {
             } => {
                 let bounds = path.bounds();
 
-                if !clip_bounds.intersects(
-                    &((Rectangle {
-                        x: bounds.x(),
-                        y: bounds.y(),
-                        width: bounds.width(),
-                        height: bounds.height(),
-                    } + translation)
-                        * scale_factor),
-                ) {
+                let physical_bounds = (Rectangle {
+                    x: bounds.x(),
+                    y: bounds.y(),
+                    width: bounds.width(),
+                    height: bounds.height(),
+                } + translation)
+                    * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then(|| clip_mask as &_);
 
                 pixels.fill_path(
                     path,
@@ -342,7 +349,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    Some(clip_mask),
+                    clip_mask,
                 );
             }
             Primitive::Stroke {
@@ -353,17 +360,20 @@ impl Backend {
             } => {
                 let bounds = path.bounds();
 
-                if !clip_bounds.intersects(
-                    &((Rectangle {
-                        x: bounds.x(),
-                        y: bounds.y(),
-                        width: bounds.width(),
-                        height: bounds.height(),
-                    } + translation)
-                        * scale_factor),
-                ) {
+                let physical_bounds = (Rectangle {
+                    x: bounds.x(),
+                    y: bounds.y(),
+                    width: bounds.width(),
+                    height: bounds.height(),
+                } + translation)
+                    * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then(|| clip_mask as &_);
 
                 pixels.stroke_path(
                     path,
@@ -372,7 +382,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    Some(clip_mask),
+                    clip_mask,
                 );
             }
             Primitive::Group { primitives } => {
@@ -403,15 +413,26 @@ impl Backend {
             Primitive::Clip { bounds, content } => {
                 let bounds = (*bounds + translation) * scale_factor;
 
-                if bounds.x + bounds.width <= 0.0
-                    || bounds.y + bounds.height <= 0.0
-                    || bounds.x as u32 >= pixels.width()
-                    || bounds.y as u32 >= pixels.height()
-                {
-                    return;
-                }
+                if bounds == clip_bounds {
+                    self.draw_primitive(
+                        content,
+                        pixels,
+                        clip_mask,
+                        bounds,
+                        scale_factor,
+                        translation,
+                    );
+                } else if let Some(bounds) = clip_bounds.intersection(&bounds) {
+                    if bounds.x + bounds.width <= 0.0
+                        || bounds.y + bounds.height <= 0.0
+                        || bounds.x as u32 >= pixels.width()
+                        || bounds.y as u32 >= pixels.height()
+                        || bounds.width <= 1.0
+                        || bounds.height <= 1.0
+                    {
+                        return;
+                    }
 
-                if let Some(bounds) = clip_bounds.intersection(&bounds) {
                     adjust_clip_mask(clip_mask, pixels, bounds);
 
                     self.draw_primitive(
@@ -614,9 +635,55 @@ fn adjust_clip_mask(
             pixels.height(),
             &path,
             tiny_skia::FillRule::EvenOdd,
-            true,
+            false,
         )
         .expect("Set path of clipping area");
+}
+
+fn group_damage(
+    mut damage: Vec<Rectangle>,
+    scale_factor: f32,
+    bounds: Size<u32>,
+) -> Vec<Rectangle> {
+    use std::cmp::Ordering;
+
+    const AREA_THRESHOLD: f32 = 20_000.0;
+
+    let bounds = Rectangle {
+        x: 0.0,
+        y: 0.0,
+        width: bounds.width as f32,
+        height: bounds.height as f32,
+    };
+
+    damage.sort_by(|a, b| {
+        a.x.partial_cmp(&b.x)
+            .unwrap_or(Ordering::Equal)
+            .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal))
+    });
+
+    let mut output = Vec::new();
+    let mut scaled = damage
+        .into_iter()
+        .filter_map(|region| (region * scale_factor).intersection(&bounds))
+        .filter(|region| region.width >= 1.0 && region.height >= 1.0);
+
+    if let Some(mut current) = scaled.next() {
+        for region in scaled {
+            let union = current.union(&region);
+
+            if union.area() - current.area() - region.area() <= AREA_THRESHOLD {
+                current = union;
+            } else {
+                output.push(current);
+                current = region;
+            }
+        }
+
+        output.push(current);
+    }
+
+    output
 }
 
 impl iced_graphics::Backend for Backend {

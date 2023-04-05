@@ -336,6 +336,7 @@ struct Cache {
     entries: FxHashMap<KeyHash, cosmic_text::Buffer>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
+    trim_count: usize,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -345,11 +346,14 @@ type HashBuilder = twox_hash::RandomXxHashBuilder64;
 type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
 
 impl Cache {
+    const TRIM_INTERVAL: usize = 300;
+
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
             recently_used: FxHashSet::default(),
             hasher: HashBuilder::default(),
+            trim_count: 0,
         }
     }
 
@@ -404,10 +408,16 @@ impl Cache {
     }
 
     fn trim(&mut self) {
-        self.entries
-            .retain(|key, _| self.recently_used.contains(key));
+        if self.trim_count > Self::TRIM_INTERVAL {
+            self.entries
+                .retain(|key, _| self.recently_used.contains(key));
 
-        self.recently_used.clear();
+            self.recently_used.clear();
+
+            self.trim_count = 0;
+        } else {
+            self.trim_count += 1;
+        }
     }
 }
 

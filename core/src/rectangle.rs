@@ -66,12 +66,26 @@ impl Rectangle<f32> {
         Size::new(self.width, self.height)
     }
 
+    /// Returns the area of the [`Rectangle`].
+    pub fn area(&self) -> f32 {
+        self.width * self.height
+    }
+
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     pub fn contains(&self, point: Point) -> bool {
         self.x <= point.x
             && point.x <= self.x + self.width
             && self.y <= point.y
             && point.y <= self.y + self.height
+    }
+
+    /// Returns true if the current [`Rectangle`] is completely within the given
+    /// `container`.
+    pub fn is_within(&self, container: &Rectangle) -> bool {
+        container.contains(self.position())
+            && container.contains(
+                self.position() + Vector::new(self.width, self.height),
+            )
     }
 
     /// Computes the intersection with the given [`Rectangle`].

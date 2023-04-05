@@ -178,8 +178,8 @@ impl Primitive {
             }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
-            | Self::Svg { bounds, .. }
-            | Self::Clip { bounds, .. } => bounds.expand(1.0),
+            | Self::Svg { bounds, .. } => bounds.expand(1.0),
+            Self::Clip { bounds, .. } => *bounds,
             Self::SolidMesh { size, .. } | Self::GradientMesh { size, .. } => {
                 Rectangle::with_size(*size)
             }
