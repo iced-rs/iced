@@ -205,7 +205,7 @@ impl Backend {
                 }
 
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then(|| clip_mask as &_);
+                    .then_some(clip_mask as &_);
 
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
@@ -269,7 +269,7 @@ impl Backend {
                 }
 
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then(|| clip_mask as &_);
+                    .then_some(clip_mask as &_);
 
                 self.text_pipeline.draw(
                     content,
@@ -285,11 +285,14 @@ impl Backend {
             }
             #[cfg(feature = "image")]
             Primitive::Image { handle, bounds } => {
-                if !clip_bounds
-                    .intersects(&((*bounds + translation) * scale_factor))
-                {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
                     return;
                 }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
 
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
@@ -297,13 +300,8 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                self.raster_pipeline.draw(
-                    handle,
-                    *bounds,
-                    pixels,
-                    transform,
-                    Some(clip_mask),
-                );
+                self.raster_pipeline
+                    .draw(handle, *bounds, pixels, transform, clip_mask);
             }
             #[cfg(feature = "svg")]
             Primitive::Svg {
@@ -311,12 +309,21 @@ impl Backend {
                 bounds,
                 color,
             } => {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 self.vector_pipeline.draw(
                     handle,
                     *color,
                     (*bounds + translation) * scale_factor,
                     pixels,
-                    clip_bounds.map(|_| clip_mask as &_),
+                    clip_mask,
                 );
             }
             Primitive::Fill {
@@ -340,7 +347,7 @@ impl Backend {
                 }
 
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then(|| clip_mask as &_);
+                    .then_some(clip_mask as &_);
 
                 pixels.fill_path(
                     path,
@@ -373,7 +380,7 @@ impl Backend {
                 }
 
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then(|| clip_mask as &_);
+                    .then_some(clip_mask as &_);
 
                 pixels.stroke_path(
                     path,
