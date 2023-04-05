@@ -5,6 +5,7 @@ use crate::{Backend, Renderer, Settings};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 
 pub struct Compositor<Theme> {
     clip_mask: tiny_skia::ClipMask,
@@ -12,8 +13,7 @@ pub struct Compositor<Theme> {
 }
 
 pub struct Surface {
-    window: softbuffer::GraphicsContext,
-    buffer: Vec<u32>,
+    window: softbuffer::Surface,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -36,14 +36,20 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) -> Surface {
-        let window =
-            unsafe { softbuffer::GraphicsContext::new(window, window) }
-                .expect("Create softbuffer for window");
+        let platform = unsafe { softbuffer::Context::new(window) }
+            .expect("Create softbuffer context");
 
-        Surface {
-            window,
-            buffer: vec![0; width as usize * height as usize],
-        }
+        let mut window = unsafe { softbuffer::Surface::new(&platform, window) }
+            .expect("Create softbuffer surface");
+
+        window
+            .resize(
+                NonZeroU32::new(width).unwrap(),
+                NonZeroU32::new(height).unwrap(),
+            )
+            .expect("Resize surface");
+
+        Surface { window }
     }
 
     fn configure_surface(
@@ -52,7 +58,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
-        surface.buffer.resize((width * height) as usize, 0);
+        surface
+            .window
+            .resize(
+                NonZeroU32::new(width).unwrap(),
+                NonZeroU32::new(height).unwrap(),
+            )
+            .expect("Resize surface");
     }
 
     fn fetch_information(&self) -> Information {
@@ -106,9 +118,11 @@ pub fn present<Theme, T: AsRef<str>>(
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
 
+    let mut buffer = surface.window.buffer_mut().expect("Get window buffer");
+
     let drawn = backend.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut surface.buffer),
+            bytemuck::cast_slice_mut(&mut buffer),
             physical_size.width,
             physical_size.height,
         )
@@ -121,11 +135,7 @@ pub fn present<Theme, T: AsRef<str>>(
     );
 
     if drawn {
-        surface.window.set_buffer(
-            &surface.buffer,
-            physical_size.width as u16,
-            physical_size.height as u16,
-        );
+        let _ = buffer.present();
     }
 
     Ok(())
