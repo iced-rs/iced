@@ -10,6 +10,7 @@ geometry = ["iced_graphics/geometry"]
 
 [dependencies]
 raw-window-handle = "0.5"
+softbuffer = "0.2"
 tiny-skia = "0.8"
 bytemuck = "1"
 rustc-hash = "1.1"
@@ -20,10 +21,6 @@ log = "0.4"
 version = "0.7"
 path = "../graphics"
 features = ["tiny-skia"]
-
-[dependencies.softbuffer]
-git = "https://github.com/rust-windowing/softbuffer"
-rev = "872c66a4c05fd7cb6cb133154f75fdce45a175a6"
 
 [dependencies.cosmic-text]
 features = ["std", "swash"]
