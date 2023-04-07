@@ -60,11 +60,11 @@ pub trait Compositor: Sized {
         overlay: &[T],
     ) -> Result<(), SurfaceError>;
 
-    /// Renders the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
-    /// the texture.
+    /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
+    /// the texture ordered as `RGBA` in the sRGB color space.
     ///
     /// [`Renderer`]: Self::Renderer;
-    fn render_offscreen<T: AsRef<str>>(
+    fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,

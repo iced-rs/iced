@@ -83,7 +83,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         })
     }
 
-    fn render_offscreen<T: AsRef<str>>(
+    fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
@@ -91,7 +91,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         overlay: &[T],
     ) -> Vec<u8> {
         renderer.with_primitives(|backend, primitives| {
-            render_offscreen(
+            screenshot(
                 self,
                 backend,
                 primitives,
@@ -148,7 +148,7 @@ pub fn present<Theme, T: AsRef<str>>(
     Ok(())
 }
 
-pub fn render_offscreen<Theme, T: AsRef<str>>(
+pub fn screenshot<Theme, T: AsRef<str>>(
     compositor: &mut Compositor<Theme>,
     backend: &mut Backend,
     primitives: &[Primitive],
@@ -181,10 +181,10 @@ pub fn render_offscreen<Theme, T: AsRef<str>>(
     offscreen_buffer.iter().fold(
         Vec::with_capacity(offscreen_buffer.len() * 4),
         |mut acc, pixel| {
-            const A_MASK: u32 = 0xFF_000000;
-            const R_MASK: u32 = 0x00_FF_0000;
-            const G_MASK: u32 = 0x0000_FF_00;
-            const B_MASK: u32 = 0x000000_FF;
+            const A_MASK: u32 = 0xFF_00_00_00;
+            const R_MASK: u32 = 0x00_FF_00_00;
+            const G_MASK: u32 = 0x00_00_FF_00;
+            const B_MASK: u32 = 0x00_00_00_FF;
 
             let a = ((A_MASK & pixel) >> 24) as u8;
             let r = ((R_MASK & pixel) >> 16) as u8;

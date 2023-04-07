@@ -798,7 +798,7 @@ pub fn run_command<A, C, E>(
                         .expect("Send message to event loop");
                 }
                 window::Action::Screenshot(tag) => {
-                    let bytes = compositor.render_offscreen(
+                    let bytes = compositor.screenshot(
                         renderer,
                         state.viewport(),
                         state.background_color(),

@@ -272,7 +272,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         })
     }
 
-    fn render_offscreen<T: AsRef<str>>(
+    fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
@@ -280,7 +280,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         overlay: &[T],
     ) -> Vec<u8> {
         renderer.with_primitives(|backend, primitives| {
-            render_offscreen(
+            screenshot(
                 self,
                 backend,
                 primitives,
@@ -292,7 +292,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn render_offscreen<Theme, T: AsRef<str>>(
+pub fn screenshot<Theme, T: AsRef<str>>(
     compositor: &Compositor<Theme>,
     backend: &mut Backend,
     primitives: &[Primitive],

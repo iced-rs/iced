@@ -183,7 +183,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         })
     }
 
-    fn render_offscreen<T: AsRef<str>>(
+    fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
@@ -193,7 +193,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         renderer.with_primitives(|backend, primitives| match (self, backend) {
             #[cfg(feature = "wgpu")]
             (Self::Wgpu(compositor), crate::Backend::Wgpu(backend)) => {
-                iced_wgpu::window::compositor::render_offscreen(
+                iced_wgpu::window::compositor::screenshot(
                     compositor,
                     backend,
                     primitives,
@@ -204,7 +204,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             },
             #[cfg(feature = "tiny-skia")]
             (Self::TinySkia(compositor), crate::Backend::TinySkia(backend)) => {
-                iced_tiny_skia::window::compositor::render_offscreen(
+                iced_tiny_skia::window::compositor::screenshot(
                     compositor,
                     backend,
                     primitives,

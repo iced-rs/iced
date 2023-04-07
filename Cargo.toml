@@ -41,11 +41,6 @@ palette = ["iced_core/palette"]
 system = ["iced_winit/system"]
 # Enables the advanced module
 advanced = []
-# Enables chrome tracing support for Iced
-chrome-trace = [
-    "iced_winit/chrome-trace",
-    "iced_renderer/tracing",
-]
 
 [badges]
 maintenance = { status = "actively-developed" }

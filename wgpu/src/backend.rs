@@ -145,46 +145,16 @@ impl Backend {
         #[cfg(feature = "tracing")]
         let _ = info_span!("iced_wgpu::offscreen", "DRAW").entered();
 
-        let target_size = viewport.physical_size();
-        let scale_factor = viewport.scale_factor() as f32;
-        let transformation = viewport.projection();
-
-        let mut layers = Layer::generate(primitives, viewport);
-        layers.push(Layer::overlay(overlay_text, viewport));
-
-        self.prepare(
+        self.present(
             device,
             queue,
             encoder,
-            scale_factor,
-            transformation,
-            &layers,
-        );
-
-        while !self.prepare_text(
-            device,
-            queue,
-            scale_factor,
-            target_size,
-            &layers,
-        ) {}
-
-        self.render(
-            device,
-            encoder,
-            frame,
             clear_color,
-            scale_factor,
-            target_size,
-            &layers,
+            frame,
+            primitives,
+            viewport,
+            overlay_text,
         );
-
-        self.quad_pipeline.end_frame();
-        self.text_pipeline.end_frame();
-        self.triangle_pipeline.end_frame();
-
-        #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.end_frame();
 
         if format != wgpu::TextureFormat::Rgba8UnormSrgb {
             log::info!("Texture format is {format:?}; performing conversion to rgba8..");
