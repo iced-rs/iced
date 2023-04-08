@@ -46,7 +46,7 @@ impl Settings {
     ///     - `primary`
     pub fn from_env() -> Self {
         Settings {
-            internal_backend: backend_from_env()
+            internal_backend: wgpu::util::backend_bits_from_env()
                 .unwrap_or(wgpu::Backends::all()),
             ..Self::default()
         }
@@ -63,19 +63,4 @@ impl Default for Settings {
             antialiasing: None,
         }
     }
-}
-
-fn backend_from_env() -> Option<wgpu::Backends> {
-    std::env::var("WGPU_BACKEND").ok().map(|backend| {
-        match backend.to_lowercase().as_str() {
-            "vulkan" => wgpu::Backends::VULKAN,
-            "metal" => wgpu::Backends::METAL,
-            "dx12" => wgpu::Backends::DX12,
-            "dx11" => wgpu::Backends::DX11,
-            "gl" => wgpu::Backends::GL,
-            "webgpu" => wgpu::Backends::BROWSER_WEBGPU,
-            "primary" => wgpu::Backends::PRIMARY,
-            other => panic!("Unknown backend: {other}"),
-        }
-    })
 }
