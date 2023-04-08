@@ -389,14 +389,7 @@ impl Cache {
                 cosmic_text::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
-                    .stretch(to_stretch(key.font.stretch))
-                    .monospaced(
-                        key.font.monospaced
-                            || matches!(
-                                key.font.family,
-                                font::Family::Monospace
-                            ),
-                    ),
+                    .stretch(to_stretch(key.font.stretch)),
             );
 
             let _ = entry.insert(buffer);

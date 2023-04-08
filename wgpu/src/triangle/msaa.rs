@@ -223,6 +223,7 @@ impl Targets {
             dimension: wgpu::TextureDimension::D2,
             format,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
@@ -234,6 +235,7 @@ impl Targets {
             format,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
         });
 
         let attachment =
