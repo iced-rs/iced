@@ -218,7 +218,7 @@ impl Candidate {
                         Renderer::new(crate::Backend::TinySkia(backend)),
                     ))
                 } else {
-                    panic!("`wgpu` feature was not enabled in `iced_renderer`");
+                    panic!("`tiny-skia` feature was not enabled in `iced_renderer`");
                 }
             }
         }
