@@ -174,7 +174,7 @@ impl Primitive {
                     alignment::Vertical::Bottom => bounds.y - bounds.height,
                 };
 
-                bounds.expand(1.0)
+                bounds.expand(1.5)
             }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
