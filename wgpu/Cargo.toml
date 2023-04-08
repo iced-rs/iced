@@ -13,7 +13,7 @@ image = ["iced_graphics/image"]
 svg = ["resvg"]
 
 [dependencies]
-wgpu = "0.14"
+wgpu = "0.15"
 raw-window-handle = "0.5"
 log = "0.4"
 guillotiere = "0.6"
@@ -44,7 +44,7 @@ path = "../graphics"
 [dependencies.glyphon]
 version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
-rev = "47050174841a4f58fc8d85c943a2117f72f19e8e"
+rev = "6601deec1c7595f8fd5f83f929b2497104905400"
 
 [dependencies.encase]
 version = "0.3.0"

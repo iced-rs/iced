@@ -58,8 +58,12 @@ impl Pipeline {
         target_size: Size<u32>,
     ) -> bool {
         if self.renderers.len() <= self.prepare_layer {
-            self.renderers
-                .push(glyphon::TextRenderer::new(device, queue));
+            self.renderers.push(glyphon::TextRenderer::new(
+                &mut self.atlas,
+                device,
+                Default::default(),
+                None,
+            ));
         }
 
         let font_system = self.font_system.get_mut();
@@ -359,14 +363,7 @@ impl Cache {
                 glyphon::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
-                    .stretch(to_stretch(key.font.stretch))
-                    .monospaced(
-                        key.font.monospaced
-                            || matches!(
-                                key.font.family,
-                                font::Family::Monospace
-                            ),
-                    ),
+                    .stretch(to_stretch(key.font.stretch)),
             );
 
             let _ = entry.insert(buffer);

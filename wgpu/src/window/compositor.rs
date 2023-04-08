@@ -31,7 +31,10 @@ impl<Theme> Compositor<Theme> {
         settings: Settings,
         compatible_window: Option<&W>,
     ) -> Option<Self> {
-        let instance = wgpu::Instance::new(settings.internal_backend);
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: settings.internal_backend,
+            ..Default::default()
+        });
 
         log::info!("{:#?}", settings);
 
@@ -46,7 +49,7 @@ impl<Theme> Compositor<Theme> {
 
         #[allow(unsafe_code)]
         let compatible_surface = compatible_window
-            .map(|window| unsafe { instance.create_surface(window) });
+            .and_then(|window| unsafe { instance.create_surface(window).ok() });
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -63,7 +66,7 @@ impl<Theme> Compositor<Theme> {
         log::info!("Selected: {:#?}", adapter.get_info());
 
         let format = compatible_surface.as_ref().and_then(|surface| {
-            surface.get_supported_formats(&adapter).first().copied()
+            surface.get_capabilities(&adapter).formats.first().copied()
         })?;
 
         log::info!("Selected format: {:?}", format);
@@ -207,7 +210,8 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) -> wgpu::Surface {
         #[allow(unsafe_code)]
-        let mut surface = unsafe { self.instance.create_surface(window) };
+        let mut surface = unsafe { self.instance.create_surface(window) }
+            .expect("Create surface");
 
         self.configure_surface(&mut surface, width, height);
 
@@ -229,6 +233,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
                 width,
                 height,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                view_formats: vec![],
             },
         );
     }

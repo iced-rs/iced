@@ -41,6 +41,7 @@ impl Atlas {
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
         });
 
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor {
@@ -338,6 +339,7 @@ impl Atlas {
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
         });
 
         let amount_to_copy = self.layers.len() - amount;
