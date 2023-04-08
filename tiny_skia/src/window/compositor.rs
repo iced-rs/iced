@@ -11,9 +11,13 @@ pub struct Compositor<Theme> {
     _theme: PhantomData<Theme>,
 }
 
-pub struct Surface {
-    window: softbuffer::GraphicsContext,
-    buffer: Vec<u32>,
+pub enum Surface {
+    Cpu {
+        window: softbuffer::GraphicsContext,
+        buffer: Vec<u32>,
+    },
+    #[cfg(feature = "gpu")]
+    Gpu { pixels: pixels::Pixels },
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -36,11 +40,29 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) -> Surface {
+        #[cfg(feature = "gpu")]
+        {
+            let surface_texture =
+                pixels::SurfaceTexture::new(width, height, window);
+
+            if let Ok(pixels) =
+                pixels::PixelsBuilder::new(width, height, surface_texture)
+                    .texture_format(pixels::wgpu::TextureFormat::Bgra8UnormSrgb)
+                    .build()
+            {
+                log::info!("GPU surface created");
+
+                return Surface::Gpu { pixels };
+            }
+        }
+
         let window =
             unsafe { softbuffer::GraphicsContext::new(window, window) }
                 .expect("Create softbuffer for window");
 
-        Surface {
+        log::info!("CPU surface created");
+
+        Surface::Cpu {
             window,
             buffer: vec![0; width as usize * height as usize],
         }
@@ -52,7 +74,19 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
-        surface.buffer.resize((width * height) as usize, 0);
+        match surface {
+            Surface::Cpu { buffer, .. } => {
+                buffer.resize((width * height) as usize, 0);
+            }
+            #[cfg(feature = "gpu")]
+            Surface::Gpu { pixels } => {
+                pixels
+                    .resize_surface(width, height)
+                    .expect("Resize surface");
+
+                pixels.resize_buffer(width, height).expect("Resize buffer");
+            }
+        }
     }
 
     fn fetch_information(&self) -> Information {
@@ -106,9 +140,15 @@ pub fn present<Theme, T: AsRef<str>>(
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
 
+    let buffer = match surface {
+        Surface::Cpu { buffer, .. } => bytemuck::cast_slice_mut(buffer),
+        #[cfg(feature = "gpu")]
+        Surface::Gpu { pixels } => pixels.frame_mut(),
+    };
+
     let drawn = backend.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut surface.buffer),
+            buffer,
             physical_size.width,
             physical_size.height,
         )
@@ -121,12 +161,22 @@ pub fn present<Theme, T: AsRef<str>>(
     );
 
     if drawn {
-        surface.window.set_buffer(
-            &surface.buffer,
-            physical_size.width as u16,
-            physical_size.height as u16,
-        );
-    }
+        match surface {
+            Surface::Cpu { window, buffer } => {
+                window.set_buffer(
+                    buffer,
+                    physical_size.width as u16,
+                    physical_size.height as u16,
+                );
 
-    Ok(())
+                Ok(())
+            }
+            #[cfg(feature = "gpu")]
+            Surface::Gpu { pixels } => {
+                pixels.render().map_err(|_| compositor::SurfaceError::Lost)
+            }
+        }
+    } else {
+        Ok(())
+    }
 }
