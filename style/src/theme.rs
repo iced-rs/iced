@@ -169,22 +169,43 @@ impl button::StyleSheet for Theme {
         }
     }
 
-    fn hovered(&self, style: &Self::Style) -> button::Appearance {
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        hovered_style_ratio: Option<f32>,
+    ) -> button::Appearance {
         let palette = self.extended_palette();
 
         if let Button::Custom(custom) = style {
-            return custom.hovered(self);
+            return custom.hovered(self, hovered_style_ratio);
         }
 
         let active = self.active(style);
 
-        let background = match style {
+        let mut background = match style {
             Button::Primary => Some(palette.primary.base.color),
             Button::Secondary => Some(palette.background.strong.color),
             Button::Positive => Some(palette.success.strong.color),
             Button::Destructive => Some(palette.danger.strong.color),
             Button::Text | Button::Custom(_) => None,
         };
+
+        // Mix the hovered and active styles backgrounds according to the animation state
+        if let (
+            Some(hovered_style_ratio),
+            Some(active_background),
+            Some(background_color),
+        ) = (hovered_style_ratio, active.background, background.as_mut())
+        {
+            match active_background {
+                Background::Color(active_background_color) => {
+                    background_color.mix(
+                        active_background_color,
+                        1.0 - hovered_style_ratio,
+                    );
+                }
+            }
+        }
 
         button::Appearance {
             background: background.map(Background::from),

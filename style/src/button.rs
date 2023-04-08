@@ -40,7 +40,11 @@ pub trait StyleSheet {
     fn active(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the hovered [`Appearance`] of a button.
-    fn hovered(&self, style: &Self::Style) -> Appearance {
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        _hovered_style_ratio: Option<f32>,
+    ) -> Appearance {
         let active = self.active(style);
 
         Appearance {

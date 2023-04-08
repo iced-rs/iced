@@ -1,6 +1,8 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+use std::time::Instant;
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -13,6 +15,7 @@ use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
+use crate::core::window;
 
 pub use iced_style::button::{Appearance, StyleSheet};
 
@@ -62,6 +65,8 @@ where
     height: Length,
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
+    /// Animation duration in milliseconds
+    animation_duration_ms: u16,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -78,6 +83,7 @@ where
             height: Length::Shrink,
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
+            animation_duration_ms: 250,
         }
     }
 
@@ -211,6 +217,7 @@ where
             shell,
             &self.on_press,
             || tree.state.downcast_mut::<State>(),
+            self.animation_duration_ms,
         )
     }
 
@@ -230,7 +237,6 @@ where
         let styling = draw(
             renderer,
             bounds,
-            cursor_position,
             self.on_press.is_some(),
             theme,
             &self.style,
@@ -287,10 +293,17 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct Hover {
+    started_at: Instant,
+    animation_progress: f32,
+}
+
 /// The local state of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct State {
     is_pressed: bool,
+    is_hovered: Option<Hover>,
 }
 
 impl State {
@@ -309,6 +322,7 @@ pub fn update<'a, Message: Clone>(
     shell: &mut Shell<'_, Message>,
     on_press: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
+    animation_duration_ms: u16,
 ) -> event::Status {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -348,6 +362,39 @@ pub fn update<'a, Message: Clone>(
 
             state.is_pressed = false;
         }
+        Event::Window(window::Event::RedrawRequested(now)) => {
+            let state = state();
+
+            if let Some(hover) = &mut state.is_hovered {
+                if animation_duration_ms == 0 || hover.animation_progress >= 1.0
+                {
+                    hover.animation_progress = 1.0;
+                } else {
+                    hover.animation_progress =
+                        ((((now - hover.started_at).as_millis() as f64)
+                            / (animation_duration_ms as f64))
+                            as f32)
+                            .clamp(0.0, 1.0);
+                }
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
+        }
+        Event::Mouse(mouse::Event::CursorMoved { position }) => {
+            let state = state();
+            let bounds = layout.bounds();
+            let is_mouse_over = bounds.contains(position);
+
+            if is_mouse_over && state.is_hovered.is_none() {
+                state.is_hovered = Some(Hover {
+                    started_at: std::time::Instant::now(),
+                    animation_progress: 0.0,
+                });
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            } else if !is_mouse_over {
+                state.is_hovered = None;
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
+        }
         _ => {}
     }
 
@@ -358,7 +405,6 @@ pub fn update<'a, Message: Clone>(
 pub fn draw<'a, Renderer: crate::core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
-    cursor_position: Point,
     is_enabled: bool,
     style_sheet: &dyn StyleSheet<
         Style = <Renderer::Theme as StyleSheet>::Style,
@@ -369,17 +415,15 @@ pub fn draw<'a, Renderer: crate::core::Renderer>(
 where
     Renderer::Theme: StyleSheet,
 {
-    let is_mouse_over = bounds.contains(cursor_position);
+    let state = state();
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
-    } else if is_mouse_over {
-        let state = state();
-
+    } else if let Some(hover) = state.is_hovered {
         if state.is_pressed {
             style_sheet.pressed(style)
         } else {
-            style_sheet.hovered(style)
+            style_sheet.hovered(style, Some(hover.animation_progress))
         }
     } else {
         style_sheet.active(style)
