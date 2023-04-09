@@ -1,4 +1,4 @@
-//! Listen to keyboard events.
+//! Reuse basic keyboard types.
 mod event;
 mod key_code;
 mod modifiers;

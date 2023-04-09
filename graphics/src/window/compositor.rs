@@ -1,9 +1,6 @@
-//! A compositor is responsible for initializing a renderer and managing window
-//! surfaces.
 use crate::{Color, Error, Viewport};
-
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use thiserror::Error;
+use iced_native::mouse;
+use raw_window_handle::HasRawWindowHandle;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -16,8 +13,11 @@ pub trait Compositor: Sized {
     /// The surface of the backend.
     type Surface;
 
+    /// The swap chain of the backend.
+    type SwapChain;
+
     /// Creates a new [`Compositor`].
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new<W: HasRawWindowHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error>;
@@ -25,64 +25,32 @@ pub trait Compositor: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface<W: HasRawWindowHandle>(
         &mut self,
         window: &W,
     ) -> Self::Surface;
 
-    /// Configures a new [`Surface`] with the given dimensions.
+    /// Crates a new [`SwapChain`] for the given [`Surface`].
     ///
+    /// [`SwapChain`]: Self::SwapChain
     /// [`Surface`]: Self::Surface
-    fn configure_surface(
+    fn create_swap_chain(
         &mut self,
-        surface: &mut Self::Surface,
+        surface: &Self::Surface,
         width: u32,
         height: u32,
-    );
+    ) -> Self::SwapChain;
 
-    /// Returns [`Information`] used by this [`Compositor`].
-    fn fetch_information(&self) -> Information;
-
-    /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
+    /// Draws the output primitives to the next frame of the given [`SwapChain`].
     ///
-    /// [`Renderer`]: Self::Renderer
-    /// [`Surface`]: Self::Surface
-    fn present<T: AsRef<str>>(
+    /// [`SwapChain`]: Self::SwapChain
+    fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
+        swap_chain: &mut Self::SwapChain,
         viewport: &Viewport,
         background_color: Color,
+        output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    ) -> Result<(), SurfaceError>;
-}
-
-/// Result of an unsuccessful call to [`Compositor::present`].
-#[derive(Clone, PartialEq, Eq, Debug, Error)]
-pub enum SurfaceError {
-    /// A timeout was encountered while trying to acquire the next frame.
-    #[error(
-        "A timeout was encountered while trying to acquire the next frame"
-    )]
-    Timeout,
-    /// The underlying surface has changed, and therefore the surface must be updated.
-    #[error(
-        "The underlying surface has changed, and therefore the surface must be updated."
-    )]
-    Outdated,
-    /// The swap chain has been lost and needs to be recreated.
-    #[error("The surface has been lost and needs to be recreated")]
-    Lost,
-    /// There is no more memory left to allocate a new frame.
-    #[error("There is no more memory left to allocate a new frame")]
-    OutOfMemory,
-}
-
-/// Contains informations about the graphics (e.g. graphics adapter, graphics backend).
-#[derive(Debug)]
-pub struct Information {
-    /// Contains the graphics adapter.
-    pub adapter: String,
-    /// Contains the graphics backend.
-    pub backend: String,
+    ) -> mouse::Interaction;
 }

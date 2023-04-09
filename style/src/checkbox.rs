@@ -1,31 +1,55 @@
-//! Change the appearance of a checkbox.
+//! Show toggle controls using checkboxes.
 use iced_core::{Background, Color};
 
 /// The appearance of a checkbox.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The [`Background`] of the checkbox.
+pub struct Style {
     pub background: Background,
-    /// The icon [`Color`] of the checkbox.
-    pub icon_color: Color,
-    /// The border radius of the checkbox.
+    pub checkmark_color: Color,
     pub border_radius: f32,
-    /// The border width of the checkbox.
     pub border_width: f32,
-    /// The border [`Color`] of the checkbox.
     pub border_color: Color,
-    /// The text [`Color`] of the checkbox.
-    pub text_color: Option<Color>,
 }
 
 /// A set of rules that dictate the style of a checkbox.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
+    fn active(&self, is_checked: bool) -> Style;
 
-    /// Produces the active [`Appearance`] of a checkbox.
-    fn active(&self, style: &Self::Style, is_checked: bool) -> Appearance;
+    fn hovered(&self, is_checked: bool) -> Style;
+}
 
-    /// Produces the hovered [`Appearance`] of a checkbox.
-    fn hovered(&self, style: &Self::Style, is_checked: bool) -> Appearance;
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self, _is_checked: bool) -> Style {
+        Style {
+            background: Background::Color(Color::from_rgb(0.95, 0.95, 0.95)),
+            checkmark_color: Color::from_rgb(0.3, 0.3, 0.3),
+            border_radius: 5.0,
+            border_width: 1.0,
+            border_color: Color::from_rgb(0.6, 0.6, 0.6),
+        }
+    }
+
+    fn hovered(&self, is_checked: bool) -> Style {
+        Style {
+            background: Background::Color(Color::from_rgb(0.90, 0.90, 0.90)),
+            ..self.active(is_checked)
+        }
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
+    }
 }

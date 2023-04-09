@@ -1,22 +1,14 @@
 //! Organize rendering primitives into a flattened list of layers.
-mod image;
-mod quad;
-mod text;
-
-pub mod mesh;
-
-pub use image::Image;
-pub use mesh::Mesh;
-pub use quad::Quad;
-pub use text::Text;
-
-use crate::alignment;
+use crate::image;
+use crate::svg;
+use crate::triangle;
 use crate::{
-    Background, Font, Point, Primitive, Rectangle, Size, Vector, Viewport,
+    Background, Font, HorizontalAlignment, Point, Primitive, Rectangle, Size,
+    Vector, VerticalAlignment, Viewport,
 };
 
 /// A group of primitives that should be clipped together.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Layer<'a> {
     /// The clipping bounds of the [`Layer`].
     pub bounds: Rectangle,
@@ -63,8 +55,8 @@ impl<'a> Layer<'a> {
                 color: [0.9, 0.9, 0.9, 1.0],
                 size: 20.0,
                 font: Font::Default,
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Top,
+                horizontal_alignment: HorizontalAlignment::Left,
+                vertical_alignment: VerticalAlignment::Top,
             };
 
             overlay.text.push(text);
@@ -82,7 +74,7 @@ impl<'a> Layer<'a> {
     /// Distributes the given [`Primitive`] and generates a list of layers based
     /// on its contents.
     pub fn generate(
-        primitives: &'a [Primitive],
+        primitive: &'a Primitive,
         viewport: &Viewport,
     ) -> Vec<Self> {
         let first_layer =
@@ -90,14 +82,12 @@ impl<'a> Layer<'a> {
 
         let mut layers = vec![first_layer];
 
-        for primitive in primitives {
-            Self::process_primitive(
-                &mut layers,
-                Vector::new(0.0, 0.0),
-                primitive,
-                0,
-            );
-        }
+        Self::process_primitive(
+            &mut layers,
+            Vector::new(0.0, 0.0),
+            primitive,
+            0,
+        );
 
         layers
     }
@@ -166,7 +156,7 @@ impl<'a> Layer<'a> {
                     border_color: border_color.into_linear(),
                 });
             }
-            Primitive::SolidMesh { buffers, size } => {
+            Primitive::Mesh2D { buffers, size } => {
                 let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
@@ -176,36 +166,18 @@ impl<'a> Layer<'a> {
 
                 // Only draw visible content
                 if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh::Solid {
+                    layer.meshes.push(Mesh {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
                         clip_bounds,
                     });
                 }
             }
-            Primitive::GradientMesh {
-                buffers,
-                size,
-                gradient,
+            Primitive::Clip {
+                bounds,
+                offset,
+                content,
             } => {
-                let layer = &mut layers[current_layer];
-
-                let bounds = Rectangle::new(
-                    Point::new(translation.x, translation.y),
-                    *size,
-                );
-
-                // Only draw visible content
-                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh::Gradient {
-                        origin: Point::new(translation.x, translation.y),
-                        buffers,
-                        clip_bounds,
-                        gradient,
-                    });
-                }
-            }
-            Primitive::Clip { bounds, content } => {
                 let layer = &mut layers[current_layer];
                 let translated_bounds = *bounds + translation;
 
@@ -218,7 +190,8 @@ impl<'a> Layer<'a> {
 
                     Self::process_primitive(
                         layers,
-                        translation,
+                        translation
+                            - Vector::new(offset.x as f32, offset.y as f32),
                         content,
                         layers.len() - 1,
                     );
@@ -231,7 +204,7 @@ impl<'a> Layer<'a> {
                 Self::process_primitive(
                     layers,
                     translation + *new_translation,
-                    content,
+                    &content,
                     current_layer,
                 );
             }
@@ -239,7 +212,7 @@ impl<'a> Layer<'a> {
                 Self::process_primitive(
                     layers,
                     translation,
-                    cache,
+                    &cache,
                     current_layer,
                 );
             }
@@ -251,19 +224,104 @@ impl<'a> Layer<'a> {
                     bounds: *bounds + translation,
                 });
             }
-            Primitive::Svg {
-                handle,
-                color,
-                bounds,
-            } => {
+            Primitive::Svg { handle, bounds } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Vector {
                     handle: handle.clone(),
-                    color: *color,
                     bounds: *bounds + translation,
                 });
             }
         }
     }
 }
+
+/// A colored rectangle with a border.
+///
+/// This type can be directly uploaded to GPU memory.
+#[derive(Debug, Clone, Copy)]
+#[repr(C)]
+pub struct Quad {
+    /// The position of the [`Quad`].
+    pub position: [f32; 2],
+
+    /// The size of the [`Quad`].
+    pub size: [f32; 2],
+
+    /// The color of the [`Quad`], in __linear RGB__.
+    pub color: [f32; 4],
+
+    /// The border color of the [`Quad`], in __linear RGB__.
+    pub border_color: [f32; 4],
+
+    /// The border radius of the [`Quad`].
+    pub border_radius: f32,
+
+    /// The border width of the [`Quad`].
+    pub border_width: f32,
+}
+
+/// A mesh of triangles.
+#[derive(Debug, Clone, Copy)]
+pub struct Mesh<'a> {
+    /// The origin of the vertices of the [`Mesh`].
+    pub origin: Point,
+
+    /// The vertex and index buffers of the [`Mesh`].
+    pub buffers: &'a triangle::Mesh2D,
+
+    /// The clipping bounds of the [`Mesh`].
+    pub clip_bounds: Rectangle<f32>,
+}
+
+/// A paragraph of text.
+#[derive(Debug, Clone, Copy)]
+pub struct Text<'a> {
+    /// The content of the [`Text`].
+    pub content: &'a str,
+
+    /// The layout bounds of the [`Text`].
+    pub bounds: Rectangle,
+
+    /// The color of the [`Text`], in __linear RGB_.
+    pub color: [f32; 4],
+
+    /// The size of the [`Text`].
+    pub size: f32,
+
+    /// The font of the [`Text`].
+    pub font: Font,
+
+    /// The horizontal alignment of the [`Text`].
+    pub horizontal_alignment: HorizontalAlignment,
+
+    /// The vertical alignment of the [`Text`].
+    pub vertical_alignment: VerticalAlignment,
+}
+
+/// A raster or vector image.
+#[derive(Debug, Clone)]
+pub enum Image {
+    /// A raster image.
+    Raster {
+        /// The handle of a raster image.
+        handle: image::Handle,
+
+        /// The bounds of the image.
+        bounds: Rectangle,
+    },
+    /// A vector image.
+    Vector {
+        /// The handle of a vector image.
+        handle: svg::Handle,
+
+        /// The bounds of the image.
+        bounds: Rectangle,
+    },
+}
+
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Zeroable for Quad {}
+
+#[allow(unsafe_code)]
+unsafe impl bytemuck::Pod for Quad {}

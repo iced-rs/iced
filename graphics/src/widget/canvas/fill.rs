@@ -1,15 +1,12 @@
-//! Fill [crate::widget::canvas::Geometry] with a certain style.
-use crate::{Color, Gradient};
-
-pub use crate::widget::canvas::Style;
+use iced_native::Color;
 
 /// The style used to fill geometry.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Fill {
-    /// The color or gradient of the fill.
+    /// The color used to fill geometry.
     ///
-    /// By default, it is set to [`Style::Solid`] with [`Color::BLACK`].
-    pub style: Style,
+    /// By default, it is set to `BLACK`.
+    pub color: Color,
 
     /// The fill rule defines how to determine what is inside and what is
     /// outside of a shape.
@@ -23,9 +20,9 @@ pub struct Fill {
 }
 
 impl Default for Fill {
-    fn default() -> Self {
-        Self {
-            style: Style::Solid(Color::BLACK),
+    fn default() -> Fill {
+        Fill {
+            color: Color::BLACK,
             rule: FillRule::NonZero,
         }
     }
@@ -34,17 +31,8 @@ impl Default for Fill {
 impl From<Color> for Fill {
     fn from(color: Color) -> Fill {
         Fill {
-            style: Style::Solid(color),
+            color,
             ..Fill::default()
-        }
-    }
-}
-
-impl From<Gradient> for Fill {
-    fn from(gradient: Gradient) -> Self {
-        Fill {
-            style: Style::Gradient(gradient),
-            ..Default::default()
         }
     }
 }

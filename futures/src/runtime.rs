@@ -1,6 +1,5 @@
 //! Run commands and keep track of subscriptions.
-use crate::subscription;
-use crate::{BoxFuture, Executor, MaybeSend, Subscription};
+use crate::{subscription, Command, Executor, Subscription};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
@@ -9,8 +8,6 @@ use std::marker::PhantomData;
 ///
 /// If you have an [`Executor`], a [`Runtime`] can be leveraged to run any
 /// [`Command`] or [`Subscription`] and get notified of the results!
-///
-/// [`Command`]: crate::Command
 #[derive(Debug)]
 pub struct Runtime<Hasher, Event, Executor, Sender, Message> {
     executor: Executor,
@@ -25,12 +22,9 @@ where
     Hasher: std::hash::Hasher + Default,
     Event: Send + Clone + 'static,
     Executor: self::Executor,
-    Sender: Sink<Message, Error = mpsc::SendError>
-        + Unpin
-        + MaybeSend
-        + Clone
-        + 'static,
-    Message: MaybeSend + 'static,
+    Sender:
+        Sink<Message, Error = mpsc::SendError> + Unpin + Send + Clone + 'static,
+    Message: Send + 'static,
 {
     /// Creates a new empty [`Runtime`].
     ///
@@ -53,22 +47,26 @@ where
         self.executor.enter(f)
     }
 
-    /// Spawns a [`Future`] in the [`Runtime`].
+    /// Spawns a [`Command`] in the [`Runtime`].
     ///
     /// The resulting `Message` will be forwarded to the `Sender` of the
     /// [`Runtime`].
-    ///
-    /// [`Future`]: BoxFuture
-    pub fn spawn(&mut self, future: BoxFuture<Message>) {
+    pub fn spawn(&mut self, command: Command<Message>) {
         use futures::{FutureExt, SinkExt};
 
-        let mut sender = self.sender.clone();
+        let futures = command.futures();
 
-        let future = future.then(|message| async move {
-            let _ = sender.send(message).await;
-        });
+        for future in futures {
+            let mut sender = self.sender.clone();
 
-        self.executor.spawn(future);
+            let future = future.then(|message| async move {
+                let _ = sender.send(message).await;
+
+                ()
+            });
+
+            self.executor.spawn(future);
+        }
     }
 
     /// Tracks a [`Subscription`] in the [`Runtime`].

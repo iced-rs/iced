@@ -1,5 +1,7 @@
-use crate::theme::{self, Theme};
-use crate::{Application, Command, Element, Error, Settings, Subscription};
+use crate::{
+    Application, Clipboard, Color, Command, Element, Error, Settings,
+    Subscription,
+};
 
 /// A sandboxed [`Application`].
 ///
@@ -34,19 +36,19 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 /// - [`tour`], a simple UI tour that can run both on native platforms and the
 /// web!
 ///
-/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.8/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.8/examples/bezier_tool
-/// [`counter`]: https://github.com/iced-rs/iced/tree/0.8/examples/counter
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.8/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.8/examples/geometry
-/// [`pane_grid`]: https://github.com/iced-rs/iced/tree/0.8/examples/pane_grid
-/// [`progress_bar`]: https://github.com/iced-rs/iced/tree/0.8/examples/progress_bar
-/// [`styling`]: https://github.com/iced-rs/iced/tree/0.8/examples/styling
-/// [`svg`]: https://github.com/iced-rs/iced/tree/0.8/examples/svg
-/// [`tour`]: https://github.com/iced-rs/iced/tree/0.8/examples/tour
+/// [The repository has a bunch of examples]: https://github.com/hecrj/iced/tree/0.2/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.2/examples/bezier_tool
+/// [`counter`]: https://github.com/hecrj/iced/tree/0.2/examples/counter
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.2/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.2/examples/geometry
+/// [`pane_grid`]: https://github.com/hecrj/iced/tree/0.2/examples/pane_grid
+/// [`progress_bar`]: https://github.com/hecrj/iced/tree/0.2/examples/progress_bar
+/// [`styling`]: https://github.com/hecrj/iced/tree/0.2/examples/styling
+/// [`svg`]: https://github.com/hecrj/iced/tree/0.2/examples/svg
+/// [`tour`]: https://github.com/hecrj/iced/tree/0.2/examples/tour
 /// [`Canvas widget`]: crate::widget::Canvas
 /// [the overview]: index.html#overview
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/wgpu
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.2/wgpu
 /// [`Svg` widget]: crate::widget::Svg
 /// [Ghostscript Tiger]: https://commons.wikimedia.org/wiki/File:Ghostscript_Tiger.svg
 ///
@@ -56,7 +58,7 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::{Element, Sandbox, Settings};
+/// use iced::{Element, Sandbox, Settings, Text};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -79,8 +81,8 @@ use crate::{Application, Command, Element, Error, Settings, Subscription};
 ///         // This application has no interactions
 ///     }
 ///
-///     fn view(&self) -> Element<Self::Message> {
-///         "Hello, world!".into()
+///     fn view(&mut self) -> Element<Self::Message> {
+///         Text::new("Hello, world!").into()
 ///     }
 /// }
 /// ```
@@ -108,23 +110,13 @@ pub trait Sandbox {
     /// Returns the widgets to display in the [`Sandbox`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message>;
+    fn view(&mut self) -> Element<'_, Self::Message>;
 
-    /// Returns the current [`Theme`] of the [`Sandbox`].
+    /// Returns the background color of the [`Sandbox`].
     ///
-    /// If you want to use your own custom theme type, you will have to use an
-    /// [`Application`].
-    ///
-    /// By default, it returns [`Theme::default`].
-    fn theme(&self) -> Theme {
-        Theme::default()
-    }
-
-    /// Returns the current style variant of [`theme::Application`].
-    ///
-    /// By default, it returns [`theme::Application::default`].
-    fn style(&self) -> theme::Application {
-        theme::Application::default()
+    /// By default, it returns [`Color::WHITE`].
+    fn background_color(&self) -> Color {
+        Color::WHITE
     }
 
     /// Returns the scale factor of the [`Sandbox`].
@@ -158,10 +150,9 @@ impl<T> Application for T
 where
     T: Sandbox,
 {
-    type Executor = iced_futures::backend::null::Executor;
+    type Executor = crate::runtime::executor::Null;
     type Flags = ();
     type Message = T::Message;
-    type Theme = Theme;
 
     fn new(_flags: ()) -> (Self, Command<T::Message>) {
         (T::new(), Command::none())
@@ -171,26 +162,26 @@ where
         T::title(self)
     }
 
-    fn update(&mut self, message: T::Message) -> Command<T::Message> {
+    fn update(
+        &mut self,
+        message: T::Message,
+        _clipboard: &mut Clipboard,
+    ) -> Command<T::Message> {
         T::update(self, message);
 
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, T::Message> {
+    fn subscription(&self) -> Subscription<T::Message> {
+        Subscription::none()
+    }
+
+    fn view(&mut self) -> Element<'_, T::Message> {
         T::view(self)
     }
 
-    fn theme(&self) -> Self::Theme {
-        T::theme(self)
-    }
-
-    fn style(&self) -> theme::Application {
-        T::style(self)
-    }
-
-    fn subscription(&self) -> Subscription<T::Message> {
-        Subscription::none()
+    fn background_color(&self) -> Color {
+        T::background_color(self)
     }
 
     fn scale_factor(&self) -> f64 {

@@ -1,7 +1,5 @@
-//! A compositor is responsible for initializing a renderer and managing window
-//! surfaces.
-use crate::compositor::Information;
 use crate::{Color, Error, Size, Viewport};
+use iced_native::mouse;
 
 use core::ffi::c_void;
 
@@ -35,9 +33,6 @@ pub trait GLCompositor: Sized {
     /// Creates a new [`GLCompositor`] and [`Renderer`] with the given
     /// [`Settings`] and an OpenGL address loader function.
     ///
-    /// # Safety
-    /// The `loader_function` should resolve to valid OpenGL bindings.
-    ///
     /// [`Renderer`]: crate::Renderer
     /// [`Backend`]: crate::Backend
     /// [`Settings`]: Self::Settings
@@ -54,18 +49,15 @@ pub trait GLCompositor: Sized {
     /// Resizes the viewport of the [`GLCompositor`].
     fn resize_viewport(&mut self, physical_size: Size<u32>);
 
-    /// Returns [`Information`] used by this [`GLCompositor`].
-    fn fetch_information(&self) -> Information;
-
-    /// Presents the primitives of the [`Renderer`] to the next frame of the
-    /// [`GLCompositor`].
+    /// Draws the provided output with the given [`Renderer`].
     ///
     /// [`Renderer`]: crate::Renderer
-    fn present<T: AsRef<str>>(
+    fn draw<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
         viewport: &Viewport,
         background_color: Color,
+        output: &<Self::Renderer as iced_native::Renderer>::Output,
         overlay: &[T],
-    );
+    ) -> mouse::Interaction;
 }

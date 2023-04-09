@@ -1,20 +1,14 @@
 //! Display interactive elements on top of other widgets.
 mod element;
-mod group;
 
 pub mod menu;
 
 pub use element::Element;
-pub use group::Group;
 pub use menu::Menu;
 
 use crate::event::{self, Event};
 use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::widget;
-use crate::widget::Tree;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
+use crate::{Clipboard, Hasher, Layout, Point, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Renderer>
@@ -38,20 +32,23 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    );
+    ) -> Renderer::Output;
 
-    /// Applies a [`widget::Operation`] to the [`Overlay`].
-    fn operate(
-        &mut self,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation<Message>,
-    ) {
-    }
+    /// Computes the _layout_ hash of the [`Overlay`].
+    ///
+    /// The produced hash is used by the runtime to decide if the [`Layout`]
+    /// needs to be recomputed between frames. Therefore, to ensure maximum
+    /// efficiency, the hash should only be affected by the properties of the
+    /// [`Overlay`] that can affect layouting.
+    ///
+    /// For example, the [`Text`] widget does not hash its color property, as
+    /// its value cannot affect the overall [`Layout`] of the user interface.
+    ///
+    /// [`Text`]: crate::widget::Text
+    fn hash_layout(&self, state: &mut Hasher, position: Point);
 
     /// Processes a runtime [`Event`].
     ///
@@ -72,54 +69,8 @@ where
         _cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
     }
-
-    /// Returns the current [`mouse::Interaction`] of the [`Overlay`].
-    ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
-    fn mouse_interaction(
-        &self,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse::Interaction::Idle
-    }
-
-    /// Returns true if the cursor is over the [`Overlay`].
-    ///
-    /// By default, it returns true if the bounds of the `layout` contain
-    /// the `cursor_position`.
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
-        layout.bounds().contains(cursor_position)
-    }
-}
-
-/// Returns a [`Group`] of overlay [`Element`] children.
-///
-/// This method will generally only be used by advanced users that are
-/// implementing the [`Widget`](crate::Widget) trait.
-pub fn from_children<'a, Message, Renderer>(
-    children: &'a mut [crate::Element<'_, Message, Renderer>],
-    tree: &'a mut Tree,
-    layout: Layout<'_>,
-    renderer: &Renderer,
-) -> Option<Element<'a, Message, Renderer>>
-where
-    Renderer: crate::Renderer,
-{
-    let children = children
-        .iter_mut()
-        .zip(&mut tree.children)
-        .zip(layout.children())
-        .filter_map(|((child, state), layout)| {
-            child.as_widget_mut().overlay(state, layout, renderer)
-        })
-        .collect::<Vec<_>>();
-
-    (!children.is_empty()).then(|| Group::with_children(children).overlay())
 }

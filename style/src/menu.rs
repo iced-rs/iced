@@ -1,30 +1,25 @@
-//! Change the appearance of menus.
 use iced_core::{Background, Color};
 
 /// The appearance of a menu.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The text [`Color`] of the menu.
+pub struct Style {
     pub text_color: Color,
-    /// The [`Background`] of the menu.
     pub background: Background,
-    /// The border width of the menu.
     pub border_width: f32,
-    /// The border radius of the menu.
-    pub border_radius: f32,
-    /// The border [`Color`] of the menu.
     pub border_color: Color,
-    /// The text [`Color`] of a selected option in the menu.
     pub selected_text_color: Color,
-    /// The background [`Color`] of a selected option in the menu.
     pub selected_background: Background,
 }
 
-/// The style sheet of a menu.
-pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default + Clone;
-
-    /// Produces the [`Appearance`] of a menu.
-    fn appearance(&self, style: &Self::Style) -> Appearance;
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: Color::BLACK,
+            background: Background::Color([0.87, 0.87, 0.87].into()),
+            border_width: 1.0,
+            border_color: [0.7, 0.7, 0.7].into(),
+            selected_text_color: Color::WHITE,
+            selected_background: Background::Color([0.4, 0.4, 1.0].into()),
+        }
+    }
 }

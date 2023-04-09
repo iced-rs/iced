@@ -1,8 +1,7 @@
 //! Write a graphics backend.
 use iced_native::image;
 use iced_native::svg;
-use iced_native::text;
-use iced_native::{Font, Point, Size};
+use iced_native::{Font, Size};
 
 /// The graphics backend of a [`Renderer`].
 ///
@@ -32,7 +31,7 @@ pub trait Text {
     const ARROW_DOWN_ICON: char;
 
     /// Returns the default size of text.
-    fn default_size(&self) -> f32;
+    fn default_size(&self) -> u16;
 
     /// Measures the text contents with the given size and font,
     /// returning the size of a laid out paragraph that fits in the provided
@@ -44,33 +43,16 @@ pub trait Text {
         font: Font,
         bounds: Size,
     ) -> (f32, f32);
-
-    /// Tests whether the provided point is within the boundaries of [`Text`]
-    /// laid out with the given parameters, returning information about
-    /// the nearest character.
-    ///
-    /// If nearest_only is true, the hit test does not consider whether the
-    /// the point is interior to any glyph bounds, returning only the character
-    /// with the nearest centeroid.
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        font: Font,
-        bounds: Size,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<text::Hit>;
 }
 
 /// A graphics backend that supports image rendering.
 pub trait Image {
     /// Returns the dimensions of the provided image.
-    fn dimensions(&self, handle: &image::Handle) -> Size<u32>;
+    fn dimensions(&self, handle: &image::Handle) -> (u32, u32);
 }
 
 /// A graphics backend that supports SVG rendering.
 pub trait Svg {
     /// Returns the viewport dimensions of the provided SVG.
-    fn viewport_dimensions(&self, handle: &svg::Handle) -> Size<u32>;
+    fn viewport_dimensions(&self, handle: &svg::Handle) -> (u32, u32);
 }

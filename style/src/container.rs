@@ -1,22 +1,17 @@
-//! Change the appearance of a container.
+//! Decorate content and apply alignment.
 use iced_core::{Background, Color};
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The text [`Color`] of the container.
+pub struct Style {
     pub text_color: Option<Color>,
-    /// The [`Background`] of the container.
     pub background: Option<Background>,
-    /// The border radius of the container.
     pub border_radius: f32,
-    /// The border width of the container.
     pub border_width: f32,
-    /// The border [`Color`] of the container.
     pub border_color: Color,
 }
 
-impl std::default::Default for Appearance {
+impl std::default::Default for Style {
     fn default() -> Self {
         Self {
             text_color: None,
@@ -28,11 +23,37 @@ impl std::default::Default for Appearance {
     }
 }
 
-/// A set of rules that dictate the [`Appearance`] of a container.
+/// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
+    /// Produces the style of a container.
+    fn style(&self) -> Style;
+}
 
-    /// Produces the [`Appearance`] of a container.
-    fn appearance(&self, style: &Self::Style) -> Appearance;
+struct Default;
+
+impl StyleSheet for Default {
+    fn style(&self) -> Style {
+        Style {
+            text_color: None,
+            background: None,
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
+    }
 }

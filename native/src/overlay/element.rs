@@ -2,12 +2,7 @@ pub use crate::Overlay;
 
 use crate::event::{self, Event};
 use crate::layout;
-use crate::mouse;
-use crate::renderer;
-use crate::widget;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
-
-use std::any::Any;
+use crate::{Clipboard, Hasher, Layout, Point, Size, Vector};
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
@@ -28,11 +23,6 @@ where
         Self { position, overlay }
     }
 
-    /// Returns the position of the [`Element`].
-    pub fn position(&self) -> Point {
-        self.position
-    }
-
     /// Translates the [`Element`].
     pub fn translate(mut self, translation: Vector) -> Self {
         self.position = self.position + translation;
@@ -44,7 +34,7 @@ where
     where
         Message: 'a,
         Renderer: 'a,
-        B: 'a,
+        B: 'static,
     {
         Element {
             position: self.position,
@@ -53,14 +43,8 @@ where
     }
 
     /// Computes the layout of the [`Element`] in the given bounds.
-    pub fn layout(
-        &self,
-        renderer: &Renderer,
-        bounds: Size,
-        translation: Vector,
-    ) -> layout::Node {
-        self.overlay
-            .layout(renderer, bounds, self.position + translation)
+    pub fn layout(&self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.overlay.layout(renderer, bounds, self.position)
     }
 
     /// Processes a runtime [`Event`].
@@ -71,7 +55,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.overlay.on_event(
             event,
@@ -79,23 +63,7 @@ where
             cursor_position,
             renderer,
             clipboard,
-            shell,
-        )
-    }
-
-    /// Returns the current [`mouse::Interaction`] of the [`Element`].
-    pub fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.overlay.mouse_interaction(
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
+            messages,
         )
     }
 
@@ -103,28 +71,17 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) {
+    ) -> Renderer::Output {
         self.overlay
-            .draw(renderer, theme, style, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
-    /// Applies a [`widget::Operation`] to the [`Element`].
-    pub fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
-    ) {
-        self.overlay.operate(layout, renderer, operation);
-    }
-
-    /// Returns true if the cursor is over the [`Element`].
-    pub fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
-        self.overlay.is_over(layout, cursor_position)
+    /// Computes the _layout_ hash of the [`Element`].
+    pub fn hash_layout(&self, state: &mut Hasher) {
+        self.overlay.hash_layout(state, self.position);
     }
 }
 
@@ -155,62 +112,6 @@ where
         self.content.layout(renderer, bounds, position)
     }
 
-    fn operate(
-        &mut self,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
-    ) {
-        struct MapOperation<'a, B> {
-            operation: &'a mut dyn widget::Operation<B>,
-        }
-
-        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
-            fn container(
-                &mut self,
-                id: Option<&widget::Id>,
-                operate_on_children: &mut dyn FnMut(
-                    &mut dyn widget::Operation<T>,
-                ),
-            ) {
-                self.operation.container(id, &mut |operation| {
-                    operate_on_children(&mut MapOperation { operation });
-                });
-            }
-
-            fn focusable(
-                &mut self,
-                state: &mut dyn widget::operation::Focusable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.focusable(state, id);
-            }
-
-            fn scrollable(
-                &mut self,
-                state: &mut dyn widget::operation::Scrollable,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.scrollable(state, id);
-            }
-
-            fn text_input(
-                &mut self,
-                state: &mut dyn widget::operation::TextInput,
-                id: Option<&widget::Id>,
-            ) {
-                self.operation.text_input(state, id)
-            }
-
-            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
-                self.operation.custom(state, id);
-            }
-        }
-
-        self.content
-            .operate(layout, renderer, &mut MapOperation { operation });
-    }
-
     fn on_event(
         &mut self,
         event: Event,
@@ -218,10 +119,9 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, B>,
+        messages: &mut Vec<B>,
     ) -> event::Status {
-        let mut local_messages = Vec::new();
-        let mut local_shell = Shell::new(&mut local_messages);
+        let mut original_messages = Vec::new();
 
         let event_status = self.content.on_event(
             event,
@@ -229,42 +129,28 @@ where
             cursor_position,
             renderer,
             clipboard,
-            &mut local_shell,
+            &mut original_messages,
         );
 
-        shell.merge(local_shell, self.mapper);
+        original_messages
+            .drain(..)
+            .for_each(|message| messages.push((self.mapper)(message)));
 
         event_status
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.content.mouse_interaction(
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) {
+    ) -> Renderer::Output {
         self.content
-            .draw(renderer, theme, style, layout, cursor_position)
+            .draw(renderer, defaults, layout, cursor_position)
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
-        self.content.is_over(layout, cursor_position)
+    fn hash_layout(&self, state: &mut Hasher, position: Point) {
+        self.content.hash_layout(state, position);
     }
 }

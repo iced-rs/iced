@@ -1,9 +1,6 @@
-use crate::{BoxFuture, MaybeSend, Subscription};
+use crate::{BoxFuture, Subscription};
 
-use futures::{
-    channel::mpsc,
-    sink::{Sink, SinkExt},
-};
+use futures::{channel::mpsc, sink::Sink};
 use std::{collections::HashMap, marker::PhantomData};
 
 /// A registry of subscription streams.
@@ -60,14 +57,14 @@ where
         receiver: Receiver,
     ) -> Vec<BoxFuture<()>>
     where
-        Message: 'static + MaybeSend,
+        Message: 'static + Send,
         Receiver: 'static
             + Sink<Message, Error = mpsc::SendError>
             + Unpin
-            + MaybeSend
+            + Send
             + Clone,
     {
-        use futures::stream::StreamExt;
+        use futures::{future::FutureExt, stream::StreamExt};
 
         let mut futures: Vec<BoxFuture<()>> = Vec::new();
 
@@ -88,29 +85,19 @@ where
                 continue;
             }
 
-            let (cancel, mut canceled) = futures::channel::oneshot::channel();
+            let (cancel, cancelled) = futures::channel::oneshot::channel();
 
             // TODO: Use bus if/when it supports async
             let (event_sender, event_receiver) =
                 futures::channel::mpsc::channel(100);
 
-            let mut receiver = receiver.clone();
-            let mut stream = recipe.stream(event_receiver.boxed());
+            let stream = recipe.stream(event_receiver.boxed());
 
-            let future = async move {
-                loop {
-                    let select =
-                        futures::future::select(&mut canceled, stream.next());
-
-                    match select.await {
-                        futures::future::Either::Left(_)
-                        | futures::future::Either::Right((None, _)) => break,
-                        futures::future::Either::Right((Some(message), _)) => {
-                            let _ = receiver.send(message).await;
-                        }
-                    }
-                }
-            };
+            let future = futures::future::select(
+                cancelled,
+                stream.map(Ok).forward(receiver.clone()),
+            )
+            .map(|_| ());
 
             let _ = self.subscriptions.insert(
                 id,
@@ -127,7 +114,7 @@ where
             futures.push(Box::pin(future));
         }
 
-        self.subscriptions.retain(|id, _| alive.contains(id));
+        self.subscriptions.retain(|id, _| alive.contains(&id));
 
         futures
     }
@@ -154,15 +141,5 @@ where
                     );
                 }
             });
-    }
-}
-
-impl<Hasher, Event> Default for Tracker<Hasher, Event>
-where
-    Hasher: std::hash::Hasher + Default,
-    Event: 'static + Send + Clone,
-{
-    fn default() -> Self {
-        Self::new()
     }
 }

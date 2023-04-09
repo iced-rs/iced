@@ -31,10 +31,11 @@ impl Blit {
                 label: Some("iced_wgpu::triangle:msaa uniforms layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Sampler(
-                        wgpu::SamplerBindingType::NonFiltering,
-                    ),
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler {
+                        comparison: false,
+                        filtering: false,
+                    },
                     count: None,
                 }],
             });
@@ -54,7 +55,7 @@ impl Blit {
                 label: Some("iced_wgpu::triangle::msaa texture layout"),
                 entries: &[wgpu::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         sample_type: wgpu::TextureSampleType::Float {
                             filterable: false,
@@ -74,11 +75,12 @@ impl Blit {
             });
 
         let shader =
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu triangle blit_shader"),
+            device.create_shader_module(&wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu::triangle::blit_shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("../shader/blit.wgsl"),
                 )),
+                flags: wgpu::ShaderFlags::all(),
             });
 
         let pipeline =
@@ -93,13 +95,22 @@ impl Blit {
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
+                    targets: &[wgpu::ColorTargetState {
                         format,
-                        blend: Some(
-                            wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING,
-                        ),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrite::ALL,
+                    }],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -112,7 +123,6 @@ impl Blit {
                     mask: !0,
                     alpha_to_coverage_enabled: false,
                 },
-                multiview: None,
             });
 
         Blit {
@@ -134,7 +144,7 @@ impl Blit {
         match &mut self.targets {
             None => {
                 self.targets = Some(Targets::new(
-                    device,
+                    &device,
                     self.format,
                     &self.texture_layout,
                     self.sample_count,
@@ -145,7 +155,7 @@ impl Blit {
             Some(targets) => {
                 if targets.width != width || targets.height != height {
                     self.targets = Some(Targets::new(
-                        device,
+                        &device,
                         self.format,
                         &self.texture_layout,
                         self.sample_count,
@@ -169,14 +179,14 @@ impl Blit {
         let mut render_pass =
             encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("iced_wgpu::triangle::msaa render pass"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                color_attachments: &[wgpu::RenderPassColorAttachment {
                     view: target,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Load,
                         store: true,
                     },
-                })],
+                }],
                 depth_stencil_attachment: None,
             });
 
@@ -222,7 +232,7 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
@@ -232,8 +242,8 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
-                | wgpu::TextureUsages::TEXTURE_BINDING,
+            usage: wgpu::TextureUsage::RENDER_ATTACHMENT
+                | wgpu::TextureUsage::SAMPLED,
         });
 
         let attachment =

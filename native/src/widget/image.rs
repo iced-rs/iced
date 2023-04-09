@@ -2,158 +2,59 @@
 pub mod viewer;
 pub use viewer::Viewer;
 
-use crate::image;
 use crate::layout;
-use crate::renderer;
-use crate::widget::Tree;
-use crate::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
+
+use std::{
+    hash::{Hash, Hasher as _},
+    path::PathBuf,
+    sync::Arc,
 };
-
-use std::hash::Hash;
-
-/// Creates a new [`Viewer`] with the given image `Handle`.
-pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
-    Viewer::new(handle)
-}
 
 /// A frame that displays an image while keeping aspect ratio.
 ///
 /// # Example
 ///
 /// ```
-/// # use iced_native::widget::Image;
-/// # use iced_native::image;
+/// # use iced_native::Image;
 /// #
-/// let image = Image::<image::Handle>::new("resources/ferris.png");
+/// let image = Image::new("resources/ferris.png");
 /// ```
 ///
-/// <img src="https://github.com/iced-rs/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
-#[derive(Debug)]
-pub struct Image<Handle> {
+/// <img src="https://github.com/hecrj/iced/blob/9712b319bb7a32848001b96bd84977430f14b623/examples/resources/ferris.png?raw=true" width="300">
+#[derive(Debug, Hash)]
+pub struct Image {
     handle: Handle,
     width: Length,
     height: Length,
-    content_fit: ContentFit,
 }
 
-impl<Handle> Image<Handle> {
+impl Image {
     /// Creates a new [`Image`] with the given path.
     pub fn new<T: Into<Handle>>(handle: T) -> Self {
         Image {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
-            content_fit: ContentFit::Contain,
         }
     }
 
     /// Sets the width of the [`Image`] boundaries.
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Image`] boundaries.
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
         self
     }
-
-    /// Sets the [`ContentFit`] of the [`Image`].
-    ///
-    /// Defaults to [`ContentFit::Contain`]
-    pub fn content_fit(self, content_fit: ContentFit) -> Self {
-        Self {
-            content_fit,
-            ..self
-        }
-    }
 }
 
-/// Computes the layout of an [`Image`].
-pub fn layout<Renderer, Handle>(
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    handle: &Handle,
-    width: Length,
-    height: Length,
-    content_fit: ContentFit,
-) -> layout::Node
+impl<Message, Renderer> Widget<Message, Renderer> for Image
 where
-    Renderer: image::Renderer<Handle = Handle>,
-{
-    // The raw w/h of the underlying image
-    let image_size = {
-        let Size { width, height } = renderer.dimensions(handle);
-
-        Size::new(width as f32, height as f32)
-    };
-
-    // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.width(width).height(height).resolve(image_size);
-
-    // The uncropped size of the image when fit to the bounds above
-    let full_size = content_fit.fit(image_size, raw_size);
-
-    // Shrink the widget to fit the resized image, if requested
-    let final_size = Size {
-        width: match width {
-            Length::Shrink => f32::min(raw_size.width, full_size.width),
-            _ => raw_size.width,
-        },
-        height: match height {
-            Length::Shrink => f32::min(raw_size.height, full_size.height),
-            _ => raw_size.height,
-        },
-    };
-
-    layout::Node::new(final_size)
-}
-
-/// Draws an [`Image`]
-pub fn draw<Renderer, Handle>(
-    renderer: &mut Renderer,
-    layout: Layout<'_>,
-    handle: &Handle,
-    content_fit: ContentFit,
-) where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
-{
-    let Size { width, height } = renderer.dimensions(handle);
-    let image_size = Size::new(width as f32, height as f32);
-
-    let bounds = layout.bounds();
-    let adjusted_fit = content_fit.fit(image_size, bounds.size());
-
-    let render = |renderer: &mut Renderer| {
-        let offset = Vector::new(
-            (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-            (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-        );
-
-        let drawing_bounds = Rectangle {
-            width: adjusted_fit.width,
-            height: adjusted_fit.height,
-            ..bounds
-        };
-
-        renderer.draw(handle.clone(), drawing_bounds + offset)
-    };
-
-    if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
-    {
-        renderer.with_layer(bounds, render);
-    } else {
-        render(renderer)
-    }
-}
-
-impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
-where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -168,37 +69,172 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            &self.handle,
-            self.width,
-            self.height,
-            self.content_fit,
-        )
+        let (width, height) = renderer.dimensions(&self.handle);
+
+        let aspect_ratio = width as f32 / height as f32;
+
+        let mut size = limits
+            .width(self.width)
+            .height(self.height)
+            .resolve(Size::new(width as f32, height as f32));
+
+        let viewport_aspect_ratio = size.width / size.height;
+
+        if viewport_aspect_ratio > aspect_ratio {
+            size.width = width as f32 * size.height / height as f32;
+        } else {
+            size.height = height as f32 * size.width / width as f32;
+        }
+
+        layout::Node::new(size)
     }
 
     fn draw(
         &self,
-        _state: &Tree,
         renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
-        _style: &renderer::Style,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) {
-        draw(renderer, layout, &self.handle, self.content_fit)
+    ) -> Renderer::Output {
+        renderer.draw(self.handle.clone(), layout)
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.handle.hash(state);
+        self.width.hash(state);
+        self.height.hash(state);
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Image<Handle>>
-    for Element<'a, Message, Renderer>
+/// An [`Image`] handle.
+#[derive(Debug, Clone)]
+pub struct Handle {
+    id: u64,
+    data: Arc<Data>,
+}
+
+impl Handle {
+    /// Creates an image [`Handle`] pointing to the image of the given path.
+    ///
+    /// Makes an educated guess about the image format by examining the data in the file.
+    pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
+        Self::from_data(Data::Path(path.into()))
+    }
+
+    /// Creates an image [`Handle`] containing the image pixels directly. This
+    /// function expects the input data to be provided as a `Vec<u8>` of BGRA
+    /// pixels.
+    ///
+    /// This is useful if you have already decoded your image.
+    pub fn from_pixels(width: u32, height: u32, pixels: Vec<u8>) -> Handle {
+        Self::from_data(Data::Pixels {
+            width,
+            height,
+            pixels,
+        })
+    }
+
+    /// Creates an image [`Handle`] containing the image data directly.
+    ///
+    /// Makes an educated guess about the image format by examining the given data.
+    ///
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    pub fn from_memory(bytes: Vec<u8>) -> Handle {
+        Self::from_data(Data::Bytes(bytes))
+    }
+
+    fn from_data(data: Data) -> Handle {
+        let mut hasher = Hasher::default();
+        data.hash(&mut hasher);
+
+        Handle {
+            id: hasher.finish(),
+            data: Arc::new(data),
+        }
+    }
+
+    /// Returns the unique identifier of the [`Handle`].
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Returns a reference to the image [`Data`].
+    pub fn data(&self) -> &Data {
+        &self.data
+    }
+}
+
+impl<T> From<T> for Handle
 where
-    Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash + 'a,
+    T: Into<PathBuf>,
 {
-    fn from(image: Image<Handle>) -> Element<'a, Message, Renderer> {
+    fn from(path: T) -> Handle {
+        Handle::from_path(path.into())
+    }
+}
+
+impl Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+/// The data of an [`Image`].
+#[derive(Clone, Hash)]
+pub enum Data {
+    /// File data
+    Path(PathBuf),
+
+    /// In-memory data
+    Bytes(Vec<u8>),
+
+    /// Decoded image pixels in BGRA format.
+    Pixels {
+        /// The width of the image.
+        width: u32,
+        /// The height of the image.
+        height: u32,
+        /// The pixels.
+        pixels: Vec<u8>,
+    },
+}
+
+impl std::fmt::Debug for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
+            Data::Pixels { width, height, .. } => {
+                write!(f, "Pixels({} * {})", width, height)
+            }
+        }
+    }
+}
+
+/// The renderer of an [`Image`].
+///
+/// Your [renderer] will need to implement this trait before being able to use
+/// an [`Image`] in your user interface.
+///
+/// [renderer]: crate::renderer
+pub trait Renderer: crate::Renderer {
+    /// Returns the dimensions of an [`Image`] located on the given path.
+    fn dimensions(&self, handle: &Handle) -> (u32, u32);
+
+    /// Draws an [`Image`].
+    fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
+}
+
+impl<'a, Message, Renderer> From<Image> for Element<'a, Message, Renderer>
+where
+    Renderer: self::Renderer,
+{
+    fn from(image: Image) -> Element<'a, Message, Renderer> {
         Element::new(image)
     }
 }

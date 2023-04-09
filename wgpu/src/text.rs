@@ -1,11 +1,7 @@
 use crate::Transformation;
-
 use iced_graphics::font;
-
 use std::{cell::RefCell, collections::HashMap};
 use wgpu_glyph::ab_glyph;
-
-pub use iced_native::text::Hit;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -19,7 +15,6 @@ impl Pipeline {
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
         default_font: Option<&[u8]>,
-        multithreading: bool,
     ) -> Self {
         let default_font = default_font.map(|slice| slice.to_vec());
 
@@ -48,15 +43,11 @@ impl Pipeline {
                     .expect("Load fallback font")
             });
 
-        let draw_brush_builder =
+        let draw_brush =
             wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
                 .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(multithreading);
-
-        #[cfg(target_arch = "wasm32")]
-        let draw_brush_builder = draw_brush_builder.draw_cache_align_4x4(true);
-
-        let draw_brush = draw_brush_builder.build(device, format);
+                .draw_cache_multithread(false) // TODO: Expose as a configuration flag
+                .build(device, format);
 
         let measure_brush =
             glyph_brush::GlyphBrushBuilder::using_font(font).build();
@@ -123,95 +114,6 @@ impl Pipeline {
         } else {
             (0.0, 0.0)
         }
-    }
-
-    pub fn hit_test(
-        &self,
-        content: &str,
-        size: f32,
-        font: iced_native::Font,
-        bounds: iced_native::Size,
-        point: iced_native::Point,
-        nearest_only: bool,
-    ) -> Option<Hit> {
-        use wgpu_glyph::GlyphCruncher;
-
-        let wgpu_glyph::FontId(font_id) = self.find_font(font);
-
-        let section = wgpu_glyph::Section {
-            bounds: (bounds.width, bounds.height),
-            text: vec![wgpu_glyph::Text {
-                text: content,
-                scale: size.into(),
-                font_id: wgpu_glyph::FontId(font_id),
-                extra: wgpu_glyph::Extra::default(),
-            }],
-            ..Default::default()
-        };
-
-        let mut mb = self.measure_brush.borrow_mut();
-
-        // The underlying type is FontArc, so clones are cheap.
-        use wgpu_glyph::ab_glyph::{Font, ScaleFont};
-        let font = mb.fonts()[font_id].clone().into_scaled(size);
-
-        // Implements an iterator over the glyph bounding boxes.
-        let bounds = mb.glyphs(section).map(
-            |wgpu_glyph::SectionGlyph {
-                 byte_index, glyph, ..
-             }| {
-                (
-                    *byte_index,
-                    iced_native::Rectangle::new(
-                        iced_native::Point::new(
-                            glyph.position.x - font.h_side_bearing(glyph.id),
-                            glyph.position.y - font.ascent(),
-                        ),
-                        iced_native::Size::new(
-                            font.h_advance(glyph.id),
-                            font.ascent() - font.descent(),
-                        ),
-                    ),
-                )
-            },
-        );
-
-        // Implements computation of the character index based on the byte index
-        // within the input string.
-        let char_index = |byte_index| {
-            let mut b_count = 0;
-            for (i, utf8_len) in
-                content.chars().map(|c| c.len_utf8()).enumerate()
-            {
-                if byte_index < (b_count + utf8_len) {
-                    return i;
-                }
-                b_count += utf8_len;
-            }
-
-            byte_index
-        };
-
-        if !nearest_only {
-            for (idx, bounds) in bounds.clone() {
-                if bounds.contains(point) {
-                    return Some(Hit::CharOffset(char_index(idx)));
-                }
-            }
-        }
-
-        let nearest = bounds
-            .map(|(index, bounds)| (index, bounds.center()))
-            .min_by(|(_, center_a), (_, center_b)| {
-                center_a
-                    .distance(point)
-                    .partial_cmp(&center_b.distance(point))
-                    .unwrap_or(std::cmp::Ordering::Greater)
-            });
-
-        nearest.map(|(idx, center)| {
-            Hit::NearestCharOffset(char_index(idx), point - center)
-        })
     }
 
     pub fn trim_measurement_cache(&mut self) {

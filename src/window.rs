@@ -1,11 +1,9 @@
 //! Configure the window of your application in native platforms.
-mod position;
+mod mode;
 mod settings;
 
 pub mod icon;
 
 pub use icon::Icon;
-pub use position::Position;
-pub use settings::{PlatformSpecific, Settings};
-
-pub use crate::runtime::window::*;
+pub use mode::Mode;
+pub use settings::Settings;

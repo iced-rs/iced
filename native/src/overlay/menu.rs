@@ -1,46 +1,35 @@
 //! Build and show dropdown menus.
-use crate::alignment;
+use crate::container;
 use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::overlay;
-use crate::renderer;
-use crate::text::{self, Text};
+use crate::scrollable;
+use crate::text;
 use crate::touch;
-use crate::widget::container::{self, Container};
-use crate::widget::scrollable::{self, Scrollable};
-use crate::widget::Tree;
 use crate::{
-    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Container, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Scrollable, Size, Vector, Widget,
 };
-
-pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Renderer>
-where
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
+pub struct Menu<'a, T, Renderer: self::Renderer> {
     state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
-    width: f32,
+    width: u16,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<u16>,
     font: Renderer::Font,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Renderer as self::Renderer>::Style,
 }
 
 impl<'a, T, Renderer> Menu<'a, T, Renderer>
 where
     T: ToString + Clone,
-    Renderer: text::Renderer + 'a,
-    Renderer::Theme:
-        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
+    Renderer: self::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -55,7 +44,7 @@ where
             options,
             hovered_option,
             last_selection,
-            width: 0.0,
+            width: 0,
             padding: Padding::ZERO,
             text_size: None,
             font: Default::default(),
@@ -64,7 +53,7 @@ where
     }
 
     /// Sets the width of the [`Menu`].
-    pub fn width(mut self, width: f32) -> Self {
+    pub fn width(mut self, width: u16) -> Self {
         self.width = width;
         self
     }
@@ -76,8 +65,8 @@ where
     }
 
     /// Sets the text size of the [`Menu`].
-    pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
-        self.text_size = Some(text_size.into().0);
+    pub fn text_size(mut self, text_size: u16) -> Self {
+        self.text_size = Some(text_size);
         self
     }
 
@@ -90,7 +79,7 @@ where
     /// Sets the style of the [`Menu`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style: impl Into<<Renderer as self::Renderer>::Style>,
     ) -> Self {
         self.style = style.into();
         self
@@ -115,45 +104,29 @@ where
 }
 
 /// The local state of a [`Menu`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Default)]
 pub struct State {
-    tree: Tree,
+    scrollable: scrollable::State,
 }
 
 impl State {
     /// Creates a new [`State`] for a [`Menu`].
     pub fn new() -> Self {
-        Self {
-            tree: Tree::empty(),
-        }
+        Self::default()
     }
 }
 
-impl Default for State {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-struct Overlay<'a, Message, Renderer>
-where
-    Renderer: crate::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
-{
-    state: &'a mut Tree,
+struct Overlay<'a, Message, Renderer: self::Renderer> {
     container: Container<'a, Message, Renderer>,
-    width: f32,
+    width: u16,
     target_height: f32,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
+impl<'a, Message, Renderer: self::Renderer> Overlay<'a, Message, Renderer>
 where
     Message: 'a,
     Renderer: 'a,
-    Renderer: text::Renderer,
-    Renderer::Theme:
-        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
 {
     pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
     where
@@ -171,24 +144,23 @@ where
             style,
         } = menu;
 
-        let container = Container::new(Scrollable::new(List {
-            options,
-            hovered_option,
-            last_selection,
-            font,
-            text_size,
-            padding,
-            style: style.clone(),
-        }));
-
-        state.tree.diff(&container as &dyn Widget<_, _>);
+        let container =
+            Container::new(Scrollable::new(&mut state.scrollable).push(List {
+                options,
+                hovered_option,
+                last_selection,
+                font,
+                text_size,
+                padding,
+                style: style.clone(),
+            }))
+            .padding(1);
 
         Self {
-            state: &mut state.tree,
             container,
-            width,
+            width: width,
             target_height,
-            style,
+            style: style,
         }
     }
 }
@@ -196,8 +168,7 @@ where
 impl<'a, Message, Renderer> crate::Overlay<Message, Renderer>
     for Overlay<'a, Message, Renderer>
 where
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
+    Renderer: self::Renderer,
 {
     fn layout(
         &self,
@@ -219,7 +190,7 @@ where
                 },
             ),
         )
-        .width(self.width);
+        .width(Length::Units(self.width));
 
         let mut node = self.container.layout(renderer, &limits);
 
@@ -232,6 +203,17 @@ where
         node
     }
 
+    fn hash_layout(&self, state: &mut Hasher, position: Point) {
+        use std::hash::Hash;
+
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        (position.x as u32).hash(state);
+        (position.y as u32).hash(state);
+        self.container.hash_layout(state);
+    }
+
     fn on_event(
         &mut self,
         event: Event,
@@ -239,88 +221,57 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.container.on_event(
-            self.state,
-            event,
+            event.clone(),
             layout,
             cursor_position,
             renderer,
             clipboard,
-            shell,
-        )
-    }
-
-    fn mouse_interaction(
-        &self,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.container.mouse_interaction(
-            self.state,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
+            messages,
         )
     }
 
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
-    ) {
-        let appearance = theme.appearance(&self.style);
-        let bounds = layout.bounds();
-
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border_color: appearance.border_color,
-                border_width: appearance.border_width,
-                border_radius: appearance.border_radius.into(),
-            },
-            appearance.background,
-        );
-
-        self.container.draw(
-            self.state,
+    ) -> Renderer::Output {
+        let primitives = self.container.draw(
             renderer,
-            theme,
-            style,
+            defaults,
             layout,
             cursor_position,
-            &bounds,
+            &layout.bounds(),
         );
+
+        renderer.decorate(
+            layout.bounds(),
+            cursor_position,
+            &self.style,
+            primitives,
+        )
     }
 }
 
-struct List<'a, T, Renderer>
-where
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
-{
+struct List<'a, T, Renderer: self::Renderer> {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     last_selection: &'a mut Option<T>,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<u16>,
     font: Renderer::Font,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Renderer as self::Renderer>::Style,
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
+impl<'a, T, Message, Renderer: self::Renderer> Widget<Message, Renderer>
     for List<'a, T, Renderer>
 where
     T: Clone + ToString,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         Length::Fill
@@ -338,13 +289,12 @@ where
         use std::f32;
 
         let limits = limits.width(Length::Fill).height(Length::Shrink);
-        let text_size =
-            self.text_size.unwrap_or_else(|| renderer.default_size());
+        let text_size = self.text_size.unwrap_or(renderer.default_size());
 
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (text_size + self.padding.vertical())
+                f32::from(text_size + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -354,15 +304,25 @@ where
         layout::Node::new(size)
     }
 
+    fn hash_layout(&self, state: &mut Hasher) {
+        use std::hash::Hash as _;
+
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.options.len().hash(state);
+        self.text_size.hash(state);
+        self.padding.hash(state);
+    }
+
     fn on_event(
         &mut self,
-        _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -380,13 +340,12 @@ where
                 let bounds = layout.bounds();
 
                 if bounds.contains(cursor_position) {
-                    let text_size = self
-                        .text_size
-                        .unwrap_or_else(|| renderer.default_size());
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / (text_size + self.padding.vertical()))
+                            / f32::from(text_size + self.padding.vertical()))
                             as usize,
                     );
                 }
@@ -395,13 +354,12 @@ where
                 let bounds = layout.bounds();
 
                 if bounds.contains(cursor_position) {
-                    let text_size = self
-                        .text_size
-                        .unwrap_or_else(|| renderer.default_size());
+                    let text_size =
+                        self.text_size.unwrap_or(renderer.default_size());
 
                     *self.hovered_option = Some(
                         ((cursor_position.y - bounds.y)
-                            / (text_size + self.padding.vertical()))
+                            / f32::from(text_size + self.padding.vertical()))
                             as usize,
                     );
 
@@ -418,101 +376,75 @@ where
         event::Status::Ignored
     }
 
-    fn mouse_interaction(
-        &self,
-        _state: &Tree,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        let is_mouse_over = layout.bounds().contains(cursor_position);
-
-        if is_mouse_over {
-            mouse::Interaction::Pointer
-        } else {
-            mouse::Interaction::default()
-        }
-    }
-
     fn draw(
         &self,
-        _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        _style: &renderer::Style,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        cursor_position: Point,
         viewport: &Rectangle,
-    ) {
-        let appearance = theme.appearance(&self.style);
-        let bounds = layout.bounds();
-
-        let text_size =
-            self.text_size.unwrap_or_else(|| renderer.default_size());
-        let option_height = (text_size + self.padding.vertical()) as usize;
-
-        let offset = viewport.y - bounds.y;
-        let start = (offset / option_height as f32) as usize;
-        let end =
-            ((offset + viewport.height) / option_height as f32).ceil() as usize;
-
-        let visible_options = &self.options[start..end.min(self.options.len())];
-
-        for (i, option) in visible_options.iter().enumerate() {
-            let i = start + i;
-            let is_selected = *self.hovered_option == Some(i);
-
-            let bounds = Rectangle {
-                x: bounds.x,
-                y: bounds.y + (option_height * i) as f32,
-                width: bounds.width,
-                height: text_size + self.padding.vertical(),
-            };
-
-            if is_selected {
-                renderer.fill_quad(
-                    renderer::Quad {
-                        bounds,
-                        border_color: Color::TRANSPARENT,
-                        border_width: 0.0,
-                        border_radius: appearance.border_radius.into(),
-                    },
-                    appearance.selected_background,
-                );
-            }
-
-            renderer.fill_text(Text {
-                content: &option.to_string(),
-                bounds: Rectangle {
-                    x: bounds.x + self.padding.left,
-                    y: bounds.center_y(),
-                    width: f32::INFINITY,
-                    ..bounds
-                },
-                size: text_size,
-                font: self.font.clone(),
-                color: if is_selected {
-                    appearance.selected_text_color
-                } else {
-                    appearance.text_color
-                },
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-            });
-        }
+    ) -> Renderer::Output {
+        self::Renderer::draw(
+            renderer,
+            layout.bounds(),
+            cursor_position,
+            viewport,
+            self.options,
+            *self.hovered_option,
+            self.padding,
+            self.text_size.unwrap_or(renderer.default_size()),
+            self.font,
+            &self.style,
+        )
     }
 }
 
-impl<'a, T, Message, Renderer> From<List<'a, T, Renderer>>
-    for Element<'a, Message, Renderer>
+/// The renderer of a [`Menu`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Menu`] in your user interface.
+///
+/// [renderer]: crate::renderer
+pub trait Renderer:
+    scrollable::Renderer + container::Renderer + text::Renderer
+{
+    /// The [`Menu`] style supported by this renderer.
+    type Style: Default + Clone;
+
+    /// Decorates a the list of options of a [`Menu`].
+    ///
+    /// This method can be used to draw a background for the [`Menu`].
+    fn decorate(
+        &mut self,
+        bounds: Rectangle,
+        cursor_position: Point,
+        style: &<Self as Renderer>::Style,
+        primitive: Self::Output,
+    ) -> Self::Output;
+
+    /// Draws the list of options of a [`Menu`].
+    fn draw<T: ToString>(
+        &mut self,
+        bounds: Rectangle,
+        cursor_position: Point,
+        viewport: &Rectangle,
+        options: &[T],
+        hovered_option: Option<usize>,
+        padding: Padding,
+        text_size: u16,
+        font: Self::Font,
+        style: &<Self as Renderer>::Style,
+    ) -> Self::Output;
+}
+
+impl<'a, T, Message, Renderer> Into<Element<'a, Message, Renderer>>
+    for List<'a, T, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Renderer: 'a + self::Renderer,
 {
-    fn from(list: List<'a, T, Renderer>) -> Self {
-        Element::new(list)
+    fn into(self) -> Element<'a, Message, Renderer> {
+        Element::new(self)
     }
 }

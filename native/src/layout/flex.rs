@@ -16,10 +16,11 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::Element;
 
-use crate::layout::{Limits, Node};
-use crate::{Alignment, Padding, Point, Size};
+use crate::{
+    layout::{Limits, Node},
+    Align, Element, Padding, Point, Size,
+};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -64,7 +65,7 @@ pub fn resolve<Message, Renderer>(
     limits: &Limits,
     padding: Padding,
     spacing: f32,
-    align_items: Alignment,
+    align_items: Align,
     items: &[Element<'_, Message, Renderer>],
 ) -> Node
 where
@@ -83,8 +84,8 @@ where
 
     for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
+            Axis::Horizontal => child.width(),
+            Axis::Vertical => child.height(),
         }
         .fill_factor();
 
@@ -94,7 +95,7 @@ where
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout = child.layout(renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -110,8 +111,8 @@ where
 
     for (i, child) in items.iter().enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
+            Axis::Horizontal => child.width(),
+            Axis::Vertical => child.height(),
         }
         .fill_factor();
 
@@ -123,24 +124,25 @@ where
                 max_main
             };
 
-            let (min_width, min_height) =
+            let (min_main, min_cross) =
                 axis.pack(min_main, axis.cross(limits.min()));
 
-            let (max_width, max_height) = axis.pack(max_main, max_cross);
+            let (max_main, max_cross) =
+                axis.pack(max_main, axis.cross(limits.max()));
 
             let child_limits = Limits::new(
-                Size::new(min_width, min_height),
-                Size::new(max_width, max_height),
+                Size::new(min_main, min_cross),
+                Size::new(max_main, max_cross),
             );
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout = child.layout(renderer, &child_limits);
             cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;
         }
     }
 
-    let pad = axis.pack(padding.left, padding.top);
+    let pad = axis.pack(padding.left as f32, padding.top as f32);
     let mut main = pad.0;
 
     for (i, node) in nodes.iter_mut().enumerate() {
@@ -154,18 +156,10 @@ where
 
         match axis {
             Axis::Horizontal => {
-                node.align(
-                    Alignment::Start,
-                    align_items,
-                    Size::new(0.0, cross),
-                );
+                node.align(Align::Start, align_items, Size::new(0.0, cross));
             }
             Axis::Vertical => {
-                node.align(
-                    align_items,
-                    Alignment::Start,
-                    Size::new(cross, 0.0),
-                );
+                node.align(align_items, Align::Start, Size::new(cross, 0.0));
             }
         }
 

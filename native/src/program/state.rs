@@ -1,9 +1,6 @@
-use crate::application;
-use crate::event::{self, Event};
-use crate::mouse;
-use crate::renderer;
-use crate::user_interface::{self, UserInterface};
-use crate::{Clipboard, Command, Debug, Point, Program, Size};
+use crate::{
+    Cache, Command, Debug, Event, Point, Program, Renderer, Size, UserInterface,
+};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -13,47 +10,56 @@ where
     P: Program + 'static,
 {
     program: P,
-    cache: Option<user_interface::Cache>,
+    cache: Option<Cache>,
+    primitive: <P::Renderer as Renderer>::Output,
     queued_events: Vec<Event>,
     queued_messages: Vec<P::Message>,
-    mouse_interaction: mouse::Interaction,
 }
 
 impl<P> State<P>
 where
     P: Program + 'static,
-    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
     pub fn new(
         mut program: P,
         bounds: Size,
+        cursor_position: Point,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
-        let user_interface = build_user_interface(
+        let mut user_interface = build_user_interface(
             &mut program,
-            user_interface::Cache::default(),
+            Cache::default(),
             renderer,
             bounds,
             debug,
         );
+
+        debug.draw_started();
+        let primitive = user_interface.draw(renderer, cursor_position);
+        debug.draw_finished();
 
         let cache = Some(user_interface.into_cache());
 
         State {
             program,
             cache,
+            primitive,
             queued_events: Vec::new(),
             queued_messages: Vec::new(),
-            mouse_interaction: mouse::Interaction::Idle,
         }
     }
 
     /// Returns a reference to the [`Program`] of the [`State`].
     pub fn program(&self) -> &P {
         &self.program
+    }
+
+    /// Returns a reference to the current rendering primitive of the [`State`].
+    pub fn primitive(&self) -> &<P::Renderer as Renderer>::Output {
+        &self.primitive
     }
 
     /// Queues an event in the [`State`] for processing during an [`update`].
@@ -75,27 +81,19 @@ where
         self.queued_events.is_empty() && self.queued_messages.is_empty()
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`State`].
-    pub fn mouse_interaction(&self) -> mouse::Interaction {
-        self.mouse_interaction
-    }
-
     /// Processes all the queued events and messages, rebuilding and redrawing
     /// the widgets of the linked [`Program`] if necessary.
     ///
-    /// Returns a list containing the instances of [`Event`] that were not
-    /// captured by any widget, and the [`Command`] obtained from [`Program`]
-    /// after updating it, only if an update was necessary.
+    /// Returns the [`Command`] obtained from [`Program`] after updating it,
+    /// only if an update was necessary.
     pub fn update(
         &mut self,
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
-        theme: &<P::Renderer as crate::Renderer>::Theme,
-        style: &renderer::Style,
-        clipboard: &mut dyn Clipboard,
+        clipboard: &mut P::Clipboard,
         debug: &mut Debug,
-    ) -> (Vec<Event>, Option<Command<P::Message>>) {
+    ) -> Option<Command<P::Message>> {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
@@ -107,7 +105,7 @@ where
         debug.event_processing_started();
         let mut messages = Vec::new();
 
-        let (_, event_statuses) = user_interface.update(
+        let _ = user_interface.update(
             &self.queued_events,
             cursor_position,
             renderer,
@@ -115,24 +113,13 @@ where
             &mut messages,
         );
 
-        let uncaptured_events = self
-            .queued_events
-            .iter()
-            .zip(event_statuses)
-            .filter_map(|(event, status)| {
-                matches!(status, event::Status::Ignored).then_some(event)
-            })
-            .cloned()
-            .collect();
-
+        messages.extend(self.queued_messages.drain(..));
         self.queued_events.clear();
-        messages.append(&mut self.queued_messages);
         debug.event_processing_finished();
 
-        let command = if messages.is_empty() {
+        if messages.is_empty() {
             debug.draw_started();
-            self.mouse_interaction =
-                user_interface.draw(renderer, theme, style, cursor_position);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -148,7 +135,7 @@ where
                     debug.log_message(&message);
 
                     debug.update_started();
-                    let command = self.program.update(message);
+                    let command = self.program.update(message, clipboard);
                     debug.update_finished();
 
                     command
@@ -163,29 +150,23 @@ where
             );
 
             debug.draw_started();
-            self.mouse_interaction =
-                user_interface.draw(renderer, theme, style, cursor_position);
+            self.primitive = user_interface.draw(renderer, cursor_position);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
 
             Some(commands)
-        };
-
-        (uncaptured_events, command)
+        }
     }
 }
 
 fn build_user_interface<'a, P: Program>(
     program: &'a mut P,
-    cache: user_interface::Cache,
+    cache: Cache,
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, P::Message, P::Renderer>
-where
-    <P::Renderer as crate::Renderer>::Theme: application::StyleSheet,
-{
+) -> UserInterface<'a, P::Message, P::Renderer> {
     debug.view_started();
     let view = program.view();
     debug.view_finished();

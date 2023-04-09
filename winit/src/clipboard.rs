@@ -1,8 +1,3 @@
-//! Access the clipboard.
-pub use iced_native::clipboard::Action;
-
-use crate::command::{self, Command};
-
 /// A buffer for short-term storage and transfer within and between
 /// applications.
 #[allow(missing_debug_implementations)]
@@ -24,14 +19,6 @@ impl Clipboard {
             .unwrap_or(State::Unavailable);
 
         Clipboard { state }
-    }
-
-    /// Creates a new [`Clipboard`] that isn't associated with a window.
-    /// This clipboard will never contain a copied value.
-    pub fn unconnected() -> Clipboard {
-        Clipboard {
-            state: State::Unavailable,
-        }
     }
 
     /// Reads the current content of the [`Clipboard`] as text.
@@ -64,16 +51,4 @@ impl iced_native::Clipboard for Clipboard {
     fn write(&mut self, contents: String) {
         self.write(contents)
     }
-}
-
-/// Read the current contents of the clipboard.
-pub fn read<Message>(
-    f: impl Fn(Option<String>) -> Message + 'static,
-) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Read(Box::new(f))))
-}
-
-/// Write the given contents to the clipboard.
-pub fn write<Message>(contents: String) -> Command<Message> {
-    Command::single(command::Action::Clipboard(Action::Write(contents)))
 }

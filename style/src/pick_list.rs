@@ -1,33 +1,70 @@
-//! Change the appearance of a pick list.
+use crate::menu;
 use iced_core::{Background, Color};
 
 /// The appearance of a pick list.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The text [`Color`] of the pick list.
+pub struct Style {
     pub text_color: Color,
-    /// The placeholder [`Color`] of the pick list.
-    pub placeholder_color: Color,
-    /// The handle [`Color`] of the pick list.
-    pub handle_color: Color,
-    /// The [`Background`] of the pick list.
     pub background: Background,
-    /// The border radius of the pick list.
     pub border_radius: f32,
-    /// The border width of the pick list.
     pub border_width: f32,
-    /// The border color of the pick list.
     pub border_color: Color,
+    pub icon_size: f32,
+}
+
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Self {
+            text_color: Color::BLACK,
+            background: Background::Color([0.87, 0.87, 0.87].into()),
+            border_radius: 0.0,
+            border_width: 1.0,
+            border_color: [0.7, 0.7, 0.7].into(),
+            icon_size: 0.7,
+        }
+    }
 }
 
 /// A set of rules that dictate the style of a container.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default + Clone;
+    fn menu(&self) -> menu::Style;
 
-    /// Produces the active [`Appearance`] of a pick list.
-    fn active(&self, style: &<Self as StyleSheet>::Style) -> Appearance;
+    fn active(&self) -> Style;
 
-    /// Produces the hovered [`Appearance`] of a pick list.
-    fn hovered(&self, style: &<Self as StyleSheet>::Style) -> Appearance;
+    /// Produces the style of a container.
+    fn hovered(&self) -> Style;
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn menu(&self) -> menu::Style {
+        menu::Style::default()
+    }
+
+    fn active(&self) -> Style {
+        Style::default()
+    }
+
+    fn hovered(&self) -> Style {
+        Style {
+            border_color: Color::BLACK,
+            ..self.active()
+        }
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
+    }
 }

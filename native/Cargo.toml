@@ -1,29 +1,25 @@
 [package]
 name = "iced_native"
-version = "0.9.1"
+version = "0.4.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2018"
 description = "A renderer-agnostic library for native GUIs"
 license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+repository = "https://github.com/hecrj/iced"
 
 [features]
 debug = []
 
 [dependencies]
-twox-hash = { version = "1.5", default-features = false }
+twox-hash = "1.5"
 unicode-segmentation = "1.6"
 num-traits = "0.2"
 
 [dependencies.iced_core]
-version = "0.8"
+version = "0.4"
 path = "../core"
 
 [dependencies.iced_futures]
-version = "0.6"
+version = "0.3"
 path = "../futures"
 features = ["thread-pool"]
-
-[dependencies.iced_style]
-version = "0.7"
-path = "../style"

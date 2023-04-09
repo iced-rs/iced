@@ -1,23 +1,25 @@
 //! Distribute content horizontally.
 use crate::event::{self, Event};
-use crate::layout::{self, Layout};
-use crate::mouse;
+use crate::layout;
 use crate::overlay;
-use crate::renderer;
-use crate::widget::{Operation, Tree};
 use crate::{
-    Alignment, Clipboard, Element, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Widget,
+    Align, Clipboard, Element, Hasher, Layout, Length, Padding, Point,
+    Rectangle, Widget,
 };
+
+use std::hash::Hash;
+use std::u32;
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
 pub struct Row<'a, Message, Renderer> {
-    spacing: f32,
+    spacing: u16,
     padding: Padding,
     width: Length,
     height: Length,
-    align_items: Alignment,
+    max_width: u32,
+    max_height: u32,
+    align_items: Align,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
@@ -32,22 +34,24 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         children: Vec<Element<'a, Message, Renderer>>,
     ) -> Self {
         Row {
-            spacing: 0.0,
+            spacing: 0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
-            align_items: Alignment::Start,
+            max_width: u32::MAX,
+            max_height: u32::MAX,
+            align_items: Align::Start,
             children,
         }
     }
 
     /// Sets the horizontal spacing _between_ elements.
     ///
-    /// Custom margins per element do not exist in iced. You should use this
+    /// Custom margins per element do not exist in Iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
     /// elements consistent.
-    pub fn spacing(mut self, amount: impl Into<Pixels>) -> Self {
-        self.spacing = amount.into().0;
+    pub fn spacing(mut self, units: u16) -> Self {
+        self.spacing = units;
         self
     }
 
@@ -58,52 +62,50 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
     }
 
     /// Sets the width of the [`Row`].
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Row`].
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
+        self
+    }
+
+    /// Sets the maximum width of the [`Row`].
+    pub fn max_width(mut self, max_width: u32) -> Self {
+        self.max_width = max_width;
+        self
+    }
+
+    /// Sets the maximum height of the [`Row`].
+    pub fn max_height(mut self, max_height: u32) -> Self {
+        self.max_height = max_height;
         self
     }
 
     /// Sets the vertical alignment of the contents of the [`Row`] .
-    pub fn align_items(mut self, align: Alignment) -> Self {
+    pub fn align_items(mut self, align: Align) -> Self {
         self.align_items = align;
         self
     }
 
     /// Adds an [`Element`] to the [`Row`].
-    pub fn push(
-        mut self,
-        child: impl Into<Element<'a, Message, Renderer>>,
-    ) -> Self {
+    pub fn push<E>(mut self, child: E) -> Self
+    where
+        E: Into<Element<'a, Message, Renderer>>,
+    {
         self.children.push(child.into());
         self
-    }
-}
-
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
     for Row<'a, Message, Renderer>
 where
-    Renderer: crate::Renderer,
+    Renderer: self::Renderer,
 {
-    fn children(&self) -> Vec<Tree> {
-        self.children.iter().map(Tree::new).collect()
-    }
-
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children)
-    }
-
     fn width(&self) -> Length {
         self.width
     }
@@ -117,137 +119,124 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits
+            .max_width(self.max_width)
+            .max_height(self.max_height)
+            .width(self.width)
+            .height(self.height);
 
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
             &limits,
             self.padding,
-            self.spacing,
+            self.spacing as f32,
             self.align_items,
             &self.children,
         )
     }
 
-    fn operate(
-        &self,
-        tree: &mut Tree,
-        layout: Layout<'_>,
-        renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
-    ) {
-        operation.container(None, &mut |operation| {
-            self.children
-                .iter()
-                .zip(&mut tree.children)
-                .zip(layout.children())
-                .for_each(|((child, state), layout)| {
-                    child
-                        .as_widget()
-                        .operate(state, layout, renderer, operation);
-                })
-        });
-    }
-
     fn on_event(
         &mut self,
-        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        shell: &mut Shell<'_, Message>,
+        messages: &mut Vec<Message>,
     ) -> event::Status {
         self.children
             .iter_mut()
-            .zip(&mut tree.children)
             .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget_mut().on_event(
-                    state,
+            .map(|(child, layout)| {
+                child.widget.on_event(
                     event.clone(),
                     layout,
                     cursor_position,
                     renderer,
                     clipboard,
-                    shell,
+                    messages,
                 )
             })
             .fold(event::Status::Ignored, event::Status::merge)
     }
 
-    fn mouse_interaction(
-        &self,
-        tree: &Tree,
-        layout: Layout<'_>,
-        cursor_position: Point,
-        viewport: &Rectangle,
-        renderer: &Renderer,
-    ) -> mouse::Interaction {
-        self.children
-            .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-            .map(|((child, state), layout)| {
-                child.as_widget().mouse_interaction(
-                    state,
-                    layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
-            })
-            .max()
-            .unwrap_or_default()
-    }
-
     fn draw(
         &self,
-        tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    ) {
-        for ((child, state), layout) in self
-            .children
-            .iter()
-            .zip(&tree.children)
-            .zip(layout.children())
-        {
-            child.as_widget().draw(
-                state,
-                renderer,
-                theme,
-                style,
-                layout,
-                cursor_position,
-                viewport,
-            );
+    ) -> Renderer::Output {
+        renderer.draw(
+            defaults,
+            &self.children,
+            layout,
+            cursor_position,
+            viewport,
+        )
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        struct Marker;
+        std::any::TypeId::of::<Marker>().hash(state);
+
+        self.width.hash(state);
+        self.height.hash(state);
+        self.max_width.hash(state);
+        self.max_height.hash(state);
+        self.align_items.hash(state);
+        self.spacing.hash(state);
+        self.padding.hash(state);
+
+        for child in &self.children {
+            child.widget.hash_layout(state);
         }
     }
 
-    fn overlay<'b>(
-        &'b mut self,
-        tree: &'b mut Tree,
+    fn overlay(
+        &mut self,
         layout: Layout<'_>,
-        renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        overlay::from_children(&mut self.children, tree, layout, renderer)
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+        self.children
+            .iter_mut()
+            .zip(layout.children())
+            .filter_map(|(child, layout)| child.widget.overlay(layout))
+            .next()
     }
+}
+
+/// The renderer of a [`Row`].
+///
+/// Your [renderer] will need to implement this trait before being
+/// able to use a [`Row`] in your user interface.
+///
+/// [renderer]: crate::renderer
+pub trait Renderer: crate::Renderer + Sized {
+    /// Draws a [`Row`].
+    ///
+    /// It receives:
+    /// - the children of the [`Row`]
+    /// - the [`Layout`] of the [`Row`] and its children
+    /// - the cursor position
+    fn draw<Message>(
+        &mut self,
+        defaults: &Self::Defaults,
+        children: &[Element<'_, Message, Self>],
+        layout: Layout<'_>,
+        cursor_position: Point,
+        viewport: &Rectangle,
+    ) -> Self::Output;
 }
 
 impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
+    Renderer: 'a + self::Renderer,
     Message: 'a,
-    Renderer: crate::Renderer + 'a,
 {
-    fn from(row: Row<'a, Message, Renderer>) -> Self {
-        Self::new(row)
+    fn from(row: Row<'a, Message, Renderer>) -> Element<'a, Message, Renderer> {
+        Element::new(row)
     }
 }

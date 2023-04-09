@@ -1,11 +1,11 @@
 [package]
 name = "iced_futures"
-version = "0.6.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2018"
 description = "Commands, subscriptions, and runtimes for Iced"
 license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced_futures"
 keywords = ["gui", "ui", "graphics", "interface", "futures"]
 categories = ["gui"]
@@ -18,6 +18,12 @@ log = "0.4"
 
 [dependencies.futures]
 version = "0.3"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio_old]
+package = "tokio"
+version = "0.2"
+optional = true
+features = ["rt-core", "rt-threaded", "time", "stream"]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
 package = "tokio"
@@ -36,7 +42,6 @@ optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen-futures = "0.4"
-wasm-timer = "0.2"
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
