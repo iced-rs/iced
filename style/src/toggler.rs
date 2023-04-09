@@ -1,31 +1,57 @@
-//! Change the appearance of a toggler.
+//! Show toggle controls using togglers.
 use iced_core::Color;
 
 /// The appearance of a toggler.
-#[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The background [`Color`] of the toggler.
+#[derive(Debug)]
+pub struct Style {
     pub background: Color,
-    /// The [`Color`] of the background border of the toggler.
     pub background_border: Option<Color>,
-    /// The foreground [`Color`] of the toggler.
     pub foreground: Color,
-    /// The [`Color`] of the foreground border of the toggler.
     pub foreground_border: Option<Color>,
 }
 
 /// A set of rules that dictate the style of a toggler.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
+    fn active(&self, is_active: bool) -> Style;
 
-    /// Returns the active [`Appearance`] of the toggler for the provided [`Style`].
-    ///
-    /// [`Style`]: Self::Style
-    fn active(&self, style: &Self::Style, is_active: bool) -> Appearance;
+    fn hovered(&self, is_active: bool) -> Style;
+}
 
-    /// Returns the hovered [`Appearance`] of the toggler for the provided [`Style`].
-    ///
-    /// [`Style`]: Self::Style
-    fn hovered(&self, style: &Self::Style, is_active: bool) -> Appearance;
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self, is_active: bool) -> Style {
+        Style {
+            background: if is_active {
+                Color::from_rgb(0.0, 1.0, 0.0)
+            } else {
+                Color::from_rgb(0.7, 0.7, 0.7)
+            },
+            background_border: None,
+            foreground: Color::WHITE,
+            foreground_border: None,
+        }
+    }
+
+    fn hovered(&self, is_active: bool) -> Style {
+        Style {
+            foreground: Color::from_rgb(0.95, 0.95, 0.95),
+            ..self.active(is_active)
+        }
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
+    }
 }

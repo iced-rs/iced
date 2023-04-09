@@ -1,4 +1,4 @@
-//! Handle mouse events.
+//! Reuse basic mouse types.
 mod button;
 mod event;
 mod interaction;

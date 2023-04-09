@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Debug;
 
 impl Debug {

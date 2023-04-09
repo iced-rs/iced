@@ -1,8 +1,8 @@
 # `iced_native`
 [![Documentation](https://docs.rs/iced_native/badge.svg)][documentation]
 [![Crates.io](https://img.shields.io/crates/v/iced_native.svg)](https://crates.io/crates/iced_native)
-[![License](https://img.shields.io/crates/l/iced_native.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
-[![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
+[![License](https://img.shields.io/crates/l/iced_native.svg)](https://github.com/hecrj/iced/blob/master/LICENSE)
+[![project chat](https://img.shields.io/badge/chat-on_zulip-brightgreen.svg)](https://iced.zulipchat.com)
 
 `iced_native` takes [`iced_core`] and builds a native runtime on top of it, featuring:
 - A custom layout engine, greatly inspired by [`druid`]
@@ -28,10 +28,10 @@ To achieve this, it introduces a bunch of reusable interfaces:
 Add `iced_native` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_native = "0.9"
+iced_native = "0.4"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If
 you want to learn about a specific release, check out [the release list].
 
-[the release list]: https://github.com/iced-rs/iced/releases
+[the release list]: https://github.com/hecrj/iced/releases

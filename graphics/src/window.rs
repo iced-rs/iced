@@ -1,8 +1,8 @@
 //! Draw graphics to window surfaces.
-pub mod compositor;
+mod compositor;
 
 #[cfg(feature = "opengl")]
-pub mod gl_compositor;
+mod gl_compositor;
 
 pub use compositor::Compositor;
 

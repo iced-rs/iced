@@ -1,12 +1,9 @@
-//! The state of a [`PaneGrid`].
-//!
-//! [`PaneGrid`]: crate::widget::PaneGrid
-use crate::widget::pane_grid::{
-    Axis, Configuration, Direction, Node, Pane, Split,
+use crate::{
+    pane_grid::{Axis, Configuration, Direction, Node, Pane, Split},
+    Hasher, Point, Rectangle, Size,
 };
-use crate::{Point, Size};
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// The state of a [`PaneGrid`].
 ///
@@ -22,20 +19,8 @@ use std::collections::HashMap;
 /// [`PaneGrid::new`]: crate::widget::PaneGrid::new
 #[derive(Debug, Clone)]
 pub struct State<T> {
-    /// The panes of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub panes: HashMap<Pane, T>,
-
-    /// The internal state of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub internal: Internal,
-
-    /// The maximized [`Pane`] of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub(super) maximized: Option<Pane>,
+    pub(super) panes: HashMap<Pane, T>,
+    pub(super) internal: Internal,
 }
 
 impl<T> State<T> {
@@ -54,24 +39,22 @@ impl<T> State<T> {
     pub fn with_configuration(config: impl Into<Configuration<T>>) -> Self {
         let mut panes = HashMap::new();
 
-        let internal =
-            Internal::from_configuration(&mut panes, config.into(), 0);
+        let (layout, last_id) =
+            Self::distribute_content(&mut panes, config.into(), 0);
 
         State {
             panes,
-            internal,
-            maximized: None,
+            internal: Internal {
+                layout,
+                last_id,
+                action: Action::Idle,
+            },
         }
     }
 
     /// Returns the total amount of panes in the [`State`].
     pub fn len(&self) -> usize {
         self.panes.len()
-    }
-
-    /// Returns `true` if the amount of panes in the [`State`] is 0.
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 
     /// Returns the internal state of the given [`Pane`], if it exists.
@@ -162,7 +145,6 @@ impl<T> State<T> {
         node.split(new_split, axis, new_pane);
 
         let _ = self.panes.insert(new_pane, state);
-        let _ = self.maximized.take();
 
         Some((new_pane, new_split))
     }
@@ -204,10 +186,6 @@ impl<T> State<T> {
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
     pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
-        if self.maximized == Some(*pane) {
-            let _ = self.maximized.take();
-        }
-
         if let Some(sibling) = self.internal.layout.remove(pane) {
             self.panes.remove(pane).map(|state| (state, sibling))
         } else {
@@ -215,62 +193,15 @@ impl<T> State<T> {
         }
     }
 
-    /// Maximize the given [`Pane`]. Only this pane will be rendered by the
-    /// [`PaneGrid`] until [`Self::restore()`] is called.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn maximize(&mut self, pane: &Pane) {
-        self.maximized = Some(*pane);
-    }
-
-    /// Restore the currently maximized [`Pane`] to it's normal size. All panes
-    /// will be rendered by the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn restore(&mut self) {
-        let _ = self.maximized.take();
-    }
-
-    /// Returns the maximized [`Pane`] of the [`PaneGrid`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn maximized(&self) -> Option<Pane> {
-        self.maximized
-    }
-}
-
-/// The internal state of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: crate::widget::PaneGrid
-#[derive(Debug, Clone)]
-pub struct Internal {
-    layout: Node,
-    last_id: usize,
-}
-
-impl Internal {
-    /// Initializes the [`Internal`] state of a [`PaneGrid`] from a
-    /// [`Configuration`].
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn from_configuration<T>(
+    fn distribute_content(
         panes: &mut HashMap<Pane, T>,
         content: Configuration<T>,
         next_id: usize,
-    ) -> Self {
-        let (layout, last_id) = match content {
+    ) -> (Node, usize) {
+        match content {
             Configuration::Split { axis, ratio, a, b } => {
-                let Internal {
-                    layout: a,
-                    last_id: next_id,
-                    ..
-                } = Self::from_configuration(panes, *a, next_id);
-
-                let Internal {
-                    layout: b,
-                    last_id: next_id,
-                    ..
-                } = Self::from_configuration(panes, *b, next_id);
+                let (a, next_id) = Self::distribute_content(panes, *a, next_id);
+                let (b, next_id) = Self::distribute_content(panes, *b, next_id);
 
                 (
                     Node::Split {
@@ -289,62 +220,82 @@ impl Internal {
 
                 (Node::Pane(id), next_id + 1)
             }
-        };
-
-        Self { layout, last_id }
+        }
     }
 }
 
-/// The current action of a [`PaneGrid`].
-///
-/// [`PaneGrid`]: crate::widget::PaneGrid
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum Action {
-    /// The [`PaneGrid`] is idle.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    Idle,
-    /// A [`Pane`] in the [`PaneGrid`] is being dragged.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    Dragging {
-        /// The [`Pane`] being dragged.
-        pane: Pane,
-        /// The starting [`Point`] of the drag interaction.
-        origin: Point,
-    },
-    /// A [`Split`] in the [`PaneGrid`] is being dragged.
-    ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    Resizing {
-        /// The [`Split`] being dragged.
-        split: Split,
-        /// The [`Axis`] of the [`Split`].
-        axis: Axis,
-    },
+#[derive(Debug, Clone)]
+pub struct Internal {
+    layout: Node,
+    last_id: usize,
+    action: Action,
 }
 
-impl Action {
-    /// Returns the current [`Pane`] that is being dragged, if any.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Action {
+    Idle,
+    Dragging { pane: Pane, origin: Point },
+    Resizing { split: Split, axis: Axis },
+}
+
+impl Internal {
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
-        match *self {
+        match self.action {
             Action::Dragging { pane, origin, .. } => Some((pane, origin)),
             _ => None,
         }
     }
 
-    /// Returns the current [`Split`] that is being dragged, if any.
     pub fn picked_split(&self) -> Option<(Split, Axis)> {
-        match *self {
+        match self.action {
             Action::Resizing { split, axis, .. } => Some((split, axis)),
             _ => None,
         }
     }
-}
 
-impl Internal {
-    /// The layout [`Node`] of the [`Internal`] state
-    pub fn layout(&self) -> &Node {
-        &self.layout
+    pub fn pane_regions(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> BTreeMap<Pane, Rectangle> {
+        self.layout.pane_regions(spacing, size)
+    }
+
+    pub fn split_regions(
+        &self,
+        spacing: f32,
+        size: Size,
+    ) -> BTreeMap<Split, (Axis, Rectangle, f32)> {
+        self.layout.split_regions(spacing, size)
+    }
+
+    pub fn pick_pane(&mut self, pane: &Pane, origin: Point) {
+        self.action = Action::Dragging {
+            pane: *pane,
+            origin,
+        };
+    }
+
+    pub fn pick_split(&mut self, split: &Split, axis: Axis) {
+        // TODO: Obtain `axis` from layout itself. Maybe we should implement
+        // `Node::find_split`
+        if self.picked_pane().is_some() {
+            return;
+        }
+
+        self.action = Action::Resizing {
+            split: *split,
+            axis,
+        };
+    }
+
+    pub fn idle(&mut self) {
+        self.action = Action::Idle;
+    }
+
+    pub fn hash_layout(&self, hasher: &mut Hasher) {
+        use std::hash::Hash;
+
+        self.layout.hash(hasher);
     }
 }

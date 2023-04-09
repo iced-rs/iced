@@ -1,24 +1,18 @@
-//! Change the apperance of a button.
+//! Allow your users to perform actions by pressing a button.
 use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The amount of offset to apply to the shadow of the button.
+pub struct Style {
     pub shadow_offset: Vector,
-    /// The [`Background`] of the button.
     pub background: Option<Background>,
-    /// The border radius of the button.
     pub border_radius: f32,
-    /// The border width of the button.
     pub border_width: f32,
-    /// The border [`Color`] of the button.
     pub border_color: Color,
-    /// The text [`Color`] of the button.
     pub text_color: Color,
 }
 
-impl std::default::Default for Appearance {
+impl std::default::Default for Style {
     fn default() -> Self {
         Self {
             shadow_offset: Vector::default(),
@@ -33,35 +27,28 @@ impl std::default::Default for Appearance {
 
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
+    fn active(&self) -> Style;
 
-    /// Produces the active [`Appearance`] of a button.
-    fn active(&self, style: &Self::Style) -> Appearance;
+    fn hovered(&self) -> Style {
+        let active = self.active();
 
-    /// Produces the hovered [`Appearance`] of a button.
-    fn hovered(&self, style: &Self::Style) -> Appearance {
-        let active = self.active(style);
-
-        Appearance {
+        Style {
             shadow_offset: active.shadow_offset + Vector::new(0.0, 1.0),
             ..active
         }
     }
 
-    /// Produces the pressed [`Appearance`] of a button.
-    fn pressed(&self, style: &Self::Style) -> Appearance {
-        Appearance {
+    fn pressed(&self) -> Style {
+        Style {
             shadow_offset: Vector::default(),
-            ..self.active(style)
+            ..self.active()
         }
     }
 
-    /// Produces the disabled [`Appearance`] of a button.
-    fn disabled(&self, style: &Self::Style) -> Appearance {
-        let active = self.active(style);
+    fn disabled(&self) -> Style {
+        let active = self.active();
 
-        Appearance {
+        Style {
             shadow_offset: Vector::default(),
             background: active.background.map(|background| match background {
                 Background::Color(color) => Background::Color(Color {
@@ -75,5 +62,35 @@ pub trait StyleSheet {
             },
             ..active
         }
+    }
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self) -> Style {
+        Style {
+            shadow_offset: Vector::new(0.0, 0.0),
+            background: Some(Background::Color([0.87, 0.87, 0.87].into())),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: [0.7, 0.7, 0.7].into(),
+            text_color: Color::BLACK,
+        }
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
     }
 }

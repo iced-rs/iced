@@ -1,7 +1,5 @@
 use crate::image::atlas::{self, allocator};
 
-use iced_graphics::Size;
-
 #[derive(Debug)]
 pub enum Allocation {
     Partial {
@@ -21,10 +19,10 @@ impl Allocation {
         }
     }
 
-    pub fn size(&self) -> Size<u32> {
+    pub fn size(&self) -> (u32, u32) {
         match self {
             Allocation::Partial { region, .. } => region.size(),
-            Allocation::Full { .. } => Size::new(atlas::SIZE, atlas::SIZE),
+            Allocation::Full { .. } => (atlas::SIZE, atlas::SIZE),
         }
     }
 

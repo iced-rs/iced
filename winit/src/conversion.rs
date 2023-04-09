@@ -1,12 +1,12 @@
 //! Convert [`winit`] types into [`iced_native`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+//! [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 use crate::keyboard;
 use crate::mouse;
 use crate::touch;
 use crate::window;
-use crate::{Event, Point, Position};
+use crate::{Event, Mode, Point};
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -129,96 +129,37 @@ pub fn window_event(
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(*touch, scale_factor)))
         }
-        WindowEvent::Moved(position) => {
-            let winit::dpi::LogicalPosition { x, y } =
-                position.to_logical(scale_factor);
-
-            Some(Event::Window(window::Event::Moved { x, y }))
-        }
         _ => None,
     }
 }
 
-/// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
-///
-/// [`winit`]: https://github.com/rust-windowing/winit
-pub fn position(
-    monitor: Option<&winit::monitor::MonitorHandle>,
-    (width, height): (u32, u32),
-    position: Position,
-) -> Option<winit::dpi::Position> {
-    match position {
-        Position::Default => None,
-        Position::Specific(x, y) => {
-            Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
-                x: f64::from(x),
-                y: f64::from(y),
-            }))
-        }
-        Position::Centered => {
-            if let Some(monitor) = monitor {
-                let start = monitor.position();
-
-                let resolution: winit::dpi::LogicalSize<f64> =
-                    monitor.size().to_logical(monitor.scale_factor());
-
-                let centered: winit::dpi::PhysicalPosition<i32> =
-                    winit::dpi::LogicalPosition {
-                        x: (resolution.width - f64::from(width)) / 2.0,
-                        y: (resolution.height - f64::from(height)) / 2.0,
-                    }
-                    .to_physical(monitor.scale_factor());
-
-                Some(winit::dpi::Position::Physical(
-                    winit::dpi::PhysicalPosition {
-                        x: start.x + centered.x,
-                        y: start.y + centered.y,
-                    },
-                ))
-            } else {
-                None
-            }
-        }
-    }
-}
-
-/// Converts a [`window::Mode`] to a [`winit`] fullscreen mode.
+/// Converts a [`Mode`] to a [`winit`] fullscreen mode.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn fullscreen(
     monitor: Option<winit::monitor::MonitorHandle>,
-    mode: window::Mode,
+    mode: Mode,
 ) -> Option<winit::window::Fullscreen> {
     match mode {
-        window::Mode::Windowed | window::Mode::Hidden => None,
-        window::Mode::Fullscreen => {
+        Mode::Windowed | Mode::Hidden => None,
+        Mode::Fullscreen => {
             Some(winit::window::Fullscreen::Borderless(monitor))
         }
     }
 }
 
-/// Converts a [`window::Mode`] to a visibility flag.
-pub fn visible(mode: window::Mode) -> bool {
+/// Converts a [`Mode`] to a visibility flag.
+pub fn visible(mode: Mode) -> bool {
     match mode {
-        window::Mode::Windowed | window::Mode::Fullscreen => true,
-        window::Mode::Hidden => false,
-    }
-}
-
-/// Converts a [`winit`] fullscreen mode to a [`window::Mode`].
-///
-/// [`winit`]: https://github.com/rust-windowing/winit
-pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
-    match mode {
-        None => window::Mode::Windowed,
-        Some(_) => window::Mode::Fullscreen,
+        Mode::Windowed | Mode::Fullscreen => true,
+        Mode::Hidden => false,
     }
 }
 
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
 ) -> winit::window::CursorIcon {
@@ -242,7 +183,7 @@ pub fn mouse_interaction(
 /// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
@@ -258,18 +199,16 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 /// modifiers state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
-    let mut result = keyboard::Modifiers::empty();
-
-    result.set(keyboard::Modifiers::SHIFT, modifiers.shift());
-    result.set(keyboard::Modifiers::CTRL, modifiers.ctrl());
-    result.set(keyboard::Modifiers::ALT, modifiers.alt());
-    result.set(keyboard::Modifiers::LOGO, modifiers.logo());
-
-    result
+    keyboard::Modifiers {
+        shift: modifiers.shift(),
+        control: modifiers.ctrl(),
+        alt: modifiers.alt(),
+        logo: modifiers.logo(),
+    }
 }
 
 /// Converts a physical cursor position to a logical `Point`.
@@ -285,7 +224,7 @@ pub fn cursor_position(
 /// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn touch_event(
     touch: winit::event::Touch,
     scale_factor: f64,
@@ -316,7 +255,7 @@ pub fn touch_event(
 /// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/hecrj/iced/tree/master/native
 pub fn key_code(
     virtual_keycode: winit::event::VirtualKeyCode,
 ) -> keyboard::KeyCode {
@@ -493,28 +432,12 @@ pub fn key_code(
     }
 }
 
-/// Converts some [`UserAttention`] into it's `winit` counterpart.
-///
-/// [`UserAttention`]: window::UserAttention
-pub fn user_attention(
-    user_attention: window::UserAttention,
-) -> winit::window::UserAttentionType {
-    match user_attention {
-        window::UserAttention::Critical => {
-            winit::window::UserAttentionType::Critical
-        }
-        window::UserAttention::Informational => {
-            winit::window::UserAttentionType::Informational
-        }
-    }
-}
-
 // As defined in: http://www.unicode.org/faq/private_use.html
 pub(crate) fn is_private_use_character(c: char) -> bool {
-    matches!(
-        c,
+    match c {
         '\u{E000}'..='\u{F8FF}'
         | '\u{F0000}'..='\u{FFFFD}'
-        | '\u{100000}'..='\u{10FFFD}'
-    )
+        | '\u{100000}'..='\u{10FFFD}' => true,
+        _ => false,
+    }
 }

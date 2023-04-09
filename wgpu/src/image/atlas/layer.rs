@@ -9,6 +9,9 @@ pub enum Layer {
 
 impl Layer {
     pub fn is_empty(&self) -> bool {
-        matches!(self, Layer::Empty)
+        match self {
+            Layer::Empty => true,
+            _ => false,
+        }
     }
 }

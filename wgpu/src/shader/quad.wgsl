@@ -1,43 +1,41 @@
+[[block]]
 struct Globals {
-    transform: mat4x4<f32>,
-    scale: f32,
-}
+    transform: mat4x4<f32>;
+    scale: f32;
+};
 
-@group(0) @binding(0) var<uniform> globals: Globals;
+[[group(0), binding(0)]] var<uniform> globals: Globals;
 
 struct VertexInput {
-    @location(0) v_pos: vec2<f32>,
-    @location(1) pos: vec2<f32>,
-    @location(2) scale: vec2<f32>,
-    @location(3) color: vec4<f32>,
-    @location(4) border_color: vec4<f32>,
-    @location(5) border_radius: vec4<f32>,
-    @location(6) border_width: f32,
-}
+    [[location(0)]] v_pos: vec2<f32>;
+    [[location(1)]] pos: vec2<f32>;
+    [[location(2)]] scale: vec2<f32>;
+    [[location(3)]] color: vec4<f32>;
+    [[location(4)]] border_color: vec4<f32>;
+    [[location(5)]] border_radius: f32;
+    [[location(6)]] border_width: f32;
+};
 
 struct VertexOutput {
-    @builtin(position) position: vec4<f32>,
-    @location(0) color: vec4<f32>,
-    @location(1) border_color: vec4<f32>,
-    @location(2) pos: vec2<f32>,
-    @location(3) scale: vec2<f32>,
-    @location(4) border_radius: vec4<f32>,
-    @location(5) border_width: f32,
-}
+    [[builtin(position)]] position: vec4<f32>;
+    [[location(0)]] color: vec4<f32>;
+    [[location(1)]] border_color: vec4<f32>;
+    [[location(2)]] pos: vec2<f32>;
+    [[location(3)]] scale: vec2<f32>;
+    [[location(4)]] border_radius: f32;
+    [[location(5)]] border_width: f32;
+};
 
-@vertex
+[[stage(vertex)]]
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
     var pos: vec2<f32> = input.pos * globals.scale;
     var scale: vec2<f32> = input.scale * globals.scale;
 
-    var min_border_radius = min(input.scale.x, input.scale.y) * 0.5;
-    var border_radius: vec4<f32> = vec4<f32>(
-        min(input.border_radius.x, min_border_radius),
-        min(input.border_radius.y, min_border_radius),
-        min(input.border_radius.z, min_border_radius),
-        min(input.border_radius.w, min_border_radius)
+    var border_radius: f32 = min(
+        input.border_radius,
+        min(input.scale.x, input.scale.y) / 2.0
     );
 
     var transform: mat4x4<f32> = mat4x4<f32>(
@@ -79,42 +77,27 @@ fn distance_alg(
     return sqrt(dist.x * dist.x + dist.y * dist.y);
 }
 
-// Based on the fragement position and the center of the quad, select one of the 4 radi.
-// Order matches CSS border radius attribute:
-// radi.x = top-left, radi.y = top-right, radi.z = bottom-right, radi.w = bottom-left
-fn select_border_radius(radi: vec4<f32>, position: vec2<f32>, center: vec2<f32>) -> f32 {
-    var rx = radi.x;
-    var ry = radi.y;
-    rx = select(radi.x, radi.y, position.x > center.x);
-    ry = select(radi.w, radi.z, position.x > center.x);
-    rx = select(rx, ry, position.y > center.y);
-    return rx;
-}
 
-
-@fragment
+[[stage(fragment)]]
 fn fs_main(
     input: VertexOutput
-) -> @location(0) vec4<f32> {
+) -> [[location(0)]] vec4<f32> {
     var mixed_color: vec4<f32> = input.color;
 
-    var border_radius = select_border_radius(
-        input.border_radius,
-        input.position.xy,
-        (input.pos + input.scale * 0.5).xy
-    );
-
     if (input.border_width > 0.0) {
-        var internal_border: f32 = max(border_radius - input.border_width, 0.0);
+        var internal_border: f32 = max(
+            input.border_radius - input.border_width,
+            0.0
+        );
 
         var internal_distance: f32 = distance_alg(
-            input.position.xy,
+            vec2<f32>(input.position.x, input.position.y),
             input.pos + vec2<f32>(input.border_width, input.border_width),
             input.scale - vec2<f32>(input.border_width * 2.0, input.border_width * 2.0),
             internal_border
         );
 
-        var border_mix: f32 = smoothstep(
+        var border_mix: f32 = smoothStep(
             max(internal_border - 0.5, 0.0),
             internal_border + 0.5,
             internal_distance
@@ -127,14 +110,13 @@ fn fs_main(
         vec2<f32>(input.position.x, input.position.y),
         input.pos,
         input.scale,
-        border_radius
+        input.border_radius
     );
 
-    var radius_alpha: f32 = 1.0 - smoothstep(
-        max(border_radius - 0.5, 0.0),
-        border_radius + 0.5,
-        dist
-    );
+    var radius_alpha: f32 = 1.0 - smoothStep(
+        max(input.border_radius - 0.5, 0.0),
+        input.border_radius + 0.5,
+        dist);
 
     return vec4<f32>(mixed_color.x, mixed_color.y, mixed_color.z, mixed_color.w * radius_alpha);
 }

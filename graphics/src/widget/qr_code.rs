@@ -1,12 +1,10 @@
 //! Encode and display information in a QR code.
-use crate::renderer::{self, Renderer};
-use crate::widget::canvas;
-use crate::Backend;
+use crate::canvas;
+use crate::{Backend, Defaults, Primitive, Renderer, Vector};
 
-use iced_native::layout;
-use iced_native::widget::Tree;
 use iced_native::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    layout, mouse, Color, Element, Hasher, Layout, Length, Point, Rectangle,
+    Size, Widget,
 };
 use thiserror::Error;
 
@@ -48,7 +46,7 @@ impl<'a> QRCode<'a> {
     }
 }
 
-impl<'a, Message, B, T> Widget<Message, Renderer<B, T>> for QRCode<'a>
+impl<'a, Message, B> Widget<Message, Renderer<B>> for QRCode<'a>
 where
     B: Backend,
 {
@@ -62,27 +60,32 @@ where
 
     fn layout(
         &self,
-        _renderer: &Renderer<B, T>,
+        _renderer: &Renderer<B>,
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
             * f32::from(self.cell_size);
 
-        layout::Node::new(Size::new(side_length, side_length))
+        layout::Node::new(Size::new(
+            f32::from(side_length),
+            f32::from(side_length),
+        ))
+    }
+
+    fn hash_layout(&self, state: &mut Hasher) {
+        use std::hash::Hash;
+
+        self.state.contents.hash(state);
     }
 
     fn draw(
         &self,
-        _state: &Tree,
-        renderer: &mut Renderer<B, T>,
-        _theme: &T,
-        _style: &renderer::Style,
+        _renderer: &mut Renderer<B>,
+        _defaults: &Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) {
-        use iced_native::Renderer as _;
-
+    ) -> (Primitive, mouse::Interaction) {
         let bounds = layout.bounds();
         let side_length = self.state.width + 2 * QUIET_ZONE;
 
@@ -119,21 +122,22 @@ where
                 });
         });
 
-        let translation = Vector::new(bounds.x, bounds.y);
-
-        renderer.with_translation(translation, |renderer| {
-            renderer.draw_primitive(geometry.into_primitive());
-        });
+        (
+            Primitive::Translate {
+                translation: Vector::new(bounds.x, bounds.y),
+                content: Box::new(geometry.into_primitive()),
+            },
+            mouse::Interaction::default(),
+        )
     }
 }
 
-impl<'a, Message, B, T> From<QRCode<'a>>
-    for Element<'a, Message, Renderer<B, T>>
+impl<'a, Message, B> Into<Element<'a, Message, Renderer<B>>> for QRCode<'a>
 where
     B: Backend,
 {
-    fn from(qr_code: QRCode<'a>) -> Self {
-        Self::new(qr_code)
+    fn into(self) -> Element<'a, Message, Renderer<B>> {
+        Element::new(self)
     }
 }
 

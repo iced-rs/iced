@@ -1,5 +1,5 @@
 /// A 2D vector.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Vector<T = f32> {
     /// The X component of the [`Vector`]
     pub x: T,
@@ -13,11 +13,6 @@ impl<T> Vector<T> {
     pub const fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
-}
-
-impl Vector {
-    /// The zero [`Vector`].
-    pub const ZERO: Self = Self::new(0.0, 0.0);
 }
 
 impl<T> std::ops::Add for Vector<T>

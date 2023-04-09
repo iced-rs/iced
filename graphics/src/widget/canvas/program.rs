@@ -1,7 +1,6 @@
-use crate::widget::canvas::event::{self, Event};
-use crate::widget::canvas::mouse;
-use crate::widget::canvas::{Cursor, Geometry};
-use crate::Rectangle;
+use crate::canvas::event::{self, Event};
+use crate::canvas::{Cursor, Geometry};
+use iced_native::{mouse, Rectangle};
 
 /// The state and logic of a [`Canvas`].
 ///
@@ -9,11 +8,8 @@ use crate::Rectangle;
 /// application.
 ///
 /// [`Canvas`]: crate::widget::Canvas
-pub trait Program<Message, Theme = iced_native::Theme> {
-    /// The internal state mutated by the [`Program`].
-    type State: Default + 'static;
-
-    /// Updates the [`State`](Self::State) of the [`Program`].
+pub trait Program<Message> {
+    /// Updates the state of the [`Program`].
     ///
     /// When a [`Program`] is used in a [`Canvas`], the runtime will call this
     /// method for each [`Event`].
@@ -25,8 +21,7 @@ pub trait Program<Message, Theme = iced_native::Theme> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     fn update(
-        &self,
-        _state: &mut Self::State,
+        &mut self,
         _event: Event,
         _bounds: Rectangle,
         _cursor: Cursor,
@@ -39,15 +34,9 @@ pub trait Program<Message, Theme = iced_native::Theme> {
     /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
     /// [`Cache`].
     ///
-    /// [`Frame`]: crate::widget::canvas::Frame
+    /// [`Frame`]: crate::widget::canvas::Cache
     /// [`Cache`]: crate::widget::canvas::Cache
-    fn draw(
-        &self,
-        state: &Self::State,
-        theme: &Theme,
-        bounds: Rectangle,
-        cursor: Cursor,
-    ) -> Vec<Geometry>;
+    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry>;
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
@@ -57,7 +46,6 @@ pub trait Program<Message, Theme = iced_native::Theme> {
     /// [`Canvas`]: crate::widget::Canvas
     fn mouse_interaction(
         &self,
-        _state: &Self::State,
         _bounds: Rectangle,
         _cursor: Cursor,
     ) -> mouse::Interaction {
@@ -65,38 +53,28 @@ pub trait Program<Message, Theme = iced_native::Theme> {
     }
 }
 
-impl<Message, Theme, T> Program<Message, Theme> for &T
+impl<T, Message> Program<Message> for &mut T
 where
-    T: Program<Message, Theme>,
+    T: Program<Message>,
 {
-    type State = T::State;
-
     fn update(
-        &self,
-        state: &mut Self::State,
+        &mut self,
         event: Event,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> (event::Status, Option<Message>) {
-        T::update(self, state, event, bounds, cursor)
+        T::update(self, event, bounds, cursor)
     }
 
-    fn draw(
-        &self,
-        state: &Self::State,
-        theme: &Theme,
-        bounds: Rectangle,
-        cursor: Cursor,
-    ) -> Vec<Geometry> {
-        T::draw(self, state, theme, bounds, cursor)
+    fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Vec<Geometry> {
+        T::draw(self, bounds, cursor)
     }
 
     fn mouse_interaction(
         &self,
-        state: &Self::State,
         bounds: Rectangle,
         cursor: Cursor,
     ) -> mouse::Interaction {
-        T::mouse_interaction(self, state, bounds, cursor)
+        T::mouse_interaction(self, bounds, cursor)
     }
 }

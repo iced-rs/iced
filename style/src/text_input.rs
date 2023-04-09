@@ -1,41 +1,89 @@
-//! Change the appearance of a text input.
+//! Display fields that can be filled with text.
 use iced_core::{Background, Color};
 
 /// The appearance of a text input.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The [`Background`] of the text input.
+pub struct Style {
     pub background: Background,
-    /// The border radius of the text input.
     pub border_radius: f32,
-    /// The border width of the text input.
     pub border_width: f32,
-    /// The border [`Color`] of the text input.
     pub border_color: Color,
+}
+
+impl std::default::Default for Style {
+    fn default() -> Self {
+        Self {
+            background: Background::Color(Color::WHITE),
+            border_radius: 0.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        }
+    }
 }
 
 /// A set of rules that dictate the style of a text input.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
-
     /// Produces the style of an active text input.
-    fn active(&self, style: &Self::Style) -> Appearance;
+    fn active(&self) -> Style;
 
     /// Produces the style of a focused text input.
-    fn focused(&self, style: &Self::Style) -> Appearance;
+    fn focused(&self) -> Style;
 
-    /// Produces the [`Color`] of the placeholder of a text input.
-    fn placeholder_color(&self, style: &Self::Style) -> Color;
+    fn placeholder_color(&self) -> Color;
 
-    /// Produces the [`Color`] of the value of a text input.
-    fn value_color(&self, style: &Self::Style) -> Color;
+    fn value_color(&self) -> Color;
 
-    /// Produces the [`Color`] of the selection of a text input.
-    fn selection_color(&self, style: &Self::Style) -> Color;
+    fn selection_color(&self) -> Color;
 
     /// Produces the style of an hovered text input.
-    fn hovered(&self, style: &Self::Style) -> Appearance {
-        self.focused(style)
+    fn hovered(&self) -> Style {
+        self.focused()
+    }
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self) -> Style {
+        Style {
+            background: Background::Color(Color::WHITE),
+            border_radius: 5.0,
+            border_width: 1.0,
+            border_color: Color::from_rgb(0.7, 0.7, 0.7),
+        }
+    }
+
+    fn focused(&self) -> Style {
+        Style {
+            border_color: Color::from_rgb(0.5, 0.5, 0.5),
+            ..self.active()
+        }
+    }
+
+    fn placeholder_color(&self) -> Color {
+        Color::from_rgb(0.7, 0.7, 0.7)
+    }
+
+    fn value_color(&self) -> Color {
+        Color::from_rgb(0.3, 0.3, 0.3)
+    }
+
+    fn selection_color(&self) -> Color {
+        Color::from_rgb(0.8, 0.8, 1.0)
+    }
+}
+
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
+    }
+}
+
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
     }
 }

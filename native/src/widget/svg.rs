@@ -1,16 +1,12 @@
 //! Display vector graphics in your application.
 use crate::layout;
-use crate::renderer;
-use crate::svg;
-use crate::widget::Tree;
-use crate::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+use crate::{Element, Hasher, Layout, Length, Point, Rectangle, Size, Widget};
+
+use std::{
+    hash::{Hash, Hasher as _},
+    path::PathBuf,
+    sync::Arc,
 };
-
-use std::path::PathBuf;
-
-pub use iced_style::svg::{Appearance, StyleSheet};
-pub use svg::Handle;
 
 /// A vector graphics image.
 ///
@@ -18,82 +14,45 @@ pub use svg::Handle;
 ///
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
-#[allow(missing_debug_implementations)]
-pub struct Svg<Renderer>
-where
-    Renderer: svg::Renderer,
-    Renderer::Theme: StyleSheet,
-{
+#[derive(Debug, Clone)]
+pub struct Svg {
     handle: Handle,
     width: Length,
     height: Length,
-    content_fit: ContentFit,
-    style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<Renderer> Svg<Renderer>
-where
-    Renderer: svg::Renderer,
-    Renderer::Theme: StyleSheet,
-{
+impl Svg {
     /// Creates a new [`Svg`] from the given [`Handle`].
     pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
-            content_fit: ContentFit::Contain,
-            style: Default::default(),
         }
     }
 
     /// Creates a new [`Svg`] that will display the contents of the file at the
     /// provided path.
-    #[must_use]
     pub fn from_path(path: impl Into<PathBuf>) -> Self {
         Self::new(Handle::from_path(path))
     }
 
     /// Sets the width of the [`Svg`].
-    #[must_use]
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+    pub fn width(mut self, width: Length) -> Self {
+        self.width = width;
         self
     }
 
     /// Sets the height of the [`Svg`].
-    #[must_use]
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = height.into();
-        self
-    }
-
-    /// Sets the [`ContentFit`] of the [`Svg`].
-    ///
-    /// Defaults to [`ContentFit::Contain`]
-    #[must_use]
-    pub fn content_fit(self, content_fit: ContentFit) -> Self {
-        Self {
-            content_fit,
-            ..self
-        }
-    }
-
-    /// Sets the style variant of this [`Svg`].
-    #[must_use]
-    pub fn style(
-        mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
-    ) -> Self {
-        self.style = style;
+    pub fn height(mut self, height: Length) -> Self {
+        self.height = height;
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Svg<Renderer>
+impl<Message, Renderer> Widget<Message, Renderer> for Svg
 where
-    Renderer: svg::Renderer,
-    Renderer::Theme: iced_style::svg::StyleSheet,
+    Renderer: self::Renderer,
 {
     fn width(&self) -> Length {
         self.width
@@ -108,88 +67,136 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        // The raw w/h of the underlying image
-        let Size { width, height } = renderer.dimensions(&self.handle);
-        let image_size = Size::new(width as f32, height as f32);
+        let (width, height) = renderer.dimensions(&self.handle);
 
-        // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits
+        let aspect_ratio = width as f32 / height as f32;
+
+        let mut size = limits
             .width(self.width)
             .height(self.height)
-            .resolve(image_size);
+            .resolve(Size::new(width as f32, height as f32));
 
-        // The uncropped size of the image when fit to the bounds above
-        let full_size = self.content_fit.fit(image_size, raw_size);
+        let viewport_aspect_ratio = size.width / size.height;
 
-        // Shrink the widget to fit the resized image, if requested
-        let final_size = Size {
-            width: match self.width {
-                Length::Shrink => f32::min(raw_size.width, full_size.width),
-                _ => raw_size.width,
-            },
-            height: match self.height {
-                Length::Shrink => f32::min(raw_size.height, full_size.height),
-                _ => raw_size.height,
-            },
-        };
+        if viewport_aspect_ratio > aspect_ratio {
+            size.width = width as f32 * size.height / height as f32;
+        } else {
+            size.height = height as f32 * size.width / width as f32;
+        }
 
-        layout::Node::new(final_size)
+        layout::Node::new(size)
     }
 
     fn draw(
         &self,
-        _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        _style: &renderer::Style,
+        _defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
-    ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
-        let image_size = Size::new(width as f32, height as f32);
+    ) -> Renderer::Output {
+        renderer.draw(self.handle.clone(), layout)
+    }
 
-        let bounds = layout.bounds();
-        let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+    fn hash_layout(&self, state: &mut Hasher) {
+        std::any::TypeId::of::<Svg>().hash(state);
 
-        let render = |renderer: &mut Renderer| {
-            let offset = Vector::new(
-                (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-                (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-            );
+        self.handle.hash(state);
+        self.width.hash(state);
+        self.height.hash(state);
+    }
+}
 
-            let drawing_bounds = Rectangle {
-                width: adjusted_fit.width,
-                height: adjusted_fit.height,
-                ..bounds
-            };
+/// An [`Svg`] handle.
+#[derive(Debug, Clone)]
+pub struct Handle {
+    id: u64,
+    data: Arc<Data>,
+}
 
-            let appearance = theme.appearance(&self.style);
+impl Handle {
+    /// Creates an SVG [`Handle`] pointing to the vector image of the given
+    /// path.
+    pub fn from_path(path: impl Into<PathBuf>) -> Handle {
+        Self::from_data(Data::Path(path.into()))
+    }
 
-            renderer.draw(
-                self.handle.clone(),
-                appearance.color,
-                drawing_bounds + offset,
-            );
-        };
+    /// Creates an SVG [`Handle`] from raw bytes containing either an SVG string
+    /// or gzip compressed data.
+    ///
+    /// This is useful if you already have your SVG data in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    pub fn from_memory(bytes: impl Into<Vec<u8>>) -> Handle {
+        Self::from_data(Data::Bytes(bytes.into()))
+    }
 
-        if adjusted_fit.width > bounds.width
-            || adjusted_fit.height > bounds.height
-        {
-            renderer.with_layer(bounds, render);
-        } else {
-            render(renderer);
+    fn from_data(data: Data) -> Handle {
+        let mut hasher = Hasher::default();
+        data.hash(&mut hasher);
+
+        Handle {
+            id: hasher.finish(),
+            data: Arc::new(data),
+        }
+    }
+
+    /// Returns the unique identifier of the [`Handle`].
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    /// Returns a reference to the SVG [`Data`].
+    pub fn data(&self) -> &Data {
+        &self.data
+    }
+}
+
+impl Hash for Handle {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+/// The data of an [`Svg`].
+#[derive(Clone, Hash)]
+pub enum Data {
+    /// File data
+    Path(PathBuf),
+
+    /// In-memory data
+    ///
+    /// Can contain an SVG string or a gzip compressed data.
+    Bytes(Vec<u8>),
+}
+
+impl std::fmt::Debug for Data {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Data::Path(path) => write!(f, "Path({:?})", path),
+            Data::Bytes(_) => write!(f, "Bytes(...)"),
         }
     }
 }
 
-impl<'a, Message, Renderer> From<Svg<Renderer>>
-    for Element<'a, Message, Renderer>
+/// The renderer of an [`Svg`].
+///
+/// Your [renderer] will need to implement this trait before being able to use
+/// an [`Svg`] in your user interface.
+///
+/// [renderer]: crate::renderer
+pub trait Renderer: crate::Renderer {
+    /// Returns the default dimensions of an [`Svg`] for the given [`Handle`].
+    fn dimensions(&self, handle: &Handle) -> (u32, u32);
+
+    /// Draws an [`Svg`].
+    fn draw(&mut self, handle: Handle, layout: Layout<'_>) -> Self::Output;
+}
+
+impl<'a, Message, Renderer> From<Svg> for Element<'a, Message, Renderer>
 where
-    Renderer: svg::Renderer + 'a,
-    Renderer::Theme: iced_style::svg::StyleSheet,
+    Renderer: self::Renderer,
 {
-    fn from(icon: Svg<Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(icon: Svg) -> Element<'a, Message, Renderer> {
         Element::new(icon)
     }
 }

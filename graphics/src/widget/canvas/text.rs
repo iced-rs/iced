@@ -1,19 +1,11 @@
-use crate::alignment;
-use crate::{Color, Font, Point};
+use iced_native::{Color, Font, HorizontalAlignment, Point, VerticalAlignment};
 
 /// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]
 pub struct Text {
     /// The contents of the text
     pub content: String,
-    /// The position of the text relative to the alignment properties.
-    /// By default, this position will be relative to the top-left corner coordinate meaning that
-    /// if the horizontal and vertical alignments are unchanged, this property will tell where the
-    /// top-left corner of the text should be placed.
-    /// By changing the horizontal_alignment and vertical_alignment properties, you are are able to
-    /// change what part of text is placed at this positions.
-    /// For example, when the horizontal_alignment and vertical_alignment are set to Center, the
-    /// center of the text will be placed at the given position NOT the top-left coordinate.
+    /// The position where to begin drawing the text (top-left corner coordinates)
     pub position: Point,
     /// The color of the text
     pub color: Color,
@@ -22,9 +14,9 @@ pub struct Text {
     /// The font of the text
     pub font: Font,
     /// The horizontal alignment of the text
-    pub horizontal_alignment: alignment::Horizontal,
+    pub horizontal_alignment: HorizontalAlignment,
     /// The vertical alignment of the text
-    pub vertical_alignment: alignment::Vertical,
+    pub vertical_alignment: VerticalAlignment,
 }
 
 impl Default for Text {
@@ -35,8 +27,8 @@ impl Default for Text {
             color: Color::BLACK,
             size: 16.0,
             font: Font::Default,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            horizontal_alignment: HorizontalAlignment::Left,
+            vertical_alignment: VerticalAlignment::Top,
         }
     }
 }

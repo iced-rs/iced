@@ -19,19 +19,19 @@
 //!
 //! Check out the [repository] and the [examples] for more details!
 //!
-//! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
+//! [Cross-platform support]: https://github.com/hecrj/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
 //! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 //! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
-//! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.8/native
+//! [Modular ecosystem]: https://github.com/hecrj/iced/blob/master/ECOSYSTEM.md
+//! [renderer-agnostic native runtime]: https://github.com/hecrj/iced/tree/master/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.8/wgpu
-//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.8/winit
+//! [built-in renderer]: https://github.com/hecrj/iced/tree/master/wgpu
+//! [windowing shell]: https://github.com/hecrj/iced/tree/master/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
-//! [web runtime]: https://github.com/iced-rs/iced_web
-//! [examples]: https://github.com/iced-rs/iced/tree/0.8/examples
-//! [repository]: https://github.com/iced-rs/iced
+//! [web runtime]: https://github.com/hecrj/iced/tree/master/web
+//! [examples]: https://github.com/hecrj/iced/tree/0.3/examples
+//! [repository]: https://github.com/hecrj/iced
 //!
 //! # Overview
 //! Inspired by [The Elm Architecture], Iced expects you to split user
@@ -51,9 +51,15 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
+//! use iced::button;
+//!
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
+//!
+//!     // The local state of the two buttons
+//!     increment_button: button::State,
+//!     decrement_button: button::State,
 //! }
 //! ```
 //!
@@ -72,9 +78,15 @@
 //! __view logic__:
 //!
 //! ```
+//! # use iced::button;
+//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
+//! #
+//! #     // The local state of the two buttons
+//! #     increment_button: button::State,
+//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -83,23 +95,28 @@
 //! #     DecrementPressed,
 //! # }
 //! #
-//! use iced::widget::{button, column, text, Column};
+//! use iced::{Button, Column, Text};
 //!
 //! impl Counter {
 //!     pub fn view(&mut self) -> Column<Message> {
 //!         // We use a column: a simple vertical layout
-//!         column![
-//!             // The increment button. We tell it to produce an
-//!             // `IncrementPressed` message when pressed
-//!             button("+").on_press(Message::IncrementPressed),
-//!
-//!             // We show the value of the counter here
-//!             text(self.value).size(50),
-//!
-//!             // The decrement button. We tell it to produce a
-//!             // `DecrementPressed` message when pressed
-//!             button("-").on_press(Message::DecrementPressed),
-//!         ]
+//!         Column::new()
+//!             .push(
+//!                 // The increment button. We tell it to produce an
+//!                 // `IncrementPressed` message when pressed
+//!                 Button::new(&mut self.increment_button, Text::new("+"))
+//!                     .on_press(Message::IncrementPressed),
+//!             )
+//!             .push(
+//!                 // We show the value of the counter here
+//!                 Text::new(self.value.to_string()).size(50),
+//!             )
+//!             .push(
+//!                 // The decrement button. We tell it to produce a
+//!                 // `DecrementPressed` message when pressed
+//!                 Button::new(&mut self.decrement_button, Text::new("-"))
+//!                     .on_press(Message::DecrementPressed),
+//!             )
 //!     }
 //! }
 //! ```
@@ -108,9 +125,15 @@
 //! our __state__ accordingly in our __update logic__:
 //!
 //! ```
+//! # use iced::button;
+//! #
 //! # struct Counter {
 //! #     // The counter value
 //! #     value: i32,
+//! #
+//! #     // The local state of the two buttons
+//! #     increment_button: button::State,
+//! #     decrement_button: button::State,
 //! # }
 //! #
 //! # #[derive(Debug, Clone, Copy)]
@@ -148,74 +171,81 @@
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-#![doc(
-    html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
-)]
-#![deny(
-    missing_debug_implementations,
-    missing_docs,
-    unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion
-)]
-#![forbid(rust_2018_idioms, unsafe_code)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![deny(missing_docs)]
+#![deny(missing_debug_implementations)]
+#![deny(unused_results)]
+#![forbid(unsafe_code)]
+#![forbid(rust_2018_idioms)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-
+mod application;
 mod element;
 mod error;
 mod result;
 mod sandbox;
 
-pub mod application;
-pub mod clipboard;
 pub mod executor;
 pub mod keyboard;
 pub mod mouse;
-pub mod overlay;
 pub mod settings;
-pub mod time;
-pub mod touch;
 pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
+#[cfg(all(
+    any(
+        feature = "tokio",
+        feature = "tokio_old",
+        feature = "async-std",
+        feature = "smol"
+    ),
+    not(target_arch = "wasm32")
+))]
+#[cfg_attr(
+    docsrs,
+    doc(cfg(any(
+        feature = "tokio",
+        feature = "tokio_old",
+        feature = "async-std"
+        feature = "smol"
+    )))
+)]
+pub mod time;
+
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(feature = "glow"),
+    feature = "wgpu"
+))]
 use iced_winit as runtime;
 
-#[cfg(feature = "glow")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
 use iced_glutin as runtime;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
+#[cfg(all(
+    not(target_arch = "wasm32"),
+    not(feature = "glow"),
+    feature = "wgpu"
+))]
 use iced_wgpu as renderer;
 
-#[cfg(feature = "glow")]
+#[cfg(all(not(target_arch = "wasm32"), feature = "glow"))]
 use iced_glow as renderer;
 
-pub use iced_native::theme;
-pub use runtime::event;
-pub use runtime::subscription;
+#[cfg(target_arch = "wasm32")]
+use iced_web as runtime;
+
+#[doc(no_inline)]
+pub use widget::*;
 
 pub use application::Application;
 pub use element::Element;
 pub use error::Error;
-pub use event::Event;
 pub use executor::Executor;
-pub use renderer::Renderer;
 pub use result::Result;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
-pub use subscription::Subscription;
-pub use theme::Theme;
 
-pub use runtime::alignment;
-pub use runtime::futures;
 pub use runtime::{
-    color, Alignment, Background, Color, Command, ContentFit, Font, Length,
-    Padding, Point, Rectangle, Size, Vector,
+    futures, Align, Background, Clipboard, Color, Command, Font,
+    HorizontalAlignment, Length, Point, Rectangle, Size, Subscription, Vector,
+    VerticalAlignment,
 };
-
-#[cfg(feature = "system")]
-pub use runtime::system;

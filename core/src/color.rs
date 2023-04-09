@@ -89,17 +89,6 @@ impl Color {
         }
     }
 
-    /// Converts the [`Color`] into its RGBA8 equivalent.
-    #[must_use]
-    pub fn into_rgba8(self) -> [u8; 4] {
-        [
-            (self.r * 255.0).round() as u8,
-            (self.g * 255.0).round() as u8,
-            (self.b * 255.0).round() as u8,
-            (self.a * 255.0).round() as u8,
-        ]
-    }
-
     /// Converts the [`Color`] into its linear values.
     pub fn into_linear(self) -> [f32; 4] {
         // As described in:
@@ -143,43 +132,6 @@ impl From<[f32; 4]> for Color {
     fn from([r, g, b, a]: [f32; 4]) -> Self {
         Color::new(r, g, b, a)
     }
-}
-
-/// Creates a [`Color`] with shorter and cleaner syntax.
-///
-/// # Examples
-///
-/// ```
-/// # use iced_core::{Color, color};
-/// assert_eq!(color!(0, 0, 0), Color::from_rgb(0., 0., 0.));
-/// assert_eq!(color!(0, 0, 0, 0.), Color::from_rgba(0., 0., 0., 0.));
-/// assert_eq!(color!(0xffffff), Color::from_rgb(1., 1., 1.));
-/// assert_eq!(color!(0xffffff, 0.), Color::from_rgba(1., 1., 1., 0.));
-/// ```
-#[macro_export]
-macro_rules! color {
-    ($r:expr, $g:expr, $b:expr) => {
-        $crate::Color::from_rgb8($r, $g, $b)
-    };
-    ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        $crate::Color::from_rgba8($r, $g, $b, $a)
-    };
-    ($hex:expr) => {{
-        let hex = $hex as u32;
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
-
-        $crate::Color::from_rgb8(r as u8, g as u8, b as u8)
-    }};
-    ($hex:expr, $a:expr) => {{
-        let hex = $hex as u32;
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
-
-        $crate::Color::from_rgba8(r as u8, g as u8, b as u8, $a)
-    }};
 }
 
 #[cfg(feature = "palette")]

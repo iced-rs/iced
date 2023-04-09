@@ -1,5 +1,7 @@
-use crate::widget::pane_grid::{Axis, Pane, Split};
-use crate::{Rectangle, Size};
+use crate::{
+    pane_grid::{Axis, Pane, Split},
+    Rectangle, Size,
+};
 
 use std::collections::BTreeMap;
 
@@ -36,11 +38,14 @@ impl Node {
 
         std::iter::from_fn(move || {
             while let Some(node) = unvisited_nodes.pop() {
-                if let Node::Split { id, a, b, .. } = node {
-                    unvisited_nodes.push(a);
-                    unvisited_nodes.push(b);
+                match node {
+                    Node::Split { id, a, b, .. } => {
+                        unvisited_nodes.push(a);
+                        unvisited_nodes.push(b);
 
-                    return Some(id);
+                        return Some(id);
+                    }
+                    _ => {}
                 }
             }
 
@@ -121,9 +126,12 @@ impl Node {
     }
 
     pub(crate) fn update(&mut self, f: &impl Fn(&mut Node)) {
-        if let Node::Split { a, b, .. } = self {
-            a.update(f);
-            b.update(f);
+        match self {
+            Node::Split { a, b, .. } => {
+                a.update(f);
+                b.update(f);
+            }
+            _ => {}
         }
 
         f(self);

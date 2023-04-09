@@ -1,70 +1,76 @@
-//! Change the appearance of a scrollable.
+//! Navigate an endless amount of content with a scrollbar.
 use iced_core::{Background, Color};
 
 /// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
 pub struct Scrollbar {
-    /// The [`Background`] of a scrollable.
     pub background: Option<Background>,
-    /// The border radius of a scrollable.
     pub border_radius: f32,
-    /// The border width of a scrollable.
     pub border_width: f32,
-    /// The border [`Color`] of a scrollable.
     pub border_color: Color,
-    /// The appearance of the [`Scroller`] of a scrollable.
     pub scroller: Scroller,
 }
 
 /// The appearance of the scroller of a scrollable.
 #[derive(Debug, Clone, Copy)]
 pub struct Scroller {
-    /// The [`Color`] of the scroller.
     pub color: Color,
-    /// The border radius of the scroller.
     pub border_radius: f32,
-    /// The border width of the scroller.
     pub border_width: f32,
-    /// The border [`Color`] of the scroller.
     pub border_color: Color,
 }
 
 /// A set of rules that dictate the style of a scrollable.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
-
     /// Produces the style of an active scrollbar.
-    fn active(&self, style: &Self::Style) -> Scrollbar;
+    fn active(&self) -> Scrollbar;
 
-    /// Produces the style of a scrollbar when the scrollable is being hovered.
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> Scrollbar;
+    /// Produces the style of an hovered scrollbar.
+    fn hovered(&self) -> Scrollbar;
 
     /// Produces the style of a scrollbar that is being dragged.
-    fn dragging(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered(style, true)
+    fn dragging(&self) -> Scrollbar {
+        self.hovered()
+    }
+}
+
+struct Default;
+
+impl StyleSheet for Default {
+    fn active(&self) -> Scrollbar {
+        Scrollbar {
+            background: None,
+            border_radius: 5.0,
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+            scroller: Scroller {
+                color: [0.0, 0.0, 0.0, 0.7].into(),
+                border_radius: 5.0,
+                border_width: 0.0,
+                border_color: Color::TRANSPARENT,
+            },
+        }
     }
 
-    /// Produces the style of an active horizontal scrollbar.
-    fn active_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        self.active(style)
+    fn hovered(&self) -> Scrollbar {
+        Scrollbar {
+            background: Some(Background::Color([0.0, 0.0, 0.0, 0.3].into())),
+            ..self.active()
+        }
     }
+}
 
-    /// Produces the style of a horizontal scrollbar when the scrollable is being hovered.
-    fn hovered_horizontal(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> Scrollbar {
-        self.hovered(style, is_mouse_over_scrollbar)
+impl std::default::Default for Box<dyn StyleSheet> {
+    fn default() -> Self {
+        Box::new(Default)
     }
+}
 
-    /// Produces the style of a horizontal scrollbar that is being dragged.
-    fn dragging_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered_horizontal(style, true)
+impl<T> From<T> for Box<dyn StyleSheet>
+where
+    T: 'static + StyleSheet,
+{
+    fn from(style: T) -> Self {
+        Box::new(style)
     }
 }

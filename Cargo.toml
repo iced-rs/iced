@@ -1,101 +1,53 @@
 [package]
 name = "iced"
-version = "0.8.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2018"
 description = "A cross-platform GUI library inspired by Elm"
 license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced"
 readme = "README.md"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu"]
-# Enables the `Image` widget
-image = ["iced_wgpu?/image", "iced_glow?/image", "image_rs"]
-# Enables the `Svg` widget
-svg = ["iced_wgpu?/svg", "iced_glow?/svg"]
-# Enables the `Canvas` widget
-canvas = ["iced_graphics/canvas"]
-# Enables the `QRCode` widget
-qr_code = ["iced_graphics/qr_code"]
+default = ["wgpu", "default_system_font"]
 # Enables the `iced_wgpu` renderer
 wgpu = ["iced_wgpu"]
+# Enables the `Image` widget
+image = ["iced_wgpu/image"]
+# Enables the `Svg` widget
+svg = ["iced_wgpu/svg"]
+# Enables the `Canvas` widget
+canvas = ["iced_wgpu/canvas"]
+# Enables the `QRCode` widget
+qr_code = ["iced_wgpu/qr_code"]
 # Enables using system fonts
-default_system_font = ["iced_wgpu?/default_system_font", "iced_glow?/default_system_font"]
-# Enables the `iced_glow` renderer. Overrides `iced_wgpu`
-glow = ["iced_glow", "iced_glutin"]
+default_system_font = ["iced_wgpu/default_system_font"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
-# Enables `async-std` as the `executor::Default` on native platforms
-async-std = ["iced_futures/async-std"]
-# Enables `smol` as the `executor::Default` on native platforms
-smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
-# Enables querying system information
-system = ["iced_winit/system"]
-# Enables chrome traces
-chrome-trace = [
-    "iced_winit/chrome-trace",
-    "iced_glutin?/trace",
-    "iced_wgpu?/tracing",
-    "iced_glow?/tracing",
-]
-
-[badges]
-maintenance = { status = "actively-developed" }
 
 [workspace]
 members = [
     "core",
     "futures",
     "graphics",
-    "glow",
-    "glutin",
-    "lazy",
     "native",
     "style",
     "wgpu",
     "winit",
-    "examples/*",
 ]
 
 [dependencies]
-iced_core = { version = "0.8", path = "core" }
-iced_futures = { version = "0.6", path = "futures" }
-iced_native = { version = "0.9", path = "native" }
-iced_graphics = { version = "0.7", path = "graphics" }
-iced_winit = { version = "0.8", path = "winit", features = ["application"] }
-iced_glutin = { version = "0.7", path = "glutin", optional = true }
-iced_glow = { version = "0.7", path = "glow", optional = true }
+iced_core = { version = "0.4", path = "core" }
+iced_futures = { version = "0.3", path = "futures" }
 thiserror = "1.0"
 
-[dependencies.image_rs]
-version = "0.24"
-package = "image"
-optional = true
+iced_winit = { version = "0.3", path = "winit" }
+iced_wgpu = { version = "0.4", path = "wgpu", optional = true }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-iced_wgpu = { version = "0.9", path = "wgpu", optional = true }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-iced_wgpu = { version = "0.9", path = "wgpu", features = ["webgl"], optional = true }
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-features = ["image", "svg", "canvas", "qr_code"]
-
-[profile.release-opt]
-inherits = "release"
-codegen-units = 1
-debug = false
-lto = true
-incremental = false
-opt-level = 3
-overflow-checks = false
-strip = "debuginfo"

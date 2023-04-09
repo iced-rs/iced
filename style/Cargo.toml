@@ -1,22 +1,15 @@
 [package]
 name = "iced_style"
-version = "0.7.0"
+version = "0.3.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
+edition = "2018"
 description = "The default set of styles of Iced"
 license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+repository = "https://github.com/hecrj/iced"
 documentation = "https://docs.rs/iced_style"
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [dependencies.iced_core]
-version = "0.8"
+version = "0.4"
 path = "../core"
-features = ["palette"]
-
-[dependencies.palette]
-version = "0.6"
-
-[dependencies.once_cell]
-version = "1.15"

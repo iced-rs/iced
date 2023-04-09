@@ -1,4 +1,4 @@
-use crate::{Alignment, Point, Rectangle, Size, Vector};
+use crate::{Align, Point, Rectangle, Size};
 
 /// The bounds of an element and its children.
 #[derive(Debug, Clone, Default)]
@@ -44,26 +44,26 @@ impl Node {
     /// Aligns the [`Node`] in the given space.
     pub fn align(
         &mut self,
-        horizontal_alignment: Alignment,
-        vertical_alignment: Alignment,
+        horizontal_alignment: Align,
+        vertical_alignment: Align,
         space: Size,
     ) {
         match horizontal_alignment {
-            Alignment::Start => {}
-            Alignment::Center => {
+            Align::Start => {}
+            Align::Center => {
                 self.bounds.x += (space.width - self.bounds.width) / 2.0;
             }
-            Alignment::End => {
+            Align::End => {
                 self.bounds.x += space.width - self.bounds.width;
             }
         }
 
         match vertical_alignment {
-            Alignment::Start => {}
-            Alignment::Center => {
+            Align::Start => {}
+            Align::Center => {
                 self.bounds.y += (space.height - self.bounds.height) / 2.0;
             }
-            Alignment::End => {
+            Align::End => {
                 self.bounds.y += space.height - self.bounds.height;
             }
         }
@@ -73,13 +73,5 @@ impl Node {
     pub fn move_to(&mut self, position: Point) {
         self.bounds.x = position.x;
         self.bounds.y = position.y;
-    }
-
-    /// Translates the [`Node`] by the given translation.
-    pub fn translate(self, translation: Vector) -> Self {
-        Self {
-            bounds: self.bounds + translation,
-            ..self
-        }
     }
 }

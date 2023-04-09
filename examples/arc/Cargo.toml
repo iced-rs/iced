@@ -1,9 +1,0 @@
-[package]
-name = "arc"
-version = "0.1.0"
-authors = ["ThatsNoMoon <git@thatsnomoon.dev>"]
-edition = "2021"
-publish = false
-
-[dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug"] }

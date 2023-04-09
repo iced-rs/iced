@@ -1,7 +1,8 @@
 use crate::{Padding, Vector};
+use std::f32;
 
 /// An amount of space in 2 dimensions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Size<T = f32> {
     /// The width.
     pub width: T,
@@ -29,24 +30,8 @@ impl Size {
     /// Increments the [`Size`] to account for the given padding.
     pub fn pad(&self, padding: Padding) -> Self {
         Size {
-            width: self.width + padding.horizontal(),
-            height: self.height + padding.vertical(),
-        }
-    }
-
-    /// Returns the minimum of each component of this size and another
-    pub fn min(self, other: Self) -> Self {
-        Size {
-            width: self.width.min(other.width),
-            height: self.height.min(other.height),
-        }
-    }
-
-    /// Returns the maximum of each component of this size and another
-    pub fn max(self, other: Self) -> Self {
-        Size {
-            width: self.width.max(other.width),
-            height: self.height.max(other.height),
+            width: self.width + padding.horizontal() as f32,
+            height: self.height + padding.vertical() as f32,
         }
     }
 }
@@ -81,16 +66,5 @@ impl From<Size> for [f32; 2] {
 impl From<Size> for Vector<f32> {
     fn from(size: Size) -> Self {
         Vector::new(size.width, size.height)
-    }
-}
-
-impl std::ops::Sub for Size {
-    type Output = Size;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Size {
-            width: self.width - rhs.width,
-            height: self.height - rhs.height,
-        }
     }
 }

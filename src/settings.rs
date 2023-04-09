@@ -4,18 +4,12 @@ use crate::window;
 /// The settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings<Flags> {
-    /// The identifier of the application.
-    ///
-    /// If provided, this identifier may be used to identify the application or
-    /// communicate with it through the windowing system.
-    pub id: Option<String>,
-
     /// The window settings.
     ///
     /// They will be ignored on the Web.
     pub window: window::Settings,
 
-    /// The data needed to initialize the [`Application`].
+    /// The data needed to initialize an [`Application`].
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
@@ -28,14 +22,12 @@ pub struct Settings<Flags> {
 
     /// The text size that will be used by default.
     ///
-    /// The default value is `20.0`.
-    pub default_text_size: f32,
+    /// The default value is 20.
+    pub default_text_size: u16,
 
-    /// If enabled, spread text workload in multiple threads when multiple cores
-    /// are available.
-    ///
-    /// By default, it is disabled.
-    pub text_multithreading: bool,
+    /// Whether the [`Application`] should exit when the user requests the
+    /// window to close (e.g. the user presses the close button).
+    pub exit_on_close_request: bool,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -47,23 +39,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
-
-    /// Whether the [`Application`] should exit when the user requests the
-    /// window to close (e.g. the user presses the close button).
-    ///
-    /// By default, it is enabled.
-    ///
-    /// [`Application`]: crate::Application
-    pub exit_on_close_request: bool,
-
-    /// Whether the [`Application`] should try to build the context
-    /// using OpenGL ES first then OpenGL.
-    ///
-    /// By default, it is disabled.
-    /// **Note:** Only works for the `glow` backend.
-    ///
-    /// [`Application`]: crate::Application
-    pub try_opengles_first: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -75,14 +50,11 @@ impl<Flags> Settings<Flags> {
 
         Self {
             flags,
-            id: default_settings.id,
             window: default_settings.window,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
-            text_multithreading: default_settings.text_multithreading,
-            antialiasing: default_settings.antialiasing,
             exit_on_close_request: default_settings.exit_on_close_request,
-            try_opengles_first: default_settings.try_opengles_first,
+            antialiasing: default_settings.antialiasing,
         }
     }
 }
@@ -93,27 +65,23 @@ where
 {
     fn default() -> Self {
         Self {
-            id: None,
-            window: Default::default(),
             flags: Default::default(),
+            window: Default::default(),
             default_font: Default::default(),
-            default_text_size: 20.0,
-            text_multithreading: false,
-            antialiasing: false,
+            default_text_size: 20,
             exit_on_close_request: true,
-            try_opengles_first: false,
+            antialiasing: false,
         }
     }
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
-            id: settings.id,
             window: settings.window.into(),
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
-            try_opengles_first: settings.try_opengles_first,
         }
     }
 }

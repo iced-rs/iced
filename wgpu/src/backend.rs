@@ -2,63 +2,53 @@ use crate::quad;
 use crate::text;
 use crate::triangle;
 use crate::{Settings, Transformation};
-
 use iced_graphics::backend;
 use iced_graphics::font;
 use iced_graphics::layer::Layer;
 use iced_graphics::{Primitive, Viewport};
-use iced_native::alignment;
-use iced_native::{Font, Size};
+use iced_native::mouse;
+use iced_native::{Font, HorizontalAlignment, Size, VerticalAlignment};
 
-#[cfg(feature = "tracing")]
-use tracing::info_span;
-
-#[cfg(any(feature = "image", feature = "svg"))]
+#[cfg(any(feature = "image_rs", feature = "svg"))]
 use crate::image;
 
 /// A [`wgpu`] graphics backend for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-/// [`iced`]: https://github.com/iced-rs/iced
+/// [`iced`]: https://github.com/hecrj/iced
 #[derive(Debug)]
 pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
 
-    #[cfg(any(feature = "image", feature = "svg"))]
+    #[cfg(any(feature = "image_rs", feature = "svg"))]
     image_pipeline: image::Pipeline,
 
-    default_text_size: f32,
+    default_text_size: u16,
 }
 
 impl Backend {
     /// Creates a new [`Backend`].
-    pub fn new(
-        device: &wgpu::Device,
-        settings: Settings,
-        format: wgpu::TextureFormat,
-    ) -> Self {
-        let text_pipeline = text::Pipeline::new(
+    pub fn new(device: &wgpu::Device, settings: Settings) -> Self {
+        let text_pipeline =
+            text::Pipeline::new(device, settings.format, settings.default_font);
+        let quad_pipeline = quad::Pipeline::new(device, settings.format);
+        let triangle_pipeline = triangle::Pipeline::new(
             device,
-            format,
-            settings.default_font,
-            settings.text_multithreading,
+            settings.format,
+            settings.antialiasing,
         );
 
-        let quad_pipeline = quad::Pipeline::new(device, format);
-        let triangle_pipeline =
-            triangle::Pipeline::new(device, format, settings.antialiasing);
-
-        #[cfg(any(feature = "image", feature = "svg"))]
-        let image_pipeline = image::Pipeline::new(device, format);
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        let image_pipeline = image::Pipeline::new(device, settings.format);
 
         Self {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
 
-            #[cfg(any(feature = "image", feature = "svg"))]
+            #[cfg(any(feature = "image_rs", feature = "svg"))]
             image_pipeline,
 
             default_text_size: settings.default_text_size,
@@ -69,25 +59,23 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    pub fn present<T: AsRef<str>>(
+    pub fn draw<T: AsRef<str>>(
         &mut self,
         device: &wgpu::Device,
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
-        primitives: &[Primitive],
         viewport: &Viewport,
+        (primitive, mouse_interaction): &(Primitive, mouse::Interaction),
         overlay_text: &[T],
-    ) {
+    ) -> mouse::Interaction {
         log::debug!("Drawing");
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Backend", "PRESENT").entered();
 
         let target_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
         let transformation = viewport.projection();
 
-        let mut layers = Layer::generate(primitives, viewport);
+        let mut layers = Layer::generate(primitive, viewport);
         layers.push(Layer::overlay(overlay_text, viewport));
 
         for layer in layers {
@@ -98,13 +86,16 @@ impl Backend {
                 &layer,
                 staging_belt,
                 encoder,
-                frame,
-                target_size,
+                &frame,
+                target_size.width,
+                target_size.height,
             );
         }
 
-        #[cfg(any(feature = "image", feature = "svg"))]
-        self.image_pipeline.trim_cache(device, encoder);
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
+        self.image_pipeline.trim_cache();
+
+        *mouse_interaction
     }
 
     fn flush(
@@ -116,13 +107,10 @@ impl Backend {
         staging_belt: &mut wgpu::util::StagingBelt,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        target_size: Size<u32>,
+        target_width: u32,
+        target_height: u32,
     ) {
         let bounds = (layer.bounds * scale_factor).snap();
-
-        if bounds.width < 1 || bounds.height < 1 {
-            return;
-        }
 
         if !layer.quads.is_empty() {
             self.quad_pipeline.draw(
@@ -146,14 +134,15 @@ impl Backend {
                 staging_belt,
                 encoder,
                 target,
-                target_size,
+                target_width,
+                target_height,
                 scaled,
                 scale_factor,
                 &layer.meshes,
             );
         }
 
-        #[cfg(any(feature = "image", feature = "svg"))]
+        #[cfg(any(feature = "image_rs", feature = "svg"))]
         {
             if !layer.images.is_empty() {
                 let scaled = transformation
@@ -211,27 +200,28 @@ impl Backend {
                     }],
                     layout: wgpu_glyph::Layout::default()
                         .h_align(match text.horizontal_alignment {
-                            alignment::Horizontal::Left => {
+                            HorizontalAlignment::Left => {
                                 wgpu_glyph::HorizontalAlign::Left
                             }
-                            alignment::Horizontal::Center => {
+                            HorizontalAlignment::Center => {
                                 wgpu_glyph::HorizontalAlign::Center
                             }
-                            alignment::Horizontal::Right => {
+                            HorizontalAlignment::Right => {
                                 wgpu_glyph::HorizontalAlign::Right
                             }
                         })
                         .v_align(match text.vertical_alignment {
-                            alignment::Vertical::Top => {
+                            VerticalAlignment::Top => {
                                 wgpu_glyph::VerticalAlign::Top
                             }
-                            alignment::Vertical::Center => {
+                            VerticalAlignment::Center => {
                                 wgpu_glyph::VerticalAlign::Center
                             }
-                            alignment::Vertical::Bottom => {
+                            VerticalAlignment::Bottom => {
                                 wgpu_glyph::VerticalAlign::Bottom
                             }
                         }),
+                    ..Default::default()
                 };
 
                 self.text_pipeline.queue(text);
@@ -265,7 +255,7 @@ impl backend::Text for Backend {
     const CHECKMARK_ICON: char = font::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = font::ARROW_DOWN_ICON;
 
-    fn default_size(&self) -> f32 {
+    fn default_size(&self) -> u16 {
         self.default_text_size
     }
 
@@ -278,30 +268,11 @@ impl backend::Text for Backend {
     ) -> (f32, f32) {
         self.text_pipeline.measure(contents, size, font, bounds)
     }
-
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        font: Font,
-        bounds: Size,
-        point: iced_native::Point,
-        nearest_only: bool,
-    ) -> Option<text::Hit> {
-        self.text_pipeline.hit_test(
-            contents,
-            size,
-            font,
-            bounds,
-            point,
-            nearest_only,
-        )
-    }
 }
 
-#[cfg(feature = "image")]
+#[cfg(feature = "image_rs")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &iced_native::image::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &iced_native::image::Handle) -> (u32, u32) {
         self.image_pipeline.dimensions(handle)
     }
 }
@@ -311,7 +282,7 @@ impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
         handle: &iced_native::svg::Handle,
-    ) -> Size<u32> {
+    ) -> (u32, u32) {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

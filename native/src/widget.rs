@@ -10,14 +10,20 @@
 //! [`Widget`] trait. You can use the API of the built-in widgets as a guide or
 //! source of inspiration.
 //!
+//! # Re-exports
+//! For convenience, the contents of this module are available at the root
+//! module. Therefore, you can directly type:
+//!
+//! ```
+//! use iced_native::{button, Button, Widget};
+//! ```
+//!
 //! [renderer]: crate::renderer
 pub mod button;
 pub mod checkbox;
 pub mod column;
 pub mod container;
-pub mod helpers;
 pub mod image;
-pub mod operation;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
@@ -32,11 +38,6 @@ pub mod text;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
-pub mod tree;
-pub mod vertical_slider;
-
-mod action;
-mod id;
 
 #[doc(no_inline)]
 pub use button::Button;
@@ -46,8 +47,6 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
-#[doc(no_inline)]
-pub use helpers::*;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
@@ -78,21 +77,11 @@ pub use text_input::TextInput;
 pub use toggler::Toggler;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
-#[doc(no_inline)]
-pub use tree::Tree;
-#[doc(no_inline)]
-pub use vertical_slider::VerticalSlider;
-
-pub use action::Action;
-pub use id::Id;
-pub use operation::Operation;
 
 use crate::event::{self, Event};
 use crate::layout;
-use crate::mouse;
 use crate::overlay;
-use crate::renderer;
-use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
+use crate::{Clipboard, Hasher, Layout, Length, Point, Rectangle};
 
 /// A component that displays information and allows interaction.
 ///
@@ -110,12 +99,12 @@ use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 /// `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.8/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.8/examples/bezier_tool
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.8/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.8/examples/geometry
+/// [examples]: https://github.com/hecrj/iced/tree/0.2/examples
+/// [`bezier_tool`]: https://github.com/hecrj/iced/tree/0.2/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/hecrj/iced/tree/0.2/examples/custom_widget
+/// [`geometry`]: https://github.com/hecrj/iced/tree/0.2/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/wgpu
+/// [`iced_wgpu`]: https://github.com/hecrj/iced/tree/0.2/wgpu
 pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -126,10 +115,12 @@ where
     /// Returns the height of the [`Widget`].
     fn height(&self) -> Length;
 
-    /// Returns the [`layout::Node`] of the [`Widget`].
+    /// Returns the [`Node`] of the [`Widget`].
     ///
-    /// This [`layout::Node`] is used by the runtime to compute the [`Layout`] of the
+    /// This [`Node`] is used by the runtime to compute the [`Layout`] of the
     /// user interface.
+    ///
+    /// [`Node`]: layout::Node
     fn layout(
         &self,
         renderer: &Renderer,
@@ -139,84 +130,55 @@ where
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
         &self,
-        state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
-        style: &renderer::Style,
+        defaults: &Renderer::Defaults,
         layout: Layout<'_>,
         cursor_position: Point,
         viewport: &Rectangle,
-    );
+    ) -> Renderer::Output;
 
-    /// Returns the [`Tag`] of the [`Widget`].
+    /// Computes the _layout_ hash of the [`Widget`].
     ///
-    /// [`Tag`]: tree::Tag
-    fn tag(&self) -> tree::Tag {
-        tree::Tag::stateless()
-    }
-
-    /// Returns the [`State`] of the [`Widget`].
+    /// The produced hash is used by the runtime to decide if the [`Layout`]
+    /// needs to be recomputed between frames. Therefore, to ensure maximum
+    /// efficiency, the hash should only be affected by the properties of the
+    /// [`Widget`] that can affect layouting.
     ///
-    /// [`State`]: tree::State
-    fn state(&self) -> tree::State {
-        tree::State::None
-    }
-
-    /// Returns the state [`Tree`] of the children of the [`Widget`].
-    fn children(&self) -> Vec<Tree> {
-        Vec::new()
-    }
-
-    /// Reconciliates the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
-
-    /// Applies an [`Operation`] to the [`Widget`].
-    fn operate(
-        &self,
-        _state: &mut Tree,
-        _layout: Layout<'_>,
-        _renderer: &Renderer,
-        _operation: &mut dyn Operation<Message>,
-    ) {
-    }
+    /// For example, the [`Text`] widget does not hash its color property, as
+    /// its value cannot affect the overall [`Layout`] of the user interface.
+    ///
+    /// [`Text`]: crate::widget::Text
+    fn hash_layout(&self, state: &mut Hasher);
 
     /// Processes a runtime [`Event`].
+    ///
+    /// It receives:
+    ///   * an [`Event`] describing user interaction
+    ///   * the computed [`Layout`] of the [`Widget`]
+    ///   * the current cursor position
+    ///   * a mutable `Message` list, allowing the [`Widget`] to produce
+    ///   new messages based on user interaction.
+    ///   * the `Renderer`
+    ///   * a [`Clipboard`], if available
     ///
     /// By default, it does nothing.
     fn on_event(
         &mut self,
-        _state: &mut Tree,
         _event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
+        _messages: &mut Vec<Message>,
     ) -> event::Status {
         event::Status::Ignored
     }
 
-    /// Returns the current [`mouse::Interaction`] of the [`Widget`].
-    ///
-    /// By default, it returns [`mouse::Interaction::Idle`].
-    fn mouse_interaction(
-        &self,
-        _state: &Tree,
-        _layout: Layout<'_>,
-        _cursor_position: Point,
-        _viewport: &Rectangle,
-        _renderer: &Renderer,
-    ) -> mouse::Interaction {
-        mouse::Interaction::Idle
-    }
-
     /// Returns the overlay of the [`Widget`], if there is any.
-    fn overlay<'a>(
-        &'a mut self,
-        _state: &'a mut Tree,
+    fn overlay(
+        &mut self,
         _layout: Layout<'_>,
-        _renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Renderer>> {
         None
     }
 }
