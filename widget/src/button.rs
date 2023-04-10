@@ -16,7 +16,9 @@ use crate::core::{
 };
 use crate::core::window;
 
-use iced_style::animation::{AnimationDirection, Hover};
+use iced_style::animation::{
+    AnimationDirection, AnimationEffect, Fade, HoverAnimation, PressedAnimation,
+};
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
@@ -65,8 +67,9 @@ where
     height: Length,
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
-    /// Animation duration in milliseconds
     animation_duration_ms: u16,
+    hover_animation: HoverAnimation,
+    pressed_animation: PressedAnimation,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -84,6 +87,8 @@ where
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
             animation_duration_ms: 150,
+            hover_animation: HoverAnimation::default(),
+            pressed_animation: PressedAnimation::Fade(Fade::default()),
         }
     }
 
@@ -121,6 +126,27 @@ where
         self.style = style;
         self
     }
+
+    /// Sets the animation duration (in milliseconds) of the [`Button`].
+    pub fn animation_duration(mut self, animation_duration_ms: u16) -> Self {
+        self.animation_duration_ms = animation_duration_ms;
+        self
+    }
+
+    /// Sets the animation when hovering the [`Button`].
+    pub fn hover_animation(mut self, hover_animation: HoverAnimation) -> Self {
+        self.hover_animation = hover_animation;
+        self
+    }
+
+    /// Sets the animation when pressing the [`Button`].
+    pub fn press_animation(
+        mut self,
+        pressed_animation: PressedAnimation,
+    ) -> Self {
+        self.pressed_animation = pressed_animation;
+        self
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -135,7 +161,10 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::new(
+            self.hover_animation,
+            self.pressed_animation,
+        ))
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -240,6 +269,7 @@ where
             self.on_press.is_some(),
             theme,
             &self.style,
+            cursor_position,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -294,16 +324,24 @@ where
 }
 
 /// The local state of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct State {
     is_pressed: bool,
-    is_hovered: Option<Hover>,
+    hovered_animation: HoverAnimation,
+    pressed_animation: PressedAnimation,
 }
 
 impl State {
     /// Creates a new [`State`].
-    pub fn new() -> State {
-        State::default()
+    pub fn new(
+        hovered_animation: HoverAnimation,
+        pressed_animation: PressedAnimation,
+    ) -> State {
+        State {
+            is_pressed: false,
+            hovered_animation,
+            pressed_animation,
+        }
     }
 }
 
@@ -359,35 +397,10 @@ pub fn update<'a, Message: Clone>(
         Event::Window(window::Event::RedrawRequested(now)) => {
             let state = state();
 
-            if let Some(hover) = &mut state.is_hovered {
-                if animation_duration_ms == 0 || hover.animation_progress >= 1.0
-                {
-                    hover.animation_progress = 1.0;
-                }
-                if hover.animation_progress == 0.0
-                    && hover.direction == AnimationDirection::Backward
-                {
-                    state.is_hovered = None;
-                } else {
-                    match hover.direction {
-                        AnimationDirection::Forward => {
-                            hover.animation_progress = (hover.initial_progress
-                                + (((now - hover.started_at).as_millis()
-                                    as f64)
-                                    / (animation_duration_ms as f64))
-                                    as f32)
-                                .clamp(0.0, 1.0);
-                        }
-                        AnimationDirection::Backward => {
-                            hover.animation_progress = (hover.initial_progress
-                                - (((now - hover.started_at).as_millis()
-                                    as f64)
-                                    / (animation_duration_ms as f64))
-                                    as f32)
-                                .clamp(0.0, 1.0);
-                        }
-                    }
-                }
+            if state
+                .hovered_animation
+                .on_redraw_request_update(animation_duration_ms, now)
+            {
                 shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }
@@ -396,30 +409,11 @@ pub fn update<'a, Message: Clone>(
             let bounds = layout.bounds();
             let is_mouse_over = bounds.contains(position);
 
-            if is_mouse_over {
-                if let Some(hover) = &mut state.is_hovered {
-                    if hover.direction == AnimationDirection::Backward {
-                        hover.initial_progress = hover.animation_progress;
-                        hover.direction = AnimationDirection::Forward;
-                        hover.started_at = std::time::Instant::now();
-                    }
-                }
-                if state.is_hovered.is_none() {
-                    state.is_hovered = Some(Hover {
-                        direction: AnimationDirection::Forward,
-                        started_at: std::time::Instant::now(),
-                        animation_progress: 0.0,
-                        initial_progress: 0.0,
-                    });
-                }
+            if state
+                .hovered_animation
+                .on_cursor_moved_update(is_mouse_over)
+            {
                 shell.request_redraw(window::RedrawRequest::NextFrame);
-            } else if let Some(hover) = &mut state.is_hovered {
-                if hover.direction == AnimationDirection::Forward {
-                    hover.initial_progress = hover.animation_progress;
-                    hover.direction = AnimationDirection::Backward;
-                    hover.started_at = std::time::Instant::now();
-                    shell.request_redraw(window::RedrawRequest::NextFrame);
-                }
             }
         }
         _ => {}
@@ -437,20 +431,22 @@ pub fn draw<'a, Renderer: crate::core::Renderer>(
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    cursor_position: Point,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where
     Renderer::Theme: StyleSheet,
 {
     let state = state();
+    let is_hovered = bounds.contains(cursor_position);
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
-    } else if let Some(hover) = state.is_hovered {
+    } else if is_hovered || state.hovered_animation.is_running() {
         if state.is_pressed {
             style_sheet.pressed(style)
         } else {
-            style_sheet.hovered(style, Some(hover))
+            style_sheet.hovered(style, &state.hovered_animation)
         }
     } else {
         style_sheet.active(style)

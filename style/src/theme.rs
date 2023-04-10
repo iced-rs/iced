@@ -173,12 +173,12 @@ impl button::StyleSheet for Theme {
     fn hovered(
         &self,
         style: &Self::Style,
-        hover: Option<animation::Hover>,
+        hover_animation: &animation::HoverAnimation,
     ) -> button::Appearance {
         let palette = self.extended_palette();
 
         if let Button::Custom(custom) = style {
-            return custom.hovered(self, hover);
+            return custom.hovered(self, hover_animation);
         }
 
         let active = self.active(style);
@@ -192,16 +192,18 @@ impl button::StyleSheet for Theme {
         };
 
         // Mix the hovered and active styles backgrounds according to the animation state
-        if let (Some(hover), Some(active_background), Some(background_color)) =
-            (hover, active.background, background.as_mut())
+        if let (Some(active_background), Some(background_color)) =
+            (active.background, background.as_mut())
         {
-            match active_background {
-                Background::Color(active_background_color) => {
-                    background_color.mix(
-                        active_background_color,
-                        1.0 - hover.animation_progress,
-                    );
-                }
+            match hover_animation.effect {
+                animation::AnimationEffect::Fade => match active_background {
+                    Background::Color(active_background_color) => {
+                        background_color.mix(
+                            active_background_color,
+                            1.0 - hover_animation.animation_progress,
+                        );
+                    }
+                },
             }
         }
 

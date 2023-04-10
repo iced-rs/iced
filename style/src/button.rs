@@ -2,7 +2,7 @@
 
 use iced_core::{Background, Color, Vector};
 
-use crate::animation::Hover;
+use crate::animation::HoverAnimation;
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
@@ -46,7 +46,7 @@ pub trait StyleSheet {
     fn hovered(
         &self,
         style: &Self::Style,
-        _hover: Option<Hover>,
+        _hover: &HoverAnimation,
     ) -> Appearance {
         let active = self.active(style);
 
