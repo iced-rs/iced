@@ -1,4 +1,6 @@
 //! Change the apperance of a button.
+use std::time::Instant;
+
 use iced_core::{Background, Color, Vector};
 
 /// The appearance of a button.
@@ -31,6 +33,29 @@ impl std::default::Default for Appearance {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+/// Direction of the animation
+pub enum AnimationDirection {
+    #[default]
+    /// The animation goes forward
+    Forward,
+    /// The animation goes backward
+    Backward,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+/// Hover animation
+pub struct Hover {
+    /// Animation direction: forward means it goes from non-hovered to hovered state
+    pub direction: AnimationDirection,
+    /// The instant the animation was started at
+    pub started_at: Instant,
+    /// The progress of the animationn, between 0.0 and 1.0
+    pub animation_progress: f32,
+    /// The progress the animation has been started at
+    pub initial_progress: f32,
+}
+
 /// A set of rules that dictate the style of a button.
 pub trait StyleSheet {
     /// The supported style of the [`StyleSheet`].
@@ -43,7 +68,7 @@ pub trait StyleSheet {
     fn hovered(
         &self,
         style: &Self::Style,
-        _hovered_style_ratio: Option<f32>,
+        _hover: Option<Hover>,
     ) -> Appearance {
         let active = self.active(style);
 

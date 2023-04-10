@@ -6,6 +6,7 @@ pub use self::palette::Palette;
 
 use crate::application;
 use crate::button;
+use crate::button::Hover;
 use crate::checkbox;
 use crate::container;
 use crate::core::widget::text;
@@ -172,12 +173,12 @@ impl button::StyleSheet for Theme {
     fn hovered(
         &self,
         style: &Self::Style,
-        hovered_style_ratio: Option<f32>,
+        hover: Option<Hover>,
     ) -> button::Appearance {
         let palette = self.extended_palette();
 
         if let Button::Custom(custom) = style {
-            return custom.hovered(self, hovered_style_ratio);
+            return custom.hovered(self, hover);
         }
 
         let active = self.active(style);
@@ -191,17 +192,14 @@ impl button::StyleSheet for Theme {
         };
 
         // Mix the hovered and active styles backgrounds according to the animation state
-        if let (
-            Some(hovered_style_ratio),
-            Some(active_background),
-            Some(background_color),
-        ) = (hovered_style_ratio, active.background, background.as_mut())
+        if let (Some(hover), Some(active_background), Some(background_color)) =
+            (hover, active.background, background.as_mut())
         {
             match active_background {
                 Background::Color(active_background_color) => {
                     background_color.mix(
                         active_background_color,
-                        1.0 - hovered_style_ratio,
+                        1.0 - hover.animation_progress,
                     );
                 }
             }
