@@ -24,7 +24,6 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
-    offscreen_pipeline: offscreen::Pipeline,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
@@ -44,7 +43,6 @@ impl Backend {
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
-        let offscreen_pipeline = offscreen::Pipeline::new(device);
 
         #[cfg(any(feature = "image", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(device, format);
@@ -53,7 +51,6 @@ impl Backend {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
-            offscreen_pipeline,
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
@@ -158,6 +155,7 @@ impl Backend {
 
         if format != wgpu::TextureFormat::Rgba8UnormSrgb {
             log::info!("Texture format is {format:?}; performing conversion to rgba8..");
+            let pipeline = offscreen::Pipeline::new(device);
 
             let texture = device.create_texture(&wgpu::TextureDescriptor {
                 label: Some("iced_wgpu::offscreen rgba8 source texture"),
@@ -173,13 +171,7 @@ impl Backend {
             let view =
                 texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-            self.offscreen_pipeline.convert(
-                device,
-                texture_extent,
-                frame,
-                &view,
-                encoder,
-            );
+            pipeline.convert(device, texture_extent, frame, &view, encoder);
 
             return Some(texture);
         }
