@@ -20,6 +20,7 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub use iced_core as core;
 
+pub mod animation;
 pub mod application;
 pub mod button;
 pub mod checkbox;

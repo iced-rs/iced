@@ -1,7 +1,6 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
-use std::time::Instant;
 
 use crate::core::event::{self, Event};
 use crate::core::layout;
@@ -17,7 +16,7 @@ use crate::core::{
 };
 use crate::core::window;
 
-use iced_style::button::{AnimationDirection, Hover};
+use iced_style::animation::{AnimationDirection, Hover};
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.

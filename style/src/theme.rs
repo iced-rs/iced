@@ -4,9 +4,9 @@ pub mod palette;
 use self::palette::Extended;
 pub use self::palette::Palette;
 
+use crate::animation;
 use crate::application;
 use crate::button;
-use crate::button::Hover;
 use crate::checkbox;
 use crate::container;
 use crate::core::widget::text;
@@ -173,7 +173,7 @@ impl button::StyleSheet for Theme {
     fn hovered(
         &self,
         style: &Self::Style,
-        hover: Option<Hover>,
+        hover: Option<animation::Hover>,
     ) -> button::Appearance {
         let palette = self.extended_palette();
 
