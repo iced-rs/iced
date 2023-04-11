@@ -22,7 +22,7 @@ pub fn connect() -> Subscription<Event> {
             loop {
                 match &mut state {
                     State::Disconnected => {
-                        const ECHO_SERVER: &str = "ws://localhost:3030";
+                        const ECHO_SERVER: &str = "ws://127.0.0.1:3030";
 
                         match async_tungstenite::tokio::connect_async(
                             ECHO_SERVER,
