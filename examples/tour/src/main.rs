@@ -132,7 +132,7 @@ impl Steps {
                 Step::Debugger,
                 Step::End,
             ],
-            current: 8,
+            current: 0,
         }
     }
 
