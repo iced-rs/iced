@@ -16,9 +16,7 @@ use crate::core::{
 };
 use crate::core::window;
 
-use iced_style::animation::{
-    AnimationDirection, AnimationEffect, Fade, HoverAnimation, PressedAnimation,
-};
+use iced_style::animation::{Fade, HoverAnimation, PressedAnimation};
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
@@ -266,10 +264,10 @@ where
         let styling = draw(
             renderer,
             bounds,
+            cursor_position,
             self.on_press.is_some(),
             theme,
             &self.style,
-            cursor_position,
             || tree.state.downcast_ref::<State>(),
         );
 
@@ -426,12 +424,12 @@ pub fn update<'a, Message: Clone>(
 pub fn draw<'a, Renderer: crate::core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
+    cursor_position: Point,
     is_enabled: bool,
     style_sheet: &dyn StyleSheet<
         Style = <Renderer::Theme as StyleSheet>::Style,
     >,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    cursor_position: Point,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where

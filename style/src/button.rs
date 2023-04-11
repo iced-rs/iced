@@ -1,8 +1,5 @@
 //! Change the apperance of a button.
-
 use iced_core::{Background, Color, Vector};
-
-use crate::animation::HoverAnimation;
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
@@ -46,7 +43,7 @@ pub trait StyleSheet {
     fn hovered(
         &self,
         style: &Self::Style,
-        _hover: &HoverAnimation,
+        _hover: &crate::animation::HoverAnimation,
     ) -> Appearance {
         let active = self.active(style);
 
