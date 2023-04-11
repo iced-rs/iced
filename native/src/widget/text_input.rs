@@ -32,19 +32,16 @@ use crate::{
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// The position of the [`Icon`].
-#[derive(Clone, Default, Debug)]
+#[derive(Debug, Clone)]
 pub enum IconPosition {
     /// Position the [`Icon`] to the left.
     Left,
-    /// Position the [`Icon`] to the left.
-    ///
-    /// This is the default.
-    #[default]
+    /// Position the [`Icon`] to the right.
     Right,
 }
 
 /// The content of the [`Icon`].
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Icon<Font> {
     /// Font that will be used to display the `code_point`.
     pub font: Font,
@@ -56,19 +53,6 @@ pub struct Icon<Font> {
     pub spacing: f32,
     /// Position of the icon.
     pub position: IconPosition,
-}
-
-impl<Renderer> std::fmt::Debug for Icon<Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Icon")
-            .field("code_point", &self.code_point)
-            .field("size", &self.size)
-            .field("position", &self.position)
-            .finish()
-    }
 }
 
 /// A field that can be filled with text.
