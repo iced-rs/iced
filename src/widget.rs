@@ -124,7 +124,7 @@ pub mod text_input {
     //! Display fields that can be filled with text.
     pub use iced_native::widget::text_input::{
         focus, move_cursor_to, move_cursor_to_end, move_cursor_to_front,
-        select_all, Appearance, Icon, IconPosition, Id, StyleSheet,
+        select_all, Appearance, Icon, Id, Side, StyleSheet,
     };
 
     /// A field that can be filled with text.

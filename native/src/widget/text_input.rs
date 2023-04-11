@@ -347,16 +347,16 @@ pub struct Icon<Font> {
     pub size: Option<f32>,
     /// The spacing between the [`Icon`] and the text in a [`TextInput`].
     pub spacing: f32,
-    /// The position of the icon.
-    pub position: IconPosition,
+    /// The side of a [`TextInput`] where to display the [`Icon`].
+    pub side: Side,
 }
 
-/// The position of an [`Icon`].
+/// The side of a [`TextInput`].
 #[derive(Debug, Clone)]
-pub enum IconPosition {
-    /// Position the [`Icon`] on the left side of a [`TextInput`].
+pub enum Side {
+    /// The left side of a [`TextInput`].
     Left,
-    /// Position the [`Icon`] on the right side of a [`TextInput`].
+    /// The right side of a [`TextInput`].
     Right,
 }
 
@@ -448,8 +448,8 @@ where
         let mut icon_node =
             layout::Node::new(Size::new(icon_width, text_bounds.height));
 
-        match icon.position {
-            IconPosition::Left => {
+        match icon.side {
+            Side::Left => {
                 text_node.move_to(Point::new(
                     padding.left + icon_width + icon.spacing,
                     padding.top,
@@ -457,7 +457,7 @@ where
 
                 icon_node.move_to(Point::new(padding.left, padding.top));
             }
-            IconPosition::Right => {
+            Side::Right => {
                 text_node.move_to(Point::new(padding.left, padding.top));
 
                 icon_node.move_to(Point::new(

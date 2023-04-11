@@ -585,7 +585,7 @@ impl<'a> Step {
                 code_point: '\u{E900}',
                 size: Some(35.0),
                 spacing: 10.0,
-                position: text_input::IconPosition::Right,
+                side: text_input::Side::Right,
             });
         }
 
