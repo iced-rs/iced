@@ -51,7 +51,7 @@ pub struct Icon<Font> {
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// Font size of the content.
-    pub size: Option<u16>,
+    pub size: Option<f32>,
     /// Position of the icon.
     pub position: IconPosition,
 }
@@ -886,7 +886,7 @@ pub fn draw<Renderer>(
                 position,
             } = icon;
 
-            let padding = f32::from(padding.horizontal());
+            let padding = padding.horizontal();
             let size = size.unwrap_or_else(|| renderer.default_size());
             let width = renderer.measure_width(
                 &code_point.to_string(),
@@ -939,14 +939,14 @@ pub fn draw<Renderer>(
             position,
         } = icon;
 
-        let padding = f32::from(padding.horizontal());
+        let padding = padding.horizontal();
         let size = size.unwrap_or_else(|| renderer.default_size());
         let width =
             renderer.measure_width(&code_point.to_string(), size, font.clone());
 
         renderer.fill_text(Text {
             content: &code_point.to_string(),
-            size: f32::from(size),
+            size,
             font: font.clone(),
             color: appearance.icon_color,
             bounds: Rectangle {
@@ -954,8 +954,8 @@ pub fn draw<Renderer>(
                     IconPosition::Left => bounds.x + width + padding,
                     IconPosition::Right => bounds.x + bounds.width - padding,
                 },
-                y: bounds.center_y() - f32::from(size) / 2.0,
-                height: f32::from(size),
+                y: bounds.center_y() - size / 2.0,
+                height: size,
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Right,

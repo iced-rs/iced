@@ -583,7 +583,7 @@ impl<'a> Step {
             text_input = text_input.icon(text_input::Icon {
                 font: ICON_FONT,
                 code_point: '\u{e900}',
-                size: Some(35),
+                size: Some(35.0),
                 position: text_input::IconPosition::Right,
             });
         }
