@@ -84,9 +84,9 @@ where
             height: Length::Shrink,
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
-            animation_duration_ms: 150,
-            hover_animation_effect: AnimationEffect::Fade,
-            pressed_animation_effect: AnimationEffect::Fade,
+            animation_duration_ms: 250,
+            hover_animation_effect: AnimationEffect::EaseOut,
+            pressed_animation_effect: AnimationEffect::EaseOut,
         }
     }
 
@@ -367,6 +367,8 @@ pub fn update<'a, Message: Clone>(
                     let state = state();
 
                     state.is_pressed = true;
+                    state.pressed_animation.on_press();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     return event::Status::Captured;
                 }
@@ -379,6 +381,8 @@ pub fn update<'a, Message: Clone>(
 
                 if state.is_pressed {
                     state.is_pressed = false;
+                    state.pressed_animation.on_released();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     let bounds = layout.bounds();
 
@@ -398,21 +402,29 @@ pub fn update<'a, Message: Clone>(
         Event::Window(window::Event::RedrawRequested(now)) => {
             let state = state();
 
-            if state
+            if state.is_pressed || state.pressed_animation.is_running() {
+                if state
+                    .pressed_animation
+                    .on_redraw_request_update(animation_duration_ms, now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            } else if state
                 .hovered_animation
                 .on_redraw_request_update(animation_duration_ms, now)
             {
                 shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }
-        Event::Mouse(mouse::Event::CursorMoved { position }) => {
+        Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
             let state = state();
             let bounds = layout.bounds();
-            let is_mouse_over = bounds.contains(position);
+            let is_mouse_over = bounds.contains(cursor_position);
 
-            if state
-                .hovered_animation
-                .on_cursor_moved_update(is_mouse_over)
+            if !state.is_pressed
+                && state
+                    .hovered_animation
+                    .on_cursor_moved_update(is_mouse_over)
             {
                 shell.request_redraw(window::RedrawRequest::NextFrame);
             }
@@ -444,8 +456,8 @@ where
     let styling = if !is_enabled {
         style_sheet.disabled(style)
     } else if is_hovered || state.hovered_animation.is_running() {
-        if state.is_pressed {
-            style_sheet.pressed(style)
+        if state.is_pressed || state.pressed_animation.is_running() {
+            style_sheet.pressed(style, &state.pressed_animation)
         } else {
             style_sheet.hovered(style, &state.hovered_animation)
         }

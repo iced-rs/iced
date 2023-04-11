@@ -61,7 +61,7 @@ impl HoverPressedAnimation {
                 self.animation_progress = 1.0;
             }
 
-            // Reset if ended
+            // Reset the animation once it has gone forward and now fully backward
             if self.animation_progress == 0.0
                 && self.direction == AnimationDirection::Backward
             {
@@ -132,5 +132,20 @@ impl HoverPressedAnimation {
         } else {
             false
         }
+    }
+
+    /// Start the animation when pressed
+    pub fn on_press(&mut self) {
+        self.started_at = Some(std::time::Instant::now());
+        self.direction = AnimationDirection::Forward;
+        self.animation_progress = 0.0;
+        self.initial_progress = 0.0;
+    }
+
+    /// End the animation when released
+    pub fn on_released(&mut self) {
+        self.started_at = Some(std::time::Instant::now());
+        self.direction = AnimationDirection::Backward;
+        self.initial_progress = self.animation_progress;
     }
 }

@@ -214,13 +214,46 @@ impl button::StyleSheet for Theme {
         }
     }
 
-    fn pressed(&self, style: &Self::Style) -> button::Appearance {
+    fn pressed(
+        &self,
+        style: &Self::Style,
+        pressed_animation: &animation::HoverPressedAnimation,
+    ) -> button::Appearance {
         if let Button::Custom(custom) = style {
-            return custom.pressed(self);
+            return custom.pressed(self, pressed_animation);
+        }
+        let palette = self.extended_palette();
+
+        let active = self.active(style);
+
+        let mut background = match style {
+            Button::Primary => Some(palette.primary.base.color),
+            Button::Secondary => Some(palette.background.strong.color),
+            Button::Positive => Some(palette.success.strong.color),
+            Button::Destructive => Some(palette.danger.strong.color),
+            Button::Text | Button::Custom(_) => None,
+        };
+
+        // Mix the hovered and active styles backgrounds according to the animation state
+        if let (Some(active_background), Some(background_color)) =
+            (active.background, background.as_mut())
+        {
+            match pressed_animation.effect {
+                animation::AnimationEffect::Fade => match active_background {
+                    Background::Color(active_background_color) => {
+                        background_color.mix(
+                            active_background_color,
+                            pressed_animation.animation_progress,
+                        );
+                    }
+                },
+                animation::AnimationEffect::None => {}
+            }
         }
 
         button::Appearance {
             shadow_offset: Vector::default(),
+            background: background.map(Background::from),
             ..self.active(style)
         }
     }
