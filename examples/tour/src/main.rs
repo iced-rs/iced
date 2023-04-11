@@ -7,11 +7,6 @@ use iced::widget::{
 use iced::widget::{Button, Column, Container, Slider};
 use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 
-const ICON_FONT: Font = Font::External {
-    name: "Icons",
-    bytes: include_bytes!("../fonts/icons.ttf"),
-};
-
 pub fn main() -> iced::Result {
     env_logger::init();
 
@@ -570,6 +565,11 @@ impl<'a> Step {
         is_secure: bool,
         is_showing_icon: bool,
     ) -> Column<'a, StepMessage> {
+        const ICON_FONT: Font = Font::External {
+            name: "Icons",
+            bytes: include_bytes!("../fonts/icons.ttf"),
+        };
+
         let mut text_input = text_input(
             "Type something to continue...",
             value,
