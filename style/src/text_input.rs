@@ -12,6 +12,8 @@ pub struct Appearance {
     pub border_width: f32,
     /// The border [`Color`] of the text input.
     pub border_color: Color,
+    /// The icon [`Color`] of the text input.
+    pub icon_color: Color,
 }
 
 /// A set of rules that dictate the style of a text input.
