@@ -5,8 +5,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::Font;
-use iced::{Color, Element, Length, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 
 const ICON_FONT: Font = Font::External {
     name: "Icons",
