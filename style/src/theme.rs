@@ -173,7 +173,7 @@ impl button::StyleSheet for Theme {
     fn hovered(
         &self,
         style: &Self::Style,
-        hover_animation: &animation::HoverAnimation,
+        hover_animation: &animation::HoverPressedAnimation,
     ) -> button::Appearance {
         let palette = self.extended_palette();
 
@@ -204,6 +204,7 @@ impl button::StyleSheet for Theme {
                         );
                     }
                 },
+                animation::AnimationEffect::None => {}
             }
         }
 

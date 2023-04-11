@@ -43,7 +43,7 @@ pub trait StyleSheet {
     fn hovered(
         &self,
         style: &Self::Style,
-        _hover: &crate::animation::HoverAnimation,
+        _hover: &crate::animation::HoverPressedAnimation,
     ) -> Appearance {
         let active = self.active(style);
 

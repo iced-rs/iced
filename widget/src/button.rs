@@ -16,7 +16,7 @@ use crate::core::{
 };
 use crate::core::window;
 
-use iced_style::animation::{Fade, HoverAnimation, PressedAnimation};
+use iced_style::animation::{AnimationEffect, HoverPressedAnimation};
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
@@ -66,8 +66,8 @@ where
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
     animation_duration_ms: u16,
-    hover_animation: HoverAnimation,
-    pressed_animation: PressedAnimation,
+    hover_animation_effect: AnimationEffect,
+    pressed_animation_effect: AnimationEffect,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -85,8 +85,8 @@ where
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
             animation_duration_ms: 150,
-            hover_animation: HoverAnimation::default(),
-            pressed_animation: PressedAnimation::Fade(Fade::default()),
+            hover_animation_effect: AnimationEffect::Fade,
+            pressed_animation_effect: AnimationEffect::Fade,
         }
     }
 
@@ -131,18 +131,21 @@ where
         self
     }
 
-    /// Sets the animation when hovering the [`Button`].
-    pub fn hover_animation(mut self, hover_animation: HoverAnimation) -> Self {
-        self.hover_animation = hover_animation;
+    /// Sets the animation effect when hovering the [`Button`].
+    pub fn hover_animation_effect(
+        mut self,
+        hover_animation_effect: AnimationEffect,
+    ) -> Self {
+        self.hover_animation_effect = hover_animation_effect;
         self
     }
 
-    /// Sets the animation when pressing the [`Button`].
-    pub fn press_animation(
+    /// Sets the animation effect when pressing the [`Button`].
+    pub fn pressed_animation_effect(
         mut self,
-        pressed_animation: PressedAnimation,
+        pressed_animation_effect: AnimationEffect,
     ) -> Self {
-        self.pressed_animation = pressed_animation;
+        self.pressed_animation_effect = pressed_animation_effect;
         self
     }
 }
@@ -160,8 +163,8 @@ where
 
     fn state(&self) -> tree::State {
         tree::State::new(State::new(
-            self.hover_animation,
-            self.pressed_animation,
+            HoverPressedAnimation::new(self.hover_animation_effect),
+            HoverPressedAnimation::new(self.hover_animation_effect),
         ))
     }
 
@@ -325,15 +328,15 @@ where
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct State {
     is_pressed: bool,
-    hovered_animation: HoverAnimation,
-    pressed_animation: PressedAnimation,
+    hovered_animation: HoverPressedAnimation,
+    pressed_animation: HoverPressedAnimation,
 }
 
 impl State {
     /// Creates a new [`State`].
     pub fn new(
-        hovered_animation: HoverAnimation,
-        pressed_animation: PressedAnimation,
+        hovered_animation: HoverPressedAnimation,
+        pressed_animation: HoverPressedAnimation,
     ) -> State {
         State {
             is_pressed: false,

@@ -2,7 +2,7 @@
 
 /// Hover animation of the widget
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct HoverAnimation {
+pub struct HoverPressedAnimation {
     /// Animation direction: forward means it goes from non-hovered to hovered state
     pub direction: AnimationDirection,
     /// The instant the animation was started at (`None` if it is not running)
@@ -18,29 +18,11 @@ pub struct HoverAnimation {
 /// The type of effect for the animation
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum AnimationEffect {
-    /// The background color of the widget fades into the "hovered" color when hovered
+    /// The background color of the widget fades into the other color when hovered or pressed
     #[default]
     Fade,
-}
-
-/// Hover animation of the widget
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum PressedAnimation {
-    /// The background color of the widget fades into the "pressed" color when pressed
-    Fade(Fade),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-/// Fade.. animation
-pub struct Fade {
-    /// Animation direction: forward means it goes from non-hovered to hovered state
-    pub direction: AnimationDirection,
-    /// The instant the animation was started at (`None` if it is not running)
-    pub started_at: Option<std::time::Instant>,
-    /// The progress of the animationn, between 0.0 and 1.0
-    pub animation_progress: f32,
-    /// The progress the animation has been started at
-    pub initial_progress: f32,
+    /// The background color of the widget instantly changes into the other color when hovered or pressed
+    None,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -53,7 +35,15 @@ pub enum AnimationDirection {
     Backward,
 }
 
-impl HoverAnimation {
+impl HoverPressedAnimation {
+    /// Create a hover animation with the given transision effect
+    pub fn new(effect: AnimationEffect) -> Self {
+        Self {
+            effect,
+            ..Default::default()
+        }
+    }
+
     /// Check if the animation is running
     pub fn is_running(&self) -> bool {
         self.started_at.is_some()
@@ -97,6 +87,7 @@ impl HoverAnimation {
                                 .clamp(0.0, 1.0);
                         }
                     },
+                    AnimationEffect::None => {}
                 }
             }
             return true;
