@@ -166,6 +166,7 @@ impl Backend {
                 format: wgpu::TextureFormat::Rgba8Unorm,
                 usage: wgpu::TextureUsages::STORAGE_BINDING
                     | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
             });
 
             let view =

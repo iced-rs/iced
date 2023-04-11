@@ -327,6 +327,7 @@ pub fn screenshot<Theme, T: AsRef<str>>(
         usage: wgpu::TextureUsages::RENDER_ATTACHMENT
             | wgpu::TextureUsages::COPY_SRC
             | wgpu::TextureUsages::TEXTURE_BINDING,
+        view_formats: &[],
     });
 
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
