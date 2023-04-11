@@ -475,7 +475,7 @@ where
         let mut text = layout::Node::new(text_bounds);
         text.move_to(Point::new(padding.left, padding.top));
 
-        layout::Node::with_children(text.size().pad(padding), vec![text])
+        layout::Node::with_children(text_bounds.pad(padding), vec![text])
     }
 }
 
