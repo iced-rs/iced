@@ -69,7 +69,7 @@ pub fn connect() -> Subscription<Event> {
                             message = input.select_next_some() => {
                                 let result = websocket.send(tungstenite::Message::Text(message.to_string())).await;
 
-                                if !result.is_ok() {
+                                if result.is_err() {
                                     let _ = output.send(Event::Disconnected).await;
 
                                     state = State::Disconnected;
