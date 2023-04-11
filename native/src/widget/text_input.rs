@@ -52,6 +52,8 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// The spacing between the [`Icon`] and the text in a [`TextInput`].
+    pub spacing: f32,
     /// Position of the icon.
     pub position: IconPosition,
 }
@@ -235,7 +237,6 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
-            self.padding,
             &self.font,
             self.is_secure,
             self.icon.as_ref(),
@@ -272,7 +273,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.size,
+            self.icon.as_ref(),
+        )
     }
 
     fn operate(
@@ -335,7 +343,6 @@ where
             &self.value,
             &self.placeholder,
             self.size,
-            self.padding,
             &self.font,
             self.is_secure,
             self.icon.as_ref(),
@@ -431,6 +438,7 @@ pub fn layout<Renderer>(
     width: Length,
     padding: Padding,
     size: Option<f32>,
+    icon: Option<&Icon<Renderer::Font>>,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -440,10 +448,51 @@ where
     let padding = padding.fit(Size::ZERO, limits.max());
     let limits = limits.width(width).pad(padding).height(text_size);
 
-    let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-    text.move_to(Point::new(padding.left, padding.top));
+    let text_bounds = limits.resolve(Size::ZERO);
 
-    layout::Node::with_children(text.size().pad(padding), vec![text])
+    if let Some(icon) = icon {
+        let icon_width = renderer.measure_width(
+            &icon.code_point.to_string(),
+            icon.size.unwrap_or_else(|| renderer.default_size()),
+            icon.font.clone(),
+        );
+
+        let mut text_node = layout::Node::new(
+            text_bounds - Size::new(icon_width + icon.spacing, 0.0),
+        );
+
+        let mut icon_node =
+            layout::Node::new(Size::new(icon_width, text_bounds.height));
+
+        match icon.position {
+            IconPosition::Left => {
+                text_node.move_to(Point::new(
+                    padding.left + icon_width + icon.spacing,
+                    padding.top,
+                ));
+
+                icon_node.move_to(Point::new(padding.left, padding.top));
+            }
+            IconPosition::Right => {
+                text_node.move_to(Point::new(padding.left, padding.top));
+
+                icon_node.move_to(Point::new(
+                    padding.left + text_bounds.width - icon_width,
+                    padding.top,
+                ));
+            }
+        };
+
+        layout::Node::with_children(
+            text_bounds.pad(padding),
+            vec![text_node, icon_node],
+        )
+    } else {
+        let mut text = layout::Node::new(text_bounds);
+        text.move_to(Point::new(padding.left, padding.top));
+
+        layout::Node::with_children(text.size().pad(padding), vec![text])
+    }
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`TextInput`]
@@ -863,7 +912,6 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
-    padding: Padding,
     font: &Renderer::Font,
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
@@ -876,40 +924,9 @@ pub fn draw<Renderer>(
     let value = secure_value.as_ref().unwrap_or(value);
 
     let bounds = layout.bounds();
-    let text_bounds = {
-        let bounds = layout.children().next().unwrap().bounds();
-        if let Some(icon) = icon {
-            let Icon {
-                font,
-                size,
-                code_point,
-                position,
-            } = icon;
 
-            let padding = padding.horizontal();
-            let size = size.unwrap_or_else(|| renderer.default_size());
-            let width = renderer.measure_width(
-                &code_point.to_string(),
-                size,
-                font.clone(),
-            );
-
-            match position {
-                IconPosition::Left => Rectangle {
-                    x: bounds.x + (width + padding),
-                    width: bounds.width - (width + padding),
-                    ..bounds
-                },
-                IconPosition::Right => Rectangle {
-                    x: bounds.x,
-                    width: bounds.width - (width + padding),
-                    ..bounds
-                },
-            }
-        } else {
-            bounds
-        }
-    };
+    let mut children_layout = layout.children();
+    let text_bounds = children_layout.next().unwrap().bounds();
 
     let is_mouse_over = bounds.contains(cursor_position);
 
@@ -932,33 +949,15 @@ pub fn draw<Renderer>(
     );
 
     if let Some(icon) = icon {
-        let Icon {
-            size,
-            font,
-            code_point,
-            position,
-        } = icon;
-
-        let padding = padding.horizontal();
-        let size = size.unwrap_or_else(|| renderer.default_size());
-        let width =
-            renderer.measure_width(&code_point.to_string(), size, font.clone());
+        let icon_layout = children_layout.next().unwrap();
 
         renderer.fill_text(Text {
-            content: &code_point.to_string(),
-            size,
-            font: font.clone(),
+            content: &icon.code_point.to_string(),
+            size: icon.size.unwrap_or_else(|| renderer.default_size()),
+            font: icon.font.clone(),
             color: appearance.icon_color,
-            bounds: Rectangle {
-                x: match position {
-                    IconPosition::Left => bounds.x + width + padding,
-                    IconPosition::Right => bounds.x + bounds.width - padding,
-                },
-                y: bounds.center_y() - size / 2.0,
-                height: size,
-                ..bounds
-            },
-            horizontal_alignment: alignment::Horizontal::Right,
+            bounds: icon_layout.bounds(),
+            horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
         });
     }

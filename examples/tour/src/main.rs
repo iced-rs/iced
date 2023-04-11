@@ -138,7 +138,7 @@ impl Steps {
                 Step::Debugger,
                 Step::End,
             ],
-            current: 0,
+            current: 8,
         }
     }
 
@@ -582,8 +582,9 @@ impl<'a> Step {
         if is_showing_icon {
             text_input = text_input.icon(text_input::Icon {
                 font: ICON_FONT,
-                code_point: '\u{e900}',
+                code_point: '\u{E900}',
                 size: Some(35.0),
+                spacing: 10.0,
                 position: text_input::IconPosition::Right,
             });
         }
