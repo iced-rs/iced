@@ -31,30 +31,6 @@ use crate::{
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
-/// The position of the [`Icon`].
-#[derive(Debug, Clone)]
-pub enum IconPosition {
-    /// Position the [`Icon`] to the left.
-    Left,
-    /// Position the [`Icon`] to the right.
-    Right,
-}
-
-/// The content of the [`Icon`].
-#[derive(Debug, Clone)]
-pub struct Icon<Font> {
-    /// Font that will be used to display the `code_point`.
-    pub font: Font,
-    /// The unicode code point that will be used as the icon.
-    pub code_point: char,
-    /// Font size of the content.
-    pub size: Option<f32>,
-    /// The spacing between the [`Icon`] and the text in a [`TextInput`].
-    pub spacing: f32,
-    /// Position of the icon.
-    pub position: IconPosition,
-}
-
 /// A field that can be filled with text.
 ///
 /// # Example
@@ -358,6 +334,30 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
+}
+
+/// The content of the [`Icon`].
+#[derive(Debug, Clone)]
+pub struct Icon<Font> {
+    /// The font that will be used to display the `code_point`.
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
+    /// The font size of the content.
+    pub size: Option<f32>,
+    /// The spacing between the [`Icon`] and the text in a [`TextInput`].
+    pub spacing: f32,
+    /// The position of the icon.
+    pub position: IconPosition,
+}
+
+/// The position of an [`Icon`].
+#[derive(Debug, Clone)]
+pub enum IconPosition {
+    /// Position the [`Icon`] on the left side of a [`TextInput`].
+    Left,
+    /// Position the [`Icon`] on the right side of a [`TextInput`].
+    Right,
 }
 
 /// The identifier of a [`TextInput`].
