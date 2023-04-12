@@ -33,6 +33,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
+    width: Length,
     height: Length,
     vertical: Properties,
     horizontal: Option<Properties>,
@@ -50,6 +51,7 @@ where
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             id: None,
+            width: Length::Shrink,
             height: Length::Shrink,
             vertical: Properties::default(),
             horizontal: None,
@@ -62,6 +64,12 @@ where
     /// Sets the [`Id`] of the [`Scrollable`].
     pub fn id(mut self, id: Id) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    /// Sets the width of the [`Scrollable`].
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -173,7 +181,7 @@ where
     }
 
     fn width(&self) -> Length {
-        self.content.as_widget().width()
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -188,7 +196,7 @@ where
         layout(
             renderer,
             limits,
-            Widget::<Message, Renderer>::width(self),
+            self.width,
             self.height,
             self.horizontal.is_some(),
             |renderer, limits| {
@@ -397,15 +405,7 @@ pub fn layout<Renderer>(
     horizontal_enabled: bool,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .max_height(f32::INFINITY)
-        .max_width(if horizontal_enabled {
-            f32::INFINITY
-        } else {
-            limits.max().width
-        })
-        .width(width)
-        .height(height);
+    let limits = limits.width(width).height(height);
 
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, 0.0),
