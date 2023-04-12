@@ -340,7 +340,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
+        mouse_interaction(layout, cursor_position, self.on_input.is_none())
     }
 }
 
@@ -1117,9 +1117,14 @@ pub fn draw<Renderer>(
 pub fn mouse_interaction(
     layout: Layout<'_>,
     cursor_position: Point,
+    is_disabled: bool,
 ) -> mouse::Interaction {
     if layout.bounds().contains(cursor_position) {
-        mouse::Interaction::Text
+        if is_disabled {
+            mouse::Interaction::NotAllowed
+        } else {
+            mouse::Interaction::Text
+        }
     } else {
         mouse::Interaction::default()
     }
