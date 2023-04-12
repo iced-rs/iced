@@ -920,7 +920,9 @@ fn notify_on_scroll<Message>(
 
         // Don't publish redundant offsets to shell
         if let Some(prev_offset) = state.last_notified {
-            let unchanged = |a: f32, b: f32| (a - b).abs() <= f32::EPSILON;
+            let unchanged = |a: f32, b: f32| {
+                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
+            };
 
             if unchanged(prev_offset.x, new_offset.x)
                 && unchanged(prev_offset.y, new_offset.y)
