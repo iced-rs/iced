@@ -147,7 +147,7 @@ where
     Renderer::Theme: widget::radio::StyleSheet,
     V: Copy + Eq,
 {
-    widget::Radio::new(value, label, selected, on_click)
+    widget::Radio::new(label, value, selected, on_click)
 }
 
 /// Creates a new [`Toggler`].
