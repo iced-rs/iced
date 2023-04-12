@@ -222,6 +222,7 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
+            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         });
 
@@ -232,6 +233,7 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
+            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING,
         });

@@ -31,7 +31,10 @@ impl<Theme> Compositor<Theme> {
         settings: Settings,
         compatible_window: Option<&W>,
     ) -> Option<Self> {
-        let instance = wgpu::Instance::new(settings.internal_backend);
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: settings.internal_backend,
+            ..Default::default()
+        });
 
         log::info!("{:#?}", settings);
 
@@ -46,7 +49,7 @@ impl<Theme> Compositor<Theme> {
 
         #[allow(unsafe_code)]
         let compatible_surface = compatible_window
-            .map(|window| unsafe { instance.create_surface(window) });
+            .and_then(|window| unsafe { instance.create_surface(window).ok() });
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -63,7 +66,18 @@ impl<Theme> Compositor<Theme> {
         log::info!("Selected: {:#?}", adapter.get_info());
 
         let format = compatible_surface.as_ref().and_then(|surface| {
-            surface.get_supported_formats(&adapter).first().copied()
+            surface
+                .get_capabilities(&adapter)
+                .formats
+                .iter()
+                .filter(|format| format.describe().srgb)
+                .copied()
+                .next()
+                .or_else(|| {
+                    log::warn!("No sRGB format found!");
+
+                    surface.get_capabilities(&adapter).formats.first().copied()
+                })
         })?;
 
         log::info!("Selected format: {:?}", format);
@@ -144,7 +158,9 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
     ) -> wgpu::Surface {
         #[allow(unsafe_code)]
         unsafe {
-            self.instance.create_surface(window)
+            self.instance
+                .create_surface(window)
+                .expect("Create surface")
         }
     }
 
@@ -163,6 +179,7 @@ impl<Theme> iced_graphics::window::Compositor for Compositor<Theme> {
                 width,
                 height,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                view_formats: vec![],
             },
         );
     }
