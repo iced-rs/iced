@@ -47,18 +47,18 @@ pub fn from_file_data(
     )?)
 }
 
-/// An error produced when using `Icon::from_rgba` with invalid arguments.
+/// An error produced when creating an [`Icon`].
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// The icon creation errors
-    #[error("Unable to create icon: {0}")]
-    IconError(#[from] icon::Error),
+    /// The [`Icon`] is not valid.
+    #[error("The icon is invalid: {0}")]
+    InvalidError(#[from] icon::Error),
 
     /// The underlying OS failed to create the icon.
     #[error("The underlying OS failted to create the window icon: {0}")]
     OsError(#[from] io::Error),
 
-    /// The `image` crate reported an error
+    /// The `image` crate reported an error.
     #[cfg(feature = "image")]
     #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     #[error("Unable to create icon from a file: {0}")]
