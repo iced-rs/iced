@@ -370,8 +370,6 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let value = value.into() as f32;
-
     let (handle_width, handle_height, handle_border_radius) = match style
         .handle
         .shape
@@ -383,6 +381,7 @@ pub fn draw<T, R>(
         } => (f32::from(width), bounds.height, border_radius),
     };
 
+    let value = value.into() as f32;
     let (range_start, range_end) = {
         let (start, end) = range.clone().into_inner();
 
@@ -396,15 +395,14 @@ pub fn draw<T, R>(
             / (range_end - range_start)
     };
 
-    let line_y = bounds.y + bounds.height / 2.0 - style.rail.size / 2.0;
-    let line_offset = offset + handle_width / 2.0;
+    let rail_y = bounds.y + bounds.height / 2.0;
 
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
                 x: bounds.x,
-                y: line_y,
-                width: line_offset,
+                y: rail_y - style.rail.size / 2.0,
+                width: offset,
                 height: style.rail.size,
             },
             border_radius: [
@@ -423,9 +421,9 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + line_offset.round(),
-                y: line_y,
-                width: bounds.width - line_offset,
+                x: bounds.x + offset,
+                y: rail_y - style.rail.size / 2.0,
+                width: bounds.width - offset,
                 height: style.rail.size,
             },
             border_radius: [
@@ -445,7 +443,7 @@ pub fn draw<T, R>(
         renderer::Quad {
             bounds: Rectangle {
                 x: bounds.x + offset.round(),
-                y: bounds.y + bounds.height / 2.0 - handle_height / 2.0,
+                y: rail_y - handle_height / 2.0,
                 width: handle_width,
                 height: handle_height,
             },

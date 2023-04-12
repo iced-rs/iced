@@ -388,16 +388,15 @@ pub fn draw<T, R>(
             / (range_start - range_end)
     };
 
-    let line_x = bounds.x + bounds.width / 2.0 - style.rail.size / 2.0;
-    let line_offset = offset + handle_width / 2.0;
+    let rail_x = bounds.x + bounds.width / 2.0;
 
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: line_x,
+                x: rail_x - style.rail.size / 2.0,
                 y: bounds.y,
                 width: style.rail.size,
-                height: line_offset,
+                height: offset,
             },
             border_radius: [
                 style.rail.border_radius,
@@ -415,10 +414,10 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: line_x,
-                y: bounds.y + line_offset.round(),
+                x: rail_x - style.rail.size / 2.0,
+                y: bounds.y + offset,
                 width: style.rail.size,
-                height: bounds.height - line_offset,
+                height: bounds.height - offset,
             },
             border_radius: [
                 0.0,
@@ -436,7 +435,7 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + bounds.width / 2.0 - handle_height / 2.0,
+                x: rail_x - handle_height / 2.0,
                 y: bounds.y + offset.round(),
                 width: handle_height,
                 height: handle_width,
