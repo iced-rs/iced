@@ -19,10 +19,6 @@ pub struct Rail {
     pub size: f32,
     /// The border radius of the slider.
     pub border_radius: f32,
-    /// The border width of the slider.
-    pub border_width: f32,
-    /// The border [`Color`] of the slider.
-    pub border_color: Color,
 }
 
 /// The appearance of the handle of a slider.
