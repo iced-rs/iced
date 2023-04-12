@@ -51,7 +51,7 @@ impl Sandbox for QRGenerator {
 
         let input =
             text_input("Type the data of your QR code here...", &self.data)
-                .on_change(Message::DataChanged)
+                .on_input(Message::DataChanged)
                 .size(30)
                 .padding(15);
 

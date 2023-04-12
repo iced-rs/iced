@@ -102,7 +102,7 @@ impl Program for Controls {
                             )
                             .push(
                                 text_input("Placeholder", text)
-                                    .on_change(Message::TextChanged),
+                                    .on_input(Message::TextChanged),
                             ),
                     ),
             )

@@ -91,7 +91,7 @@ impl Sandbox for Styling {
                 );
 
         let text_input = text_input("Type something...", &self.input_value)
-            .on_change(Message::InputChanged)
+            .on_input(Message::InputChanged)
             .padding(10)
             .size(20);
 

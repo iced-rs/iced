@@ -205,11 +205,11 @@ impl Application for Todos {
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = text_input("What needs to be done?", input_value)
-                    .on_change(Message::InputChanged)
                     .id(INPUT_ID.clone())
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::CreateTask)
                     .padding(15)
-                    .size(30)
-                    .on_submit(Message::CreateTask);
+                    .size(30);
 
                 let controls = view_controls(tasks, *filter);
                 let filtered_tasks =
@@ -375,7 +375,7 @@ impl Task {
                 let text_input =
                     text_input("Describe your task...", &self.description)
                         .id(Self::text_input_id(i))
-                        .on_change(TaskMessage::DescriptionEdited)
+                        .on_input(TaskMessage::DescriptionEdited)
                         .on_submit(TaskMessage::FinishEdition)
                         .padding(10);
 

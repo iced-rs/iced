@@ -126,7 +126,7 @@ impl Application for WebSocket {
 
         let new_message_input = {
             let mut input = text_input("Type a message...", &self.new_message)
-                .on_change(Message::NewMessageChanged)
+                .on_input(Message::NewMessageChanged)
                 .padding(10);
 
             let mut button = button(

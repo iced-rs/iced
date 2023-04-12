@@ -74,7 +74,7 @@ impl Application for Example {
         let mut txt_input = text_input(placeholder, &self.data);
 
         if self.text_edit_enabled {
-            txt_input = txt_input.on_change(Message::TextInputChanged);
+            txt_input = txt_input.on_input(Message::TextInputChanged);
         }
 
         let btn = button("Enable/Disable").on_press(StartTimer);

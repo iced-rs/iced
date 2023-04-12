@@ -142,7 +142,7 @@ mod numeric_input {
                         .as_deref()
                         .unwrap_or(""),
                 )
-                .on_change(Event::InputChanged)
+                .on_input(Event::InputChanged)
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]

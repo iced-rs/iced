@@ -571,7 +571,7 @@ impl<'a> Step {
         };
 
         let mut text_input = text_input("Type something to continue...", value)
-            .on_change(StepMessage::InputChanged)
+            .on_input(StepMessage::InputChanged)
             .padding(10)
             .size(30);
 
