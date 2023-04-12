@@ -510,6 +510,15 @@ pub fn user_attention(
     }
 }
 
+/// Converts some [`Icon`] into it's `winit` counterpart.
+///
+/// Returns `None` if there is an error during the conversion.
+pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
+    let (pixels, size) = icon.into_raw();
+
+    winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
+}
+
 // As defined in: http://www.unicode.org/faq/private_use.html
 pub(crate) fn is_private_use_character(c: char) -> bool {
     matches!(
