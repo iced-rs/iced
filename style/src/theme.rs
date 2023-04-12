@@ -421,7 +421,7 @@ impl slider::StyleSheet for Theme {
                             palette.primary.base.color,
                             palette.primary.base.color,
                         ),
-                        size: 2.0,
+                        width: 2.0,
                         border_radius: 2.0,
                     },
                     handle: slider::Handle {

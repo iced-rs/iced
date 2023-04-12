@@ -15,8 +15,8 @@ pub struct Appearance {
 pub struct Rail {
     /// The colors of the rail of the slider.
     pub colors: (Color, Color),
-    /// The height of a slider rail and the width of a vertical slider.
-    pub size: f32,
+    /// The width of the stroke of a slider rail.
+    pub width: f32,
     /// The border radius of the slider.
     pub border_radius: f32,
 }
