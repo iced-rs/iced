@@ -2,31 +2,9 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{frames, Event, Mode, RedrawRequest, UserAttention};
-
-/// icon
-#[derive(Debug, Clone)]
-pub struct Icon(pub winit::window::Icon);
-
-impl From<window::Icon> for Icon {
-    fn from(value: window::Icon) -> Self {
-        let (rgba, width, height) = value.into_raw();
-        Icon(winit::window::Icon::from_rgba(rgba, width, height).unwrap())
-    }
-}
-
-impl From<Icon> for winit::window::Icon {
-    fn from(value: Icon) -> Self {
-        value.0
-    }
-}
-
-/// Set the window icon
-pub fn set_icon<Message>(icon: Option<window::Icon>) -> Command<Message> {
-    Command::single(command::Action::Window(window::Action::SetWindowIcon(
-        icon,
-    )))
-}
+pub use window::{
+    frames, icon, Event, Icon, Mode, RedrawRequest, UserAttention,
+};
 
 /// Closes the current window and exits the application.
 pub fn close<Message>() -> Command<Message> {
@@ -127,4 +105,9 @@ pub fn fetch_id<Message>(
     Command::single(command::Action::Window(window::Action::FetchId(Box::new(
         f,
     ))))
+}
+
+/// Changes the [`Icon`] of the window.
+pub fn change_icon<Message>(icon: Icon) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeIcon(icon)))
 }

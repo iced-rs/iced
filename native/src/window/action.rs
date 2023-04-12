@@ -39,21 +39,6 @@ pub enum Action<T> {
     FetchMode(Box<dyn FnOnce(Mode) -> T + 'static>),
     /// Toggle the window to maximized or back
     ToggleMaximize,
-    /// Sets the window icon.
-    ///
-    /// On Windows and X11, this is typically the small icon in the top-left
-    /// corner of the titlebar.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **Web / Wayland / macOS:** Unsupported.
-    ///
-    /// - **Windows:** Sets `ICON_SMALL`. The base size for a window icon is 16x16, but it's
-    ///   recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
-    ///
-    /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
-    ///   said, it's usually in the same ballpark as on Windows.
-    SetWindowIcon(Option<Icon>),
     /// Toggle whether window has decorations.
     ///
     /// ## Platform-specific
@@ -93,6 +78,21 @@ pub enum Action<T> {
     ChangeAlwaysOnTop(bool),
     /// Fetch an identifier unique to the window.
     FetchId(Box<dyn FnOnce(u64) -> T + 'static>),
+    /// Changes the window [`Icon`].
+    ///
+    /// On Windows and X11, this is typically the small icon in the top-left
+    /// corner of the titlebar.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **Web / Wayland / macOS:** Unsupported.
+    ///
+    /// - **Windows:** Sets `ICON_SMALL`. The base size for a window icon is 16x16, but it's
+    ///   recommended to account for screen scaling and pick a multiple of that, i.e. 32x32.
+    ///
+    /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
+    ///   said, it's usually in the same ballpark as on Windows.
+    ChangeIcon(Icon),
 }
 
 impl<T> Action<T> {
@@ -114,7 +114,6 @@ impl<T> Action<T> {
             Self::ChangeMode(mode) => Action::ChangeMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
-            Self::SetWindowIcon(icon) => Action::SetWindowIcon(icon),
             Self::ToggleDecorations => Action::ToggleDecorations,
             Self::RequestUserAttention(attention_type) => {
                 Action::RequestUserAttention(attention_type)
@@ -124,6 +123,7 @@ impl<T> Action<T> {
                 Action::ChangeAlwaysOnTop(on_top)
             }
             Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
+            Self::ChangeIcon(icon) => Action::ChangeIcon(icon),
         }
     }
 }
@@ -149,9 +149,6 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeMode(mode) => write!(f, "Action::SetMode({mode:?})"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
-            Self::SetWindowIcon(_icon) => {
-                write!(f, "Action::SetWindowIcon(icon)")
-            }
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
             Self::RequestUserAttention(_) => {
                 write!(f, "Action::RequestUserAttention")
@@ -161,6 +158,9 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::AlwaysOnTop({on_top})")
             }
             Self::FetchId(_) => write!(f, "Action::FetchId"),
+            Self::ChangeIcon(_icon) => {
+                write!(f, "Action::ChangeIcon(icon)")
+            }
         }
     }
 }

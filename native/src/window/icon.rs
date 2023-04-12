@@ -1,71 +1,72 @@
-use std::{fmt::Display, mem};
+//! Change the icon of a window.
+use crate::Size;
 
-/// An icon used for the window titlebar, taskbar, etc.
-#[repr(C)]
-#[derive(Debug)]
-struct Pixel {
-    pub(crate) r: u8,
-    pub(crate) g: u8,
-    pub(crate) b: u8,
-    pub(crate) a: u8,
-}
+use std::mem;
 
-const PIXEL_SIZE: usize = mem::size_of::<Pixel>();
-
-/// icon
-#[derive(Debug, Clone)]
-pub struct Icon {
+/// Builds an  [`Icon`] from its RGBA pixels in the sRGB color space.
+pub fn from_rgba(
     rgba: Vec<u8>,
     width: u32,
     height: u32,
+) -> Result<Icon, Error> {
+    const PIXEL_SIZE: usize = mem::size_of::<u8>() * 4;
+
+    if rgba.len() % PIXEL_SIZE != 0 {
+        return Err(Error::ByteCountNotDivisibleBy4 {
+            byte_count: rgba.len(),
+        });
+    }
+
+    let pixel_count = rgba.len() / PIXEL_SIZE;
+
+    if pixel_count != (width * height) as usize {
+        return Err(Error::DimensionsVsPixelCount {
+            width,
+            height,
+            width_x_height: (width * height) as usize,
+            pixel_count,
+        });
+    }
+
+    Ok(Icon {
+        rgba,
+        size: Size::new(width, height),
+    })
+}
+
+/// An icon used for the window titlebar, taskbar, etc.
+#[derive(Debug, Clone)]
+pub struct Icon {
+    rgba: Vec<u8>,
+    size: Size<u32>,
 }
 
 impl Icon {
-    /// return the icon data
-    pub fn into_raw(self) -> (Vec<u8>, u32, u32) {
-        (self.rgba, self.width, self.height)
-    }
-
-    /// build Icon from rgba pixels
-    pub fn from_rgba(
-        rgba: Vec<u8>,
-        width: u32,
-        height: u32,
-    ) -> Result<Self, BadIcon> {
-        if rgba.len() % PIXEL_SIZE != 0 {
-            return Err(BadIcon::ByteCountNotDivisibleBy4 {
-                byte_count: rgba.len(),
-            });
-        }
-        let pixel_count = rgba.len() / PIXEL_SIZE;
-        if pixel_count != (width * height) as usize {
-            return Err(BadIcon::DimensionsVsPixelCount {
-                width,
-                height,
-                width_x_height: (width * height) as usize,
-                pixel_count,
-            });
-        }
-
-        Ok(Icon {
-            rgba,
-            width,
-            height,
-        })
+    /// Returns the raw data of the [`Icon`].
+    pub fn into_raw(self) -> (Vec<u8>, Size<u32>) {
+        (self.rgba, self.size)
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 /// An error produced when using [`Icon::from_rgba`] with invalid arguments.
-pub enum BadIcon {
+pub enum Error {
     /// Produced when the length of the `rgba` argument isn't divisible by 4, thus `rgba` can't be
     /// safely interpreted as 32bpp RGBA pixels.
+    #[error(
+        "The provided RGBA data (with length {byte_count}) isn't divisible \
+        by 4. Therefore, it cannot be safely interpreted as 32bpp RGBA pixels"
+    )]
     ByteCountNotDivisibleBy4 {
         /// The length of the provided RGBA data.
         byte_count: usize,
     },
     /// Produced when the number of pixels (`rgba.len() / 4`) isn't equal to `width * height`.
     /// At least one of your arguments is incorrect.
+    #[error(
+        "The number of RGBA pixels ({pixel_count}) does not match the \
+        provided dimensions ({width}x{height})."
+    )]
     DimensionsVsPixelCount {
         /// The provided width.
         width: u32,
@@ -76,31 +77,4 @@ pub enum BadIcon {
         /// The amount of pixels of the provided RGBA data.
         pixel_count: usize,
     },
-}
-
-impl Display for BadIcon {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BadIcon::ByteCountNotDivisibleBy4 { byte_count } => {
-                write!(
-                    f,
-                    "The provided RGBA data (with length {byte_count:?}) isn't divisble by \
-                4. Therefore, it cannot be safely interpreted as 32bpp RGBA \
-                pixels."
-                )
-            }
-            BadIcon::DimensionsVsPixelCount {
-                width,
-                height,
-                pixel_count,
-                ..
-            } => {
-                write!(
-                    f,
-                    "The number of RGBA pixels ({pixel_count:?}) does not match the provided \
-                dimensions ({width:?}x{height:?})."
-                )
-            }
-        }
-    }
 }

@@ -134,7 +134,7 @@ impl Window {
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
-            .with_window_icon(self.icon.map(crate::window::Icon::into))
+            .with_window_icon(self.icon.and_then(conversion::icon))
             .with_always_on_top(self.always_on_top)
             .with_visible(self.visible);
 

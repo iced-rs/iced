@@ -770,9 +770,9 @@ pub fn run_command<A, E>(
                         mode,
                     ));
                 }
-                window::Action::SetWindowIcon(icon) => window.set_window_icon(
-                    icon.map(|i| crate::window::Icon::from(i).into()),
-                ),
+                window::Action::ChangeIcon(icon) => {
+                    window.set_window_icon(conversion::icon(icon))
+                }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())

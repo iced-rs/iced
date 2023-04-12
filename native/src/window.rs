@@ -1,14 +1,15 @@
 //! Build window-based GUI applications.
 mod action;
 mod event;
-mod icon;
 mod mode;
 mod redraw_request;
 mod user_attention;
 
+pub mod icon;
+
 pub use action::Action;
 pub use event::Event;
-pub use icon::{BadIcon, Icon};
+pub use icon::Icon;
 pub use mode::Mode;
 pub use redraw_request::RedrawRequest;
 pub use user_attention::UserAttention;
