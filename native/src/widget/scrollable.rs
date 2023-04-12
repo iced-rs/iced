@@ -895,7 +895,7 @@ pub fn draw<Renderer>(
 }
 
 fn notify_on_scroll<Message>(
-    state: &State,
+    state: &mut State,
     on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
@@ -916,7 +916,23 @@ fn notify_on_scroll<Message>(
             .absolute(bounds.height, content_bounds.height)
             / (content_bounds.height - bounds.height);
 
-        shell.publish(on_scroll(RelativeOffset { x, y }))
+        let new_offset = RelativeOffset { x, y };
+
+        // Don't publish redundant offsets to shell
+        if let Some(prev_offset) = state.last_notified {
+            let unchanged = |a: f32, b: f32| {
+                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
+            };
+
+            if unchanged(prev_offset.x, new_offset.x)
+                && unchanged(prev_offset.y, new_offset.y)
+            {
+                return;
+            }
+        }
+
+        shell.publish(on_scroll(new_offset));
+        state.last_notified = Some(new_offset);
     }
 }
 
@@ -929,6 +945,7 @@ pub struct State {
     offset_x: Offset,
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
+    last_notified: Option<RelativeOffset>,
 }
 
 impl Default for State {
@@ -940,6 +957,7 @@ impl Default for State {
             offset_x: Offset::Absolute(0.0),
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
+            last_notified: None,
         }
     }
 }
