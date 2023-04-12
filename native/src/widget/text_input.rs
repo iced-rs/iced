@@ -227,6 +227,18 @@ where
         tree::State::new(State::new())
     }
 
+    fn diff(&self, tree: &mut Tree) {
+        let state = tree.state.downcast_mut::<State>();
+
+        // Unfocus text input if it becomes disabled
+        if self.on_input.is_none() {
+            state.last_click = None;
+            state.is_focused = None;
+            state.is_pasting = None;
+            state.is_dragging = false;
+        }
+    }
+
     fn width(&self) -> Length {
         self.width
     }
