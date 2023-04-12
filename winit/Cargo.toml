@@ -11,11 +11,16 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 trace = ["tracing", "tracing-core", "tracing-subscriber"]
 chrome-trace = ["trace", "tracing-chrome"]
 debug = ["iced_native/debug"]
 system = ["sysinfo"]
 application = []
+x11 = ["winit/x11"]
+wayland = ["winit/wayland"]
+wayland-dlopen = ["winit/wayland-dlopen"]
+wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
 window_clipboard = "0.2"
@@ -26,6 +31,7 @@ thiserror = "1.0"
 version = "0.27"
 git = "https://github.com/iced-rs/winit.git"
 rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
+default-features = false
 
 [dependencies.iced_native]
 version = "0.9"
