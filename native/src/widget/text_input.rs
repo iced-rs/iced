@@ -113,8 +113,10 @@ where
         self
     }
 
-    /// Sets the callback which is called when the text gets changed
-    /// If not specified, the widget will be disabled
+    /// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`].
+    ///
+    /// If this method is not called, the [`TextInput`] will be disabled.
     pub fn on_input<F>(mut self, callback: F) -> Self
     where
         F: 'a + Fn(String) -> Message,
