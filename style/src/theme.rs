@@ -640,20 +640,36 @@ impl radio::StyleSheet for Theme {
         &self,
         style: &Self::Style,
         is_selected: bool,
+        pressed_animation: &animation::HoverPressedAnimation,
     ) -> radio::Appearance {
         match style {
             Radio::Default => {
                 let palette = self.extended_palette();
+                let mut dot_color = palette.primary.strong.color;
+
+                if is_selected {
+                    match pressed_animation.effect {
+                        animation::AnimationEffect::Fade => {
+                            dot_color.mix(
+                                Color::TRANSPARENT,
+                                pressed_animation.animation_progress,
+                            );
+                        }
+                        animation::AnimationEffect::None => {}
+                    }
+                }
 
                 radio::Appearance {
                     background: Color::TRANSPARENT.into(),
-                    dot_color: palette.primary.strong.color,
+                    dot_color,
                     border_width: 1.0,
                     border_color: palette.primary.strong.color,
                     text_color: None,
                 }
             }
-            Radio::Custom(custom) => custom.active(self, is_selected),
+            Radio::Custom(custom) => {
+                custom.active(self, is_selected, pressed_animation)
+            }
         }
     }
 
@@ -661,19 +677,37 @@ impl radio::StyleSheet for Theme {
         &self,
         style: &Self::Style,
         is_selected: bool,
+        hover_animation: &animation::HoverPressedAnimation,
     ) -> radio::Appearance {
         match style {
             Radio::Default => {
-                let active = self.active(style, is_selected);
+                let active = self.active(style, is_selected, hover_animation);
                 let palette = self.extended_palette();
+                let mut background_color = palette.primary.weak.color;
+
+                // Mix the hovered and active styles backgrounds according to the animation state
+                match hover_animation.effect {
+                    animation::AnimationEffect::Fade => match active.background
+                    {
+                        Background::Color(active_background_color) => {
+                            background_color.mix(
+                                active_background_color,
+                                1.0 - hover_animation.animation_progress,
+                            );
+                        }
+                    },
+                    animation::AnimationEffect::None => {}
+                }
 
                 radio::Appearance {
                     dot_color: palette.primary.strong.color,
-                    background: palette.primary.weak.color.into(),
+                    background: background_color.into(),
                     ..active
                 }
             }
-            Radio::Custom(custom) => custom.hovered(self, is_selected),
+            Radio::Custom(custom) => {
+                custom.hovered(self, is_selected, hover_animation)
+            }
         }
     }
 }

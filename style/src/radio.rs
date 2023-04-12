@@ -1,6 +1,8 @@
 //! Change the appearance of radio buttons.
 use iced_core::{Background, Color};
 
+use crate::animation;
+
 /// The appearance of a radio button.
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
@@ -22,8 +24,18 @@ pub trait StyleSheet {
     type Style: Default;
 
     /// Produces the active [`Appearance`] of a radio button.
-    fn active(&self, style: &Self::Style, is_selected: bool) -> Appearance;
+    fn active(
+        &self,
+        style: &Self::Style,
+        is_selected: bool,
+        pressed_animation: &animation::HoverPressedAnimation,
+    ) -> Appearance;
 
     /// Produces the hovered [`Appearance`] of a radio button.
-    fn hovered(&self, style: &Self::Style, is_selected: bool) -> Appearance;
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_selected: bool,
+        hover_animation: &animation::HoverPressedAnimation,
+    ) -> Appearance;
 }

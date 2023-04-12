@@ -10,11 +10,11 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
-use crate::core::window;
 
 use iced_style::animation::{AnimationEffect, HoverPressedAnimation};
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -85,8 +85,8 @@ where
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
             animation_duration_ms: 250,
-            hover_animation_effect: AnimationEffect::EaseOut,
-            pressed_animation_effect: AnimationEffect::EaseOut,
+            hover_animation_effect: AnimationEffect::Fade,
+            pressed_animation_effect: AnimationEffect::Fade,
         }
     }
 
@@ -451,11 +451,11 @@ where
     Renderer::Theme: StyleSheet,
 {
     let state = state();
-    let is_hovered = bounds.contains(cursor_position);
+    let is_mouse_over = bounds.contains(cursor_position);
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
-    } else if is_hovered || state.hovered_animation.is_running() {
+    } else if is_mouse_over || state.hovered_animation.is_running() {
         if state.is_pressed || state.pressed_animation.is_running() {
             style_sheet.pressed(style, &state.pressed_animation)
         } else {

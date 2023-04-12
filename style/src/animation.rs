@@ -49,6 +49,14 @@ impl HoverPressedAnimation {
         self.started_at.is_some()
     }
 
+    /// Reset the animation
+    pub fn reset(&mut self) {
+        self.direction = AnimationDirection::Forward;
+        self.started_at = None;
+        self.animation_progress = 0.0;
+        self.initial_progress = 0.0;
+    }
+
     /// Update the animation progress, if necessary, and returns the need to request a redraw.
     pub fn on_redraw_request_update(
         &mut self,
@@ -134,7 +142,7 @@ impl HoverPressedAnimation {
         }
     }
 
-    /// Start the animation when pressed
+    /// Start the animation when pressed.
     pub fn on_press(&mut self) {
         self.started_at = Some(std::time::Instant::now());
         self.direction = AnimationDirection::Forward;
@@ -142,10 +150,18 @@ impl HoverPressedAnimation {
         self.initial_progress = 0.0;
     }
 
-    /// End the animation when released
+    /// End the animation when released.
     pub fn on_released(&mut self) {
         self.started_at = Some(std::time::Instant::now());
         self.direction = AnimationDirection::Backward;
         self.initial_progress = self.animation_progress;
+    }
+
+    /// End the animation (go backgwards), skipping the forward phase.
+    pub fn on_activate(&mut self) {
+        self.started_at = Some(std::time::Instant::now());
+        self.direction = AnimationDirection::Backward;
+        self.initial_progress = 1.0;
+        self.animation_progress = 1.0;
     }
 }

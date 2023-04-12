@@ -6,13 +6,15 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::touch;
-use crate::core::widget::Tree;
+use crate::core::widget::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Alignment, Clipboard, Color, Element, Layout, Length, Pixels, Point,
     Rectangle, Shell, Widget,
 };
 use crate::{Row, Text};
 
+use iced_style::animation::{AnimationEffect, HoverPressedAnimation};
 pub use iced_style::radio::{Appearance, StyleSheet};
 
 /// A circular button representing a choice.
@@ -85,6 +87,8 @@ where
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
+    animation_duration_ms: u16,
+    hover_animation_effect: AnimationEffect,
 }
 
 impl<Message, Renderer> Radio<Message, Renderer>
@@ -129,6 +133,8 @@ where
             text_shaping: text::Shaping::Basic,
             font: None,
             style: Default::default(),
+            animation_duration_ms: 250,
+            hover_animation_effect: AnimationEffect::Fade,
         }
     }
 
@@ -201,6 +207,13 @@ where
         Length::Shrink
     }
 
+    fn state(&self) -> widget::tree::State {
+        widget::tree::State::new(State::new(
+            HoverPressedAnimation::new(self.hover_animation_effect),
+            HoverPressedAnimation::new(self.hover_animation_effect),
+        ))
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
@@ -226,7 +239,7 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -238,9 +251,45 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if layout.bounds().contains(cursor_position) {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    state.hovered_animation.reset();
+                    state.pressed_animation.on_activate();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+
                     shell.publish(self.on_click.clone());
 
                     return event::Status::Captured;
+                }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                if self.is_selected && state.pressed_animation.is_running() {
+                    if state.pressed_animation.on_redraw_request_update(
+                        self.animation_duration_ms,
+                        now,
+                    ) {
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
+                } else if state
+                    .hovered_animation
+                    .on_redraw_request_update(self.animation_duration_ms, now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            }
+            Event::Mouse(mouse::Event::CursorMoved { position }) => {
+                let state = tree.state.downcast_mut::<State>();
+                let bounds = layout.bounds();
+                let is_mouse_over = bounds.contains(position);
+
+                if !self.is_selected
+                    && state
+                        .hovered_animation
+                        .on_cursor_moved_update(is_mouse_over)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
             }
             _ => {}
@@ -266,7 +315,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -274,16 +323,37 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State>();
+        let style_sheet: &dyn StyleSheet<
+            Style = <Renderer::Theme as StyleSheet>::Style,
+        > = theme;
         let bounds = layout.bounds();
         let is_mouse_over = bounds.contains(cursor_position);
 
         let mut children = layout.children();
 
-        let custom_style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_selected)
-        } else {
-            theme.active(&self.style, self.is_selected)
-        };
+        let custom_style =
+            if is_mouse_over || state.hovered_animation.is_running() {
+                if self.is_selected || state.pressed_animation.is_running() {
+                    style_sheet.active(
+                        &self.style,
+                        self.is_selected,
+                        &state.pressed_animation,
+                    )
+                } else {
+                    style_sheet.hovered(
+                        &self.style,
+                        self.is_selected,
+                        &state.hovered_animation,
+                    )
+                }
+            } else {
+                theme.active(
+                    &self.style,
+                    self.is_selected,
+                    &state.pressed_animation,
+                )
+            };
 
         {
             let layout = children.next().unwrap();
@@ -338,6 +408,26 @@ where
                 alignment::Vertical::Center,
                 self.text_shaping,
             );
+        }
+    }
+}
+
+/// The local state of a [`Radio`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct State {
+    hovered_animation: HoverPressedAnimation,
+    pressed_animation: HoverPressedAnimation,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new(
+        hovered_animation: HoverPressedAnimation,
+        pressed_animation: HoverPressedAnimation,
+    ) -> State {
+        State {
+            hovered_animation,
+            pressed_animation,
         }
     }
 }
