@@ -405,15 +405,7 @@ pub fn layout<Renderer>(
     horizontal_enabled: bool,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .max_height(f32::INFINITY)
-        .max_width(if horizontal_enabled {
-            f32::INFINITY
-        } else {
-            limits.max().width
-        })
-        .width(width)
-        .height(height);
+    let limits = limits.width(width).height(height);
 
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, 0.0),
