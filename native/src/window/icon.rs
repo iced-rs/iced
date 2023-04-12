@@ -34,7 +34,7 @@ pub fn from_rgba(
     })
 }
 
-/// An icon used for the window titlebar, taskbar, etc.
+/// An window icon normally used for the titlebar or taskbar.
 #[derive(Debug, Clone)]
 pub struct Icon {
     rgba: Vec<u8>,
