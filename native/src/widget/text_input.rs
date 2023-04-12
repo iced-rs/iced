@@ -998,7 +998,7 @@ pub fn draw<Renderer>(
                     % 2
                     == 0;
 
-                let cursor = if is_cursor_visible && !is_disabled {
+                let cursor = if is_cursor_visible {
                     Some((
                         renderer::Quad {
                             bounds: Rectangle {
