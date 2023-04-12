@@ -49,13 +49,11 @@ impl Sandbox for QRGenerator {
             .size(70)
             .style(Color::from([0.5, 0.5, 0.5]));
 
-        let input = text_input(
-            "Type the data of your QR code here...",
-            &self.data,
-            Message::DataChanged,
-        )
-        .size(30)
-        .padding(15);
+        let input =
+            text_input("Type the data of your QR code here...", &self.data)
+                .on_input(Message::DataChanged)
+                .size(30)
+                .padding(15);
 
         let mut content = column![title, input]
             .width(700)

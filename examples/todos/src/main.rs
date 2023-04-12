@@ -204,15 +204,12 @@ impl Application for Todos {
                     .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
-                let input = text_input(
-                    "What needs to be done?",
-                    input_value,
-                    Message::InputChanged,
-                )
-                .id(INPUT_ID.clone())
-                .padding(15)
-                .size(30)
-                .on_submit(Message::CreateTask);
+                let input = text_input("What needs to be done?", input_value)
+                    .id(INPUT_ID.clone())
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::CreateTask)
+                    .padding(15)
+                    .size(30);
 
                 let controls = view_controls(tasks, *filter);
                 let filtered_tasks =
@@ -375,14 +372,12 @@ impl Task {
                 .into()
             }
             TaskState::Editing => {
-                let text_input = text_input(
-                    "Describe your task...",
-                    &self.description,
-                    TaskMessage::DescriptionEdited,
-                )
-                .id(Self::text_input_id(i))
-                .on_submit(TaskMessage::FinishEdition)
-                .padding(10);
+                let text_input =
+                    text_input("Describe your task...", &self.description)
+                        .id(Self::text_input_id(i))
+                        .on_input(TaskMessage::DescriptionEdited)
+                        .on_submit(TaskMessage::FinishEdition)
+                        .padding(10);
 
                 row![
                     text_input,
