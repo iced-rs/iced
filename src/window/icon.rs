@@ -21,7 +21,7 @@ pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
 
 /// Creates an icon from the content of an image file.
 ///
-/// This content can be included in your application at compile-time, e.g. using the `include_bytes!` macro. \
+/// This content can be included in your application at compile-time, e.g. using the `include_bytes!` macro.
 /// You can pass an explicit file format. Otherwise, the file format will be guessed at runtime.
 #[cfg(feature = "image")]
 #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
