@@ -21,8 +21,6 @@ pub struct MouseArea<'a, Message, Renderer> {
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
-    on_mouse_enter: Option<Message>,
-    on_mouse_exit: Option<Message>,
 }
 
 impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
@@ -67,26 +65,12 @@ impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
         self.on_middle_release = Some(message);
         self
     }
-
-    /// The message to emit when the mouse enters the widget.
-    #[must_use]
-    pub fn on_mouse_enter(mut self, message: Message) -> Self {
-        self.on_mouse_enter = Some(message);
-        self
-    }
-
-    /// The messsage to emit when the mouse exits the widget.
-    #[must_use]
-    pub fn on_mouse_exit(mut self, message: Message) -> Self {
-        self.on_mouse_exit = Some(message);
-        self
-    }
 }
 
 /// Local state of the [`MouseArea`].
 #[derive(Default)]
 struct State {
-    is_hovered: bool,
+    // TODO: Support on_mouse_enter and on_mouse_exit
 }
 
 impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
@@ -100,8 +84,6 @@ impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
-            on_mouse_enter: None,
-            on_mouse_exit: None,
         }
     }
 }
@@ -181,14 +163,7 @@ where
             return event::Status::Captured;
         }
 
-        update(
-            self,
-            &event,
-            layout,
-            cursor_position,
-            shell,
-            tree.state.downcast_mut::<State>(),
-        )
+        update(self, &event, layout, cursor_position, shell)
     }
 
     fn mouse_interaction(
@@ -264,26 +239,9 @@ fn update<Message: Clone, Renderer>(
     layout: Layout<'_>,
     cursor_position: Point,
     shell: &mut Shell<'_, Message>,
-    state: &mut State,
 ) -> event::Status {
-    let was_hovered = state.is_hovered;
-
-    state.is_hovered = layout.bounds().contains(cursor_position);
-
-    if !state.is_hovered {
-        if was_hovered {
-            if let Some(message) = widget.on_mouse_exit.as_ref() {
-                shell.publish(message.clone());
-            }
-        }
-
+    if !layout.bounds().contains(cursor_position) {
         return event::Status::Ignored;
-    }
-
-    if !was_hovered {
-        if let Some(message) = widget.on_mouse_enter.as_ref() {
-            shell.publish(message.clone());
-        }
     }
 
     if let Some(message) = widget.on_press.as_ref() {
