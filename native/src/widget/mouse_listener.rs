@@ -271,9 +271,9 @@ fn update<Message: Clone, Renderer>(
     if !layout.bounds().contains(cursor_position) {
         if hovered {
             state.hovered = false;
+
             if let Some(message) = widget.on_mouse_exit.clone() {
                 shell.publish(message);
-                return event::Status::Captured;
             }
         }
 
@@ -285,7 +285,8 @@ fn update<Message: Clone, Renderer>(
     if !hovered {
         if let Some(message) = widget.on_mouse_enter.clone() {
             shell.publish(message);
-            return event::Status::Captured;
+
+            return event::Status::Ignored;
         }
     }
 
@@ -294,6 +295,7 @@ fn update<Message: Clone, Renderer>(
         | Event::Touch(touch::Event::FingerPressed { .. }) = event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
@@ -303,6 +305,7 @@ fn update<Message: Clone, Renderer>(
         | Event::Touch(touch::Event::FingerLifted { .. }) = event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
@@ -312,6 +315,7 @@ fn update<Message: Clone, Renderer>(
             event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
@@ -322,6 +326,7 @@ fn update<Message: Clone, Renderer>(
         )) = event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
@@ -332,6 +337,7 @@ fn update<Message: Clone, Renderer>(
         )) = event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
@@ -342,6 +348,7 @@ fn update<Message: Clone, Renderer>(
         )) = event
         {
             shell.publish(message);
+
             return event::Status::Captured;
         }
     }
