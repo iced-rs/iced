@@ -112,6 +112,14 @@ where
     Renderer: crate::Renderer,
     Message: Clone,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::default())
+    }
+
     fn children(&self) -> Vec<Tree> {
         vec![Tree::new(&self.content)]
     }
@@ -232,14 +240,6 @@ where
             layout,
             renderer,
         )
-    }
-
-    fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
-    }
-
-    fn state(&self) -> tree::State {
-        tree::State::new(State::default())
     }
 }
 
