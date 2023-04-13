@@ -11,8 +11,6 @@ use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Widget,
 };
 
-use std::u32;
-
 /// Emit messages on mouse events.
 #[allow(missing_debug_implementations)]
 pub struct MouseListener<'a, Message, Renderer> {
@@ -151,17 +149,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            Widget::<Message, Renderer>::width(self),
-            Widget::<Message, Renderer>::height(self),
-            u32::MAX,
-            u32::MAX,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
-        )
+        self.content.as_widget().layout(renderer, limits)
     }
 
     fn operate(
@@ -171,14 +159,12 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
-            self.content.as_widget().operate(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-                operation,
-            );
-        });
+        self.content.as_widget().operate(
+            &mut tree.children[0],
+            layout,
+            renderer,
+            operation,
+        );
     }
 
     fn on_event(
@@ -194,7 +180,7 @@ where
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
             &mut tree.children[0],
             event.clone(),
-            layout.children().next().unwrap(),
+            layout,
             cursor_position,
             renderer,
             clipboard,
@@ -223,7 +209,7 @@ where
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
-            layout.children().next().unwrap(),
+            layout,
             cursor_position,
             viewport,
             renderer,
@@ -245,7 +231,7 @@ where
             renderer,
             theme,
             renderer_style,
-            layout.children().next().unwrap(),
+            layout,
             cursor_position,
             viewport,
         );
@@ -259,7 +245,7 @@ where
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
-            layout.children().next().unwrap(),
+            layout,
             renderer,
         )
     }
@@ -377,27 +363,4 @@ fn update<Message: Clone, Renderer>(
     }
 
     event::Status::Ignored
-}
-
-/// Computes the layout of a [`MouseListener`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    max_height: u32,
-    max_width: u32,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-) -> layout::Node {
-    let limits = limits
-        .loose()
-        .max_height(max_height)
-        .max_width(max_width)
-        .width(width)
-        .height(height);
-
-    let content = layout_content(renderer, &limits);
-    let size = limits.resolve(content.size());
-
-    layout::Node::with_children(size, vec![content])
 }
