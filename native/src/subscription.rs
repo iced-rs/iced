@@ -229,7 +229,7 @@ where
 /// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
 /// connection open.
 ///
-/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.8/examples/websocket
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.9/examples/websocket
 pub fn channel<I, Fut, Message>(
     id: I,
     size: usize,
