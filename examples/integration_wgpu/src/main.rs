@@ -92,17 +92,16 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(target_arch = "wasm32"))]
         let needed_limits = wgpu::Limits::default();
 
+        let capabilities = surface.get_capabilities(&adapter);
+
         (
-            surface
-                .get_capabilities(&adapter)
+            capabilities
                 .formats
                 .iter()
                 .filter(|format| format.describe().srgb)
                 .copied()
                 .next()
-                .or_else(|| {
-                    surface.get_capabilities(&adapter).formats.first().copied()
-                })
+                .or_else(|| capabilities.formats.first().copied())
                 .expect("Get preferred format"),
             adapter
                 .request_device(

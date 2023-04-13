@@ -66,8 +66,9 @@ impl<Theme> Compositor<Theme> {
         log::info!("Selected: {:#?}", adapter.get_info());
 
         let format = compatible_surface.as_ref().and_then(|surface| {
-            surface
-                .get_capabilities(&adapter)
+            let capabilities = surface.get_capabilities(&adapter);
+
+            capabilities
                 .formats
                 .iter()
                 .filter(|format| format.describe().srgb)
@@ -76,7 +77,7 @@ impl<Theme> Compositor<Theme> {
                 .or_else(|| {
                     log::warn!("No sRGB format found!");
 
-                    surface.get_capabilities(&adapter).formats.first().copied()
+                    capabilities.formats.first().copied()
                 })
         })?;
 
