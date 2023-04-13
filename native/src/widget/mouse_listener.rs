@@ -15,29 +15,13 @@ use crate::{
 #[allow(missing_debug_implementations)]
 pub struct MouseListener<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,
-
-    /// Sets the message to emit on a left mouse button press.
     on_press: Option<Message>,
-
-    /// Sets the message to emit on a left mouse button release.
     on_release: Option<Message>,
-
-    /// Sets the message to emit on a right mouse button press.
     on_right_press: Option<Message>,
-
-    /// Sets the message to emit on a right mouse button release.
     on_right_release: Option<Message>,
-
-    /// Sets the message to emit on a middle mouse button press.
     on_middle_press: Option<Message>,
-
-    /// Sets the message to emit on a middle mouse button release.
     on_middle_release: Option<Message>,
-
-    /// Sets the message to emit when the mouse enters the widget.
     on_mouse_enter: Option<Message>,
-
-    /// Sets the messsage to emit when the mouse exits the widget.
     on_mouse_exit: Option<Message>,
 }
 
