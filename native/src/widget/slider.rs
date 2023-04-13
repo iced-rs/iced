@@ -391,7 +391,7 @@ pub fn draw<T, R>(
     let offset = if range_start >= range_end {
         0.0
     } else {
-        (bounds.width - handle_width) * (value - range_start)
+        (bounds.width - handle_width / 2.0) * (value - range_start)
             / (range_end - range_start)
     };
 
@@ -402,7 +402,7 @@ pub fn draw<T, R>(
             bounds: Rectangle {
                 x: bounds.x,
                 y: rail_y - style.rail.width / 2.0,
-                width: offset,
+                width: offset + handle_width / 2.0,
                 height: style.rail.width,
             },
             border_radius: Default::default(),
@@ -415,7 +415,7 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + offset,
+                x: bounds.x + offset + handle_width / 2.0,
                 y: rail_y - style.rail.width / 2.0,
                 width: bounds.width - offset,
                 height: style.rail.width,
@@ -430,7 +430,7 @@ pub fn draw<T, R>(
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: bounds.x + offset.round(),
+                x: bounds.x + offset,
                 y: rail_y - handle_height / 2.0,
                 width: handle_width,
                 height: handle_height,
