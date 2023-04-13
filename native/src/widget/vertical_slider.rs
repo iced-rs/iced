@@ -398,13 +398,7 @@ pub fn draw<T, R>(
                 width: style.rail.width,
                 height: offset,
             },
-            border_radius: [
-                style.rail.border_radius,
-                style.rail.border_radius,
-                0.0,
-                0.0,
-            ]
-            .into(),
+            border_radius: Default::default(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         },
@@ -419,13 +413,7 @@ pub fn draw<T, R>(
                 width: style.rail.width,
                 height: bounds.height - offset,
             },
-            border_radius: [
-                0.0,
-                0.0,
-                style.rail.border_radius,
-                style.rail.border_radius,
-            ]
-            .into(),
+            border_radius: Default::default(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         },
