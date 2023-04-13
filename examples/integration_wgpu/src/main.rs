@@ -23,11 +23,11 @@ use web_sys::HtmlCanvasElement;
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::WindowBuilderExtWebSys;
 
-pub fn main() {
+pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
     let canvas_element = {
-        console_log::init_with_level(log::Level::Debug)
-            .expect("could not initialize logger");
+        console_log::init_with_level(log::Level::Debug)?;
+
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         web_sys::window()
@@ -45,11 +45,10 @@ pub fn main() {
     #[cfg(target_arch = "wasm32")]
     let window = winit::window::WindowBuilder::new()
         .with_canvas(Some(canvas_element))
-        .build(&event_loop)
-        .expect("Failed to build winit window");
+        .build(&event_loop)?;
 
     #[cfg(not(target_arch = "wasm32"))]
-    let window = winit::window::Window::new(&event_loop).unwrap();
+    let window = winit::window::Window::new(&event_loop)?;
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
@@ -61,7 +60,6 @@ pub fn main() {
     let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
-
     #[cfg(target_arch = "wasm32")]
     let default_backend = wgpu::Backends::GL;
     #[cfg(not(target_arch = "wasm32"))]
@@ -70,8 +68,12 @@ pub fn main() {
     let backend =
         wgpu::util::backend_bits_from_env().unwrap_or(default_backend);
 
-    let instance = wgpu::Instance::new(backend);
-    let surface = unsafe { instance.create_surface(&window) };
+    let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+        backends: backend,
+        ..Default::default()
+    });
+
+    let surface = unsafe { instance.create_surface(&window) }?;
 
     let (format, (device, queue)) = futures::executor::block_on(async {
         let adapter = wgpu::util::initialize_adapter_from_env_or_default(
@@ -91,11 +93,16 @@ pub fn main() {
         #[cfg(not(target_arch = "wasm32"))]
         let needed_limits = wgpu::Limits::default();
 
+        let capabilities = surface.get_capabilities(&adapter);
+
         (
-            surface
-                .get_supported_formats(&adapter)
-                .first()
+            capabilities
+                .formats
+                .iter()
+                .filter(|format| format.describe().srgb)
                 .copied()
+                .next()
+                .or_else(|| capabilities.formats.first().copied())
                 .expect("Get preferred format"),
             adapter
                 .request_device(
@@ -120,6 +127,7 @@ pub fn main() {
             height: physical_size.height,
             present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
+            view_formats: vec![],
         },
     );
 
@@ -214,7 +222,8 @@ pub fn main() {
                             width: size.width,
                             height: size.height,
                             present_mode: wgpu::PresentMode::AutoVsync,
-                            alpha_mode: wgpu::CompositeAlphaMode::Auto
+                            alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                            view_formats: vec![]
                         },
                     );
 
