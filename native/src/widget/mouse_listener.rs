@@ -286,64 +286,64 @@ fn update<Message: Clone, Renderer>(
         }
     }
 
-    if let Some(message) = widget.on_press.clone() {
+    if let Some(message) = widget.on_press.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) = event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
     }
 
-    if let Some(message) = widget.on_release.clone() {
+    if let Some(message) = widget.on_release.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. }) = event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
     }
 
-    if let Some(message) = widget.on_right_press.clone() {
+    if let Some(message) = widget.on_right_press.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) =
             event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
     }
 
-    if let Some(message) = widget.on_right_release.clone() {
+    if let Some(message) = widget.on_right_release.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonReleased(
             mouse::Button::Right,
         )) = event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
     }
 
-    if let Some(message) = widget.on_middle_press.clone() {
+    if let Some(message) = widget.on_middle_press.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonPressed(
             mouse::Button::Middle,
         )) = event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
     }
 
-    if let Some(message) = widget.on_middle_release.clone() {
+    if let Some(message) = widget.on_middle_release.as_ref() {
         if let Event::Mouse(mouse::Event::ButtonReleased(
             mouse::Button::Middle,
         )) = event
         {
-            shell.publish(message);
+            shell.publish(message.clone());
 
             return event::Status::Captured;
         }
