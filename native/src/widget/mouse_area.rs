@@ -90,7 +90,7 @@ struct State {
 }
 
 impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
-    /// Creates an empty [`MouseArea`].
+    /// Creates a [`MouseArea`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         MouseArea {
             content: content.into(),
