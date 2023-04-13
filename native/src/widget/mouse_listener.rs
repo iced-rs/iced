@@ -86,7 +86,7 @@ impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
 /// Local state of the [`MouseListener`].
 #[derive(Default)]
 struct State {
-    hovered: bool,
+    is_hovered: bool,
 }
 
 impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
@@ -266,27 +266,23 @@ fn update<Message: Clone, Renderer>(
     shell: &mut Shell<'_, Message>,
     state: &mut State,
 ) -> event::Status {
-    let hovered = state.hovered;
+    let was_hovered = state.is_hovered;
 
-    if !layout.bounds().contains(cursor_position) {
-        if hovered {
-            state.hovered = false;
+    state.is_hovered = layout.bounds().contains(cursor_position);
 
-            if let Some(message) = widget.on_mouse_exit.clone() {
-                shell.publish(message);
+    if !state.is_hovered {
+        if was_hovered {
+            if let Some(message) = widget.on_mouse_exit.as_ref() {
+                shell.publish(message.clone());
             }
         }
 
         return event::Status::Ignored;
     }
 
-    state.hovered = true;
-
-    if !hovered {
-        if let Some(message) = widget.on_mouse_enter.clone() {
-            shell.publish(message);
-
-            return event::Status::Ignored;
+    if !was_hovered {
+        if let Some(message) = widget.on_mouse_enter.as_ref() {
+            shell.publish(message.clone());
         }
     }
 
