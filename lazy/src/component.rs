@@ -361,6 +361,22 @@ where
             ) {
                 self.operation.text_input(state, id);
             }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn custom(
+                &mut self,
+                state: &mut dyn std::any::Any,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.custom(state, id);
+            }
         }
 
         let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
