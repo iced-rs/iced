@@ -46,8 +46,8 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 /// let input = TextInput::new(
 ///     "This is the placeholder...",
 ///     value,
-///     Message::TextInputChanged,
 /// )
+/// .on_input(Message::TextInputChanged)
 /// .padding(10);
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
@@ -65,9 +65,10 @@ where
     width: Length,
     padding: Padding,
     size: Option<f32>,
-    on_change: Box<dyn Fn(String) -> Message + 'a>,
+    on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -81,12 +82,8 @@ where
     ///
     /// It expects:
     /// - a placeholder,
-    /// - the current value, and
-    /// - a function that produces a message when the [`TextInput`] changes.
-    pub fn new<F>(placeholder: &str, value: &str, on_change: F) -> Self
-    where
-        F: 'a + Fn(String) -> Message,
-    {
+    /// - the current value
+    pub fn new(placeholder: &str, value: &str) -> Self {
         TextInput {
             id: None,
             placeholder: String::from(placeholder),
@@ -96,9 +93,10 @@ where
             width: Length::Fill,
             padding: Padding::new(5.0),
             size: None,
-            on_change: Box::new(on_change),
+            on_input: None,
             on_paste: None,
             on_submit: None,
+            icon: None,
             style: Default::default(),
         }
     }
@@ -112,6 +110,25 @@ where
     /// Converts the [`TextInput`] into a secure password input.
     pub fn password(mut self) -> Self {
         self.is_secure = true;
+        self
+    }
+
+    /// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`].
+    ///
+    /// If this method is not called, the [`TextInput`] will be disabled.
+    pub fn on_input<F>(mut self, callback: F) -> Self
+    where
+        F: 'a + Fn(String) -> Message,
+    {
+        self.on_input = Some(Box::new(callback));
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed.
+    pub fn on_submit(mut self, message: Message) -> Self {
+        self.on_submit = Some(message);
         self
     }
 
@@ -132,6 +149,13 @@ where
         self.font = font;
         self
     }
+
+    /// Sets the [`Icon`] of the [`TextInput`].
+    pub fn icon(mut self, icon: Icon<Renderer::Font>) -> Self {
+        self.icon = Some(icon);
+        self
+    }
+
     /// Sets the width of the [`TextInput`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
@@ -147,13 +171,6 @@ where
     /// Sets the text size of the [`TextInput`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
         self.size = Some(size.into().0);
-        self
-    }
-
-    /// Sets the message that should be produced when the [`TextInput`] is
-    /// focused and the enter key is pressed.
-    pub fn on_submit(mut self, message: Message) -> Self {
-        self.on_submit = Some(message);
         self
     }
 
@@ -189,7 +206,9 @@ where
             &self.placeholder,
             self.size,
             &self.font,
+            self.on_input.is_none(),
             self.is_secure,
+            self.icon.as_ref(),
             &self.style,
         )
     }
@@ -210,6 +229,18 @@ where
         tree::State::new(State::new())
     }
 
+    fn diff(&self, tree: &mut Tree) {
+        let state = tree.state.downcast_mut::<State>();
+
+        // Unfocus text input if it becomes disabled
+        if self.on_input.is_none() {
+            state.last_click = None;
+            state.is_focused = None;
+            state.is_pasting = None;
+            state.is_dragging = false;
+        }
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -223,7 +254,14 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(renderer, limits, self.width, self.padding, self.size)
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.size,
+            self.icon.as_ref(),
+        )
     }
 
     fn operate(
@@ -260,7 +298,7 @@ where
             self.size,
             &self.font,
             self.is_secure,
-            self.on_change.as_ref(),
+            self.on_input.as_deref(),
             self.on_paste.as_deref(),
             &self.on_submit,
             || tree.state.downcast_mut::<State>(),
@@ -287,7 +325,9 @@ where
             &self.placeholder,
             self.size,
             &self.font,
+            self.on_input.is_none(),
             self.is_secure,
+            self.icon.as_ref(),
             &self.style,
         )
     }
@@ -300,7 +340,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
+        mouse_interaction(layout, cursor_position, self.on_input.is_none())
     }
 }
 
@@ -316,6 +356,30 @@ where
     ) -> Element<'a, Message, Renderer> {
         Element::new(text_input)
     }
+}
+
+/// The content of the [`Icon`].
+#[derive(Debug, Clone)]
+pub struct Icon<Font> {
+    /// The font that will be used to display the `code_point`.
+    pub font: Font,
+    /// The unicode code point that will be used as the icon.
+    pub code_point: char,
+    /// The font size of the content.
+    pub size: Option<f32>,
+    /// The spacing between the [`Icon`] and the text in a [`TextInput`].
+    pub spacing: f32,
+    /// The side of a [`TextInput`] where to display the [`Icon`].
+    pub side: Side,
+}
+
+/// The side of a [`TextInput`].
+#[derive(Debug, Clone)]
+pub enum Side {
+    /// The left side of a [`TextInput`].
+    Left,
+    /// The right side of a [`TextInput`].
+    Right,
 }
 
 /// The identifier of a [`TextInput`].
@@ -380,6 +444,7 @@ pub fn layout<Renderer>(
     width: Length,
     padding: Padding,
     size: Option<f32>,
+    icon: Option<&Icon<Renderer::Font>>,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
@@ -389,10 +454,51 @@ where
     let padding = padding.fit(Size::ZERO, limits.max());
     let limits = limits.width(width).pad(padding).height(text_size);
 
-    let mut text = layout::Node::new(limits.resolve(Size::ZERO));
-    text.move_to(Point::new(padding.left, padding.top));
+    let text_bounds = limits.resolve(Size::ZERO);
 
-    layout::Node::with_children(text.size().pad(padding), vec![text])
+    if let Some(icon) = icon {
+        let icon_width = renderer.measure_width(
+            &icon.code_point.to_string(),
+            icon.size.unwrap_or_else(|| renderer.default_size()),
+            icon.font.clone(),
+        );
+
+        let mut text_node = layout::Node::new(
+            text_bounds - Size::new(icon_width + icon.spacing, 0.0),
+        );
+
+        let mut icon_node =
+            layout::Node::new(Size::new(icon_width, text_bounds.height));
+
+        match icon.side {
+            Side::Left => {
+                text_node.move_to(Point::new(
+                    padding.left + icon_width + icon.spacing,
+                    padding.top,
+                ));
+
+                icon_node.move_to(Point::new(padding.left, padding.top));
+            }
+            Side::Right => {
+                text_node.move_to(Point::new(padding.left, padding.top));
+
+                icon_node.move_to(Point::new(
+                    padding.left + text_bounds.width - icon_width,
+                    padding.top,
+                ));
+            }
+        };
+
+        layout::Node::with_children(
+            text_bounds.pad(padding),
+            vec![text_node, icon_node],
+        )
+    } else {
+        let mut text = layout::Node::new(text_bounds);
+        text.move_to(Point::new(padding.left, padding.top));
+
+        layout::Node::with_children(text_bounds.pad(padding), vec![text])
+    }
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`TextInput`]
@@ -408,7 +514,7 @@ pub fn update<'a, Message, Renderer>(
     size: Option<f32>,
     font: &Renderer::Font,
     is_secure: bool,
-    on_change: &dyn Fn(String) -> Message,
+    on_input: Option<&dyn Fn(String) -> Message>,
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
@@ -421,7 +527,8 @@ where
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let state = state();
-            let is_clicked = layout.bounds().contains(cursor_position);
+            let is_clicked =
+                layout.bounds().contains(cursor_position) && on_input.is_some();
 
             state.is_focused = if is_clicked {
                 state.is_focused.or_else(|| {
@@ -551,6 +658,8 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
+                let Some(on_input) = on_input else { return event::Status::Ignored };
+
                 if state.is_pasting.is_none()
                     && !state.keyboard_modifiers.command()
                     && !c.is_control()
@@ -559,7 +668,7 @@ where
 
                     editor.insert(c);
 
-                    let message = (on_change)(editor.contents());
+                    let message = (on_input)(editor.contents());
                     shell.publish(message);
 
                     focus.updated_at = Instant::now();
@@ -572,6 +681,8 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
+                let Some(on_input) = on_input else { return event::Status::Ignored };
+
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
@@ -597,7 +708,7 @@ where
                         let mut editor = Editor::new(value, &mut state.cursor);
                         editor.backspace();
 
-                        let message = (on_change)(editor.contents());
+                        let message = (on_input)(editor.contents());
                         shell.publish(message);
                     }
                     keyboard::KeyCode::Delete => {
@@ -617,7 +728,7 @@ where
                         let mut editor = Editor::new(value, &mut state.cursor);
                         editor.delete();
 
-                        let message = (on_change)(editor.contents());
+                        let message = (on_input)(editor.contents());
                         shell.publish(message);
                     }
                     keyboard::KeyCode::Left => {
@@ -692,7 +803,7 @@ where
                         let mut editor = Editor::new(value, &mut state.cursor);
                         editor.delete();
 
-                        let message = (on_change)(editor.contents());
+                        let message = (on_input)(editor.contents());
                         shell.publish(message);
                     }
                     keyboard::KeyCode::V => {
@@ -719,7 +830,7 @@ where
                             let message = if let Some(paste) = &on_paste {
                                 (paste)(editor.contents())
                             } else {
-                                (on_change)(editor.contents())
+                                (on_input)(editor.contents())
                             };
                             shell.publish(message);
 
@@ -813,7 +924,9 @@ pub fn draw<Renderer>(
     placeholder: &str,
     size: Option<f32>,
     font: &Renderer::Font,
+    is_disabled: bool,
     is_secure: bool,
+    icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
 ) where
     Renderer: text::Renderer,
@@ -823,11 +936,15 @@ pub fn draw<Renderer>(
     let value = secure_value.as_ref().unwrap_or(value);
 
     let bounds = layout.bounds();
-    let text_bounds = layout.children().next().unwrap().bounds();
+
+    let mut children_layout = layout.children();
+    let text_bounds = children_layout.next().unwrap().bounds();
 
     let is_mouse_over = bounds.contains(cursor_position);
 
-    let appearance = if state.is_focused() {
+    let appearance = if is_disabled {
+        theme.disabled(style)
+    } else if state.is_focused() {
         theme.focused(style)
     } else if is_mouse_over {
         theme.hovered(style)
@@ -844,6 +961,20 @@ pub fn draw<Renderer>(
         },
         appearance.background,
     );
+
+    if let Some(icon) = icon {
+        let icon_layout = children_layout.next().unwrap();
+
+        renderer.fill_text(Text {
+            content: &icon.code_point.to_string(),
+            size: icon.size.unwrap_or_else(|| renderer.default_size()),
+            font: icon.font.clone(),
+            color: appearance.icon_color,
+            bounds: icon_layout.bounds(),
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Top,
+        });
+    }
 
     let text = value.to_string();
     let size = size.unwrap_or_else(|| renderer.default_size());
@@ -956,6 +1087,8 @@ pub fn draw<Renderer>(
             content: if text.is_empty() { placeholder } else { &text },
             color: if text.is_empty() {
                 theme.placeholder_color(style)
+            } else if is_disabled {
+                theme.disabled_color(style)
             } else {
                 theme.value_color(style)
             },
@@ -984,9 +1117,14 @@ pub fn draw<Renderer>(
 pub fn mouse_interaction(
     layout: Layout<'_>,
     cursor_position: Point,
+    is_disabled: bool,
 ) -> mouse::Interaction {
     if layout.bounds().contains(cursor_position) {
-        mouse::Interaction::Text
+        if is_disabled {
+            mouse::Interaction::NotAllowed
+        } else {
+            mouse::Interaction::Text
+        }
     } else {
         mouse::Interaction::default()
     }

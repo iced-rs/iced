@@ -28,7 +28,7 @@ Currently, `iced_glow` supports the following primitives:
 Add `iced_glow` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced_glow = "0.7"
+iced_glow = "0.8"
 ```
 
 __Iced moves fast and the `master` branch can contain breaking changes!__ If

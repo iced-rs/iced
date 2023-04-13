@@ -33,6 +33,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
+    width: Length,
     height: Length,
     vertical: Properties,
     horizontal: Option<Properties>,
@@ -50,6 +51,7 @@ where
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             id: None,
+            width: Length::Shrink,
             height: Length::Shrink,
             vertical: Properties::default(),
             horizontal: None,
@@ -62,6 +64,12 @@ where
     /// Sets the [`Id`] of the [`Scrollable`].
     pub fn id(mut self, id: Id) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    /// Sets the width of the [`Scrollable`].
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -173,7 +181,7 @@ where
     }
 
     fn width(&self) -> Length {
-        self.content.as_widget().width()
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -188,7 +196,7 @@ where
         layout(
             renderer,
             limits,
-            Widget::<Message, Renderer>::width(self),
+            self.width,
             self.height,
             self.horizontal.is_some(),
             |renderer, limits| {
@@ -397,15 +405,7 @@ pub fn layout<Renderer>(
     horizontal_enabled: bool,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .max_height(f32::INFINITY)
-        .max_width(if horizontal_enabled {
-            f32::INFINITY
-        } else {
-            limits.max().width
-        })
-        .width(width)
-        .height(height);
+    let limits = limits.width(width).height(height);
 
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, 0.0),
@@ -857,8 +857,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     let style = if state.y_scroller_grabbed_at.is_some() {
                         theme.dragging(style)
-                    } else if mouse_over_y_scrollbar {
-                        theme.hovered(style)
+                    } else if mouse_over_scrollable {
+                        theme.hovered(style, mouse_over_y_scrollbar)
                     } else {
                         theme.active(style)
                     };
@@ -870,8 +870,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     let style = if state.x_scroller_grabbed_at.is_some() {
                         theme.dragging_horizontal(style)
-                    } else if mouse_over_x_scrollbar {
-                        theme.hovered_horizontal(style)
+                    } else if mouse_over_scrollable {
+                        theme.hovered_horizontal(style, mouse_over_x_scrollbar)
                     } else {
                         theme.active_horizontal(style)
                     };
@@ -895,7 +895,7 @@ pub fn draw<Renderer>(
 }
 
 fn notify_on_scroll<Message>(
-    state: &State,
+    state: &mut State,
     on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
@@ -916,7 +916,23 @@ fn notify_on_scroll<Message>(
             .absolute(bounds.height, content_bounds.height)
             / (content_bounds.height - bounds.height);
 
-        shell.publish(on_scroll(RelativeOffset { x, y }))
+        let new_offset = RelativeOffset { x, y };
+
+        // Don't publish redundant offsets to shell
+        if let Some(prev_offset) = state.last_notified {
+            let unchanged = |a: f32, b: f32| {
+                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
+            };
+
+            if unchanged(prev_offset.x, new_offset.x)
+                && unchanged(prev_offset.y, new_offset.y)
+            {
+                return;
+            }
+        }
+
+        shell.publish(on_scroll(new_offset));
+        state.last_notified = Some(new_offset);
     }
 }
 
@@ -929,6 +945,7 @@ pub struct State {
     offset_x: Offset,
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
+    last_notified: Option<RelativeOffset>,
 }
 
 impl Default for State {
@@ -940,6 +957,7 @@ impl Default for State {
             offset_x: Offset::Absolute(0.0),
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
+            last_notified: None,
         }
     }
 }

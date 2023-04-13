@@ -147,7 +147,7 @@ where
     Renderer::Theme: widget::radio::StyleSheet,
     V: Copy + Eq,
 {
-    widget::Radio::new(value, label, selected, on_click)
+    widget::Radio::new(label, value, selected, on_click)
 }
 
 /// Creates a new [`Toggler`].
@@ -171,14 +171,13 @@ where
 pub fn text_input<'a, Message, Renderer>(
     placeholder: &str,
     value: &str,
-    on_change: impl Fn(String) -> Message + 'a,
 ) -> widget::TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: crate::text::Renderer,
     Renderer::Theme: widget::text_input::StyleSheet,
 {
-    widget::TextInput::new(placeholder, value, on_change)
+    widget::TextInput::new(placeholder, value)
 }
 
 /// Creates a new [`Slider`].
@@ -314,4 +313,14 @@ where
     Renderer::Theme: widget::svg::StyleSheet,
 {
     widget::Svg::new(handle)
+}
+
+/// A container intercepting mouse events.
+pub fn mouse_area<'a, Message, Renderer>(
+    widget: impl Into<Element<'a, Message, Renderer>>,
+) -> widget::MouseArea<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    widget::MouseArea::new(widget)
 }

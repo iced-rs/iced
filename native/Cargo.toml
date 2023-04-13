@@ -1,6 +1,6 @@
 [package]
 name = "iced_native"
-version = "0.9.1"
+version = "0.10.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A renderer-agnostic library for native GUIs"
@@ -14,9 +14,10 @@ debug = []
 twox-hash = { version = "1.5", default-features = false }
 unicode-segmentation = "1.6"
 num-traits = "0.2"
+thiserror = "1"
 
 [dependencies.iced_core]
-version = "0.8"
+version = "0.9"
 path = "../core"
 
 [dependencies.iced_futures]
@@ -25,5 +26,5 @@ path = "../futures"
 features = ["thread-pool"]
 
 [dependencies.iced_style]
-version = "0.7"
+version = "0.8"
 path = "../style"

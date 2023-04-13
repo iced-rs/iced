@@ -17,6 +17,7 @@ pub mod column;
 pub mod container;
 pub mod helpers;
 pub mod image;
+pub mod mouse_area;
 pub mod operation;
 pub mod pane_grid;
 pub mod pick_list;
@@ -50,6 +51,8 @@ pub use container::Container;
 pub use helpers::*;
 #[doc(no_inline)]
 pub use image::Image;
+#[doc(no_inline)]
+pub use mouse_area::MouseArea;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
@@ -110,12 +113,12 @@ use crate::{Clipboard, Layout, Length, Point, Rectangle, Shell};
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 /// `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.8/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.8/examples/bezier_tool
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.8/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.8/examples/geometry
+/// [examples]: https://github.com/iced-rs/iced/tree/0.9/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.9/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.9/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.9/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.8/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.9/wgpu
 pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,

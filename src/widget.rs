@@ -47,6 +47,14 @@ pub mod container {
         iced_native::widget::Container<'a, Message, Renderer>;
 }
 
+pub mod mouse_area {
+    //! Intercept mouse events on a widget.
+
+    /// A container intercepting mouse events.
+    pub type MouseArea<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::MouseArea<'a, Message, Renderer>;
+}
+
 pub mod pane_grid {
     //! Let your users split regions of your application and organize layout dynamically.
     //!
@@ -56,7 +64,7 @@ pub mod pane_grid {
     //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
     //! drag and drop, and hotkey support.
     //!
-    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.8/examples/pane_grid
+    //! [`pane_grid` example]: https://github.com/iced-rs/iced/tree/0.9/examples/pane_grid
     pub use iced_native::widget::pane_grid::{
         Axis, Configuration, Direction, DragEvent, Line, Node, Pane,
         ResizeEvent, Split, State, StyleSheet,
@@ -124,7 +132,7 @@ pub mod text_input {
     //! Display fields that can be filled with text.
     pub use iced_native::widget::text_input::{
         focus, move_cursor_to, move_cursor_to_end, move_cursor_to_front,
-        select_all, Appearance, Id, StyleSheet,
+        select_all, Appearance, Icon, Id, Side, StyleSheet,
     };
 
     /// A field that can be filled with text.

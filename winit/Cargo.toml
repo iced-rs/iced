@@ -1,6 +1,6 @@
 [package]
 name = "iced_winit"
-version = "0.8.0"
+version = "0.9.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A winit runtime for Iced"
@@ -11,11 +11,16 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
+default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 trace = ["tracing", "tracing-core", "tracing-subscriber"]
 chrome-trace = ["trace", "tracing-chrome"]
 debug = ["iced_native/debug"]
 system = ["sysinfo"]
 application = []
+x11 = ["winit/x11"]
+wayland = ["winit/wayland"]
+wayland-dlopen = ["winit/wayland-dlopen"]
+wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
 window_clipboard = "0.2"
@@ -24,13 +29,14 @@ thiserror = "1.0"
 
 [dependencies.winit]
 version = "0.27"
+default-features = false
 
 [dependencies.iced_native]
-version = "0.9"
+version = "0.10"
 path = "../native"
 
 [dependencies.iced_graphics]
-version = "0.7"
+version = "0.8"
 path = "../graphics"
 
 [dependencies.iced_futures]
@@ -63,5 +69,5 @@ version = "0.3"
 features = ["Document", "Window"]
 
 [dependencies.sysinfo]
-version = "0.23"
+version = "0.28"
 optional = true

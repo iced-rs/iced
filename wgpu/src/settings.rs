@@ -1,10 +1,12 @@
 //! Configure a renderer.
+use std::fmt;
+
 pub use crate::Antialiasing;
 
 /// The settings of a [`Backend`].
 ///
 /// [`Backend`]: crate::Backend
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The present mode of the [`Backend`].
     ///
@@ -34,6 +36,20 @@ pub struct Settings {
     ///
     /// By default, it is `None`.
     pub antialiasing: Option<Antialiasing>,
+}
+
+impl fmt::Debug for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Settings")
+            .field("present_mode", &self.present_mode)
+            .field("internal_backend", &self.internal_backend)
+            // Instead of printing the font bytes, we simply show a `bool` indicating if using a default font or not.
+            .field("default_font", &self.default_font.is_some())
+            .field("default_text_size", &self.default_text_size)
+            .field("text_multithreading", &self.text_multithreading)
+            .field("antialiasing", &self.antialiasing)
+            .finish()
+    }
 }
 
 impl Settings {

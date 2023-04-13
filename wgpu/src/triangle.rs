@@ -457,7 +457,7 @@ mod solid {
             let shader =
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some(
-                        "iced_wgpu::triangle::solid create shader module",
+                        "iced_wgpu triangle solid create shader module",
                     ),
                     source: wgpu::ShaderSource::Wgsl(
                         std::borrow::Cow::Borrowed(include_str!(
@@ -654,7 +654,7 @@ mod gradient {
             let shader =
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some(
-                        "iced_wgpu::triangle::gradient create shader module",
+                        "iced_wgpu triangle gradient create shader module",
                     ),
                     source: wgpu::ShaderSource::Wgsl(
                         std::borrow::Cow::Borrowed(include_str!(

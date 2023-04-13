@@ -125,12 +125,9 @@ impl Application for WebSocket {
         };
 
         let new_message_input = {
-            let mut input = text_input(
-                "Type a message...",
-                &self.new_message,
-                Message::NewMessageChanged,
-            )
-            .padding(10);
+            let mut input = text_input("Type a message...", &self.new_message)
+                .on_input(Message::NewMessageChanged)
+                .padding(10);
 
             let mut button = button(
                 text("Send")
@@ -146,7 +143,9 @@ impl Application for WebSocket {
                 }
             }
 
-            row![input, button].spacing(10).align_items(Alignment::Fill)
+            row![input, button]
+                .spacing(10)
+                .align_items(Alignment::Center)
         };
 
         column![message_log, new_message_input]

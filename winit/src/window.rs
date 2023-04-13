@@ -2,7 +2,9 @@
 use crate::command::{self, Command};
 use iced_native::window;
 
-pub use window::{frames, Event, Mode, RedrawRequest, UserAttention};
+pub use window::{
+    frames, icon, Event, Icon, Mode, RedrawRequest, UserAttention,
+};
 
 /// Closes the current window and exits the application.
 pub fn close<Message>() -> Command<Message> {
@@ -103,4 +105,9 @@ pub fn fetch_id<Message>(
     Command::single(command::Action::Window(window::Action::FetchId(Box::new(
         f,
     ))))
+}
+
+/// Changes the [`Icon`] of the window.
+pub fn change_icon<Message>(icon: Icon) -> Command<Message> {
+    Command::single(command::Action::Window(window::Action::ChangeIcon(icon)))
 }

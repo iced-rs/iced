@@ -3,6 +3,8 @@ use crate::event::{self, Event};
 use crate::window;
 use crate::Hasher;
 
+use iced_futures::futures::channel::mpsc;
+use iced_futures::futures::never::Never;
 use iced_futures::futures::{self, Future, Stream};
 use iced_futures::{BoxStream, MaybeSend};
 
@@ -100,11 +102,24 @@ where
     })
 }
 
+/// Returns a [`Subscription`] that will call the given function to create and
+/// asynchronously run the given [`Stream`].
+pub fn run<S, Message>(builder: fn() -> S) -> Subscription<Message>
+where
+    S: Stream<Item = Message> + MaybeSend + 'static,
+    Message: 'static,
+{
+    Subscription::from_recipe(Runner {
+        id: builder,
+        spawn: move |_| builder(),
+    })
+}
+
 /// Returns a [`Subscription`] that will create and asynchronously run the
 /// given [`Stream`].
 ///
 /// The `id` will be used to uniquely identify the [`Subscription`].
-pub fn run<I, S, Message>(id: I, stream: S) -> Subscription<Message>
+pub fn run_with_id<I, S, Message>(id: I, stream: S) -> Subscription<Message>
 where
     I: Hash + 'static,
     S: Stream<Item = Message> + MaybeSend + 'static,
@@ -120,6 +135,27 @@ where
 /// [`Stream`] that will call the provided closure to produce every `Message`.
 ///
 /// The `id` will be used to uniquely identify the [`Subscription`].
+pub fn unfold<I, T, Fut, Message>(
+    id: I,
+    initial: T,
+    mut f: impl FnMut(T) -> Fut + MaybeSend + Sync + 'static,
+) -> Subscription<Message>
+where
+    I: Hash + 'static,
+    T: MaybeSend + 'static,
+    Fut: Future<Output = (Message, T)> + MaybeSend + 'static,
+    Message: 'static + MaybeSend,
+{
+    use futures::future::FutureExt;
+
+    run_with_id(
+        id,
+        futures::stream::unfold(initial, move |state| f(state).map(Some)),
+    )
+}
+
+/// Creates a [`Subscription`] that publishes the events sent from a [`Future`]
+/// to an [`mpsc::Sender`] with the given bounds.
 ///
 /// # Creating an asynchronous worker with bidirectional communication
 /// You can leverage this helper to create a [`Subscription`] that spawns
@@ -132,6 +168,7 @@ where
 /// ```
 /// use iced_native::subscription::{self, Subscription};
 /// use iced_native::futures::channel::mpsc;
+/// use iced_native::futures::sink::SinkExt;
 ///
 /// pub enum Event {
 ///     Ready(mpsc::Sender<Input>),
@@ -152,27 +189,35 @@ where
 /// fn some_worker() -> Subscription<Event> {
 ///     struct SomeWorker;
 ///
-///     subscription::unfold(std::any::TypeId::of::<SomeWorker>(), State::Starting, |state| async move {
-///         match state {
-///             State::Starting => {
-///                 // Create channel
-///                 let (sender, receiver) = mpsc::channel(100);
+///     subscription::channel(std::any::TypeId::of::<SomeWorker>(), 100, |mut output| async move {
+///         let mut state = State::Starting;
 ///
-///                 (Some(Event::Ready(sender)), State::Ready(receiver))
-///             }
-///             State::Ready(mut receiver) => {
-///                 use iced_native::futures::StreamExt;
+///         loop {
+///             match &mut state {
+///                 State::Starting => {
+///                     // Create channel
+///                     let (sender, receiver) = mpsc::channel(100);
 ///
-///                 // Read next input sent from `Application`
-///                 let input = receiver.select_next_some().await;
+///                     // Send the sender back to the application
+///                     output.send(Event::Ready(sender)).await;
 ///
-///                 match input {
-///                     Input::DoSomeWork => {
-///                         // Do some async work...
+///                     // We are ready to receive messages
+///                     state = State::Ready(receiver);
+///                 }
+///                 State::Ready(receiver) => {
+///                     use iced_native::futures::StreamExt;
 ///
-///                         // Finally, we can optionally return a message to tell the
-///                         // `Application` the work is done
-///                         (Some(Event::WorkFinished), State::Ready(receiver))
+///                     // Read next input sent from `Application`
+///                     let input = receiver.select_next_some().await;
+///
+///                     match input {
+///                         Input::DoSomeWork => {
+///                             // Do some async work...
+///
+///                             // Finally, we can optionally produce a message to tell the
+///                             // `Application` the work is done
+///                             output.send(Event::WorkFinished).await;
+///                         }
 ///                     }
 ///                 }
 ///             }
@@ -184,26 +229,29 @@ where
 /// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
 /// connection open.
 ///
-/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.8/examples/websocket
-pub fn unfold<I, T, Fut, Message>(
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.9/examples/websocket
+pub fn channel<I, Fut, Message>(
     id: I,
-    initial: T,
-    mut f: impl FnMut(T) -> Fut + MaybeSend + Sync + 'static,
+    size: usize,
+    f: impl Fn(mpsc::Sender<Message>) -> Fut + MaybeSend + Sync + 'static,
 ) -> Subscription<Message>
 where
     I: Hash + 'static,
-    T: MaybeSend + 'static,
-    Fut: Future<Output = (Option<Message>, T)> + MaybeSend + 'static,
+    Fut: Future<Output = Never> + MaybeSend + 'static,
     Message: 'static + MaybeSend,
 {
-    use futures::future::{self, FutureExt};
-    use futures::stream::StreamExt;
+    use futures::stream::{self, StreamExt};
 
-    run(
+    Subscription::from_recipe(Runner {
         id,
-        futures::stream::unfold(initial, move |state| f(state).map(Some))
-            .filter_map(future::ready),
-    )
+        spawn: move |_| {
+            let (sender, receiver) = mpsc::channel(size);
+
+            let runner = stream::once(f(sender)).map(|_| unreachable!());
+
+            stream::select(receiver, runner)
+        },
+    })
 }
 
 struct Runner<I, F, S, Message>

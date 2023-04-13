@@ -8,8 +8,8 @@ pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 use crate::event::{self, Event};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
-    Layout, Length, Pixels, Point, Rectangle, Shell, Size, Widget,
+    layout, mouse, renderer, touch, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -363,38 +363,6 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let rail_x = bounds.x + (bounds.width / 2.0).round();
-
-    renderer.fill_quad(
-        renderer::Quad {
-            bounds: Rectangle {
-                x: rail_x - 1.0,
-                y: bounds.y,
-                width: 2.0,
-                height: bounds.height,
-            },
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        },
-        style.rail_colors.0,
-    );
-
-    renderer.fill_quad(
-        renderer::Quad {
-            bounds: Rectangle {
-                x: rail_x + 1.0,
-                y: bounds.y,
-                width: 2.0,
-                height: bounds.height,
-            },
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-        },
-        Background::Color(style.rail_colors.1),
-    );
-
     let (handle_width, handle_height, handle_border_radius) = match style
         .handle
         .shape
@@ -413,18 +381,50 @@ pub fn draw<T, R>(
         (start.into() as f32, end.into() as f32)
     };
 
-    let handle_offset = if range_start >= range_end {
+    let offset = if range_start >= range_end {
         0.0
     } else {
-        bounds.height * (value - range_end) / (range_start - range_end)
-            - handle_width / 2.0
+        (bounds.height - handle_width / 2.0) * (value - range_end)
+            / (range_start - range_end)
     };
+
+    let rail_x = bounds.x + bounds.width / 2.0;
 
     renderer.fill_quad(
         renderer::Quad {
             bounds: Rectangle {
-                x: rail_x - (handle_height / 2.0),
-                y: bounds.y + handle_offset.round(),
+                x: rail_x - style.rail.width / 2.0,
+                y: bounds.y,
+                width: style.rail.width,
+                height: offset + handle_width / 2.0,
+            },
+            border_radius: Default::default(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        },
+        style.rail.colors.1,
+    );
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: rail_x - style.rail.width / 2.0,
+                y: bounds.y + offset + handle_width / 2.0,
+                width: style.rail.width,
+                height: bounds.height - offset,
+            },
+            border_radius: Default::default(),
+            border_width: 0.0,
+            border_color: Color::TRANSPARENT,
+        },
+        style.rail.colors.0,
+    );
+
+    renderer.fill_quad(
+        renderer::Quad {
+            bounds: Rectangle {
+                x: rail_x - handle_height / 2.0,
+                y: bounds.y + offset,
                 width: handle_height,
                 height: handle_width,
             },
