@@ -316,11 +316,11 @@ where
 }
 
 /// A container intercepting mouse events.
-pub fn mouse_listener<'a, Message, Renderer>(
+pub fn mouse_area<'a, Message, Renderer>(
     widget: impl Into<Element<'a, Message, Renderer>>,
-) -> widget::MouseListener<'a, Message, Renderer>
+) -> widget::MouseArea<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    widget::MouseListener::new(widget)
+    widget::MouseArea::new(widget)
 }

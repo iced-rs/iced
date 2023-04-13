@@ -47,12 +47,12 @@ pub mod container {
         iced_native::widget::Container<'a, Message, Renderer>;
 }
 
-pub mod mouse_listener {
+pub mod mouse_area {
     //! Intercept mouse events on a widget.
 
     /// A container intercepting mouse events.
-    pub type MouseListener<'a, Message, Renderer = crate::Renderer> =
-        iced_native::widget::MouseListener<'a, Message, Renderer>;
+    pub type MouseArea<'a, Message, Renderer = crate::Renderer> =
+        iced_native::widget::MouseArea<'a, Message, Renderer>;
 }
 
 pub mod pane_grid {

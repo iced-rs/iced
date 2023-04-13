@@ -13,7 +13,7 @@ use crate::{
 
 /// Emit messages on mouse events.
 #[allow(missing_debug_implementations)]
-pub struct MouseListener<'a, Message, Renderer> {
+pub struct MouseArea<'a, Message, Renderer> {
     content: Element<'a, Message, Renderer>,
     on_press: Option<Message>,
     on_release: Option<Message>,
@@ -25,7 +25,7 @@ pub struct MouseListener<'a, Message, Renderer> {
     on_mouse_exit: Option<Message>,
 }
 
-impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
+impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
     /// The message to emit on a left button press.
     #[must_use]
     pub fn on_press(mut self, message: Message) -> Self {
@@ -83,16 +83,16 @@ impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
     }
 }
 
-/// Local state of the [`MouseListener`].
+/// Local state of the [`MouseArea`].
 #[derive(Default)]
 struct State {
     is_hovered: bool,
 }
 
-impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
-    /// Creates an empty [`MouseListener`].
+impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
+    /// Creates an empty [`MouseArea`].
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
-        MouseListener {
+        MouseArea {
             content: content.into(),
             on_press: None,
             on_release: None,
@@ -107,7 +107,7 @@ impl<'a, Message, Renderer> MouseListener<'a, Message, Renderer> {
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for MouseListener<'a, Message, Renderer>
+    for MouseArea<'a, Message, Renderer>
 where
     Renderer: crate::Renderer,
     Message: Clone,
@@ -243,23 +243,23 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<MouseListener<'a, Message, Renderer>>
+impl<'a, Message, Renderer> From<MouseArea<'a, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + crate::Renderer,
 {
     fn from(
-        listener: MouseListener<'a, Message, Renderer>,
+        area: MouseArea<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
-        Element::new(listener)
+        Element::new(area)
     }
 }
 
-/// Processes the given [`Event`] and updates the [`State`] of an [`MouseListener`]
+/// Processes the given [`Event`] and updates the [`State`] of an [`MouseArea`]
 /// accordingly.
 fn update<Message: Clone, Renderer>(
-    widget: &mut MouseListener<'_, Message, Renderer>,
+    widget: &mut MouseArea<'_, Message, Renderer>,
     event: &Event,
     layout: Layout<'_>,
     cursor_position: Point,

@@ -17,7 +17,7 @@ pub mod column;
 pub mod container;
 pub mod helpers;
 pub mod image;
-pub mod mouse_listener;
+pub mod mouse_area;
 pub mod operation;
 pub mod pane_grid;
 pub mod pick_list;
@@ -52,7 +52,7 @@ pub use helpers::*;
 #[doc(no_inline)]
 pub use image::Image;
 #[doc(no_inline)]
-pub use mouse_listener::MouseListener;
+pub use mouse_area::MouseArea;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]
