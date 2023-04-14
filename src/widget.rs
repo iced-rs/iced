@@ -109,8 +109,8 @@ pub mod radio {
 pub mod scrollable {
     //! Navigate an endless amount of content with a scrollbar.
     pub use iced_native::widget::scrollable::{
-        snap_to, style::Scrollbar, style::Scroller, Id, Properties,
-        RelativeOffset, StyleSheet,
+        snap_to, style::Scrollbar, style::Scroller, AbsoluteOffset,
+        CurrentOffset, Id, Properties, RelativeOffset, StyleSheet,
     };
 
     /// A widget that can vertically display an infinite amount of content

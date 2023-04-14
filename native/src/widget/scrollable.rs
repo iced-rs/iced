@@ -15,7 +15,9 @@ use crate::{
 };
 
 pub use iced_style::scrollable::StyleSheet;
-pub use operation::scrollable::RelativeOffset;
+pub use operation::scrollable::{
+    AbsoluteOffset, CurrentOffset, RelativeOffset,
+};
 
 pub mod style {
     //! The styles of a [`Scrollable`].
@@ -38,7 +40,7 @@ where
     vertical: Properties,
     horizontal: Option<Properties>,
     content: Element<'a, Message, Renderer>,
-    on_scroll: Option<Box<dyn Fn(RelativeOffset) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(CurrentOffset) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -93,11 +95,10 @@ where
 
     /// Sets a function to call when the [`Scrollable`] is scrolled.
     ///
-    /// The function takes the new relative x & y offset of the [`Scrollable`]
-    /// (e.g. `0` means beginning, while `1` means end).
+    /// The function takes the [`CurrentOffset`] of the [`Scrollable`]
     pub fn on_scroll(
         mut self,
-        f: impl Fn(RelativeOffset) -> Message + 'a,
+        f: impl Fn(CurrentOffset) -> Message + 'a,
     ) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
@@ -436,7 +437,7 @@ pub fn update<Message>(
     shell: &mut Shell<'_, Message>,
     vertical: &Properties,
     horizontal: Option<&Properties>,
-    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(CurrentOffset) -> Message + '_>>,
     update_content: impl FnOnce(
         Event,
         Layout<'_>,
@@ -896,7 +897,7 @@ pub fn draw<Renderer>(
 
 fn notify_on_scroll<Message>(
     state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(CurrentOffset) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -908,31 +909,39 @@ fn notify_on_scroll<Message>(
             return;
         }
 
-        let x = state.offset_x.absolute(bounds.width, content_bounds.width)
-            / (content_bounds.width - bounds.width);
+        let absolute_x =
+            state.offset_x.absolute(bounds.width, content_bounds.width);
+        let relative_x = absolute_x / (content_bounds.width - bounds.width);
 
-        let y = state
+        let absolute_y = state
             .offset_y
-            .absolute(bounds.height, content_bounds.height)
-            / (content_bounds.height - bounds.height);
+            .absolute(bounds.height, content_bounds.height);
+        let relative_y = absolute_y / (content_bounds.height - bounds.height);
 
-        let new_offset = RelativeOffset { x, y };
+        let absolute = AbsoluteOffset {
+            x: absolute_x,
+            y: absolute_y,
+        };
+        let relative = RelativeOffset {
+            x: relative_x,
+            y: relative_y,
+        };
 
         // Don't publish redundant offsets to shell
-        if let Some(prev_offset) = state.last_notified {
+        if let Some(prev_relative) = state.last_notified {
             let unchanged = |a: f32, b: f32| {
                 (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
             };
 
-            if unchanged(prev_offset.x, new_offset.x)
-                && unchanged(prev_offset.y, new_offset.y)
+            if unchanged(prev_relative.x, relative.x)
+                && unchanged(prev_relative.y, relative.y)
             {
                 return;
             }
         }
 
-        shell.publish(on_scroll(new_offset));
-        state.last_notified = Some(new_offset);
+        shell.publish(on_scroll(CurrentOffset { absolute, relative }));
+        state.last_notified = Some(relative);
     }
 }
 
@@ -965,6 +974,10 @@ impl Default for State {
 impl operation::Scrollable for State {
     fn snap_to(&mut self, offset: RelativeOffset) {
         State::snap_to(self, offset);
+    }
+
+    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        State::scroll_to(self, offset)
     }
 }
 
@@ -1050,6 +1063,12 @@ impl State {
     pub fn snap_to(&mut self, offset: RelativeOffset) {
         self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
         self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+    }
+
+    /// Scroll to the provided [`AbsoluteOffset`].
+    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        self.offset_x = Offset::Absolute(offset.x.max(0.0));
+        self.offset_y = Offset::Absolute(offset.y.max(0.0));
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the

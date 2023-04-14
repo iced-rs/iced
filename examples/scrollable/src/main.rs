@@ -36,7 +36,7 @@ enum Message {
     ScrollerWidthChanged(u16),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(scrollable::RelativeOffset),
+    Scrolled(scrollable::CurrentOffset),
 }
 
 impl Application for ScrollableDemo {
@@ -105,7 +105,7 @@ impl Application for ScrollableDemo {
                 )
             }
             Message::Scrolled(offset) => {
-                self.current_scroll_offset = offset;
+                self.current_scroll_offset = offset.relative;
 
                 Command::none()
             }
