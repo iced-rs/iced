@@ -214,7 +214,17 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
+        let offset_x = state.offset_x;
+        let offset_y = state.offset_x;
+
         operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
+
+        // If `snap_to` was used, unsnap to convert offset to "absolute"
+        if offset_x != state.offset_x || offset_y != state.offset_y {
+            let bounds = layout.bounds();
+            let content_bounds = layout.children().next().unwrap().bounds();
+            state.unsnap(bounds, content_bounds);
+        }
 
         operation.container(
             self.id.as_ref().map(|id| &id.0),
@@ -968,7 +978,7 @@ impl operation::Scrollable for State {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Offset {
     Absolute(f32),
     Relative(f32),
