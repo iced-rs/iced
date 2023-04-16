@@ -5,13 +5,16 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
-use crate::core::widget::Tree;
+use crate::core::widget::{self, Tree};
+use crate::core::window;
 use crate::core::{
     Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
     Rectangle, Shell, Widget,
 };
 use crate::{Row, Text};
 
+use crate::style::animation::AnimationEffect;
+use crate::style::animation::HoverPressedAnimation;
 pub use crate::style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
@@ -48,6 +51,8 @@ where
     spacing: f32,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
+    animation_duration: u16,
+    pressed_animation_effect: AnimationEffect,
 }
 
 impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
@@ -87,6 +92,8 @@ where
             spacing: 0.0,
             font: None,
             style: Default::default(),
+            animation_duration: 250,
+            pressed_animation_effect: AnimationEffect::Fade,
         }
     }
 
@@ -167,6 +174,19 @@ where
         Length::Shrink
     }
 
+    fn tag(&self) -> widget::tree::Tag {
+        widget::tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> widget::tree::State {
+        let mut pressed_animation =
+            HoverPressedAnimation::new(self.pressed_animation_effect);
+        if self.is_toggled {
+            pressed_animation.animation_progress = 1.0;
+        }
+        widget::tree::State::new(State::new(pressed_animation))
+    }
+
     fn layout(
         &self,
         renderer: &Renderer,
@@ -199,7 +219,7 @@ where
 
     fn on_event(
         &mut self,
-        _state: &mut Tree,
+        tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
         cursor_position: Point,
@@ -212,12 +232,32 @@ where
                 let mouse_over = layout.bounds().contains(cursor_position);
 
                 if mouse_over {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    if !self.is_toggled {
+                        state.pressed_animation.on_press();
+                    } else {
+                        state.pressed_animation.on_released();
+                    }
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
                     shell.publish((self.on_toggle)(!self.is_toggled));
 
                     event::Status::Captured
                 } else {
                     event::Status::Ignored
                 }
+            }
+            Event::Window(window::Event::RedrawRequested(now)) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                if state.pressed_animation.is_running()
+                    && state
+                        .pressed_animation
+                        .on_redraw_request_update(self.animation_duration, now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+                event::Status::Captured
             }
             _ => event::Status::Ignored,
         }
@@ -240,7 +280,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -248,6 +288,8 @@ where
         cursor_position: Point,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State>();
+
         /// Makes sure that the border radius of the toggler looks good at every size.
         const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
 
@@ -281,9 +323,13 @@ where
         let is_mouse_over = bounds.contains(cursor_position);
 
         let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_toggled)
+            theme.hovered(
+                &self.style,
+                self.is_toggled,
+                &state.pressed_animation,
+            )
         } else {
-            theme.active(&self.style, self.is_toggled)
+            theme.active(&self.style, self.is_toggled, &state.pressed_animation)
         };
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
@@ -310,11 +356,9 @@ where
 
         let toggler_foreground_bounds = Rectangle {
             x: bounds.x
-                + if self.is_toggled {
-                    bounds.width - 2.0 * space - (bounds.height - (4.0 * space))
-                } else {
-                    2.0 * space
-                },
+                + (2.0 * space
+                    + (state.pressed_animation.animation_progress
+                        * (bounds.width - bounds.height))),
             y: bounds.y + (2.0 * space),
             width: bounds.height - (4.0 * space),
             height: bounds.height - (4.0 * space),
@@ -345,5 +389,18 @@ where
         toggler: Toggler<'a, Message, Renderer>,
     ) -> Element<'a, Message, Renderer> {
         Element::new(toggler)
+    }
+}
+
+/// The local state of a [`Toggler`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct State {
+    pressed_animation: HoverPressedAnimation,
+}
+
+impl State {
+    /// Creates a new [`State`].
+    pub fn new(pressed_animation: HoverPressedAnimation) -> State {
+        State { pressed_animation }
     }
 }

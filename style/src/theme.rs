@@ -729,6 +729,7 @@ impl toggler::StyleSheet for Theme {
         &self,
         style: &Self::Style,
         is_active: bool,
+        pressed_animation: &crate::animation::HoverPressedAnimation,
     ) -> toggler::Appearance {
         match style {
             Toggler::Default => {
@@ -736,9 +737,19 @@ impl toggler::StyleSheet for Theme {
 
                 toggler::Appearance {
                     background: if is_active {
-                        palette.primary.strong.color
+                        let mut color = palette.background.strong.color;
+                        color.mix(
+                            palette.primary.strong.color,
+                            pressed_animation.animation_progress,
+                        );
+                        color
                     } else {
-                        palette.background.strong.color
+                        let mut color = palette.primary.strong.color;
+                        color.mix(
+                            palette.background.strong.color,
+                            1.0 - pressed_animation.animation_progress,
+                        );
+                        color
                     },
                     background_border: None,
                     foreground: if is_active {
@@ -749,7 +760,9 @@ impl toggler::StyleSheet for Theme {
                     foreground_border: None,
                 }
             }
-            Toggler::Custom(custom) => custom.active(self, is_active),
+            Toggler::Custom(custom) => {
+                custom.active(self, is_active, pressed_animation)
+            }
         }
     }
 
@@ -757,6 +770,7 @@ impl toggler::StyleSheet for Theme {
         &self,
         style: &Self::Style,
         is_active: bool,
+        pressed_animation: &crate::animation::HoverPressedAnimation,
     ) -> toggler::Appearance {
         match style {
             Toggler::Default => {
@@ -771,10 +785,12 @@ impl toggler::StyleSheet for Theme {
                     } else {
                         palette.background.weak.color
                     },
-                    ..self.active(style, is_active)
+                    ..self.active(style, is_active, pressed_animation)
                 }
             }
-            Toggler::Custom(custom) => custom.hovered(self, is_active),
+            Toggler::Custom(custom) => {
+                custom.hovered(self, is_active, pressed_animation)
+            }
         }
     }
 }

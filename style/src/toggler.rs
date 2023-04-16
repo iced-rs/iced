@@ -22,10 +22,20 @@ pub trait StyleSheet {
     /// Returns the active [`Appearance`] of the toggler for the provided [`Style`].
     ///
     /// [`Style`]: Self::Style
-    fn active(&self, style: &Self::Style, is_active: bool) -> Appearance;
+    fn active(
+        &self,
+        style: &Self::Style,
+        is_active: bool,
+        _pressed_animation: &crate::animation::HoverPressedAnimation,
+    ) -> Appearance;
 
     /// Returns the hovered [`Appearance`] of the toggler for the provided [`Style`].
     ///
     /// [`Style`]: Self::Style
-    fn hovered(&self, style: &Self::Style, is_active: bool) -> Appearance;
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_active: bool,
+        _pressed_animation: &crate::animation::HoverPressedAnimation,
+    ) -> Appearance;
 }
