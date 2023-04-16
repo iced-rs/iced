@@ -93,7 +93,7 @@ where
             font: None,
             style: Default::default(),
             animation_duration: 250,
-            pressed_animation_effect: AnimationEffect::Fade,
+            pressed_animation_effect: AnimationEffect::EaseOut,
         }
     }
 

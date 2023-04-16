@@ -196,14 +196,17 @@ impl button::StyleSheet for Theme {
             (active.background, background.as_mut())
         {
             match hover_animation.effect {
-                animation::AnimationEffect::Fade => match active_background {
-                    Background::Color(active_background_color) => {
-                        background_color.mix(
-                            active_background_color,
-                            1.0 - hover_animation.animation_progress,
-                        );
+                animation::AnimationEffect::Linear
+                | animation::AnimationEffect::EaseOut => {
+                    match active_background {
+                        Background::Color(active_background_color) => {
+                            background_color.mix(
+                                active_background_color,
+                                1.0 - hover_animation.animation_progress,
+                            );
+                        }
                     }
-                },
+                }
                 animation::AnimationEffect::None => {}
             }
         }
@@ -239,14 +242,17 @@ impl button::StyleSheet for Theme {
             (active.background, background.as_mut())
         {
             match pressed_animation.effect {
-                animation::AnimationEffect::Fade => match active_background {
-                    Background::Color(active_background_color) => {
-                        background_color.mix(
-                            active_background_color,
-                            pressed_animation.animation_progress,
-                        );
+                animation::AnimationEffect::Linear
+                | animation::AnimationEffect::EaseOut => {
+                    match active_background {
+                        Background::Color(active_background_color) => {
+                            background_color.mix(
+                                active_background_color,
+                                pressed_animation.animation_progress,
+                            );
+                        }
                     }
-                },
+                }
                 animation::AnimationEffect::None => {}
             }
         }
@@ -649,7 +655,8 @@ impl radio::StyleSheet for Theme {
 
                 if is_selected {
                     match pressed_animation.effect {
-                        animation::AnimationEffect::Fade => {
+                        animation::AnimationEffect::Linear
+                        | animation::AnimationEffect::EaseOut => {
                             dot_color.mix(
                                 Color::TRANSPARENT,
                                 pressed_animation.animation_progress,
@@ -687,15 +694,17 @@ impl radio::StyleSheet for Theme {
 
                 // Mix the hovered and active styles backgrounds according to the animation state
                 match hover_animation.effect {
-                    animation::AnimationEffect::Fade => match active.background
-                    {
-                        Background::Color(active_background_color) => {
-                            background_color.mix(
-                                active_background_color,
-                                1.0 - hover_animation.animation_progress,
-                            );
+                    animation::AnimationEffect::Linear
+                    | animation::AnimationEffect::EaseOut => {
+                        match active.background {
+                            Background::Color(active_background_color) => {
+                                background_color.mix(
+                                    active_background_color,
+                                    1.0 - hover_animation.animation_progress,
+                                );
+                            }
                         }
-                    },
+                    }
                     animation::AnimationEffect::None => {}
                 }
 

@@ -18,10 +18,12 @@ pub struct HoverPressedAnimation {
 /// The type of effect for the animation
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum AnimationEffect {
-    /// The background color of the widget fades into the other color when hovered or pressed
+    /// Transition is linear.
     #[default]
-    Fade,
-    /// The background color of the widget instantly changes into the other color when hovered or pressed
+    Linear,
+    /// Transition is a cubic ease out.
+    EaseOut,
+    /// Transistion is instantaneous.
     None,
 }
 
@@ -77,24 +79,44 @@ impl HoverPressedAnimation {
             } else {
                 // Evaluate new progress
                 match &mut self.effect {
-                    AnimationEffect::Fade => match self.direction {
-                        AnimationDirection::Forward => {
-                            let progress_since_start =
-                                ((now - started_at).as_millis() as f64)
-                                    / (animation_duration_ms as f64);
-                            self.animation_progress = (self.initial_progress
-                                + progress_since_start as f32)
-                                .clamp(0.0, 1.0);
+                    AnimationEffect::Linear => {
+                        let progress_since_start =
+                            ((now - started_at).as_millis() as f64)
+                                / (animation_duration_ms as f64);
+                        match self.direction {
+                            AnimationDirection::Forward => {
+                                self.animation_progress = (self
+                                    .initial_progress
+                                    + progress_since_start as f32)
+                                    .clamp(0.0, 1.0);
+                            }
+                            AnimationDirection::Backward => {
+                                self.animation_progress = (self
+                                    .initial_progress
+                                    - progress_since_start as f32)
+                                    .clamp(0.0, 1.0);
+                            }
                         }
-                        AnimationDirection::Backward => {
-                            let progress_since_start =
-                                ((now - started_at).as_millis() as f64)
-                                    / (animation_duration_ms as f64);
-                            self.animation_progress = (self.initial_progress
-                                - progress_since_start as f32)
+                    }
+                    AnimationEffect::EaseOut => {
+                        let progress_since_start =
+                            ((now - started_at).as_millis() as f32)
+                                / (animation_duration_ms as f32);
+                        match self.direction {
+                            AnimationDirection::Forward => {
+                                self.animation_progress = (self
+                                    .initial_progress
+                                    + ease_out_cubic(progress_since_start))
                                 .clamp(0.0, 1.0);
+                            }
+                            AnimationDirection::Backward => {
+                                self.animation_progress = (self
+                                    .initial_progress
+                                    - ease_out_cubic(progress_since_start))
+                                .clamp(0.0, 1.0);
+                            }
                         }
-                    },
+                    }
                     AnimationEffect::None => {}
                 }
             }
@@ -164,4 +186,10 @@ impl HoverPressedAnimation {
         self.initial_progress = 1.0;
         self.animation_progress = 1.0;
     }
+}
+
+/// Based on Robert Penner's infamous easing equations, MIT license.
+fn ease_out_cubic(t: f32) -> f32 {
+    let p = t - 1f32;
+    p * p * p + 1f32
 }

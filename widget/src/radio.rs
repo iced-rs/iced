@@ -134,7 +134,7 @@ where
             font: None,
             style: Default::default(),
             animation_duration_ms: 250,
-            hover_animation_effect: AnimationEffect::Fade,
+            hover_animation_effect: AnimationEffect::EaseOut,
         }
     }
 

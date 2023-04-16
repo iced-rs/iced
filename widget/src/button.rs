@@ -85,8 +85,8 @@ where
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
             animation_duration_ms: 250,
-            hover_animation_effect: AnimationEffect::Fade,
-            pressed_animation_effect: AnimationEffect::Fade,
+            hover_animation_effect: AnimationEffect::EaseOut,
+            pressed_animation_effect: AnimationEffect::EaseOut,
         }
     }
 
