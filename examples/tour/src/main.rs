@@ -5,7 +5,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Length, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -127,6 +127,7 @@ impl Steps {
                 Step::TextInput {
                     value: String::new(),
                     is_secure: false,
+                    is_showing_icon: false,
                 },
                 Step::Debugger,
                 Step::End,
@@ -171,14 +172,32 @@ impl Steps {
 
 enum Step {
     Welcome,
-    Slider { value: u8 },
-    RowsAndColumns { layout: Layout, spacing: u16 },
-    Text { size: u16, color: Color },
-    Radio { selection: Option<Language> },
-    Toggler { can_continue: bool },
-    Image { width: u16 },
+    Slider {
+        value: u8,
+    },
+    RowsAndColumns {
+        layout: Layout,
+        spacing: u16,
+    },
+    Text {
+        size: u16,
+        color: Color,
+    },
+    Radio {
+        selection: Option<Language>,
+    },
+    Toggler {
+        can_continue: bool,
+    },
+    Image {
+        width: u16,
+    },
     Scrollable,
-    TextInput { value: String, is_secure: bool },
+    TextInput {
+        value: String,
+        is_secure: bool,
+        is_showing_icon: bool,
+    },
     Debugger,
     End,
 }
@@ -194,6 +213,7 @@ pub enum StepMessage {
     ImageWidthChanged(u16),
     InputChanged(String),
     ToggleSecureInput(bool),
+    ToggleTextInputIcon(bool),
     DebugToggled(bool),
     TogglerChanged(bool),
 }
@@ -256,6 +276,14 @@ impl<'a> Step {
                     *can_continue = value;
                 }
             }
+            StepMessage::ToggleTextInputIcon(toggle) => {
+                if let Step::TextInput {
+                    is_showing_icon, ..
+                } = self
+                {
+                    *is_showing_icon = toggle
+                }
+            }
         };
     }
 
@@ -303,9 +331,11 @@ impl<'a> Step {
                 Self::rows_and_columns(*layout, *spacing)
             }
             Step::Scrollable => Self::scrollable(),
-            Step::TextInput { value, is_secure } => {
-                Self::text_input(value, *is_secure)
-            }
+            Step::TextInput {
+                value,
+                is_secure,
+                is_showing_icon,
+            } => Self::text_input(value, *is_secure, *is_showing_icon),
             Step::Debugger => Self::debugger(debug),
             Step::End => Self::end(),
         }
@@ -530,14 +560,25 @@ impl<'a> Step {
             )
     }
 
-    fn text_input(value: &str, is_secure: bool) -> Column<'a, StepMessage> {
-        let text_input = text_input(
-            "Type something to continue...",
-            value,
-            StepMessage::InputChanged,
-        )
-        .padding(10)
-        .size(30);
+    fn text_input(
+        value: &str,
+        is_secure: bool,
+        is_showing_icon: bool,
+    ) -> Column<'a, StepMessage> {
+        let mut text_input = text_input("Type something to continue...", value)
+            .on_input(StepMessage::InputChanged)
+            .padding(10)
+            .size(30);
+
+        if is_showing_icon {
+            text_input = text_input.icon(text_input::Icon {
+                font: Font::default(),
+                code_point: '🚀',
+                size: Some(28.0),
+                spacing: 10.0,
+                side: text_input::Side::Right,
+            });
+        }
 
         Self::container("Text input")
             .push("Use a text input to ask for different kinds of information.")
@@ -550,6 +591,11 @@ impl<'a> Step {
                 "Enable password mode",
                 is_secure,
                 StepMessage::ToggleSecureInput,
+            ))
+            .push(checkbox(
+                "Show icon",
+                is_showing_icon,
+                StepMessage::ToggleTextInputIcon,
             ))
             .push(
                 "A text input produces a message every time it changes. It is \

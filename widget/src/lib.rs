@@ -21,6 +21,7 @@ pub use iced_runtime::core;
 pub use iced_style as style;
 
 mod column;
+mod mouse_area;
 mod row;
 
 pub mod button;
@@ -62,6 +63,8 @@ pub use checkbox::Checkbox;
 pub use column::Column;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use mouse_area::MouseArea;
 #[doc(no_inline)]
 pub use pane_grid::PaneGrid;
 #[doc(no_inline)]

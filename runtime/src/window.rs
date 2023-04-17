@@ -5,7 +5,7 @@ pub use action::Action;
 
 use crate::command::{self, Command};
 use crate::core::time::Instant;
-use crate::core::window::{Event, Mode, UserAttention};
+use crate::core::window::{Event, Icon, Mode, UserAttention};
 use crate::futures::subscription::{self, Subscription};
 
 /// Subscribes to the frames of the window of the running application.
@@ -109,4 +109,9 @@ pub fn fetch_id<Message>(
     f: impl FnOnce(u64) -> Message + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::Window(Action::FetchId(Box::new(f))))
+}
+
+/// Changes the [`Icon`] of the window.
+pub fn change_icon<Message>(icon: Icon) -> Command<Message> {
+    Command::single(command::Action::Window(Action::ChangeIcon(icon)))
 }

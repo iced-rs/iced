@@ -16,7 +16,7 @@ num-traits = "0.2"
 thiserror = "1"
 
 [dependencies.iced_runtime]
-version = "0.9"
+version = "0.1"
 path = "../runtime"
 
 [dependencies.iced_renderer]
@@ -24,7 +24,7 @@ version = "0.1"
 path = "../renderer"
 
 [dependencies.iced_style]
-version = "0.7"
+version = "0.8"
 path = "../style"
 
 [dependencies.ouroboros]

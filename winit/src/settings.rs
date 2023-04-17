@@ -22,6 +22,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
+use crate::core::window::Icon;
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
@@ -84,7 +85,7 @@ pub struct Window {
     pub always_on_top: bool,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<winit::window::Icon>,
+    pub icon: Option<Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -126,8 +127,9 @@ impl Window {
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
-            .with_window_icon(self.icon)
-            .with_always_on_top(self.always_on_top);
+            .with_window_icon(self.icon.and_then(conversion::icon))
+            .with_always_on_top(self.always_on_top)
+            .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
             primary_monitor.as_ref(),

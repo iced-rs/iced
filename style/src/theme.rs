@@ -416,10 +416,13 @@ impl slider::StyleSheet for Theme {
                 };
 
                 slider::Appearance {
-                    rail_colors: (
-                        palette.primary.base.color,
-                        Color::TRANSPARENT,
-                    ),
+                    rail: slider::Rail {
+                        colors: (
+                            palette.primary.base.color,
+                            palette.primary.base.color,
+                        ),
+                        width: 2.0,
+                    },
                     handle: slider::Handle {
                         color: palette.background.base.color,
                         border_color: palette.primary.base.color,
@@ -906,31 +909,41 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => {
-                let palette = self.extended_palette();
+                if is_mouse_over_scrollbar {
+                    let palette = self.extended_palette();
 
-                scrollable::Scrollbar {
-                    background: palette.background.weak.color.into(),
-                    border_radius: 2.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                    scroller: scrollable::Scroller {
-                        color: palette.primary.strong.color,
+                    scrollable::Scrollbar {
+                        background: palette.background.weak.color.into(),
                         border_radius: 2.0,
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
-                    },
+                        scroller: scrollable::Scroller {
+                            color: palette.primary.strong.color,
+                            border_radius: 2.0,
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        },
+                    }
+                } else {
+                    self.active(style)
                 }
             }
-            Scrollable::Custom(custom) => custom.hovered(self),
+            Scrollable::Custom(custom) => {
+                custom.hovered(self, is_mouse_over_scrollbar)
+            }
         }
     }
 
     fn dragging(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
+            Scrollable::Default => self.hovered(style, true),
             Scrollable::Custom(custom) => custom.dragging(self),
         }
     }
@@ -942,10 +955,16 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered_horizontal(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
-            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
+            Scrollable::Default => self.hovered(style, is_mouse_over_scrollbar),
+            Scrollable::Custom(custom) => {
+                custom.hovered_horizontal(self, is_mouse_over_scrollbar)
+            }
         }
     }
 
@@ -954,7 +973,7 @@ impl scrollable::StyleSheet for Theme {
         style: &Self::Style,
     ) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered_horizontal(style),
+            Scrollable::Default => self.hovered_horizontal(style, true),
             Scrollable::Custom(custom) => custom.dragging_horizontal(self),
         }
     }
@@ -1012,6 +1031,7 @@ impl text_input::StyleSheet for Theme {
             border_radius: 2.0,
             border_width: 1.0,
             border_color: palette.background.strong.color,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1027,6 +1047,7 @@ impl text_input::StyleSheet for Theme {
             border_radius: 2.0,
             border_width: 1.0,
             border_color: palette.background.base.text,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1042,6 +1063,7 @@ impl text_input::StyleSheet for Theme {
             border_radius: 2.0,
             border_width: 1.0,
             border_color: palette.primary.strong.color,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1073,5 +1095,29 @@ impl text_input::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         palette.primary.weak.color
+    }
+
+    fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
+        if let TextInput::Custom(custom) = style {
+            return custom.disabled(self);
+        }
+
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.weak.color.into(),
+            border_radius: 2.0,
+            border_width: 1.0,
+            border_color: palette.background.strong.color,
+            icon_color: palette.background.strong.color,
+        }
+    }
+
+    fn disabled_color(&self, style: &Self::Style) -> Color {
+        if let TextInput::Custom(custom) = style {
+            return custom.disabled_color(self);
+        }
+
+        self.placeholder_color(style)
     }
 }

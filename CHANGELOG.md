@@ -6,6 +6,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2023-04-13
+### Added
+- `MouseArea` widget. [#1594](https://github.com/iced-rs/iced/pull/1594)
+- `channel` helper in `subscription`. [#1786](https://github.com/iced-rs/iced/pull/1786)
+- Configurable `width` for `Scrollable`. [#1749](https://github.com/iced-rs/iced/pull/1749)
+- Support for disabled `TextInput`. [#1744](https://github.com/iced-rs/iced/pull/1744)
+- Platform-specific window settings. [#1730](https://github.com/iced-rs/iced/pull/1730)
+- Left and right colors for sliders. [#1643](https://github.com/iced-rs/iced/pull/1643)
+- Icon for `TextInput`. [#1702](https://github.com/iced-rs/iced/pull/1702)
+- Mouse over scrollbar flag for `scrollable::StyleSheet`. [#1669](https://github.com/iced-rs/iced/pull/1669)
+- Better example for `Radio`. [#1762](https://github.com/iced-rs/iced/pull/1762)
+
+### Changed
+- `wgpu` has been updated to `0.15` in `iced_wgpu`. [#1789](https://github.com/iced-rs/iced/pull/1789)
+- `resvg` has been updated to `0.29` in `iced_graphics`. [#1733](https://github.com/iced-rs/iced/pull/1733)
+- `subscription::run` now takes a function pointer. [#1723](https://github.com/iced-rs/iced/pull/1723)
+
+### Fixed
+- Redundant `on_scroll` messages for `Scrollable`. [#1788](https://github.com/iced-rs/iced/pull/1788)
+- Outdated items in `ROADMAP.md` [#1782](https://github.com/iced-rs/iced/pull/1782)
+- Colons in shader labels causing compilation issues in `iced_wgpu`. [#1779](https://github.com/iced-rs/iced/pull/1779)
+- Re-expose winit features for window servers in Linux. [#1777](https://github.com/iced-rs/iced/pull/1777)
+- Replacement of application node in Wasm. [#1765](https://github.com/iced-rs/iced/pull/1765)
+- `clippy` lints for Rust 1.68. [#1755](https://github.com/iced-rs/iced/pull/1755)
+- Unnecessary `Component` rebuilds. [#1754](https://github.com/iced-rs/iced/pull/1754)
+- Incorrect package name in checkbox example docs. [#1750](https://github.com/iced-rs/iced/pull/1750)
+- Fullscreen only working on primary monitor. [#1742](https://github.com/iced-rs/iced/pull/1742)
+- `Padding::fit` on irregular values for an axis. [#1734](https://github.com/iced-rs/iced/pull/1734)
+- `Debug` implementation of `Font` displaying its bytes. [#1731](https://github.com/iced-rs/iced/pull/1731)
+- Sliders bleeding over their rail. [#1721](https://github.com/iced-rs/iced/pull/1721)
+
+### Removed
+- `Fill` variant for `Alignment`. [#1735](https://github.com/iced-rs/iced/pull/1735)
+
+Many thanks to...
+
+- @ahoneybun
+- @bq-wrongway
+- @bungoboingo
+- @casperstorm
+- @Davidster
+- @ElhamAryanpur
+- @FinnPerry
+- @GyulyVGC
+- @JungleTryne
+- @lupd
+- @mmstick
+- @nicksenger
+- @Night-Hunter-NF
+- @tarkah
+- @traxys
+- @Xaeroxe
+
 ## [0.8.0] - 2023-02-18
 ### Added
 - Generic pixel units. [#1711](https://github.com/iced-rs/iced/pull/1711)
@@ -414,7 +467,8 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/iced-rs/iced/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/iced-rs/iced/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/iced-rs/iced/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/iced-rs/iced/compare/0.5.0...0.6.0

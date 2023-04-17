@@ -1,7 +1,7 @@
 //! Convert [`winit`] types into [`iced_native`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
@@ -219,7 +219,7 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
 /// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
 ) -> winit::window::CursorIcon {
@@ -237,13 +237,14 @@ pub fn mouse_interaction(
             winit::window::CursorIcon::EwResize
         }
         Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
+        Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
     }
 }
 
 /// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
@@ -259,7 +260,7 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 /// modifiers state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
@@ -286,7 +287,7 @@ pub fn cursor_position(
 /// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn touch_event(
     touch: winit::event::Touch,
     scale_factor: f64,
@@ -317,7 +318,7 @@ pub fn touch_event(
 /// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn key_code(
     virtual_keycode: winit::event::VirtualKeyCode,
 ) -> keyboard::KeyCode {
@@ -508,6 +509,15 @@ pub fn user_attention(
             winit::window::UserAttentionType::Informational
         }
     }
+}
+
+/// Converts some [`Icon`] into it's `winit` counterpart.
+///
+/// Returns `None` if there is an error during the conversion.
+pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
+    let (pixels, size) = icon.into_raw();
+
+    winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
 }
 
 // As defined in: http://www.unicode.org/faq/private_use.html

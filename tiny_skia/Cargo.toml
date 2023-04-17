@@ -21,7 +21,7 @@ kurbo = "0.9"
 log = "0.4"
 
 [dependencies.iced_graphics]
-version = "0.7"
+version = "0.8"
 path = "../graphics"
 features = ["tiny-skia"]
 

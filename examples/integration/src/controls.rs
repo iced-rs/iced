@@ -102,11 +102,10 @@ impl Program for Controls {
                                     .size(14)
                                     .style(Color::WHITE),
                             )
-                            .push(text_input(
-                                "Placeholder",
-                                text,
-                                Message::TextChanged,
-                            )),
+                            .push(
+                                text_input("Placeholder", text)
+                                    .on_input(Message::TextChanged),
+                            ),
                     ),
             )
             .into()

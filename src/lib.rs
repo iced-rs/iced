@@ -24,13 +24,13 @@
 //! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 //! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
 //! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
-//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.8/native
+//! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.9/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
-//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.8/wgpu
-//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.8/winit
+//! [built-in renderer]: https://github.com/iced-rs/iced/tree/0.9/wgpu
+//! [windowing shell]: https://github.com/iced-rs/iced/tree/0.9/winit
 //! [`dodrio`]: https://github.com/fitzgen/dodrio
 //! [web runtime]: https://github.com/iced-rs/iced_web
-//! [examples]: https://github.com/iced-rs/iced/tree/0.8/examples
+//! [examples]: https://github.com/iced-rs/iced/tree/0.9/examples
 //! [repository]: https://github.com/iced-rs/iced
 //!
 //! # Overview
@@ -235,7 +235,7 @@ pub mod mouse {
 pub mod subscription {
     //! Listen to external events in your application.
     pub use iced_futures::subscription::{
-        events, events_with, run, run_with_id, unfold, Subscription,
+        channel, events, events_with, run, run_with_id, unfold, Subscription,
     };
 }
 

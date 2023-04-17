@@ -16,11 +16,11 @@ raw-window-handle = "0.5"
 thiserror = "1"
 
 [dependencies.iced_graphics]
-version = "0.7"
+version = "0.8"
 path = "../graphics"
 
 [dependencies.iced_wgpu]
-version = "0.9"
+version = "0.10"
 path = "../wgpu"
 optional = true
 

@@ -134,8 +134,8 @@ mod numeric_input {
                         .map(u32::to_string)
                         .as_deref()
                         .unwrap_or(""),
-                    Event::InputChanged,
                 )
+                .on_input(Event::InputChanged)
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
