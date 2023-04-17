@@ -64,15 +64,6 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
     ScrollTo { target, offset }
 }
 
-/// The current absolute & relative offset of a [`Scrollable`]
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct CurrentOffset {
-    /// The [`AbsoluteOffset`] of a [`Scrollable`]
-    pub absolute: AbsoluteOffset,
-    /// The [`RelativeOffset`] of a [`Scrollable`]
-    pub relative: RelativeOffset,
-}
-
 /// The amount of absolute offset in each direction of a [`Scrollable`].
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct AbsoluteOffset {
