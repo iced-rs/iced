@@ -12,6 +12,8 @@ pub struct Appearance {
     pub border_width: f32,
     /// The border [`Color`] of the text input.
     pub border_color: Color,
+    /// The icon [`Color`] of the text input.
+    pub icon_color: Color,
 }
 
 /// A set of rules that dictate the style of a text input.
@@ -31,6 +33,9 @@ pub trait StyleSheet {
     /// Produces the [`Color`] of the value of a text input.
     fn value_color(&self, style: &Self::Style) -> Color;
 
+    /// Produces the [`Color`] of the value of a disabled text input.
+    fn disabled_color(&self, style: &Self::Style) -> Color;
+
     /// Produces the [`Color`] of the selection of a text input.
     fn selection_color(&self, style: &Self::Style) -> Color;
 
@@ -38,4 +43,7 @@ pub trait StyleSheet {
     fn hovered(&self, style: &Self::Style) -> Appearance {
         self.focused(style)
     }
+
+    /// Produces the style of a disabled text input.
+    fn disabled(&self, style: &Self::Style) -> Appearance;
 }

@@ -22,10 +22,13 @@ pub use iced_style::radio::{Appearance, StyleSheet};
 /// # type Radio<Message> =
 /// #     iced_widget::Radio<Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
 /// #
+/// # use iced_widget::column;
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 /// pub enum Choice {
 ///     A,
 ///     B,
+///     C,
+///     All,
 /// }
 ///
 /// #[derive(Debug, Clone, Copy)]
@@ -35,12 +38,36 @@ pub use iced_style::radio::{Appearance, StyleSheet};
 ///
 /// let selected_choice = Some(Choice::A);
 ///
-/// Radio::new(Choice::A, "This is A", selected_choice, Message::RadioSelected);
+/// let a = Radio::new(
+///     "A",
+///     Choice::A,
+///     selected_choice,
+///     Message::RadioSelected,
+/// );
 ///
-/// Radio::new(Choice::B, "This is B", selected_choice, Message::RadioSelected);
+/// let b = Radio::new(
+///     "B",
+///     Choice::B,
+///     selected_choice,
+///     Message::RadioSelected,
+/// );
+///
+/// let c = Radio::new(
+///     "C",
+///     Choice::C,
+///     selected_choice,
+///     Message::RadioSelected,
+/// );
+///
+/// let all = Radio::new(
+///     "All of the above",
+///     Choice::All,
+///     selected_choice,
+///     Message::RadioSelected
+/// );
+///
+/// let content = column![a, b, c, all];
 /// ```
-///
-/// ![Radio buttons drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/radio.png?raw=true)
 #[allow(missing_debug_implementations)]
 pub struct Radio<Message, Renderer = crate::Renderer>
 where
@@ -79,8 +106,8 @@ where
     ///   * a function that will be called when the [`Radio`] is selected. It
     ///   receives the value of the radio and must produce a `Message`.
     pub fn new<F, V>(
-        value: V,
         label: impl Into<String>,
+        value: V,
         selected: Option<V>,
         f: F,
     ) -> Self

@@ -17,7 +17,7 @@ use crate::text::{self, Text};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
-use crate::{Column, Row, Space, VerticalSlider};
+use crate::{Column, MouseArea, Row, Space, VerticalSlider};
 
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
@@ -163,7 +163,7 @@ where
     Renderer::Theme: radio::StyleSheet,
     V: Copy + Eq,
 {
-    Radio::new(value, label, selected, on_click)
+    Radio::new(label, value, selected, on_click)
 }
 
 /// Creates a new [`Toggler`].
@@ -187,14 +187,13 @@ where
 pub fn text_input<'a, Message, Renderer>(
     placeholder: &str,
     value: &str,
-    on_change: impl Fn(String) -> Message + 'a,
 ) -> TextInput<'a, Message, Renderer>
 where
     Message: Clone,
     Renderer: core::text::Renderer,
     Renderer::Theme: text_input::StyleSheet,
 {
-    TextInput::new(placeholder, value, on_change)
+    TextInput::new(placeholder, value)
 }
 
 /// Creates a new [`Slider`].
@@ -359,4 +358,14 @@ where
     Message: 'static,
 {
     Command::widget(operation::focusable::focus_next())
+}
+
+/// A container intercepting mouse events.
+pub fn mouse_area<'a, Message, Renderer>(
+    widget: impl Into<Element<'a, Message, Renderer>>,
+) -> MouseArea<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    MouseArea::new(widget)
 }

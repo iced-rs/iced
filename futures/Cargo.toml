@@ -17,7 +17,7 @@ thread-pool = ["futures/thread-pool"]
 log = "0.4"
 
 [dependencies.iced_core]
-version = "0.8"
+version = "0.9"
 path = "../core"
 
 [dependencies.futures]

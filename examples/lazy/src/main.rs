@@ -213,12 +213,9 @@ impl Sandbox for App {
         column![
             scrollable(options).height(Length::Fill),
             row![
-                text_input(
-                    "Add a new option",
-                    &self.input,
-                    Message::InputChanged,
-                )
-                .on_submit(Message::AddItem(self.input.clone())),
+                text_input("Add a new option", &self.input)
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::AddItem(self.input.clone())),
                 button(text(format!("Toggle Order ({})", self.order)))
                     .on_press(Message::ToggleOrder)
             ]

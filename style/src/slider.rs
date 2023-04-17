@@ -5,9 +5,18 @@ use iced_core::Color;
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
     /// The colors of the rail of the slider.
-    pub rail_colors: (Color, Color),
+    pub rail: Rail,
     /// The appearance of the [`Handle`] of the slider.
     pub handle: Handle,
+}
+
+/// The appearance of a slider rail
+#[derive(Debug, Clone, Copy)]
+pub struct Rail {
+    /// The colors of the rail of the slider.
+    pub colors: (Color, Color),
+    /// The width of the stroke of a slider rail.
+    pub width: f32,
 }
 
 /// The appearance of the handle of a slider.

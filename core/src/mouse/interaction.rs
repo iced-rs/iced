@@ -12,4 +12,5 @@ pub enum Interaction {
     Grabbing,
     ResizingHorizontally,
     ResizingVertically,
+    NotAllowed,
 }

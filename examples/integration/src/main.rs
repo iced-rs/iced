@@ -30,6 +30,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
     let canvas_element = {
         console_log::init_with_level(log::Level::Debug)?;
+
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
         web_sys::window()
@@ -49,7 +50,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         .build(&event_loop)?;
 
     #[cfg(not(target_arch = "wasm32"))]
-    let window = winit::window::Window::new(&event_loop).unwrap();
+    let window = winit::window::Window::new(&event_loop)?;
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
@@ -61,7 +62,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut clipboard = Clipboard::connect(&window);
 
     // Initialize wgpu
-
     #[cfg(target_arch = "wasm32")]
     let default_backend = wgpu::Backends::GL;
     #[cfg(not(target_arch = "wasm32"))]
@@ -95,12 +95,16 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             #[cfg(not(target_arch = "wasm32"))]
             let needed_limits = wgpu::Limits::default();
 
+            let capabilities = surface.get_capabilities(&adapter);
+
             (
-                surface
-                    .get_capabilities(&adapter)
+                capabilities
                     .formats
-                    .first()
+                    .iter()
+                    .filter(|format| format.describe().srgb)
                     .copied()
+                    .next()
+                    .or_else(|| capabilities.formats.first().copied())
                     .expect("Get preferred format"),
                 adapter
                     .request_device(
