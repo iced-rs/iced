@@ -206,7 +206,7 @@ where
         );
 
         if local_shell.is_layout_invalid() {
-            let _ = content.layout.take();
+            content.layout = None;
         }
 
         shell.merge(local_shell, std::convert::identity);
