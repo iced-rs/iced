@@ -273,6 +273,7 @@ where
                     color: custom_style.icon_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
+                    advanced_shape: true,
                 });
             }
         }
@@ -292,6 +293,7 @@ where
                 },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
+                false,
             );
         }
     }

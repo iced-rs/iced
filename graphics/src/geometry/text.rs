@@ -25,6 +25,15 @@ pub struct Text {
     pub horizontal_alignment: alignment::Horizontal,
     /// The vertical alignment of the text
     pub vertical_alignment: alignment::Vertical,
+    /// Whether the text needs advanced shaping and font fallback.
+    ///
+    /// You will need to enable this flag if the text contains a complex
+    /// script, the font used needs it, and/or multiple fonts in your system
+    /// may be needed to display all of the glyphs.
+    ///
+    /// Advanced shaping is expensive! You should only enable it when
+    /// necessary.
+    pub advanced_shape: bool,
 }
 
 impl Default for Text {
@@ -37,6 +46,7 @@ impl Default for Text {
             font: Font::default(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            advanced_shape: false,
         }
     }
 }

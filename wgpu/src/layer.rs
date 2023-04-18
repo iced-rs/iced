@@ -64,6 +64,7 @@ impl<'a> Layer<'a> {
                 font: Font::MONOSPACE,
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Top,
+                advanced_shape: false,
             };
 
             overlay.text.push(text);
@@ -116,6 +117,7 @@ impl<'a> Layer<'a> {
                 font,
                 horizontal_alignment,
                 vertical_alignment,
+                advanced_shape,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -127,6 +129,7 @@ impl<'a> Layer<'a> {
                     font: *font,
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
+                    advanced_shape: *advanced_shape,
                 });
             }
             Primitive::Quad {

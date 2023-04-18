@@ -354,8 +354,10 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
+        advanced_shape: bool,
     ) -> (f32, f32) {
-        self.text_pipeline.measure(contents, size, font, bounds)
+        self.text_pipeline
+            .measure(contents, size, font, bounds, advanced_shape)
     }
 
     fn hit_test(
@@ -366,6 +368,7 @@ impl backend::Text for Backend {
         bounds: Size,
         point: Point,
         nearest_only: bool,
+        advanced_shape: bool,
     ) -> Option<core::text::Hit> {
         self.text_pipeline.hit_test(
             contents,
@@ -374,6 +377,7 @@ impl backend::Text for Backend {
             bounds,
             point,
             nearest_only,
+            advanced_shape,
         )
     }
 

@@ -27,6 +27,15 @@ pub struct Text<'a, Font> {
 
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
+
+    /// Whether the [`Text`] needs advanced shaping and font fallback.
+    ///
+    /// You will need to enable this flag if the text contains a complex
+    /// script, the font used needs it, and/or multiple fonts in your system
+    /// may be needed to display all of the glyphs.
+    ///
+    /// Advanced shaping is expensive! You should only enable it when necessary.
+    pub advanced_shape: bool,
 }
 
 /// The result of hit testing on text.
@@ -77,11 +86,19 @@ pub trait Renderer: crate::Renderer {
         size: f32,
         font: Self::Font,
         bounds: Size,
+        advanced_shape: bool,
     ) -> (f32, f32);
 
     /// Measures the width of the text as if it were laid out in a single line.
-    fn measure_width(&self, content: &str, size: f32, font: Self::Font) -> f32 {
-        let (width, _) = self.measure(content, size, font, Size::INFINITY);
+    fn measure_width(
+        &self,
+        content: &str,
+        size: f32,
+        font: Self::Font,
+        advanced_shape: bool,
+    ) -> f32 {
+        let (width, _) =
+            self.measure(content, size, font, Size::INFINITY, advanced_shape);
 
         width
     }
@@ -101,6 +118,7 @@ pub trait Renderer: crate::Renderer {
         bounds: Size,
         point: Point,
         nearest_only: bool,
+        advanced_shape: bool,
     ) -> Option<Hit>;
 
     /// Loads a [`Self::Font`] from its bytes.

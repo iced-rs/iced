@@ -463,6 +463,7 @@ where
             &icon.code_point.to_string(),
             icon.size.unwrap_or_else(|| renderer.default_size()),
             icon.font,
+            true,
         );
 
         let mut text_node = layout::Node::new(
@@ -975,6 +976,7 @@ pub fn draw<Renderer>(
             bounds: icon_layout.bounds(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            advanced_shape: true,
         });
     }
 
@@ -1079,6 +1081,7 @@ pub fn draw<Renderer>(
         if text.is_empty() { placeholder } else { &text },
         size,
         font,
+        true,
     );
 
     let render = |renderer: &mut Renderer| {
@@ -1106,6 +1109,7 @@ pub fn draw<Renderer>(
             size,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
+            advanced_shape: true,
         });
     };
 
@@ -1311,7 +1315,7 @@ where
     let text_before_cursor = value.until(cursor_index).to_string();
 
     let text_value_width =
-        renderer.measure_width(&text_before_cursor, size, font);
+        renderer.measure_width(&text_before_cursor, size, font, true);
 
     let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
 
@@ -1345,6 +1349,7 @@ where
             font,
             Size::INFINITY,
             Point::new(x + offset, text_bounds.height / 2.0),
+            true,
             true,
         )
         .map(text::Hit::cursor)?;

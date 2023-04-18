@@ -249,6 +249,7 @@ where
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
+                false,
             );
         }
 

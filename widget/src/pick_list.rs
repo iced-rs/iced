@@ -366,6 +366,7 @@ where
                     text_size,
                     font.unwrap_or_else(|| renderer.default_font()),
                     Size::new(f32::INFINITY, f32::INFINITY),
+                    false,
                 );
 
                 width.round()
@@ -628,6 +629,7 @@ pub fn draw<'a, T, Renderer>(
             },
             horizontal_alignment: alignment::Horizontal::Right,
             vertical_alignment: alignment::Vertical::Center,
+            advanced_shape: false,
         });
     }
 
@@ -653,6 +655,7 @@ pub fn draw<'a, T, Renderer>(
             },
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
+            advanced_shape: false,
         });
     }
 }

@@ -500,6 +500,7 @@ where
                 },
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Center,
+                advanced_shape: false,
             });
         }
     }

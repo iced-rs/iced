@@ -48,8 +48,13 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
+        advanced_shape: bool,
     ) -> (f32, f32) {
-        delegate!(self, backend, backend.measure(contents, size, font, bounds))
+        delegate!(
+            self,
+            backend,
+            backend.measure(contents, size, font, bounds, advanced_shape)
+        )
     }
 
     fn hit_test(
@@ -60,6 +65,7 @@ impl backend::Text for Backend {
         bounds: Size,
         position: Point,
         nearest_only: bool,
+        advanced_shape: bool,
     ) -> Option<text::Hit> {
         delegate!(
             self,
@@ -70,7 +76,8 @@ impl backend::Text for Backend {
                 font,
                 bounds,
                 position,
-                nearest_only
+                nearest_only,
+                advanced_shape
             )
         )
     }

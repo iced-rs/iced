@@ -62,6 +62,7 @@ impl text::Renderer for Null {
         _size: f32,
         _font: Font,
         _bounds: Size,
+        _needs_shaping: bool,
     ) -> (f32, f32) {
         (0.0, 20.0)
     }
@@ -74,6 +75,7 @@ impl text::Renderer for Null {
         _bounds: Size,
         _point: Point,
         _nearest_only: bool,
+        _advanced_shape: bool,
     ) -> Option<text::Hit> {
         None
     }

@@ -83,6 +83,7 @@ impl Pipeline {
                             height: (section.bounds.height * scale_factor)
                                 .ceil(),
                         },
+                        advanced_shape: section.advanced_shape,
                     },
                 );
 
@@ -213,6 +214,7 @@ impl Pipeline {
         size: f32,
         font: Font,
         bounds: Size,
+        advanced_shape: bool,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
@@ -223,6 +225,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
+                advanced_shape,
             },
         );
 
@@ -244,6 +247,7 @@ impl Pipeline {
         bounds: Size,
         point: Point,
         _nearest_only: bool,
+        advanced_shape: bool,
     ) -> Option<Hit> {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
@@ -254,6 +258,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
+                advanced_shape,
             },
         );
 
@@ -364,6 +369,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
+                !key.advanced_shape,
             );
 
             let _ = entry.insert(buffer);
@@ -388,6 +394,7 @@ struct Key<'a> {
     size: f32,
     font: Font,
     bounds: Size,
+    advanced_shape: bool,
 }
 
 type KeyHash = u64;
