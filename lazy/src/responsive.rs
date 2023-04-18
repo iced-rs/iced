@@ -145,8 +145,6 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let _ = self.content.borrow_mut().layout.take();
-
         layout::Node::new(limits.max())
     }
 
@@ -186,7 +184,10 @@ where
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();
 
-        content.resolve(
+        let mut local_messages = vec![];
+        let mut local_shell = Shell::new(&mut local_messages);
+
+        let status = content.resolve(
             &mut state.tree.borrow_mut(),
             renderer,
             layout,
@@ -199,10 +200,18 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
-                    shell,
+                    &mut local_shell,
                 )
             },
-        )
+        );
+
+        if local_shell.is_layout_invalid() {
+            let _ = content.layout.take();
+        }
+
+        shell.merge(local_shell, std::convert::identity);
+
+        status
     }
 
     fn draw(
