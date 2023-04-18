@@ -41,7 +41,7 @@ where
             view: Box::new(view),
             content: RefCell::new(Content {
                 size: Size::ZERO,
-                layout: layout::Node::new(Size::ZERO),
+                layout: None,
                 element: Element::new(horizontal_space(0)),
             }),
         }
@@ -50,7 +50,7 @@ where
 
 struct Content<'a, Message, Renderer> {
     size: Size,
-    layout: layout::Node,
+    layout: Option<layout::Node>,
     element: Element<'a, Message, Renderer>,
 }
 
@@ -58,10 +58,21 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
+    fn layout(&mut self, renderer: &Renderer) -> layout::Node {
+        if self.layout.is_none() {
+            self.layout =
+                Some(self.element.as_widget().layout(
+                    renderer,
+                    &layout::Limits::new(Size::ZERO, self.size),
+                ));
+        }
+
+        self.layout.clone().unwrap()
+    }
+
     fn update(
         &mut self,
         tree: &mut Tree,
-        renderer: &Renderer,
         new_size: Size,
         view: &dyn Fn(Size) -> Element<'a, Message, Renderer>,
     ) {
@@ -73,11 +84,6 @@ where
         self.size = new_size;
 
         tree.diff(&self.element);
-
-        self.layout = self
-            .element
-            .as_widget()
-            .layout(renderer, &layout::Limits::new(Size::ZERO, self.size));
     }
 
     fn resolve<R, T>(
@@ -96,12 +102,12 @@ where
     where
         R: Deref<Target = Renderer>,
     {
-        self.update(tree, renderer.deref(), layout.bounds().size(), view);
+        self.update(tree, layout.bounds().size(), view);
 
-        let content_layout = Layout::with_offset(
-            layout.position() - Point::ORIGIN,
-            &self.layout,
-        );
+        let node = self.layout(renderer.deref());
+
+        let content_layout =
+            Layout::with_offset(layout.position() - Point::ORIGIN, &node);
 
         f(tree, renderer, content_layout, &mut self.element)
     }
@@ -139,6 +145,8 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let _ = self.content.borrow_mut().layout.take();
+
         layout::Node::new(limits.max())
     }
 
@@ -272,22 +280,15 @@ where
             tree: state.tree.borrow_mut(),
             types: PhantomData,
             overlay_builder: |content: &mut RefMut<Content<_, _>>, tree| {
-                content.update(
-                    tree,
-                    renderer,
-                    layout.bounds().size(),
-                    &self.view,
-                );
+                content.update(tree, layout.bounds().size(), &self.view);
 
-                let Content {
-                    element,
-                    layout: content_layout,
-                    ..
-                } = content.deref_mut();
+                let node = content.layout(renderer);
+
+                let Content { element, .. } = content.deref_mut();
 
                 let content_layout = Layout::with_offset(
                     layout.bounds().position() - Point::ORIGIN,
-                    content_layout,
+                    &node,
                 );
 
                 element
