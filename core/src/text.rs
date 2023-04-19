@@ -28,14 +28,32 @@ pub struct Text<'a, Font> {
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
 
-    /// Whether the [`Text`] needs advanced shaping and font fallback.
+    /// The [`Shaping`] strategy of the [`Text`].
+    pub shaping: Shaping,
+}
+
+/// The shaping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Shaping {
+    /// No shaping and no font fallback.
+    ///
+    /// This shaping strategy is very cheap, but it will not display complex
+    /// scripts properly nor try to find missing glyphs in your system fonts.
+    ///
+    /// You should use this strategy when you have complete control of the text
+    /// and the font you are displaying in your application.
+    ///
+    /// This is the default.
+    #[default]
+    Basic,
+    /// Advanced text shaping and font fallback.
     ///
     /// You will need to enable this flag if the text contains a complex
     /// script, the font used needs it, and/or multiple fonts in your system
     /// may be needed to display all of the glyphs.
     ///
     /// Advanced shaping is expensive! You should only enable it when necessary.
-    pub advanced_shape: bool,
+    Advanced,
 }
 
 /// The result of hit testing on text.
@@ -86,7 +104,7 @@ pub trait Renderer: crate::Renderer {
         size: f32,
         font: Self::Font,
         bounds: Size,
-        advanced_shape: bool,
+        shaping: Shaping,
     ) -> (f32, f32);
 
     /// Measures the width of the text as if it were laid out in a single line.
@@ -95,10 +113,10 @@ pub trait Renderer: crate::Renderer {
         content: &str,
         size: f32,
         font: Self::Font,
-        advanced_shape: bool,
+        shaping: Shaping,
     ) -> f32 {
         let (width, _) =
-            self.measure(content, size, font, Size::INFINITY, advanced_shape);
+            self.measure(content, size, font, Size::INFINITY, shaping);
 
         width
     }
@@ -116,9 +134,9 @@ pub trait Renderer: crate::Renderer {
         size: f32,
         font: Self::Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         nearest_only: bool,
-        advanced_shape: bool,
     ) -> Option<Hit>;
 
     /// Loads a [`Self::Font`] from its bytes.

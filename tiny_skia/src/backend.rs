@@ -219,7 +219,7 @@ impl Backend {
                 font,
                 horizontal_alignment,
                 vertical_alignment,
-                advanced_shape,
+                shaping,
             } => {
                 let physical_bounds =
                     (primitive.bounds() + translation) * scale_factor;
@@ -239,7 +239,7 @@ impl Backend {
                     *font,
                     *horizontal_alignment,
                     *vertical_alignment,
-                    *advanced_shape,
+                    *shaping,
                     pixels,
                     clip_mask,
                 );
@@ -628,10 +628,10 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
-        advanced_shape: bool,
+        shaping: text::Shaping,
     ) -> (f32, f32) {
         self.text_pipeline
-            .measure(contents, size, font, bounds, advanced_shape)
+            .measure(contents, size, font, bounds, shaping)
     }
 
     fn hit_test(
@@ -640,18 +640,18 @@ impl backend::Text for Backend {
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
-        advanced_shape: bool,
     ) -> Option<text::Hit> {
         self.text_pipeline.hit_test(
             contents,
             size,
             font,
             bounds,
+            shaping,
             point,
             nearest_only,
-            advanced_shape,
         )
     }
 

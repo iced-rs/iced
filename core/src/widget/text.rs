@@ -24,8 +24,8 @@ where
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
+    shaping: text::Shaping,
     style: <Renderer::Theme as StyleSheet>::Style,
-    advanced_shape: bool,
 }
 
 impl<'a, Renderer> Text<'a, Renderer>
@@ -43,8 +43,8 @@ where
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            shaping: text::Shaping::Basic,
             style: Default::default(),
-            advanced_shape: false,
         }
     }
 
@@ -101,17 +101,9 @@ where
         self
     }
 
-    /// Enables advanced text shaping and font fallback for the [`Text`].
-    ///
-    /// You will need to enable this if the text contains a complex script, the
-    /// font used needs it, and/or multiple fonts in your system may be needed
-    /// to display all of the glyphs.
-    ///
-    /// If your text isn't displaying properly, try enabling this!
-    ///
-    /// Advanced shaping is expensive! You should only enable it when necessary.
-    pub fn advanced_shape(mut self) -> Self {
-        self.advanced_shape = true;
+    /// Sets the [`text::Shaping`] strategy of the [`Text`].
+    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+        self.shaping = shaping;
         self
     }
 }
@@ -145,7 +137,7 @@ where
             size,
             self.font.unwrap_or_else(|| renderer.default_font()),
             bounds,
-            self.advanced_shape,
+            self.shaping,
         );
 
         let size = limits.resolve(Size::new(width, height));
@@ -173,7 +165,7 @@ where
             theme.appearance(self.style.clone()),
             self.horizontal_alignment,
             self.vertical_alignment,
-            self.advanced_shape,
+            self.shaping,
         );
     }
 }
@@ -198,7 +190,7 @@ pub fn draw<Renderer>(
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    advanced_shape: bool,
+    shaping: text::Shaping,
 ) where
     Renderer: text::Renderer,
 {
@@ -224,7 +216,7 @@ pub fn draw<Renderer>(
         font: font.unwrap_or_else(|| renderer.default_font()),
         horizontal_alignment,
         vertical_alignment,
-        advanced_shape,
+        shaping,
     });
 }
 
@@ -254,7 +246,7 @@ where
             vertical_alignment: self.vertical_alignment,
             font: self.font,
             style: self.style.clone(),
-            advanced_shape: self.advanced_shape,
+            shaping: self.shaping,
         }
     }
 }

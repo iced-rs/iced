@@ -31,6 +31,7 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -58,6 +59,7 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
+            text_shaping: text::Shaping::Basic,
             font: None,
             style: Default::default(),
         }
@@ -78,6 +80,12 @@ where
     /// Sets the text size of the [`Menu`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Menu`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -168,6 +176,7 @@ where
             padding,
             font,
             text_size,
+            text_shaping,
             style,
         } = menu;
 
@@ -177,6 +186,7 @@ where
             last_selection,
             font,
             text_size,
+            text_shaping,
             padding,
             style: style.clone(),
         }));
@@ -311,6 +321,7 @@ where
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<f32>,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -500,7 +511,7 @@ where
                 },
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Center,
-                advanced_shape: false,
+                shaping: self.text_shaping,
             });
         }
     }

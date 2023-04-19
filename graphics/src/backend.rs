@@ -48,7 +48,7 @@ pub trait Text {
         size: f32,
         font: Font,
         bounds: Size,
-        advanced_shape: bool,
+        shaping: text::Shaping,
     ) -> (f32, f32);
 
     /// Tests whether the provided point is within the boundaries of [`Text`]
@@ -64,9 +64,9 @@ pub trait Text {
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
-        advanced_shape: bool,
     ) -> Option<text::Hit>;
 
     /// Loads a [`Font`] from its bytes.

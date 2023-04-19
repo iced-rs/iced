@@ -138,10 +138,9 @@ where
         size: f32,
         font: Font,
         bounds: Size,
-        needs_shaping: bool,
+        shaping: text::Shaping,
     ) -> (f32, f32) {
-        self.backend()
-            .measure(content, size, font, bounds, needs_shaping)
+        self.backend().measure(content, size, font, bounds, shaping)
     }
 
     fn hit_test(
@@ -150,18 +149,18 @@ where
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
-        advanced_shape: bool,
     ) -> Option<text::Hit> {
         self.backend().hit_test(
             content,
             size,
             font,
             bounds,
+            shaping,
             point,
             nearest_only,
-            advanced_shape,
         )
     }
 
@@ -178,7 +177,7 @@ where
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
-            advanced_shape: text.advanced_shape,
+            shaping: text.shaping,
         });
     }
 }

@@ -1,4 +1,5 @@
 use crate::core::alignment;
+use crate::core::text;
 use crate::core::{Color, Font, Rectangle};
 
 /// A paragraph of text.
@@ -25,13 +26,6 @@ pub struct Text<'a> {
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
 
-    /// Whether the text needs advanced shaping and font fallback.
-    ///
-    /// You will need to enable this flag if the text contains a complex
-    /// script, the font used needs it, and/or multiple fonts in your system
-    /// may be needed to display all of the glyphs.
-    ///
-    /// Advanced shaping is expensive! You should only enable it when
-    /// necessary.
-    pub advanced_shape: bool,
+    /// The shaping strategy of the text.
+    pub shaping: text::Shaping,
 }

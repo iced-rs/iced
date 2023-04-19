@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::Hit;
+use crate::core::text::{Hit, Shaping};
 use crate::core::{Color, Point, Rectangle, Size};
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -49,7 +49,7 @@ impl Pipeline {
         font: Font,
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
-        advanced_shape: bool,
+        shaping: Shaping,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
@@ -64,7 +64,7 @@ impl Pipeline {
             content,
             font,
             size,
-            advanced_shape,
+            shaping,
         };
 
         let (_, buffer) = self.render_cache.allocate(font_system, key);
@@ -132,7 +132,7 @@ impl Pipeline {
         size: f32,
         font: Font,
         bounds: Size,
-        advanced_shape: bool,
+        shaping: Shaping,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
@@ -143,7 +143,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
-                advanced_shape,
+                shaping,
             },
         );
 
@@ -163,9 +163,9 @@ impl Pipeline {
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         _nearest_only: bool,
-        advanced_shape: bool,
     ) -> Option<Hit> {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
@@ -176,7 +176,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
-                advanced_shape,
+                shaping,
             },
         );
 
@@ -396,7 +396,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
-                !key.advanced_shape,
+                matches!(key.shaping, Shaping::Basic),
             );
 
             let _ = entry.insert(buffer);
@@ -427,7 +427,7 @@ struct Key<'a> {
     size: f32,
     font: Font,
     bounds: Size,
-    advanced_shape: bool,
+    shaping: Shaping,
 }
 
 type KeyHash = u64;

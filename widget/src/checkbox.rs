@@ -46,6 +46,7 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<f32>,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -82,11 +83,13 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
+            text_shaping: text::Shaping::Basic,
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
                 size: None,
+                shaping: text::Shaping::Basic,
             },
             style: Default::default(),
         }
@@ -113,6 +116,12 @@ where
     /// Sets the text size of the [`Checkbox`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -171,7 +180,8 @@ where
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
-                    ),
+                    )
+                    .shaping(self.text_shaping),
             )
             .layout(renderer, limits)
     }
@@ -257,6 +267,7 @@ where
                 font,
                 code_point,
                 size,
+                shaping,
             } = &self.icon;
             let size = size.unwrap_or(bounds.height * 0.7);
 
@@ -273,7 +284,7 @@ where
                     color: custom_style.icon_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
-                    advanced_shape: true,
+                    shaping: *shaping,
                 });
             }
         }
@@ -293,7 +304,7 @@ where
                 },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
-                false,
+                self.text_shaping,
             );
         }
     }
@@ -322,4 +333,6 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// The shaping strategy of the icon.
+    pub shaping: text::Shaping,
 }
