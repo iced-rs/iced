@@ -1,3 +1,5 @@
+use std::env;
+
 use crate::core::Color;
 use crate::graphics::compositor::{Information, SurfaceError};
 use crate::graphics::{Error, Viewport};
@@ -63,13 +65,23 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
         let fail = |_, _| Err(Error::GraphicsAdapterNotFound);
 
-        let candidates = &[
-            #[cfg(feature = "wgpu")]
-            new_wgpu,
-            #[cfg(feature = "tiny-skia")]
-            new_tiny_skia,
-            fail,
-        ];
+        let candidates = if has_software_render_env_var() {
+            [
+                #[cfg(feature = "tiny-skia")]
+                new_tiny_skia,
+                #[cfg(feature = "wgpu")]
+                new_wgpu,
+                fail,
+            ]
+        } else {
+            [
+                #[cfg(feature = "wgpu")]
+                new_wgpu,
+                #[cfg(feature = "tiny-skia")]
+                new_tiny_skia,
+                fail,
+            ]
+        };
 
         let mut error = Error::GraphicsAdapterNotFound;
 
@@ -182,4 +194,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             }
         })
     }
+}
+
+fn has_software_render_env_var() -> bool {
+    env::var("ICED_SOFTWARE_RENDER").as_deref() == Ok("1")
 }
