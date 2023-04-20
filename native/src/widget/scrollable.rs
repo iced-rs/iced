@@ -392,6 +392,15 @@ pub fn snap_to<Message: 'static>(
     Command::widget(operation::scrollable::snap_to(id.0, offset))
 }
 
+/// Produces a [`Command`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// to the provided [`AbsoluteOffset`] along the x & y axis.
+pub fn scroll_to<Message: 'static>(
+    id: Id,
+    offset: AbsoluteOffset,
+) -> Command<Message> {
+    Command::widget(operation::scrollable::scroll_to(id.0, offset))
+}
+
 /// Computes the layout of a [`Scrollable`].
 pub fn layout<Renderer>(
     renderer: &Renderer,
