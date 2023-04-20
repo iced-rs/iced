@@ -970,9 +970,12 @@ pub fn draw<Renderer>(
             size: icon.size.unwrap_or_else(|| renderer.default_size()),
             font: icon.font.clone(),
             color: appearance.icon_color,
-            bounds: icon_layout.bounds(),
+            bounds: Rectangle {
+                y: text_bounds.center_y(),
+                ..icon_layout.bounds()
+            },
             horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Top,
+            vertical_alignment: alignment::Vertical::Center,
         });
     }
 
