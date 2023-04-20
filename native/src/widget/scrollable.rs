@@ -913,14 +913,21 @@ fn notify_on_scroll<Message>(
 
         // Don't publish redundant viewports to shell
         if let Some(last_notified) = state.last_notified {
-            let prev = last_notified.relative_offset();
-            let curr = viewport.relative_offset();
+            let last_relative_offset = last_notified.relative_offset();
+            let current_relative_offset = viewport.relative_offset();
+
+            let last_absolute_offset = last_notified.absolute_offset();
+            let current_absolute_offset = viewport.absolute_offset();
 
             let unchanged = |a: f32, b: f32| {
                 (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
             };
 
-            if unchanged(prev.x, curr.x) && unchanged(prev.y, curr.y) {
+            if unchanged(last_relative_offset.x, current_relative_offset.x)
+                && unchanged(last_relative_offset.y, current_relative_offset.y)
+                && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+                && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+            {
                 return;
             }
         }
