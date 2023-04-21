@@ -209,8 +209,8 @@ impl Atlas {
                 buffer,
                 layout: wgpu::ImageDataLayout {
                     offset: offset as u64,
-                    bytes_per_row: NonZeroU32::new(4 * image_width + padding),
-                    rows_per_image: NonZeroU32::new(image_height),
+                    bytes_per_row: Some(4 * image_width + padding),
+                    rows_per_image: Some(image_height),
                 },
             },
             wgpu::ImageCopyTexture {

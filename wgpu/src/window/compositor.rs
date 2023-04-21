@@ -71,7 +71,7 @@ impl<Theme> Compositor<Theme> {
             capabilities
                 .formats
                 .iter()
-                .filter(|format| format.describe().srgb)
+                .filter(|format| format.is_srgb())
                 .copied()
                 .next()
                 .or_else(|| {

@@ -72,7 +72,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         backends: backend,
         ..Default::default()
     });
-
     let surface = unsafe { instance.create_surface(&window) }?;
 
     let (format, (device, queue)) = futures::executor::block_on(async {
@@ -99,7 +98,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             capabilities
                 .formats
                 .iter()
-                .filter(|format| format.describe().srgb)
+                .filter(|format| format.is_srgb())
                 .copied()
                 .next()
                 .or_else(|| capabilities.formats.first().copied())
