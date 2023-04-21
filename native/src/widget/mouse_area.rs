@@ -2,11 +2,11 @@
 
 use crate::event::{self, Event};
 use crate::layout;
-use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::touch;
 use crate::widget::{tree, Operation, Tree};
+use crate::{mouse, IME};
 use crate::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Widget,
 };
@@ -149,6 +149,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
@@ -158,6 +159,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         ) {
             return event::Status::Captured;

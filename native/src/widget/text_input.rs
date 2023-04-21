@@ -648,12 +648,14 @@ where
             } else if focus_lost {
                 let mut editor = Editor::new(value, &mut state.cursor);
                 ime.outside();
-                if let Some(old_ime_state) = state.ime_state.take() {
+                if let Some((old_ime_state, on_input)) =
+                    state.ime_state.take().zip(on_input)
+                {
                     old_ime_state
                         .preedit_text()
                         .chars()
                         .for_each(|ch| editor.insert(ch));
-                    let message = (on_change)(editor.contents());
+                    let message = (on_input)(editor.contents());
                     shell.publish(message);
                 }
             }
@@ -936,11 +938,13 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::IMECommit(text)) => {
-            if state.is_pasting.is_none()
+            if let Some(on_input) = (state.is_pasting.is_none()
                 && !state.keyboard_modifiers.command()
                 && !is_secure
                 && state.is_focused.is_some()
-                && state.ime_state.is_some()
+                && state.ime_state.is_some())
+            .then(|| on_input)
+            .flatten()
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
 
@@ -948,7 +952,7 @@ where
                     editor.insert(ch);
                 }
 
-                let message = (on_change)(editor.contents());
+                let message = (on_input)(editor.contents());
                 shell.publish(message);
                 #[cfg(target_os = "macos")]
                 {
@@ -1104,6 +1108,8 @@ pub fn draw<Renderer>(
             .map_or(true, |state| state.preedit_text().is_empty())
     {
         theme.placeholder_color(style)
+    } else if is_disabled {
+        theme.disabled_color(style)
     } else {
         theme.value_color(style)
     };
@@ -1127,7 +1133,7 @@ pub fn draw<Renderer>(
     } else if text.is_empty() {
         (placeholder.to_owned(), String::new())
     } else {
-        (text.clone(), text)
+        (text.clone(), String::new())
     };
     // display preedit text and exist text concated.
     // cursor position need to concated also.
@@ -1244,15 +1250,9 @@ pub fn draw<Renderer>(
     let render = |renderer: &mut Renderer| {
         // ime mode should not paint selection.
 
-        renderer.fill_text(Text {
-            content: if text.is_empty() { placeholder } else { &text },
-            color: if text.is_empty() {
-                theme.placeholder_color(style)
-            } else if is_disabled {
-                theme.disabled_color(style)
-            } else {
-                theme.value_color(style)
-            },
+        let fill_text = Text {
+            content: &render_text,
+            color,
             font: font.clone(),
             bounds: Rectangle {
                 y: text_bounds.center_y(),
@@ -1260,11 +1260,10 @@ pub fn draw<Renderer>(
                 ..text_bounds
             },
             size,
-            color,
-            font: font.clone(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
         };
+
         if let Some(ime_state) = state.ime_state.as_ref() {
             // draw under line.
 

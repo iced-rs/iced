@@ -8,8 +8,8 @@ pub use iced_style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 use crate::event::{self, Event};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    layout, mouse, renderer, touch, Background, Clipboard, Color, Element,
-    Layout, Length, Pixels, Point, Rectangle, Shell, Size, Widget, IME,
+    layout, mouse, renderer, touch, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Widget, IME,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
