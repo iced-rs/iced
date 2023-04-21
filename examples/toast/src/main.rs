@@ -119,13 +119,15 @@ impl Application for App {
             column![
                 subtitle(
                     "Title",
-                    text_input("", &self.editing.title, Message::Title)
+                    text_input("", &self.editing.title)
+                        .on_input(Message::Title)
                         .on_submit(Message::Add)
                         .into()
                 ),
                 subtitle(
                     "Message",
-                    text_input("", &self.editing.body, Message::Body)
+                    text_input("", &self.editing.body)
+                        .on_input(Message::Body)
                         .on_submit(Message::Add)
                         .into()
                 ),

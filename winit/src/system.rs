@@ -16,11 +16,11 @@ pub fn fetch_information<Message>(
 pub(crate) fn information(
     graphics_info: compositor::Information,
 ) -> Information {
-    use sysinfo::{ProcessExt, ProcessorExt, System, SystemExt};
+    use sysinfo::{CpuExt, ProcessExt, System, SystemExt};
     let mut system = System::new_all();
     system.refresh_all();
 
-    let cpu = system.global_processor_info();
+    let cpu = system.global_cpu_info();
 
     let memory_used = sysinfo::get_current_pid()
         .and_then(|pid| system.process(pid).ok_or("Process not found"))

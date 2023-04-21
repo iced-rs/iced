@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub use iced_style::scrollable::StyleSheet;
-pub use operation::scrollable::RelativeOffset;
+pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 pub mod style {
     //! The styles of a [`Scrollable`].
@@ -34,11 +34,12 @@ where
     Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
+    width: Length,
     height: Length,
     vertical: Properties,
     horizontal: Option<Properties>,
     content: Element<'a, Message, Renderer>,
-    on_scroll: Option<Box<dyn Fn(RelativeOffset) -> Message + 'a>>,
+    on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -51,6 +52,7 @@ where
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
         Scrollable {
             id: None,
+            width: Length::Shrink,
             height: Length::Shrink,
             vertical: Properties::default(),
             horizontal: None,
@@ -63,6 +65,12 @@ where
     /// Sets the [`Id`] of the [`Scrollable`].
     pub fn id(mut self, id: Id) -> Self {
         self.id = Some(id);
+        self
+    }
+
+    /// Sets the width of the [`Scrollable`].
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
         self
     }
 
@@ -86,12 +94,8 @@ where
 
     /// Sets a function to call when the [`Scrollable`] is scrolled.
     ///
-    /// The function takes the new relative x & y offset of the [`Scrollable`]
-    /// (e.g. `0` means beginning, while `1` means end).
-    pub fn on_scroll(
-        mut self,
-        f: impl Fn(RelativeOffset) -> Message + 'a,
-    ) -> Self {
+    /// The function takes the [`Viewport`] of the [`Scrollable`]
+    pub fn on_scroll(mut self, f: impl Fn(Viewport) -> Message + 'a) -> Self {
         self.on_scroll = Some(Box::new(f));
         self
     }
@@ -174,7 +178,7 @@ where
     }
 
     fn width(&self) -> Length {
-        self.content.as_widget().width()
+        self.width
     }
 
     fn height(&self) -> Length {
@@ -189,7 +193,7 @@ where
         layout(
             renderer,
             limits,
-            Widget::<Message, Renderer>::width(self),
+            self.width,
             self.height,
             self.horizontal.is_some(),
             |renderer, limits| {
@@ -391,6 +395,15 @@ pub fn snap_to<Message: 'static>(
     Command::widget(operation::scrollable::snap_to(id.0, offset))
 }
 
+/// Produces a [`Command`] that scrolls the [`Scrollable`] with the given [`Id`]
+/// to the provided [`AbsoluteOffset`] along the x & y axis.
+pub fn scroll_to<Message: 'static>(
+    id: Id,
+    offset: AbsoluteOffset,
+) -> Command<Message> {
+    Command::widget(operation::scrollable::scroll_to(id.0, offset))
+}
+
 /// Computes the layout of a [`Scrollable`].
 pub fn layout<Renderer>(
     renderer: &Renderer,
@@ -400,15 +413,7 @@ pub fn layout<Renderer>(
     horizontal_enabled: bool,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .max_height(f32::INFINITY)
-        .max_width(if horizontal_enabled {
-            f32::INFINITY
-        } else {
-            limits.max().width
-        })
-        .width(width)
-        .height(height);
+    let limits = limits.width(width).height(height);
 
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, 0.0),
@@ -439,7 +444,7 @@ pub fn update<Message>(
     shell: &mut Shell<'_, Message>,
     vertical: &Properties,
     horizontal: Option<&Properties>,
-    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     update_content: impl FnOnce(
         Event,
         Layout<'_>,
@@ -860,8 +865,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     let style = if state.y_scroller_grabbed_at.is_some() {
                         theme.dragging(style)
-                    } else if mouse_over_y_scrollbar {
-                        theme.hovered(style)
+                    } else if mouse_over_scrollable {
+                        theme.hovered(style, mouse_over_y_scrollbar)
                     } else {
                         theme.active(style)
                     };
@@ -873,8 +878,8 @@ pub fn draw<Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     let style = if state.x_scroller_grabbed_at.is_some() {
                         theme.dragging_horizontal(style)
-                    } else if mouse_over_x_scrollbar {
-                        theme.hovered_horizontal(style)
+                    } else if mouse_over_scrollable {
+                        theme.hovered_horizontal(style, mouse_over_x_scrollbar)
                     } else {
                         theme.active_horizontal(style)
                     };
@@ -898,8 +903,8 @@ pub fn draw<Renderer>(
 }
 
 fn notify_on_scroll<Message>(
-    state: &State,
-    on_scroll: &Option<Box<dyn Fn(RelativeOffset) -> Message + '_>>,
+    state: &mut State,
+    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     bounds: Rectangle,
     content_bounds: Rectangle,
     shell: &mut Shell<'_, Message>,
@@ -911,15 +916,36 @@ fn notify_on_scroll<Message>(
             return;
         }
 
-        let x = state.offset_x.absolute(bounds.width, content_bounds.width)
-            / (content_bounds.width - bounds.width);
+        let viewport = Viewport {
+            offset_x: state.offset_x,
+            offset_y: state.offset_y,
+            bounds,
+            content_bounds,
+        };
 
-        let y = state
-            .offset_y
-            .absolute(bounds.height, content_bounds.height)
-            / (content_bounds.height - bounds.height);
+        // Don't publish redundant viewports to shell
+        if let Some(last_notified) = state.last_notified {
+            let last_relative_offset = last_notified.relative_offset();
+            let current_relative_offset = viewport.relative_offset();
 
-        shell.publish(on_scroll(RelativeOffset { x, y }))
+            let last_absolute_offset = last_notified.absolute_offset();
+            let current_absolute_offset = viewport.absolute_offset();
+
+            let unchanged = |a: f32, b: f32| {
+                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
+            };
+
+            if unchanged(last_relative_offset.x, current_relative_offset.x)
+                && unchanged(last_relative_offset.y, current_relative_offset.y)
+                && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+                && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+            {
+                return;
+            }
+        }
+
+        shell.publish(on_scroll(viewport));
+        state.last_notified = Some(viewport);
     }
 }
 
@@ -932,6 +958,7 @@ pub struct State {
     offset_x: Offset,
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
+    last_notified: Option<Viewport>,
 }
 
 impl Default for State {
@@ -943,6 +970,7 @@ impl Default for State {
             offset_x: Offset::Absolute(0.0),
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
+            last_notified: None,
         }
     }
 }
@@ -950,6 +978,10 @@ impl Default for State {
 impl operation::Scrollable for State {
     fn snap_to(&mut self, offset: RelativeOffset) {
         State::snap_to(self, offset);
+    }
+
+    fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        State::scroll_to(self, offset)
     }
 }
 
@@ -960,15 +992,48 @@ enum Offset {
 }
 
 impl Offset {
-    fn absolute(self, window: f32, content: f32) -> f32 {
+    fn absolute(self, viewport: f32, content: f32) -> f32 {
         match self {
             Offset::Absolute(absolute) => {
-                absolute.min((content - window).max(0.0))
+                absolute.min((content - viewport).max(0.0))
             }
             Offset::Relative(percentage) => {
-                ((content - window) * percentage).max(0.0)
+                ((content - viewport) * percentage).max(0.0)
             }
         }
+    }
+}
+
+/// The current [`Viewport`] of the [`Scrollable`].
+#[derive(Debug, Clone, Copy)]
+pub struct Viewport {
+    offset_x: Offset,
+    offset_y: Offset,
+    bounds: Rectangle,
+    content_bounds: Rectangle,
+}
+
+impl Viewport {
+    /// Returns the [`AbsoluteOffset`] of the current [`Viewport`].
+    pub fn absolute_offset(&self) -> AbsoluteOffset {
+        let x = self
+            .offset_x
+            .absolute(self.bounds.width, self.content_bounds.width);
+        let y = self
+            .offset_y
+            .absolute(self.bounds.height, self.content_bounds.height);
+
+        AbsoluteOffset { x, y }
+    }
+
+    /// Returns the [`RelativeOffset`] of the current [`Viewport`].
+    pub fn relative_offset(&self) -> RelativeOffset {
+        let AbsoluteOffset { x, y } = self.absolute_offset();
+
+        let x = x / (self.content_bounds.width - self.bounds.width);
+        let y = y / (self.content_bounds.height - self.bounds.height);
+
+        RelativeOffset { x, y }
     }
 }
 
@@ -1035,6 +1100,12 @@ impl State {
     pub fn snap_to(&mut self, offset: RelativeOffset) {
         self.offset_x = Offset::Relative(offset.x.clamp(0.0, 1.0));
         self.offset_y = Offset::Relative(offset.y.clamp(0.0, 1.0));
+    }
+
+    /// Scroll to the provided [`AbsoluteOffset`].
+    pub fn scroll_to(&mut self, offset: AbsoluteOffset) {
+        self.offset_x = Offset::Absolute(offset.x.max(0.0));
+        self.offset_y = Offset::Absolute(offset.y.max(0.0));
     }
 
     /// Unsnaps the current scroll position, if snapped, given the bounds of the

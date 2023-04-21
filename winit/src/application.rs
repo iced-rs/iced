@@ -158,7 +158,7 @@ where
         )
         .with_visible(false);
 
-    log::info!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {:#?}", builder);
 
     let window = builder
         .build(&event_loop)
@@ -180,13 +180,17 @@ where
                 .unwrap_or(None)
         });
 
-        let _ = match target {
-            Some(node) => node
-                .replace_child(&canvas, &node)
-                .expect(&format!("Could not replace #{}", node.id())),
-            None => body
-                .append_child(&canvas)
-                .expect("Append canvas to HTML body"),
+        match target {
+            Some(node) => {
+                let _ = node
+                    .replace_with_with_node_1(&canvas)
+                    .expect(&format!("Could not replace #{}", node.id()));
+            }
+            None => {
+                let _ = body
+                    .append_child(&canvas)
+                    .expect("Append canvas to HTML body");
+            }
         };
     }
 
@@ -781,9 +785,12 @@ pub fn run_command<A, E>(
                 window::Action::ChangeMode(mode) => {
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
-                        window.primary_monitor(),
+                        window.current_monitor(),
                         mode,
                     ));
+                }
+                window::Action::ChangeIcon(icon) => {
+                    window.set_window_icon(conversion::icon(icon))
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {

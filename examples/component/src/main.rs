@@ -127,7 +127,8 @@ mod numeric_input {
                         .horizontal_alignment(alignment::Horizontal::Center)
                         .vertical_alignment(alignment::Vertical::Center),
                 )
-                .width(50)
+                .width(40)
+                .height(40)
                 .on_press(on_press)
             };
 
@@ -140,12 +141,12 @@ mod numeric_input {
                         .map(u32::to_string)
                         .as_deref()
                         .unwrap_or(""),
-                    Event::InputChanged,
                 )
+                .on_input(Event::InputChanged)
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
-            .align_items(Alignment::Fill)
+            .align_items(Alignment::Center)
             .spacing(10)
             .into()
         }

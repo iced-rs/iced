@@ -36,7 +36,7 @@ enum Message {
     ScrollerWidthChanged(u16),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(scrollable::RelativeOffset),
+    Scrolled(scrollable::Viewport),
 }
 
 impl Application for ScrollableDemo {
@@ -104,8 +104,8 @@ impl Application for ScrollableDemo {
                     self.current_scroll_offset,
                 )
             }
-            Message::Scrolled(offset) => {
-                self.current_scroll_offset = offset;
+            Message::Scrolled(viewport) => {
+                self.current_scroll_offset = viewport.relative_offset();
 
                 Command::none()
             }
@@ -254,7 +254,6 @@ impl Application for ScrollableDemo {
                             scroll_to_beginning_button(),
                             vertical_space(40),
                         ]
-                        .align_items(Alignment::Fill)
                         .spacing(40),
                         horizontal_space(1200),
                         text("Horizontal - End!"),
@@ -339,22 +338,36 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
         style.active(&theme::Scrollable::Default)
     }
 
-    fn hovered(&self, style: &Self::Style) -> Scrollbar {
-        style.hovered(&theme::Scrollable::Default)
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar {
+        style.hovered(&theme::Scrollable::Default, is_mouse_over_scrollbar)
     }
 
-    fn hovered_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        Scrollbar {
-            background: style.active(&theme::Scrollable::default()).background,
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Default::default(),
-            scroller: Scroller {
-                color: Color::from_rgb8(250, 85, 134),
+    fn hovered_horizontal(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar {
+        if is_mouse_over_scrollbar {
+            Scrollbar {
+                background: style
+                    .active(&theme::Scrollable::default())
+                    .background,
                 border_radius: 0.0,
                 border_width: 0.0,
                 border_color: Default::default(),
-            },
+                scroller: Scroller {
+                    color: Color::from_rgb8(250, 85, 134),
+                    border_radius: 0.0,
+                    border_width: 0.0,
+                    border_color: Default::default(),
+                },
+            }
+        } else {
+            self.active(style)
         }
     }
 }

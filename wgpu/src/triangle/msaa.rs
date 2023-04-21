@@ -75,7 +75,7 @@ impl Blit {
 
         let shader =
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu::triangle::blit_shader"),
+                label: Some("iced_wgpu triangle blit_shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("../shader/blit.wgsl"),
                 )),
@@ -222,6 +222,7 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
+            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
         });
 
@@ -232,6 +233,7 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
+            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING,
         });

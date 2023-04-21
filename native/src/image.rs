@@ -28,7 +28,7 @@ impl Handle {
     pub fn from_pixels(
         width: u32,
         height: u32,
-        pixels: impl AsRef<[u8]> + Clone + Send + Sync + 'static,
+        pixels: impl AsRef<[u8]> + Send + Sync + 'static,
     ) -> Handle {
         Self::from_data(Data::Rgba {
             width,
@@ -44,7 +44,7 @@ impl Handle {
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
     pub fn from_memory(
-        bytes: impl AsRef<[u8]> + Clone + Send + Sync + 'static,
+        bytes: impl AsRef<[u8]> + Send + Sync + 'static,
     ) -> Handle {
         Self::from_data(Data::Bytes(Bytes::new(bytes)))
     }
@@ -93,7 +93,7 @@ pub struct Bytes(Arc<dyn AsRef<[u8]> + Send + Sync + 'static>);
 
 impl Bytes {
     /// Creates new [`Bytes`] around `data`.
-    pub fn new(data: impl AsRef<[u8]> + Clone + Send + Sync + 'static) -> Self {
+    pub fn new(data: impl AsRef<[u8]> + Send + Sync + 'static) -> Self {
         Self(Arc::new(data))
     }
 }

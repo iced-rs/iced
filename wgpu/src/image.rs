@@ -141,7 +141,7 @@ impl Pipeline {
 
         let shader =
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu::image::shader"),
+                label: Some("iced_wgpu image shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("shader/image.wgsl"),
                 )),

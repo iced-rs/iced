@@ -1,10 +1,11 @@
 /// A font.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum Font {
     /// The default font.
     ///
     /// This is normally a font configured in a renderer or loaded from the
     /// system.
+    #[default]
     Default,
 
     /// An external font.
@@ -15,10 +16,4 @@ pub enum Font {
         /// The bytes of the external font
         bytes: &'static [u8],
     },
-}
-
-impl Default for Font {
-    fn default() -> Font {
-        Font::Default
-    }
 }

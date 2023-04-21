@@ -23,8 +23,11 @@ pub use platform::PlatformSpecific;
 
 use crate::conversion;
 use crate::Position;
+
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
+
+use std::fmt;
 
 /// The settings of an application.
 #[derive(Debug, Clone, Default)]
@@ -59,7 +62,7 @@ pub struct Settings<Flags> {
 }
 
 /// The window settings of an application.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
@@ -89,10 +92,28 @@ pub struct Window {
     pub always_on_top: bool,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<winit::window::Icon>,
+    pub icon: Option<crate::window::Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
+}
+
+impl fmt::Debug for Window {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Window")
+            .field("size", &self.size)
+            .field("position", &self.position)
+            .field("min_size", &self.min_size)
+            .field("max_size", &self.max_size)
+            .field("visible", &self.visible)
+            .field("resizable", &self.resizable)
+            .field("decorations", &self.decorations)
+            .field("transparent", &self.transparent)
+            .field("always_on_top", &self.always_on_top)
+            .field("icon", &self.icon.is_some())
+            .field("platform_specific", &self.platform_specific)
+            .finish()
+    }
 }
 
 impl Window {
@@ -113,8 +134,9 @@ impl Window {
             .with_resizable(self.resizable)
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
-            .with_window_icon(self.icon)
-            .with_always_on_top(self.always_on_top);
+            .with_window_icon(self.icon.and_then(conversion::icon))
+            .with_always_on_top(self.always_on_top)
+            .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
             primary_monitor.as_ref(),

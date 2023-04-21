@@ -6,7 +6,6 @@ pub mod icon;
 
 pub use icon::Icon;
 pub use position::Position;
-pub use settings::Settings;
+pub use settings::{PlatformSpecific, Settings};
 
-#[cfg(not(target_arch = "wasm32"))]
 pub use crate::runtime::window::*;
