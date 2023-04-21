@@ -15,8 +15,6 @@ pub const SIZE: u32 = 2048;
 use iced_graphics::image;
 use iced_graphics::Size;
 
-use std::num::NonZeroU32;
-
 #[derive(Debug)]
 pub struct Atlas {
     texture: wgpu::Texture,
