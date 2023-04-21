@@ -58,7 +58,7 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: iced_native::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer) {
         if self.layout.is_none() {
             self.layout =
                 Some(self.element.as_widget().layout(
@@ -66,8 +66,6 @@ where
                     &layout::Limits::new(Size::ZERO, self.size),
                 ));
         }
-
-        self.layout.clone().unwrap()
     }
 
     fn update(
@@ -103,11 +101,12 @@ where
         R: Deref<Target = Renderer>,
     {
         self.update(tree, layout.bounds().size(), view);
+        self.layout(renderer.deref());
 
-        let node = self.layout(renderer.deref());
-
-        let content_layout =
-            Layout::with_offset(layout.position() - Point::ORIGIN, &node);
+        let content_layout = Layout::with_offset(
+            layout.position() - Point::ORIGIN,
+            self.layout.as_ref().unwrap(),
+        );
 
         f(tree, renderer, content_layout, &mut self.element)
     }
@@ -290,14 +289,17 @@ where
             types: PhantomData,
             overlay_builder: |content: &mut RefMut<Content<_, _>>, tree| {
                 content.update(tree, layout.bounds().size(), &self.view);
+                content.layout(renderer);
 
-                let node = content.layout(renderer);
-
-                let Content { element, .. } = content.deref_mut();
+                let Content {
+                    element,
+                    layout: content_layout_node,
+                    ..
+                } = content.deref_mut();
 
                 let content_layout = Layout::with_offset(
                     layout.bounds().position() - Point::ORIGIN,
-                    &node,
+                    content_layout_node.as_ref().unwrap(),
                 );
 
                 element
