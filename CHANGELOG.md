@@ -6,6 +6,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2023-04-13
+### Added
+- `MouseArea` widget. [#1594](https://github.com/iced-rs/iced/pull/1594)
+- `channel` helper in `subscription`. [#1786](https://github.com/iced-rs/iced/pull/1786)
+- Configurable `width` for `Scrollable`. [#1749](https://github.com/iced-rs/iced/pull/1749)
+- Support for disabled `TextInput`. [#1744](https://github.com/iced-rs/iced/pull/1744)
+- Platform-specific window settings. [#1730](https://github.com/iced-rs/iced/pull/1730)
+- Left and right colors for sliders. [#1643](https://github.com/iced-rs/iced/pull/1643)
+- Icon for `TextInput`. [#1702](https://github.com/iced-rs/iced/pull/1702)
+- Mouse over scrollbar flag for `scrollable::StyleSheet`. [#1669](https://github.com/iced-rs/iced/pull/1669)
+- Better example for `Radio`. [#1762](https://github.com/iced-rs/iced/pull/1762)
+
+### Changed
+- `wgpu` has been updated to `0.15` in `iced_wgpu`. [#1789](https://github.com/iced-rs/iced/pull/1789)
+- `resvg` has been updated to `0.29` in `iced_graphics`. [#1733](https://github.com/iced-rs/iced/pull/1733)
+- `subscription::run` now takes a function pointer. [#1723](https://github.com/iced-rs/iced/pull/1723)
+
+### Fixed
+- Redundant `on_scroll` messages for `Scrollable`. [#1788](https://github.com/iced-rs/iced/pull/1788)
+- Outdated items in `ROADMAP.md` [#1782](https://github.com/iced-rs/iced/pull/1782)
+- Colons in shader labels causing compilation issues in `iced_wgpu`. [#1779](https://github.com/iced-rs/iced/pull/1779)
+- Re-expose winit features for window servers in Linux. [#1777](https://github.com/iced-rs/iced/pull/1777)
+- Replacement of application node in Wasm. [#1765](https://github.com/iced-rs/iced/pull/1765)
+- `clippy` lints for Rust 1.68. [#1755](https://github.com/iced-rs/iced/pull/1755)
+- Unnecessary `Component` rebuilds. [#1754](https://github.com/iced-rs/iced/pull/1754)
+- Incorrect package name in checkbox example docs. [#1750](https://github.com/iced-rs/iced/pull/1750)
+- Fullscreen only working on primary monitor. [#1742](https://github.com/iced-rs/iced/pull/1742)
+- `Padding::fit` on irregular values for an axis. [#1734](https://github.com/iced-rs/iced/pull/1734)
+- `Debug` implementation of `Font` displaying its bytes. [#1731](https://github.com/iced-rs/iced/pull/1731)
+- Sliders bleeding over their rail. [#1721](https://github.com/iced-rs/iced/pull/1721)
+
+### Removed
+- `Fill` variant for `Alignment`. [#1735](https://github.com/iced-rs/iced/pull/1735)
+
+Many thanks to...
+
+- @ahoneybun
+- @bq-wrongway
+- @bungoboingo
+- @casperstorm
+- @Davidster
+- @ElhamAryanpur
+- @FinnPerry
+- @GyulyVGC
+- @JungleTryne
+- @lupd
+- @mmstick
+- @nicksenger
+- @Night-Hunter-NF
+- @tarkah
+- @traxys
+- @Xaeroxe
+
+## [0.8.0] - 2023-02-18
+### Added
+- Generic pixel units. [#1711](https://github.com/iced-rs/iced/pull/1711)
+- `custom` method to `widget::Operation` trait. [#1649](https://github.com/iced-rs/iced/pull/1649)
+- `Group` overlay. [#1655](https://github.com/iced-rs/iced/pull/1655)
+- Standalone `draw` helper for `image`. [#1682](https://github.com/iced-rs/iced/pull/1682)
+- Dynamic `pick_list::Handle`. [#1675](https://github.com/iced-rs/iced/pull/1675)
+- `Id` support for `Container`. [#1695](https://github.com/iced-rs/iced/pull/1695)
+- Custom `Checkbox` icon support. [#1707](https://github.com/iced-rs/iced/pull/1707)
+- `window` action to change always on top setting. [#1587](https://github.com/iced-rs/iced/pull/1587)
+- `window` action to fetch its unique identifier. [#1589](https://github.com/iced-rs/iced/pull/1589)
+
+### Changed
+- Annotated `Command` and `Subscription` with `#[must_use]`. [#1676](https://github.com/iced-rs/iced/pull/1676)
+- Replaced `Fn` with `FnOnce` in `canvas::Cache::draw`. [#1694](https://github.com/iced-rs/iced/pull/1694)
+- Used `[default]` on enum in `game_of_life` example. [#1660](https://github.com/iced-rs/iced/pull/1660)
+- Made `QRCode` hide when data is empty in `qr_code` example. [#1665](https://github.com/iced-rs/iced/pull/1665)
+- Replaced `Cow` with `Bytes` in `image` to accept any kind of data that implements `AsRef<[u8]>`. [#1551](https://github.com/iced-rs/iced/pull/1551)
+
+### Fixed
+- Blank window on application startup. [#1698](https://github.com/iced-rs/iced/pull/1698)
+- Off-by-one pixel error on `pick_list` width. [#1679](https://github.com/iced-rs/iced/pull/1679)
+- Missing `text_input` implementation in `operation::Map`. [#1678](https://github.com/iced-rs/iced/pull/1678)
+- Widget-driven animations for `Component`. [#1685](https://github.com/iced-rs/iced/pull/1685)
+- Layout translation in `overlay::Group`. [#1686](https://github.com/iced-rs/iced/pull/1686)
+- Missing `is_over` implementation for overlays of `iced_lazy` widgets. [#1699](https://github.com/iced-rs/iced/pull/1699)
+- Panic when overlay event processing removes overlay. [#1700](https://github.com/iced-rs/iced/pull/1700)
+- Panic when using operations with components in certain cases. [#1701](https://github.com/iced-rs/iced/pull/1701)
+- `TextInput` width when using padding. [#1706](https://github.com/iced-rs/iced/pull/1706)
+- `iced_glow` crash on some hardware. [#1703](https://github.com/iced-rs/iced/pull/1703)
+- Height of `overlay::Menu`. [#1714](https://github.com/iced-rs/iced/pull/1714)
+- Size of images in `README`. [#1659](https://github.com/iced-rs/iced/pull/1659)
+- New `clippy` lints. [#1681](https://github.com/iced-rs/iced/pull/1681)
+
+Many thanks to...
+
+- @13r0ck
+- @bungoboingo
+- @casperstorm
+- @frey
+- @greatest-ape
+- @ids1024
+- @Jedsek
+- @nicksenger
+- @Night-Hunter-NF
+- @sdroege
+- @Sn-Kinos
+- @sushigiri
+- @tarkah
+
 ## [0.7.0] - 2023-01-14
 ### Added
 - Widget-driven animations. [#1647](https://github.com/iced-rs/iced/pull/1647)
@@ -364,7 +467,9 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/iced-rs/iced/compare/0.8.0...0.9.0
+[0.8.0]: https://github.com/iced-rs/iced/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/iced-rs/iced/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/iced-rs/iced/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/iced-rs/iced/compare/0.4.2...0.5.0

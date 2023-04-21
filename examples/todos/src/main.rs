@@ -1,6 +1,6 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
-use iced::keyboard;
+use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::{
@@ -50,6 +50,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
+    ToggleFullscreen(window::Mode),
 }
 
 impl Application for Todos {
@@ -156,6 +157,9 @@ impl Application for Todos {
                             widget::focus_next()
                         }
                     }
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(mode)
+                    }
                     _ => Command::none(),
                 };
 
@@ -200,15 +204,12 @@ impl Application for Todos {
                     .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
-                let input = text_input(
-                    "What needs to be done?",
-                    input_value,
-                    Message::InputChanged,
-                )
-                .id(INPUT_ID.clone())
-                .padding(15)
-                .size(30)
-                .on_submit(Message::CreateTask);
+                let input = text_input("What needs to be done?", input_value)
+                    .id(INPUT_ID.clone())
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::CreateTask)
+                    .padding(15)
+                    .size(30);
 
                 let controls = view_controls(tasks, *filter);
                 let filtered_tasks =
@@ -266,6 +267,21 @@ impl Application for Todos {
             ) => Some(Message::TabPressed {
                 shift: modifiers.shift(),
             }),
+            (
+                Event::Keyboard(keyboard::Event::KeyPressed {
+                    key_code,
+                    modifiers: Modifiers::SHIFT,
+                }),
+                event::Status::Ignored,
+            ) => match key_code {
+                KeyCode::Up => {
+                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
+                }
+                KeyCode::Down => {
+                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
+                }
+                _ => None,
+            },
             _ => None,
         })
     }
@@ -356,14 +372,12 @@ impl Task {
                 .into()
             }
             TaskState::Editing => {
-                let text_input = text_input(
-                    "Describe your task...",
-                    &self.description,
-                    TaskMessage::DescriptionEdited,
-                )
-                .id(Self::text_input_id(i))
-                .on_submit(TaskMessage::FinishEdition)
-                .padding(10);
+                let text_input =
+                    text_input("Describe your task...", &self.description)
+                        .id(Self::text_input_id(i))
+                        .on_input(TaskMessage::DescriptionEdited)
+                        .on_submit(TaskMessage::FinishEdition)
+                        .padding(10);
 
                 row![
                     text_input,
@@ -416,17 +430,14 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     .into()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize,
+)]
 pub enum Filter {
+    #[default]
     All,
     Active,
     Completed,
-}
-
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::All
-    }
 }
 
 impl Filter {

@@ -4,7 +4,9 @@ use crate::Primitive;
 use iced_native::Size;
 use std::{cell::RefCell, sync::Arc};
 
+#[derive(Default)]
 enum State {
+    #[default]
     Empty,
     Filled {
         bounds: Size,
@@ -12,11 +14,6 @@ enum State {
     },
 }
 
-impl Default for State {
-    fn default() -> Self {
-        State::Empty
-    }
-}
 /// A simple cache that stores generated [`Geometry`] to avoid recomputation.
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer

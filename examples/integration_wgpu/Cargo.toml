@@ -8,7 +8,7 @@ publish = false
 [dependencies]
 iced_winit = { path = "../../winit" }
 iced_wgpu = { path = "../../wgpu", features = ["webgl"] }
-env_logger = "0.8"
+env_logger = "0.10"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 console_error_panic_hook = "0.1.7"

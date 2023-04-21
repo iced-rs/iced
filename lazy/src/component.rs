@@ -13,6 +13,7 @@ use iced_native::{
 use ouroboros::self_referencing;
 use std::cell::RefCell;
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 /// A reusable, custom widget that uses The Elm Architecture.
 ///
@@ -58,6 +59,8 @@ pub trait Component<Message, Renderer> {
     }
 }
 
+struct Tag<T>(T);
+
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
 pub fn view<'a, C, Message, Renderer>(
@@ -79,11 +82,13 @@ where
             }
             .build(),
         )),
+        tree: RefCell::new(Rc::new(RefCell::new(None))),
     })
 }
 
 struct Instance<'a, Message, Renderer, Event, S> {
     state: RefCell<Option<State<'a, Message, Renderer, Event, S>>>,
+    tree: RefCell<Rc<RefCell<Option<Tree>>>>,
 }
 
 #[self_referencing]
@@ -100,40 +105,91 @@ struct State<'a, Message: 'a, Renderer: 'a, Event: 'a, S: 'a> {
 
 impl<'a, Message, Renderer, Event, S> Instance<'a, Message, Renderer, Event, S>
 where
-    S: Default,
+    S: Default + 'static,
+    Renderer: iced_native::Renderer,
 {
-    fn rebuild_element(&self, state: &S) {
-        let heads = self.state.borrow_mut().take().unwrap().into_heads();
+    fn diff_self(&self) {
+        self.with_element(|element| {
+            self.tree
+                .borrow_mut()
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .diff_children(std::slice::from_ref(&element));
+        });
+    }
 
-        *self.state.borrow_mut() = Some(
-            StateBuilder {
-                component: heads.component,
-                message: PhantomData,
-                state: PhantomData,
-                element_builder: |component| Some(component.view(state)),
-            }
-            .build(),
-        );
+    fn rebuild_element_if_necessary(&self) {
+        let inner = self.state.borrow_mut().take().unwrap();
+        if inner.borrow_element().is_none() {
+            let heads = inner.into_heads();
+
+            *self.state.borrow_mut() = Some(
+                StateBuilder {
+                    component: heads.component,
+                    message: PhantomData,
+                    state: PhantomData,
+                    element_builder: |component| {
+                        Some(
+                            component.view(
+                                self.tree
+                                    .borrow()
+                                    .borrow()
+                                    .as_ref()
+                                    .unwrap()
+                                    .state
+                                    .downcast_ref::<S>(),
+                            ),
+                        )
+                    },
+                }
+                .build(),
+            );
+            self.diff_self();
+        } else {
+            *self.state.borrow_mut() = Some(inner);
+        }
     }
 
     fn rebuild_element_with_operation(
         &self,
-        state: &mut S,
         operation: &mut dyn widget::Operation<Message>,
     ) {
         let heads = self.state.borrow_mut().take().unwrap().into_heads();
 
-        heads.component.operate(state, operation);
+        heads.component.operate(
+            self.tree
+                .borrow_mut()
+                .borrow_mut()
+                .as_mut()
+                .unwrap()
+                .state
+                .downcast_mut(),
+            operation,
+        );
 
         *self.state.borrow_mut() = Some(
             StateBuilder {
                 component: heads.component,
                 message: PhantomData,
                 state: PhantomData,
-                element_builder: |component| Some(component.view(state)),
+                element_builder: |component| {
+                    Some(
+                        component.view(
+                            self.tree
+                                .borrow()
+                                .borrow()
+                                .as_ref()
+                                .unwrap()
+                                .state
+                                .downcast_ref(),
+                        ),
+                    )
+                },
             }
             .build(),
         );
+        self.diff_self();
     }
 
     fn with_element<T>(
@@ -147,6 +203,7 @@ where
         &self,
         f: impl FnOnce(&mut Element<'_, Event, Renderer>) -> T,
     ) -> T {
+        self.rebuild_element_if_necessary();
         self.state
             .borrow_mut()
             .as_mut()
@@ -162,24 +219,27 @@ where
     Renderer: iced_native::Renderer,
 {
     fn tag(&self) -> tree::Tag {
-        struct Tag<T>(T);
         tree::Tag::of::<Tag<S>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(S::default())
+        let state = Rc::new(RefCell::new(Some(Tree {
+            tag: tree::Tag::of::<Tag<S>>(),
+            state: tree::State::new(S::default()),
+            children: vec![Tree::empty()],
+        })));
+        *self.tree.borrow_mut() = state.clone();
+        tree::State::new(state)
     }
 
     fn children(&self) -> Vec<Tree> {
-        self.rebuild_element(&S::default());
-        self.with_element(|element| vec![Tree::new(element)])
+        vec![]
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.rebuild_element(tree.state.downcast_ref());
-        self.with_element(|element| {
-            tree.diff_children(std::slice::from_ref(&element))
-        })
+        let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
+        *self.tree.borrow_mut() = tree.clone();
+        self.rebuild_element_if_necessary();
     }
 
     fn width(&self) -> Length {
@@ -214,9 +274,10 @@ where
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
 
+        let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
         let event_status = self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
-                &mut tree.children[0],
+                &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
                 layout,
                 cursor_position,
@@ -237,9 +298,10 @@ where
             let mut heads = self.state.take().unwrap().into_heads();
 
             for message in local_messages.into_iter().filter_map(|message| {
-                heads
-                    .component
-                    .update(tree.state.downcast_mut::<S>(), message)
+                heads.component.update(
+                    t.borrow_mut().as_mut().unwrap().state.downcast_mut(),
+                    message,
+                )
             }) {
                 shell.publish(message);
             }
@@ -249,16 +311,10 @@ where
                     component: heads.component,
                     message: PhantomData,
                     state: PhantomData,
-                    element_builder: |state| {
-                        Some(state.view(tree.state.downcast_ref::<S>()))
-                    },
+                    element_builder: |_| None,
                 }
                 .build(),
             ));
-
-            self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element))
-            });
 
             shell.invalidate_layout();
         }
@@ -273,10 +329,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        self.rebuild_element_with_operation(
-            tree.state.downcast_mut(),
-            operation,
-        );
+        self.rebuild_element_with_operation(operation);
 
         struct MapOperation<'a, B> {
             operation: &'a mut dyn widget::Operation<B>,
@@ -310,13 +363,28 @@ where
             ) {
                 self.operation.text_input(state, id);
             }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.scrollable(state, id);
+            }
+
+            fn custom(
+                &mut self,
+                state: &mut dyn std::any::Any,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.custom(state, id);
+            }
         }
 
+        let tree = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
-            tree.diff_children(std::slice::from_ref(&element));
-
             element.as_widget().operate(
-                &mut tree.children[0],
+                &mut tree.borrow_mut().as_mut().unwrap().children[0],
                 layout,
                 renderer,
                 &mut MapOperation { operation },
@@ -334,9 +402,10 @@ where
         cursor_position: Point,
         viewport: &Rectangle,
     ) {
+        let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
             element.as_widget().draw(
-                &tree.children[0],
+                &tree.borrow().as_ref().unwrap().children[0],
                 renderer,
                 theme,
                 style,
@@ -355,9 +424,10 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         self.with_element(|element| {
             element.as_widget().mouse_interaction(
-                &tree.children[0],
+                &tree.borrow().as_ref().unwrap().children[0],
                 layout,
                 cursor_position,
                 viewport,
@@ -372,25 +442,34 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let overlay = OverlayBuilder {
-            instance: self,
-            tree,
-            types: PhantomData,
-            overlay_builder: |instance, tree| {
-                instance.state.get_mut().as_mut().unwrap().with_element_mut(
-                    move |element| {
-                        element.as_mut().unwrap().as_widget_mut().overlay(
-                            &mut tree.children[0],
-                            layout,
-                            renderer,
-                        )
-                    },
-                )
-            },
-        }
-        .build();
+        self.rebuild_element_if_necessary();
+        let tree = tree
+            .state
+            .downcast_mut::<Rc<RefCell<Option<Tree>>>>()
+            .borrow_mut()
+            .take()
+            .unwrap();
+        let overlay = Overlay(Some(
+            InnerBuilder {
+                instance: self,
+                tree,
+                types: PhantomData,
+                overlay_builder: |instance, tree| {
+                    instance.state.get_mut().as_mut().unwrap().with_element_mut(
+                        move |element| {
+                            element.as_mut().unwrap().as_widget_mut().overlay(
+                                &mut tree.children[0],
+                                layout,
+                                renderer,
+                            )
+                        },
+                    )
+                },
+            }
+            .build(),
+        ));
 
-        let has_overlay = overlay.with_overlay(|overlay| {
+        let has_overlay = overlay.0.as_ref().unwrap().with_overlay(|overlay| {
             overlay.as_ref().map(overlay::Element::position)
         });
 
@@ -405,10 +484,24 @@ where
     }
 }
 
+struct Overlay<'a, 'b, Message, Renderer, Event, S>(
+    Option<Inner<'a, 'b, Message, Renderer, Event, S>>,
+);
+
+impl<'a, 'b, Message, Renderer, Event, S> Drop
+    for Overlay<'a, 'b, Message, Renderer, Event, S>
+{
+    fn drop(&mut self) {
+        if let Some(heads) = self.0.take().map(|inner| inner.into_heads()) {
+            *heads.instance.tree.borrow_mut().borrow_mut() = Some(heads.tree);
+        }
+    }
+}
+
 #[self_referencing]
-struct Overlay<'a, 'b, Message, Renderer, Event, S> {
+struct Inner<'a, 'b, Message, Renderer, Event, S> {
     instance: &'a mut Instance<'b, Message, Renderer, Event, S>,
-    tree: &'a mut Tree,
+    tree: Tree,
     types: PhantomData<(Message, Event, S)>,
 
     #[borrows(mut instance, mut tree)]
@@ -430,6 +523,9 @@ impl<'a, 'b, Message, Renderer, Event, S>
         self.overlay
             .as_ref()
             .unwrap()
+            .0
+            .as_ref()
+            .unwrap()
             .borrow_overlay()
             .as_ref()
             .map(f)
@@ -440,6 +536,9 @@ impl<'a, 'b, Message, Renderer, Event, S>
         f: impl FnOnce(&mut overlay::Element<'_, Event, Renderer>) -> T,
     ) -> Option<T> {
         self.overlay
+            .as_mut()
+            .unwrap()
+            .0
             .as_mut()
             .unwrap()
             .with_overlay_mut(|overlay| overlay.as_mut().map(f))
@@ -527,42 +626,37 @@ where
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
         if !local_messages.is_empty() {
-            let overlay = self.overlay.take().unwrap().into_heads();
-            let mut heads = overlay.instance.state.take().unwrap().into_heads();
+            let mut inner =
+                self.overlay.take().unwrap().0.take().unwrap().into_heads();
+            let mut heads = inner.instance.state.take().unwrap().into_heads();
 
             for message in local_messages.into_iter().filter_map(|message| {
                 heads
                     .component
-                    .update(overlay.tree.state.downcast_mut::<S>(), message)
+                    .update(inner.tree.state.downcast_mut(), message)
             }) {
                 shell.publish(message);
             }
 
-            *overlay.instance.state.borrow_mut() = Some(
+            *inner.instance.state.borrow_mut() = Some(
                 StateBuilder {
                     component: heads.component,
                     message: PhantomData,
                     state: PhantomData,
-                    element_builder: |state| {
-                        Some(state.view(overlay.tree.state.downcast_ref::<S>()))
-                    },
+                    element_builder: |_| None,
                 }
                 .build(),
             );
 
-            overlay.instance.with_element(|element| {
-                overlay.tree.diff_children(std::slice::from_ref(&element))
-            });
-
-            self.overlay = Some(
-                OverlayBuilder {
-                    instance: overlay.instance,
-                    tree: overlay.tree,
+            self.overlay = Some(Overlay(Some(
+                InnerBuilder {
+                    instance: inner.instance,
+                    tree: inner.tree,
                     types: PhantomData,
                     overlay_builder: |_, _| None,
                 }
                 .build(),
-            );
+            )));
 
             shell.invalidate_layout();
         }
