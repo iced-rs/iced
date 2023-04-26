@@ -7,13 +7,13 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
 
 pub struct Compositor<Theme> {
-    clip_mask: tiny_skia::ClipMask,
     _theme: PhantomData<Theme>,
 }
 
 pub struct Surface {
     window: softbuffer::GraphicsContext,
     buffer: Vec<u32>,
+    clip_mask: tiny_skia::Mask,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -43,6 +43,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         Surface {
             window,
             buffer: vec![0; width as usize * height as usize],
+            clip_mask: tiny_skia::Mask::new(width, height)
+                .expect("Create clip mask"),
         }
     }
 
@@ -53,6 +55,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) {
         surface.buffer.resize((width * height) as usize, 0);
+        surface.clip_mask =
+            tiny_skia::Mask::new(width, height).expect("Create clip mask");
     }
 
     fn fetch_information(&self) -> Information {
@@ -72,7 +76,6 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     ) -> Result<(), SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
             present(
-                self,
                 backend,
                 surface,
                 primitives,
@@ -85,18 +88,15 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 }
 
 pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
-    // TOD
     (
         Compositor {
-            clip_mask: tiny_skia::ClipMask::new(),
             _theme: PhantomData,
         },
         Backend::new(settings),
     )
 }
 
-pub fn present<Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<Theme>,
+pub fn present<T: AsRef<str>>(
     backend: &mut Backend,
     surface: &mut Surface,
     primitives: &[Primitive],
@@ -113,7 +113,7 @@ pub fn present<Theme, T: AsRef<str>>(
             physical_size.height,
         )
         .expect("Create pixel map"),
-        &mut compositor.clip_mask,
+        &mut surface.clip_mask,
         primitives,
         viewport,
         background_color,

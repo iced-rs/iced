@@ -31,7 +31,7 @@ impl Pipeline {
         bounds: Rectangle,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         transform: tiny_skia::Transform,
-        clip_mask: Option<&tiny_skia::ClipMask>,
+        clip_mask: Option<&tiny_skia::Mask>,
     ) {
         if let Some(image) = self.cache.borrow_mut().allocate(handle) {
             let width_scale = bounds.width / image.width() as f32;

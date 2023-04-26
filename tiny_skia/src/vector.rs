@@ -32,7 +32,7 @@ impl Pipeline {
         color: Option<Color>,
         bounds: Rectangle,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::ClipMask>,
+        clip_mask: Option<&tiny_skia::Mask>,
     ) {
         if let Some(image) = self.cache.borrow_mut().draw(
             handle,
@@ -72,6 +72,8 @@ struct RasterKey {
 
 impl Cache {
     fn load(&mut self, handle: &Handle) -> Option<&usvg::Tree> {
+        use usvg::TreeParsing;
+
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
@@ -131,9 +133,9 @@ impl Cache {
             resvg::render(
                 tree,
                 if size.width > size.height {
-                    usvg::FitTo::Width(size.width)
+                    resvg::FitTo::Width(size.width)
                 } else {
-                    usvg::FitTo::Height(size.height)
+                    resvg::FitTo::Height(size.height)
                 },
                 tiny_skia::Transform::default(),
                 image.as_mut(),

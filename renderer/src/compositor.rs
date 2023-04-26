@@ -123,11 +123,10 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                 ),
                 #[cfg(feature = "tiny-skia")]
                 (
-                    Self::TinySkia(compositor),
+                    Self::TinySkia(_compositor),
                     crate::Backend::TinySkia(backend),
                     Surface::TinySkia(surface),
                 ) => iced_tiny_skia::window::compositor::present(
-                    compositor,
                     backend,
                     surface,
                     primitives,

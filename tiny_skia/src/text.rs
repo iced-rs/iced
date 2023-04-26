@@ -50,7 +50,7 @@ impl Pipeline {
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: Option<&tiny_skia::ClipMask>,
+        clip_mask: Option<&tiny_skia::Mask>,
     ) {
         let font_system = self.font_system.get_mut();
         let key = Key {

@@ -44,7 +44,7 @@ impl Backend {
     pub fn draw<T: AsRef<str>>(
         &mut self,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: &mut tiny_skia::ClipMask,
+        clip_mask: &mut tiny_skia::Mask,
         primitives: &[Primitive],
         viewport: &Viewport,
         background_color: Color,
@@ -124,7 +124,7 @@ impl Backend {
                 None,
             );
 
-            adjust_clip_mask(clip_mask, pixels, region);
+            adjust_clip_mask(clip_mask, region);
 
             for primitive in primitives {
                 self.draw_primitive(
@@ -172,7 +172,7 @@ impl Backend {
         &mut self,
         primitive: &Primitive,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: &mut tiny_skia::ClipMask,
+        clip_mask: &mut tiny_skia::Mask,
         clip_bounds: Rectangle,
         scale_factor: f32,
         translation: Vector,
@@ -427,7 +427,7 @@ impl Backend {
                         return;
                     }
 
-                    adjust_clip_mask(clip_mask, pixels, bounds);
+                    adjust_clip_mask(clip_mask, bounds);
 
                     self.draw_primitive(
                         content,
@@ -438,7 +438,7 @@ impl Backend {
                         translation,
                     );
 
-                    adjust_clip_mask(clip_mask, pixels, clip_bounds);
+                    adjust_clip_mask(clip_mask, clip_bounds);
                 }
             }
             Primitive::Cache { content } => {
@@ -611,11 +611,9 @@ fn arc_to(
     }
 }
 
-fn adjust_clip_mask(
-    clip_mask: &mut tiny_skia::ClipMask,
-    pixels: &tiny_skia::PixmapMut<'_>,
-    bounds: Rectangle,
-) {
+fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
+    clip_mask.clear();
+
     let path = {
         let mut builder = tiny_skia::PathBuilder::new();
         builder.push_rect(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -623,15 +621,12 @@ fn adjust_clip_mask(
         builder.finish().unwrap()
     };
 
-    clip_mask
-        .set_path(
-            pixels.width(),
-            pixels.height(),
-            &path,
-            tiny_skia::FillRule::EvenOdd,
-            false,
-        )
-        .expect("Set path of clipping area");
+    clip_mask.fill_path(
+        &path,
+        tiny_skia::FillRule::EvenOdd,
+        false,
+        tiny_skia::Transform::default(),
+    );
 }
 
 fn group_damage(
