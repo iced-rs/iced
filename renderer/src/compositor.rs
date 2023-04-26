@@ -179,47 +179,50 @@ impl Candidate {
     fn build<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
         self,
         settings: Settings,
-        compatible_window: Option<&W>,
+        _compatible_window: Option<&W>,
     ) -> Result<(Compositor<Theme>, Renderer<Theme>), Error> {
         match self {
+            #[cfg(feature = "wgpu")]
             Self::Wgpu => {
-                if cfg!(feature = "wgpu") {
-                    let (compositor, backend) =
-                        iced_wgpu::window::compositor::new(
-                            iced_wgpu::Settings {
-                                default_font: settings.default_font,
-                                default_text_size: settings.default_text_size,
-                                antialiasing: settings.antialiasing,
-                                ..iced_wgpu::Settings::from_env()
-                            },
-                            compatible_window,
-                        )?;
+                let (compositor, backend) = iced_wgpu::window::compositor::new(
+                    iced_wgpu::Settings {
+                        default_font: settings.default_font,
+                        default_text_size: settings.default_text_size,
+                        antialiasing: settings.antialiasing,
+                        ..iced_wgpu::Settings::from_env()
+                    },
+                    _compatible_window,
+                )?;
 
-                    return Ok((
-                        Compositor::Wgpu(compositor),
-                        Renderer::new(crate::Backend::Wgpu(backend)),
-                    ));
-                } else {
-                    panic!("`wgpu` feature was not enabled in `iced_renderer`");
-                }
+                Ok((
+                    Compositor::Wgpu(compositor),
+                    Renderer::new(crate::Backend::Wgpu(backend)),
+                ))
             }
+            #[cfg(feature = "tiny-skia")]
             Self::TinySkia => {
-                if cfg!(feature = "tiny-skia") {
-                    let (compositor, backend) =
-                        iced_tiny_skia::window::compositor::new(
-                            iced_tiny_skia::Settings {
-                                default_font: settings.default_font,
-                                default_text_size: settings.default_text_size,
-                            },
-                        );
+                let (compositor, backend) =
+                    iced_tiny_skia::window::compositor::new(
+                        iced_tiny_skia::Settings {
+                            default_font: settings.default_font,
+                            default_text_size: settings.default_text_size,
+                        },
+                    );
 
-                    Ok((
-                        Compositor::TinySkia(compositor),
-                        Renderer::new(crate::Backend::TinySkia(backend)),
-                    ))
-                } else {
-                    panic!("`tiny-skia` feature was not enabled in `iced_renderer`");
-                }
+                Ok((
+                    Compositor::TinySkia(compositor),
+                    Renderer::new(crate::Backend::TinySkia(backend)),
+                ))
+            }
+            #[cfg(not(feature = "wgpu"))]
+            Self::Wgpu => {
+                panic!("`wgpu` feature was not enabled in `iced_renderer`")
+            }
+            #[cfg(not(feature = "tiny-skia"))]
+            Self::TinySkia => {
+                panic!(
+                    "`tiny-skia` feature was not enabled in `iced_renderer`"
+                );
             }
         }
     }
