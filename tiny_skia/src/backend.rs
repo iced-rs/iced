@@ -1,4 +1,3 @@
-use crate::core::alignment;
 use crate::core::text;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::backend;
@@ -157,43 +156,6 @@ impl Backend {
                 );
             }
         }
-
-        //if !overlay.is_empty() {
-        //    let bounds = Rectangle {
-        //        x: 0.0,
-        //        y: 0.0,
-        //        width: viewport.physical_width() as f32,
-        //        height: viewport.physical_height() as f32,
-        //    };
-
-        //    adjust_clip_mask(clip_mask, pixels, bounds);
-
-        //    for (i, text) in overlay.iter().enumerate() {
-        //        const OVERLAY_TEXT_SIZE: f32 = 20.0;
-
-        //        self.draw_primitive(
-        //            &Primitive::Text {
-        //                content: text.as_ref().to_owned(),
-        //                size: OVERLAY_TEXT_SIZE,
-        //                bounds: Rectangle {
-        //                    x: 10.0,
-        //                    y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
-        //                    width: bounds.width - 1.0,
-        //                    height: bounds.height - 1.0,
-        //                },
-        //                color: Color::BLACK,
-        //                font: Font::MONOSPACE,
-        //                horizontal_alignment: alignment::Horizontal::Left,
-        //                vertical_alignment: alignment::Vertical::Top,
-        //            },
-        //            pixels,
-        //            clip_mask,
-        //            bounds,
-        //            scale_factor,
-        //            Vector::ZERO,
-        //        );
-        //    }
-        //}
 
         self.text_pipeline.trim_cache();
 
