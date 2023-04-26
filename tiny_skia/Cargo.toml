@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-default = ["gpu"]
-gpu = ["pixels"]
 image = ["iced_graphics/image"]
 svg = ["resvg"]
 geometry = ["iced_graphics/geometry"]
@@ -32,10 +30,6 @@ default-features = false
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
 version = "1.6.1"
 features = ["std"]
-
-[dependencies.pixels]
-version = "0.12"
-optional = true
 
 [dependencies.resvg]
 version = "0.29"
