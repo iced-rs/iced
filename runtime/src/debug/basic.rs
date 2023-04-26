@@ -129,7 +129,7 @@ impl Debug {
 
     pub fn render_finished(&mut self) {
         self.render_durations
-            .push(dbg!(time::Instant::now() - self.render_start));
+            .push(time::Instant::now() - self.render_start);
     }
 
     pub fn log_message<Message: std::fmt::Debug>(&mut self, message: &Message) {
