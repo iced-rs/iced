@@ -114,7 +114,7 @@ pub fn present<T: AsRef<str>>(
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
 
-    let mut pixels = &mut tiny_skia::PixmapMut::from_bytes(
+    let mut pixels = tiny_skia::PixmapMut::from_bytes(
         bytemuck::cast_slice_mut(&mut surface.buffer),
         physical_size.width,
         physical_size.height,
