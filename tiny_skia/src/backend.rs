@@ -16,10 +16,6 @@ pub struct Backend {
 
     #[cfg(feature = "svg")]
     vector_pipeline: crate::vector::Pipeline,
-
-    last_primitives: Vec<Primitive>,
-    last_background_color: Color,
-    last_size: Size<u32>,
 }
 
 impl Backend {
@@ -34,10 +30,6 @@ impl Backend {
 
             #[cfg(feature = "svg")]
             vector_pipeline: crate::vector::Pipeline::new(),
-
-            last_primitives: Vec::new(),
-            last_background_color: Color::BLACK,
-            last_size: Size::new(0, 0),
         }
     }
 
@@ -47,30 +39,12 @@ impl Backend {
         clip_mask: &mut tiny_skia::Mask,
         primitives: &[Primitive],
         viewport: &Viewport,
+        damage: &[Rectangle],
         background_color: Color,
         overlay: &[T],
-    ) -> bool {
+    ) {
         let physical_size = viewport.physical_size();
-
-        let damage = if self.last_background_color == background_color
-            && self.last_size == physical_size
-        {
-            Primitive::damage_list(&self.last_primitives, primitives)
-        } else {
-            vec![Rectangle::with_size(viewport.logical_size())]
-        };
-
-        if damage.is_empty() {
-            return false;
-        }
-
-        self.last_primitives = primitives.to_vec();
-        self.last_background_color = background_color;
-        self.last_size = physical_size;
-
         let scale_factor = viewport.scale_factor() as f32;
-
-        let damage = group_damage(damage, scale_factor, physical_size);
 
         if !overlay.is_empty() {
             let path = tiny_skia::PathBuilder::from_rect(
@@ -99,7 +73,7 @@ impl Backend {
             );
         }
 
-        for region in damage {
+        for &region in damage {
             let path = tiny_skia::PathBuilder::from_rect(
                 tiny_skia::Rect::from_xywh(
                     region.x,
@@ -164,8 +138,6 @@ impl Backend {
 
         #[cfg(feature = "svg")]
         self.vector_pipeline.trim_cache();
-
-        true
     }
 
     fn draw_primitive(
@@ -627,52 +599,6 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
         false,
         tiny_skia::Transform::default(),
     );
-}
-
-fn group_damage(
-    mut damage: Vec<Rectangle>,
-    scale_factor: f32,
-    bounds: Size<u32>,
-) -> Vec<Rectangle> {
-    use std::cmp::Ordering;
-
-    const AREA_THRESHOLD: f32 = 20_000.0;
-
-    let bounds = Rectangle {
-        x: 0.0,
-        y: 0.0,
-        width: bounds.width as f32,
-        height: bounds.height as f32,
-    };
-
-    damage.sort_by(|a, b| {
-        a.x.partial_cmp(&b.x)
-            .unwrap_or(Ordering::Equal)
-            .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal))
-    });
-
-    let mut output = Vec::new();
-    let mut scaled = damage
-        .into_iter()
-        .filter_map(|region| (region * scale_factor).intersection(&bounds))
-        .filter(|region| region.width >= 1.0 && region.height >= 1.0);
-
-    if let Some(mut current) = scaled.next() {
-        for region in scaled {
-            let union = current.union(&region);
-
-            if union.area() - current.area() - region.area() <= AREA_THRESHOLD {
-                current = union;
-            } else {
-                output.push(current);
-                current = region;
-            }
-        }
-
-        output.push(current);
-    }
-
-    output
 }
 
 impl iced_graphics::Backend for Backend {

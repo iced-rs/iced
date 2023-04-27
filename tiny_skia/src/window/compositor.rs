@@ -1,5 +1,6 @@
-use crate::core::Color;
+use crate::core::{Color, Rectangle};
 use crate::graphics::compositor::{self, Information, SurfaceError};
+use crate::graphics::damage;
 use crate::graphics::{Error, Primitive, Viewport};
 use crate::{Backend, Renderer, Settings};
 
@@ -14,6 +15,8 @@ pub struct Surface {
     window: softbuffer::GraphicsContext,
     buffer: Vec<u32>,
     clip_mask: tiny_skia::Mask,
+    last_primitives: Vec<Primitive>,
+    last_background_color: Color,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -45,6 +48,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
+            last_primitives: Vec::new(),
+            last_background_color: Color::BLACK,
         }
     }
 
@@ -57,6 +62,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         surface.buffer.resize((width * height) as usize, 0);
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
+
+        surface.last_primitives.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -105,28 +112,45 @@ pub fn present<T: AsRef<str>>(
     overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
+    let scale_factor = viewport.scale_factor() as f32;
 
-    let drawn = backend.draw(
-        &mut tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut surface.buffer),
-            physical_size.width,
-            physical_size.height,
-        )
-        .expect("Create pixel map"),
+    let mut pixels = &mut tiny_skia::PixmapMut::from_bytes(
+        bytemuck::cast_slice_mut(&mut surface.buffer),
+        physical_size.width,
+        physical_size.height,
+    )
+    .expect("Create pixel map");
+
+    let damage = if surface.last_background_color == background_color {
+        damage::list(&surface.last_primitives, primitives)
+    } else {
+        vec![Rectangle::with_size(viewport.logical_size())]
+    };
+
+    if damage.is_empty() {
+        return Ok(());
+    }
+
+    surface.last_primitives = primitives.to_vec();
+    surface.last_background_color = background_color;
+
+    let damage = damage::group(damage, scale_factor, physical_size);
+
+    backend.draw(
+        &mut pixels,
         &mut surface.clip_mask,
         primitives,
         viewport,
+        &damage,
         background_color,
         overlay,
     );
 
-    if drawn {
-        surface.window.set_buffer(
-            &surface.buffer,
-            physical_size.width as u16,
-            physical_size.height as u16,
-        );
-    }
+    surface.window.set_buffer(
+        &surface.buffer,
+        physical_size.width as u16,
+        physical_size.height as u16,
+    );
 
     Ok(())
 }
