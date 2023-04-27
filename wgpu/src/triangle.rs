@@ -2,9 +2,12 @@
 mod msaa;
 
 use crate::buffer::r#static::Buffer;
-use crate::core::{Gradient, Size};
+use crate::core::Size;
 use crate::graphics::{Antialiasing, Transformation};
 use crate::layer::mesh::{self, Mesh};
+
+#[cfg(not(target_arch = "wasm32"))]
+use crate::core::Gradient;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
