@@ -43,6 +43,8 @@ type ColorFilter = Option<[u8; 4]>;
 impl Cache {
     /// Load svg
     pub fn load(&mut self, handle: &svg::Handle) -> &Svg {
+        use usvg::TreeParsing;
+
         if self.svgs.contains_key(&handle.id()) {
             return self.svgs.get(&handle.id()).unwrap();
         }
@@ -116,9 +118,9 @@ impl Cache {
                 resvg::render(
                     tree,
                     if width > height {
-                        usvg::FitTo::Width(width)
+                        resvg::FitTo::Width(width)
                     } else {
-                        usvg::FitTo::Height(height)
+                        resvg::FitTo::Height(height)
                     },
                     tiny_skia::Transform::default(),
                     img.as_mut(),

@@ -66,12 +66,26 @@ impl Rectangle<f32> {
         Size::new(self.width, self.height)
     }
 
+    /// Returns the area of the [`Rectangle`].
+    pub fn area(&self) -> f32 {
+        self.width * self.height
+    }
+
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     pub fn contains(&self, point: Point) -> bool {
         self.x <= point.x
             && point.x <= self.x + self.width
             && self.y <= point.y
             && point.y <= self.y + self.height
+    }
+
+    /// Returns true if the current [`Rectangle`] is completely within the given
+    /// `container`.
+    pub fn is_within(&self, container: &Rectangle) -> bool {
+        container.contains(self.position())
+            && container.contains(
+                self.position() + Vector::new(self.width, self.height),
+            )
     }
 
     /// Computes the intersection with the given [`Rectangle`].
@@ -100,6 +114,30 @@ impl Rectangle<f32> {
         }
     }
 
+    /// Returns whether the [`Rectangle`] intersects with the given one.
+    pub fn intersects(&self, other: &Self) -> bool {
+        self.intersection(other).is_some()
+    }
+
+    /// Computes the union with the given [`Rectangle`].
+    pub fn union(&self, other: &Self) -> Self {
+        let x = self.x.min(other.x);
+        let y = self.y.min(other.y);
+
+        let lower_right_x = (self.x + self.width).max(other.x + other.width);
+        let lower_right_y = (self.y + self.height).max(other.y + other.height);
+
+        let width = lower_right_x - x;
+        let height = lower_right_y - y;
+
+        Rectangle {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
     pub fn snap(self) -> Rectangle<u32> {
         Rectangle {
@@ -107,6 +145,16 @@ impl Rectangle<f32> {
             y: self.y as u32,
             width: self.width as u32,
             height: self.height as u32,
+        }
+    }
+
+    /// Expands the [`Rectangle`] a given amount.
+    pub fn expand(self, amount: f32) -> Self {
+        Self {
+            x: self.x - amount,
+            y: self.y - amount,
+            width: self.width + amount * 2.0,
+            height: self.height + amount * 2.0,
         }
     }
 }

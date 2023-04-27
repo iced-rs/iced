@@ -1,4 +1,3 @@
-use crate::core::alignment;
 use crate::core::text;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::backend;
@@ -37,51 +36,99 @@ impl Backend {
     pub fn draw<T: AsRef<str>>(
         &mut self,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: &mut tiny_skia::ClipMask,
+        clip_mask: &mut tiny_skia::Mask,
         primitives: &[Primitive],
         viewport: &Viewport,
+        damage: &[Rectangle],
         background_color: Color,
         overlay: &[T],
     ) {
-        pixels.fill(into_color(background_color));
-
+        let physical_size = viewport.physical_size();
         let scale_factor = viewport.scale_factor() as f32;
 
-        for primitive in primitives {
-            self.draw_primitive(
-                primitive,
-                pixels,
-                clip_mask,
+        if !overlay.is_empty() {
+            let path = tiny_skia::PathBuilder::from_rect(
+                tiny_skia::Rect::from_xywh(
+                    0.0,
+                    0.0,
+                    physical_size.width as f32,
+                    physical_size.height as f32,
+                )
+                .expect("Create damage rectangle"),
+            );
+
+            pixels.fill_path(
+                &path,
+                &tiny_skia::Paint {
+                    shader: tiny_skia::Shader::SolidColor(into_color(Color {
+                        a: 0.1,
+                        ..background_color
+                    })),
+                    anti_alias: false,
+                    ..Default::default()
+                },
+                tiny_skia::FillRule::default(),
+                tiny_skia::Transform::identity(),
                 None,
-                scale_factor,
-                Vector::ZERO,
             );
         }
 
-        for (i, text) in overlay.iter().enumerate() {
-            const OVERLAY_TEXT_SIZE: f32 = 20.0;
-
-            self.draw_primitive(
-                &Primitive::Text {
-                    content: text.as_ref().to_owned(),
-                    size: OVERLAY_TEXT_SIZE,
-                    bounds: Rectangle {
-                        x: 10.0,
-                        y: 10.0 + i as f32 * OVERLAY_TEXT_SIZE * 1.2,
-                        width: f32::INFINITY,
-                        height: f32::INFINITY,
-                    },
-                    color: Color::BLACK,
-                    font: Font::MONOSPACE,
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Top,
-                },
-                pixels,
-                clip_mask,
-                None,
-                scale_factor,
-                Vector::ZERO,
+        for &region in damage {
+            let path = tiny_skia::PathBuilder::from_rect(
+                tiny_skia::Rect::from_xywh(
+                    region.x,
+                    region.y,
+                    region.width,
+                    region.height,
+                )
+                .expect("Create damage rectangle"),
             );
+
+            pixels.fill_path(
+                &path,
+                &tiny_skia::Paint {
+                    shader: tiny_skia::Shader::SolidColor(into_color(
+                        background_color,
+                    )),
+                    anti_alias: false,
+                    ..Default::default()
+                },
+                tiny_skia::FillRule::default(),
+                tiny_skia::Transform::identity(),
+                None,
+            );
+
+            adjust_clip_mask(clip_mask, region);
+
+            for primitive in primitives {
+                self.draw_primitive(
+                    primitive,
+                    pixels,
+                    clip_mask,
+                    region,
+                    scale_factor,
+                    Vector::ZERO,
+                );
+            }
+
+            if !overlay.is_empty() {
+                pixels.stroke_path(
+                    &path,
+                    &tiny_skia::Paint {
+                        shader: tiny_skia::Shader::SolidColor(into_color(
+                            Color::from_rgb(1.0, 0.0, 0.0),
+                        )),
+                        anti_alias: false,
+                        ..tiny_skia::Paint::default()
+                    },
+                    &tiny_skia::Stroke {
+                        width: 1.0,
+                        ..tiny_skia::Stroke::default()
+                    },
+                    tiny_skia::Transform::identity(),
+                    None,
+                );
+            }
         }
 
         self.text_pipeline.trim_cache();
@@ -97,8 +144,8 @@ impl Backend {
         &mut self,
         primitive: &Primitive,
         pixels: &mut tiny_skia::PixmapMut<'_>,
-        clip_mask: &mut tiny_skia::ClipMask,
-        clip_bounds: Option<Rectangle>,
+        clip_mask: &mut tiny_skia::Mask,
+        clip_bounds: Rectangle,
         scale_factor: f32,
         translation: Vector,
     ) {
@@ -110,6 +157,15 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
                     translation.y,
@@ -117,7 +173,6 @@ impl Backend {
                 .post_scale(scale_factor, scale_factor);
 
                 let path = rounded_rectangle(*bounds, *border_radius);
-                let clip_mask = clip_bounds.map(|_| clip_mask as &_);
 
                 pixels.fill_path(
                     &path,
@@ -165,6 +220,16 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
             } => {
+                let physical_bounds =
+                    (primitive.bounds() + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 self.text_pipeline.draw(
                     content,
                     (*bounds + translation) * scale_factor,
@@ -174,24 +239,28 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     pixels,
-                    clip_bounds.map(|_| clip_mask as &_),
+                    clip_mask,
                 );
             }
             #[cfg(feature = "image")]
             Primitive::Image { handle, bounds } => {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 let transform = tiny_skia::Transform::from_translate(
                     translation.x,
                     translation.y,
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                self.raster_pipeline.draw(
-                    handle,
-                    *bounds,
-                    pixels,
-                    transform,
-                    clip_bounds.map(|_| clip_mask as &_),
-                );
+                self.raster_pipeline
+                    .draw(handle, *bounds, pixels, transform, clip_mask);
             }
             #[cfg(feature = "svg")]
             Primitive::Svg {
@@ -199,12 +268,21 @@ impl Backend {
                 bounds,
                 color,
             } => {
+                let physical_bounds = (*bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 self.vector_pipeline.draw(
                     handle,
                     *color,
                     (*bounds + translation) * scale_factor,
                     pixels,
-                    clip_bounds.map(|_| clip_mask as &_),
+                    clip_mask,
                 );
             }
             Primitive::Fill {
@@ -213,6 +291,23 @@ impl Backend {
                 rule,
                 transform,
             } => {
+                let bounds = path.bounds();
+
+                let physical_bounds = (Rectangle {
+                    x: bounds.x(),
+                    y: bounds.y(),
+                    width: bounds.width(),
+                    height: bounds.height(),
+                } + translation)
+                    * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 pixels.fill_path(
                     path,
                     paint,
@@ -220,7 +315,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_bounds.map(|_| clip_mask as &_),
+                    clip_mask,
                 );
             }
             Primitive::Stroke {
@@ -229,6 +324,23 @@ impl Backend {
                 stroke,
                 transform,
             } => {
+                let bounds = path.bounds();
+
+                let physical_bounds = (Rectangle {
+                    x: bounds.x(),
+                    y: bounds.y(),
+                    width: bounds.width(),
+                    height: bounds.height(),
+                } + translation)
+                    * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
                 pixels.stroke_path(
                     path,
                     paint,
@@ -236,7 +348,7 @@ impl Backend {
                     transform
                         .post_translate(translation.x, translation.y)
                         .post_scale(scale_factor, scale_factor),
-                    clip_bounds.map(|_| clip_mask as &_),
+                    clip_mask,
                 );
             }
             Primitive::Group { primitives } => {
@@ -267,29 +379,38 @@ impl Backend {
             Primitive::Clip { bounds, content } => {
                 let bounds = (*bounds + translation) * scale_factor;
 
-                if bounds.x + bounds.width <= 0.0
-                    || bounds.y + bounds.height <= 0.0
-                    || bounds.x as u32 >= pixels.width()
-                    || bounds.y as u32 >= pixels.height()
-                {
-                    return;
-                }
+                if bounds == clip_bounds {
+                    self.draw_primitive(
+                        content,
+                        pixels,
+                        clip_mask,
+                        bounds,
+                        scale_factor,
+                        translation,
+                    );
+                } else if let Some(bounds) = clip_bounds.intersection(&bounds) {
+                    if bounds.x + bounds.width <= 0.0
+                        || bounds.y + bounds.height <= 0.0
+                        || bounds.x as u32 >= pixels.width()
+                        || bounds.y as u32 >= pixels.height()
+                        || bounds.width <= 1.0
+                        || bounds.height <= 1.0
+                    {
+                        return;
+                    }
 
-                adjust_clip_mask(clip_mask, pixels, bounds);
+                    adjust_clip_mask(clip_mask, bounds);
 
-                self.draw_primitive(
-                    content,
-                    pixels,
-                    clip_mask,
-                    Some(bounds),
-                    scale_factor,
-                    translation,
-                );
+                    self.draw_primitive(
+                        content,
+                        pixels,
+                        clip_mask,
+                        bounds,
+                        scale_factor,
+                        translation,
+                    );
 
-                if let Some(bounds) = clip_bounds {
-                    adjust_clip_mask(clip_mask, pixels, bounds);
-                } else {
-                    clip_mask.clear();
+                    adjust_clip_mask(clip_mask, clip_bounds);
                 }
             }
             Primitive::Cache { content } => {
@@ -462,11 +583,9 @@ fn arc_to(
     }
 }
 
-fn adjust_clip_mask(
-    clip_mask: &mut tiny_skia::ClipMask,
-    pixels: &tiny_skia::PixmapMut<'_>,
-    bounds: Rectangle,
-) {
+fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
+    clip_mask.clear();
+
     let path = {
         let mut builder = tiny_skia::PathBuilder::new();
         builder.push_rect(bounds.x, bounds.y, bounds.width, bounds.height);
@@ -474,15 +593,12 @@ fn adjust_clip_mask(
         builder.finish().unwrap()
     };
 
-    clip_mask
-        .set_path(
-            pixels.width(),
-            pixels.height(),
-            &path,
-            tiny_skia::FillRule::EvenOdd,
-            true,
-        )
-        .expect("Set path of clipping area");
+    clip_mask.fill_path(
+        &path,
+        tiny_skia::FillRule::EvenOdd,
+        false,
+        tiny_skia::Transform::default(),
+    );
 }
 
 impl iced_graphics::Backend for Backend {

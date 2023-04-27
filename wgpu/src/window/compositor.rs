@@ -53,11 +53,12 @@ impl<Theme> Compositor<Theme> {
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: if settings.antialiasing.is_none() {
-                    wgpu::PowerPreference::LowPower
-                } else {
-                    wgpu::PowerPreference::HighPerformance
-                },
+                power_preference: wgpu::util::power_preference_from_env()
+                    .unwrap_or(if settings.antialiasing.is_none() {
+                        wgpu::PowerPreference::LowPower
+                    } else {
+                        wgpu::PowerPreference::HighPerformance
+                    }),
                 compatible_surface: compatible_surface.as_ref(),
                 force_fallback_adapter: false,
             })

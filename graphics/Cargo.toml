@@ -31,7 +31,7 @@ version = "0.9"
 path = "../core"
 
 [dependencies.tiny-skia]
-version = "0.8"
+version = "0.9"
 optional = true
 
 [dependencies.image]

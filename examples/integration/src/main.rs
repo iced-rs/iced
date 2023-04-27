@@ -36,7 +36,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         web_sys::window()
             .and_then(|win| win.document())
             .and_then(|doc| doc.get_element_by_id("iced_canvas"))
-            .and_then(|element| element.dyn_into::<HtmlCanvasElement>().ok())?
+            .and_then(|element| element.dyn_into::<HtmlCanvasElement>().ok())
+            .expect("Get canvas element")
     };
     #[cfg(not(target_arch = "wasm32"))]
     env_logger::init();

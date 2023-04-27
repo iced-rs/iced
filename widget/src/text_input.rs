@@ -1084,6 +1084,8 @@ pub fn draw<Renderer>(
     let render = |renderer: &mut Renderer| {
         if let Some((cursor, color)) = cursor {
             renderer.fill_quad(cursor, color);
+        } else {
+            renderer.with_translation(Vector::ZERO, |_| {});
         }
 
         renderer.fill_text(Text {

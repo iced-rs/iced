@@ -4,6 +4,7 @@ use crate::graphics::{Error, Viewport};
 use crate::{Renderer, Settings};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use std::env;
 
 pub enum Compositor<Theme> {
     #[cfg(feature = "wgpu")]
@@ -28,53 +29,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         settings: Self::Settings,
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error> {
-        #[cfg(feature = "wgpu")]
-        let new_wgpu = |settings: Self::Settings, compatible_window| {
-            let (compositor, backend) = iced_wgpu::window::compositor::new(
-                iced_wgpu::Settings {
-                    default_font: settings.default_font,
-                    default_text_size: settings.default_text_size,
-                    antialiasing: settings.antialiasing,
-                    ..iced_wgpu::Settings::from_env()
-                },
-                compatible_window,
-            )?;
-
-            Ok((
-                Self::Wgpu(compositor),
-                Renderer::new(crate::Backend::Wgpu(backend)),
-            ))
-        };
-
-        #[cfg(feature = "tiny-skia")]
-        let new_tiny_skia = |settings: Self::Settings, _compatible_window| {
-            let (compositor, backend) = iced_tiny_skia::window::compositor::new(
-                iced_tiny_skia::Settings {
-                    default_font: settings.default_font,
-                    default_text_size: settings.default_text_size,
-                },
-            );
-
-            Ok((
-                Self::TinySkia(compositor),
-                Renderer::new(crate::Backend::TinySkia(backend)),
-            ))
-        };
-
-        let fail = |_, _| Err(Error::GraphicsAdapterNotFound);
-
-        let candidates = &[
-            #[cfg(feature = "wgpu")]
-            new_wgpu,
-            #[cfg(feature = "tiny-skia")]
-            new_tiny_skia,
-            fail,
-        ];
+        let candidates =
+            Candidate::list_from_env().unwrap_or(Candidate::default_list());
 
         let mut error = Error::GraphicsAdapterNotFound;
 
         for candidate in candidates {
-            match candidate(settings, compatible_window) {
+            match candidate.build(settings, compatible_window) {
                 Ok((compositor, renderer)) => {
                     return Ok((compositor, renderer))
                 }
@@ -162,11 +123,10 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                 ),
                 #[cfg(feature = "tiny-skia")]
                 (
-                    Self::TinySkia(compositor),
+                    Self::TinySkia(_compositor),
                     crate::Backend::TinySkia(backend),
                     Surface::TinySkia(surface),
                 ) => iced_tiny_skia::window::compositor::present(
-                    compositor,
                     backend,
                     surface,
                     primitives,
@@ -181,5 +141,88 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                 ),
             }
         })
+    }
+}
+
+enum Candidate {
+    Wgpu,
+    TinySkia,
+}
+
+impl Candidate {
+    fn default_list() -> Vec<Self> {
+        vec![
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu,
+            #[cfg(feature = "tiny-skia")]
+            Self::TinySkia,
+        ]
+    }
+
+    fn list_from_env() -> Option<Vec<Self>> {
+        let backends = env::var("ICED_BACKEND").ok()?;
+
+        Some(
+            backends
+                .split(',')
+                .map(str::trim)
+                .map(|backend| match backend {
+                    "wgpu" => Self::Wgpu,
+                    "tiny-skia" => Self::TinySkia,
+                    _ => panic!("unknown backend value: \"{backend}\""),
+                })
+                .collect(),
+        )
+    }
+
+    fn build<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
+        self,
+        settings: Settings,
+        _compatible_window: Option<&W>,
+    ) -> Result<(Compositor<Theme>, Renderer<Theme>), Error> {
+        match self {
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu => {
+                let (compositor, backend) = iced_wgpu::window::compositor::new(
+                    iced_wgpu::Settings {
+                        default_font: settings.default_font,
+                        default_text_size: settings.default_text_size,
+                        antialiasing: settings.antialiasing,
+                        ..iced_wgpu::Settings::from_env()
+                    },
+                    _compatible_window,
+                )?;
+
+                Ok((
+                    Compositor::Wgpu(compositor),
+                    Renderer::new(crate::Backend::Wgpu(backend)),
+                ))
+            }
+            #[cfg(feature = "tiny-skia")]
+            Self::TinySkia => {
+                let (compositor, backend) =
+                    iced_tiny_skia::window::compositor::new(
+                        iced_tiny_skia::Settings {
+                            default_font: settings.default_font,
+                            default_text_size: settings.default_text_size,
+                        },
+                    );
+
+                Ok((
+                    Compositor::TinySkia(compositor),
+                    Renderer::new(crate::Backend::TinySkia(backend)),
+                ))
+            }
+            #[cfg(not(feature = "wgpu"))]
+            Self::Wgpu => {
+                panic!("`wgpu` feature was not enabled in `iced_renderer`")
+            }
+            #[cfg(not(feature = "tiny-skia"))]
+            Self::TinySkia => {
+                panic!(
+                    "`tiny-skia` feature was not enabled in `iced_renderer`"
+                );
+            }
+        }
     }
 }

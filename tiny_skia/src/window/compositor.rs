@@ -1,5 +1,6 @@
-use crate::core::Color;
+use crate::core::{Color, Rectangle};
 use crate::graphics::compositor::{self, Information, SurfaceError};
+use crate::graphics::damage;
 use crate::graphics::{Error, Primitive, Viewport};
 use crate::{Backend, Renderer, Settings};
 
@@ -7,13 +8,15 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
 
 pub struct Compositor<Theme> {
-    clip_mask: tiny_skia::ClipMask,
     _theme: PhantomData<Theme>,
 }
 
 pub struct Surface {
     window: softbuffer::GraphicsContext,
     buffer: Vec<u32>,
+    clip_mask: tiny_skia::Mask,
+    primitives: Option<Vec<Primitive>>,
+    background_color: Color,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -43,6 +46,10 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         Surface {
             window,
             buffer: vec![0; width as usize * height as usize],
+            clip_mask: tiny_skia::Mask::new(width, height)
+                .expect("Create clip mask"),
+            primitives: None,
+            background_color: Color::BLACK,
         }
     }
 
@@ -53,6 +60,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) {
         surface.buffer.resize((width * height) as usize, 0);
+        surface.clip_mask =
+            tiny_skia::Mask::new(width, height).expect("Create clip mask");
+        surface.primitives = None;
     }
 
     fn fetch_information(&self) -> Information {
@@ -72,7 +82,6 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     ) -> Result<(), SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
             present(
-                self,
                 backend,
                 surface,
                 primitives,
@@ -85,18 +94,15 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 }
 
 pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
-    // TOD
     (
         Compositor {
-            clip_mask: tiny_skia::ClipMask::new(),
             _theme: PhantomData,
         },
         Backend::new(settings),
     )
 }
 
-pub fn present<Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<Theme>,
+pub fn present<T: AsRef<str>>(
     backend: &mut Backend,
     surface: &mut Surface,
     primitives: &[Primitive],
@@ -105,17 +111,39 @@ pub fn present<Theme, T: AsRef<str>>(
     overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
+    let scale_factor = viewport.scale_factor() as f32;
+
+    let mut pixels = tiny_skia::PixmapMut::from_bytes(
+        bytemuck::cast_slice_mut(&mut surface.buffer),
+        physical_size.width,
+        physical_size.height,
+    )
+    .expect("Create pixel map");
+
+    let damage = surface
+        .primitives
+        .as_deref()
+        .and_then(|last_primitives| {
+            (surface.background_color == background_color)
+                .then(|| damage::list(last_primitives, primitives))
+        })
+        .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+    if damage.is_empty() {
+        return Ok(());
+    }
+
+    surface.primitives = Some(primitives.to_vec());
+    surface.background_color = background_color;
+
+    let damage = damage::group(damage, scale_factor, physical_size);
 
     backend.draw(
-        &mut tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut surface.buffer),
-            physical_size.width,
-            physical_size.height,
-        )
-        .expect("Create pixel map"),
-        &mut compositor.clip_mask,
+        &mut pixels,
+        &mut surface.clip_mask,
         primitives,
         viewport,
+        &damage,
         background_color,
         overlay,
     );

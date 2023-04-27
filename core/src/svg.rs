@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 /// A handle of Svg data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Handle {
     id: u64,
     data: Arc<Data>,
@@ -57,7 +57,7 @@ impl Hash for Handle {
 }
 
 /// The data of a vectorial image.
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub enum Data {
     /// File data
     Path(PathBuf),
