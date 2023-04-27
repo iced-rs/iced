@@ -15,8 +15,8 @@ pub struct Surface {
     window: softbuffer::GraphicsContext,
     buffer: Vec<u32>,
     clip_mask: tiny_skia::Mask,
-    last_primitives: Option<Vec<Primitive>>,
-    last_background_color: Color,
+    primitives: Option<Vec<Primitive>>,
+    background_color: Color,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -48,8 +48,8 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            last_primitives: None,
-            last_background_color: Color::BLACK,
+            primitives: None,
+            background_color: Color::BLACK,
         }
     }
 
@@ -62,7 +62,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         surface.buffer.resize((width * height) as usize, 0);
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.last_primitives = None;
+        surface.primitives = None;
     }
 
     fn fetch_information(&self) -> Information {
@@ -121,10 +121,10 @@ pub fn present<T: AsRef<str>>(
     .expect("Create pixel map");
 
     let damage = surface
-        .last_primitives
+        .primitives
         .as_deref()
         .and_then(|last_primitives| {
-            (surface.last_background_color == background_color)
+            (surface.background_color == background_color)
                 .then(|| damage::list(last_primitives, primitives))
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
@@ -133,8 +133,8 @@ pub fn present<T: AsRef<str>>(
         return Ok(());
     }
 
-    surface.last_primitives = Some(primitives.to_vec());
-    surface.last_background_color = background_color;
+    surface.primitives = Some(primitives.to_vec());
+    surface.background_color = background_color;
 
     let damage = damage::group(damage, scale_factor, physical_size);
 
