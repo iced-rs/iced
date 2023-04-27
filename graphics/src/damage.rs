@@ -17,19 +17,21 @@ pub fn regions(a: &Primitive, b: &Primitive) -> Vec<Rectangle> {
             Primitive::Clip {
                 bounds: bounds_a,
                 content: content_a,
+                ..
             },
             Primitive::Clip {
                 bounds: bounds_b,
                 content: content_b,
+                ..
             },
         ) => {
             if bounds_a == bounds_b {
                 return regions(content_a, content_b)
                     .into_iter()
-                    .filter_map(|r| r.intersection(bounds_a))
+                    .filter_map(|r| r.intersection(&bounds_a.expand(1.0)))
                     .collect();
             } else {
-                return vec![*bounds_a, *bounds_b];
+                return vec![bounds_a.expand(1.0), bounds_b.expand(1.0)];
             }
         }
         (
