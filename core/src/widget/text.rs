@@ -153,7 +153,7 @@ where
             &self.content,
             self.size,
             self.font,
-            theme.appearance(self.style),
+            theme.appearance(self.style.clone()),
             self.horizontal_alignment,
             self.vertical_alignment,
         );
@@ -233,7 +233,7 @@ where
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
             font: self.font,
-            style: self.style,
+            style: self.style.clone(),
         }
     }
 }
@@ -261,7 +261,7 @@ where
 /// The style sheet of some text.
 pub trait StyleSheet {
     /// The supported style of the [`StyleSheet`].
-    type Style: Default + Copy;
+    type Style: Default + Clone;
 
     /// Produces the [`Appearance`] of some text.
     fn appearance(&self, style: Self::Style) -> Appearance;
