@@ -229,6 +229,13 @@ fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
     }
 }
 
+fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
+    match shaping {
+        Shaping::Basic => cosmic_text::Shaping::Basic,
+        Shaping::Advanced => cosmic_text::Shaping::Advanced,
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct GlyphCache {
     entries: FxHashMap<
@@ -396,7 +403,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
-                matches!(key.shaping, Shaping::Basic),
+                to_shaping(key.shaping),
             );
 
             let _ = entry.insert(buffer);

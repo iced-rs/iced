@@ -24,7 +24,7 @@ features = ["tiny-skia"]
 
 [dependencies.cosmic-text]
 git = "https://github.com/hecrj/cosmic-text.git"
-rev = "ad111a1df10d5da503620f4b841de5d41ebd4e73"
+rev = "b85d6a4f2376f8a8a7dadc0f8bcb89d4db10a1c9"
 
 [dependencies.twox-hash]
 version = "1.6"

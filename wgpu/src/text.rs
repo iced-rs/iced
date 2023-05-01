@@ -311,6 +311,13 @@ fn to_stretch(stretch: font::Stretch) -> glyphon::Stretch {
     }
 }
 
+fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
+    match shaping {
+        Shaping::Basic => glyphon::Shaping::Basic,
+        Shaping::Advanced => glyphon::Shaping::Advanced,
+    }
+}
+
 struct Cache {
     entries: FxHashMap<KeyHash, glyphon::Buffer>,
     recently_used: FxHashSet<KeyHash>,
@@ -369,7 +376,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
-                matches!(key.shaping, Shaping::Basic),
+                to_shaping(key.shaping),
             );
 
             let _ = entry.insert(buffer);
