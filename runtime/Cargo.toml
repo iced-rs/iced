@@ -9,6 +9,8 @@ repository = "https://github.com/iced-rs/iced"
 
 [features]
 debug = []
+a11y = ["iced_accessibility", "iced_core/a11y"]
+
 
 [dependencies]
 thiserror = "1"
@@ -21,3 +23,8 @@ path = "../core"
 version = "0.6"
 path = "../futures"
 features = ["thread-pool"]
+
+[dependencies.iced_accessibility]
+version = "0.1.0"
+path = "../accessibility"
+optional = true

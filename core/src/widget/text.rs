@@ -17,6 +17,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    id: crate::widget::Id,
     content: Cow<'a, str>,
     size: Option<f32>,
     width: Length,
@@ -35,6 +36,7 @@ where
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
         Text {
+            id: crate::widget::Id::unique(),
             content: content.into(),
             size: None,
             font: None,
@@ -158,6 +160,42 @@ where
             self.vertical_alignment,
         );
     }
+
+    #[cfg(feature = "a11y")]
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        _state: &Tree,
+        _: Point,
+    ) -> iced_accessibility::A11yTree {
+        use iced_accessibility::{
+            accesskit::{Live, NodeBuilder, Rect, Role},
+            A11yTree,
+        };
+
+        let Rectangle {
+            x,
+            y,
+            width,
+            height,
+        } = layout.bounds();
+        let bounds = Rect::new(
+            x as f64,
+            y as f64,
+            (x + width) as f64,
+            (y + height) as f64,
+        );
+
+        let mut node = NodeBuilder::new(Role::StaticText);
+
+        // TODO is the name likely different from the content?
+        node.set_name(self.content.to_string().into_boxed_str());
+        node.set_bounds(bounds);
+
+        // TODO make this configurable
+        node.set_live(Live::Polite);
+        A11yTree::leaf(node, self.id.clone())
+    }
 }
 
 /// Draws text using the same logic as the [`Text`] widget.
@@ -226,6 +264,7 @@ where
 {
     fn clone(&self) -> Self {
         Self {
+            id: self.id.clone(),
             content: self.content.clone(),
             size: self.size,
             width: self.width,

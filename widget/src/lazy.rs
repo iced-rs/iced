@@ -5,6 +5,7 @@ pub mod component;
 pub mod responsive;
 
 pub use component::Component;
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
 pub use responsive::Responsive;
 
 mod cache;
@@ -15,7 +16,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{self, Widget};
+use crate::core::widget::Widget;
 use crate::core::Element;
 use crate::core::{
     self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size,
@@ -161,7 +162,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         self.with_element(|element| {
             element.as_widget().operate(

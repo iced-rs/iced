@@ -7,6 +7,7 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use iced_renderer::core::widget::OperationOutputWrapper;
 pub use value::Value;
 
 use editor::Editor;
@@ -272,7 +273,7 @@ where
         tree: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         let state = tree.state.downcast_mut::<State>();
 

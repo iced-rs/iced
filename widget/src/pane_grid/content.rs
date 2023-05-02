@@ -1,10 +1,12 @@
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
+
 use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Tree};
+use crate::core::widget::Tree;
 use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
 use crate::pane_grid::{Draggable, TitleBar};
 
@@ -188,7 +190,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         let body_layout = if let Some(title_bar) = &self.title_bar {
             let mut children = layout.children();

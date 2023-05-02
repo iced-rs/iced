@@ -1,10 +1,12 @@
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
+
 use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Tree};
+use crate::core::widget::Tree;
 use crate::core::{
     Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
@@ -259,7 +261,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         let mut children = layout.children();
         let padded = children.next().unwrap();

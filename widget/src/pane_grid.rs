@@ -24,6 +24,7 @@ pub use configuration::Configuration;
 pub use content::Content;
 pub use direction::Direction;
 pub use draggable::Draggable;
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
 pub use node::Node;
 pub use pane::Pane;
 pub use split::Split;
@@ -39,7 +40,6 @@ use crate::core::mouse;
 use crate::core::overlay::{self, Group};
 use crate::core::renderer;
 use crate::core::touch;
-use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
@@ -295,7 +295,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         operation.container(None, &mut |operation| {
             self.contents

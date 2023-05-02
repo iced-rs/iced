@@ -11,6 +11,7 @@ use crate::core::{
     Point, Rectangle, Shell, Widget,
 };
 
+use iced_renderer::core::widget::OperationOutputWrapper;
 pub use iced_style::container::{Appearance, StyleSheet};
 
 /// An element decorating some content.
@@ -176,7 +177,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         operation.container(
             self.id.as_ref().map(|id| &id.0),
@@ -269,6 +270,19 @@ where
             layout.children().next().unwrap(),
             renderer,
         )
+    }
+
+    #[cfg(feature = "a11y")]
+    /// get the a11y nodes for the widget
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        state: &Tree,
+        p: Point,
+    ) -> iced_accessibility::A11yTree {
+        let c_layout = layout.children().next().unwrap();
+        let c_state = &state.children[0];
+        self.content.as_widget().a11y_nodes(c_layout, c_state, p)
     }
 }
 

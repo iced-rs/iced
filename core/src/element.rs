@@ -317,7 +317,9 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn widget::Operation<
+            widget::OperationOutputWrapper<B>,
+        >,
     ) {
         struct MapOperation<'a, B> {
             operation: &'a mut dyn widget::Operation<B>,
@@ -509,7 +511,9 @@ where
         state: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn widget::Operation<
+            widget::OperationOutputWrapper<Message>,
+        >,
     ) {
         self.element
             .widget

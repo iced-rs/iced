@@ -9,6 +9,7 @@ image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
+a11y = ["iced_accessibility"]
 
 [dependencies]
 unicode-segmentation = "1.6"
@@ -35,3 +36,8 @@ optional = true
 version = "0.12"
 optional = true
 default-features = false
+
+[dependencies.iced_accessibility]
+version = "0.1.0"
+path = "../accessibility"
+optional = true

@@ -4,7 +4,7 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::widget;
+use crate::widget::{self, Operation, OperationOutputWrapper};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 use std::any::Any;
@@ -117,7 +117,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         self.overlay.operate(layout, renderer, operation);
     }
@@ -159,7 +159,7 @@ where
         &mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<B>,
+        operation: &mut dyn Operation<OperationOutputWrapper<B>>,
     ) {
         struct MapOperation<'a, B> {
             operation: &'a mut dyn widget::Operation<B>,
