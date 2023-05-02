@@ -463,6 +463,7 @@ where
             &icon.code_point.to_string(),
             icon.size.unwrap_or_else(|| renderer.default_size()),
             icon.font,
+            text::Shaping::Advanced,
         );
 
         let mut text_node = layout::Node::new(
@@ -975,6 +976,7 @@ pub fn draw<Renderer>(
             bounds: icon_layout.bounds(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            shaping: text::Shaping::Advanced,
         });
     }
 
@@ -1079,6 +1081,7 @@ pub fn draw<Renderer>(
         if text.is_empty() { placeholder } else { &text },
         size,
         font,
+        text::Shaping::Advanced,
     );
 
     let render = |renderer: &mut Renderer| {
@@ -1106,6 +1109,7 @@ pub fn draw<Renderer>(
             size,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
+            shaping: text::Shaping::Advanced,
         });
     };
 
@@ -1310,8 +1314,12 @@ where
 {
     let text_before_cursor = value.until(cursor_index).to_string();
 
-    let text_value_width =
-        renderer.measure_width(&text_before_cursor, size, font);
+    let text_value_width = renderer.measure_width(
+        &text_before_cursor,
+        size,
+        font,
+        text::Shaping::Advanced,
+    );
 
     let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
 
@@ -1344,6 +1352,7 @@ where
             size,
             font,
             Size::INFINITY,
+            text::Shaping::Advanced,
             Point::new(x + offset, text_bounds.height / 2.0),
             true,
         )

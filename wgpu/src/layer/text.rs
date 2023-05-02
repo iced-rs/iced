@@ -1,4 +1,5 @@
 use crate::core::alignment;
+use crate::core::text;
 use crate::core::{Color, Font, Rectangle};
 
 /// A paragraph of text.
@@ -24,4 +25,7 @@ pub struct Text<'a> {
 
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
+
+    /// The shaping strategy of the text.
+    pub shaping: text::Shaping,
 }

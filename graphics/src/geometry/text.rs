@@ -1,5 +1,6 @@
-use iced_core::alignment;
-use iced_core::{Color, Font, Point};
+use crate::core::alignment;
+use crate::core::text::Shaping;
+use crate::core::{Color, Font, Point};
 
 /// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]
@@ -25,6 +26,8 @@ pub struct Text {
     pub horizontal_alignment: alignment::Horizontal,
     /// The vertical alignment of the text
     pub vertical_alignment: alignment::Vertical,
+    /// The shaping strategy of the text.
+    pub shaping: Shaping,
 }
 
 impl Default for Text {
@@ -37,6 +40,7 @@ impl Default for Text {
             font: Font::default(),
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
+            shaping: Shaping::Basic,
         }
     }
 }

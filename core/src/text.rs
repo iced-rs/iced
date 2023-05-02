@@ -27,6 +27,33 @@ pub struct Text<'a, Font> {
 
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
+
+    /// The [`Shaping`] strategy of the [`Text`].
+    pub shaping: Shaping,
+}
+
+/// The shaping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Shaping {
+    /// No shaping and no font fallback.
+    ///
+    /// This shaping strategy is very cheap, but it will not display complex
+    /// scripts properly nor try to find missing glyphs in your system fonts.
+    ///
+    /// You should use this strategy when you have complete control of the text
+    /// and the font you are displaying in your application.
+    ///
+    /// This is the default.
+    #[default]
+    Basic,
+    /// Advanced text shaping and font fallback.
+    ///
+    /// You will need to enable this flag if the text contains a complex
+    /// script, the font used needs it, and/or multiple fonts in your system
+    /// may be needed to display all of the glyphs.
+    ///
+    /// Advanced shaping is expensive! You should only enable it when necessary.
+    Advanced,
 }
 
 /// The result of hit testing on text.
@@ -77,11 +104,19 @@ pub trait Renderer: crate::Renderer {
         size: f32,
         font: Self::Font,
         bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32);
 
     /// Measures the width of the text as if it were laid out in a single line.
-    fn measure_width(&self, content: &str, size: f32, font: Self::Font) -> f32 {
-        let (width, _) = self.measure(content, size, font, Size::INFINITY);
+    fn measure_width(
+        &self,
+        content: &str,
+        size: f32,
+        font: Self::Font,
+        shaping: Shaping,
+    ) -> f32 {
+        let (width, _) =
+            self.measure(content, size, font, Size::INFINITY, shaping);
 
         width
     }
@@ -99,6 +134,7 @@ pub trait Renderer: crate::Renderer {
         size: f32,
         font: Self::Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<Hit>;

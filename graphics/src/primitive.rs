@@ -1,7 +1,8 @@
-use iced_core::alignment;
-use iced_core::image;
-use iced_core::svg;
-use iced_core::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
+use crate::core::alignment;
+use crate::core::image;
+use crate::core::svg;
+use crate::core::text;
+use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
 
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
@@ -26,6 +27,8 @@ pub enum Primitive {
         horizontal_alignment: alignment::Horizontal,
         /// The vertical alignment of the text
         vertical_alignment: alignment::Vertical,
+        /// The shaping strategy of the text.
+        shaping: text::Shaping,
     },
     /// A quad primitive
     Quad {

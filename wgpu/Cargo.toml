@@ -44,7 +44,7 @@ path = "../graphics"
 [dependencies.glyphon]
 version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
-rev = "1d26d92b19407c5dabe4625944d4a6babbbf0715"
+rev = "504aa8a9a1fb42726f02fa244b70119e7ca25933"
 
 [dependencies.encase]
 version = "0.3.0"

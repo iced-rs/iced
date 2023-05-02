@@ -10,6 +10,7 @@ pub use mesh::Mesh;
 pub use quad::Quad;
 pub use text::Text;
 
+use crate::core;
 use crate::core::alignment;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::{Primitive, Viewport};
@@ -64,6 +65,7 @@ impl<'a> Layer<'a> {
                 font: Font::MONOSPACE,
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Top,
+                shaping: core::text::Shaping::Basic,
             };
 
             overlay.text.push(text);
@@ -116,6 +118,7 @@ impl<'a> Layer<'a> {
                 font,
                 horizontal_alignment,
                 vertical_alignment,
+                shaping,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -127,6 +130,7 @@ impl<'a> Layer<'a> {
                     font: *font,
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
+                    shaping: *shaping,
                 });
             }
             Primitive::Quad {

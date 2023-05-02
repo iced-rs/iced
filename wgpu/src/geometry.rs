@@ -334,6 +334,7 @@ impl Frame {
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
         });
     }
 

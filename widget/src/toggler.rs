@@ -43,6 +43,7 @@ where
     size: f32,
     text_size: Option<f32>,
     text_alignment: alignment::Horizontal,
+    text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -80,6 +81,7 @@ where
             size: Self::DEFAULT_SIZE,
             text_size: None,
             text_alignment: alignment::Horizontal::Left,
+            text_shaping: text::Shaping::Basic,
             spacing: 0.0,
             font: None,
             style: Default::default(),
@@ -107,6 +109,12 @@ where
     /// Sets the horizontal alignment of the text of the [`Toggler`]
     pub fn text_alignment(mut self, alignment: alignment::Horizontal) -> Self {
         self.text_alignment = alignment;
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -167,7 +175,8 @@ where
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
-                    ),
+                    )
+                    .shaping(self.text_shaping),
             );
         }
 
@@ -249,6 +258,7 @@ where
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
+                self.text_shaping,
             );
         }
 

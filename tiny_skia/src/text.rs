@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::Hit;
+use crate::core::text::{Hit, Shaping};
 use crate::core::{Color, Point, Rectangle, Size};
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -49,6 +49,7 @@ impl Pipeline {
         font: Font,
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
+        shaping: Shaping,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
@@ -63,6 +64,7 @@ impl Pipeline {
             content,
             font,
             size,
+            shaping,
         };
 
         let (_, buffer) = self.render_cache.allocate(font_system, key);
@@ -130,6 +132,7 @@ impl Pipeline {
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
@@ -140,6 +143,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -159,6 +163,7 @@ impl Pipeline {
         size: f32,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
@@ -171,6 +176,7 @@ impl Pipeline {
                 size,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -220,6 +226,13 @@ fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
         font::Stretch::Expanded => cosmic_text::Stretch::Expanded,
         font::Stretch::ExtraExpanded => cosmic_text::Stretch::ExtraExpanded,
         font::Stretch::UltraExpanded => cosmic_text::Stretch::UltraExpanded,
+    }
+}
+
+fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
+    match shaping {
+        Shaping::Basic => cosmic_text::Shaping::Basic,
+        Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
 }
 
@@ -390,6 +403,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
+                to_shaping(key.shaping),
             );
 
             let _ = entry.insert(buffer);
@@ -420,6 +434,7 @@ struct Key<'a> {
     size: f32,
     font: Font,
     bounds: Size,
+    shaping: Shaping,
 }
 
 type KeyHash = u64;
