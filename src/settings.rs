@@ -1,4 +1,5 @@
 //! Configure your application.
+use crate::renderer;
 use crate::window;
 
 /// The settings of an application.
@@ -64,6 +65,14 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub try_opengles_first: bool,
+
+    /// Override renderer settings
+    ///
+    /// Fields: `default_font`, `default_text_size`, `text_multithreading` and
+    /// `antialiasing` of these override settings are ignored
+    ///
+    /// If `None` is provided, default settings are used
+    pub renderer: Option<renderer::Settings>,
 }
 
 impl<Flags> Settings<Flags> {
@@ -77,6 +86,7 @@ impl<Flags> Settings<Flags> {
             flags,
             id: default_settings.id,
             window: default_settings.window,
+            renderer: default_settings.renderer,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
             text_multithreading: default_settings.text_multithreading,
@@ -95,6 +105,7 @@ where
         Self {
             id: None,
             window: Default::default(),
+            renderer: Default::default(),
             flags: Default::default(),
             default_font: Default::default(),
             default_text_size: 20.0,
