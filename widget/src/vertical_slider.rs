@@ -387,7 +387,7 @@ pub fn draw<T, R>(
     let offset = if range_start >= range_end {
         0.0
     } else {
-        (bounds.height - handle_width / 2.0) * (value - range_end)
+        (bounds.height - handle_width) * (value - range_end)
             / (range_start - range_end)
     };
 
@@ -414,7 +414,7 @@ pub fn draw<T, R>(
                 x: rail_x - style.rail.width / 2.0,
                 y: bounds.y + offset + handle_width / 2.0,
                 width: style.rail.width,
-                height: bounds.height - offset,
+                height: bounds.height - offset - handle_width / 2.0,
             },
             border_radius: Default::default(),
             border_width: 0.0,

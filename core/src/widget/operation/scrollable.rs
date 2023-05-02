@@ -5,6 +5,9 @@ use crate::widget::{Id, Operation};
 pub trait Scrollable {
     /// Snaps the scroll of the widget to the given `percentage` along the horizontal & vertical axis.
     fn snap_to(&mut self, offset: RelativeOffset);
+
+    /// Scroll the widget to the given [`AbsoluteOffset`] along the horizontal & vertical axis.
+    fn scroll_to(&mut self, offset: AbsoluteOffset);
 }
 
 /// Produces an [`Operation`] that snaps the widget with the given [`Id`] to
@@ -34,7 +37,43 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
     SnapTo { target, offset }
 }
 
-/// The amount of offset in each direction of a [`Scrollable`].
+/// Produces an [`Operation`] that scrolls the widget with the given [`Id`] to
+/// the provided [`AbsoluteOffset`].
+pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
+    struct ScrollTo {
+        target: Id,
+        offset: AbsoluteOffset,
+    }
+
+    impl<T> Operation<T> for ScrollTo {
+        fn container(
+            &mut self,
+            _id: Option<&Id>,
+            operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
+        ) {
+            operate_on_children(self)
+        }
+
+        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
+            if Some(&self.target) == id {
+                state.scroll_to(self.offset);
+            }
+        }
+    }
+
+    ScrollTo { target, offset }
+}
+
+/// The amount of absolute offset in each direction of a [`Scrollable`].
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct AbsoluteOffset {
+    /// The amount of horizontal offset
+    pub x: f32,
+    /// The amount of vertical offset
+    pub y: f32,
+}
+
+/// The amount of relative offset in each direction of a [`Scrollable`].
 ///
 /// A value of `0.0` means start, while `1.0` means end.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]

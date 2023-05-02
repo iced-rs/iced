@@ -102,9 +102,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                 capabilities
                     .formats
                     .iter()
-                    .filter(|format| format.describe().srgb)
                     .copied()
-                    .next()
+                    .find(wgpu::TextureFormat::is_srgb)
                     .or_else(|| capabilities.formats.first().copied())
                     .expect("Get preferred format"),
                 adapter

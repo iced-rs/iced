@@ -49,7 +49,7 @@ As a first approach, we could expose the underlying renderer directly here, and 
 In the long run, we could expose a renderer-agnostic abstraction to perform the drawing.
 
 [#32]: https://github.com/iced-rs/iced/issues/32
-[#343] https://github.com/iced-rs/iced/issues/343
+[#343]: https://github.com/iced-rs/iced/issues/343
 
 ### Text shaping and font fallback ([#33])
 [`wgpu_glyph`] uses [`glyph_brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].
