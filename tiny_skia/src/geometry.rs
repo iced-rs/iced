@@ -111,6 +111,7 @@ impl Frame {
             },
             color: text.color,
             size: text.size,
+            line_height: text.line_height,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,

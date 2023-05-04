@@ -1,7 +1,7 @@
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{Hit, Shaping};
-use crate::core::{Point, Rectangle, Size};
+use crate::core::text::{Hit, LineHeight, Shaping};
+use crate::core::{Pixels, Point, Rectangle, Size};
 use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -77,6 +77,11 @@ impl Pipeline {
                     Key {
                         content: section.content,
                         size: section.size * scale_factor,
+                        line_height: f32::from(
+                            section
+                                .line_height
+                                .to_absolute(Pixels(section.size)),
+                        ) * scale_factor,
                         font: section.font,
                         bounds: Size {
                             width: (section.bounds.width * scale_factor).ceil(),
@@ -114,7 +119,7 @@ impl Pipeline {
                     });
 
                 let total_height =
-                    total_lines as f32 * section.size * 1.2 * scale_factor;
+                    total_lines as f32 * buffer.metrics().line_height;
 
                 let left = match section.horizontal_alignment {
                     alignment::Horizontal::Left => x,
@@ -212,17 +217,21 @@ impl Pipeline {
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
         shaping: Shaping,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
+
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
                 shaping,
@@ -236,13 +245,14 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        (max_width, size * 1.2 * total_lines as f32)
+        (max_width, line_height * total_lines as f32)
     }
 
     pub fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
         shaping: Shaping,
@@ -251,11 +261,14 @@ impl Pipeline {
     ) -> Option<Hit> {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
 
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
+
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
                 shaping,
@@ -353,21 +366,23 @@ impl Cache {
 
             key.content.hash(&mut hasher);
             key.size.to_bits().hash(&mut hasher);
+            key.line_height.to_bits().hash(&mut hasher);
             key.font.hash(&mut hasher);
             key.bounds.width.to_bits().hash(&mut hasher);
             key.bounds.height.to_bits().hash(&mut hasher);
+            key.shaping.hash(&mut hasher);
 
             hasher.finish()
         };
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
+            let metrics = glyphon::Metrics::new(key.size, key.line_height);
             let mut buffer = glyphon::Buffer::new(font_system, metrics);
 
             buffer.set_size(
                 font_system,
                 key.bounds.width,
-                key.bounds.height.max(key.size * 1.2),
+                key.bounds.height.max(key.line_height),
             );
             buffer.set_text(
                 font_system,
@@ -399,6 +414,7 @@ impl Cache {
 struct Key<'a> {
     content: &'a str,
     size: f32,
+    line_height: f32,
     font: Font,
     bounds: Size,
     shaping: Shaping,

@@ -216,6 +216,7 @@ impl Backend {
                 bounds,
                 color,
                 size,
+                line_height,
                 font,
                 horizontal_alignment,
                 vertical_alignment,
@@ -233,13 +234,15 @@ impl Backend {
 
                 self.text_pipeline.draw(
                     content,
-                    (*bounds + translation) * scale_factor,
+                    *bounds + translation,
                     *color,
-                    *size * scale_factor,
+                    *size,
+                    *line_height,
                     *font,
                     *horizontal_alignment,
                     *vertical_alignment,
                     *shaping,
+                    scale_factor,
                     pixels,
                     clip_mask,
                 );
@@ -626,18 +629,26 @@ impl backend::Text for Backend {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
     ) -> (f32, f32) {
-        self.text_pipeline
-            .measure(contents, size, font, bounds, shaping)
+        self.text_pipeline.measure(
+            contents,
+            size,
+            line_height,
+            font,
+            bounds,
+            shaping,
+        )
     }
 
     fn hit_test(
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
@@ -647,6 +658,7 @@ impl backend::Text for Backend {
         self.text_pipeline.hit_test(
             contents,
             size,
+            line_height,
             font,
             bounds,
             shaping,

@@ -42,6 +42,7 @@ where
     width: Length,
     size: f32,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
     text_shaping: text::Shaping,
     spacing: f32,
@@ -80,6 +81,7 @@ where
             width: Length::Fill,
             size: Self::DEFAULT_SIZE,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
             text_shaping: text::Shaping::Basic,
             spacing: 0.0,
@@ -103,6 +105,15 @@ where
     /// Sets the text size o the [`Toggler`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`Toggler`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
         self
     }
 
@@ -176,6 +187,7 @@ where
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
                     )
+                    .line_height(self.text_line_height)
                     .shaping(self.text_shaping),
             );
         }
@@ -254,6 +266,7 @@ where
                 label_layout,
                 label,
                 self.text_size,
+                self.text_line_height,
                 self.font,
                 Default::default(),
                 self.text_alignment,

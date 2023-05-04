@@ -14,8 +14,11 @@ pub struct Text<'a> {
     /// The color of the [`Text`], in __linear RGB_.
     pub color: Color,
 
-    /// The size of the [`Text`].
+    /// The size of the [`Text`] in logical pixels.
     pub size: f32,
+
+    /// The line height of the [`Text`].
+    pub line_height: text::LineHeight,
 
     /// The font of the [`Text`].
     pub font: Font,

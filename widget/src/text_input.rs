@@ -68,6 +68,7 @@ where
     width: Length,
     padding: Padding,
     size: Option<f32>,
+    line_height: text::LineHeight,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
@@ -96,6 +97,7 @@ where
             width: Length::Fill,
             padding: Padding::new(5.0),
             size: None,
+            line_height: text::LineHeight::default(),
             on_input: None,
             on_paste: None,
             on_submit: None,
@@ -177,6 +179,15 @@ where
         self
     }
 
+    /// Sets the [`LineHeight`] of the [`TextInput`].
+    pub fn line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.line_height = line_height.into();
+        self
+    }
+
     /// Sets the style of the [`TextInput`].
     pub fn style(
         mut self,
@@ -208,6 +219,7 @@ where
             value.unwrap_or(&self.value),
             &self.placeholder,
             self.size,
+            self.line_height,
             self.font,
             self.on_input.is_none(),
             self.is_secure,
@@ -263,6 +275,7 @@ where
             self.width,
             self.padding,
             self.size,
+            self.line_height,
             self.icon.as_ref(),
         )
     }
@@ -299,6 +312,7 @@ where
             shell,
             &mut self.value,
             self.size,
+            self.line_height,
             self.font,
             self.is_secure,
             self.on_input.as_deref(),
@@ -327,6 +341,7 @@ where
             &self.value,
             &self.placeholder,
             self.size,
+            self.line_height,
             self.font,
             self.on_input.is_none(),
             self.is_secure,
@@ -447,6 +462,7 @@ pub fn layout<Renderer>(
     width: Length,
     padding: Padding,
     size: Option<f32>,
+    line_height: text::LineHeight,
     icon: Option<&Icon<Renderer::Font>>,
 ) -> layout::Node
 where
@@ -454,7 +470,10 @@ where
 {
     let text_size = size.unwrap_or_else(|| renderer.default_size());
     let padding = padding.fit(Size::ZERO, limits.max());
-    let limits = limits.width(width).pad(padding).height(text_size * 1.2);
+    let limits = limits
+        .width(width)
+        .pad(padding)
+        .height(line_height.to_absolute(Pixels(text_size)));
 
     let text_bounds = limits.resolve(Size::ZERO);
 
@@ -515,6 +534,7 @@ pub fn update<'a, Message, Renderer>(
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
     size: Option<f32>,
+    line_height: text::LineHeight,
     font: Option<Renderer::Font>,
     is_secure: bool,
     on_input: Option<&dyn Fn(String) -> Message>,
@@ -567,6 +587,7 @@ where
                                 text_layout.bounds(),
                                 font,
                                 size,
+                                line_height,
                                 &value,
                                 state,
                                 target,
@@ -595,6 +616,7 @@ where
                                 text_layout.bounds(),
                                 font,
                                 size,
+                                line_height,
                                 value,
                                 state,
                                 target,
@@ -644,6 +666,7 @@ where
                     text_layout.bounds(),
                     font,
                     size,
+                    line_height,
                     &value,
                     state,
                     target,
@@ -926,6 +949,7 @@ pub fn draw<Renderer>(
     value: &Value,
     placeholder: &str,
     size: Option<f32>,
+    line_height: text::LineHeight,
     font: Option<Renderer::Font>,
     is_disabled: bool,
     is_secure: bool,
@@ -971,6 +995,7 @@ pub fn draw<Renderer>(
         renderer.fill_text(Text {
             content: &icon.code_point.to_string(),
             size: icon.size.unwrap_or_else(|| renderer.default_size()),
+            line_height: text::LineHeight::default(),
             font: icon.font,
             color: appearance.icon_color,
             bounds: Rectangle {
@@ -1110,6 +1135,7 @@ pub fn draw<Renderer>(
                 ..text_bounds
             },
             size,
+            line_height,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
             shaping: text::Shaping::Advanced,
@@ -1336,6 +1362,7 @@ fn find_cursor_position<Renderer>(
     text_bounds: Rectangle,
     font: Option<Renderer::Font>,
     size: Option<f32>,
+    line_height: text::LineHeight,
     value: &Value,
     state: &State,
     x: f32,
@@ -1353,6 +1380,7 @@ where
         .hit_test(
             &value,
             size,
+            line_height,
             font,
             Size::INFINITY,
             text::Shaping::Advanced,
