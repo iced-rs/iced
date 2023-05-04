@@ -171,7 +171,7 @@ where
             style,
         } = menu;
 
-        let container = Container::new(Scrollable::new(List {
+        let mut container = Container::new(Scrollable::new(List {
             options,
             hovered_option,
             last_selection,
@@ -181,7 +181,7 @@ where
             style: style.clone(),
         }));
 
-        state.tree.diff(&container as &dyn Widget<_, _>);
+        state.tree.diff(&mut container as &mut dyn Widget<_, _>);
 
         Self {
             state: &mut state.tree,

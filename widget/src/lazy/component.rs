@@ -110,13 +110,13 @@ where
     Renderer: renderer::Renderer,
 {
     fn diff_self(&self) {
-        self.with_element(|element| {
+        self.with_element_mut(|element| {
             self.tree
                 .borrow_mut()
                 .borrow_mut()
                 .as_mut()
                 .unwrap()
-                .diff_children(std::slice::from_ref(&element));
+                .diff_children(std::slice::from_mut(element));
         });
     }
 
@@ -225,6 +225,7 @@ where
 
     fn state(&self) -> tree::State {
         let state = Rc::new(RefCell::new(Some(Tree {
+            id: None,
             tag: tree::Tag::of::<Tag<S>>(),
             state: tree::State::new(S::default()),
             children: vec![Tree::empty()],
@@ -237,7 +238,7 @@ where
         vec![]
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
         *self.tree.borrow_mut() = tree.clone();
         self.rebuild_element_if_necessary();
@@ -479,6 +480,34 @@ where
                     overlay: Some(overlay),
                 }),
             )
+        })
+    }
+    fn id(&self) -> Option<iced_accessibility::Id> {
+        self.with_element(|element| element.as_widget().id())
+    }
+
+    fn set_id(&mut self, _id: iced_accessibility::Id) {
+        self.with_element_mut(|element| element.as_widget_mut().set_id(_id));
+    }
+
+    #[cfg(feature = "a11y")]
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        tree: &Tree,
+        cursor_position: Point,
+    ) -> iced_accessibility::A11yTree {
+        let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
+        self.with_element(|element| {
+            if let Some(tree) = tree.borrow().as_ref() {
+                element.as_widget().a11y_nodes(
+                    layout,
+                    &tree.children[0],
+                    cursor_position,
+                )
+            } else {
+                iced_accessibility::A11yTree::default()
+            }
         })
     }
 }

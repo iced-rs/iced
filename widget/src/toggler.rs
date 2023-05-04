@@ -10,7 +10,7 @@ use crate::core::text;
 use crate::core::widget::Id;
 use crate::core::widget::Tree;
 use crate::core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
+    id, Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Point,
     Rectangle, Shell, Widget,
 };
 use crate::{Row, Text};
@@ -454,6 +454,17 @@ where
             ])))
         } else {
             Some(self.id.clone())
+        }
+    }
+
+    fn set_id(&mut self, id: Id) {
+        if let Id(id::Internal::Set(list)) = id {
+            if list.len() == 2 && self.label.is_some() {
+                self.id.0 = list[0].clone();
+                self.label_id = Some(Id(list[1].clone()));
+            }
+        } else if self.label.is_none() {
+            self.id = id;
         }
     }
 }

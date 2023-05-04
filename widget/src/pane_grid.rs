@@ -250,15 +250,20 @@ where
             .collect()
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        match &self.contents {
-            Contents::All(contents, _) => tree.diff_children_custom(
-                contents,
-                |state, (_, content)| content.diff(state),
-                |(_, content)| content.state(),
-            ),
+    fn diff(&mut self, tree: &mut Tree) {
+        match &mut self.contents {
+            Contents::All(contents, _) => {
+                let ids = contents.iter().map(|_| None).collect(); // TODO
+                tree.diff_children_custom(
+                    contents,
+                    ids,
+                    |state, (_, content)| content.diff(state),
+                    |(_, content)| content.state(),
+                )
+            }
             Contents::Maximized(_, content, _) => tree.diff_children_custom(
-                &[content],
+                &mut [content],
+                vec![None], // TODO
                 |state, content| content.diff(state),
                 |content| content.state(),
             ),

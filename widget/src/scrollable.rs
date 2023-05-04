@@ -12,8 +12,8 @@ use crate::core::touch;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    id::Internal, Background, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
 
@@ -222,8 +222,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
     fn width(&self) -> Length {
@@ -517,12 +517,19 @@ where
     }
 
     fn id(&self) -> Option<Id> {
-        use iced_accessibility::Internal;
-
         Some(Id(Internal::Set(vec![
             self.id.0.clone(),
             self.scrollbar_id.0.clone(),
         ])))
+    }
+
+    fn set_id(&mut self, id: Id) {
+        if let Id(Internal::Set(list)) = id {
+            if list.len() == 2 {
+                self.id.0 = list[0].clone();
+                self.scrollbar_id.0 = list[1].clone();
+            }
+        }
     }
 }
 

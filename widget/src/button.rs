@@ -196,8 +196,9 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+    fn diff(&mut self, tree: &mut Tree) {
+        let children = std::slice::from_mut(&mut self.content);
+        tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
     fn width(&self) -> Length {
@@ -411,9 +412,12 @@ where
         )
     }
 
-    // TODO each accessible widget really should always have Id, so maybe this doesn't need to be an option
     fn id(&self) -> Option<Id> {
         Some(self.id.clone())
+    }
+
+    fn set_id(&mut self, id: Id) {
+        self.id = id;
     }
 }
 

@@ -11,8 +11,8 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Alignment, Clipboard, Element, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Widget,
+    id::Internal, Alignment, Clipboard, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Widget,
 };
 use crate::{Row, Text};
 
@@ -410,14 +410,20 @@ where
             A11yTree::leaf(label_node, self.label_id.clone()),
         )
     }
-
     fn id(&self) -> Option<Id> {
-        use iced_accessibility::Internal;
-
         Some(Id(Internal::Set(vec![
             self.id.0.clone(),
             self.label_id.0.clone(),
         ])))
+    }
+
+    fn set_id(&mut self, id: Id) {
+        if let Id(Internal::Set(list)) = id {
+            if list.len() == 2 {
+                self.id.0 = list[0].clone();
+                self.label_id.0 = list[1].clone();
+            }
+        }
     }
 }
 

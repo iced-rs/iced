@@ -89,7 +89,7 @@ where
     }
 
     /// Reconciliates the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
+    fn diff(&mut self, _tree: &mut Tree) {}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -156,4 +156,8 @@ where
     fn id(&self) -> Option<Id> {
         None
     }
+
+    /// Sets the id of the widget
+    /// This may be called while diffing the widget tree
+    fn set_id(&mut self, _id: Id) {}
 }

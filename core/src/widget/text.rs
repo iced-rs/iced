@@ -196,6 +196,14 @@ where
         node.set_live(Live::Polite);
         A11yTree::leaf(node, self.id.clone())
     }
+
+    fn id(&self) -> Option<crate::widget::Id> {
+        Some(self.id.clone().into())
+    }
+
+    fn set_id(&mut self, id: crate::widget::Id) {
+        self.id = id
+    }
 }
 
 /// Draws text using the same logic as the [`Text`] widget.

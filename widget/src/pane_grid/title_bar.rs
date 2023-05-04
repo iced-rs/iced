@@ -102,13 +102,13 @@ where
         }
     }
 
-    pub(super) fn diff(&self, tree: &mut Tree) {
+    pub(super) fn diff(&mut self, tree: &mut Tree) {
         if tree.children.len() == 2 {
-            if let Some(controls) = self.controls.as_ref() {
+            if let Some(controls) = self.controls.as_mut() {
                 tree.children[1].diff(controls);
             }
 
-            tree.children[0].diff(&self.content);
+            tree.children[0].diff(&mut self.content);
         } else {
             *tree = self.state();
         }

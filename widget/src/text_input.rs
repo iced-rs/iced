@@ -21,9 +21,9 @@ use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
-use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::Id;
 use crate::core::window;
 use crate::core::{
     Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
@@ -233,7 +233,7 @@ where
         tree::State::new(State::new())
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let state = tree.state.downcast_mut::<State>();
 
         // Unfocus text input if it becomes disabled
@@ -277,8 +277,8 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
-        operation.focusable(state, self.id.as_ref().map(|id| &id.0));
-        operation.text_input(state, self.id.as_ref().map(|id| &id.0));
+        operation.focusable(state, self.id.as_ref());
+        operation.text_input(state, self.id.as_ref());
     }
 
     fn on_event(
@@ -386,45 +386,21 @@ pub enum Side {
     Right,
 }
 
-/// The identifier of a [`TextInput`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
-    }
-}
-
 /// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
 pub fn focus<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::focusable::focus(id.0))
+    Command::widget(operation::focusable::focus(id))
 }
 
 /// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// end.
 pub fn move_cursor_to_end<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_end(id.0))
+    Command::widget(operation::text_input::move_cursor_to_end(id))
 }
 
 /// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
 /// front.
 pub fn move_cursor_to_front<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to_front(id.0))
+    Command::widget(operation::text_input::move_cursor_to_front(id))
 }
 
 /// Produces a [`Command`] that moves the cursor of the [`TextInput`] with the given [`Id`] to the
@@ -433,12 +409,12 @@ pub fn move_cursor_to<Message: 'static>(
     id: Id,
     position: usize,
 ) -> Command<Message> {
-    Command::widget(operation::text_input::move_cursor_to(id.0, position))
+    Command::widget(operation::text_input::move_cursor_to(id, position))
 }
 
 /// Produces a [`Command`] that selects all the content of the [`TextInput`] with the given [`Id`].
 pub fn select_all<Message: 'static>(id: Id) -> Command<Message> {
-    Command::widget(operation::text_input::select_all(id.0))
+    Command::widget(operation::text_input::select_all(id))
 }
 
 /// Computes the layout of a [`TextInput`].

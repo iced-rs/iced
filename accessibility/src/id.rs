@@ -1,9 +1,10 @@
 //! Widget and Window IDs.
 
+use std::hash::Hash;
 use std::sync::atomic::{self, AtomicU64};
 use std::{borrow, num::NonZeroU128};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub enum A11yId {
     Window(NonZeroU128),
     Widget(Id),
@@ -27,6 +28,7 @@ impl From<NonZeroU128> for A11yId {
 
 impl From<Id> for A11yId {
     fn from(id: Id) -> Self {
+        assert!(!matches!(id.0, Internal::Set(_)));
         Self::Widget(id)
     }
 }
@@ -56,7 +58,7 @@ static NEXT_ID: AtomicU64 = AtomicU64::new(1);
 static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(1);
 
 /// The identifier of a generic widget.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct Id(pub Internal);
 
 impl Id {
@@ -129,7 +131,7 @@ pub fn window_node_id() -> NonZeroU128 {
 }
 
 // TODO refactor to make panic impossible?
-#[derive(Debug, Clone, Eq, Hash)]
+#[derive(Debug, Clone, Eq)]
 /// Internal representation of an [`Id`].
 pub enum Internal {
     /// a unique id
@@ -158,6 +160,16 @@ impl PartialEq for Internal {
             (Self::Set(l0), r) | (r, Self::Set(l0)) => {
                 l0.iter().any(|l| l == r)
             }
+        }
+    }
+}
+
+impl Hash for Internal {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Unique(id) => id.hash(state),
+            Self::Custom(name, _) => name.hash(state),
+            Self::Set(ids) => ids.hash(state),
         }
     }
 }

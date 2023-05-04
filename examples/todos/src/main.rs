@@ -1,6 +1,7 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
 use iced::font::{self, Font};
+use iced::id::Id;
 use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
@@ -15,7 +16,7 @@ use iced::{Color, Command, Length, Settings, Subscription};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
-static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
+static INPUT_ID: Lazy<Id> = Lazy::new(Id::unique);
 
 pub fn main() -> iced::Result {
     Todos::run(Settings {
@@ -324,8 +325,8 @@ pub enum TaskMessage {
 }
 
 impl Task {
-    fn text_input_id(i: usize) -> text_input::Id {
-        text_input::Id::new(format!("task-{i}"))
+    fn text_input_id(i: usize) -> Id {
+        Id::new(format!("task-{i}"))
     }
 
     fn new(description: String) -> Self {

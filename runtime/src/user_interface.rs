@@ -93,10 +93,10 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        state.diff(root.as_widget_mut());
 
         let base =
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));

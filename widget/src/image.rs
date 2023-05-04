@@ -301,6 +301,10 @@ where
     fn id(&self) -> Option<Id> {
         Some(self.id.clone())
     }
+
+    fn set_id(&mut self, id: Id) {
+        self.id = id;
+    }
 }
 
 impl<'a, Message, Renderer, Handle> From<Image<'a, Handle>>

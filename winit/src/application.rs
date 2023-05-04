@@ -784,8 +784,8 @@ where
 {
     // XXX Ashley: for multi-window this should be moved to build_user_interfaces
     // TODO refactor:
-    #[cfg(feature = "a11y")]
-    core::widget::Id::reset();
+    // #[cfg(feature = "a11y")]
+    // core::widget::Id::reset();
 
     #[cfg(feature = "trace")]
     let view_span = info_span!("Application", "VIEW").entered();

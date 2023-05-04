@@ -110,8 +110,8 @@ where
         self.children.iter().map(Tree::new).collect()
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children);
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(self.children.as_mut_slice());
     }
 
     fn width(&self) -> Length {
