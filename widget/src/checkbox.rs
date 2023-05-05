@@ -46,6 +46,7 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
@@ -83,6 +84,7 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
             icon: Icon {
@@ -116,6 +118,15 @@ where
     /// Sets the text size of the [`Checkbox`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`Checkbox`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
         self
     }
 
@@ -181,6 +192,7 @@ where
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
                     )
+                    .line_height(self.text_line_height)
                     .shaping(self.text_shaping),
             )
             .layout(renderer, limits)
@@ -276,6 +288,7 @@ where
                     content: &code_point.to_string(),
                     font: *font,
                     size,
+                    line_height: text::LineHeight::default(),
                     bounds: Rectangle {
                         x: bounds.center_x(),
                         y: bounds.center_y(),
@@ -298,6 +311,7 @@ where
                 label_layout,
                 &self.label,
                 self.text_size,
+                self.text_line_height,
                 self.font,
                 crate::text::Appearance {
                     color: custom_style.text_color,

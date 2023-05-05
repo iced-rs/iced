@@ -19,8 +19,10 @@ pub enum Primitive {
         bounds: Rectangle,
         /// The color of the text
         color: Color,
-        /// The size of the text
+        /// The size of the text in logical pixels
         size: f32,
+        /// The line height of the text
+        line_height: text::LineHeight,
         /// The font of the text
         font: Font,
         /// The horizontal alignment of the text

@@ -46,6 +46,7 @@ impl backend::Text for Backend {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
@@ -53,7 +54,7 @@ impl backend::Text for Backend {
         delegate!(
             self,
             backend,
-            backend.measure(contents, size, font, bounds, shaping)
+            backend.measure(contents, size, line_height, font, bounds, shaping)
         )
     }
 
@@ -61,6 +62,7 @@ impl backend::Text for Backend {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
@@ -73,6 +75,7 @@ impl backend::Text for Backend {
             backend.hit_test(
                 contents,
                 size,
+                line_height,
                 font,
                 bounds,
                 shaping,

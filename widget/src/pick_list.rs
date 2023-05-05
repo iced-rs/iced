@@ -36,6 +36,7 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
@@ -72,6 +73,7 @@ where
             width: Length::Shrink,
             padding: Self::DEFAULT_PADDING,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
             handle: Default::default(),
@@ -100,6 +102,15 @@ where
     /// Sets the text size of the [`PickList`].
     pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
         self.text_size = Some(size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`PickList`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
         self
     }
 
@@ -172,6 +183,7 @@ where
             self.width,
             self.padding,
             self.text_size,
+            self.text_line_height,
             self.text_shaping,
             self.font,
             self.placeholder.as_deref(),
@@ -230,6 +242,7 @@ where
             cursor_position,
             self.padding,
             self.text_size,
+            self.text_line_height,
             self.text_shaping,
             font,
             self.placeholder.as_deref(),
@@ -358,6 +371,7 @@ pub fn layout<Renderer, T>(
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     placeholder: Option<&str>,
@@ -375,11 +389,10 @@ where
     let max_width = match width {
         Length::Shrink => {
             let measure = |label: &str| -> f32 {
-                let (width, _) = renderer.measure(
+                let width = renderer.measure_width(
                     label,
                     text_size,
                     font.unwrap_or_else(|| renderer.default_font()),
-                    Size::new(f32::INFINITY, f32::INFINITY),
                     text_shaping,
                 );
 
@@ -400,8 +413,10 @@ where
     };
 
     let size = {
-        let intrinsic =
-            Size::new(max_width + text_size + padding.left, text_size * 1.2);
+        let intrinsic = Size::new(
+            max_width + text_size + padding.left,
+            f32::from(text_line_height.to_absolute(Pixels(text_size))),
+        );
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -579,6 +594,7 @@ pub fn draw<'a, T, Renderer>(
     cursor_position: Point,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Renderer::Font,
     placeholder: Option<&str>,
@@ -645,6 +661,7 @@ pub fn draw<'a, T, Renderer>(
         renderer.fill_text(Text {
             content: &code_point.to_string(),
             size,
+            line_height: text::LineHeight::default(),
             font,
             color: style.handle_color,
             bounds: Rectangle {
@@ -667,6 +684,7 @@ pub fn draw<'a, T, Renderer>(
         renderer.fill_text(Text {
             content: label,
             size: text_size,
+            line_height: text_line_height,
             font,
             color: if is_selected {
                 style.text_color

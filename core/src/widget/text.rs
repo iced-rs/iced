@@ -19,6 +19,7 @@ where
 {
     content: Cow<'a, str>,
     size: Option<f32>,
+    line_height: text::LineHeight,
     width: Length,
     height: Length,
     horizontal_alignment: alignment::Horizontal,
@@ -38,6 +39,7 @@ where
         Text {
             content: content.into(),
             size: None,
+            line_height: text::LineHeight::default(),
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
@@ -51,6 +53,15 @@ where
     /// Sets the size of the [`Text`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
         self.size = Some(size.into().0);
+        self
+    }
+
+    /// Sets the [`LineHeight`] of the [`Text`].
+    pub fn line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.line_height = line_height.into();
         self
     }
 
@@ -135,6 +146,7 @@ where
         let (width, height) = renderer.measure(
             &self.content,
             size,
+            self.line_height,
             self.font.unwrap_or_else(|| renderer.default_font()),
             bounds,
             self.shaping,
@@ -161,6 +173,7 @@ where
             layout,
             &self.content,
             self.size,
+            self.line_height,
             self.font,
             theme.appearance(self.style.clone()),
             self.horizontal_alignment,
@@ -186,6 +199,7 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     content: &str,
     size: Option<f32>,
+    line_height: text::LineHeight,
     font: Option<Renderer::Font>,
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
@@ -208,9 +222,12 @@ pub fn draw<Renderer>(
         alignment::Vertical::Bottom => bounds.y + bounds.height,
     };
 
+    let size = size.unwrap_or_else(|| renderer.default_size());
+
     renderer.fill_text(crate::Text {
         content,
-        size: size.unwrap_or_else(|| renderer.default_size()),
+        size,
+        line_height,
         bounds: Rectangle { x, y, ..bounds },
         color: appearance.color.unwrap_or(style.text_color),
         font: font.unwrap_or_else(|| renderer.default_font()),
@@ -240,6 +257,7 @@ where
         Self {
             content: self.content.clone(),
             size: self.size,
+            line_height: self.line_height,
             width: self.width,
             height: self.height,
             horizontal_alignment: self.horizontal_alignment,

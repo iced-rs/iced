@@ -136,17 +136,26 @@ where
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
     ) -> (f32, f32) {
-        self.backend().measure(content, size, font, bounds, shaping)
+        self.backend().measure(
+            content,
+            size,
+            line_height,
+            font,
+            bounds,
+            shaping,
+        )
     }
 
     fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
@@ -156,6 +165,7 @@ where
         self.backend().hit_test(
             content,
             size,
+            line_height,
             font,
             bounds,
             shaping,
@@ -173,6 +183,7 @@ where
             content: text.content.to_string(),
             bounds: text.bounds,
             size: text.size,
+            line_height: text.line_height,
             color: text.color,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
