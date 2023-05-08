@@ -99,6 +99,10 @@ impl Pipeline {
             alignment::Vertical::Bottom => bounds.y - total_height,
         };
 
+        // TODO: Subpixel glyph positioning
+        let x = x.round() as i32;
+        let y = y.round() as i32;
+
         let mut swash = cosmic_text::SwashCache::new();
 
         for run in buffer.layout_runs() {
@@ -117,9 +121,8 @@ impl Pipeline {
                     .expect("Create glyph pixel map");
 
                     pixels.draw_pixmap(
-                        x as i32 + glyph.x_int + placement.left,
-                        y as i32 - glyph.y_int - placement.top
-                            + run.line_y as i32,
+                        x + glyph.x_int + placement.left,
+                        y - glyph.y_int - placement.top + run.line_y as i32,
                         pixmap,
                         &tiny_skia::PixmapPaint::default(),
                         tiny_skia::Transform::identity(),

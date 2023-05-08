@@ -133,10 +133,14 @@ impl Pipeline {
                     alignment::Vertical::Bottom => y - total_height,
                 };
 
+                // TODO: Subpixel glyph positioning
+                let left = left.round() as i32;
+                let top = top.round() as i32;
+
                 glyphon::TextArea {
                     buffer,
-                    left: left as i32,
-                    top: top as i32,
+                    left,
+                    top,
                     bounds,
                     default_color: {
                         let [r, g, b, a] = section.color.into_linear();
