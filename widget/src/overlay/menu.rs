@@ -508,7 +508,11 @@ where
             if is_selected {
                 renderer.fill_quad(
                     renderer::Quad {
-                        bounds,
+                        bounds: Rectangle {
+                            x: bounds.x + appearance.border_width,
+                            width: bounds.width - appearance.border_width * 2.0,
+                            ..bounds
+                        },
                         border_color: Color::TRANSPARENT,
                         border_width: 0.0,
                         border_radius: appearance.border_radius.into(),
