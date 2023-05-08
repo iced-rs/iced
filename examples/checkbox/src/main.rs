@@ -59,6 +59,7 @@ impl Application for Example {
                     font: ICON_FONT,
                     code_point: '\u{e901}',
                     size: None,
+                    line_height: text::LineHeight::Relative(1.0),
                     shaping: text::Shaping::Basic,
                 });
 

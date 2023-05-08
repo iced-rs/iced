@@ -91,6 +91,7 @@ where
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
                 size: None,
+                line_height: text::LineHeight::default(),
                 shaping: text::Shaping::Basic,
             },
             style: Default::default(),
@@ -279,6 +280,7 @@ where
                 font,
                 code_point,
                 size,
+                line_height,
                 shaping,
             } = &self.icon;
             let size = size.unwrap_or(bounds.height * 0.7);
@@ -288,7 +290,7 @@ where
                     content: &code_point.to_string(),
                     font: *font,
                     size,
-                    line_height: text::LineHeight::default(),
+                    line_height: *line_height,
                     bounds: Rectangle {
                         x: bounds.center_x(),
                         y: bounds.center_y(),
@@ -347,6 +349,8 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// The line height of the icon.
+    pub line_height: text::LineHeight,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
 }
