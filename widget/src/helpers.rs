@@ -19,6 +19,11 @@ use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::{Column, MouseArea, Row, Space, VerticalSlider};
 
+#[cfg(feature = "wayland")]
+use crate::dnd_listener::DndListener;
+#[cfg(feature = "wayland")]
+use crate::dnd_source::DndSource;
+
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
 
@@ -370,4 +375,26 @@ where
     Renderer: core::Renderer,
 {
     MouseArea::new(widget)
+}
+
+#[cfg(feature = "wayland")]
+/// A container for a dnd source
+pub fn dnd_source<'a, Message, Renderer>(
+    widget: impl Into<Element<'a, Message, Renderer>>,
+) -> DndSource<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    DndSource::new(widget)
+}
+
+#[cfg(feature = "wayland")]
+/// A container for a dnd target
+pub fn dnd_listener<'a, Message, Renderer>(
+    widget: impl Into<Element<'a, Message, Renderer>>,
+) -> DndListener<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    DndListener::new(widget)
 }

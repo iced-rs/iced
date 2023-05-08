@@ -10,10 +10,11 @@ repository = "https://github.com/iced-rs/iced"
 [features]
 debug = []
 a11y = ["iced_accessibility", "iced_core/a11y"]
-
+wayland = ["iced_accessibility?/accesskit_unix", "iced_core/wayland", "sctk"]
 
 [dependencies]
 thiserror = "1"
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/smithay/client-toolkit", rev = "389a4f2", optional = true }
 
 [dependencies.iced_core]
 version = "0.9"

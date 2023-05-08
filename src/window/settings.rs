@@ -1,5 +1,4 @@
 use crate::window::{Icon, Position};
-
 pub use iced_winit::settings::PlatformSpecific;
 
 /// The window settings of an application.

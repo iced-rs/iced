@@ -21,22 +21,29 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
+            Some(Event::Window(
+                window::Id::default(),
+                window::Event::Resized {
+                    width: logical_size.width,
+                    height: logical_size.height,
+                },
+            ))
         }
         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
             let logical_size = new_inner_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
+            Some(Event::Window(
+                window::Id::default(),
+                window::Event::Resized {
+                    width: logical_size.width,
+                    height: logical_size.height,
+                },
+            ))
         }
-        WindowEvent::CloseRequested => {
-            Some(Event::Window(window::Event::CloseRequested))
-        }
+        WindowEvent::CloseRequested => Some(Event::Window(
+            window::Id::default(),
+            window::Event::CloseRequested,
+        )),
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
 
@@ -113,20 +120,26 @@ pub fn window_event(
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
             keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
-        WindowEvent::Focused(focused) => Some(Event::Window(if *focused {
-            window::Event::Focused
-        } else {
-            window::Event::Unfocused
-        })),
-        WindowEvent::HoveredFile(path) => {
-            Some(Event::Window(window::Event::FileHovered(path.clone())))
-        }
-        WindowEvent::DroppedFile(path) => {
-            Some(Event::Window(window::Event::FileDropped(path.clone())))
-        }
-        WindowEvent::HoveredFileCancelled => {
-            Some(Event::Window(window::Event::FilesHoveredLeft))
-        }
+        WindowEvent::Focused(focused) => Some(Event::Window(
+            window::Id::default(),
+            if *focused {
+                window::Event::Focused
+            } else {
+                window::Event::Unfocused
+            },
+        )),
+        WindowEvent::HoveredFile(path) => Some(Event::Window(
+            window::Id::default(),
+            window::Event::FileHovered(path.clone()),
+        )),
+        WindowEvent::DroppedFile(path) => Some(Event::Window(
+            window::Id::default(),
+            window::Event::FileDropped(path.clone()),
+        )),
+        WindowEvent::HoveredFileCancelled => Some(Event::Window(
+            window::Id::default(),
+            window::Event::FilesHoveredLeft,
+        )),
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(*touch, scale_factor)))
         }
@@ -134,7 +147,10 @@ pub fn window_event(
             let winit::dpi::LogicalPosition { x, y } =
                 position.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Moved { x, y }))
+            Some(Event::Window(
+                window::Id::default(),
+                window::Event::Moved { x, y },
+            ))
         }
         _ => None,
     }

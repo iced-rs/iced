@@ -1,4 +1,6 @@
 //! Build interactive cross-platform applications.
+use iced_core::window::Id;
+
 use crate::{Command, Element, Executor, Settings, Subscription};
 
 pub use crate::style::application::{Appearance, StyleSheet};
@@ -226,7 +228,7 @@ where
         self.0.update(message)
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
+    fn view(&self, _id: Id) -> Element<'_, Self::Message, Self::Renderer> {
         self.0.view()
     }
 }

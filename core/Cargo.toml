@@ -9,11 +9,13 @@ repository = "https://github.com/iced-rs/iced"
 
 [features]
 a11y = ["iced_accessibility"]
+wayland = ["iced_accessibility?/accesskit_unix", "sctk"]
 
 [dependencies]
 bitflags = "1.2"
 thiserror = "1"
 twox-hash = { version = "1.5", default-features = false }
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/smithay/client-toolkit", rev = "389a4f2", optional = true }
 
 [dependencies.palette]
 version = "0.6"

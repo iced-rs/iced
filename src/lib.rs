@@ -164,22 +164,36 @@
 #![forbid(rust_2018_idioms, unsafe_code)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+pub use iced_futures::futures;
 use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_widget::style;
-use iced_winit as shell;
-use iced_winit::core;
-use iced_winit::runtime;
 
-pub use iced_futures::futures;
+#[cfg(feature = "wayland")]
+use iced_sctk as shell;
+#[cfg(feature = "winit")]
+use iced_winit as shell;
+use shell::core;
+use shell::runtime;
 
 mod error;
-mod sandbox;
 
-pub mod application;
 pub mod settings;
 pub mod time;
 pub mod window;
+
+#[cfg(feature = "winit")]
+mod sandbox;
+#[cfg(feature = "winit")]
+pub mod application;
+
+/// wayland application
+#[cfg(feature = "wayland")]
+pub mod wayland;
+#[cfg(feature = "wayland")]
+pub use wayland::sandbox;
+#[cfg(feature = "wayland")]
+pub use wayland::Application;
 
 #[cfg(feature = "advanced")]
 pub mod advanced;
@@ -277,7 +291,9 @@ pub mod widget {
     mod style {}
 }
 
+#[cfg(feature = "winit")]
 pub use application::Application;
+
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

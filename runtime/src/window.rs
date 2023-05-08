@@ -1,6 +1,7 @@
 //! Build window-based GUI applications.
 mod action;
 
+pub use crate::core::window::Id;
 pub use action::Action;
 
 use crate::command::{self, Command};
@@ -18,7 +19,7 @@ use crate::futures::subscription::{self, Subscription};
 /// animations without missing any frames.
 pub fn frames() -> Subscription<Instant> {
     subscription::raw_events(|event, _status| match event {
-        iced_core::Event::Window(Event::RedrawRequested(at)) => Some(at),
+        iced_core::Event::Window(_, Event::RedrawRequested(at)) => Some(at),
         _ => None,
     })
 }

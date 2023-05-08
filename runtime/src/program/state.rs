@@ -26,12 +26,14 @@ where
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
     pub fn new(
+        id: crate::window::Id,
         mut program: P,
         bounds: Size,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
         let user_interface = build_user_interface(
+            id,
             &mut program,
             user_interface::Cache::default(),
             renderer,
@@ -87,6 +89,7 @@ where
     /// after updating it, only if an update was necessary.
     pub fn update(
         &mut self,
+        id: crate::window::Id,
         bounds: Size,
         cursor_position: Point,
         renderer: &mut P::Renderer,
@@ -96,6 +99,7 @@ where
         debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
+            id,
             &mut self.program,
             self.cache.take().unwrap(),
             renderer,
@@ -154,6 +158,7 @@ where
                 }));
 
             let mut user_interface = build_user_interface(
+                id,
                 &mut self.program,
                 temp_cache,
                 renderer,
@@ -176,6 +181,7 @@ where
 }
 
 fn build_user_interface<'a, P: Program>(
+    id: crate::window::Id,
     program: &'a mut P,
     cache: user_interface::Cache,
     renderer: &mut P::Renderer,
@@ -183,7 +189,7 @@ fn build_user_interface<'a, P: Program>(
     debug: &mut Debug,
 ) -> UserInterface<'a, P::Message, P::Renderer> {
     debug.view_started();
-    let view = program.view();
+    let view = program.view(id);
     debug.view_finished();
 
     debug.layout_started();

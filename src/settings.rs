@@ -1,6 +1,10 @@
-//! Configure your application.
+//! Configure your application
+
+#[cfg(feature = "winit")]
 use crate::window;
 use crate::Font;
+#[cfg(feature = "wayland")]
+use iced_sctk::settings::InitialSurface;
 
 /// The settings of an application.
 #[derive(Debug, Clone)]
@@ -14,7 +18,12 @@ pub struct Settings<Flags> {
     /// The window settings.
     ///
     /// They will be ignored on the Web.
+    #[cfg(feature = "winit")]
     pub window: window::Settings,
+
+    /// The window settings.
+    #[cfg(feature = "wayland")]
+    pub initial_surface: InitialSurface,
 
     /// The data needed to initialize the [`Application`].
     ///
@@ -51,13 +60,13 @@ pub struct Settings<Flags> {
     pub exit_on_close_request: bool,
 }
 
+#[cfg(feature = "winit")]
 impl<Flags> Settings<Flags> {
     /// Initialize [`Application`] settings using the given data.
     ///
     /// [`Application`]: crate::Application
     pub fn with_flags(flags: Flags) -> Self {
         let default_settings = Settings::<()>::default();
-
         Self {
             flags,
             id: default_settings.id,
@@ -70,6 +79,7 @@ impl<Flags> Settings<Flags> {
     }
 }
 
+#[cfg(feature = "winit")]
 impl<Flags> Default for Settings<Flags>
 where
     Flags: Default,
@@ -87,6 +97,7 @@ where
     }
 }
 
+#[cfg(feature = "winit")]
 impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
@@ -94,6 +105,57 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
             window: settings.window.into(),
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
+        }
+    }
+}
+
+#[cfg(feature = "wayland")]
+impl<Flags> Settings<Flags> {
+    /// Initialize [`Application`] settings using the given data.
+    ///
+    /// [`Application`]: crate::Application
+    pub fn with_flags(flags: Flags) -> Self {
+        let default_settings = Settings::<()>::default();
+
+        Self {
+            flags,
+            id: default_settings.id,
+            initial_surface: default_settings.initial_surface,
+            default_font: default_settings.default_font,
+            default_text_size: default_settings.default_text_size,
+            antialiasing: default_settings.antialiasing,
+            exit_on_close_request: default_settings.exit_on_close_request,
+        }
+    }
+}
+
+#[cfg(feature = "wayland")]
+impl<Flags> Default for Settings<Flags>
+where
+    Flags: Default,
+{
+    fn default() -> Self {
+        Self {
+            id: None,
+            initial_surface: Default::default(),
+            flags: Default::default(),
+            default_font: Default::default(),
+            default_text_size: 16.0,
+            antialiasing: false,
+            exit_on_close_request: true,
+        }
+    }
+}
+
+#[cfg(feature = "wayland")]
+impl<Flags> From<Settings<Flags>> for iced_sctk::Settings<Flags> {
+    fn from(settings: Settings<Flags>) -> iced_sctk::Settings<Flags> {
+        iced_sctk::Settings {
+            kbd_repeat: Default::default(),
+            surface: settings.initial_surface,
+            flags: settings.flags,
+            exit_on_close_request: settings.exit_on_close_request,
+            ptr_theme: None,
         }
     }
 }

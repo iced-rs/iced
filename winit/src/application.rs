@@ -487,6 +487,7 @@ async fn run_instance<A, E, C>(
                 // Then, we can use the `interface_state` here to decide if a redraw
                 // is needed right away, or simply wait until a specific time.
                 let redraw_event = Event::Window(
+                    window::Id::default(),
                     window::Event::RedrawRequested(Instant::now()),
                 );
 
@@ -791,7 +792,7 @@ where
     let view_span = info_span!("Application", "VIEW").entered();
 
     debug.view_started();
-    let view = application.view();
+    let view = application.view(Default::default());
 
     #[cfg(feature = "trace")]
     let _ = view_span.exit();

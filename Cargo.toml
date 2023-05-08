@@ -28,7 +28,7 @@ qr_code = ["iced_widget/qr_code"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_winit/debug"]
+debug = ["iced_winit?/debug", "iced_sctk?/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
@@ -38,13 +38,15 @@ smol = ["iced_futures/smol"]
 # Enables advanced color conversion via `palette`
 palette = ["iced_core/palette"]
 # Enables querying system information
-system = ["iced_winit/system"]
+system = ["iced_winit?/system", "iced_sctk?/system"]
 # Enables the advanced module
 advanced = []
 # Enables the `accesskit` accessibility library
-a11y = ["iced_accessibility", "iced_widget/a11y", "iced_winit?/a11y"]
+a11y = ["iced_accessibility", "iced_widget/a11y", "iced_winit?/a11y", "iced_sctk?/a11y"]
 # Enables the winit shell. Conflicts with `wayland` and `glutin`.
 winit = ["iced_winit"]
+# Enables the sctk shell. COnflicts with `winit` and `glutin`.
+wayland = ["iced_sctk", "iced_widget/wayland", "iced_accessibility?/accesskit_unix"]
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -63,6 +65,7 @@ members = [
     "winit",
     "examples/*",
     "accessibility",
+    "sctk"
 ]
 
 [dependencies]
@@ -71,6 +74,7 @@ iced_futures = { version = "0.6", path = "futures" }
 iced_renderer = { version = "0.1", path = "renderer" }
 iced_widget = { version = "0.1", path = "widget" }
 iced_winit = { version = "0.9", path = "winit", features = ["application"], optional = true }
+iced_sctk = { path = "./sctk", optional = true }
 iced_accessibility = { version = "0.1", path = "accessibility", optional = true }
 thiserror = "1"
 

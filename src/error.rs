@@ -24,8 +24,13 @@ impl From<shell::Error> for Error {
             shell::Error::ExecutorCreationFailed(error) => {
                 Error::ExecutorCreationFailed(error)
             }
+            #[cfg(feature = "winit")]
             shell::Error::WindowCreationFailed(error) => {
                 Error::WindowCreationFailed(Box::new(error))
+            }
+            #[cfg(feature = "wayland")]
+            shell::Error::WindowCreationFailed(error) => {
+                Error::WindowCreationFailed(error)
             }
             shell::Error::GraphicsCreationFailed(error) => {
                 Error::GraphicsCreationFailed(error)

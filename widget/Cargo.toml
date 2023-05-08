@@ -10,10 +10,12 @@ svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
 a11y = ["iced_accessibility"]
+wayland = ["sctk"]
 
 [dependencies]
 unicode-segmentation = "1.6"
 num-traits = "0.2"
+sctk = { package = "smithay-client-toolkit", git = "https://github.com/smithay/client-toolkit", rev = "389a4f2", optional = true }
 thiserror = "1"
 
 [dependencies.iced_runtime]

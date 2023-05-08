@@ -12,6 +12,7 @@ categories = ["gui"]
 
 [features]
 thread-pool = ["futures/thread-pool"]
+a11y = ["iced_core/a11y"]
 
 [dependencies]
 log = "0.4"

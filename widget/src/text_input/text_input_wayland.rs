@@ -1,16 +1,10 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
-mod editor;
-mod value;
-
-pub mod cursor;
-
-pub use cursor::Cursor;
-use iced_renderer::core::widget::OperationOutputWrapper;
-pub use value::Value;
-
-use editor::Editor;
+use super::cursor;
+pub use super::cursor::Cursor;
+use super::editor::Editor;
+pub use super::value::Value;
 
 use crate::core::alignment;
 use crate::core::event::{self, Event};
@@ -30,8 +24,24 @@ use crate::core::{
     Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
+use iced_renderer::core::event::{wayland, PlatformSpecific};
+use iced_renderer::core::widget::OperationOutputWrapper;
 
+use iced_runtime::command::platform_specific;
+use iced_runtime::command::platform_specific::wayland::data_device::{
+    DataFromMimeType, DndIcon,
+};
 pub use iced_style::text_input::{Appearance, StyleSheet};
+use sctk::reexports::client::protocol::wl_data_device_manager::DndAction;
+
+const SUPPORTED_MIME_TYPES: &'static [&'static str; 6] = &[
+    "text/plain;charset=utf-8",
+    "text/plain;charset=UTF-8",
+    "UTF8_STRING",
+    "STRING",
+    "text/plain",
+    "TEXT",
+];
 
 /// A field that can be filled with text.
 ///
@@ -74,6 +84,12 @@ where
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
+    // (text_input::State, mime_type, dnd_action) -> Message
+    on_create_dnd_source: Option<Box<dyn Fn(State) -> Message + 'a>>,
+    on_dnd_command_produced:
+        Option<Box<dyn Fn(Box<dyn Send + Sync + Fn() -> platform_specific::wayland::data_device::ActionInner>) -> Message + 'a>>,
+    surface_ids: Option<(window::Id, window::Id)>,
+    dnd_icon: bool,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
@@ -102,6 +118,10 @@ where
             on_submit: None,
             icon: None,
             style: Default::default(),
+            on_dnd_command_produced: None,
+            on_create_dnd_source: None,
+            surface_ids: None,
+            dnd_icon: false,
         }
     }
 
@@ -214,7 +234,41 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            self.dnd_icon,
         )
+    }
+
+    /// Sets the on_start_dnd handler of the [`TextInput`].
+    pub fn on_start_dnd(
+        mut self,
+        on_start_dnd: impl Fn(State) -> Message + 'a,
+    ) -> Self {
+        self.on_create_dnd_source = Some(Box::new(on_start_dnd));
+        self
+    }
+
+    /// Sets the on_dnd_command_produced handler of the [`TextInput`].
+    /// Commands should be returned in the update function of the application.
+    pub fn on_dnd_command_produced(
+        mut self,
+        on_dnd_command_produced: impl Fn(Box<dyn Send + Sync + Fn() -> platform_specific::wayland::data_device::ActionInner>) -> Message + 'a,
+    ) -> Self {
+        self.on_dnd_command_produced = Some(Box::new(on_dnd_command_produced));
+        self
+    }
+
+    /// Sets the window id of the [`TextInput`] and the window_id of the drag icon.
+    /// Both ids are required to be unique.
+    /// This is required for the dnd to work.
+    pub fn surface_ids(mut self, window_id: (window::Id, window::Id)) -> Self {
+        self.surface_ids = Some(window_id);
+        self
+    }
+
+    /// Sets the mode of this [`TextInput`] to be a drag and drop icon.
+    pub fn dnd_icon(mut self, dnd_icon: bool) -> Self {
+        self.dnd_icon = dnd_icon;
+        self
     }
 }
 
@@ -241,7 +295,7 @@ where
             state.last_click = None;
             state.is_focused = None;
             state.is_pasting = None;
-            state.is_dragging = false;
+            state.dragging_state = None;
         }
     }
 
@@ -258,14 +312,29 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.padding,
-            self.size,
-            self.icon.as_ref(),
-        )
+        if self.dnd_icon {
+            let limits = limits.width(Length::Shrink).height(Length::Shrink);
+
+            let size = self.size.unwrap_or_else(|| renderer.default_size());
+
+            let bounds = limits.max();
+            let font = self.font.unwrap_or_else(|| renderer.default_font());
+
+            let (width, height) =
+                renderer.measure(&self.value.to_string(), size, font, bounds);
+
+            let size = limits.resolve(Size::new(width, height));
+            layout::Node::with_children(size, vec![layout::Node::new(size)])
+        } else {
+            layout(
+                renderer,
+                limits,
+                self.width,
+                self.padding,
+                self.size,
+                self.icon.as_ref(),
+            )
+        }
     }
 
     fn operate(
@@ -306,6 +375,10 @@ where
             self.on_paste.as_deref(),
             &self.on_submit,
             || tree.state.downcast_mut::<State>(),
+            self.on_create_dnd_source.as_deref(),
+            self.dnd_icon,
+            self.on_dnd_command_produced.as_deref(),
+            self.surface_ids.clone(),
         )
     }
 
@@ -333,6 +406,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            self.dnd_icon,
         )
     }
 
@@ -497,6 +571,18 @@ pub fn update<'a, Message, Renderer>(
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
+    on_start_dnd_source: Option<&dyn Fn(State) -> Message>,
+    dnd_icon: bool,
+    on_dnd_command_produced: Option<
+        &dyn Fn(
+            Box<
+                dyn Send
+                    + Sync
+                    + Fn() -> platform_specific::wayland::data_device::ActionInner,
+            >,
+        ) -> Message,
+    >,
+    surface_ids: Option<(window::Id, window::Id)>,
 ) -> event::Status
 where
     Message: Clone,
@@ -512,7 +598,6 @@ where
             state.is_focused = if is_clicked {
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
-
                     Some(Focus {
                         updated_at: now,
                         now,
@@ -522,6 +607,8 @@ where
                 None
             };
 
+            let font: <Renderer as text::Renderer>::Font =
+                font.unwrap_or_else(|| renderer.default_font());
             if is_clicked {
                 let text_layout = layout.children().next().unwrap();
                 let target = cursor_position.x - text_layout.bounds().x;
@@ -529,8 +616,135 @@ where
                 let click =
                     mouse::Click::new(cursor_position, state.last_click);
 
-                match click.kind() {
-                    click::Kind::Single => {
+                match (
+                    &state.dragging_state,
+                    click.kind(),
+                    state.cursor().state(value),
+                ) {
+                    (
+                        None,
+                        click::Kind::Single,
+                        cursor::State::Selection { start, end },
+                    ) => {
+                        // if something is already selected, we can start a drag and drop for a
+                        // single click that is on top of the selected text
+                        // is the click on selected text?
+                        if is_secure {
+                            return event::Status::Ignored;
+                        }
+                        if let (
+                            Some(on_start_dnd),
+                            Some(on_dnd_command_produced),
+                            Some((window_id, icon_id)),
+                            Some(on_input),
+                        ) = (
+                            on_start_dnd_source,
+                            on_dnd_command_produced,
+                            surface_ids,
+                            on_input,
+                        ) {
+                            let text_bounds =
+                                layout.children().next().unwrap().bounds();
+                            let actual_size =
+                                size.unwrap_or_else(|| renderer.default_size());
+
+                            let left = start.min(end);
+                            let right = end.max(start);
+
+                            let (left_position, _left_offset) =
+                                measure_cursor_and_scroll_offset(
+                                    renderer,
+                                    text_bounds,
+                                    value,
+                                    actual_size,
+                                    left,
+                                    font.clone(),
+                                );
+
+                            let (right_position, _right_offset) =
+                                measure_cursor_and_scroll_offset(
+                                    renderer,
+                                    text_bounds,
+                                    value,
+                                    actual_size,
+                                    right,
+                                    font.clone(),
+                                );
+
+                            let width = right_position - left_position;
+                            let selection_bounds = Rectangle {
+                                x: text_bounds.x + left_position,
+                                y: text_bounds.y,
+                                width,
+                                height: text_bounds.height,
+                            };
+
+                            if selection_bounds.contains(cursor_position) {
+                                let text = state
+                                    .selected_text(&value.to_string())
+                                    .unwrap_or_default();
+                                state.dragging_state =
+                                    Some(DraggingState::Dnd(
+                                        DndAction::empty(),
+                                        text.clone(),
+                                    ));
+                                let mut editor =
+                                    Editor::new(value, &mut state.cursor);
+                                editor.delete();
+
+                                let message = (on_input)(editor.contents());
+                                shell.publish(message);
+                                shell.publish(on_start_dnd(state.clone()));
+                                let state = state.clone();
+                                shell.publish(on_dnd_command_produced(Box::new(move || {
+                                    platform_specific::wayland::data_device::ActionInner::StartDnd {
+                                        mime_types: SUPPORTED_MIME_TYPES.iter().map(|t| t.to_string()).collect(),
+                                        actions: DndAction::Move,
+                                        origin_id: window_id.clone(),
+                                        icon_id: Some(
+                                            DndIcon::Widget(
+                                                icon_id.clone(),
+                                                Box::new(state.clone())
+                                                )),
+                                        data: Box::new(TextInputString(text.clone()))
+                                    }
+                                    })));
+                            } else {
+                                // existing logic for setting the selection
+                                let position = if target > 0.0 {
+                                    let value = if is_secure {
+                                        value.secure()
+                                    } else {
+                                        value.clone()
+                                    };
+
+                                    find_cursor_position(
+                                        renderer,
+                                        text_layout.bounds(),
+                                        font.clone(),
+                                        size,
+                                        &value,
+                                        state,
+                                        target,
+                                    )
+                                } else {
+                                    None
+                                };
+
+                                state.cursor.move_to(position.unwrap_or(0));
+                                state.dragging_state =
+                                    Some(DraggingState::Selection);
+                            }
+                        } else {
+                            state.dragging_state = None;
+                        }
+                    }
+                    (Some(DraggingState::Dnd(..)), _, _) => {
+                        // TODO: should we cancel if this happens?
+                        state.dragging_state = None;
+                    }
+                    (None, click::Kind::Single, _) => {
+                        // existing logic for setting the selection
                         let position = if target > 0.0 {
                             let value = if is_secure {
                                 value.secure()
@@ -541,7 +755,7 @@ where
                             find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font,
+                                font.clone(),
                                 size,
                                 &value,
                                 state,
@@ -549,27 +763,24 @@ where
                             )
                         } else {
                             None
-                        }
-                        .unwrap_or(0);
+                        };
 
-                        if state.keyboard_modifiers.shift() {
-                            state.cursor.select_range(
-                                state.cursor.start(value),
-                                position,
-                            );
-                        } else {
-                            state.cursor.move_to(position);
-                        }
-                        state.is_dragging = true;
+                        state.cursor.move_to(position.unwrap_or(0));
+                        state.dragging_state = Some(DraggingState::Selection);
                     }
-                    click::Kind::Double => {
+                    (None, click::Kind::Double, _)
+                    | (
+                        Some(DraggingState::Selection),
+                        click::Kind::Double,
+                        _,
+                    ) => {
                         if is_secure {
                             state.cursor.select_all(value);
                         } else {
                             let position = find_cursor_position(
                                 renderer,
                                 text_layout.bounds(),
-                                font,
+                                font.clone(),
                                 size,
                                 value,
                                 state,
@@ -582,12 +793,19 @@ where
                                 value.next_end_of_word(position),
                             );
                         }
-
-                        state.is_dragging = false;
+                        state.dragging_state = Some(DraggingState::Selection);
                     }
-                    click::Kind::Triple => {
+                    (None, click::Kind::Triple, _)
+                    | (
+                        Some(DraggingState::Selection),
+                        click::Kind::Triple,
+                        _,
+                    ) => {
                         state.cursor.select_all(value);
-                        state.is_dragging = false;
+                        state.dragging_state = Some(DraggingState::Selection);
+                    }
+                    _ => {
+                        state.dragging_state = None;
                     }
                 }
 
@@ -599,13 +817,14 @@ where
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. })
         | Event::Touch(touch::Event::FingerLost { .. }) => {
-            state().is_dragging = false;
+            let state = state();
+            state.dragging_state = None;
         }
         Event::Mouse(mouse::Event::CursorMoved { position })
         | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
             let state = state();
 
-            if state.is_dragging {
+            if matches!(state.dragging_state, Some(DraggingState::Selection)) {
                 let text_layout = layout.children().next().unwrap();
                 let target = position.x - text_layout.bounds().x;
 
@@ -614,6 +833,8 @@ where
                 } else {
                     value.clone()
                 };
+                let font: <Renderer as text::Renderer>::Font =
+                    font.unwrap_or_else(|| renderer.default_font());
 
                 let position = find_cursor_position(
                     renderer,
@@ -825,7 +1046,7 @@ where
                     }
                     keyboard::KeyCode::Escape => {
                         state.is_focused = None;
-                        state.is_dragging = false;
+                        state.dragging_state = None;
                         state.is_pasting = None;
 
                         state.keyboard_modifiers =
@@ -868,7 +1089,7 @@ where
 
             state.keyboard_modifiers = modifiers;
         }
-        Event::Window(window::Event::RedrawRequested(now)) => {
+        Event::Window(_, window::Event::RedrawRequested(now)) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
@@ -882,6 +1103,286 @@ where
                     now + Duration::from_millis(millis_until_redraw as u64),
                 ));
             }
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DataSource(wayland::DataSourceEvent::DndFinished),
+        )) => {
+            let state = state();
+            if matches!(state.dragging_state, Some(DraggingState::Dnd(..))) {
+                state.dragging_state = None;
+                return event::Status::Captured;
+            }
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DataSource(wayland::DataSourceEvent::Cancelled),
+        )) => {
+            let state = state();
+            if matches!(state.dragging_state, Some(DraggingState::Dnd(..))) {
+                state.dragging_state = None;
+                return event::Status::Captured;
+            }
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DataSource(
+                wayland::DataSourceEvent::DndActionAccepted(action),
+            ),
+        )) => {
+            let state = state();
+            if let Some(DraggingState::Dnd(_, text)) =
+                state.dragging_state.as_ref()
+            {
+                state.dragging_state =
+                    Some(DraggingState::Dnd(action, text.clone()));
+                return event::Status::Captured;
+            }
+        }
+        // TODO: handle dnd offer events
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::Enter {
+                x,
+                y,
+                mime_types,
+            }),
+        )) => {
+            let on_dnd_command_produced = match on_dnd_command_produced {
+                Some(on_dnd_command_produced) => on_dnd_command_produced,
+                None => return event::Status::Ignored,
+            };
+
+            let state = state();
+            let bounds = layout.bounds();
+            let is_clicked = bounds.contains(Point {
+                x: x as f32,
+                y: y as f32,
+            });
+
+            if !is_clicked
+                && matches!(state.dnd_offer, DndOfferState::HandlingOffer(..))
+            {
+                state.dnd_offer =
+                    DndOfferState::OutsideWidget(mime_types, DndAction::None);
+                return event::Status::Captured;
+            } else if !is_clicked {
+                state.dnd_offer =
+                    DndOfferState::OutsideWidget(mime_types, DndAction::None);
+                return event::Status::Captured;
+            }
+            let mut accepted = false;
+            for m in &mime_types {
+                if SUPPORTED_MIME_TYPES.contains(&m.as_str()) {
+                    let clone = m.clone();
+                    accepted = true;
+                    shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::Accept(Some(clone.clone())))));
+                }
+            }
+            if accepted {
+                shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::SetActions { preferred: DndAction::Move, accepted: DndAction::Move.union(DndAction::Copy) })));
+                let text_layout = layout.children().next().unwrap();
+                let target = x as f32 - text_layout.bounds().x;
+                state.dnd_offer = DndOfferState::HandlingOffer(
+                    mime_types.clone(),
+                    DndAction::None,
+                );
+                // existing logic for setting the selection
+                let position = if target > 0.0 {
+                    let value = if is_secure {
+                        value.secure()
+                    } else {
+                        value.clone()
+                    };
+
+                    let font = font.unwrap_or_else(|| renderer.default_font());
+
+                    find_cursor_position(
+                        renderer,
+                        text_layout.bounds(),
+                        font.clone(),
+                        size,
+                        &value,
+                        state,
+                        target,
+                    )
+                } else {
+                    None
+                };
+
+                state.cursor.move_to(position.unwrap_or(0));
+                return event::Status::Captured;
+            }
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::Motion { x, y }),
+        )) => {
+            let on_dnd_command_produced = match on_dnd_command_produced {
+                Some(on_dnd_command_produced) => on_dnd_command_produced,
+                None => return event::Status::Ignored,
+            };
+
+            let state = state();
+            let bounds = layout.bounds();
+            let is_clicked = bounds.contains(Point {
+                x: x as f32,
+                y: y as f32,
+            });
+
+            if !is_clicked {
+                if let DndOfferState::HandlingOffer(mime_types, action) =
+                    state.dnd_offer.clone()
+                {
+                    state.dnd_offer =
+                        DndOfferState::OutsideWidget(mime_types, action);
+                    shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::SetActions { preferred: DndAction::None, accepted: DndAction::None })));
+                    shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::Accept(None))));
+                }
+                return event::Status::Captured;
+            } else if let DndOfferState::OutsideWidget(mime_types, action) =
+                state.dnd_offer.clone()
+            {
+                let mut accepted = false;
+                for m in &mime_types {
+                    if SUPPORTED_MIME_TYPES.contains(&m.as_str()) {
+                        accepted = true;
+                        let clone = m.clone();
+                        shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::Accept(Some(clone.clone())))));
+                    }
+                }
+                if accepted {
+                    shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::SetActions { preferred: DndAction::Move, accepted: DndAction::Move.union(DndAction::Copy) })));
+                    state.dnd_offer = DndOfferState::HandlingOffer(
+                        mime_types.clone(),
+                        action,
+                    );
+                }
+            };
+            let text_layout = layout.children().next().unwrap();
+            let target = x as f32 - text_layout.bounds().x;
+            // existing logic for setting the selection
+            let position = if target > 0.0 {
+                let value = if is_secure {
+                    value.secure()
+                } else {
+                    value.clone()
+                };
+                let font = font.unwrap_or_else(|| renderer.default_font());
+
+                find_cursor_position(
+                    renderer,
+                    text_layout.bounds(),
+                    font.clone(),
+                    size,
+                    &value,
+                    state,
+                    target,
+                )
+            } else {
+                None
+            };
+
+            state.cursor.move_to(position.unwrap_or(0));
+            return event::Status::Captured;
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::DropPerformed),
+        )) => {
+            let on_dnd_command_produced = match on_dnd_command_produced {
+                Some(on_dnd_command_produced) => on_dnd_command_produced,
+                None => return event::Status::Ignored,
+            };
+
+            let state = state();
+            if let DndOfferState::HandlingOffer(mime_types, _action) =
+                state.dnd_offer.clone()
+            {
+                let mime_type = match SUPPORTED_MIME_TYPES
+                    .iter()
+                    .find(|m| mime_types.contains(&m.to_string()))
+                {
+                    Some(m) => m.clone(),
+                    None => {
+                        state.dnd_offer = DndOfferState::None;
+                        return event::Status::Captured;
+                    }
+                }
+                .to_string();
+                state.dnd_offer = DndOfferState::Dropped;
+                shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::RequestDndData(mime_type.clone()))));
+            } else if let DndOfferState::OutsideWidget(..) = &state.dnd_offer {
+                state.dnd_offer = DndOfferState::None;
+                return event::Status::Captured;
+            }
+            return event::Status::Ignored;
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::Leave),
+        )) => {
+            let state = state();
+            // ASHLEY TODO we should be able to reset but for now we don't if we are handling a
+            // drop
+            match state.dnd_offer {
+                DndOfferState::Dropped => {}
+                _ => {
+                    state.dnd_offer = DndOfferState::None;
+                }
+            };
+            return event::Status::Captured;
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::DndData {
+                mime_type,
+                data,
+            }),
+        )) => {
+            let on_dnd_command_produced = match on_dnd_command_produced {
+                Some(on_dnd_command_produced) => on_dnd_command_produced,
+                None => return event::Status::Ignored,
+            };
+
+            let state = state();
+            if let DndOfferState::Dropped = state.dnd_offer.clone() {
+                state.dnd_offer = DndOfferState::None;
+                if !SUPPORTED_MIME_TYPES.contains(&mime_type.as_str())
+                    || data.is_empty()
+                {
+                    return event::Status::Captured;
+                }
+                let content = match String::from_utf8(data) {
+                    Ok(text) => text,
+                    Err(_) => return event::Status::Captured,
+                };
+
+                let mut editor = Editor::new(value, &mut state.cursor);
+
+                editor.paste(Value::new(content.as_str()));
+                if let Some(on_paste) = on_paste.as_ref() {
+                    let message = (on_paste)(editor.contents());
+                    shell.publish(message);
+                }
+                if let Some(on_paste) = on_paste {
+                    let message = (on_paste)(editor.contents());
+                    shell.publish(message);
+                }
+
+                shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::DndFinished)));
+                return event::Status::Captured;
+            }
+            return event::Status::Ignored;
+        }
+        Event::PlatformSpecific(PlatformSpecific::Wayland(
+            wayland::Event::DndOffer(wayland::DndOfferEvent::SourceActions(
+                actions,
+            )),
+        )) => {
+            let on_dnd_command_produced = match on_dnd_command_produced {
+                Some(on_dnd_command_produced) => on_dnd_command_produced,
+                None => return event::Status::Ignored,
+            };
+
+            let state = state();
+            if let DndOfferState::HandlingOffer(..) = state.dnd_offer.clone() {
+                shell.publish(on_dnd_command_produced(Box::new(move || platform_specific::wayland::data_device::ActionInner::SetActions { preferred: actions.intersection(DndAction::Move), accepted: actions.clone() })));
+                return event::Status::Captured;
+            }
+            return event::Status::Ignored;
         }
         _ => {}
     }
@@ -907,6 +1408,7 @@ pub fn draw<Renderer>(
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    dnd_icon: bool,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -978,26 +1480,31 @@ pub fn draw<Renderer>(
                     % 2
                     == 0;
 
-                let cursor = if is_cursor_visible {
-                    Some((
-                        renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + text_value_width,
-                                y: text_bounds.y,
-                                width: 1.0,
-                                height: text_bounds.height,
-                            },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        },
-                        theme.value_color(style),
-                    ))
+                if is_cursor_visible {
+                    if !dnd_icon {
+                        (
+                            Some((
+                                renderer::Quad {
+                                    bounds: Rectangle {
+                                        x: text_bounds.x + text_value_width,
+                                        y: text_bounds.y,
+                                        width: 1.0,
+                                        height: text_bounds.height,
+                                    },
+                                    border_radius: 0.0.into(),
+                                    border_width: 0.0,
+                                    border_color: Color::TRANSPARENT,
+                                },
+                                theme.value_color(style),
+                            )),
+                            offset,
+                        )
+                    } else {
+                        (None, 0.0)
+                    }
                 } else {
-                    None
-                };
-
-                (cursor, offset)
+                    (None, 0.0)
+                }
             }
             cursor::State::Selection { start, end } => {
                 let left = start.min(end);
@@ -1025,27 +1532,31 @@ pub fn draw<Renderer>(
 
                 let width = right_position - left_position;
 
-                (
-                    Some((
-                        renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + left_position,
-                                y: text_bounds.y,
-                                width,
-                                height: text_bounds.height,
+                if !dnd_icon {
+                    (
+                        Some((
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + left_position,
+                                    y: text_bounds.y,
+                                    width,
+                                    height: text_bounds.height,
+                                },
+                                border_radius: 0.0.into(),
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                            theme.selection_color(style),
+                        )),
+                        if end == right {
+                            right_offset
+                        } else {
+                            left_offset
                         },
-                        theme.selection_color(style),
-                    )),
-                    if end == right {
-                        right_offset
-                    } else {
-                        left_offset
-                    },
-                )
+                    )
+                } else {
+                    (None, 0.0)
+                }
             }
         }
     } else {
@@ -1112,11 +1623,41 @@ pub fn mouse_interaction(
     }
 }
 
+/// A string which can be sent to the clipboard or drag-and-dropped.
+#[derive(Debug, Clone)]
+pub struct TextInputString(String);
+
+impl DataFromMimeType for TextInputString {
+    fn from_mime_type(&self, mime_type: &str) -> Option<Vec<u8>> {
+        if SUPPORTED_MIME_TYPES.contains(&mime_type) {
+            Some(self.0.as_bytes().to_vec())
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum DraggingState {
+    Selection,
+    Dnd(DndAction, String),
+}
+
+#[derive(Debug, Default, Clone)]
+pub(crate) enum DndOfferState {
+    #[default]
+    None,
+    OutsideWidget(Vec<String>, DndAction),
+    HandlingOffer(Vec<String>, DndAction),
+    Dropped,
+}
+
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State {
     is_focused: Option<Focus>,
-    is_dragging: bool,
+    dragging_state: Option<DraggingState>,
+    dnd_offer: DndOfferState,
     is_pasting: Option<Value>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
@@ -1136,11 +1677,33 @@ impl State {
         Self::default()
     }
 
+    /// Returns the current value of the selected text in the [`TextInput`].
+    pub fn selected_text(&self, text: &str) -> Option<String> {
+        let value = Value::new(text);
+        match self.cursor.state(&value) {
+            cursor::State::Index(_) => None,
+            cursor::State::Selection { start, end } => {
+                let left = start.min(end);
+                let right = end.max(start);
+                Some(text[left..right].to_string())
+            }
+        }
+    }
+
+    /// Returns the current value of the dragged text in the [`TextInput`].
+    pub fn dragged_text(&self) -> Option<String> {
+        match self.dragging_state.as_ref() {
+            Some(DraggingState::Dnd(_, text)) => Some(text.clone()),
+            _ => None,
+        }
+    }
+
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
             is_focused: None,
-            is_dragging: false,
+            dragging_state: None,
+            dnd_offer: DndOfferState::None,
             is_pasting: None,
             last_click: None,
             cursor: Cursor::default(),
@@ -1300,7 +1863,7 @@ where
 fn find_cursor_position<Renderer>(
     renderer: &Renderer,
     text_bounds: Rectangle,
-    font: Option<Renderer::Font>,
+    font: Renderer::Font,
     size: Option<f32>,
     value: &Value,
     state: &State,
@@ -1309,7 +1872,6 @@ fn find_cursor_position<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
     let offset = offset(renderer, text_bounds, font, size, value, state);

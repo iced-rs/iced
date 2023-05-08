@@ -2,7 +2,7 @@
 use crate::Command;
 
 use iced_core::text;
-use iced_core::{Element, Renderer};
+use iced_core::{window::Id, Element, Renderer};
 
 mod state;
 
@@ -29,5 +29,5 @@ pub trait Program: Sized {
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer>;
+    fn view(&self, id: Id) -> Element<'_, Self::Message, Self::Renderer>;
 }

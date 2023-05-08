@@ -448,7 +448,7 @@ where
 
     fn id(&self) -> Option<Id> {
         if self.label.is_some() {
-            Some(Id(iced_accessibility::Internal::Set(vec![
+            Some(Id(id::Internal::Set(vec![
                 self.id.0.clone(),
                 self.label_id.clone().unwrap().0,
             ])))
