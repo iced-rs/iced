@@ -270,7 +270,11 @@ impl<'a> Layer<'a> {
                 );
             }
             _ => {
-                // Unsupported!
+                // Not supported!
+                log::warn!(
+                    "Unsupported primitive in `iced_wgpu`: {:?}",
+                    primitive
+                );
             }
         }
     }
