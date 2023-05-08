@@ -96,64 +96,76 @@ impl Pipeline {
             })
             .collect();
 
-        let bounds = glyphon::TextBounds {
-            left: (bounds.x * scale_factor) as i32,
-            top: (bounds.y * scale_factor) as i32,
-            right: ((bounds.x + bounds.width) * scale_factor) as i32,
-            bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
-        };
+        let bounds = bounds * scale_factor;
 
         let text_areas =
-            sections.iter().zip(keys.iter()).map(|(section, key)| {
-                let buffer =
-                    self.render_cache.get(key).expect("Get cached buffer");
+            sections
+                .iter()
+                .zip(keys.iter())
+                .filter_map(|(section, key)| {
+                    let buffer =
+                        self.render_cache.get(key).expect("Get cached buffer");
 
-                let x = section.bounds.x * scale_factor;
-                let y = section.bounds.y * scale_factor;
+                    let (total_lines, max_width) = buffer
+                        .layout_runs()
+                        .enumerate()
+                        .fold((0, 0.0), |(_, max), (i, buffer)| {
+                            (i + 1, buffer.line_w.max(max))
+                        });
 
-                let (total_lines, max_width) = buffer
-                    .layout_runs()
-                    .enumerate()
-                    .fold((0, 0.0), |(_, max), (i, buffer)| {
-                        (i + 1, buffer.line_w.max(max))
-                    });
+                    let total_height =
+                        total_lines as f32 * buffer.metrics().line_height;
 
-                let total_height =
-                    total_lines as f32 * buffer.metrics().line_height;
+                    let x = section.bounds.x * scale_factor;
+                    let y = section.bounds.y * scale_factor;
 
-                let left = match section.horizontal_alignment {
-                    alignment::Horizontal::Left => x,
-                    alignment::Horizontal::Center => x - max_width / 2.0,
-                    alignment::Horizontal::Right => x - max_width,
-                };
+                    let left = match section.horizontal_alignment {
+                        alignment::Horizontal::Left => x,
+                        alignment::Horizontal::Center => x - max_width / 2.0,
+                        alignment::Horizontal::Right => x - max_width,
+                    };
 
-                let top = match section.vertical_alignment {
-                    alignment::Vertical::Top => y,
-                    alignment::Vertical::Center => y - total_height / 2.0,
-                    alignment::Vertical::Bottom => y - total_height,
-                };
+                    let top = match section.vertical_alignment {
+                        alignment::Vertical::Top => y,
+                        alignment::Vertical::Center => y - total_height / 2.0,
+                        alignment::Vertical::Bottom => y - total_height,
+                    };
 
-                // TODO: Subpixel glyph positioning
-                let left = left.round() as i32;
-                let top = top.round() as i32;
+                    let section_bounds = Rectangle {
+                        x: left,
+                        y: top,
+                        width: section.bounds.width * scale_factor,
+                        height: section.bounds.height * scale_factor,
+                    };
 
-                glyphon::TextArea {
-                    buffer,
-                    left,
-                    top,
-                    bounds,
-                    default_color: {
-                        let [r, g, b, a] = section.color.into_linear();
+                    let clip_bounds = bounds.intersection(&section_bounds)?;
 
-                        glyphon::Color::rgba(
-                            (r * 255.0) as u8,
-                            (g * 255.0) as u8,
-                            (b * 255.0) as u8,
-                            (a * 255.0) as u8,
-                        )
-                    },
-                }
-            });
+                    // TODO: Subpixel glyph positioning
+                    let left = left.round() as i32;
+                    let top = top.round() as i32;
+
+                    Some(glyphon::TextArea {
+                        buffer,
+                        left,
+                        top,
+                        bounds: glyphon::TextBounds {
+                            left: clip_bounds.x as i32,
+                            top: clip_bounds.y as i32,
+                            right: (clip_bounds.x + clip_bounds.width) as i32,
+                            bottom: (clip_bounds.y + clip_bounds.height) as i32,
+                        },
+                        default_color: {
+                            let [r, g, b, a] = section.color.into_linear();
+
+                            glyphon::Color::rgba(
+                                (r * 255.0) as u8,
+                                (g * 255.0) as u8,
+                                (b * 255.0) as u8,
+                                (a * 255.0) as u8,
+                            )
+                        },
+                    })
+                });
 
         let result = renderer.prepare(
             device,
