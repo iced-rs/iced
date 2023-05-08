@@ -10,6 +10,8 @@ use crate::{
 
 use std::borrow::Cow;
 
+pub use text::{LineHeight, Shaping};
+
 /// A paragraph of text.
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Renderer>
@@ -19,13 +21,13 @@ where
 {
     content: Cow<'a, str>,
     size: Option<f32>,
-    line_height: text::LineHeight,
+    line_height: LineHeight,
     width: Length,
     height: Length,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
-    shaping: text::Shaping,
+    shaping: Shaping,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
@@ -39,13 +41,13 @@ where
         Text {
             content: content.into(),
             size: None,
-            line_height: text::LineHeight::default(),
+            line_height: LineHeight::default(),
             font: None,
             width: Length::Shrink,
             height: Length::Shrink,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            shaping: text::Shaping::Basic,
+            shaping: Shaping::Basic,
             style: Default::default(),
         }
     }
@@ -57,10 +59,7 @@ where
     }
 
     /// Sets the [`LineHeight`] of the [`Text`].
-    pub fn line_height(
-        mut self,
-        line_height: impl Into<text::LineHeight>,
-    ) -> Self {
+    pub fn line_height(mut self, line_height: impl Into<LineHeight>) -> Self {
         self.line_height = line_height.into();
         self
     }
@@ -112,8 +111,8 @@ where
         self
     }
 
-    /// Sets the [`text::Shaping`] strategy of the [`Text`].
-    pub fn shaping(mut self, shaping: text::Shaping) -> Self {
+    /// Sets the [`Shaping`] strategy of the [`Text`].
+    pub fn shaping(mut self, shaping: Shaping) -> Self {
         self.shaping = shaping;
         self
     }
@@ -199,12 +198,12 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     content: &str,
     size: Option<f32>,
-    line_height: text::LineHeight,
+    line_height: LineHeight,
     font: Option<Renderer::Font>,
     appearance: Appearance,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    shaping: text::Shaping,
+    shaping: Shaping,
 ) where
     Renderer: text::Renderer,
 {
