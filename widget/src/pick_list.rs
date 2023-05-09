@@ -706,7 +706,9 @@ pub fn draw<'a, T, Renderer>(
                 x: bounds.x + padding.left,
                 y: bounds.center_y(),
                 width: bounds.width - padding.horizontal(),
-                height: text_size * 1.2,
+                height: f32::from(
+                    text_line_height.to_absolute(Pixels(text_size)),
+                ),
             },
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
