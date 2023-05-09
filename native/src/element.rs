@@ -10,7 +10,7 @@ use crate::{
 };
 
 use std::any::Any;
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 
 /// A generic [`Widget`].
 ///
@@ -221,11 +221,35 @@ impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
     }
 }
 
+impl<'a, Message, Renderer> BorrowMut<dyn Widget<Message, Renderer> + 'a>
+    for Element<'a, Message, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow_mut()
+    }
+}
+
 impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
     for &Element<'a, Message, Renderer>
 {
     fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
         self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
+    for &mut Element<'a, Message, Renderer>
+{
+    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow()
+    }
+}
+
+impl<'a, Message, Renderer> BorrowMut<dyn Widget<Message, Renderer> + 'a>
+    for &mut Element<'a, Message, Renderer>
+{
+    fn borrow_mut(&mut self) -> &mut (dyn Widget<Message, Renderer> + 'a) {
+        self.widget.borrow_mut()
     }
 }
 

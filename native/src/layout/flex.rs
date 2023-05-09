@@ -16,7 +16,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-use crate::Element;
+use crate::{Element, Widget};
 
 use crate::layout::{Limits, Node};
 use crate::{Alignment, Padding, Point, Size};
@@ -70,21 +70,51 @@ pub fn resolve<Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
+    resolve_iter(
+        axis,
+        renderer,
+        limits,
+        padding,
+        spacing,
+        align_items,
+        items,
+        items.len(),
+    )
+}
+
+pub(crate) fn resolve_iter<'a, Message, Renderer>(
+    axis: Axis,
+    renderer: &Renderer,
+    limits: &Limits,
+    padding: Padding,
+    spacing: f32,
+    align_items: Alignment,
+    items: impl IntoIterator<
+        IntoIter = impl Iterator<
+            Item = impl std::borrow::Borrow<dyn Widget<Message, Renderer> + 'a>,
+        > + Clone,
+    >,
+    items_len: usize,
+) -> Node
+where
+    Renderer: crate::Renderer,
+{
+    let item_iter = items.into_iter();
+
     let limits = limits.pad(padding);
-    let total_spacing = spacing * items.len().saturating_sub(1) as f32;
+    let total_spacing = spacing * items_len.saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max());
 
     let mut fill_sum = 0;
     let mut cross = axis.cross(limits.min()).max(axis.cross(limits.fill()));
     let mut available = axis.main(limits.max()) - total_spacing;
 
-    let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
-    nodes.resize(items.len(), Node::default());
+    let mut nodes: Vec<Node> = vec![Node::default(); items_len];
 
-    for (i, child) in items.iter().enumerate() {
+    for (i, child) in item_iter.clone().enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
+            Axis::Horizontal => child.borrow().width(),
+            Axis::Vertical => child.borrow().height(),
         }
         .fill_factor();
 
@@ -94,7 +124,7 @@ where
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout = child.borrow().layout(renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -108,10 +138,10 @@ where
 
     let remaining = available.max(0.0);
 
-    for (i, child) in items.iter().enumerate() {
+    for (i, child) in item_iter.enumerate() {
         let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
+            Axis::Horizontal => child.borrow().width(),
+            Axis::Vertical => child.borrow().height(),
         }
         .fill_factor();
 
@@ -133,7 +163,7 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout = child.borrow().layout(renderer, &child_limits);
             cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;

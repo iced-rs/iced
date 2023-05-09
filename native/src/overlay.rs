@@ -112,12 +112,28 @@ pub fn from_children<'a, Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
+    from_children_iter(children.iter_mut(), tree, layout, renderer)
+}
+
+pub(crate) fn from_children_iter<'a: 'b, 'b, Message: 'b, Renderer: 'b>(
+    children: impl IntoIterator<
+        Item = &'b mut (impl std::borrow::BorrowMut<
+            dyn crate::Widget<Message, Renderer> + 'a,
+        > + 'b),
+    >,
+    tree: &'b mut Tree,
+    layout: Layout<'_>,
+    renderer: &Renderer,
+) -> Option<Element<'b, Message, Renderer>>
+where
+    Renderer: crate::Renderer,
+{
     let children = children
-        .iter_mut()
+        .into_iter()
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child.as_widget_mut().overlay(state, layout, renderer)
+            child.borrow_mut().overlay(state, layout, renderer)
         })
         .collect::<Vec<_>>();
 

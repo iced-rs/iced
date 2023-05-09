@@ -52,8 +52,6 @@ impl Tree {
     /// [`Widget`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).
     ///
     /// Otherwise, the whole [`Tree`] is recreated.
-    ///
-    /// [`Widget::diff`]: crate::Widget::diff
     pub fn diff<'a, Message, Renderer>(
         &mut self,
         new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
@@ -89,21 +87,33 @@ impl Tree {
         diff: impl Fn(&mut Tree, &T),
         new_state: impl Fn(&T) -> Self,
     ) {
-        if self.children.len() > new_children.len() {
-            self.children.truncate(new_children.len());
-        }
+        self.diff_children_iter(
+            new_children,
+            new_children.len(),
+            diff,
+            new_state,
+        )
+    }
 
-        for (child_state, new) in
-            self.children.iter_mut().zip(new_children.iter())
-        {
-            diff(child_state, new);
-        }
+    pub(crate) fn diff_children_iter<'a, T: 'a>(
+        &mut self,
+        new_children: impl IntoIterator<Item = &'a T>,
+        new_children_len: usize,
+        diff: impl Fn(&mut Tree, &T),
+        new_state: impl Fn(&T) -> Self,
+    ) {
+        let mut new_children_iter = new_children.into_iter();
 
-        if self.children.len() < new_children.len() {
-            self.children.extend(
-                new_children[self.children.len()..].iter().map(new_state),
-            );
-        }
+        self.children.truncate(new_children_len);
+
+        self.children
+            .iter_mut()
+            .zip(new_children_iter.by_ref())
+            .for_each(|(c, n)| {
+                diff(c, n);
+            });
+
+        self.children.extend(new_children_iter.map(new_state))
     }
 }
 
