@@ -82,7 +82,7 @@ impl LineHeight {
 
 impl Default for LineHeight {
     fn default() -> Self {
-        Self::Relative(1.2)
+        Self::Relative(1.3)
     }
 }
 
