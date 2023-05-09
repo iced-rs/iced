@@ -16,7 +16,7 @@ opengl = []
 image = ["dep:image", "kamadak-exif"]
 
 [dependencies]
-glam = "0.21.3"
+glam = "0.24"
 log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
