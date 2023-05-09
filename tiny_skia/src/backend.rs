@@ -527,7 +527,7 @@ fn rounded_rectangle(
         bounds.y + bounds.height,
     );
 
-    if bottom_right > 0.0 {
+    if bottom_left > 0.0 {
         arc_to(
             &mut builder,
             bounds.x + bottom_left,
