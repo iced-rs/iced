@@ -141,18 +141,19 @@ impl Cache {
                 image.as_mut(),
             )?;
 
-            if let Some([r, g, b, a]) = key.color {
-                // TODO: Blend alpha
-                let color = tiny_skia::ColorU8::from_rgba(b, g, r, a)
-                    .premultiply()
-                    .get()
-                    & 0x00FFFFFF;
-
+            if let Some([r, g, b, _]) = key.color {
                 // Apply color filter
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = *pixel & 0xFF000000 | color;
+                    *pixel = tiny_skia::ColorU8::from_rgba(
+                        b,
+                        g,
+                        r,
+                        (*pixel >> 24) as u8,
+                    )
+                    .premultiply()
+                    .get();
                 }
             } else {
                 // Swap R and B channels for `softbuffer` presentation
