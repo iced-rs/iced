@@ -360,6 +360,8 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// Line height of the content.
+    pub line_height: text::LineHeight,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
 }
@@ -632,22 +634,31 @@ pub fn draw<'a, T, Renderer>(
             Renderer::ICON_FONT,
             Renderer::ARROW_DOWN_ICON,
             *size,
+            text::LineHeight::default(),
             text::Shaping::Basic,
         )),
         Handle::Static(Icon {
             font,
             code_point,
             size,
+            line_height,
             shaping,
-        }) => Some((*font, *code_point, *size, *shaping)),
+        }) => Some((*font, *code_point, *size, *line_height, *shaping)),
         Handle::Dynamic { open, closed } => {
             if state().is_open {
-                Some((open.font, open.code_point, open.size, open.shaping))
+                Some((
+                    open.font,
+                    open.code_point,
+                    open.size,
+                    open.line_height,
+                    open.shaping,
+                ))
             } else {
                 Some((
                     closed.font,
                     closed.code_point,
                     closed.size,
+                    closed.line_height,
                     closed.shaping,
                 ))
             }
@@ -655,19 +666,19 @@ pub fn draw<'a, T, Renderer>(
         Handle::None => None,
     };
 
-    if let Some((font, code_point, size, shaping)) = handle {
+    if let Some((font, code_point, size, line_height, shaping)) = handle {
         let size = size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: &code_point.to_string(),
             size,
-            line_height: text::LineHeight::default(),
+            line_height,
             font,
             color: style.handle_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - padding.horizontal(),
                 y: bounds.center_y(),
-                height: size * 1.2,
+                height: f32::from(line_height.to_absolute(Pixels(size))),
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Right,
