@@ -12,11 +12,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu", "tiny-skia"]
+default = ["wgpu"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu"]
-# Enable the `tiny-skia` software renderer backend
-tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "image_rs"]
 # Enables the `Svg` widget

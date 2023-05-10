@@ -7,19 +7,17 @@ use crate::graphics::geometry::{Fill, Geometry, Path, Stroke, Text};
 use crate::Backend;
 
 pub enum Frame {
+    TinySkia(iced_tiny_skia::geometry::Frame),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::geometry::Frame),
-    #[cfg(feature = "tiny-skia")]
-    TinySkia(iced_tiny_skia::geometry::Frame),
 }
 
 macro_rules! delegate {
     ($frame:expr, $name:ident, $body:expr) => {
         match $frame {
+            Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia($name) => $body,
         }
     };
 }
@@ -27,13 +25,12 @@ macro_rules! delegate {
 impl Frame {
     pub fn new<Theme>(renderer: &crate::Renderer<Theme>, size: Size) -> Self {
         match renderer.backend() {
+            Backend::TinySkia(_) => {
+                Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))
+            }
             #[cfg(feature = "wgpu")]
             Backend::Wgpu(_) => {
                 Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
-            }
-            #[cfg(feature = "tiny-skia")]
-            Backend::TinySkia(_) => {
-                Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))
             }
         }
     }
@@ -127,14 +124,13 @@ impl Frame {
     #[inline]
     pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
         let mut frame = match self {
+            Self::TinySkia(_) => Self::TinySkia(
+                iced_tiny_skia::geometry::Frame::new(region.size()),
+            ),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(_) => {
                 Self::Wgpu(iced_wgpu::geometry::Frame::new(region.size()))
             }
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia(_) => Self::TinySkia(
-                iced_tiny_skia::geometry::Frame::new(region.size()),
-            ),
         };
 
         f(&mut frame);
@@ -142,12 +138,11 @@ impl Frame {
         let translation = Vector::new(region.x, region.y);
 
         match (self, frame) {
-            #[cfg(feature = "wgpu")]
-            (Self::Wgpu(target), Self::Wgpu(frame)) => {
+            (Self::TinySkia(target), Self::TinySkia(frame)) => {
                 target.clip(frame, translation);
             }
-            #[cfg(feature = "tiny-skia")]
-            (Self::TinySkia(target), Self::TinySkia(frame)) => {
+            #[cfg(feature = "wgpu")]
+            (Self::Wgpu(target), Self::Wgpu(frame)) => {
                 target.clip(frame, translation);
             }
             #[allow(unreachable_patterns)]
