@@ -157,6 +157,7 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
+                // XXX border seems to be contained by the bounds of the primitive in wgpu and for damage regions, so we do the same here
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
@@ -172,7 +173,26 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                let path = rounded_rectangle(*bounds, *border_radius);
+                // Make sure the border radius is not larger than the bounds
+                let border_width = border_width
+                    .min(bounds.width / 2.0)
+                    .min(bounds.height / 2.0);
+
+                // Offset the fill by the border width
+                let path_bounds = Rectangle {
+                    x: bounds.x + border_width,
+                    y: bounds.y + border_width,
+                    width: bounds.width - 2.0 * border_width,
+                    height: bounds.height - 2.0 * border_width,
+                };
+                // fill border radius is the border radius minus the border width
+                let mut fill_border_radius = *border_radius;
+                for radius in &mut fill_border_radius {
+                    *radius = (*radius - border_width / 2.0)
+                        .min(path_bounds.width / 2.0)
+                        .min(path_bounds.height / 2.0);
+                }
+                let path = rounded_rectangle(path_bounds, fill_border_radius);
 
                 pixels.fill_path(
                     &path,
@@ -192,9 +212,27 @@ impl Backend {
                     clip_mask,
                 );
 
-                if *border_width > 0.0 {
+                // border path is offset by half the border width
+                let path_bounds = Rectangle {
+                    x: bounds.x + border_width / 2.0,
+                    y: bounds.y + border_width / 2.0,
+                    width: bounds.width - border_width,
+                    height: bounds.height - border_width,
+                };
+
+                let mut border_radius = *border_radius;
+                for radius in &mut border_radius {
+                    *radius = radius
+                        .min(path_bounds.width / 2.0)
+                        .min(path_bounds.height / 2.0);
+                }
+
+                let border_radius_path =
+                    rounded_rectangle(path_bounds, border_radius);
+
+                if border_width > 0.0 {
                     pixels.stroke_path(
-                        &path,
+                        &border_radius_path,
                         &tiny_skia::Paint {
                             shader: tiny_skia::Shader::SolidColor(into_color(
                                 *border_color,
@@ -203,7 +241,7 @@ impl Backend {
                             ..tiny_skia::Paint::default()
                         },
                         &tiny_skia::Stroke {
-                            width: *border_width,
+                            width: border_width,
                             ..tiny_skia::Stroke::default()
                         },
                         transform,
