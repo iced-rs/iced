@@ -53,11 +53,13 @@ impl Path {
         Self::new(|p| p.circle(center, radius))
     }
 
+    /// Returns the internal [`lyon_path::Path`].
     #[inline]
     pub fn raw(&self) -> &lyon_path::Path {
         &self.raw
     }
 
+    /// Returns the current [`Path`] with the given transform applied to it.
     #[inline]
     pub fn transform(&self, transform: &lyon_path::math::Transform) -> Path {
         Path {

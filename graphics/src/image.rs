@@ -5,6 +5,7 @@ use bitflags::bitflags;
 
 pub use ::image as image_rs;
 
+/// Tries to load an image by its [`Handle`].
 pub fn load(handle: &Handle) -> image_rs::ImageResult<image_rs::DynamicImage> {
     match handle.data() {
         Data::Path(path) => {

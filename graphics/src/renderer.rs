@@ -235,9 +235,7 @@ impl<B, T> crate::geometry::Renderer for Renderer<B, T>
 where
     B: Backend,
 {
-    type Geometry = crate::Geometry;
-
-    fn draw(&mut self, layers: Vec<Self::Geometry>) {
+    fn draw(&mut self, layers: Vec<crate::Geometry>) {
         self.primitives
             .extend(layers.into_iter().map(crate::Geometry::into));
     }

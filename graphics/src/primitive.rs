@@ -1,3 +1,4 @@
+//! Draw using different graphical primitives.
 use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
@@ -90,18 +91,28 @@ pub enum Primitive {
         /// The [`Gradient`] to apply to the mesh.
         gradient: Gradient,
     },
+    /// A [`tiny_skia`] path filled with some paint.
     #[cfg(feature = "tiny-skia")]
     Fill {
+        /// The path to fill.
         path: tiny_skia::Path,
+        /// The paint to use.
         paint: tiny_skia::Paint<'static>,
+        /// The fill rule to follow.
         rule: tiny_skia::FillRule,
+        /// The transform to apply to the path.
         transform: tiny_skia::Transform,
     },
+    /// A [`tiny_skia`] path stroked with some paint.
     #[cfg(feature = "tiny-skia")]
     Stroke {
+        /// The path to stroke.
         path: tiny_skia::Path,
+        /// The paint to use.
         paint: tiny_skia::Paint<'static>,
+        /// The stroke settings.
         stroke: tiny_skia::Stroke,
+        /// The transform to apply to the path.
         transform: tiny_skia::Transform,
     },
     /// A group of primitives
@@ -135,10 +146,12 @@ pub enum Primitive {
 }
 
 impl Primitive {
+    /// Creates a [`Primitive::Group`].
     pub fn group(primitives: Vec<Self>) -> Self {
         Self::Group { primitives }
     }
 
+    /// Creates a [`Primitive::Clip`].
     pub fn clip(self, bounds: Rectangle) -> Self {
         Self::Clip {
             bounds,
@@ -146,6 +159,7 @@ impl Primitive {
         }
     }
 
+    /// Creates a [`Primitive::Translate`].
     pub fn translate(self, translation: Vector) -> Self {
         Self::Translate {
             translation,
@@ -153,6 +167,7 @@ impl Primitive {
         }
     }
 
+    /// Returns the bounds of the [`Primitive`].
     pub fn bounds(&self) -> Rectangle {
         match self {
             Self::Text {

@@ -16,10 +16,11 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use style::Style;
 pub use text::Text;
 
-pub use iced_core::gradient::{self, Gradient};
+pub use crate::core::gradient::{self, Gradient};
 
 use crate::Primitive;
 
+/// A bunch of shapes that can be drawn.
 #[derive(Debug, Clone)]
 pub struct Geometry(pub Primitive);
 
@@ -29,8 +30,8 @@ impl From<Geometry> for Primitive {
     }
 }
 
-pub trait Renderer: iced_core::Renderer {
-    type Geometry;
-
-    fn draw(&mut self, geometry: Vec<Self::Geometry>);
+/// A renderer capable of drawing some [`Geometry`].
+pub trait Renderer: crate::core::Renderer {
+    /// Draws the given layers of [`Geometry`].
+    fn draw(&mut self, layers: Vec<Geometry>);
 }
