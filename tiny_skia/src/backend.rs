@@ -178,21 +178,13 @@ impl Backend {
                     .min(bounds.width / 2.0)
                     .min(bounds.height / 2.0);
 
-                // Offset the fill by the border width
-                let path_bounds = Rectangle {
-                    x: bounds.x + border_width,
-                    y: bounds.y + border_width,
-                    width: bounds.width - 2.0 * border_width,
-                    height: bounds.height - 2.0 * border_width,
-                };
-                // fill border radius is the border radius minus the border width
                 let mut fill_border_radius = *border_radius;
                 for radius in &mut fill_border_radius {
-                    *radius = (*radius - border_width / 2.0)
-                        .min(path_bounds.width / 2.0)
-                        .min(path_bounds.height / 2.0);
+                    *radius = (*radius)
+                        .min(bounds.width / 2.0)
+                        .min(bounds.height / 2.0);
                 }
-                let path = rounded_rectangle(path_bounds, fill_border_radius);
+                let path = rounded_rectangle(*bounds, fill_border_radius);
 
                 pixels.fill_path(
                     &path,
