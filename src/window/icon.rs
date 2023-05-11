@@ -12,7 +12,6 @@ use std::path::Path;
 ///
 /// This will return an error in case the file is missing at run-time. You may prefer [`Self::from_file_data`] instead.
 #[cfg(feature = "image")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
     let icon = image_rs::io::Reader::open(icon_path)?.decode()?.to_rgba8();
 
@@ -24,7 +23,6 @@ pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
 /// This content can be included in your application at compile-time, e.g. using the `include_bytes!` macro.
 /// You can pass an explicit file format. Otherwise, the file format will be guessed at runtime.
 #[cfg(feature = "image")]
-#[cfg_attr(docsrs, doc(cfg(feature = "image")))]
 pub fn from_file_data(
     data: &[u8],
     explicit_format: Option<image_rs::ImageFormat>,
@@ -60,7 +58,6 @@ pub enum Error {
 
     /// The `image` crate reported an error.
     #[cfg(feature = "image")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "image")))]
     #[error("Unable to create icon from a file: {0}")]
     ImageError(#[from] image_rs::error::ImageError),
 }

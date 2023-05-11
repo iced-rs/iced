@@ -36,7 +36,7 @@
 )]
 #![forbid(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod layer;
 pub mod settings;
 pub mod window;
