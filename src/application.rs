@@ -1,7 +1,7 @@
 //! Build interactive cross-platform applications.
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use iced_native::application::{Appearance, StyleSheet};
+pub use crate::style::application::{Appearance, StyleSheet};
 
 /// An interactive cross-platform application.
 ///
@@ -197,26 +197,25 @@ pub trait Application: Sized {
         let renderer_settings = crate::renderer::Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
-            text_multithreading: settings.text_multithreading,
             antialiasing: if settings.antialiasing {
-                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+                Some(crate::graphics::Antialiasing::MSAAx4)
             } else {
                 None
             },
-            ..crate::renderer::Settings::from_env()
+            ..crate::renderer::Settings::default()
         };
 
-        Ok(crate::runtime::application::run::<
+        Ok(crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::window::Compositor<Self::Theme>,
+            crate::renderer::Compositor<Self::Theme>,
         >(settings.into(), renderer_settings)?)
     }
 }
 
 struct Instance<A: Application>(A);
 
-impl<A> iced_winit::Program for Instance<A>
+impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
 {
@@ -232,7 +231,7 @@ where
     }
 }
 
-impl<A> crate::runtime::Application for Instance<A>
+impl<A> crate::shell::Application for Instance<A>
 where
     A: Application,
 {

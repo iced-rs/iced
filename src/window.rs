@@ -8,4 +8,5 @@ pub use icon::Icon;
 pub use position::Position;
 pub use settings::{PlatformSpecific, Settings};
 
+pub use crate::core::window::*;
 pub use crate::runtime::window::*;

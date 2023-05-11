@@ -1,12 +1,13 @@
 use iced::alignment;
 use iced::executor;
+use iced::subscription;
 use iced::widget::{button, checkbox, container, text, Column};
 use iced::window;
+use iced::Event;
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
 };
-use iced_native::Event;
 
 pub fn main() -> iced::Result {
     Events::run(Settings {
@@ -17,13 +18,13 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Default)]
 struct Events {
-    last: Vec<iced_native::Event>,
+    last: Vec<Event>,
     enabled: bool,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    EventOccurred(iced_native::Event),
+    EventOccurred(Event),
     Toggled(bool),
     Exit,
 }
@@ -70,7 +71,7 @@ impl Application for Events {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced_native::subscription::events().map(Message::EventOccurred)
+        subscription::events().map(Message::EventOccurred)
     }
 
     fn view(&self) -> Element<Message> {

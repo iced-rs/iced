@@ -1,8 +1,7 @@
 //! Access the native system.
-use crate::command::{self, Command};
-pub use iced_native::system::*;
-
-use iced_graphics::compositor;
+use crate::graphics::compositor;
+use crate::runtime::command::{self, Command};
+use crate::runtime::system::{Action, Information};
 
 /// Query for available system information.
 pub fn fetch_information<Message>(

@@ -1,8 +1,8 @@
 use iced::widget::canvas::{self, Canvas, Cursor, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    alignment, Alignment, Color, Element, Length, Point, Rectangle, Sandbox,
-    Settings, Size, Vector,
+    alignment, Alignment, Color, Element, Length, Point, Rectangle, Renderer,
+    Sandbox, Settings, Size, Vector,
 };
 use palette::{self, convert::FromColor, Hsl, Srgb};
 use std::marker::PhantomData;
@@ -243,11 +243,12 @@ impl<Message> canvas::Program<Message> for Theme {
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &iced::Theme,
         bounds: Rectangle,
         _cursor: Cursor,
     ) -> Vec<Geometry> {
-        let theme = self.canvas_cache.draw(bounds.size(), |frame| {
+        let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
             self.draw(frame);
         });
 

@@ -1,4 +1,4 @@
-use crate::settings;
+use crate::graphics;
 
 #[derive(Debug)]
 pub struct Blit {
@@ -14,7 +14,7 @@ impl Blit {
     pub fn new(
         device: &wgpu::Device,
         format: wgpu::TextureFormat,
-        antialiasing: settings::Antialiasing,
+        antialiasing: graphics::Antialiasing,
     ) -> Blit {
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
@@ -222,8 +222,8 @@ impl Targets {
             sample_count,
             dimension: wgpu::TextureDimension::D2,
             format,
-            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[],
         });
 
         let resolve = device.create_texture(&wgpu::TextureDescriptor {
@@ -233,9 +233,9 @@ impl Targets {
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
             format,
-            view_formats: &[],
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::TEXTURE_BINDING,
+            view_formats: &[],
         });
 
         let attachment =

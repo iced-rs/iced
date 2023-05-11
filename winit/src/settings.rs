@@ -22,6 +22,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
+use crate::core::window::Icon;
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
@@ -51,14 +52,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
-
-    /// Whether the [`Application`] should try to build the context
-    /// using OpenGL ES first then OpenGL.
-    ///
-    /// NOTE: Only works for the `glow` backend.
-    ///
-    /// [`Application`]: crate::Application
-    pub try_opengles_first: bool,
 }
 
 /// The window settings of an application.
@@ -92,7 +85,7 @@ pub struct Window {
     pub always_on_top: bool,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<crate::window::Icon>,
+    pub icon: Option<Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,

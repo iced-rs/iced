@@ -164,58 +164,139 @@
 #![forbid(rust_2018_idioms, unsafe_code)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+use iced_widget::graphics;
+use iced_widget::renderer;
+use iced_widget::style;
+use iced_winit as shell;
+use iced_winit::core;
+use iced_winit::runtime;
 
-mod element;
+pub use iced_futures::futures;
+
 mod error;
-mod result;
 mod sandbox;
 
 pub mod application;
-pub mod clipboard;
-pub mod executor;
-pub mod keyboard;
-pub mod mouse;
-pub mod overlay;
 pub mod settings;
 pub mod time;
-pub mod touch;
-pub mod widget;
 pub mod window;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
-use iced_winit as runtime;
+#[cfg(feature = "advanced")]
+pub mod advanced;
 
-#[cfg(feature = "glow")]
-use iced_glutin as runtime;
+pub use style::theme;
 
-#[cfg(all(not(feature = "glow"), feature = "wgpu"))]
-use iced_wgpu as renderer;
+pub use crate::core::alignment;
+pub use crate::core::event;
+pub use crate::core::{
+    color, Alignment, Background, Color, ContentFit, Length, Padding, Pixels,
+    Point, Rectangle, Size, Vector,
+};
+pub use crate::runtime::Command;
 
-#[cfg(feature = "glow")]
-use iced_glow as renderer;
+pub mod clipboard {
+    //! Access the clipboard.
+    pub use crate::runtime::clipboard::{read, write};
+}
 
-pub use iced_native::theme;
-pub use runtime::event;
-pub use runtime::subscription;
+pub mod executor {
+    //! Choose your preferred executor to power your application.
+    pub use iced_futures::Executor;
+
+    /// A default cross-platform executor.
+    ///
+    /// - On native platforms, it will use:
+    ///   - `iced_futures::backend::native::tokio` when the `tokio` feature is enabled.
+    ///   - `iced_futures::backend::native::async-std` when the `async-std` feature is
+    ///     enabled.
+    ///   - `iced_futures::backend::native::smol` when the `smol` feature is enabled.
+    ///   - `iced_futures::backend::native::thread_pool` otherwise.
+    ///
+    /// - On Wasm, it will use `iced_futures::backend::wasm::wasm_bindgen`.
+    pub type Default = iced_futures::backend::default::Executor;
+}
+
+pub mod font {
+    //! Load and use fonts.
+    pub use crate::core::font::*;
+    pub use crate::runtime::font::*;
+}
+
+pub mod keyboard {
+    //! Listen and react to keyboard events.
+    pub use crate::core::keyboard::{Event, KeyCode, Modifiers};
+}
+
+pub mod mouse {
+    //! Listen and react to mouse events.
+    pub use crate::core::mouse::{Button, Event, Interaction, ScrollDelta};
+}
+
+pub mod subscription {
+    //! Listen to external events in your application.
+    pub use iced_futures::subscription::{
+        channel, events, events_with, run, run_with_id, unfold, Subscription,
+    };
+}
+
+#[cfg(feature = "system")]
+pub mod system {
+    //! Retrieve system information.
+    pub use crate::runtime::system::Information;
+    pub use crate::shell::system::*;
+}
+
+pub mod overlay {
+    //! Display interactive elements on top of other widgets.
+
+    /// A generic [`Overlay`].
+    ///
+    /// This is an alias of an `iced_native` element with a default `Renderer`.
+    ///
+    /// [`Overlay`]: iced_native::Overlay
+    pub type Element<'a, Message, Renderer = crate::Renderer> =
+        crate::core::overlay::Element<'a, Message, Renderer>;
+
+    pub use iced_widget::overlay::*;
+}
+
+pub mod touch {
+    //! Listen and react to touch events.
+    pub use crate::core::touch::{Event, Finger};
+}
+
+pub mod widget {
+    //! Use the built-in widgets or create your own.
+    pub use iced_widget::*;
+
+    // We hide the re-exported modules by `iced_widget`
+    mod core {}
+    mod graphics {}
+    mod native {}
+    mod renderer {}
+    mod style {}
+}
 
 pub use application::Application;
-pub use element::Element;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
-pub use renderer::Renderer;
-pub use result::Result;
+pub use font::Font;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
 pub use theme::Theme;
 
-pub use runtime::alignment;
-pub use runtime::futures;
-pub use runtime::{
-    color, Alignment, Background, Color, Command, ContentFit, Font, Length,
-    Padding, Point, Rectangle, Size, Vector,
-};
+/// The default renderer.
+pub type Renderer<Theme = style::Theme> = renderer::Renderer<Theme>;
 
-#[cfg(feature = "system")]
-pub use runtime::system;
+/// A generic widget.
+///
+/// This is an alias of an `iced_native` element with a default `Renderer`.
+pub type Element<'a, Message, Renderer = crate::Renderer> =
+    crate::core::Element<'a, Message, Renderer>;
+
+/// The result of running an [`Application`].
+///
+/// [`Application`]: crate::Application
+pub type Result = std::result::Result<(), Error>;

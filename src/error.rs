@@ -1,4 +1,6 @@
-use iced_futures::futures;
+use crate::futures;
+use crate::graphics;
+use crate::shell;
 
 /// An error that occurred while running an application.
 #[derive(Debug, thiserror::Error)]
@@ -13,19 +15,19 @@ pub enum Error {
 
     /// The application graphics context could not be created.
     #[error("the application graphics context could not be created")]
-    GraphicsCreationFailed(iced_graphics::Error),
+    GraphicsCreationFailed(graphics::Error),
 }
 
-impl From<iced_winit::Error> for Error {
-    fn from(error: iced_winit::Error) -> Error {
+impl From<shell::Error> for Error {
+    fn from(error: shell::Error) -> Error {
         match error {
-            iced_winit::Error::ExecutorCreationFailed(error) => {
+            shell::Error::ExecutorCreationFailed(error) => {
                 Error::ExecutorCreationFailed(error)
             }
-            iced_winit::Error::WindowCreationFailed(error) => {
+            shell::Error::WindowCreationFailed(error) => {
                 Error::WindowCreationFailed(Box::new(error))
             }
-            iced_winit::Error::GraphicsCreationFailed(error) => {
+            shell::Error::GraphicsCreationFailed(error) => {
                 Error::GraphicsCreationFailed(error)
             }
         }

@@ -9,10 +9,10 @@ mod circle {
     // Of course, you can choose to make the implementation renderer-agnostic,
     // if you wish to, by creating your own `Renderer` trait, which could be
     // implemented by `iced_wgpu` and other renderers.
-    use iced_native::layout::{self, Layout};
-    use iced_native::renderer;
-    use iced_native::widget::{self, Widget};
-    use iced_native::{Color, Element, Length, Point, Rectangle, Size};
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Widget};
+    use iced::{Color, Element, Length, Point, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,

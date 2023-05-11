@@ -1,6 +1,7 @@
 //! Run commands and keep track of subscriptions.
+use crate::core::event::{self, Event};
 use crate::subscription;
-use crate::{BoxFuture, Executor, MaybeSend, Subscription};
+use crate::{BoxFuture, Executor, MaybeSend};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
@@ -12,18 +13,15 @@ use std::marker::PhantomData;
 ///
 /// [`Command`]: crate::Command
 #[derive(Debug)]
-pub struct Runtime<Hasher, Event, Executor, Sender, Message> {
+pub struct Runtime<Executor, Sender, Message> {
     executor: Executor,
     sender: Sender,
-    subscriptions: subscription::Tracker<Hasher, Event>,
+    subscriptions: subscription::Tracker,
     _message: PhantomData<Message>,
 }
 
-impl<Hasher, Event, Executor, Sender, Message>
-    Runtime<Hasher, Event, Executor, Sender, Message>
+impl<Executor, Sender, Message> Runtime<Executor, Sender, Message>
 where
-    Hasher: std::hash::Hasher + Default,
-    Event: Send + Clone + 'static,
     Executor: self::Executor,
     Sender: Sink<Message, Error = mpsc::SendError>
         + Unpin
@@ -79,7 +77,9 @@ where
     /// [`Tracker::update`]: subscription::Tracker::update
     pub fn track(
         &mut self,
-        subscription: Subscription<Hasher, Event, Message>,
+        recipes: impl IntoIterator<
+            Item = Box<dyn subscription::Recipe<Output = Message>>,
+        >,
     ) {
         let Runtime {
             executor,
@@ -88,8 +88,9 @@ where
             ..
         } = self;
 
-        let futures = executor
-            .enter(|| subscriptions.update(subscription, sender.clone()));
+        let futures = executor.enter(|| {
+            subscriptions.update(recipes.into_iter(), sender.clone())
+        });
 
         for future in futures {
             executor.spawn(future);
@@ -102,7 +103,7 @@ where
     /// See [`Tracker::broadcast`] to learn more.
     ///
     /// [`Tracker::broadcast`]: subscription::Tracker::broadcast
-    pub fn broadcast(&mut self, event: Event) {
-        self.subscriptions.broadcast(event);
+    pub fn broadcast(&mut self, event: Event, status: event::Status) {
+        self.subscriptions.broadcast(event, status);
     }
 }

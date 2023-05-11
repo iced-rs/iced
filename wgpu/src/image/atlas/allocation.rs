@@ -1,6 +1,5 @@
+use crate::core::Size;
 use crate::image::atlas::{self, allocator};
-
-use iced_graphics::Size;
 
 #[derive(Debug)]
 pub enum Allocation {

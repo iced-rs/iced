@@ -1,265 +1,439 @@
-use crate::Transformation;
+use crate::core::alignment;
+use crate::core::font::{self, Font};
+use crate::core::text::{Hit, LineHeight, Shaping};
+use crate::core::{Pixels, Point, Rectangle, Size};
+use crate::layer::Text;
 
-use iced_graphics::font;
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::collections::hash_map;
+use std::hash::{BuildHasher, Hash, Hasher};
+use std::sync::Arc;
 
-use std::{cell::RefCell, collections::HashMap};
-use wgpu_glyph::ab_glyph;
-
-pub use iced_native::text::Hit;
-
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    draw_brush: RefCell<wgpu_glyph::GlyphBrush<()>>,
-    draw_font_map: RefCell<HashMap<String, wgpu_glyph::FontId>>,
-    measure_brush: RefCell<glyph_brush::GlyphBrush<()>>,
+    font_system: RefCell<glyphon::FontSystem>,
+    renderers: Vec<glyphon::TextRenderer>,
+    atlas: glyphon::TextAtlas,
+    prepare_layer: usize,
+    measurement_cache: RefCell<Cache>,
+    render_cache: Cache,
 }
 
 impl Pipeline {
     pub fn new(
         device: &wgpu::Device,
+        queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        default_font: Option<&[u8]>,
-        multithreading: bool,
     ) -> Self {
-        let default_font = default_font.map(|slice| slice.to_vec());
-
-        // TODO: Font customization
-        #[cfg(not(target_os = "ios"))]
-        #[cfg(feature = "default_system_font")]
-        let default_font = {
-            default_font.or_else(|| {
-                font::Source::new()
-                    .load(&[font::Family::SansSerif, font::Family::Serif])
-                    .ok()
-            })
-        };
-
-        let default_font =
-            default_font.unwrap_or_else(|| font::FALLBACK.to_vec());
-
-        let font = ab_glyph::FontArc::try_from_vec(default_font)
-            .unwrap_or_else(|_| {
-                log::warn!(
-                    "System font failed to load. Falling back to \
-                    embedded font..."
-                );
-
-                ab_glyph::FontArc::try_from_slice(font::FALLBACK)
-                    .expect("Load fallback font")
-            });
-
-        let draw_brush_builder =
-            wgpu_glyph::GlyphBrushBuilder::using_font(font.clone())
-                .initial_cache_size((2048, 2048))
-                .draw_cache_multithread(multithreading);
-
-        #[cfg(target_arch = "wasm32")]
-        let draw_brush_builder = draw_brush_builder.draw_cache_align_4x4(true);
-
-        let draw_brush = draw_brush_builder.build(device, format);
-
-        let measure_brush =
-            glyph_brush::GlyphBrushBuilder::using_font(font).build();
-
         Pipeline {
-            draw_brush: RefCell::new(draw_brush),
-            draw_font_map: RefCell::new(HashMap::new()),
-            measure_brush: RefCell::new(measure_brush),
+            font_system: RefCell::new(glyphon::FontSystem::new_with_fonts(
+                [glyphon::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                ))]
+                .into_iter(),
+            )),
+            renderers: Vec::new(),
+            atlas: glyphon::TextAtlas::new(device, queue, format),
+            prepare_layer: 0,
+            measurement_cache: RefCell::new(Cache::new()),
+            render_cache: Cache::new(),
         }
     }
 
-    pub fn queue(&mut self, section: wgpu_glyph::Section<'_>) {
-        self.draw_brush.borrow_mut().queue(section);
+    pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        self.font_system.get_mut().db_mut().load_font_source(
+            glyphon::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
+        );
     }
 
-    pub fn draw_queued(
+    pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        transformation: Transformation,
-        region: wgpu_glyph::Region,
-    ) {
-        self.draw_brush
-            .borrow_mut()
-            .draw_queued_with_transform_and_scissoring(
+        queue: &wgpu::Queue,
+        sections: &[Text<'_>],
+        bounds: Rectangle,
+        scale_factor: f32,
+        target_size: Size<u32>,
+    ) -> bool {
+        if self.renderers.len() <= self.prepare_layer {
+            self.renderers.push(glyphon::TextRenderer::new(
+                &mut self.atlas,
                 device,
-                staging_belt,
-                encoder,
-                target,
-                transformation.into(),
-                region,
-            )
-            .expect("Draw text");
+                Default::default(),
+                None,
+            ));
+        }
+
+        let font_system = self.font_system.get_mut();
+        let renderer = &mut self.renderers[self.prepare_layer];
+
+        let keys: Vec<_> = sections
+            .iter()
+            .map(|section| {
+                let (key, _) = self.render_cache.allocate(
+                    font_system,
+                    Key {
+                        content: section.content,
+                        size: section.size * scale_factor,
+                        line_height: f32::from(
+                            section
+                                .line_height
+                                .to_absolute(Pixels(section.size)),
+                        ) * scale_factor,
+                        font: section.font,
+                        bounds: Size {
+                            width: (section.bounds.width * scale_factor).ceil(),
+                            height: (section.bounds.height * scale_factor)
+                                .ceil(),
+                        },
+                        shaping: section.shaping,
+                    },
+                );
+
+                key
+            })
+            .collect();
+
+        let bounds = bounds * scale_factor;
+
+        let text_areas =
+            sections
+                .iter()
+                .zip(keys.iter())
+                .filter_map(|(section, key)| {
+                    let buffer =
+                        self.render_cache.get(key).expect("Get cached buffer");
+
+                    let (total_lines, max_width) = buffer
+                        .layout_runs()
+                        .enumerate()
+                        .fold((0, 0.0), |(_, max), (i, buffer)| {
+                            (i + 1, buffer.line_w.max(max))
+                        });
+
+                    let total_height =
+                        total_lines as f32 * buffer.metrics().line_height;
+
+                    let x = section.bounds.x * scale_factor;
+                    let y = section.bounds.y * scale_factor;
+
+                    let left = match section.horizontal_alignment {
+                        alignment::Horizontal::Left => x,
+                        alignment::Horizontal::Center => x - max_width / 2.0,
+                        alignment::Horizontal::Right => x - max_width,
+                    };
+
+                    let top = match section.vertical_alignment {
+                        alignment::Vertical::Top => y,
+                        alignment::Vertical::Center => y - total_height / 2.0,
+                        alignment::Vertical::Bottom => y - total_height,
+                    };
+
+                    let section_bounds = Rectangle {
+                        x: left,
+                        y: top,
+                        width: section.bounds.width * scale_factor,
+                        height: section.bounds.height * scale_factor,
+                    };
+
+                    let clip_bounds = bounds.intersection(&section_bounds)?;
+
+                    // TODO: Subpixel glyph positioning
+                    let left = left.round() as i32;
+                    let top = top.round() as i32;
+
+                    Some(glyphon::TextArea {
+                        buffer,
+                        left,
+                        top,
+                        bounds: glyphon::TextBounds {
+                            left: clip_bounds.x as i32,
+                            top: clip_bounds.y as i32,
+                            right: (clip_bounds.x + clip_bounds.width) as i32,
+                            bottom: (clip_bounds.y + clip_bounds.height) as i32,
+                        },
+                        default_color: {
+                            let [r, g, b, a] = section.color.into_linear();
+
+                            glyphon::Color::rgba(
+                                (r * 255.0) as u8,
+                                (g * 255.0) as u8,
+                                (b * 255.0) as u8,
+                                (a * 255.0) as u8,
+                            )
+                        },
+                    })
+                });
+
+        let result = renderer.prepare(
+            device,
+            queue,
+            font_system,
+            &mut self.atlas,
+            glyphon::Resolution {
+                width: target_size.width,
+                height: target_size.height,
+            },
+            text_areas,
+            &mut glyphon::SwashCache::new(),
+        );
+
+        match result {
+            Ok(()) => {
+                self.prepare_layer += 1;
+
+                true
+            }
+            Err(glyphon::PrepareError::AtlasFull(content_type)) => {
+                self.prepare_layer = 0;
+
+                #[allow(clippy::needless_bool)]
+                if self.atlas.grow(device, content_type) {
+                    false
+                } else {
+                    // If the atlas cannot grow, then all bets are off.
+                    // Instead of panicking, we will just pray that the result
+                    // will be somewhat readable...
+                    true
+                }
+            }
+        }
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        layer: usize,
+        bounds: Rectangle<u32>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        let renderer = &self.renderers[layer];
+
+        render_pass.set_scissor_rect(
+            bounds.x,
+            bounds.y,
+            bounds.width,
+            bounds.height,
+        );
+
+        renderer
+            .render(&self.atlas, render_pass)
+            .expect("Render text");
+    }
+
+    pub fn end_frame(&mut self) {
+        self.atlas.trim();
+        self.render_cache.trim();
+
+        self.prepare_layer = 0;
     }
 
     pub fn measure(
         &self,
         content: &str,
         size: f32,
-        font: iced_native::Font,
-        bounds: iced_native::Size,
+        line_height: LineHeight,
+        font: Font,
+        bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32) {
-        use wgpu_glyph::GlyphCruncher;
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-        let wgpu_glyph::FontId(font_id) = self.find_font(font);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let section = wgpu_glyph::Section {
-            bounds: (bounds.width, bounds.height),
-            text: vec![wgpu_glyph::Text {
-                text: content,
-                scale: size.into(),
-                font_id: wgpu_glyph::FontId(font_id),
-                extra: wgpu_glyph::Extra::default(),
-            }],
-            ..Default::default()
-        };
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                line_height,
+                font,
+                bounds,
+                shaping,
+            },
+        );
 
-        if let Some(bounds) =
-            self.measure_brush.borrow_mut().glyph_bounds(section)
-        {
-            (bounds.width().ceil(), bounds.height().ceil())
-        } else {
-            (0.0, 0.0)
-        }
+        let (total_lines, max_width) = paragraph
+            .layout_runs()
+            .enumerate()
+            .fold((0, 0.0), |(_, max), (i, buffer)| {
+                (i + 1, buffer.line_w.max(max))
+            });
+
+        (max_width, line_height * total_lines as f32)
     }
 
     pub fn hit_test(
         &self,
         content: &str,
         size: f32,
-        font: iced_native::Font,
-        bounds: iced_native::Size,
-        point: iced_native::Point,
-        nearest_only: bool,
+        line_height: LineHeight,
+        font: Font,
+        bounds: Size,
+        shaping: Shaping,
+        point: Point,
+        _nearest_only: bool,
     ) -> Option<Hit> {
-        use wgpu_glyph::GlyphCruncher;
+        let mut measurement_cache = self.measurement_cache.borrow_mut();
 
-        let wgpu_glyph::FontId(font_id) = self.find_font(font);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let section = wgpu_glyph::Section {
-            bounds: (bounds.width, bounds.height),
-            text: vec![wgpu_glyph::Text {
-                text: content,
-                scale: size.into(),
-                font_id: wgpu_glyph::FontId(font_id),
-                extra: wgpu_glyph::Extra::default(),
-            }],
-            ..Default::default()
-        };
-
-        let mut mb = self.measure_brush.borrow_mut();
-
-        // The underlying type is FontArc, so clones are cheap.
-        use wgpu_glyph::ab_glyph::{Font, ScaleFont};
-        let font = mb.fonts()[font_id].clone().into_scaled(size);
-
-        // Implements an iterator over the glyph bounding boxes.
-        let bounds = mb.glyphs(section).map(
-            |wgpu_glyph::SectionGlyph {
-                 byte_index, glyph, ..
-             }| {
-                (
-                    *byte_index,
-                    iced_native::Rectangle::new(
-                        iced_native::Point::new(
-                            glyph.position.x - font.h_side_bearing(glyph.id),
-                            glyph.position.y - font.ascent(),
-                        ),
-                        iced_native::Size::new(
-                            font.h_advance(glyph.id),
-                            font.ascent() - font.descent(),
-                        ),
-                    ),
-                )
+        let (_, paragraph) = measurement_cache.allocate(
+            &mut self.font_system.borrow_mut(),
+            Key {
+                content,
+                size,
+                line_height,
+                font,
+                bounds,
+                shaping,
             },
         );
 
-        // Implements computation of the character index based on the byte index
-        // within the input string.
-        let char_index = |byte_index| {
-            let mut b_count = 0;
-            for (i, utf8_len) in
-                content.chars().map(|c| c.len_utf8()).enumerate()
-            {
-                if byte_index < (b_count + utf8_len) {
-                    return i;
-                }
-                b_count += utf8_len;
-            }
+        let cursor = paragraph.hit(point.x, point.y)?;
 
-            byte_index
-        };
-
-        if !nearest_only {
-            for (idx, bounds) in bounds.clone() {
-                if bounds.contains(point) {
-                    return Some(Hit::CharOffset(char_index(idx)));
-                }
-            }
-        }
-
-        let nearest = bounds
-            .map(|(index, bounds)| (index, bounds.center()))
-            .min_by(|(_, center_a), (_, center_b)| {
-                center_a
-                    .distance(point)
-                    .partial_cmp(&center_b.distance(point))
-                    .unwrap_or(std::cmp::Ordering::Greater)
-            });
-
-        nearest.map(|(idx, center)| {
-            Hit::NearestCharOffset(char_index(idx), point - center)
-        })
+        Some(Hit::CharOffset(cursor.index))
     }
 
     pub fn trim_measurement_cache(&mut self) {
-        // TODO: We should probably use a `GlyphCalculator` for this. However,
-        // it uses a lifetimed `GlyphCalculatorGuard` with side-effects on drop.
-        // This makes stuff quite inconvenient. A manual method for trimming the
-        // cache would make our lives easier.
-        loop {
-            let action = self
-                .measure_brush
-                .borrow_mut()
-                .process_queued(|_, _| {}, |_| {});
-
-            match action {
-                Ok(_) => break,
-                Err(glyph_brush::BrushError::TextureTooSmall { suggested }) => {
-                    let (width, height) = suggested;
-
-                    self.measure_brush
-                        .borrow_mut()
-                        .resize_texture(width, height);
-                }
-            }
-        }
-    }
-
-    pub fn find_font(&self, font: iced_native::Font) -> wgpu_glyph::FontId {
-        match font {
-            iced_native::Font::Default => wgpu_glyph::FontId(0),
-            iced_native::Font::External { name, bytes } => {
-                if let Some(font_id) = self.draw_font_map.borrow().get(name) {
-                    return *font_id;
-                }
-
-                let font = ab_glyph::FontArc::try_from_slice(bytes)
-                    .expect("Load font");
-
-                let _ = self.measure_brush.borrow_mut().add_font(font.clone());
-
-                let font_id = self.draw_brush.borrow_mut().add_font(font);
-
-                let _ = self
-                    .draw_font_map
-                    .borrow_mut()
-                    .insert(String::from(name), font_id);
-
-                font_id
-            }
-        }
+        self.measurement_cache.borrow_mut().trim();
     }
 }
+
+fn to_family(family: font::Family) -> glyphon::Family<'static> {
+    match family {
+        font::Family::Name(name) => glyphon::Family::Name(name),
+        font::Family::SansSerif => glyphon::Family::SansSerif,
+        font::Family::Serif => glyphon::Family::Serif,
+        font::Family::Cursive => glyphon::Family::Cursive,
+        font::Family::Fantasy => glyphon::Family::Fantasy,
+        font::Family::Monospace => glyphon::Family::Monospace,
+    }
+}
+
+fn to_weight(weight: font::Weight) -> glyphon::Weight {
+    match weight {
+        font::Weight::Thin => glyphon::Weight::THIN,
+        font::Weight::ExtraLight => glyphon::Weight::EXTRA_LIGHT,
+        font::Weight::Light => glyphon::Weight::LIGHT,
+        font::Weight::Normal => glyphon::Weight::NORMAL,
+        font::Weight::Medium => glyphon::Weight::MEDIUM,
+        font::Weight::Semibold => glyphon::Weight::SEMIBOLD,
+        font::Weight::Bold => glyphon::Weight::BOLD,
+        font::Weight::ExtraBold => glyphon::Weight::EXTRA_BOLD,
+        font::Weight::Black => glyphon::Weight::BLACK,
+    }
+}
+
+fn to_stretch(stretch: font::Stretch) -> glyphon::Stretch {
+    match stretch {
+        font::Stretch::UltraCondensed => glyphon::Stretch::UltraCondensed,
+        font::Stretch::ExtraCondensed => glyphon::Stretch::ExtraCondensed,
+        font::Stretch::Condensed => glyphon::Stretch::Condensed,
+        font::Stretch::SemiCondensed => glyphon::Stretch::SemiCondensed,
+        font::Stretch::Normal => glyphon::Stretch::Normal,
+        font::Stretch::SemiExpanded => glyphon::Stretch::SemiExpanded,
+        font::Stretch::Expanded => glyphon::Stretch::Expanded,
+        font::Stretch::ExtraExpanded => glyphon::Stretch::ExtraExpanded,
+        font::Stretch::UltraExpanded => glyphon::Stretch::UltraExpanded,
+    }
+}
+
+fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
+    match shaping {
+        Shaping::Basic => glyphon::Shaping::Basic,
+        Shaping::Advanced => glyphon::Shaping::Advanced,
+    }
+}
+
+struct Cache {
+    entries: FxHashMap<KeyHash, glyphon::Buffer>,
+    recently_used: FxHashSet<KeyHash>,
+    hasher: HashBuilder,
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+type HashBuilder = twox_hash::RandomXxHashBuilder64;
+
+#[cfg(target_arch = "wasm32")]
+type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
+
+impl Cache {
+    fn new() -> Self {
+        Self {
+            entries: FxHashMap::default(),
+            recently_used: FxHashSet::default(),
+            hasher: HashBuilder::default(),
+        }
+    }
+
+    fn get(&self, key: &KeyHash) -> Option<&glyphon::Buffer> {
+        self.entries.get(key)
+    }
+
+    fn allocate(
+        &mut self,
+        font_system: &mut glyphon::FontSystem,
+        key: Key<'_>,
+    ) -> (KeyHash, &mut glyphon::Buffer) {
+        let hash = {
+            let mut hasher = self.hasher.build_hasher();
+
+            key.content.hash(&mut hasher);
+            key.size.to_bits().hash(&mut hasher);
+            key.line_height.to_bits().hash(&mut hasher);
+            key.font.hash(&mut hasher);
+            key.bounds.width.to_bits().hash(&mut hasher);
+            key.bounds.height.to_bits().hash(&mut hasher);
+            key.shaping.hash(&mut hasher);
+
+            hasher.finish()
+        };
+
+        if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
+            let metrics = glyphon::Metrics::new(key.size, key.line_height);
+            let mut buffer = glyphon::Buffer::new(font_system, metrics);
+
+            buffer.set_size(
+                font_system,
+                key.bounds.width,
+                key.bounds.height.max(key.line_height),
+            );
+            buffer.set_text(
+                font_system,
+                key.content,
+                glyphon::Attrs::new()
+                    .family(to_family(key.font.family))
+                    .weight(to_weight(key.font.weight))
+                    .stretch(to_stretch(key.font.stretch)),
+                to_shaping(key.shaping),
+            );
+
+            let _ = entry.insert(buffer);
+        }
+
+        let _ = self.recently_used.insert(hash);
+
+        (hash, self.entries.get_mut(&hash).unwrap())
+    }
+
+    fn trim(&mut self) {
+        self.entries
+            .retain(|key, _| self.recently_used.contains(key));
+
+        self.recently_used.clear();
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Key<'a> {
+    content: &'a str,
+    size: f32,
+    line_height: f32,
+    font: Font,
+    bounds: Size,
+    shaping: Shaping,
+}
+
+type KeyHash = u64;

@@ -25,31 +25,57 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub mod alignment;
+pub mod clipboard;
+pub mod event;
+pub mod font;
+pub mod gradient;
+pub mod image;
 pub mod keyboard;
+pub mod layout;
 pub mod mouse;
+pub mod overlay;
+pub mod renderer;
+pub mod svg;
+pub mod text;
 pub mod time;
+pub mod touch;
+pub mod widget;
+pub mod window;
 
 mod background;
 mod color;
 mod content_fit;
-mod font;
+mod element;
+mod hasher;
 mod length;
 mod padding;
 mod pixels;
 mod point;
 mod rectangle;
+mod shell;
 mod size;
 mod vector;
 
 pub use alignment::Alignment;
 pub use background::Background;
+pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;
+pub use element::Element;
+pub use event::Event;
 pub use font::Font;
+pub use gradient::Gradient;
+pub use hasher::Hasher;
+pub use layout::Layout;
 pub use length::Length;
+pub use overlay::Overlay;
 pub use padding::Padding;
 pub use pixels::Pixels;
 pub use point::Point;
 pub use rectangle::Rectangle;
+pub use renderer::Renderer;
+pub use shell::Shell;
 pub use size::Size;
+pub use text::Text;
 pub use vector::Vector;
+pub use widget::Widget;

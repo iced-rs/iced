@@ -565,11 +565,6 @@ impl<'a> Step {
         is_secure: bool,
         is_showing_icon: bool,
     ) -> Column<'a, StepMessage> {
-        const ICON_FONT: Font = Font::External {
-            name: "Icons",
-            bytes: include_bytes!("../fonts/icons.ttf"),
-        };
-
         let mut text_input = text_input("Type something to continue...", value)
             .on_input(StepMessage::InputChanged)
             .padding(10)
@@ -577,9 +572,9 @@ impl<'a> Step {
 
         if is_showing_icon {
             text_input = text_input.icon(text_input::Icon {
-                font: ICON_FONT,
-                code_point: '\u{E900}',
-                size: Some(35.0),
+                font: Font::default(),
+                code_point: '🚀',
+                size: Some(28.0),
                 spacing: 10.0,
                 side: text_input::Side::Right,
             });

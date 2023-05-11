@@ -5,25 +5,25 @@ mod state;
 
 pub use state::State;
 
-use crate::clipboard::{self, Clipboard};
 use crate::conversion;
-use crate::mouse;
-use crate::renderer;
-use crate::widget::operation;
-use crate::{
-    Command, Debug, Error, Event, Executor, Proxy, Runtime, Settings, Size,
-    Subscription,
-};
+use crate::core;
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::time::Instant;
+use crate::core::widget::operation;
+use crate::core::window;
+use crate::core::{Event, Size};
+use crate::futures::futures;
+use crate::futures::{Executor, Runtime, Subscription};
+use crate::graphics::compositor::{self, Compositor};
+use crate::runtime::clipboard;
+use crate::runtime::program::Program;
+use crate::runtime::user_interface::{self, UserInterface};
+use crate::runtime::{Command, Debug};
+use crate::style::application::{Appearance, StyleSheet};
+use crate::{Clipboard, Error, Proxy, Settings};
 
-use iced_futures::futures;
-use iced_futures::futures::channel::mpsc;
-use iced_graphics::compositor;
-use iced_graphics::window;
-use iced_native::program::Program;
-use iced_native::time::Instant;
-use iced_native::user_interface::{self, UserInterface};
-
-pub use iced_native::application::{Appearance, StyleSheet};
+use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
 
@@ -45,7 +45,7 @@ use tracing::{info_span, instrument::Instrument};
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    <Self::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <Self::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -67,12 +67,12 @@ where
     fn title(&self) -> String;
 
     /// Returns the current `Theme` of the [`Application`].
-    fn theme(&self) -> <Self::Renderer as crate::Renderer>::Theme;
+    fn theme(&self) -> <Self::Renderer as core::Renderer>::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
     fn style(
         &self,
-    ) -> <<Self::Renderer as crate::Renderer>::Theme as StyleSheet>::Style {
+    ) -> <<Self::Renderer as core::Renderer>::Theme as StyleSheet>::Style {
         Default::default()
     }
 
@@ -112,8 +112,8 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    C: Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -282,28 +282,25 @@ async fn run_instance<A, E, C>(
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: window::Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    C: Compositor<Renderer = A::Renderer> + 'static,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
-    use iced_futures::futures::stream::StreamExt;
+    use futures::stream::StreamExt;
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let mut clipboard = Clipboard::connect(&window);
-    let mut cache = user_interface::Cache::default();
-    let mut surface = compositor.create_surface(&window);
-    let mut should_exit = false;
-
     let mut state = State::new(&application, &window);
     let mut viewport_version = state.viewport_version();
-
     let physical_size = state.physical_size();
 
-    compositor.configure_surface(
-        &mut surface,
+    let mut clipboard = Clipboard::connect(&window);
+    let mut cache = user_interface::Cache::default();
+    let mut surface = compositor.create_surface(
+        &window,
         physical_size.width,
         physical_size.height,
     );
+    let mut should_exit = false;
 
     if should_be_visible {
         window.set_visible(true);
@@ -323,7 +320,7 @@ async fn run_instance<A, E, C>(
         &window,
         || compositor.fetch_information(),
     );
-    runtime.track(application.subscription());
+    runtime.track(application.subscription().into_recipes());
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
@@ -367,8 +364,10 @@ async fn run_instance<A, E, C>(
 
                 debug.event_processing_finished();
 
-                for event in events.drain(..).zip(statuses.into_iter()) {
-                    runtime.broadcast(event);
+                for (event, status) in
+                    events.drain(..).zip(statuses.into_iter())
+                {
+                    runtime.broadcast(event, status);
                 }
 
                 if !messages.is_empty()
@@ -418,7 +417,7 @@ async fn run_instance<A, E, C>(
                 // Then, we can use the `interface_state` here to decide if a redraw
                 // is needed right away, or simply wait until a specific time.
                 let redraw_event = Event::Window(
-                    crate::window::Event::RedrawRequested(Instant::now()),
+                    window::Event::RedrawRequested(Instant::now()),
                 );
 
                 let (interface_state, _) = user_interface.update(
@@ -449,17 +448,14 @@ async fn run_instance<A, E, C>(
                 }
 
                 window.request_redraw();
-                runtime
-                    .broadcast((redraw_event, crate::event::Status::Ignored));
+                runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
                 let _ = control_sender.start_send(match interface_state {
                     user_interface::State::Updated {
                         redraw_request: Some(redraw_request),
                     } => match redraw_request {
-                        crate::window::RedrawRequest::NextFrame => {
-                            ControlFlow::Poll
-                        }
-                        crate::window::RedrawRequest::At(at) => {
+                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
+                        window::RedrawRequest::At(at) => {
                             ControlFlow::WaitUntil(at)
                         }
                     },
@@ -471,9 +467,9 @@ async fn run_instance<A, E, C>(
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
             )) => {
-                use iced_native::event;
+                use crate::core::event;
 
-                events.push(iced_native::Event::PlatformSpecific(
+                events.push(Event::PlatformSpecific(
                     event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
                         url,
                     )),
@@ -622,7 +618,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Renderer>
 where
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     #[cfg(feature = "trace")]
     let view_span = info_span!("Application", "VIEW").entered();
@@ -663,7 +659,7 @@ pub fn update<A: Application, E: Executor>(
     window: &winit::window::Window,
     graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
         #[cfg(feature = "trace")]
@@ -695,7 +691,7 @@ pub fn update<A: Application, E: Executor>(
     }
 
     let subscription = application.subscription();
-    runtime.track(subscription);
+    runtime.track(subscription.into_recipes());
 }
 
 /// Runs the actions of a [`Command`].
@@ -715,11 +711,11 @@ pub fn run_command<A, E>(
 ) where
     A: Application,
     E: Executor,
-    <A::Renderer as crate::Renderer>::Theme: StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
-    use iced_native::command;
-    use iced_native::system;
-    use iced_native::window;
+    use crate::runtime::command;
+    use crate::runtime::system;
+    use crate::runtime::window;
 
     for action in command.actions() {
         match action {
@@ -777,7 +773,7 @@ pub fn run_command<A, E>(
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
                     } else {
-                        window::Mode::Hidden
+                        core::window::Mode::Hidden
                     };
 
                     proxy
@@ -829,7 +825,7 @@ pub fn run_command<A, E>(
             },
             command::Action::Widget(action) => {
                 let mut current_cache = std::mem::take(cache);
-                let mut current_operation = Some(action.into_operation());
+                let mut current_operation = Some(action);
 
                 let mut user_interface = build_user_interface(
                     application,
@@ -857,6 +853,16 @@ pub fn run_command<A, E>(
 
                 current_cache = user_interface.into_cache();
                 *cache = current_cache;
+            }
+            command::Action::LoadFont { bytes, tagger } => {
+                use crate::core::text::Renderer;
+
+                // TODO: Error handling (?)
+                renderer.load_font(bytes);
+
+                proxy
+                    .send_event(tagger(Ok(())))
+                    .expect("Send message to event loop");
             }
         }
     }
