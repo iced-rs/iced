@@ -26,6 +26,7 @@ wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 window_clipboard = { git = "https://github.com/TobTobXX/window_clipboard", rev = "1392da8339c8aebb9849d00eb7383a73ed076f1d" }
 log = "0.4"
 thiserror = "1.0"
+raw-window-handle = "0.5"
 
 [dependencies.winit]
 version = "0.28"
