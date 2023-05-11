@@ -2,7 +2,6 @@
 use futures::Future;
 
 /// A thread pool executor for futures.
-#[cfg_attr(docsrs, doc(cfg(feature = "thread-pool")))]
 pub type Executor = futures::executor::ThreadPool;
 
 impl crate::Executor for Executor {

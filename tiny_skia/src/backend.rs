@@ -216,9 +216,11 @@ impl Backend {
                 bounds,
                 color,
                 size,
+                line_height,
                 font,
                 horizontal_alignment,
                 vertical_alignment,
+                shaping,
             } => {
                 let physical_bounds =
                     (primitive.bounds() + translation) * scale_factor;
@@ -232,12 +234,15 @@ impl Backend {
 
                 self.text_pipeline.draw(
                     content,
-                    (*bounds + translation) * scale_factor,
+                    *bounds + translation,
                     *color,
-                    *size * scale_factor,
+                    *size,
+                    *line_height,
                     *font,
                     *horizontal_alignment,
                     *vertical_alignment,
+                    *shaping,
+                    scale_factor,
                     pixels,
                     clip_mask,
                 );
@@ -425,10 +430,18 @@ impl Backend {
             }
             Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
                 // Not supported!
-                // TODO: Draw a placeholder (?) / Log it (?)
+                // TODO: Draw a placeholder (?)
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
+                    primitive
+                );
             }
             _ => {
                 // Not supported!
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
+                    primitive
+                );
             }
         }
     }
@@ -514,7 +527,7 @@ fn rounded_rectangle(
         bounds.y + bounds.height,
     );
 
-    if bottom_right > 0.0 {
+    if bottom_left > 0.0 {
         arc_to(
             &mut builder,
             bounds.x + bottom_left,
@@ -624,26 +637,39 @@ impl backend::Text for Backend {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
     ) -> (f32, f32) {
-        self.text_pipeline.measure(contents, size, font, bounds)
+        self.text_pipeline.measure(
+            contents,
+            size,
+            line_height,
+            font,
+            bounds,
+            shaping,
+        )
     }
 
     fn hit_test(
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
         self.text_pipeline.hit_test(
             contents,
             size,
+            line_height,
             font,
             bounds,
+            shaping,
             point,
             nearest_only,
         )

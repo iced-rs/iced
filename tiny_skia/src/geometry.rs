@@ -111,9 +111,11 @@ impl Frame {
             },
             color: text.color,
             size: text.size,
+            line_height: text.line_height,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
         });
     }
 
@@ -125,9 +127,9 @@ impl Frame {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    pub fn clip(&mut self, frame: Self, translation: Vector) {
+    pub fn clip(&mut self, frame: Self, at: Point) {
         self.primitives.push(Primitive::Translate {
-            translation,
+            translation: Vector::new(at.x, at.y),
             content: Box::new(frame.into_primitive()),
         });
     }

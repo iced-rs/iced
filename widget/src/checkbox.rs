@@ -55,6 +55,8 @@ where
     size: f32,
     spacing: f32,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -97,11 +99,15 @@ where
             size: Self::DEFAULT_SIZE,
             spacing: Self::DEFAULT_SPACING,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
+            text_shaping: text::Shaping::Basic,
             font: None,
             icon: Icon {
                 font: Renderer::ICON_FONT,
                 code_point: Renderer::CHECKMARK_ICON,
                 size: None,
+                line_height: text::LineHeight::default(),
+                shaping: text::Shaping::Basic,
             },
             style: Default::default(),
         }
@@ -128,6 +134,21 @@ where
     /// Sets the text size of the [`Checkbox`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`Checkbox`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Checkbox`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -213,7 +234,9 @@ where
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
-                    ),
+                    )
+                    .line_height(self.text_line_height)
+                    .shaping(self.text_shaping),
             )
             .layout(renderer, limits)
     }
@@ -299,6 +322,8 @@ where
                 font,
                 code_point,
                 size,
+                line_height,
+                shaping,
             } = &self.icon;
             let size = size.unwrap_or(bounds.height * 0.7);
 
@@ -307,6 +332,7 @@ where
                     content: &code_point.to_string(),
                     font: *font,
                     size,
+                    line_height: *line_height,
                     bounds: Rectangle {
                         x: bounds.center_x(),
                         y: bounds.center_y(),
@@ -315,6 +341,7 @@ where
                     color: custom_style.icon_color,
                     horizontal_alignment: alignment::Horizontal::Center,
                     vertical_alignment: alignment::Vertical::Center,
+                    shaping: *shaping,
                 });
             }
         }
@@ -328,12 +355,14 @@ where
                 label_layout,
                 &self.label,
                 self.text_size,
+                self.text_line_height,
                 self.font,
                 crate::text::Appearance {
                     color: custom_style.text_color,
                 },
                 alignment::Horizontal::Left,
                 alignment::Vertical::Center,
+                self.text_shaping,
             );
         }
     }
@@ -450,4 +479,8 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// The line height of the icon.
+    pub line_height: text::LineHeight,
+    /// The shaping strategy of the icon.
+    pub shaping: text::Shaping,
 }

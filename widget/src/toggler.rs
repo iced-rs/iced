@@ -53,7 +53,9 @@ where
     width: Length,
     size: f32,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
+    text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -100,7 +102,9 @@ where
             width: Length::Fill,
             size: Self::DEFAULT_SIZE,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
+            text_shaping: text::Shaping::Basic,
             spacing: 0.0,
             font: None,
             style: Default::default(),
@@ -125,9 +129,24 @@ where
         self
     }
 
+    /// Sets the text [`LineHeight`] of the [`Toggler`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
+        self
+    }
+
     /// Sets the horizontal alignment of the text of the [`Toggler`]
     pub fn text_alignment(mut self, alignment: alignment::Horizontal) -> Self {
         self.text_alignment = alignment;
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Toggler`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -223,7 +242,9 @@ where
                     .size(
                         self.text_size
                             .unwrap_or_else(|| renderer.default_size()),
-                    ),
+                    )
+                    .line_height(self.text_line_height)
+                    .shaping(self.text_shaping),
             );
         }
 
@@ -301,10 +322,12 @@ where
                 label_layout,
                 label,
                 self.text_size,
+                self.text_line_height,
                 self.font,
                 Default::default(),
                 self.text_alignment,
                 alignment::Vertical::Center,
+                self.text_shaping,
             );
         }
 
@@ -448,7 +471,7 @@ where
 
     fn id(&self) -> Option<Id> {
         if self.label.is_some() {
-            Some(Id(iced_accessibility::Internal::Set(vec![
+            Some(Id(crate::core::id::Internal::Set(vec![
                 self.id.0.clone(),
                 self.label_id.clone().unwrap().0,
             ])))

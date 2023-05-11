@@ -4,7 +4,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unused_results,
     clippy::extra_unused_lifetimes,
     clippy::from_over_into,
@@ -14,6 +14,7 @@
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;

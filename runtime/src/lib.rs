@@ -33,7 +33,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unused_results,
     clippy::extra_unused_lifetimes,
     clippy::from_over_into,
@@ -42,7 +42,7 @@
     clippy::useless_conversion
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod clipboard;
 pub mod command;
 pub mod font;

@@ -1,6 +1,5 @@
 //! Run asynchronous actions.
 mod action;
-pub mod platform_specific;
 
 pub use action::Action;
 

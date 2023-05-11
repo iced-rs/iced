@@ -365,7 +365,8 @@ impl Task {
                     self.completed,
                     TaskMessage::Completed,
                 )
-                .width(Length::Fill);
+                .width(Length::Fill)
+                .text_shaping(text::Shaping::Advanced);
 
                 row![
                     checkbox,

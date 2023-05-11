@@ -10,6 +10,7 @@ pub use mesh::Mesh;
 pub use quad::Quad;
 pub use text::Text;
 
+use crate::core;
 use crate::core::alignment;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::{Primitive, Viewport};
@@ -61,9 +62,11 @@ impl<'a> Layer<'a> {
                 ),
                 color: Color::new(0.9, 0.9, 0.9, 1.0),
                 size: 20.0,
+                line_height: core::text::LineHeight::default(),
                 font: Font::MONOSPACE,
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Top,
+                shaping: core::text::Shaping::Basic,
             };
 
             overlay.text.push(text);
@@ -112,10 +115,12 @@ impl<'a> Layer<'a> {
                 content,
                 bounds,
                 size,
+                line_height,
                 color,
                 font,
                 horizontal_alignment,
                 vertical_alignment,
+                shaping,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -123,10 +128,12 @@ impl<'a> Layer<'a> {
                     content,
                     bounds: *bounds + translation,
                     size: *size,
+                    line_height: *line_height,
                     color: *color,
                     font: *font,
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
+                    shaping: *shaping,
                 });
             }
             Primitive::Quad {
@@ -263,7 +270,11 @@ impl<'a> Layer<'a> {
                 );
             }
             _ => {
-                // Unsupported!
+                // Not supported!
+                log::warn!(
+                    "Unsupported primitive in `iced_wgpu`: {:?}",
+                    primitive
+                );
             }
         }
     }

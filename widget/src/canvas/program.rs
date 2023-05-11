@@ -2,7 +2,7 @@ use crate::canvas::event::{self, Event};
 use crate::canvas::mouse;
 use crate::canvas::Cursor;
 use crate::core::Rectangle;
-use crate::graphics::geometry;
+use crate::graphics::geometry::{self, Geometry};
 
 /// The state and logic of a [`Canvas`].
 ///
@@ -52,7 +52,7 @@ where
         theme: &Renderer::Theme,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> Vec<Renderer::Geometry>;
+    ) -> Vec<Geometry>;
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
@@ -94,7 +94,7 @@ where
         theme: &Renderer::Theme,
         bounds: Rectangle,
         cursor: Cursor,
-    ) -> Vec<Renderer::Geometry> {
+    ) -> Vec<Geometry> {
         T::draw(self, state, renderer, theme, bounds, cursor)
     }
 

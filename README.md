@@ -35,9 +35,9 @@ Inspired by [Elm].
 * First-class support for async actions (use futures!)
 * [Modular ecosystem] split into reusable parts:
   * A [renderer-agnostic native runtime] enabling integration with existing systems
-  * Two [built-in renderers] leveraging [`wgpu`] and [`glow`]
+  * Two [built-in renderers] leveraging [`wgpu`] and [`tiny-skia`]
     * [`iced_wgpu`] supporting Vulkan, Metal and DX12
-    * [`iced_glow`] supporting OpenGL 2.1+ and OpenGL ES 2.0+
+    * [`iced_tiny_skia`] offering a software alternative as a fallback
   * A [windowing shell]
   * A [web runtime] leveraging the DOM
 
@@ -52,9 +52,9 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [Modular ecosystem]: ECOSYSTEM.md
 [renderer-agnostic native runtime]: native/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
-[`glow`]: https://github.com/grovesNL/glow
+[`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
 [`iced_wgpu`]: wgpu/
-[`iced_glow`]: glow/
+[`iced_tiny_skia`]: tiny_skia/
 [built-in renderers]: ECOSYSTEM.md#Renderers
 [windowing shell]: winit/
 [`dodrio`]: https://github.com/fitzgen/dodrio
@@ -195,34 +195,6 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 [tour example]: examples/README.md#tour
 [`ggez`]: https://github.com/ggez/ggez
 [the ecosystem]: ECOSYSTEM.md
-
-## Troubleshooting
-
-### `GraphicsAdapterNotFound`
-
-This occurs when the selected [built-in renderer] is not able to create a context.
-
-Often this will occur while using [`iced_wgpu`] as the renderer without
-supported hardware (needs Vulkan, Metal or DX12). In this case, you could try using the
-[`iced_glow`] renderer:
-
-First, check if it works with
-
-```console
-cargo run --features iced/glow --package game_of_life
-```
-
-and then use it in your project with
-
-```toml
-iced = { version = "0.9", default-features = false, features = ["glow"] }
-```
-
-__NOTE:__ Chances are you have hardware that supports at least OpenGL 2.1 or OpenGL ES 2.0,
-but if you don't, right now there's no software fallback, so it means your hardware
-doesn't support Iced.
-
-[built-in renderer]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md#Renderers
 
 ## Contributing / Feedback
 

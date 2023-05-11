@@ -1,8 +1,9 @@
 //! Draw and interact with text.
 use crate::alignment;
-use crate::{Color, Point, Rectangle, Size};
+use crate::{Color, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
+use std::hash::{Hash, Hasher};
 
 /// A paragraph.
 #[derive(Debug, Clone, Copy)]
@@ -13,8 +14,11 @@ pub struct Text<'a, Font> {
     /// The bounds of the paragraph.
     pub bounds: Rectangle,
 
-    /// The size of the [`Text`].
+    /// The size of the [`Text`] in logical pixels.
     pub size: f32,
+
+    /// The line height of the [`Text`].
+    pub line_height: LineHeight,
 
     /// The color of the [`Text`].
     pub color: Color,
@@ -27,6 +31,86 @@ pub struct Text<'a, Font> {
 
     /// The vertical alignment of the [`Text`].
     pub vertical_alignment: alignment::Vertical,
+
+    /// The [`Shaping`] strategy of the [`Text`].
+    pub shaping: Shaping,
+}
+
+/// The shaping strategy of some text.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Shaping {
+    /// No shaping and no font fallback.
+    ///
+    /// This shaping strategy is very cheap, but it will not display complex
+    /// scripts properly nor try to find missing glyphs in your system fonts.
+    ///
+    /// You should use this strategy when you have complete control of the text
+    /// and the font you are displaying in your application.
+    ///
+    /// This is the default.
+    #[default]
+    Basic,
+    /// Advanced text shaping and font fallback.
+    ///
+    /// You will need to enable this flag if the text contains a complex
+    /// script, the font used needs it, and/or multiple fonts in your system
+    /// may be needed to display all of the glyphs.
+    ///
+    /// Advanced shaping is expensive! You should only enable it when necessary.
+    Advanced,
+}
+
+/// The height of a line of text in a paragraph.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum LineHeight {
+    /// A factor of the size of the text.
+    Relative(f32),
+
+    /// An absolute height in logical pixels.
+    Absolute(Pixels),
+}
+
+impl LineHeight {
+    /// Returns the [`LineHeight`] in absolute logical pixels.
+    pub fn to_absolute(self, text_size: Pixels) -> Pixels {
+        match self {
+            Self::Relative(factor) => Pixels(factor * text_size.0),
+            Self::Absolute(pixels) => pixels,
+        }
+    }
+}
+
+impl Default for LineHeight {
+    fn default() -> Self {
+        Self::Relative(1.3)
+    }
+}
+
+impl From<f32> for LineHeight {
+    fn from(factor: f32) -> Self {
+        Self::Relative(factor)
+    }
+}
+
+impl From<Pixels> for LineHeight {
+    fn from(pixels: Pixels) -> Self {
+        Self::Absolute(pixels)
+    }
+}
+
+impl Hash for LineHeight {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Self::Relative(factor) => {
+                state.write_u8(0);
+                factor.to_bits().hash(state);
+            }
+            Self::Absolute(pixels) => {
+                state.write_u8(1);
+                f32::from(*pixels).to_bits().hash(state);
+            }
+        }
+    }
 }
 
 /// The result of hit testing on text.
@@ -75,13 +159,28 @@ pub trait Renderer: crate::Renderer {
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Self::Font,
         bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32);
 
     /// Measures the width of the text as if it were laid out in a single line.
-    fn measure_width(&self, content: &str, size: f32, font: Self::Font) -> f32 {
-        let (width, _) = self.measure(content, size, font, Size::INFINITY);
+    fn measure_width(
+        &self,
+        content: &str,
+        size: f32,
+        font: Self::Font,
+        shaping: Shaping,
+    ) -> f32 {
+        let (width, _) = self.measure(
+            content,
+            size,
+            LineHeight::Absolute(Pixels(size)),
+            font,
+            Size::INFINITY,
+            shaping,
+        );
 
         width
     }
@@ -97,8 +196,10 @@ pub trait Renderer: crate::Renderer {
         &self,
         contents: &str,
         size: f32,
+        line_height: LineHeight,
         font: Self::Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<Hit>;

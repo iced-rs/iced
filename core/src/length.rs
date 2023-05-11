@@ -1,3 +1,5 @@
+use crate::Pixels;
+
 /// The strategy used to fill space in a specific dimension.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Length {
@@ -33,6 +35,12 @@ impl Length {
             Length::Shrink => 0,
             Length::Fixed(_) => 0,
         }
+    }
+}
+
+impl From<Pixels> for Length {
+    fn from(amount: Pixels) -> Self {
+        Length::Fixed(f32::from(amount))
     }
 }
 

@@ -36,6 +36,8 @@ where
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -71,6 +73,8 @@ where
             width: Length::Shrink,
             padding: Self::DEFAULT_PADDING,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
+            text_shaping: text::Shaping::Basic,
             font: None,
             handle: Default::default(),
             style: Default::default(),
@@ -98,6 +102,21 @@ where
     /// Sets the text size of the [`PickList`].
     pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
         self.text_size = Some(size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`PickList`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`PickList`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -164,6 +183,8 @@ where
             self.width,
             self.padding,
             self.text_size,
+            self.text_line_height,
+            self.text_shaping,
             self.font,
             self.placeholder.as_deref(),
             &self.options,
@@ -221,6 +242,8 @@ where
             cursor_position,
             self.padding,
             self.text_size,
+            self.text_line_height,
+            self.text_shaping,
             font,
             self.placeholder.as_deref(),
             self.selected.as_ref(),
@@ -243,6 +266,7 @@ where
             state,
             self.padding,
             self.text_size,
+            self.text_shaping,
             self.font.unwrap_or_else(|| renderer.default_font()),
             &self.options,
             self.style.clone(),
@@ -336,6 +360,10 @@ pub struct Icon<Font> {
     pub code_point: char,
     /// Font size of the content.
     pub size: Option<f32>,
+    /// Line height of the content.
+    pub line_height: text::LineHeight,
+    /// The shaping strategy of the icon.
+    pub shaping: text::Shaping,
 }
 
 /// Computes the layout of a [`PickList`].
@@ -345,6 +373,8 @@ pub fn layout<Renderer, T>(
     width: Length,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     placeholder: Option<&str>,
     options: &[T],
@@ -361,11 +391,11 @@ where
     let max_width = match width {
         Length::Shrink => {
             let measure = |label: &str| -> f32 {
-                let (width, _) = renderer.measure(
+                let width = renderer.measure_width(
                     label,
                     text_size,
                     font.unwrap_or_else(|| renderer.default_font()),
-                    Size::new(f32::INFINITY, f32::INFINITY),
+                    text_shaping,
                 );
 
                 width.round()
@@ -385,8 +415,10 @@ where
     };
 
     let size = {
-        let intrinsic =
-            Size::new(max_width + text_size + padding.left, text_size * 1.2);
+        let intrinsic = Size::new(
+            max_width + text_size + padding.left,
+            f32::from(text_line_height.to_absolute(Pixels(text_size))),
+        );
 
         limits.resolve(intrinsic).pad(padding)
     };
@@ -515,6 +547,7 @@ pub fn overlay<'a, T, Message, Renderer>(
     state: &'a mut State<T>,
     padding: Padding,
     text_size: Option<f32>,
+    text_shaping: text::Shaping,
     font: Renderer::Font,
     options: &'a [T],
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -542,6 +575,7 @@ where
         .width(bounds.width)
         .padding(padding)
         .font(font)
+        .text_shaping(text_shaping)
         .style(style);
 
         if let Some(text_size) = text_size {
@@ -562,6 +596,8 @@ pub fn draw<'a, T, Renderer>(
     cursor_position: Point,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Renderer::Font,
     placeholder: Option<&str>,
     selected: Option<&T>,
@@ -594,40 +630,60 @@ pub fn draw<'a, T, Renderer>(
     );
 
     let handle = match handle {
-        Handle::Arrow { size } => {
-            Some((Renderer::ICON_FONT, Renderer::ARROW_DOWN_ICON, *size))
-        }
+        Handle::Arrow { size } => Some((
+            Renderer::ICON_FONT,
+            Renderer::ARROW_DOWN_ICON,
+            *size,
+            text::LineHeight::default(),
+            text::Shaping::Basic,
+        )),
         Handle::Static(Icon {
             font,
             code_point,
             size,
-        }) => Some((*font, *code_point, *size)),
+            line_height,
+            shaping,
+        }) => Some((*font, *code_point, *size, *line_height, *shaping)),
         Handle::Dynamic { open, closed } => {
             if state().is_open {
-                Some((open.font, open.code_point, open.size))
+                Some((
+                    open.font,
+                    open.code_point,
+                    open.size,
+                    open.line_height,
+                    open.shaping,
+                ))
             } else {
-                Some((closed.font, closed.code_point, closed.size))
+                Some((
+                    closed.font,
+                    closed.code_point,
+                    closed.size,
+                    closed.line_height,
+                    closed.shaping,
+                ))
             }
         }
         Handle::None => None,
     };
 
-    if let Some((font, code_point, size)) = handle {
+    if let Some((font, code_point, size, line_height, shaping)) = handle {
         let size = size.unwrap_or_else(|| renderer.default_size());
 
         renderer.fill_text(Text {
             content: &code_point.to_string(),
             size,
+            line_height,
             font,
             color: style.handle_color,
             bounds: Rectangle {
                 x: bounds.x + bounds.width - padding.horizontal(),
                 y: bounds.center_y(),
-                height: size * 1.2,
+                height: f32::from(line_height.to_absolute(Pixels(size))),
                 ..bounds
             },
             horizontal_alignment: alignment::Horizontal::Right,
             vertical_alignment: alignment::Vertical::Center,
+            shaping,
         });
     }
 
@@ -639,6 +695,7 @@ pub fn draw<'a, T, Renderer>(
         renderer.fill_text(Text {
             content: label,
             size: text_size,
+            line_height: text_line_height,
             font,
             color: if is_selected {
                 style.text_color
@@ -649,10 +706,13 @@ pub fn draw<'a, T, Renderer>(
                 x: bounds.x + padding.left,
                 y: bounds.center_y(),
                 width: bounds.width - padding.horizontal(),
-                height: text_size * 1.2,
+                height: f32::from(
+                    text_line_height.to_absolute(Pixels(text_size)),
+                ),
             },
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Center,
+            shaping: text_shaping,
         });
     }
 }

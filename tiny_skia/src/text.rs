@@ -1,7 +1,7 @@
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::Hit;
-use crate::core::{Color, Point, Rectangle, Size};
+use crate::core::text::{Hit, LineHeight, Shaping};
+use crate::core::{Color, Pixels, Point, Rectangle, Size};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -46,12 +46,21 @@ impl Pipeline {
         bounds: Rectangle,
         color: Color,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         horizontal_alignment: alignment::Horizontal,
         vertical_alignment: alignment::Vertical,
+        shaping: Shaping,
+        scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
+        let line_height =
+            f32::from(line_height.to_absolute(Pixels(size))) * scale_factor;
+
+        let bounds = bounds * scale_factor;
+        let size = size * scale_factor;
+
         let font_system = self.font_system.get_mut();
         let key = Key {
             bounds: {
@@ -63,6 +72,8 @@ impl Pipeline {
             content,
             font,
             size,
+            line_height,
+            shaping,
         };
 
         let (_, buffer) = self.render_cache.allocate(font_system, key);
@@ -74,7 +85,7 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        let total_height = total_lines as f32 * size * 1.2;
+        let total_height = total_lines as f32 * line_height;
 
         let x = match horizontal_alignment {
             alignment::Horizontal::Left => bounds.x,
@@ -87,6 +98,10 @@ impl Pipeline {
             alignment::Vertical::Center => bounds.y - total_height / 2.0,
             alignment::Vertical::Bottom => bounds.y - total_height,
         };
+
+        // TODO: Subpixel glyph positioning
+        let x = x.round() as i32;
+        let y = y.round() as i32;
 
         let mut swash = cosmic_text::SwashCache::new();
 
@@ -106,9 +121,8 @@ impl Pipeline {
                     .expect("Create glyph pixel map");
 
                     pixels.draw_pixmap(
-                        x as i32 + glyph.x_int + placement.left,
-                        y as i32 - glyph.y_int - placement.top
-                            + run.line_y as i32,
+                        x + glyph.x_int + placement.left,
+                        y - glyph.y_int - placement.top + run.line_y as i32,
                         pixmap,
                         &tiny_skia::PixmapPaint::default(),
                         tiny_skia::Transform::identity(),
@@ -128,18 +142,24 @@ impl Pipeline {
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -150,27 +170,33 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        (max_width, size * 1.2 * total_lines as f32)
+        (max_width, line_height * total_lines as f32)
     }
 
     pub fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -220,6 +246,13 @@ fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
         font::Stretch::Expanded => cosmic_text::Stretch::Expanded,
         font::Stretch::ExtraExpanded => cosmic_text::Stretch::ExtraExpanded,
         font::Stretch::UltraExpanded => cosmic_text::Stretch::UltraExpanded,
+    }
+}
+
+fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
+    match shaping {
+        Shaping::Basic => cosmic_text::Shaping::Basic,
+        Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
 }
 
@@ -367,9 +400,11 @@ impl Cache {
 
             key.content.hash(&mut hasher);
             key.size.to_bits().hash(&mut hasher);
+            key.line_height.to_bits().hash(&mut hasher);
             key.font.hash(&mut hasher);
             key.bounds.width.to_bits().hash(&mut hasher);
             key.bounds.height.to_bits().hash(&mut hasher);
+            key.shaping.hash(&mut hasher);
 
             hasher.finish()
         };
@@ -390,6 +425,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
+                to_shaping(key.shaping),
             );
 
             let _ = entry.insert(buffer);
@@ -418,8 +454,10 @@ impl Cache {
 struct Key<'a> {
     content: &'a str,
     size: f32,
+    line_height: f32,
     font: Font,
     bounds: Size,
+    shaping: Shaping,
 }
 
 type KeyHash = u64;

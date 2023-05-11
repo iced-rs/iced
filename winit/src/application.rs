@@ -1069,7 +1069,6 @@ pub fn run_command<A, E>(
                     .send_event(UserEventWrapper::Message(tagger(Ok(()))))
                     .expect("Send message to event loop");
             }
-            command::Action::PlatformSpecific(_) => todo!(),
         }
     }
 }

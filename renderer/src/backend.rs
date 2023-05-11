@@ -6,19 +6,17 @@ use std::borrow::Cow;
 
 #[allow(clippy::large_enum_variant)]
 pub enum Backend {
+    TinySkia(iced_tiny_skia::Backend),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Backend),
-    #[cfg(feature = "tiny-skia")]
-    TinySkia(iced_tiny_skia::Backend),
 }
 
 macro_rules! delegate {
     ($backend:expr, $name:ident, $body:expr) => {
         match $backend {
+            Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia($name) => $body,
         }
     };
 }
@@ -46,18 +44,26 @@ impl backend::Text for Backend {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
     ) -> (f32, f32) {
-        delegate!(self, backend, backend.measure(contents, size, font, bounds))
+        delegate!(
+            self,
+            backend,
+            backend.measure(contents, size, line_height, font, bounds, shaping)
+        )
     }
 
     fn hit_test(
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         position: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
@@ -67,10 +73,12 @@ impl backend::Text for Backend {
             backend.hit_test(
                 contents,
                 size,
+                line_height,
                 font,
                 bounds,
+                shaping,
                 position,
-                nearest_only
+                nearest_only,
             )
         )
     }

@@ -60,8 +60,10 @@ impl text::Renderer for Null {
         &self,
         _content: &str,
         _size: f32,
+        _line_height: text::LineHeight,
         _font: Font,
         _bounds: Size,
+        _shaping: text::Shaping,
     ) -> (f32, f32) {
         (0.0, 20.0)
     }
@@ -70,8 +72,10 @@ impl text::Renderer for Null {
         &self,
         _contents: &str,
         _size: f32,
+        _line_height: text::LineHeight,
         _font: Self::Font,
         _bounds: Size,
+        _shaping: text::Shaping,
         _point: Point,
         _nearest_only: bool,
     ) -> Option<text::Hit> {

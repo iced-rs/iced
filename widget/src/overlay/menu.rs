@@ -31,6 +31,8 @@ where
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -58,6 +60,8 @@ where
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
+            text_line_height: text::LineHeight::default(),
+            text_shaping: text::Shaping::Basic,
             font: None,
             style: Default::default(),
         }
@@ -78,6 +82,21 @@ where
     /// Sets the text size of the [`Menu`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
         self.text_size = Some(text_size.into().0);
+        self
+    }
+
+    /// Sets the text [`LineHeight`] of the [`Menu`].
+    pub fn text_line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.text_line_height = line_height.into();
+        self
+    }
+
+    /// Sets the [`text::Shaping`] strategy of the [`Menu`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.text_shaping = shaping;
         self
     }
 
@@ -168,6 +187,8 @@ where
             padding,
             font,
             text_size,
+            text_line_height,
+            text_shaping,
             style,
         } = menu;
 
@@ -177,6 +198,8 @@ where
             last_selection,
             font,
             text_size,
+            text_line_height,
+            text_shaping,
             padding,
             style: style.clone(),
         }));
@@ -311,6 +334,8 @@ where
     last_selection: &'a mut Option<T>,
     padding: Padding,
     text_size: Option<f32>,
+    text_line_height: text::LineHeight,
+    text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -341,10 +366,13 @@ where
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
 
+        let text_line_height =
+            self.text_line_height.to_absolute(Pixels(text_size));
+
         let size = {
             let intrinsic = Size::new(
                 0.0,
-                (text_size * 1.2 + self.padding.vertical())
+                (f32::from(text_line_height) + self.padding.vertical())
                     * self.options.len() as f32,
             );
 
@@ -384,9 +412,12 @@ where
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
 
+                    let option_height = f32::from(
+                        self.text_line_height.to_absolute(Pixels(text_size)),
+                    ) + self.padding.vertical();
+
                     *self.hovered_option = Some(
-                        ((cursor_position.y - bounds.y)
-                            / (text_size * 1.2 + self.padding.vertical()))
+                        ((cursor_position.y - bounds.y) / option_height)
                             as usize,
                     );
                 }
@@ -399,9 +430,12 @@ where
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
 
+                    let option_height = f32::from(
+                        self.text_line_height.to_absolute(Pixels(text_size)),
+                    ) + self.padding.vertical();
+
                     *self.hovered_option = Some(
-                        ((cursor_position.y - bounds.y)
-                            / (text_size * 1.2 + self.padding.vertical()))
+                        ((cursor_position.y - bounds.y) / option_height)
                             as usize,
                     );
 
@@ -451,12 +485,12 @@ where
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height =
-            (text_size * 1.2 + self.padding.vertical()) as usize;
+            f32::from(self.text_line_height.to_absolute(Pixels(text_size)))
+                + self.padding.vertical();
 
         let offset = viewport.y - bounds.y;
-        let start = (offset / option_height as f32) as usize;
-        let end =
-            ((offset + viewport.height) / option_height as f32).ceil() as usize;
+        let start = (offset / option_height) as usize;
+        let end = ((offset + viewport.height) / option_height).ceil() as usize;
 
         let visible_options = &self.options[start..end.min(self.options.len())];
 
@@ -466,15 +500,19 @@ where
 
             let bounds = Rectangle {
                 x: bounds.x,
-                y: bounds.y + (option_height * i) as f32,
+                y: bounds.y + (option_height * i as f32),
                 width: bounds.width,
-                height: text_size * 1.2 + self.padding.vertical(),
+                height: option_height,
             };
 
             if is_selected {
                 renderer.fill_quad(
                     renderer::Quad {
-                        bounds,
+                        bounds: Rectangle {
+                            x: bounds.x + appearance.border_width,
+                            width: bounds.width - appearance.border_width * 2.0,
+                            ..bounds
+                        },
                         border_color: Color::TRANSPARENT,
                         border_width: 0.0,
                         border_radius: appearance.border_radius.into(),
@@ -492,6 +530,7 @@ where
                     ..bounds
                 },
                 size: text_size,
+                line_height: self.text_line_height,
                 font: self.font.unwrap_or_else(|| renderer.default_font()),
                 color: if is_selected {
                     appearance.selected_text_color
@@ -500,6 +539,7 @@ where
                 },
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Center,
+                shaping: self.text_shaping,
             });
         }
     }

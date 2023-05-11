@@ -322,7 +322,6 @@ pub fn image<'a, Handle>(
 /// [`Svg`]: widget::Svg
 /// [`Handle`]: widget::svg::Handle
 #[cfg(feature = "svg")]
-#[cfg_attr(docsrs, doc(cfg(feature = "svg")))]
 pub fn svg<'a, Renderer>(
     handle: impl Into<core::svg::Handle>,
 ) -> crate::Svg<'a, Renderer>
@@ -335,7 +334,6 @@ where
 
 /// Creates a new [`Canvas`].
 #[cfg(feature = "canvas")]
-#[cfg_attr(docsrs, doc(cfg(feature = "canvas")))]
 pub fn canvas<P, Message, Renderer>(
     program: P,
 ) -> crate::Canvas<P, Message, Renderer>

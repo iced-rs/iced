@@ -1,9 +1,7 @@
 //! A `smol` backend.
-
 use futures::Future;
 
 /// A `smol` executor.
-#[cfg_attr(docsrs, doc(cfg(feature = "smol")))]
 #[derive(Debug)]
 pub struct Executor;
 

@@ -1,6 +1,6 @@
 use iced::executor;
 use iced::font::{self, Font};
-use iced::widget::{checkbox, column, container};
+use iced::widget::{checkbox, column, container, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 const ICON_FONT: Font = Font::with_name("icons");
@@ -59,6 +59,8 @@ impl Application for Example {
                     font: ICON_FONT,
                     code_point: '\u{e901}',
                     size: None,
+                    line_height: text::LineHeight::Relative(1.0),
+                    shaping: text::Shaping::Basic,
                 });
 
         let content = column![default_checkbox, custom_checkbox].spacing(22);

@@ -12,7 +12,6 @@ geometry = ["iced_graphics/geometry"]
 raw-window-handle = "0.5"
 softbuffer = "0.2"
 tiny-skia = "0.9"
-cosmic-text = "0.8"
 bytemuck = "1"
 rustc-hash = "1.1"
 kurbo = "0.9"
@@ -22,6 +21,10 @@ log = "0.4"
 version = "0.8"
 path = "../graphics"
 features = ["tiny-skia"]
+
+[dependencies.cosmic-text]
+git = "https://github.com/hecrj/cosmic-text.git"
+rev = "b85d6a4f2376f8a8a7dadc0f8bcb89d4db10a1c9"
 
 [dependencies.twox-hash]
 version = "1.6"

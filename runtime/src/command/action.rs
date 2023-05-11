@@ -38,9 +38,6 @@ pub enum Action<T> {
         /// The message to produce when the font has been loaded.
         tagger: Box<dyn Fn(Result<(), font::Error>) -> T>,
     },
-
-    /// Run a platform specific action
-    PlatformSpecific(crate::command::platform_specific::Action<T>),
 }
 
 impl<T> Action<T> {
@@ -69,9 +66,6 @@ impl<T> Action<T> {
                 bytes,
                 tagger: Box::new(move |result| f(tagger(result))),
             },
-            Self::PlatformSpecific(action) => {
-                Action::PlatformSpecific(action.map(f))
-            }
         }
     }
 }
@@ -87,9 +81,6 @@ impl<T> fmt::Debug for Action<T> {
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),
-            Self::PlatformSpecific(action) => {
-                write!(f, "Action::PlatformSpecific({:?})", action)
-            }
         }
     }
 }

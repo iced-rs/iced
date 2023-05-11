@@ -1,8 +1,10 @@
+//! Track and compute the damage of graphical primitives.
 use crate::core::{Rectangle, Size};
 use crate::Primitive;
 
 use std::sync::Arc;
 
+/// Computes the damage regions between the two given primitives.
 pub fn regions(a: &Primitive, b: &Primitive) -> Vec<Rectangle> {
     match (a, b) {
         (
@@ -73,6 +75,7 @@ pub fn regions(a: &Primitive, b: &Primitive) -> Vec<Rectangle> {
     }
 }
 
+/// Computes the damage regions between the two given lists of primitives.
 pub fn list(previous: &[Primitive], current: &[Primitive]) -> Vec<Rectangle> {
     let damage = previous
         .iter()
@@ -95,6 +98,8 @@ pub fn list(previous: &[Primitive], current: &[Primitive]) -> Vec<Rectangle> {
     }
 }
 
+/// Groups the given damage regions that are close together inside the given
+/// bounds.
 pub fn group(
     mut damage: Vec<Rectangle>,
     scale_factor: f32,

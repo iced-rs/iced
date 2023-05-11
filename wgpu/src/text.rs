@@ -1,7 +1,7 @@
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::Hit;
-use crate::core::{Point, Rectangle, Size};
+use crate::core::text::{Hit, LineHeight, Shaping};
+use crate::core::{Pixels, Point, Rectangle, Size};
 use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -77,12 +77,18 @@ impl Pipeline {
                     Key {
                         content: section.content,
                         size: section.size * scale_factor,
+                        line_height: f32::from(
+                            section
+                                .line_height
+                                .to_absolute(Pixels(section.size)),
+                        ) * scale_factor,
                         font: section.font,
                         bounds: Size {
                             width: (section.bounds.width * scale_factor).ceil(),
                             height: (section.bounds.height * scale_factor)
                                 .ceil(),
                         },
+                        shaping: section.shaping,
                     },
                 );
 
@@ -90,60 +96,76 @@ impl Pipeline {
             })
             .collect();
 
-        let bounds = glyphon::TextBounds {
-            left: (bounds.x * scale_factor) as i32,
-            top: (bounds.y * scale_factor) as i32,
-            right: ((bounds.x + bounds.width) * scale_factor) as i32,
-            bottom: ((bounds.y + bounds.height) * scale_factor) as i32,
-        };
+        let bounds = bounds * scale_factor;
 
         let text_areas =
-            sections.iter().zip(keys.iter()).map(|(section, key)| {
-                let buffer =
-                    self.render_cache.get(key).expect("Get cached buffer");
+            sections
+                .iter()
+                .zip(keys.iter())
+                .filter_map(|(section, key)| {
+                    let buffer =
+                        self.render_cache.get(key).expect("Get cached buffer");
 
-                let x = section.bounds.x * scale_factor;
-                let y = section.bounds.y * scale_factor;
+                    let (total_lines, max_width) = buffer
+                        .layout_runs()
+                        .enumerate()
+                        .fold((0, 0.0), |(_, max), (i, buffer)| {
+                            (i + 1, buffer.line_w.max(max))
+                        });
 
-                let (total_lines, max_width) = buffer
-                    .layout_runs()
-                    .enumerate()
-                    .fold((0, 0.0), |(_, max), (i, buffer)| {
-                        (i + 1, buffer.line_w.max(max))
-                    });
+                    let total_height =
+                        total_lines as f32 * buffer.metrics().line_height;
 
-                let total_height =
-                    total_lines as f32 * section.size * 1.2 * scale_factor;
+                    let x = section.bounds.x * scale_factor;
+                    let y = section.bounds.y * scale_factor;
 
-                let left = match section.horizontal_alignment {
-                    alignment::Horizontal::Left => x,
-                    alignment::Horizontal::Center => x - max_width / 2.0,
-                    alignment::Horizontal::Right => x - max_width,
-                };
+                    let left = match section.horizontal_alignment {
+                        alignment::Horizontal::Left => x,
+                        alignment::Horizontal::Center => x - max_width / 2.0,
+                        alignment::Horizontal::Right => x - max_width,
+                    };
 
-                let top = match section.vertical_alignment {
-                    alignment::Vertical::Top => y,
-                    alignment::Vertical::Center => y - total_height / 2.0,
-                    alignment::Vertical::Bottom => y - total_height,
-                };
+                    let top = match section.vertical_alignment {
+                        alignment::Vertical::Top => y,
+                        alignment::Vertical::Center => y - total_height / 2.0,
+                        alignment::Vertical::Bottom => y - total_height,
+                    };
 
-                glyphon::TextArea {
-                    buffer,
-                    left: left as i32,
-                    top: top as i32,
-                    bounds,
-                    default_color: {
-                        let [r, g, b, a] = section.color.into_linear();
+                    let section_bounds = Rectangle {
+                        x: left,
+                        y: top,
+                        width: section.bounds.width * scale_factor,
+                        height: section.bounds.height * scale_factor,
+                    };
 
-                        glyphon::Color::rgba(
-                            (r * 255.0) as u8,
-                            (g * 255.0) as u8,
-                            (b * 255.0) as u8,
-                            (a * 255.0) as u8,
-                        )
-                    },
-                }
-            });
+                    let clip_bounds = bounds.intersection(&section_bounds)?;
+
+                    // TODO: Subpixel glyph positioning
+                    let left = left.round() as i32;
+                    let top = top.round() as i32;
+
+                    Some(glyphon::TextArea {
+                        buffer,
+                        left,
+                        top,
+                        bounds: glyphon::TextBounds {
+                            left: clip_bounds.x as i32,
+                            top: clip_bounds.y as i32,
+                            right: (clip_bounds.x + clip_bounds.width) as i32,
+                            bottom: (clip_bounds.y + clip_bounds.height) as i32,
+                        },
+                        default_color: {
+                            let [r, g, b, a] = section.color.into_linear();
+
+                            glyphon::Color::rgba(
+                                (r * 255.0) as u8,
+                                (g * 255.0) as u8,
+                                (b * 255.0) as u8,
+                                (a * 255.0) as u8,
+                            )
+                        },
+                    })
+                });
 
         let result = renderer.prepare(
             device,
@@ -211,18 +233,24 @@ impl Pipeline {
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
     ) -> (f32, f32) {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -233,27 +261,33 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        (max_width, size * 1.2 * total_lines as f32)
+        (max_width, line_height * total_lines as f32)
     }
 
     pub fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: LineHeight,
         font: Font,
         bounds: Size,
+        shaping: Shaping,
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
         let mut measurement_cache = self.measurement_cache.borrow_mut();
+
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, paragraph) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
                 size,
+                line_height,
                 font,
                 bounds,
+                shaping,
             },
         );
 
@@ -306,6 +340,13 @@ fn to_stretch(stretch: font::Stretch) -> glyphon::Stretch {
     }
 }
 
+fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
+    match shaping {
+        Shaping::Basic => glyphon::Shaping::Basic,
+        Shaping::Advanced => glyphon::Shaping::Advanced,
+    }
+}
+
 struct Cache {
     entries: FxHashMap<KeyHash, glyphon::Buffer>,
     recently_used: FxHashSet<KeyHash>,
@@ -341,21 +382,23 @@ impl Cache {
 
             key.content.hash(&mut hasher);
             key.size.to_bits().hash(&mut hasher);
+            key.line_height.to_bits().hash(&mut hasher);
             key.font.hash(&mut hasher);
             key.bounds.width.to_bits().hash(&mut hasher);
             key.bounds.height.to_bits().hash(&mut hasher);
+            key.shaping.hash(&mut hasher);
 
             hasher.finish()
         };
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = glyphon::Metrics::new(key.size, key.size * 1.2);
+            let metrics = glyphon::Metrics::new(key.size, key.line_height);
             let mut buffer = glyphon::Buffer::new(font_system, metrics);
 
             buffer.set_size(
                 font_system,
                 key.bounds.width,
-                key.bounds.height.max(key.size * 1.2),
+                key.bounds.height.max(key.line_height),
             );
             buffer.set_text(
                 font_system,
@@ -364,6 +407,7 @@ impl Cache {
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
                     .stretch(to_stretch(key.font.stretch)),
+                to_shaping(key.shaping),
             );
 
             let _ = entry.insert(buffer);
@@ -386,8 +430,10 @@ impl Cache {
 struct Key<'a> {
     content: &'a str,
     size: f32,
+    line_height: f32,
     font: Font,
     bounds: Size,
+    shaping: Shaping,
 }
 
 type KeyHash = u64;

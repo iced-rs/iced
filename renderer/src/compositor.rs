@@ -7,17 +7,15 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::env;
 
 pub enum Compositor<Theme> {
+    TinySkia(iced_tiny_skia::window::Compositor<Theme>),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::window::Compositor<Theme>),
-    #[cfg(feature = "tiny-skia")]
-    TinySkia(iced_tiny_skia::window::Compositor<Theme>),
 }
 
 pub enum Surface {
+    TinySkia(iced_tiny_skia::window::Surface),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::window::Surface),
-    #[cfg(feature = "tiny-skia")]
-    TinySkia(iced_tiny_skia::window::Surface),
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -55,14 +53,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) -> Surface {
         match self {
+            Self::TinySkia(compositor) => Surface::TinySkia(
+                compositor.create_surface(window, width, height),
+            ),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(compositor) => {
                 Surface::Wgpu(compositor.create_surface(window, width, height))
             }
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia(compositor) => Surface::TinySkia(
-                compositor.create_surface(window, width, height),
-            ),
         }
     }
 
@@ -73,12 +70,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) {
         match (self, surface) {
-            #[cfg(feature = "wgpu")]
-            (Self::Wgpu(compositor), Surface::Wgpu(surface)) => {
+            (Self::TinySkia(compositor), Surface::TinySkia(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
-            #[cfg(feature = "tiny-skia")]
-            (Self::TinySkia(compositor), Surface::TinySkia(surface)) => {
+            #[cfg(feature = "wgpu")]
+            (Self::Wgpu(compositor), Surface::Wgpu(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
             #[allow(unreachable_patterns)]
@@ -90,10 +86,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn fetch_information(&self) -> Information {
         match self {
+            Self::TinySkia(compositor) => compositor.fetch_information(),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(compositor) => compositor.fetch_information(),
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia(compositor) => compositor.fetch_information(),
         }
     }
 
@@ -107,13 +102,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     ) -> Result<(), SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
             match (self, backend, surface) {
-                #[cfg(feature = "wgpu")]
                 (
-                    Self::Wgpu(compositor),
-                    crate::Backend::Wgpu(backend),
-                    Surface::Wgpu(surface),
-                ) => iced_wgpu::window::compositor::present(
-                    compositor,
+                    Self::TinySkia(_compositor),
+                    crate::Backend::TinySkia(backend),
+                    Surface::TinySkia(surface),
+                ) => iced_tiny_skia::window::compositor::present(
                     backend,
                     surface,
                     primitives,
@@ -121,12 +114,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                     background_color,
                     overlay,
                 ),
-                #[cfg(feature = "tiny-skia")]
+                #[cfg(feature = "wgpu")]
                 (
-                    Self::TinySkia(_compositor),
-                    crate::Backend::TinySkia(backend),
-                    Surface::TinySkia(surface),
-                ) => iced_tiny_skia::window::compositor::present(
+                    Self::Wgpu(compositor),
+                    crate::Backend::Wgpu(backend),
+                    Surface::Wgpu(surface),
+                ) => iced_wgpu::window::compositor::present(
+                    compositor,
                     backend,
                     surface,
                     primitives,
@@ -154,7 +148,6 @@ impl Candidate {
         vec![
             #[cfg(feature = "wgpu")]
             Self::Wgpu,
-            #[cfg(feature = "tiny-skia")]
             Self::TinySkia,
         ]
     }
@@ -181,6 +174,20 @@ impl Candidate {
         _compatible_window: Option<&W>,
     ) -> Result<(Compositor<Theme>, Renderer<Theme>), Error> {
         match self {
+            Self::TinySkia => {
+                let (compositor, backend) =
+                    iced_tiny_skia::window::compositor::new(
+                        iced_tiny_skia::Settings {
+                            default_font: settings.default_font,
+                            default_text_size: settings.default_text_size,
+                        },
+                    );
+
+                Ok((
+                    Compositor::TinySkia(compositor),
+                    Renderer::new(crate::Backend::TinySkia(backend)),
+                ))
+            }
             #[cfg(feature = "wgpu")]
             Self::Wgpu => {
                 let (compositor, backend) = iced_wgpu::window::compositor::new(
@@ -198,30 +205,9 @@ impl Candidate {
                     Renderer::new(crate::Backend::Wgpu(backend)),
                 ))
             }
-            #[cfg(feature = "tiny-skia")]
-            Self::TinySkia => {
-                let (compositor, backend) =
-                    iced_tiny_skia::window::compositor::new(
-                        iced_tiny_skia::Settings {
-                            default_font: settings.default_font,
-                            default_text_size: settings.default_text_size,
-                        },
-                    );
-
-                Ok((
-                    Compositor::TinySkia(compositor),
-                    Renderer::new(crate::Backend::TinySkia(backend)),
-                ))
-            }
             #[cfg(not(feature = "wgpu"))]
             Self::Wgpu => {
                 panic!("`wgpu` feature was not enabled in `iced_renderer`")
-            }
-            #[cfg(not(feature = "tiny-skia"))]
-            Self::TinySkia => {
-                panic!(
-                    "`tiny-skia` feature was not enabled in `iced_renderer`"
-                );
             }
         }
     }

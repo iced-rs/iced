@@ -136,26 +136,39 @@ where
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
     ) -> (f32, f32) {
-        self.backend().measure(content, size, font, bounds)
+        self.backend().measure(
+            content,
+            size,
+            line_height,
+            font,
+            bounds,
+            shaping,
+        )
     }
 
     fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
         self.backend().hit_test(
             content,
             size,
+            line_height,
             font,
             bounds,
+            shaping,
             point,
             nearest_only,
         )
@@ -170,10 +183,12 @@ where
             content: text.content.to_string(),
             bounds: text.bounds,
             size: text.size,
+            line_height: text.line_height,
             color: text.color,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
         });
     }
 }
@@ -220,9 +235,7 @@ impl<B, T> crate::geometry::Renderer for Renderer<B, T>
 where
     B: Backend,
 {
-    type Geometry = crate::Geometry;
-
-    fn draw(&mut self, layers: Vec<Self::Geometry>) {
+    fn draw(&mut self, layers: Vec<crate::Geometry>) {
         self.primitives
             .extend(layers.into_iter().map(crate::Geometry::into));
     }

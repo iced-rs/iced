@@ -12,11 +12,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu", "tiny-skia", "winit", "a11y"]
+default = ["wgpu", "a11y"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu"]
-# Enable the `tiny-skia` software renderer backend
-tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "image_rs"]
 # Enables the `Svg` widget
@@ -42,9 +40,8 @@ system = ["iced_winit/system"]
 # Enables the advanced module
 advanced = []
 # Enables the `accesskit` accessibility library
-a11y = ["iced_accessibility", "iced_widget/a11y", "iced_winit?/a11y"]
-# Enables the winit shell. Conflicts with `wayland` and `glutin`.
-winit = ["iced_winit"]
+a11y = ["iced_accessibility", "iced_widget/a11y", "iced_core/a11y", "iced_winit/a11y"]
+
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -70,7 +67,7 @@ iced_core = { version = "0.9", path = "core" }
 iced_futures = { version = "0.6", path = "futures" }
 iced_renderer = { version = "0.1", path = "renderer" }
 iced_widget = { version = "0.1", path = "widget" }
-iced_winit = { version = "0.9", path = "winit", features = ["application"], optional = true }
+iced_winit = { version = "0.9", path = "winit", features = ["application"] }
 iced_accessibility = { version = "0.1", path = "accessibility", optional = true }
 thiserror = "1"
 

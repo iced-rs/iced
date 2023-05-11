@@ -27,6 +27,7 @@ use std::cell::RefCell;
 use std::hash::{Hash, Hasher as H};
 use std::rc::Rc;
 
+/// A widget that only rebuilds its contents when necessary.
 #[allow(missing_debug_implementations)]
 pub struct Lazy<'a, Message, Renderer, Dependency, View> {
     dependency: Dependency,
@@ -42,6 +43,8 @@ where
     Dependency: Hash + 'a,
     View: Into<Element<'static, Message, Renderer>>,
 {
+    /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+    /// closure that can turn this data into a widget tree.
     pub fn new(
         dependency: Dependency,
         view: impl Fn(&Dependency) -> View + 'a,

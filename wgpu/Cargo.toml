@@ -13,7 +13,7 @@ image = ["iced_graphics/image"]
 svg = ["resvg"]
 
 [dependencies]
-wgpu = "0.15"
+wgpu = "0.16"
 raw-window-handle = "0.5"
 log = "0.4"
 guillotiere = "0.6"
@@ -23,7 +23,7 @@ once_cell = "1.0"
 rustc-hash = "1.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wgpu = { version = "0.15", features = ["webgl"] }
+wgpu = { version = "0.16", features = ["webgl"] }
 
 [dependencies.twox-hash]
 version = "1.6"
@@ -44,7 +44,7 @@ path = "../graphics"
 [dependencies.glyphon]
 version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
-rev = "1d26d92b19407c5dabe4625944d4a6babbbf0715"
+rev = "f145067d292082abdd1f2b2481812d4a52c394ec"
 
 [dependencies.encase]
 version = "0.3.0"

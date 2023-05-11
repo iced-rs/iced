@@ -1,3 +1,4 @@
+//! Build and draw geometry.
 use crate::core::{Gradient, Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -9,9 +10,7 @@ use lyon::geom::euclid;
 use lyon::tessellation;
 use std::borrow::Cow;
 
-/// The frame of a [`Canvas`].
-///
-/// [`Canvas`]: crate::widget::Canvas
+/// A frame for drawing some geometry.
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
@@ -331,9 +330,11 @@ impl Frame {
             },
             color: text.color,
             size: text.size,
+            line_height: text.line_height,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
         });
     }
 
@@ -351,10 +352,12 @@ impl Frame {
         self.pop_transform();
     }
 
+    /// Pushes the current transform in the transform stack.
     pub fn push_transform(&mut self) {
         self.transforms.previous.push(self.transforms.current);
     }
 
+    /// Pops a transform from the transform stack and sets it as the current transform.
     pub fn pop_transform(&mut self) {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
@@ -371,14 +374,16 @@ impl Frame {
 
         f(&mut frame);
 
-        let translation = Vector::new(region.x, region.y);
+        let origin = Point::new(region.x, region.y);
 
-        self.clip(frame, translation);
+        self.clip(frame, origin);
     }
 
-    pub fn clip(&mut self, frame: Frame, translation: Vector) {
+    /// Draws the clipped contents of the given [`Frame`] with origin at the given [`Point`].
+    pub fn clip(&mut self, frame: Frame, at: Point) {
         let size = frame.size();
         let primitives = frame.into_primitives();
+        let translation = Vector::new(at.x, at.y);
 
         let (text, meshes) = primitives
             .into_iter()
