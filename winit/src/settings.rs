@@ -173,8 +173,11 @@ impl Window {
         #[cfg(target_os = "windows")]
         {
             use winit::platform::windows::WindowBuilderExtWindows;
+            unsafe {
+                window_builder = window_builder
+                    .with_parent_window(self.platform_specific.parent);
+            }
             window_builder = window_builder
-                .with_parent_window(self.platform_specific.parent)
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
         }
 
