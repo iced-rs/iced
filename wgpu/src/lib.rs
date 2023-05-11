@@ -25,7 +25,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,

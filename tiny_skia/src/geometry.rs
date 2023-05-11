@@ -127,9 +127,9 @@ impl Frame {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    pub fn clip(&mut self, frame: Self, translation: Vector) {
+    pub fn clip(&mut self, frame: Self, at: Point) {
         self.primitives.push(Primitive::Translate {
-            translation,
+            translation: Vector::new(at.x, at.y),
             content: Box::new(frame.into_primitive()),
         });
     }

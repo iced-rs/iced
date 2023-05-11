@@ -135,15 +135,15 @@ impl Frame {
 
         f(&mut frame);
 
-        let translation = Vector::new(region.x, region.y);
+        let origin = Point::new(region.x, region.y);
 
         match (self, frame) {
             (Self::TinySkia(target), Self::TinySkia(frame)) => {
-                target.clip(frame, translation);
+                target.clip(frame, origin);
             }
             #[cfg(feature = "wgpu")]
             (Self::Wgpu(target), Self::Wgpu(frame)) => {
-                target.clip(frame, translation);
+                target.clip(frame, origin);
             }
             #[allow(unreachable_patterns)]
             _ => unreachable!(),

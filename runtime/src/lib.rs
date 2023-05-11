@@ -33,7 +33,7 @@
 )]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unused_results,
     clippy::extra_unused_lifetimes,
     clippy::from_over_into,
