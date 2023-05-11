@@ -4,6 +4,8 @@ use crate::lazy::{Lazy, Responsive};
 
 use std::hash::Hash;
 
+/// Creates a new [`Lazy`] widget with the given data `Dependency` and a
+/// closure that can turn this data into a widget tree.
 pub fn lazy<'a, Message, Renderer, Dependency, View>(
     dependency: Dependency,
     view: impl Fn(&Dependency) -> View + 'a,
@@ -29,6 +31,12 @@ where
     component::view(component)
 }
 
+/// Creates a new [`Responsive`] widget with a closure that produces its
+/// contents.
+///
+/// The `view` closure will be provided with the current [`Size`] of
+/// the [`Responsive`] widget and, therefore, can be used to build the
+/// contents of the widget in a responsive way.
 pub fn responsive<'a, Message, Renderer>(
     f: impl Fn(Size) -> Element<'a, Message, Renderer> + 'a,
 ) -> Responsive<'a, Message, Renderer>
