@@ -74,9 +74,6 @@ impl Atlas {
             let current_size = self.layers.len();
             let entry = self.allocate(width, height)?;
 
-            dbg!(&entry);
-            dbg!(&self.layers);
-
             // We grow the internal texture after allocating if necessary
             let new_layers = self.layers.len() - current_size;
             self.grow(new_layers, device, encoder);
