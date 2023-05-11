@@ -369,7 +369,6 @@ impl Pipeline {
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         device,
-                        queue,
                         encoder,
                         handle,
                         &mut self.texture_atlas,
@@ -395,7 +394,6 @@ impl Pipeline {
 
                     if let Some(atlas_entry) = vector_cache.upload(
                         device,
-                        queue,
                         encoder,
                         handle,
                         *color,

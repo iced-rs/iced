@@ -65,7 +65,6 @@ impl Atlas {
     pub fn upload(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         width: u32,
         height: u32,
@@ -74,6 +73,9 @@ impl Atlas {
         let entry = {
             let current_size = self.layers.len();
             let entry = self.allocate(width, height)?;
+
+            dbg!(&entry);
+            dbg!(&self.layers);
 
             // We grow the internal texture after allocating if necessary
             let new_layers = self.layers.len() - current_size;
@@ -112,7 +114,8 @@ impl Atlas {
                     padding,
                     0,
                     allocation,
-                    queue,
+                    device,
+                    encoder,
                 );
             }
             Entry::Fragmented { fragments, .. } => {
@@ -127,7 +130,8 @@ impl Atlas {
                         padding,
                         offset,
                         &fragment.allocation,
-                        queue,
+                        device,
+                        encoder,
                     );
                 }
             }
@@ -280,8 +284,11 @@ impl Atlas {
         padding: u32,
         offset: usize,
         allocation: &Allocation,
-        queue: &wgpu::Queue,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
     ) {
+        use wgpu::util::DeviceExt;
+
         let (x, y) = allocation.position();
         let Size { width, height } = allocation.size();
         let layer = allocation.layer();
@@ -292,7 +299,22 @@ impl Atlas {
             depth_or_array_layers: 1,
         };
 
-        queue.write_texture(
+        let buffer =
+            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("image upload buffer"),
+                contents: data,
+                usage: wgpu::BufferUsages::COPY_SRC,
+            });
+
+        encoder.copy_buffer_to_texture(
+            wgpu::ImageCopyBuffer {
+                buffer: &buffer,
+                layout: wgpu::ImageDataLayout {
+                    offset: offset as u64,
+                    bytes_per_row: Some(4 * image_width + padding),
+                    rows_per_image: Some(image_height),
+                },
+            },
             wgpu::ImageCopyTexture {
                 texture: &self.texture,
                 mip_level: 0,
@@ -302,12 +324,6 @@ impl Atlas {
                     z: layer as u32,
                 },
                 aspect: wgpu::TextureAspect::default(),
-            },
-            data,
-            wgpu::ImageDataLayout {
-                offset: offset as u64,
-                bytes_per_row: Some(4 * image_width + padding),
-                rows_per_image: Some(image_height),
             },
             extent,
         );
