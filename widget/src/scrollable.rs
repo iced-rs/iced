@@ -128,9 +128,8 @@ impl Properties {
     }
 
     /// Sets the scrollbar width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
-        self.width = width.into().0.max(1.0);
+        self.width = width.into().0.max(0.0);
         self
     }
 
@@ -141,9 +140,8 @@ impl Properties {
     }
 
     /// Sets the scroller width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
     pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
-        self.scroller_width = scroller_width.into().0.max(1.0);
+        self.scroller_width = scroller_width.into().0.max(0.0);
         self
     }
 }
