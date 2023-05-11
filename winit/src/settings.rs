@@ -173,6 +173,7 @@ impl Window {
         #[cfg(target_os = "windows")]
         {
             use winit::platform::windows::WindowBuilderExtWindows;
+            #[allow(unsafe_code)]
             unsafe {
                 window_builder = window_builder
                     .with_parent_window(self.platform_specific.parent);
