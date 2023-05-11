@@ -60,7 +60,7 @@ pub struct Quad {
     pub border_color: Color,
 }
 
-/// The border radi for the corners of a graphics primitive in the order:
+/// The border radii for the corners of a graphics primitive in the order:
 /// top-left, top-right, bottom-right, bottom-left.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct BorderRadius([f32; 4]);

@@ -4,6 +4,7 @@ pub mod event;
 mod cursor;
 mod program;
 
+pub use crate::graphics::Gradient;
 pub use cursor::Cursor;
 pub use event::Event;
 pub use program::Program;

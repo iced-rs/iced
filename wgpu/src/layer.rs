@@ -1,13 +1,13 @@
 //! Organize rendering primitives into a flattened list of layers.
 mod image;
-mod quad;
 mod text;
 
 pub mod mesh;
+pub mod quad;
 
 pub use image::Image;
 pub use mesh::Mesh;
-pub use quad::Quad;
+use quad::Quad;
 pub use text::Text;
 
 use crate::core;
@@ -22,7 +22,7 @@ pub struct Layer<'a> {
     pub bounds: Rectangle,
 
     /// The quads of the [`Layer`].
-    pub quads: Vec<Quad>,
+    pub quads: Quads,
 
     /// The triangle meshes of the [`Layer`].
     pub meshes: Vec<Mesh<'a>>,
@@ -34,12 +34,29 @@ pub struct Layer<'a> {
     pub images: Vec<Image>,
 }
 
+/// The quads of the [`Layer`].
+#[derive(Default, Debug)]
+pub struct Quads {
+    /// The solid quads of the [`Layer`].
+    pub solids: Vec<quad::Solid>,
+
+    /// The gradient quads of the [`Layer`].
+    pub gradients: Vec<quad::Gradient>,
+}
+
+impl Quads {
+    /// Returns true if there are no quads of any type in [`Quads`].
+    pub fn is_empty(&self) -> bool {
+        self.solids.is_empty() && self.gradients.is_empty()
+    }
+}
+
 impl<'a> Layer<'a> {
     /// Creates a new [`Layer`] with the given clipping bounds.
     pub fn new(bounds: Rectangle) -> Self {
         Self {
             bounds,
-            quads: Vec::new(),
+            quads: Quads::default(),
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
@@ -145,20 +162,39 @@ impl<'a> Layer<'a> {
             } => {
                 let layer = &mut layers[current_layer];
 
-                // TODO: Move some of these computations to the GPU (?)
-                layer.quads.push(Quad {
+                let quad = Quad {
                     position: [
                         bounds.x + translation.x,
                         bounds.y + translation.y,
                     ],
                     size: [bounds.width, bounds.height],
-                    color: match background {
-                        Background::Color(color) => color.into_linear(),
-                    },
+                    border_color: border_color.into_linear(),
                     border_radius: *border_radius,
                     border_width: *border_width,
-                    border_color: border_color.into_linear(),
-                });
+                };
+
+                match background {
+                    Background::Color(color) => {
+                        layer.quads.solids.push(quad::Solid {
+                            color: color.into_linear(),
+                            quad,
+                        });
+                    }
+                    Background::Gradient(gradient) => {
+                        let quad = quad::Gradient {
+                            gradient: pack_gradient(
+                                gradient,
+                                Rectangle::new(
+                                    quad.position.into(),
+                                    quad.size.into(),
+                                ),
+                            ),
+                            quad,
+                        };
+
+                        layer.quads.gradients.push(quad);
+                    }
+                };
             }
             Primitive::Image { handle, bounds } => {
                 let layer = &mut layers[current_layer];
@@ -198,11 +234,7 @@ impl<'a> Layer<'a> {
                     });
                 }
             }
-            Primitive::GradientMesh {
-                buffers,
-                size,
-                gradient,
-            } => {
+            Primitive::GradientMesh { buffers, size } => {
                 let layer = &mut layers[current_layer];
 
                 let bounds = Rectangle::new(
@@ -216,7 +248,6 @@ impl<'a> Layer<'a> {
                         origin: Point::new(translation.x, translation.y),
                         buffers,
                         clip_bounds,
-                        gradient,
                     });
                 }
             }
@@ -276,6 +307,35 @@ impl<'a> Layer<'a> {
                     primitive
                 );
             }
+        }
+    }
+}
+
+/// Packs the [`Gradient`] for use in shader code.
+fn pack_gradient(gradient: &core::Gradient, bounds: Rectangle) -> [f32; 44] {
+    match gradient {
+        core::Gradient::Linear(linear) => {
+            let mut pack: [f32; 44] = [0.0; 44];
+
+            for (index, stop) in linear.color_stops.iter().enumerate() {
+                let [r, g, b, a] =
+                    stop.map_or(Color::default(), |s| s.color).into_linear();
+
+                pack[index * 4] = r;
+                pack[(index * 4) + 1] = g;
+                pack[(index * 4) + 2] = b;
+                pack[(index * 4) + 3] = a;
+                pack[32 + index] = stop.map_or(2.0, |s| s.offset);
+            }
+
+            let (start, end) = linear.angle.to_distance(&bounds);
+
+            pack[40] = start.x;
+            pack[41] = start.y;
+            pack[42] = end.x;
+            pack[43] = end.y;
+
+            pack
         }
     }
 }

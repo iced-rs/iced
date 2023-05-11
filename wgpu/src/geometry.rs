@@ -1,10 +1,11 @@
 //! Build and draw geometry.
-use crate::core::{Gradient, Point, Rectangle, Size, Vector};
+use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
 use crate::graphics::primitive::{self, Primitive};
+use crate::graphics::Gradient;
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -23,10 +24,7 @@ pub struct Frame {
 
 enum Buffer {
     Solid(tessellation::VertexBuffers<primitive::ColoredVertex2D, u32>),
-    Gradient(
-        tessellation::VertexBuffers<primitive::Vertex2D, u32>,
-        Gradient,
-    ),
+    Gradient(tessellation::VertexBuffers<primitive::GradientVertex2D, u32>),
 }
 
 struct BufferStack {
@@ -48,12 +46,11 @@ impl BufferStack {
                     ));
                 }
             },
-            Style::Gradient(gradient) => match self.stack.last() {
-                Some(Buffer::Gradient(_, last)) if gradient == last => {}
+            Style::Gradient(_) => match self.stack.last() {
+                Some(Buffer::Gradient(_)) => {}
                 _ => {
                     self.stack.push(Buffer::Gradient(
                         tessellation::VertexBuffers::new(),
-                        gradient.clone(),
                     ));
                 }
             },
@@ -73,9 +70,14 @@ impl BufferStack {
                     TriangleVertex2DBuilder(color.into_linear()),
                 ))
             }
-            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
-                tessellation::BuffersBuilder::new(buffer, Vertex2DBuilder),
-            ),
+            (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
+                Box::new(tessellation::BuffersBuilder::new(
+                    buffer,
+                    GradientVertex2DBuilder {
+                        gradient: gradient.clone(),
+                    },
+                ))
+            }
             _ => unreachable!(),
         }
     }
@@ -91,9 +93,14 @@ impl BufferStack {
                     TriangleVertex2DBuilder(color.into_linear()),
                 ))
             }
-            (Style::Gradient(_), Buffer::Gradient(buffer, _)) => Box::new(
-                tessellation::BuffersBuilder::new(buffer, Vertex2DBuilder),
-            ),
+            (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
+                Box::new(tessellation::BuffersBuilder::new(
+                    buffer,
+                    GradientVertex2DBuilder {
+                        gradient: gradient.clone(),
+                    },
+                ))
+            }
             _ => unreachable!(),
         }
     }
@@ -131,11 +138,13 @@ impl Transform {
     }
 
     fn transform_gradient(&self, mut gradient: Gradient) -> Gradient {
-        let (start, end) = match &mut gradient {
-            Gradient::Linear(linear) => (&mut linear.start, &mut linear.end),
-        };
-        self.transform_point(start);
-        self.transform_point(end);
+        match &mut gradient {
+            Gradient::Linear(linear) => {
+                self.transform_point(&mut linear.start);
+                self.transform_point(&mut linear.end);
+            }
+        }
+
         gradient
     }
 }
@@ -462,7 +471,7 @@ impl Frame {
                         })
                     }
                 }
-                Buffer::Gradient(buffer, gradient) => {
+                Buffer::Gradient(buffer) => {
                     if !buffer.indices.is_empty() {
                         self.primitives.push(Primitive::GradientMesh {
                             buffers: primitive::Mesh2D {
@@ -470,7 +479,6 @@ impl Frame {
                                 indices: buffer.indices,
                             },
                             size: self.size,
-                            gradient,
                         })
                     }
                 }
@@ -481,34 +489,38 @@ impl Frame {
     }
 }
 
-struct Vertex2DBuilder;
+struct GradientVertex2DBuilder {
+    gradient: Gradient,
+}
 
-impl tessellation::FillVertexConstructor<primitive::Vertex2D>
-    for Vertex2DBuilder
+impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
+    for GradientVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::FillVertex<'_>,
-    ) -> primitive::Vertex2D {
+    ) -> primitive::GradientVertex2D {
         let position = vertex.position();
 
-        primitive::Vertex2D {
+        primitive::GradientVertex2D {
             position: [position.x, position.y],
+            gradient: pack_gradient(&self.gradient),
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<primitive::Vertex2D>
-    for Vertex2DBuilder
+impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
+    for GradientVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> primitive::Vertex2D {
+    ) -> primitive::GradientVertex2D {
         let position = vertex.position();
 
-        primitive::Vertex2D {
+        primitive::GradientVertex2D {
             position: [position.x, position.y],
+            gradient: pack_gradient(&self.gradient),
         }
     }
 }
@@ -610,4 +622,43 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
             },
         );
     })
+}
+
+/// Packs the [`Gradient`] for use in shader code.
+fn pack_gradient(gradient: &Gradient) -> [f32; 44] {
+    match gradient {
+        Gradient::Linear(linear) => {
+            let mut pack: [f32; 44] = [0.0; 44];
+            let mut offsets: [f32; 8] = [2.0; 8];
+
+            for (index, stop) in linear.color_stops.iter().enumerate() {
+                let [r, g, b, a] = stop
+                    .map_or(crate::core::Color::default(), |s| s.color)
+                    .into_linear();
+
+                pack[index * 4] = r;
+                pack[(index * 4) + 1] = g;
+                pack[(index * 4) + 2] = b;
+                pack[(index * 4) + 3] = a;
+
+                offsets[index] = stop.map_or(2.0, |s| s.offset);
+            }
+
+            pack[32] = offsets[0];
+            pack[33] = offsets[1];
+            pack[34] = offsets[2];
+            pack[35] = offsets[3];
+            pack[36] = offsets[4];
+            pack[37] = offsets[5];
+            pack[38] = offsets[6];
+            pack[39] = offsets[7];
+
+            pack[40] = linear.start.x;
+            pack[41] = linear.start.y;
+            pack[42] = linear.end.x;
+            pack[43] = linear.end.y;
+
+            pack
+        }
+    }
 }
