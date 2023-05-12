@@ -7,6 +7,16 @@ pub struct Cursor {
     state: State,
 }
 
+/// The animation styles for the [`Cursor`].
+#[derive(Debug, Clone, Copy, Default)]
+pub enum CursorAnimation {
+    /// Blink the cursor (visible then not visible in a loop)
+    Blink,
+    /// Fade from visible to invisible in a loop
+    #[default]
+    Fade,
+}
+
 /// The state of a [`Cursor`].
 #[derive(Debug, Copy, Clone)]
 pub enum State {
