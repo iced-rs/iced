@@ -173,7 +173,7 @@ Browse the [documentation] and the [examples] to learn more!
 ## Implementation details
 
 Iced was originally born as an attempt at bringing the simplicity of [Elm] and
-[The Elm Architecture] into [Coffee], a 2D game engine I am working on.
+[The Elm Architecture] into [Coffee], a 2D game engine I was working on.
 
 The core of the library was implemented during May 2019 in [this pull request].
 [The first alpha version] was eventually released as
