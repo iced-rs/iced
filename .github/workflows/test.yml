@@ -32,10 +32,10 @@ jobs:
         targets: wasm32-unknown-unknown
     - uses: actions/checkout@master
     - name: Run checks
-      run: cargo check --package iced --target wasm32-unknown-unknown
+      run: cargo check --package iced --target wasm32-unknown-unknown --no-default-features --features "wgpu"
     - name: Check compilation of `tour` example
-      run: cargo build --package tour --target wasm32-unknown-unknown
+      run: cargo build --package tour --target wasm32-unknown-unknown --no-default-features --features "wgpu"
     - name: Check compilation of `todos` example
-      run: cargo build --package todos --target wasm32-unknown-unknown
+      run: cargo build --package todos --target wasm32-unknown-unknown --no-default-features --features "wgpu"
     - name: Check compilation of `integration` example
-      run: cargo build --package integration --target wasm32-unknown-unknown
+      run: cargo build --package integration --target wasm32-unknown-unknown --no-default-features --features "wgpu"
