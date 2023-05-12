@@ -82,7 +82,14 @@ where
     )
 }
 
-pub(crate) fn resolve_iter<'a, Message, Renderer>(
+/// Computes the flex layout with the given axis and limits, applying spacing,
+/// padding and alignment to the items as needed.
+///
+/// It returns a new layout [`Node`].
+///
+/// It takes an [`IntoIterator`] along with the length of the `items`
+/// rather than a [`slice`] as in [`resolve`].
+pub fn resolve_iter<'a, Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,

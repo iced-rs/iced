@@ -95,7 +95,12 @@ impl Tree {
         )
     }
 
-    pub(crate) fn diff_children_iter<'a, T: 'a>(
+    /// Reconciliates the children of the tree with the provided list of widgets using custom
+    /// logic both for diffing and creating new widget state.
+    ///
+    /// It takes an [`IntoIterator`] along with the length of the `new_children`
+    /// rather than a [`slice`] as in [`diff_children`].
+    pub fn diff_children_iter<'a, T: 'a>(
         &mut self,
         new_children: impl IntoIterator<Item = &'a T>,
         new_children_len: usize,

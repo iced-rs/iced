@@ -115,7 +115,14 @@ where
     from_children_iter(children.iter_mut(), tree, layout, renderer)
 }
 
-pub(crate) fn from_children_iter<'a: 'b, 'b, Message: 'b, Renderer: 'b>(
+
+/// Returns a [`Group`] of overlay [`Element`] children.
+///
+/// This method will generally only be used by advanced users that are
+/// implementing the [`Widget`](crate::Widget) trait.
+///
+/// It takes an [`IntoIterator`] rather than a [`slice`] of `children` as in [`from_children`].
+pub fn from_children_iter<'a: 'b, 'b, Message: 'b, Renderer: 'b>(
     children: impl IntoIterator<
         Item = &'b mut (impl std::borrow::BorrowMut<
             dyn crate::Widget<Message, Renderer> + 'a,
