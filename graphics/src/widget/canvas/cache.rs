@@ -4,7 +4,7 @@ use crate::Primitive;
 use iced_native::Size;
 use std::{cell::RefCell, sync::Arc};
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 enum State {
     #[default]
     Empty,
@@ -18,7 +18,7 @@ enum State {
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
 /// change or it is explicitly cleared.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Cache {
     state: RefCell<State>,
 }

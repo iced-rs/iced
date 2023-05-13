@@ -112,6 +112,7 @@ where
     }
 }
 
+#[derive(PartialEq)]
 struct State {
     tree: RefCell<Tree>,
 }

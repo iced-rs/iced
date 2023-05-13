@@ -1134,7 +1134,7 @@ pub fn mouse_interaction(
 }
 
 /// The state of a [`TextInput`].
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct State {
     is_focused: Option<Focus>,
     is_dragging: bool,
@@ -1145,7 +1145,7 @@ pub struct State {
     // TODO: Add stateful horizontal scrolling offset
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 struct Focus {
     updated_at: Instant,
     now: Instant,

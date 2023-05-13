@@ -2,7 +2,7 @@
 use bytemuck::{Pod, Zeroable};
 
 /// A set of [`Vertex2D`] and indices representing a list of triangles.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Mesh2D<T> {
     /// The vertices of the mesh
     pub vertices: Vec<T>,
@@ -14,7 +14,7 @@ pub struct Mesh2D<T> {
 }
 
 /// A two-dimensional vertex.
-#[derive(Copy, Clone, Debug, Zeroable, Pod)]
+#[derive(Copy, Clone, Debug, Zeroable, Pod, PartialEq)]
 #[repr(C)]
 pub struct Vertex2D {
     /// The vertex position in 2D space.
@@ -22,7 +22,7 @@ pub struct Vertex2D {
 }
 
 /// A two-dimensional vertex with a color.
-#[derive(Copy, Clone, Debug, Zeroable, Pod)]
+#[derive(Copy, Clone, Debug, Zeroable, Pod, PartialEq)]
 #[repr(C)]
 pub struct ColoredVertex2D {
     /// The vertex position in 2D space.

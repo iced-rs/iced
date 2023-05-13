@@ -947,7 +947,7 @@ fn notify_on_scroll<Message>(
 }
 
 /// The local state of a [`Scrollable`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct State {
     scroll_area_touched_at: Option<Point>,
     offset_y: Offset,
@@ -982,7 +982,7 @@ impl operation::Scrollable for State {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Offset {
     Absolute(f32),
     Relative(f32),
@@ -1002,7 +1002,7 @@ impl Offset {
 }
 
 /// The current [`Viewport`] of the [`Scrollable`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Viewport {
     offset_x: Offset,
     offset_y: Offset,

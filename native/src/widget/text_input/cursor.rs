@@ -2,13 +2,13 @@
 use crate::widget::text_input::Value;
 
 /// The cursor of a text input.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Cursor {
     state: State,
 }
 
 /// The state of a [`Cursor`].
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum State {
     /// Cursor without a selection
     Index(usize),

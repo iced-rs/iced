@@ -8,7 +8,7 @@ use std::fmt;
 /// A persistent state widget tree.
 ///
 /// A [`Tree`] is normally associated with a specific widget in the widget tree.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Tree {
     /// The tag of the [`Tree`].
     pub tag: Tag,
@@ -133,6 +133,18 @@ pub enum State {
 
     /// Some meaningful internal state.
     Some(Box<dyn Any>),
+}
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (State::None, State::None) => true,
+            (State::Some(self_state), State::Some(other_state)) => {
+                self_state.downcast_ref::<Tree>() == other_state.downcast_ref::<Tree>()
+            }
+            _ => false,
+        }
+    }
 }
 
 impl State {

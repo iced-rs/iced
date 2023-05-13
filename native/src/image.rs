@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 /// A handle of some image data.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Handle {
     id: u64,
     data: Data,
@@ -91,6 +91,12 @@ impl Hash for Handle {
 #[derive(Clone)]
 pub struct Bytes(Arc<dyn AsRef<[u8]> + Send + Sync + 'static>);
 
+impl PartialEq for Bytes {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.as_ref().as_ref() == other.0.as_ref().as_ref()
+    }
+}
+
 impl Bytes {
     /// Creates new [`Bytes`] around `data`.
     pub fn new(data: impl AsRef<[u8]> + Send + Sync + 'static) -> Self {
@@ -125,7 +131,7 @@ impl std::ops::Deref for Bytes {
 }
 
 /// The data of a raster image.
-#[derive(Clone, Hash)]
+#[derive(Clone, Hash, PartialEq)]
 pub enum Data {
     /// File data
     Path(PathBuf),

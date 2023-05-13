@@ -336,7 +336,7 @@ where
 }
 
 /// The local state of a [`Viewer`].
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct State {
     scale: f32,
     starting_offset: Vector,

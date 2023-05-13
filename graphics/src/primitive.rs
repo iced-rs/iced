@@ -9,7 +9,7 @@ use crate::triangle;
 use std::sync::Arc;
 
 /// A rendering primitive.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum Primitive {
     /// An empty primitive
     #[default]

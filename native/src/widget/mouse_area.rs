@@ -68,7 +68,7 @@ impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
 }
 
 /// Local state of the [`MouseArea`].
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 struct State {
     // TODO: Support on_mouse_enter and on_mouse_exit
 }

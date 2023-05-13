@@ -3,7 +3,7 @@ use crate::time::Instant;
 use crate::Point;
 
 /// A mouse click.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Click {
     kind: Kind,
     position: Point,
@@ -11,7 +11,7 @@ pub struct Click {
 }
 
 /// The kind of mouse click.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Kind {
     /// A single click
     Single,

@@ -115,7 +115,7 @@ where
 }
 
 /// The local state of a [`Menu`].
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct State {
     tree: Tree,
 }

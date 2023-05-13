@@ -140,7 +140,7 @@ where
 /// The state of a [`QRCode`].
 ///
 /// It stores the data that will be displayed.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct State {
     contents: Vec<qrcode::Color>,
     width: usize,
