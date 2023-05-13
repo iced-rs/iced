@@ -46,6 +46,50 @@ impl From<Point> for [f32; 2] {
     }
 }
 
+impl std::ops::Add<f32> for Point {
+    type Output = Self;
+
+    fn add(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x + rhs,
+            y: self.y + rhs
+        }
+    }
+}
+
+impl std::ops::Sub<f32> for Point {
+    type Output = Self;
+
+    fn sub(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x - rhs,
+            y: self.y - rhs
+        }
+    }
+}
+
+impl std::ops::Mul<f32> for Point {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x * rhs,
+            y: self.y * rhs
+        }
+    }
+}
+
+impl std::ops::Div<f32> for Point {
+    type Output = Self;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self {
+            x: self.x / rhs,
+            y: self.y / rhs
+        }
+    }
+}
+
 impl std::ops::Add<Vector> for Point {
     type Output = Self;
 
