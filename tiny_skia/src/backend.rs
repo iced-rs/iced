@@ -91,6 +91,7 @@ impl Backend {
                         background_color,
                     )),
                     anti_alias: false,
+                    blend_mode: tiny_skia::BlendMode::Source,
                     ..Default::default()
                 },
                 tiny_skia::FillRule::default(),
