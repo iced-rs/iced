@@ -1,10 +1,12 @@
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
+
 use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Tree};
+use crate::core::widget::Tree;
 use crate::core::{
     Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
 };
@@ -100,13 +102,13 @@ where
         }
     }
 
-    pub(super) fn diff(&self, tree: &mut Tree) {
+    pub(super) fn diff(&mut self, tree: &mut Tree) {
         if tree.children.len() == 2 {
-            if let Some(controls) = self.controls.as_ref() {
+            if let Some(controls) = self.controls.as_mut() {
                 tree.children[1].diff(controls);
             }
 
-            tree.children[0].diff(&self.content);
+            tree.children[0].diff(&mut self.content);
         } else {
             *tree = self.state();
         }
@@ -259,7 +261,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         let mut children = layout.children();
         let padded = children.next().unwrap();

@@ -21,6 +21,7 @@ x11 = ["winit/x11"]
 wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
+a11y = ["iced_accessibility", "iced_runtime/a11y"]
 
 [dependencies]
 window_clipboard = "0.2"
@@ -28,10 +29,8 @@ log = "0.4"
 thiserror = "1.0"
 
 [dependencies.winit]
-version = "0.27"
-git = "https://github.com/iced-rs/winit.git"
-rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
-default-features = false
+git = "https://github.com/pop-os/winit.git"
+branch = "iced"
 
 [dependencies.iced_runtime]
 version = "0.1"
@@ -73,3 +72,9 @@ features = ["Document", "Window"]
 [dependencies.sysinfo]
 version = "0.28"
 optional = true
+
+[dependencies.iced_accessibility]
+version = "0.1.0"
+path = "../accessibility"
+optional = true
+features = ["accesskit_winit"]

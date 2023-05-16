@@ -12,7 +12,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [features]
-default = ["wgpu"]
+default = ["wgpu", "a11y"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu"]
 # Enables the `Image` widget
@@ -39,6 +39,9 @@ palette = ["iced_core/palette"]
 system = ["iced_winit/system"]
 # Enables the advanced module
 advanced = []
+# Enables the `accesskit` accessibility library
+a11y = ["iced_accessibility", "iced_widget/a11y", "iced_core/a11y", "iced_winit/a11y"]
+
 
 [badges]
 maintenance = { status = "actively-developed" }
@@ -56,6 +59,7 @@ members = [
     "widget",
     "winit",
     "examples/*",
+    "accessibility",
 ]
 
 [dependencies]
@@ -64,6 +68,7 @@ iced_futures = { version = "0.6", path = "futures" }
 iced_renderer = { version = "0.1", path = "renderer" }
 iced_widget = { version = "0.1", path = "widget" }
 iced_winit = { version = "0.9", path = "winit", features = ["application"] }
+iced_accessibility = { version = "0.1", path = "accessibility", optional = true }
 thiserror = "1"
 
 [dependencies.image_rs]

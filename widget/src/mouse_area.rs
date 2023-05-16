@@ -1,5 +1,7 @@
 //! A container for capturing mouse events.
 
+use iced_renderer::core::widget::OperationOutputWrapper;
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -106,8 +108,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content));
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content));
     }
 
     fn width(&self) -> Length {
@@ -131,7 +133,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         self.content.as_widget().operate(
             &mut tree.children[0],

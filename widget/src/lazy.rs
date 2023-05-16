@@ -5,6 +5,7 @@ pub mod component;
 pub mod responsive;
 
 pub use component::Component;
+use iced_renderer::core::widget::{Operation, OperationOutputWrapper};
 pub use responsive::Responsive;
 
 mod cache;
@@ -15,7 +16,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::{self, Widget};
+use crate::core::widget::Widget;
 use crate::core::Element;
 use crate::core::{
     self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size,
@@ -119,7 +120,7 @@ where
         self.with_element(|element| vec![Tree::new(element.as_widget())])
     }
 
-    fn diff(&self, tree: &mut Tree) {
+    fn diff(&mut self, tree: &mut Tree) {
         let current = tree.state.downcast_mut::<Internal<Message, Renderer>>();
 
         let mut hasher = Hasher::default();
@@ -133,8 +134,10 @@ where
             current.element = Rc::new(RefCell::new(Some(element)));
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
-            self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()))
+            self.with_element_mut(|element| {
+                tree.diff_children(std::slice::from_mut(
+                    &mut element.as_widget_mut(),
+                ))
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
@@ -164,7 +167,7 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         self.with_element(|element| {
             element.as_widget().operate(
@@ -271,6 +274,23 @@ where
 
         has_overlay
             .map(|position| overlay::Element::new(position, Box::new(overlay)))
+    }
+
+    fn set_id(&mut self, _id: iced_accessibility::Id) {
+        if let Some(e) = self.element.borrow_mut().as_mut() {
+            if let Some(e) = e.borrow_mut().as_mut() {
+                e.as_widget_mut().set_id(_id);
+            }
+        }
+    }
+
+    fn id(&self) -> Option<iced_accessibility::Id> {
+        if let Some(e) = self.element.borrow().as_ref() {
+            if let Some(e) = e.borrow().as_ref() {
+                return e.as_widget().id();
+            }
+        }
+        None
     }
 }
 

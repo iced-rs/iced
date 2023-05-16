@@ -1,4 +1,6 @@
 //! Implement your own event loop to drive a user interface.
+use iced_core::widget::{Operation, OperationOutputWrapper};
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -90,10 +92,10 @@ where
         cache: Cache,
         renderer: &mut Renderer,
     ) -> Self {
-        let root = root.into();
+        let mut root = root.into();
 
         let Cache { mut state } = cache;
-        state.diff(root.as_widget());
+        state.diff(root.as_widget_mut());
 
         let base =
             renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
@@ -512,7 +514,7 @@ where
     pub fn operate(
         &mut self,
         renderer: &Renderer,
-        operation: &mut dyn widget::Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
         self.root.as_widget().operate(
             &mut self.state,
@@ -549,6 +551,19 @@ where
     /// process.
     pub fn into_cache(self) -> Cache {
         Cache { state: self.state }
+    }
+
+    /// get a11y nodes
+    #[cfg(feature = "a11y")]
+    pub fn a11y_nodes(
+        &self,
+        cursor_position: Point,
+    ) -> iced_accessibility::A11yTree {
+        self.root.as_widget().a11y_nodes(
+            Layout::new(&self.base),
+            &self.state,
+            cursor_position,
+        )
     }
 }
 

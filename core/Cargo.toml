@@ -7,6 +7,9 @@ description = "The essential concepts of Iced"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 
+[features]
+a11y = ["iced_accessibility"]
+
 [dependencies]
 bitflags = "1.2"
 thiserror = "1"
@@ -18,3 +21,8 @@ optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 instant = "0.1"
+
+[dependencies.iced_accessibility]
+version = "0.1.0"
+path = "../accessibility"
+optional = true

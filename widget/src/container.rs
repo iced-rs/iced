@@ -5,12 +5,13 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Operation, Tree};
+use crate::core::widget::{Id, Operation, Tree};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
     Point, Rectangle, Shell, Widget,
 };
 
+use iced_renderer::core::widget::OperationOutputWrapper;
 pub use iced_style::container::{Appearance, StyleSheet};
 
 /// An element decorating some content.
@@ -138,8 +139,8 @@ where
         vec![Tree::new(&self.content)]
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+    fn diff(&mut self, tree: &mut Tree) {
+        tree.diff_children(std::slice::from_mut(&mut self.content))
     }
 
     fn width(&self) -> Length {
@@ -176,19 +177,16 @@ where
         tree: &mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-        operation: &mut dyn Operation<Message>,
+        operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
-        operation.container(
-            self.id.as_ref().map(|id| &id.0),
-            &mut |operation| {
-                self.content.as_widget().operate(
-                    &mut tree.children[0],
-                    layout.children().next().unwrap(),
-                    renderer,
-                    operation,
-                );
-            },
-        );
+        operation.container(self.id.as_ref(), &mut |operation| {
+            self.content.as_widget().operate(
+                &mut tree.children[0],
+                layout.children().next().unwrap(),
+                renderer,
+                operation,
+            );
+        });
     }
 
     fn on_event(
@@ -270,6 +268,19 @@ where
             renderer,
         )
     }
+
+    #[cfg(feature = "a11y")]
+    /// get the a11y nodes for the widget
+    fn a11y_nodes(
+        &self,
+        layout: Layout<'_>,
+        state: &Tree,
+        p: Point,
+    ) -> iced_accessibility::A11yTree {
+        let c_layout = layout.children().next().unwrap();
+        let c_state = &state.children[0];
+        self.content.as_widget().a11y_nodes(c_layout, c_state, p)
+    }
 }
 
 impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
@@ -340,29 +351,5 @@ pub fn draw_background<Renderer>(
                 .background
                 .unwrap_or(Background::Color(Color::TRANSPARENT)),
         );
-    }
-}
-
-/// The identifier of a [`Container`].
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Id(widget::Id);
-
-impl Id {
-    /// Creates a custom [`Id`].
-    pub fn new(id: impl Into<std::borrow::Cow<'static, str>>) -> Self {
-        Self(widget::Id::new(id))
-    }
-
-    /// Creates a unique [`Id`].
-    ///
-    /// This function produces a different [`Id`] every time it is called.
-    pub fn unique() -> Self {
-        Self(widget::Id::unique())
-    }
-}
-
-impl From<Id> for widget::Id {
-    fn from(id: Id) -> Self {
-        id.0
     }
 }

@@ -3,10 +3,8 @@ pub mod operation;
 pub mod text;
 pub mod tree;
 
-mod id;
-
-pub use id::Id;
-pub use operation::Operation;
+pub use crate::id::Id;
+pub use operation::{Operation, OperationOutputWrapper};
 pub use text::Text;
 pub use tree::Tree;
 
@@ -91,7 +89,7 @@ where
     }
 
     /// Reconciliates the [`Widget`] with the provided [`Tree`].
-    fn diff(&self, _tree: &mut Tree) {}
+    fn diff(&mut self, _tree: &mut Tree) {}
 
     /// Applies an [`Operation`] to the [`Widget`].
     fn operate(
@@ -99,7 +97,7 @@ where
         _state: &mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _operation: &mut dyn Operation<Message>,
+        _operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
     }
 
@@ -142,4 +140,24 @@ where
     ) -> Option<overlay::Element<'a, Message, Renderer>> {
         None
     }
+
+    #[cfg(feature = "a11y")]
+    /// get the a11y nodes for the widget and its children
+    fn a11y_nodes(
+        &self,
+        _layout: Layout<'_>,
+        _state: &Tree,
+        _cursor_position: Point,
+    ) -> iced_accessibility::A11yTree {
+        iced_accessibility::A11yTree::default()
+    }
+
+    /// Returns the id of the widget
+    fn id(&self) -> Option<Id> {
+        None
+    }
+
+    /// Sets the id of the widget
+    /// This may be called while diffing the widget tree
+    fn set_id(&mut self, _id: Id) {}
 }

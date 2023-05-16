@@ -9,8 +9,8 @@ use crate::event::{self, Event};
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::widget;
-use crate::widget::Tree;
+use crate::widget::{self, Operation};
+use crate::widget::{OperationOutputWrapper, Tree};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size};
 
 /// An interactive component that can be displayed on top of other widgets.
@@ -46,7 +46,7 @@ where
         &mut self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-        _operation: &mut dyn widget::Operation<Message>,
+        _operation: &mut dyn Operation<OperationOutputWrapper<Message>>,
     ) {
     }
 
