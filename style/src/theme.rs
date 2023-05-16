@@ -703,6 +703,25 @@ pub enum PaneGrid {
 impl pane_grid::StyleSheet for Theme {
     type Style = PaneGrid;
 
+    fn hovered_region(&self, style: &Self::Style) -> pane_grid::Region {
+        match style {
+            PaneGrid::Default => {
+                let palette = self.extended_palette();
+
+                pane_grid::Region {
+                    background: Background::Color(Color {
+                        a: 0.5,
+                        ..palette.primary.base.color
+                    }),
+                    border_width: 2.0,
+                    border_color: palette.primary.strong.color,
+                    border_radius: 0.0,
+                }
+            }
+            PaneGrid::Custom(custom) => custom.hovered_region(self),
+        }
+    }
+
     fn picked_split(&self, style: &Self::Style) -> Option<pane_grid::Line> {
         match style {
             PaneGrid::Default => {

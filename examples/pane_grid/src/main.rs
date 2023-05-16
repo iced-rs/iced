@@ -108,8 +108,12 @@ impl Application for Example {
             Message::Dragged(pane_grid::DragEvent::Dropped {
                 pane,
                 target,
+                region,
             }) => {
-                self.panes.swap(&pane, &target);
+                if let Some(state) = self.panes.get(&pane) {
+                    let pane = (*state, &pane);
+                    self.panes.split_with(&target, pane, region);
+                }
             }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
@@ -255,6 +259,7 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Pane {
     id: usize,
     pub is_pinned: bool,

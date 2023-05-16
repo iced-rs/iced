@@ -594,13 +594,18 @@ pub fn update<'a, Message, T: Draggable>(
                 if let Some(on_drag) = on_drag {
                     let mut dropped_region = contents
                         .zip(layout.children())
-                        .filter(|(_, layout)| {
-                            layout.bounds().contains(cursor_position)
+                        .filter_map(|(target, layout)| {
+                            layout_region(layout, cursor_position)
+                                .map(|region| (target, region))
                         });
 
                     let event = match dropped_region.next() {
-                        Some(((target, _), _)) if pane != target => {
-                            DragEvent::Dropped { pane, target }
+                        Some(((target, _), region)) if pane != target => {
+                            DragEvent::Dropped {
+                                pane,
+                                target,
+                                region,
+                            }
                         }
                         _ => DragEvent::Canceled { pane },
                     };
@@ -655,6 +660,28 @@ pub fn update<'a, Message, T: Draggable>(
     }
 
     event_status
+}
+
+fn layout_region(layout: Layout<'_>, cursor_position: Point) -> Option<Region> {
+    let bounds = layout.bounds();
+
+    if !bounds.contains(cursor_position) {
+        return None;
+    }
+
+    let region = if cursor_position.x < (bounds.x + bounds.width / 3.0) {
+        Region::Left
+    } else if cursor_position.x > (bounds.x + 2.0 * bounds.width / 3.0) {
+        Region::Right
+    } else if cursor_position.y < (bounds.y + bounds.height / 3.0) {
+        Region::Top
+    } else if cursor_position.y > (bounds.y + 2.0 * bounds.height / 3.0) {
+        Region::Bottom
+    } else {
+        Region::Center
+    };
+
+    Some(region)
 }
 
 fn click_pane<'a, Message, T>(
@@ -810,6 +837,36 @@ pub fn draw<Renderer, T>(
             Some((dragging, origin)) if id == dragging => {
                 render_picked_pane = Some((pane, origin, layout));
             }
+            Some((dragging, _)) if id != dragging => {
+                draw_pane(
+                    pane,
+                    renderer,
+                    default_style,
+                    layout,
+                    pane_cursor_position,
+                    viewport,
+                );
+
+                if picked_pane.is_some() {
+                    if let Some(region) = layout_region(layout, cursor_position)
+                    {
+                        let bounds = layout_region_bounds(layout, region);
+                        let hovered_region_style = theme.hovered_region(style);
+
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds,
+                                border_radius: hovered_region_style
+                                    .border_radius
+                                    .into(),
+                                border_width: hovered_region_style.border_width,
+                                border_color: hovered_region_style.border_color,
+                            },
+                            theme.hovered_region(style).background,
+                        );
+                    }
+                }
+            }
             _ => {
                 draw_pane(
                     pane,
@@ -884,6 +941,32 @@ pub fn draw<Renderer, T>(
     }
 }
 
+fn layout_region_bounds(layout: Layout<'_>, region: Region) -> Rectangle {
+    let bounds = layout.bounds();
+
+    match region {
+        Region::Center => bounds,
+        Region::Top => Rectangle {
+            height: bounds.height / 2.0,
+            ..bounds
+        },
+        Region::Left => Rectangle {
+            width: bounds.width / 2.0,
+            ..bounds
+        },
+        Region::Right => Rectangle {
+            x: bounds.x + bounds.width / 2.0,
+            width: bounds.width / 2.0,
+            ..bounds
+        },
+        Region::Bottom => Rectangle {
+            y: bounds.y + bounds.height / 2.0,
+            height: bounds.height / 2.0,
+            ..bounds
+        },
+    }
+}
+
 /// An event produced during a drag and drop interaction of a [`PaneGrid`].
 #[derive(Debug, Clone, Copy)]
 pub enum DragEvent {
@@ -900,6 +983,9 @@ pub enum DragEvent {
 
         /// The [`Pane`] where the picked one was dropped on.
         target: Pane,
+
+        /// The [`Region`] of the target [`Pane`] where the picked one was dropped on.
+        region: Region,
     },
 
     /// A [`Pane`] was picked and then dropped outside of other [`Pane`]
@@ -908,6 +994,22 @@ pub enum DragEvent {
         /// The picked [`Pane`].
         pane: Pane,
     },
+}
+
+/// The region of a [`Pane`].
+#[derive(Debug, Clone, Copy, Default)]
+pub enum Region {
+    /// Center region.
+    #[default]
+    Center,
+    /// Top region.
+    Top,
+    /// Left region.
+    Left,
+    /// Right region.
+    Right,
+    /// Bottom region.
+    Bottom,
 }
 
 /// An event produced during a resize interaction of a [`PaneGrid`].

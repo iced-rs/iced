@@ -2,7 +2,9 @@
 //!
 //! [`PaneGrid`]: crate::widget::PaneGrid
 use crate::core::{Point, Size};
-use crate::pane_grid::{Axis, Configuration, Direction, Node, Pane, Split};
+use crate::pane_grid::{
+    Axis, Configuration, Direction, Node, Pane, Region, Split,
+};
 
 use std::collections::HashMap;
 
@@ -163,6 +165,53 @@ impl<T> State<T> {
         let _ = self.maximized.take();
 
         Some((new_pane, new_split))
+    }
+
+    /// Split a target [`Pane`] with a given [`Pane`] on a given [`Region`].
+    ///
+    /// Panes will be swapped by default for [`Region::Center`].
+    pub fn split_with(
+        &mut self,
+        target: &Pane,
+        pane: (T, &Pane),
+        region: Region,
+    ) {
+        match region {
+            Region::Center => {
+                let (_, pane) = pane;
+                self.swap(pane, target);
+            }
+            Region::Top => {
+                self.split_and_swap(Axis::Horizontal, target, pane, true)
+            }
+            Region::Bottom => {
+                self.split_and_swap(Axis::Horizontal, target, pane, false)
+            }
+            Region::Left => {
+                self.split_and_swap(Axis::Vertical, target, pane, true)
+            }
+            Region::Right => {
+                self.split_and_swap(Axis::Vertical, target, pane, false)
+            }
+        }
+    }
+
+    fn split_and_swap(
+        &mut self,
+        axis: Axis,
+        target: &Pane,
+        pane: (T, &Pane),
+        invert: bool,
+    ) {
+        let (state, pane) = pane;
+
+        if let Some((new_pane, _)) = self.split(axis, target, state) {
+            if invert {
+                self.swap(target, &new_pane);
+            }
+
+            let _ = self.close(pane);
+        }
     }
 
     /// Swaps the position of the provided panes in the [`State`].
