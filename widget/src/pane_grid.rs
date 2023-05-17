@@ -30,7 +30,7 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
-pub use crate::style::pane_grid::{Line, StyleSheet};
+pub use crate::style::pane_grid::{Appearance, Line, StyleSheet};
 
 use crate::container;
 use crate::core::event::{self, Event};

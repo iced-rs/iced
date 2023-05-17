@@ -703,12 +703,12 @@ pub enum PaneGrid {
 impl pane_grid::StyleSheet for Theme {
     type Style = PaneGrid;
 
-    fn hovered_region(&self, style: &Self::Style) -> pane_grid::Region {
+    fn hovered_region(&self, style: &Self::Style) -> pane_grid::Appearance {
         match style {
             PaneGrid::Default => {
                 let palette = self.extended_palette();
 
-                pane_grid::Region {
+                pane_grid::Appearance {
                     background: Background::Color(Color {
                         a: 0.5,
                         ..palette.primary.base.color
