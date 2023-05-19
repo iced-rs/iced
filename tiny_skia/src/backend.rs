@@ -184,8 +184,47 @@ impl Backend {
                                     *color,
                                 ))
                             }
-                            Background::Gradient(gradient) => {
-                                into_gradient(*gradient, *bounds)
+                            Background::Gradient(Gradient::Linear(linear)) => {
+                                let (start, end) =
+                                    linear.angle.to_distance(&bounds);
+
+                                let stops: Vec<tiny_skia::GradientStop> =
+                                    linear
+                                        .stops
+                                        .into_iter()
+                                        .flatten()
+                                        .map(|stop| {
+                                            tiny_skia::GradientStop::new(
+                                                stop.offset,
+                                                tiny_skia::Color::from_rgba(
+                                                    stop.color.b,
+                                                    stop.color.g,
+                                                    stop.color.r,
+                                                    stop.color.a,
+                                                )
+                                                .expect("Create color"),
+                                            )
+                                        })
+                                        .collect();
+
+                                tiny_skia::LinearGradient::new(
+                                    tiny_skia::Point {
+                                        x: start.x,
+                                        y: start.y,
+                                    },
+                                    tiny_skia::Point { x: end.x, y: end.y },
+                                    if stops.is_empty() {
+                                        vec![tiny_skia::GradientStop::new(
+                                            0.0,
+                                            tiny_skia::Color::BLACK,
+                                        )]
+                                    } else {
+                                        stops
+                                    },
+                                    tiny_skia::SpreadMode::Pad,
+                                    tiny_skia::Transform::identity(),
+                                )
+                                .expect("Create linear gradient")
                             }
                         },
                         anti_alias: true,
@@ -454,47 +493,6 @@ impl Backend {
 fn into_color(color: Color) -> tiny_skia::Color {
     tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a)
         .expect("Convert color from iced to tiny_skia")
-}
-
-fn into_gradient<'a>(
-    gradient: Gradient,
-    bounds: Rectangle,
-) -> tiny_skia::Shader<'a> {
-    let Gradient::Linear(linear) = gradient;
-    let (start, end) = linear.angle.to_distance(&bounds);
-    let stops: Vec<tiny_skia::GradientStop> = linear
-        .stops
-        .into_iter()
-        .flatten()
-        .map(|stop| {
-            tiny_skia::GradientStop::new(
-                stop.offset,
-                tiny_skia::Color::from_rgba(
-                    stop.color.b,
-                    stop.color.g,
-                    stop.color.r,
-                    stop.color.a,
-                )
-                .expect("Create color"),
-            )
-        })
-        .collect();
-
-    tiny_skia::LinearGradient::new(
-        tiny_skia::Point {
-            x: start.x,
-            y: start.y,
-        },
-        tiny_skia::Point { x: end.x, y: end.y },
-        if stops.is_empty() {
-            vec![tiny_skia::GradientStop::new(0.0, tiny_skia::Color::BLACK)]
-        } else {
-            stops
-        },
-        tiny_skia::SpreadMode::Pad,
-        tiny_skia::Transform::identity(),
-    )
-    .expect("Create linear gradient")
 }
 
 fn rounded_rectangle(
