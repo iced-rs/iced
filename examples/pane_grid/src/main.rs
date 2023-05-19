@@ -110,10 +110,7 @@ impl Application for Example {
                 target,
                 region,
             }) => {
-                if let Some(state) = self.panes.get(&pane) {
-                    let pane = (*state, &pane);
-                    self.panes.split_with(&target, pane, region);
-                }
+                self.panes.split_with(&target, &pane, region);
             }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {

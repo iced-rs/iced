@@ -170,17 +170,9 @@ impl<T> State<T> {
     /// Split a target [`Pane`] with a given [`Pane`] on a given [`Region`].
     ///
     /// Panes will be swapped by default for [`Region::Center`].
-    pub fn split_with(
-        &mut self,
-        target: &Pane,
-        pane: (T, &Pane),
-        region: Region,
-    ) {
+    pub fn split_with(&mut self, target: &Pane, pane: &Pane, region: Region) {
         match region {
-            Region::Center => {
-                let (_, pane) = pane;
-                self.swap(pane, target);
-            }
+            Region::Center => self.swap(pane, target),
             Region::Top => {
                 self.split_and_swap(Axis::Horizontal, target, pane, true)
             }
@@ -200,17 +192,15 @@ impl<T> State<T> {
         &mut self,
         axis: Axis,
         target: &Pane,
-        pane: (T, &Pane),
+        pane: &Pane,
         invert: bool,
     ) {
-        let (state, pane) = pane;
-
-        if let Some((new_pane, _)) = self.split(axis, target, state) {
-            if invert {
-                self.swap(target, &new_pane);
+        if let Some((state, _)) = self.close(pane) {
+            if let Some((new_pane, _)) = self.split(axis, target, state) {
+                if invert {
+                    self.swap(target, &new_pane);
+                }
             }
-
-            let _ = self.close(pane);
         }
     }
 
