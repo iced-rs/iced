@@ -8,7 +8,7 @@ use wgpu::util::DeviceExt;
 #[cfg(feature = "tracing")]
 use tracing::info_span;
 
-const INITIAL_INSTANCES: usize = 10_000;
+const INITIAL_INSTANCES: usize = 2_000;
 
 #[derive(Debug)]
 pub struct Pipeline {
