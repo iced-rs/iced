@@ -186,7 +186,7 @@ impl Backend {
                             }
                             Background::Gradient(Gradient::Linear(linear)) => {
                                 let (start, end) =
-                                    linear.angle.to_distance(&bounds);
+                                    linear.angle.to_distance(bounds);
 
                                 let stops: Vec<tiny_skia::GradientStop> =
                                     linear
