@@ -463,7 +463,7 @@ fn into_gradient<'a>(
     let Gradient::Linear(linear) = gradient;
     let (start, end) = linear.angle.to_distance(&bounds);
     let stops: Vec<tiny_skia::GradientStop> = linear
-        .color_stops
+        .stops
         .into_iter()
         .flatten()
         .map(|stop| {

@@ -23,13 +23,13 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 mod antialiasing;
 mod error;
-mod gradient;
 mod transformation;
 mod viewport;
 
 pub mod backend;
 pub mod compositor;
 pub mod damage;
+pub mod gradient;
 pub mod primitive;
 pub mod renderer;
 

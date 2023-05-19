@@ -371,7 +371,7 @@ impl container::StyleSheet for Theme {
 
                 container::Appearance {
                     text_color: None,
-                    background: palette.background.weak.color.into(),
+                    background: Some(palette.background.weak.color.into()),
                     border_radius: 2.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
@@ -896,7 +896,7 @@ impl scrollable::StyleSheet for Theme {
                 let palette = self.extended_palette();
 
                 scrollable::Scrollbar {
-                    background: palette.background.weak.color.into(),
+                    background: Some(palette.background.weak.color.into()),
                     border_radius: 2.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
@@ -923,7 +923,7 @@ impl scrollable::StyleSheet for Theme {
                     let palette = self.extended_palette();
 
                     scrollable::Scrollbar {
-                        background: palette.background.weak.color.into(),
+                        background: Some(palette.background.weak.color.into()),
                         border_radius: 2.0,
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,

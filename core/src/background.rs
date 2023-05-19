@@ -1,4 +1,5 @@
-use crate::{Color, Gradient};
+use crate::gradient::{self, Gradient};
+use crate::Color;
 
 /// The background of some element.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -16,14 +17,14 @@ impl From<Color> for Background {
     }
 }
 
-impl From<Color> for Option<Background> {
-    fn from(color: Color) -> Self {
-        Some(Background::from(color))
+impl From<Gradient> for Background {
+    fn from(gradient: Gradient) -> Self {
+        Background::Gradient(gradient)
     }
 }
 
-impl From<Gradient> for Option<Background> {
-    fn from(gradient: Gradient) -> Self {
-        Some(Background::Gradient(gradient))
+impl From<gradient::Linear> for Background {
+    fn from(gradient: gradient::Linear) -> Self {
+        Background::Gradient(Gradient::Linear(gradient))
     }
 }

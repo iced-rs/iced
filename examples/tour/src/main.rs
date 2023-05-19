@@ -1,3 +1,4 @@
+use iced::gradient;
 use iced::theme;
 use iced::theme::Palette;
 use iced::widget::{
@@ -7,8 +8,7 @@ use iced::widget::{
 use iced::widget::{Button, Column, Container, Slider};
 use iced::{alignment, widget, Theme};
 use iced::{
-    Color, Degrees, Element, Font, Gradient, Length, Radians, Renderer,
-    Sandbox, Settings,
+    Color, Degrees, Element, Font, Length, Radians, Renderer, Sandbox, Settings,
 };
 
 pub fn main() -> iced::Result {
@@ -734,23 +734,25 @@ impl widget::button::StyleSheet for CustomButtonStyle {
     fn active(&self, _style: &Self::Style) -> widget::button::Appearance {
         match self {
             CustomButtonStyle::Primary => widget::button::Appearance {
-                background: Gradient::linear(Degrees(270.0))
-                    .add_stop(0.0, Palette::LIGHT.primary)
-                    .add_stop(1.0, Color::from_rgb8(54, 80, 168))
-                    .build()
-                    .into(),
+                background: Some(
+                    gradient::Linear::new(Degrees(270.0))
+                        .add_stop(0.0, Palette::LIGHT.primary)
+                        .add_stop(1.0, Color::from_rgb8(54, 80, 168))
+                        .into(),
+                ),
                 text_color: Color::WHITE,
                 border_radius: 5.0,
                 ..Default::default()
             },
             CustomButtonStyle::Secondary => widget::button::Appearance {
-                background: Gradient::linear(Radians(
-                    3.0 * std::f32::consts::PI / 2.0,
-                ))
-                .add_stop(0.0, Color::from_rgb8(194, 194, 194))
-                .add_stop(1.0, Color::from_rgb8(126, 126, 126))
-                .build()
-                .into(),
+                background: Some(
+                    gradient::Linear::new(Radians(
+                        3.0 * std::f32::consts::PI / 2.0,
+                    ))
+                    .add_stop(0.0, Color::from_rgb8(194, 194, 194))
+                    .add_stop(1.0, Color::from_rgb8(126, 126, 126))
+                    .into(),
+                ),
                 text_color: Color::WHITE,
                 border_radius: 5.0,
                 ..Default::default()

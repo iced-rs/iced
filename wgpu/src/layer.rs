@@ -317,7 +317,7 @@ fn pack_gradient(gradient: &core::Gradient, bounds: Rectangle) -> [f32; 44] {
         core::Gradient::Linear(linear) => {
             let mut pack: [f32; 44] = [0.0; 44];
 
-            for (index, stop) in linear.color_stops.iter().enumerate() {
+            for (index, stop) in linear.stops.iter().enumerate() {
                 let [r, g, b, a] =
                     stop.map_or(Color::default(), |s| s.color).into_linear();
 

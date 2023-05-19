@@ -233,7 +233,7 @@ pub fn into_paint(style: Style) -> tiny_skia::Paint<'static> {
             Style::Gradient(gradient) => match gradient {
                 Gradient::Linear(linear) => {
                     let stops: Vec<tiny_skia::GradientStop> = linear
-                        .color_stops
+                        .stops
                         .into_iter()
                         .flatten()
                         .map(|stop| {
