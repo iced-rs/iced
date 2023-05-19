@@ -7,7 +7,7 @@ pub mod quad;
 
 pub use image::Image;
 pub use mesh::Mesh;
-use quad::Quad;
+pub use quad::Quad;
 pub use text::Text;
 
 use crate::core;
