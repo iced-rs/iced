@@ -57,11 +57,9 @@ impl Sandbox for Tour {
 
         if steps.has_previous() {
             controls = controls.push(
-                button("Back").on_press(Message::BackPressed).style(
-                    theme::Button::Custom(Box::new(
-                        CustomButtonStyle::Secondary,
-                    )),
-                ),
+                button("Back")
+                    .on_press(Message::BackPressed)
+                    .style(theme::Button::custom(CustomButtonStyle::Secondary)),
             );
         }
 
@@ -69,9 +67,9 @@ impl Sandbox for Tour {
 
         if steps.can_continue() {
             controls = controls.push(
-                button("Next").on_press(Message::NextPressed).style(
-                    theme::Button::Custom(Box::new(CustomButtonStyle::Primary)),
-                ),
+                button("Next")
+                    .on_press(Message::NextPressed)
+                    .style(theme::Button::custom(CustomButtonStyle::Primary)),
             );
         }
 

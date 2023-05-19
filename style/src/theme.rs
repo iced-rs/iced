@@ -139,6 +139,15 @@ pub enum Button {
     Custom(Box<dyn button::StyleSheet<Style = Theme>>),
 }
 
+impl Button {
+    /// Creates a custom [`Button`] style variant.
+    pub fn custom(
+        style_sheet: impl button::StyleSheet<Style = Theme> + 'static,
+    ) -> Self {
+        Self::Custom(Box::new(style_sheet))
+    }
+}
+
 impl button::StyleSheet for Theme {
     type Style = Button;
 
