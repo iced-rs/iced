@@ -195,9 +195,9 @@ impl Layer {
 }
 
 mod solid {
-    use crate::buffer::Buffer;
     use crate::layer::quad;
     use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
+    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -324,9 +324,9 @@ mod solid {
 }
 
 mod gradient {
-    use crate::buffer::Buffer;
     use crate::layer::quad;
     use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
+    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {

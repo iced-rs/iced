@@ -50,6 +50,8 @@ mod quad;
 mod text;
 mod triangle;
 
+use buffer::Buffer;
+
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 

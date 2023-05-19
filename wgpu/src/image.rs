@@ -8,10 +8,10 @@ mod vector;
 
 use atlas::Atlas;
 
-use crate::buffer::Buffer;
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
 use crate::layer;
+use crate::Buffer;
 
 use std::cell::RefCell;
 use std::mem;

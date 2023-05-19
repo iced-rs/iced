@@ -1,10 +1,10 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::buffer::Buffer;
 use crate::core::Size;
 use crate::graphics::{Antialiasing, Transformation};
 use crate::layer::mesh::{self, Mesh};
+use crate::Buffer;
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
@@ -389,10 +389,10 @@ impl Uniforms {
 }
 
 mod solid {
-    use crate::buffer::Buffer;
     use crate::graphics::primitive;
     use crate::graphics::Antialiasing;
     use crate::triangle;
+    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -533,8 +533,7 @@ mod solid {
 mod gradient {
     use crate::graphics::{primitive, Antialiasing};
     use crate::triangle;
-
-    use crate::buffer::Buffer;
+    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {
