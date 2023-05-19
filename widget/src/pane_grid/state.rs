@@ -193,11 +193,11 @@ impl<T> State<T> {
         axis: Axis,
         target: &Pane,
         pane: &Pane,
-        invert: bool,
+        swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
-                if invert {
+                if swap {
                     self.swap(target, &new_pane);
                 }
             }
