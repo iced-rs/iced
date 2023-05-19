@@ -475,7 +475,7 @@ mod gradient {
     }
 }
 
-pub(crate) fn color_target_state(
+fn color_target_state(
     format: wgpu::TextureFormat,
 ) -> [Option<wgpu::ColorTargetState>; 1] {
     [Some(wgpu::ColorTargetState {
@@ -516,9 +516,9 @@ impl Vertex {
     }
 }
 
-pub(crate) const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
+const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-pub(crate) const VERTICES: [Vertex; 4] = [
+const VERTICES: [Vertex; 4] = [
     Vertex {
         _position: [0.0, 0.0],
     },

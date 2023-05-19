@@ -11,7 +11,7 @@ use atlas::Atlas;
 use crate::buffer::Buffer;
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
-use crate::{layer, quad};
+use crate::layer;
 
 use std::cell::RefCell;
 use std::mem;
@@ -131,7 +131,7 @@ impl Layer {
         render_pass.set_vertex_buffer(1, self.instances.slice(..));
 
         render_pass.draw_indexed(
-            0..quad::INDICES.len() as u32,
+            0..QUAD_INDICES.len() as u32,
             0,
             0..self.instance_count as u32,
         );
@@ -244,7 +244,22 @@ impl Pipeline {
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
                     entry_point: "fs_main",
-                    targets: &quad::color_target_state(format),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
                 }),
                 primitive: wgpu::PrimitiveState {
                     topology: wgpu::PrimitiveTopology::TriangleList,
@@ -263,14 +278,14 @@ impl Pipeline {
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image vertex buffer"),
-                contents: bytemuck::cast_slice(&quad::VERTICES),
+                contents: bytemuck::cast_slice(&QUAD_VERTICES),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
         let indices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image index buffer"),
-                contents: bytemuck::cast_slice(&quad::INDICES),
+                contents: bytemuck::cast_slice(&QUAD_INDICES),
                 usage: wgpu::BufferUsages::INDEX,
             });
 
@@ -482,6 +497,23 @@ impl Pipeline {
 pub struct Vertex {
     _position: [f32; 2],
 }
+
+const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
+
+const QUAD_VERTICES: [Vertex; 4] = [
+    Vertex {
+        _position: [0.0, 0.0],
+    },
+    Vertex {
+        _position: [1.0, 0.0],
+    },
+    Vertex {
+        _position: [1.0, 1.0],
+    },
+    Vertex {
+        _position: [0.0, 1.0],
+    },
+];
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
