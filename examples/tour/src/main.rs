@@ -1,15 +1,11 @@
-use iced::gradient;
+use iced::alignment;
 use iced::theme;
-use iced::theme::Palette;
 use iced::widget::{
     checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{alignment, widget, Theme};
-use iced::{
-    Color, Degrees, Element, Font, Length, Radians, Renderer, Sandbox, Settings,
-};
+use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -59,18 +55,15 @@ impl Sandbox for Tour {
             controls = controls.push(
                 button("Back")
                     .on_press(Message::BackPressed)
-                    .style(theme::Button::custom(CustomButtonStyle::Secondary)),
+                    .style(theme::Button::Secondary),
             );
         }
 
         controls = controls.push(horizontal_space(Length::Fill));
 
         if steps.can_continue() {
-            controls = controls.push(
-                button("Next")
-                    .on_press(Message::NextPressed)
-                    .style(theme::Button::custom(CustomButtonStyle::Primary)),
-            );
+            controls =
+                controls.push(button("Next").on_press(Message::NextPressed));
         }
 
         let content: Element<_> = column![
@@ -719,42 +712,4 @@ impl From<Language> for String {
 pub enum Layout {
     Row,
     Column,
-}
-
-enum CustomButtonStyle {
-    Primary,
-    Secondary,
-}
-
-impl widget::button::StyleSheet for CustomButtonStyle {
-    type Style = Theme;
-
-    fn active(&self, _style: &Self::Style) -> widget::button::Appearance {
-        match self {
-            CustomButtonStyle::Primary => widget::button::Appearance {
-                background: Some(
-                    gradient::Linear::new(Degrees(270.0))
-                        .add_stop(0.0, Palette::LIGHT.primary)
-                        .add_stop(1.0, Color::from_rgb8(54, 80, 168))
-                        .into(),
-                ),
-                text_color: Color::WHITE,
-                border_radius: 5.0,
-                ..Default::default()
-            },
-            CustomButtonStyle::Secondary => widget::button::Appearance {
-                background: Some(
-                    gradient::Linear::new(Radians(
-                        3.0 * std::f32::consts::PI / 2.0,
-                    ))
-                    .add_stop(0.0, Color::from_rgb8(194, 194, 194))
-                    .add_stop(1.0, Color::from_rgb8(126, 126, 126))
-                    .into(),
-                ),
-                text_color: Color::WHITE,
-                border_radius: 5.0,
-                ..Default::default()
-            },
-        }
-    }
 }
