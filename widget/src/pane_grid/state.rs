@@ -3,7 +3,7 @@
 //! [`PaneGrid`]: crate::widget::PaneGrid
 use crate::core::{Point, Size};
 use crate::pane_grid::{
-    Axis, Configuration, Direction, Node, Pane, Region, Split,
+    Axis, Configuration, Direction, Edge, Node, Pane, Region, Split,
 };
 
 use std::collections::HashMap;
@@ -173,18 +173,20 @@ impl<T> State<T> {
     pub fn split_with(&mut self, target: &Pane, pane: &Pane, region: Region) {
         match region {
             Region::Center => self.swap(pane, target),
-            Region::Top => {
-                self.split_and_swap(Axis::Horizontal, target, pane, true)
-            }
-            Region::Bottom => {
-                self.split_and_swap(Axis::Horizontal, target, pane, false)
-            }
-            Region::Left => {
-                self.split_and_swap(Axis::Vertical, target, pane, true)
-            }
-            Region::Right => {
-                self.split_and_swap(Axis::Vertical, target, pane, false)
-            }
+            Region::Edge(edge) => match edge {
+                Edge::Top => {
+                    self.split_and_swap(Axis::Horizontal, target, pane, true)
+                }
+                Edge::Bottom => {
+                    self.split_and_swap(Axis::Horizontal, target, pane, false)
+                }
+                Edge::Left => {
+                    self.split_and_swap(Axis::Vertical, target, pane, true)
+                }
+                Edge::Right => {
+                    self.split_and_swap(Axis::Vertical, target, pane, false)
+                }
+            },
         }
     }
 
@@ -202,6 +204,67 @@ impl<T> State<T> {
                 }
             }
         }
+    }
+
+    /// Move [`Pane`] to an [`Edge`] of the [`PaneGrid`].
+    pub fn move_to_edge(&mut self, pane: &Pane, edge: Edge) {
+        match edge {
+            Edge::Top => {
+                self.split_major_node_and_swap(Axis::Horizontal, pane, true)
+            }
+            Edge::Bottom => {
+                self.split_major_node_and_swap(Axis::Horizontal, pane, false)
+            }
+            Edge::Left => {
+                self.split_major_node_and_swap(Axis::Vertical, pane, true)
+            }
+            Edge::Right => {
+                self.split_major_node_and_swap(Axis::Vertical, pane, false)
+            }
+        }
+    }
+
+    fn split_major_node_and_swap(
+        &mut self,
+        axis: Axis,
+        pane: &Pane,
+        swap: bool,
+    ) {
+        if let Some((state, _)) = self.close(pane) {
+            let _ = self.split_major_node(axis, state, swap);
+        }
+    }
+
+    fn split_major_node(
+        &mut self,
+        axis: Axis,
+        state: T,
+        swap: bool,
+    ) -> Option<(Pane, Split)> {
+        let major_node = &mut self.internal.layout;
+
+        let new_pane = {
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
+
+            Pane(self.internal.last_id)
+        };
+
+        let new_split = {
+            self.internal.last_id = self.internal.last_id.checked_add(1)?;
+
+            Split(self.internal.last_id)
+        };
+
+        if swap {
+            major_node.split_inverse(new_split, axis, new_pane)
+        } else {
+            major_node.split(new_split, axis, new_pane)
+        };
+
+        let _ = self.panes.insert(new_pane, state);
+        let _ = self.maximized.take();
+
+        Some((new_pane, new_split))
     }
 
     /// Swaps the position of the provided panes in the [`State`].

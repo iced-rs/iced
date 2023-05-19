@@ -120,6 +120,16 @@ impl Node {
         };
     }
 
+    pub(crate) fn split_inverse(&mut self, id: Split, axis: Axis, pane: Pane) {
+        *self = Node::Split {
+            id,
+            axis,
+            ratio: 0.5,
+            a: Box::new(Node::Pane(pane)),
+            b: Box::new(self.clone()),
+        };
+    }
+
     pub(crate) fn update(&mut self, f: &impl Fn(&mut Node)) {
         if let Node::Split { a, b, .. } = self {
             a.update(f);

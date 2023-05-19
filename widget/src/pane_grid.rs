@@ -581,39 +581,49 @@ pub fn update<'a, Message, T: Draggable>(
         | Event::Touch(touch::Event::FingerLost { .. }) => {
             if let Some((pane, _)) = action.picked_pane() {
                 if let Some(on_drag) = on_drag {
-                    let dropped_region =
-                        cursor.position().and_then(|cursor_position| {
-                            contents
+                    if let Some(cursor_position) = cursor.position() {
+                        let event = if let Some(edge) =
+                            in_edge(layout, cursor_position)
+                        {
+                            DragEvent::Dropped {
+                                pane,
+                                target: Target::PaneGrid(edge),
+                            }
+                        } else {
+                            let dropped_region = contents
                                 .zip(layout.children())
                                 .filter_map(|(target, layout)| {
                                     layout_region(layout, cursor_position)
                                         .map(|region| (target, region))
                                 })
-                                .next()
-                        });
+                                .next();
 
-                    let event = match dropped_region {
-                        Some(((target, _), region)) if pane != target => {
-                            DragEvent::Dropped {
-                                pane,
-                                target,
-                                region,
+                            match dropped_region {
+                                Some(((target, _), region))
+                                    if pane != target =>
+                                {
+                                    DragEvent::Dropped {
+                                        pane,
+                                        target: Target::Pane {
+                                            pane: target,
+                                            region,
+                                        },
+                                    }
+                                }
+                                _ => DragEvent::Canceled { pane },
                             }
-                        }
-                        _ => DragEvent::Canceled { pane },
-                    };
+                        };
 
-                    shell.publish(on_drag(event));
+                        shell.publish(on_drag(event));
+                    }
                 }
-
-                *action = state::Action::Idle;
 
                 event_status = event::Status::Captured;
             } else if action.picked_split().is_some() {
-                *action = state::Action::Idle;
-
                 event_status = event::Status::Captured;
             }
+
+            *action = state::Action::Idle;
         }
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
@@ -671,13 +681,13 @@ fn layout_region(layout: Layout<'_>, cursor_position: Point) -> Option<Region> {
     }
 
     let region = if cursor_position.x < (bounds.x + bounds.width / 3.0) {
-        Region::Left
+        Region::Edge(Edge::Left)
     } else if cursor_position.x > (bounds.x + 2.0 * bounds.width / 3.0) {
-        Region::Right
+        Region::Edge(Edge::Right)
     } else if cursor_position.y < (bounds.y + bounds.height / 3.0) {
-        Region::Top
+        Region::Edge(Edge::Top)
     } else if cursor_position.y > (bounds.y + 2.0 * bounds.height / 3.0) {
-        Region::Bottom
+        Region::Edge(Edge::Bottom)
     } else {
         Region::Center
     };
@@ -833,28 +843,32 @@ pub fn draw<Renderer, T>(
 
     let mut render_picked_pane = None;
 
-    for ((id, pane), layout) in contents.zip(layout.children()) {
+    let cursor_in_edge = cursor
+        .position()
+        .and_then(|cursor_position| in_edge(layout, cursor_position));
+
+    for ((id, pane), pane_layout) in contents.zip(layout.children()) {
         match picked_pane {
             Some((dragging, origin)) if id == dragging => {
-                render_picked_pane = Some((pane, origin, layout));
+                render_picked_pane = Some((pane, origin, pane_layout));
             }
             Some((dragging, _)) if id != dragging => {
                 draw_pane(
                     pane,
                     renderer,
                     default_style,
-                    layout,
+                    pane_layout,
                     pane_cursor,
                     viewport,
                 );
 
-                if picked_pane.is_some() {
+                if picked_pane.is_some() && cursor_in_edge.is_none() {
                     if let Some(region) =
                         cursor.position().and_then(|cursor_position| {
-                            layout_region(layout, cursor_position)
+                            layout_region(pane_layout, cursor_position)
                         })
                     {
-                        let bounds = layout_region_bounds(layout, region);
+                        let bounds = layout_region_bounds(pane_layout, region);
                         let hovered_region_style = theme.hovered_region(style);
 
                         renderer.fill_quad(
@@ -875,11 +889,28 @@ pub fn draw<Renderer, T>(
                     pane,
                     renderer,
                     default_style,
-                    layout,
+                    pane_layout,
                     pane_cursor,
                     viewport,
                 );
             }
+        }
+    }
+
+    if picked_pane.is_some() {
+        if let Some(edge) = cursor_in_edge {
+            let hovered_region_style = theme.hovered_region(style);
+            let bounds = edge_bounds(layout, edge);
+
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border_radius: hovered_region_style.border_radius.into(),
+                    border_width: hovered_region_style.border_width,
+                    border_color: hovered_region_style.border_color,
+                },
+                theme.hovered_region(style).background,
+            );
         }
     }
 
@@ -907,42 +938,100 @@ pub fn draw<Renderer, T>(
         }
     }
 
-    if let Some((axis, split_region, is_picked)) = picked_split {
-        let highlight = if is_picked {
-            theme.picked_split(style)
-        } else {
-            theme.hovered_split(style)
-        };
+    if picked_pane.is_none() {
+        if let Some((axis, split_region, is_picked)) = picked_split {
+            let highlight = if is_picked {
+                theme.picked_split(style)
+            } else {
+                theme.hovered_split(style)
+            };
 
-        if let Some(highlight) = highlight {
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: match axis {
-                        Axis::Horizontal => Rectangle {
-                            x: split_region.x,
-                            y: (split_region.y
-                                + (split_region.height - highlight.width)
-                                    / 2.0)
-                                .round(),
-                            width: split_region.width,
-                            height: highlight.width,
+            if let Some(highlight) = highlight {
+                renderer.fill_quad(
+                    renderer::Quad {
+                        bounds: match axis {
+                            Axis::Horizontal => Rectangle {
+                                x: split_region.x,
+                                y: (split_region.y
+                                    + (split_region.height - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                width: split_region.width,
+                                height: highlight.width,
+                            },
+                            Axis::Vertical => Rectangle {
+                                x: (split_region.x
+                                    + (split_region.width - highlight.width)
+                                        / 2.0)
+                                    .round(),
+                                y: split_region.y,
+                                width: highlight.width,
+                                height: split_region.height,
+                            },
                         },
-                        Axis::Vertical => Rectangle {
-                            x: (split_region.x
-                                + (split_region.width - highlight.width) / 2.0)
-                                .round(),
-                            y: split_region.y,
-                            width: highlight.width,
-                            height: split_region.height,
-                        },
+                        border_radius: 0.0.into(),
+                        border_width: 0.0,
+                        border_color: Color::TRANSPARENT,
                     },
-                    border_radius: 0.0.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                },
-                highlight.color,
-            );
+                    highlight.color,
+                );
+            }
         }
+    }
+}
+
+const THICKNESS_RATIO: f32 = 25.0;
+
+fn in_edge(layout: Layout<'_>, cursor: Point) -> Option<Edge> {
+    let bounds = layout.bounds();
+
+    let height_thickness = bounds.height / THICKNESS_RATIO;
+    let width_thickness = bounds.width / THICKNESS_RATIO;
+    let thickness = height_thickness.min(width_thickness);
+
+    if cursor.x > bounds.x && cursor.x < bounds.x + thickness {
+        Some(Edge::Left)
+    } else if cursor.x > bounds.x + bounds.width - thickness
+        && cursor.x < bounds.x + bounds.width
+    {
+        Some(Edge::Right)
+    } else if cursor.y > bounds.y && cursor.y < bounds.y + thickness {
+        Some(Edge::Top)
+    } else if cursor.y > bounds.y + bounds.height - thickness
+        && cursor.y < bounds.y + bounds.height
+    {
+        Some(Edge::Bottom)
+    } else {
+        None
+    }
+}
+
+fn edge_bounds(layout: Layout<'_>, edge: Edge) -> Rectangle {
+    let bounds = layout.bounds();
+
+    let height_thickness = bounds.height / THICKNESS_RATIO;
+    let width_thickness = bounds.width / THICKNESS_RATIO;
+    let thickness = height_thickness.min(width_thickness);
+
+    match edge {
+        Edge::Top => Rectangle {
+            height: thickness,
+            ..bounds
+        },
+        Edge::Left => Rectangle {
+            width: thickness,
+            ..bounds
+        },
+        Edge::Right => Rectangle {
+            x: bounds.x + bounds.width - thickness,
+            width: thickness,
+            ..bounds
+        },
+        Edge::Bottom => Rectangle {
+            y: bounds.y + bounds.height - thickness,
+            height: thickness,
+            ..bounds
+        },
     }
 }
 
@@ -951,23 +1040,25 @@ fn layout_region_bounds(layout: Layout<'_>, region: Region) -> Rectangle {
 
     match region {
         Region::Center => bounds,
-        Region::Top => Rectangle {
-            height: bounds.height / 2.0,
-            ..bounds
-        },
-        Region::Left => Rectangle {
-            width: bounds.width / 2.0,
-            ..bounds
-        },
-        Region::Right => Rectangle {
-            x: bounds.x + bounds.width / 2.0,
-            width: bounds.width / 2.0,
-            ..bounds
-        },
-        Region::Bottom => Rectangle {
-            y: bounds.y + bounds.height / 2.0,
-            height: bounds.height / 2.0,
-            ..bounds
+        Region::Edge(edge) => match edge {
+            Edge::Top => Rectangle {
+                height: bounds.height / 2.0,
+                ..bounds
+            },
+            Edge::Left => Rectangle {
+                width: bounds.width / 2.0,
+                ..bounds
+            },
+            Edge::Right => Rectangle {
+                x: bounds.x + bounds.width / 2.0,
+                width: bounds.width / 2.0,
+                ..bounds
+            },
+            Edge::Bottom => Rectangle {
+                y: bounds.y + bounds.height / 2.0,
+                height: bounds.height / 2.0,
+                ..bounds
+            },
         },
     }
 }
@@ -986,11 +1077,8 @@ pub enum DragEvent {
         /// The picked [`Pane`].
         pane: Pane,
 
-        /// The [`Pane`] where the picked one was dropped on.
-        target: Pane,
-
-        /// The [`Region`] of the target [`Pane`] where the picked one was dropped on.
-        region: Region,
+        /// The [`Target`] where the picked [`Pane`] was dropped on.
+        target: Target,
     },
 
     /// A [`Pane`] was picked and then dropped outside of other [`Pane`]
@@ -1001,19 +1089,40 @@ pub enum DragEvent {
     },
 }
 
+/// The [`Target`] area a pane can be dropped on.
+#[derive(Debug, Clone, Copy)]
+pub enum Target {
+    /// The [`Edge`} of the full [`PaneGrid`].
+    PaneGrid(Edge),
+    /// A single [`Pane`] of the [`PaneGrid`].
+    Pane {
+        /// The targetted [`Pane`].
+        pane: Pane,
+        /// The targetted area of the [`Pane`].
+        region: Region,
+    },
+}
+
 /// The region of a [`Pane`].
 #[derive(Debug, Clone, Copy, Default)]
 pub enum Region {
     /// Center region.
     #[default]
     Center,
-    /// Top region.
+    /// Edge region.
+    Edge(Edge),
+}
+
+/// The edges of an area.
+#[derive(Debug, Clone, Copy)]
+pub enum Edge {
+    /// Top edge.
     Top,
-    /// Left region.
+    /// Left edge.
     Left,
-    /// Right region.
+    /// Right edge.
     Right,
-    /// Bottom region.
+    /// Bottom edge.
     Bottom,
 }
 
