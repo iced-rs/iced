@@ -74,7 +74,7 @@ impl BufferStack {
                 Box::new(tessellation::BuffersBuilder::new(
                     buffer,
                     GradientVertex2DBuilder {
-                        gradient: gradient.clone(),
+                        gradient: pack_gradient(gradient),
                     },
                 ))
             }
@@ -97,7 +97,7 @@ impl BufferStack {
                 Box::new(tessellation::BuffersBuilder::new(
                     buffer,
                     GradientVertex2DBuilder {
-                        gradient: gradient.clone(),
+                        gradient: pack_gradient(gradient),
                     },
                 ))
             }
@@ -490,7 +490,7 @@ impl Frame {
 }
 
 struct GradientVertex2DBuilder {
-    gradient: Gradient,
+    gradient: [f32; 44],
 }
 
 impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
@@ -504,7 +504,7 @@ impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: pack_gradient(&self.gradient),
+            gradient: self.gradient,
         }
     }
 }
@@ -520,7 +520,7 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: pack_gradient(&self.gradient),
+            gradient: self.gradient,
         }
     }
 }
