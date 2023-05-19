@@ -62,11 +62,8 @@ impl Sandbox for Tour {
         controls = controls.push(horizontal_space(Length::Fill));
 
         if steps.can_continue() {
-            controls = controls.push(
-                button("Next")
-                    .on_press(Message::NextPressed)
-                    .style(theme::Button::Primary),
-            );
+            controls =
+                controls.push(button("Next").on_press(Message::NextPressed));
         }
 
         let content: Element<_> = column![

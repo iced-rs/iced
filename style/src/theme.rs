@@ -139,6 +139,15 @@ pub enum Button {
     Custom(Box<dyn button::StyleSheet<Style = Theme>>),
 }
 
+impl Button {
+    /// Creates a custom [`Button`] style variant.
+    pub fn custom(
+        style_sheet: impl button::StyleSheet<Style = Theme> + 'static,
+    ) -> Self {
+        Self::Custom(Box::new(style_sheet))
+    }
+}
+
 impl button::StyleSheet for Theme {
     type Style = Button;
 
@@ -217,6 +226,9 @@ impl button::StyleSheet for Theme {
                     a: color.a * 0.5,
                     ..color
                 }),
+                Background::Gradient(gradient) => {
+                    Background::Gradient(gradient.mul_alpha(0.5))
+                }
             }),
             text_color: Color {
                 a: active.text_color.a * 0.5,
@@ -368,7 +380,7 @@ impl container::StyleSheet for Theme {
 
                 container::Appearance {
                     text_color: None,
-                    background: palette.background.weak.color.into(),
+                    background: Some(palette.background.weak.color.into()),
                     border_radius: 2.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
@@ -893,7 +905,7 @@ impl scrollable::StyleSheet for Theme {
                 let palette = self.extended_palette();
 
                 scrollable::Scrollbar {
-                    background: palette.background.weak.color.into(),
+                    background: Some(palette.background.weak.color.into()),
                     border_radius: 2.0,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
@@ -920,7 +932,7 @@ impl scrollable::StyleSheet for Theme {
                     let palette = self.extended_palette();
 
                     scrollable::Scrollbar {
-                        background: palette.background.weak.color.into(),
+                        background: Some(palette.background.weak.color.into()),
                         border_radius: 2.0,
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,

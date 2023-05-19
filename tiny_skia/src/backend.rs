@@ -1,4 +1,5 @@
 use crate::core::text;
+use crate::core::Gradient;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::backend;
 use crate::graphics::{Primitive, Viewport};
@@ -183,6 +184,48 @@ impl Backend {
                                 tiny_skia::Shader::SolidColor(into_color(
                                     *color,
                                 ))
+                            }
+                            Background::Gradient(Gradient::Linear(linear)) => {
+                                let (start, end) =
+                                    linear.angle.to_distance(bounds);
+
+                                let stops: Vec<tiny_skia::GradientStop> =
+                                    linear
+                                        .stops
+                                        .into_iter()
+                                        .flatten()
+                                        .map(|stop| {
+                                            tiny_skia::GradientStop::new(
+                                                stop.offset,
+                                                tiny_skia::Color::from_rgba(
+                                                    stop.color.b,
+                                                    stop.color.g,
+                                                    stop.color.r,
+                                                    stop.color.a,
+                                                )
+                                                .expect("Create color"),
+                                            )
+                                        })
+                                        .collect();
+
+                                tiny_skia::LinearGradient::new(
+                                    tiny_skia::Point {
+                                        x: start.x,
+                                        y: start.y,
+                                    },
+                                    tiny_skia::Point { x: end.x, y: end.y },
+                                    if stops.is_empty() {
+                                        vec![tiny_skia::GradientStop::new(
+                                            0.0,
+                                            tiny_skia::Color::BLACK,
+                                        )]
+                                    } else {
+                                        stops
+                                    },
+                                    tiny_skia::SpreadMode::Pad,
+                                    tiny_skia::Transform::identity(),
+                                )
+                                .expect("Create linear gradient")
                             }
                         },
                         anti_alias: true,

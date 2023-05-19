@@ -1,7 +1,3 @@
-//! Utilities for buffer operations.
-pub mod dynamic;
-pub mod r#static;
-
 use std::marker::PhantomData;
 use std::ops::RangeBounds;
 
@@ -10,7 +6,8 @@ pub struct Buffer<T> {
     label: &'static str,
     size: u64,
     usage: wgpu::BufferUsages,
-    raw: wgpu::Buffer,
+    pub(crate) raw: wgpu::Buffer,
+    offsets: Vec<wgpu::BufferAddress>,
     type_: PhantomData<T>,
 }
 
@@ -35,6 +32,7 @@ impl<T: bytemuck::Pod> Buffer<T> {
             size,
             usage,
             raw,
+            offsets: Vec::new(),
             type_: PhantomData,
         }
     }
@@ -43,6 +41,8 @@ impl<T: bytemuck::Pod> Buffer<T> {
         let new_size = (std::mem::size_of::<T>() * new_count) as u64;
 
         if self.size < new_size {
+            self.offsets.clear();
+
             self.raw = device.create_buffer(&wgpu::BufferDescriptor {
                 label: Some(self.label),
                 size: new_size,
@@ -58,17 +58,19 @@ impl<T: bytemuck::Pod> Buffer<T> {
         }
     }
 
+    /// Returns the size of the written bytes.
     pub fn write(
-        &self,
+        &mut self,
         queue: &wgpu::Queue,
-        offset_count: usize,
+        offset: usize,
         contents: &[T],
-    ) {
-        queue.write_buffer(
-            &self.raw,
-            (std::mem::size_of::<T>() * offset_count) as u64,
-            bytemuck::cast_slice(contents),
-        );
+    ) -> usize {
+        let bytes: &[u8] = bytemuck::cast_slice(contents);
+        queue.write_buffer(&self.raw, offset as u64, bytes);
+
+        self.offsets.push(offset as u64);
+
+        bytes.len()
     }
 
     pub fn slice(
@@ -76,6 +78,21 @@ impl<T: bytemuck::Pod> Buffer<T> {
         bounds: impl RangeBounds<wgpu::BufferAddress>,
     ) -> wgpu::BufferSlice<'_> {
         self.raw.slice(bounds)
+    }
+
+    /// Returns the slice calculated from the offset stored at the given index.
+    pub fn slice_from_index(&self, index: usize) -> wgpu::BufferSlice<'_> {
+        self.raw.slice(self.offset_at(index)..)
+    }
+
+    /// Clears any temporary data (i.e. offsets) from the buffer.
+    pub fn clear(&mut self) {
+        self.offsets.clear()
+    }
+
+    /// Returns the offset at `index`, if it exists.
+    fn offset_at(&self, index: usize) -> &wgpu::BufferAddress {
+        self.offsets.get(index).expect("No offset at index.")
     }
 }
 

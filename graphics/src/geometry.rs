@@ -12,7 +12,7 @@ pub use stroke::{LineCap, LineDash, LineJoin, Stroke};
 pub use style::Style;
 pub use text::Text;
 
-pub use crate::core::gradient::{self, Gradient};
+pub use crate::gradient::{self, Gradient};
 
 use crate::Primitive;
 

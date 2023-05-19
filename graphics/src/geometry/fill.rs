@@ -1,7 +1,8 @@
 //! Fill [crate::widget::canvas::Geometry] with a certain style.
-use iced_core::{Color, Gradient};
-
 pub use crate::geometry::Style;
+
+use crate::core::Color;
+use crate::gradient::{self, Gradient};
 
 /// The style used to fill geometry.
 #[derive(Debug, Clone)]
@@ -44,6 +45,15 @@ impl From<Gradient> for Fill {
     fn from(gradient: Gradient) -> Self {
         Fill {
             style: Style::Gradient(gradient),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<gradient::Linear> for Fill {
+    fn from(gradient: gradient::Linear) -> Self {
+        Fill {
+            style: Style::Gradient(Gradient::Linear(gradient)),
             ..Default::default()
         }
     }

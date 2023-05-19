@@ -50,6 +50,8 @@ mod quad;
 mod text;
 mod triangle;
 
+use buffer::Buffer;
+
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
@@ -58,8 +60,6 @@ pub use wgpu;
 pub use backend::Backend;
 pub use layer::Layer;
 pub use settings::Settings;
-
-use buffer::Buffer;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;

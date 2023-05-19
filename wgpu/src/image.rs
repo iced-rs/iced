@@ -121,7 +121,7 @@ impl Layer {
         );
 
         let _ = self.instances.resize(device, instances.len());
-        self.instances.write(queue, 0, instances);
+        let _ = self.instances.write(queue, 0, instances);
 
         self.instance_count = instances.len();
     }
@@ -278,7 +278,7 @@ impl Pipeline {
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image vertex buffer"),
-                contents: bytemuck::cast_slice(&QUAD_VERTS),
+                contents: bytemuck::cast_slice(&QUAD_VERTICES),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
@@ -498,7 +498,7 @@ pub struct Vertex {
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-const QUAD_VERTS: [Vertex; 4] = [
+const QUAD_VERTICES: [Vertex; 4] = [
     Vertex {
         _position: [0.0, 0.0],
     },

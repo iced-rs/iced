@@ -226,7 +226,7 @@ mod toast {
             };
 
             container::Appearance {
-                background: pair.color.into(),
+                background: Some(pair.color.into()),
                 text_color: pair.text.into(),
                 ..Default::default()
             }

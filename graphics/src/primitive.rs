@@ -3,7 +3,7 @@ use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
-use crate::core::{Background, Color, Font, Gradient, Rectangle, Size, Vector};
+use crate::core::{Background, Color, Font, Rectangle, Size, Vector};
 
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
@@ -39,7 +39,7 @@ pub enum Primitive {
         bounds: Rectangle,
         /// The background of the quad
         background: Background,
-        /// The border radius of the quad
+        /// The border radii of the quad
         border_radius: [f32; 4],
         /// The border width of the quad
         border_width: f32,
@@ -81,15 +81,12 @@ pub enum Primitive {
     /// It can be used to render many kinds of geometry freely.
     GradientMesh {
         /// The vertices and indices of the mesh.
-        buffers: Mesh2D<Vertex2D>,
+        buffers: Mesh2D<GradientVertex2D>,
 
         /// The size of the drawable region of the mesh.
         ///
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
-
-        /// The [`Gradient`] to apply to the mesh.
-        gradient: Gradient,
     },
     /// A [`tiny_skia`] path filled with some paint.
     #[cfg(feature = "tiny-skia")]
@@ -242,14 +239,6 @@ pub struct Mesh2D<T> {
     pub indices: Vec<u32>,
 }
 
-/// A two-dimensional vertex.
-#[derive(Copy, Clone, Debug, PartialEq, Zeroable, Pod)]
-#[repr(C)]
-pub struct Vertex2D {
-    /// The vertex position in 2D space.
-    pub position: [f32; 2],
-}
-
 /// A two-dimensional vertex with a color.
 #[derive(Copy, Clone, Debug, PartialEq, Zeroable, Pod)]
 #[repr(C)]
@@ -260,6 +249,23 @@ pub struct ColoredVertex2D {
     /// The color of the vertex in __linear__ RGBA.
     pub color: [f32; 4],
 }
+
+/// A vertex which contains 2D position & packed gradient data.
+#[derive(Copy, Clone, Debug, PartialEq)]
+#[repr(C)]
+pub struct GradientVertex2D {
+    /// The vertex position in 2D space.
+    pub position: [f32; 2],
+
+    /// The packed vertex data of the gradient.
+    pub gradient: [f32; 44],
+}
+
+#[allow(unsafe_code)]
+unsafe impl Zeroable for GradientVertex2D {}
+
+#[allow(unsafe_code)]
+unsafe impl Pod for GradientVertex2D {}
 
 impl From<()> for Primitive {
     fn from(_: ()) -> Self {
