@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Rectangle, Shell, Vector, Widget, IME,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -190,6 +190,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
@@ -199,6 +200,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         ) {
             return event::Status::Captured;

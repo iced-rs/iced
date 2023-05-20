@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Widget,
+    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Widget, IME,
 };
 
 /// Emit messages on mouse events.
@@ -149,6 +149,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
@@ -158,6 +159,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         ) {
             return event::Status::Captured;

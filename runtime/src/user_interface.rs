@@ -1,4 +1,6 @@
 //! Implement your own event loop to drive a user interface.
+use iced_core::IME;
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -176,6 +178,7 @@ where
         cursor_position: Point,
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
@@ -206,6 +209,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                 );
 
@@ -290,6 +294,7 @@ where
                     base_cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                 );
 

@@ -6,7 +6,7 @@ use super::{KeyCode, Modifiers};
 /// additional events, feel free to [open an issue] and share your use case!_
 ///
 /// [open an issue]: https://github.com/iced-rs/iced/issues
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Event {
     /// A keyboard key was pressed.
     KeyPressed {
@@ -31,4 +31,13 @@ pub enum Event {
 
     /// The keyboard modifiers have changed.
     ModifiersChanged(Modifiers),
+
+    /// IME enabled.
+    IMEEnabled,
+
+    /// selecting input.
+    IMEPreedit(String, Option<(usize, usize)>),
+
+    /// enter input.
+    IMECommit(String),
 }

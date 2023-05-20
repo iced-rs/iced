@@ -3,6 +3,8 @@
 //! A [`VerticalSlider`] has some local [`State`].
 use std::ops::RangeInclusive;
 
+use iced_renderer::core::IME;
+
 pub use crate::style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
 use crate::core;
@@ -183,6 +185,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(

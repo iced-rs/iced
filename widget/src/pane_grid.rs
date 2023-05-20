@@ -43,7 +43,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Size, Vector, Widget, IME,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -316,6 +316,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let action = tree.state.downcast_mut::<state::Action>();
@@ -356,6 +357,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     shell,
                     is_picked,
                 )

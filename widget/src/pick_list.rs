@@ -12,7 +12,7 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Widget,
+    Shell, Size, Widget, IME,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
@@ -199,6 +199,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         update(

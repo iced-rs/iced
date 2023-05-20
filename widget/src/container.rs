@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::widget::{self, Operation, Tree};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Widget,
+    Point, Rectangle, Shell, Widget, IME,
 };
 
 pub use iced_style::container::{Appearance, StyleSheet};
@@ -199,6 +199,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
@@ -208,6 +209,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         )
     }

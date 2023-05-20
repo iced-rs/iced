@@ -8,6 +8,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    IME,
 };
 
 use ouroboros::self_referencing;
@@ -268,6 +269,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -282,6 +284,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 &mut local_shell,
             )
         });
@@ -601,6 +604,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -614,6 +618,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     &mut local_shell,
                 )
             })

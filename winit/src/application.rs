@@ -17,11 +17,12 @@ use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
+use crate::runtime::ime;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
 use crate::style::application::{Appearance, StyleSheet};
-use crate::{Clipboard, Error, Proxy, Settings};
+use crate::{Clipboard, Error, Proxy, Settings, IME};
 
 use futures::channel::mpsc;
 
@@ -294,6 +295,7 @@ async fn run_instance<A, E, C>(
     let physical_size = state.physical_size();
 
     let mut clipboard = Clipboard::connect(&window);
+    let ime = IME::new();
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(
         &window,
@@ -314,6 +316,7 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &ime,
         &mut should_exit,
         &mut proxy,
         &mut debug,
@@ -359,6 +362,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
@@ -386,6 +390,7 @@ async fn run_instance<A, E, C>(
                         &state,
                         &mut renderer,
                         &mut runtime,
+                        &ime,
                         &mut clipboard,
                         &mut should_exit,
                         &mut proxy,
@@ -425,6 +430,7 @@ async fn run_instance<A, E, C>(
                     state.cursor_position(),
                     &mut renderer,
                     &mut clipboard,
+                    &ime,
                     &mut messages,
                 );
 
@@ -446,7 +452,7 @@ async fn run_instance<A, E, C>(
 
                     mouse_interaction = new_mouse_interaction;
                 }
-
+                ime.apply_request(&window);
                 window.request_redraw();
                 runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
@@ -651,6 +657,7 @@ pub fn update<A: Application, E: Executor>(
     state: &State<A>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
+    ime: &IME,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
@@ -682,6 +689,7 @@ pub fn update<A: Application, E: Executor>(
             command,
             runtime,
             clipboard,
+            ime,
             should_exit,
             proxy,
             debug,
@@ -703,6 +711,7 @@ pub fn run_command<A, E>(
     command: Command<A::Message>,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
+    ime: &IME,
     should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
@@ -732,6 +741,17 @@ pub fn run_command<A, E>(
                 }
                 clipboard::Action::Write(contents) => {
                     clipboard.write(contents);
+                }
+            },
+            command::Action::IME(action) => match action {
+                ime::Action::Allow(allow) => {
+                    ime.set_ime_allowed(allow);
+                }
+                ime::Action::Position(x, y) => {
+                    ime.set_ime_position(x, y);
+                }
+                ime::Action::Unlock => {
+                    ime.unlock_set_ime_allowed();
                 }
             },
             command::Action::Window(action) => match action {

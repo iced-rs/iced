@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Widget,
+    Rectangle, Shell, Widget, IME,
 };
 
 /// A container that distributes its contents vertically.
@@ -169,6 +169,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.children
@@ -183,6 +184,7 @@ where
                     cursor_position,
                     renderer,
                     clipboard,
+                    ime,
                     shell,
                 )
             })

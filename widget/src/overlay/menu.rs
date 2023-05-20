@@ -11,6 +11,7 @@ use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
     Clipboard, Color, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    IME,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -262,6 +263,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
@@ -271,6 +273,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         )
     }
@@ -390,6 +393,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {

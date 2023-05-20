@@ -1,4 +1,6 @@
 //! Display a widget over another.
+use iced_renderer::core::IME;
+
 use crate::container;
 use crate::core;
 use crate::core::event::{self, Event};
@@ -139,6 +141,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
@@ -148,6 +151,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         )
     }

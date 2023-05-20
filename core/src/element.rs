@@ -1,10 +1,10 @@
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
+use crate::{layout, IME};
 use crate::{
     Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
 };
@@ -381,6 +381,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, B>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -393,6 +394,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             &mut local_shell,
         );
 
@@ -524,6 +526,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.element.widget.on_event(
@@ -533,6 +536,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         )
     }

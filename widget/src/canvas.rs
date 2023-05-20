@@ -17,7 +17,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{Clipboard, Element, Shell, Widget};
-use crate::core::{Length, Point, Rectangle, Size, Vector};
+use crate::core::{Length, Point, Rectangle, Size, Vector, IME};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -147,6 +147,7 @@ where
         cursor_position: Point,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();

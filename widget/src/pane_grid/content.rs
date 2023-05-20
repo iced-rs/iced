@@ -5,7 +5,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, IME,
+};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
@@ -221,6 +223,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         is_picked: bool,
     ) -> event::Status {
@@ -236,6 +239,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             );
 
@@ -254,6 +258,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         };

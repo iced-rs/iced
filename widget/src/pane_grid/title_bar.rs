@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size, IME,
 };
 
 /// The title bar of a [`Pane`].
@@ -303,6 +303,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut children = layout.children();
@@ -327,6 +328,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         } else {
@@ -341,6 +343,7 @@ where
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         } else {

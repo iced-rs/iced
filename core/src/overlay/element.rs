@@ -1,10 +1,10 @@
 pub use crate::Overlay;
 
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
+use crate::{layout, IME};
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 use std::any::Any;
@@ -71,6 +71,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.overlay.on_event(
@@ -79,6 +80,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             shell,
         )
     }
@@ -218,6 +220,7 @@ where
         cursor_position: Point,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, B>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -229,6 +232,7 @@ where
             cursor_position,
             renderer,
             clipboard,
+            ime,
             &mut local_shell,
         );
 
