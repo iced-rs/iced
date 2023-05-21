@@ -105,7 +105,7 @@ impl application::StyleSheet for Theme {
     }
 }
 
-impl application::StyleSheet for fn(&Theme) -> application::Appearance {
+impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
@@ -113,8 +113,10 @@ impl application::StyleSheet for fn(&Theme) -> application::Appearance {
     }
 }
 
-impl From<fn(&Theme) -> application::Appearance> for Application {
-    fn from(f: fn(&Theme) -> application::Appearance) -> Self {
+impl<T: Fn(&Theme) -> application::Appearance + 'static> From<T>
+    for Application
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -363,8 +365,8 @@ pub enum Container {
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> container::Appearance> for Container {
-    fn from(f: fn(&Theme) -> container::Appearance) -> Self {
+impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -391,7 +393,7 @@ impl container::StyleSheet for Theme {
     }
 }
 
-impl container::StyleSheet for fn(&Theme) -> container::Appearance {
+impl<T: Fn(&Theme) -> container::Appearance> container::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
@@ -777,8 +779,10 @@ pub enum ProgressBar {
     Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> progress_bar::Appearance> for ProgressBar {
-    fn from(f: fn(&Theme) -> progress_bar::Appearance) -> Self {
+impl<T: Fn(&Theme) -> progress_bar::Appearance + 'static> From<T>
+    for ProgressBar
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -808,7 +812,7 @@ impl progress_bar::StyleSheet for Theme {
     }
 }
 
-impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
+impl<T: Fn(&Theme) -> progress_bar::Appearance> progress_bar::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
@@ -826,8 +830,8 @@ pub enum Rule {
     Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> rule::Appearance> for Rule {
-    fn from(f: fn(&Theme) -> rule::Appearance) -> Self {
+impl<T: Fn(&Theme) -> rule::Appearance + 'static> From<T> for Rule {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -850,7 +854,7 @@ impl rule::StyleSheet for Theme {
     }
 }
 
-impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
+impl<T: Fn(&Theme) -> rule::Appearance> rule::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> rule::Appearance {
