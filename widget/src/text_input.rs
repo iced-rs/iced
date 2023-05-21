@@ -878,12 +878,9 @@ where
                         state.keyboard_modifiers =
                             keyboard::Modifiers::default();
                     }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
+                    _ => {
                         return event::Status::Ignored;
                     }
-                    _ => {}
                 }
 
                 return event::Status::Captured;
@@ -897,12 +894,7 @@ where
                     keyboard::KeyCode::V => {
                         state.is_pasting = None;
                     }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
-                        return event::Status::Ignored;
-                    }
-                    _ => {}
+                    _ => return event::Status::Ignored,
                 }
 
                 return event::Status::Captured;
