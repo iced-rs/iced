@@ -145,7 +145,22 @@ impl<T> State<T> {
         pane: &Pane,
         state: T,
     ) -> Option<(Pane, Split)> {
-        let node = self.internal.layout.find(pane)?;
+        self.split_node(axis, Some(pane), state, false)
+    }
+
+    fn split_node(
+        &mut self,
+        axis: Axis,
+        pane: Option<&Pane>,
+        state: T,
+        inverse: bool,
+    ) -> Option<(Pane, Split)> {
+        let node = if let Some(pane) = pane {
+            self.internal.layout.find(pane)?
+        } else {
+            // Major node
+            &mut self.internal.layout
+        };
 
         let new_pane = {
             self.internal.last_id = self.internal.last_id.checked_add(1)?;
@@ -159,7 +174,11 @@ impl<T> State<T> {
             Split(self.internal.last_id)
         };
 
-        node.split(new_split, axis, new_pane);
+        if inverse {
+            node.split_inverse(new_split, axis, new_pane);
+        } else {
+            node.split(new_split, axis, new_pane);
+        }
 
         let _ = self.panes.insert(new_pane, state);
         let _ = self.maximized.take();
@@ -231,40 +250,8 @@ impl<T> State<T> {
         swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
-            let _ = self.split_major_node(axis, state, swap);
+            let _ = self.split_node(axis, None, state, swap);
         }
-    }
-
-    fn split_major_node(
-        &mut self,
-        axis: Axis,
-        state: T,
-        swap: bool,
-    ) -> Option<(Pane, Split)> {
-        let major_node = &mut self.internal.layout;
-
-        let new_pane = {
-            self.internal.last_id = self.internal.last_id.checked_add(1)?;
-
-            Pane(self.internal.last_id)
-        };
-
-        let new_split = {
-            self.internal.last_id = self.internal.last_id.checked_add(1)?;
-
-            Split(self.internal.last_id)
-        };
-
-        if swap {
-            major_node.split_inverse(new_split, axis, new_pane)
-        } else {
-            major_node.split(new_split, axis, new_pane)
-        };
-
-        let _ = self.panes.insert(new_pane, state);
-        let _ = self.maximized.take();
-
-        Some((new_pane, new_split))
     }
 
     /// Swaps the position of the provided panes in the [`State`].
