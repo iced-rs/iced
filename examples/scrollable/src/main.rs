@@ -289,13 +289,18 @@ impl Application for ScrollableDemo {
             }
             Direction::Horizontal => {
                 progress_bar(0.0..=1.0, self.current_scroll_offset.x)
-                    .style(progress_bar_custom_style)
+                    .style(theme::ProgressBar::Custom(Box::new(
+                        ProgressBarCustomStyle,
+                    )))
                     .into()
             }
             Direction::Multi => column![
                 progress_bar(0.0..=1.0, self.current_scroll_offset.y),
-                progress_bar(0.0..=1.0, self.current_scroll_offset.x)
-                    .style(progress_bar_custom_style)
+                progress_bar(0.0..=1.0, self.current_scroll_offset.x).style(
+                    theme::ProgressBar::Custom(Box::new(
+                        ProgressBarCustomStyle,
+                    ))
+                )
             ]
             .spacing(10)
             .into(),
@@ -351,12 +356,12 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
                 background: style
                     .active(&theme::Scrollable::default())
                     .background,
-                border_radius: 0.0,
+                border_radius: 0.0.into(),
                 border_width: 0.0,
                 border_color: Default::default(),
                 scroller: Scroller {
                     color: Color::from_rgb8(250, 85, 134),
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                     border_width: 0.0,
                     border_color: Default::default(),
                 },
@@ -367,10 +372,16 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
     }
 }
 
-fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
-    progress_bar::Appearance {
-        background: theme.extended_palette().background.strong.color.into(),
-        bar: Color::from_rgb8(250, 85, 134).into(),
-        border_radius: 0.0,
+struct ProgressBarCustomStyle;
+
+impl progress_bar::StyleSheet for ProgressBarCustomStyle {
+    type Style = Theme;
+
+    fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
+        progress_bar::Appearance {
+            background: style.extended_palette().background.strong.color.into(),
+            bar: Color::from_rgb8(250, 85, 134).into(),
+            border_radius: 0.0.into(),
+        }
     }
 }

@@ -6,7 +6,7 @@ mod null;
 pub use null::Null;
 
 use crate::layout;
-use crate::{Background, Color, Element, Rectangle, Vector};
+use crate::{Background, BorderRadius, Color, Element, Rectangle, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
@@ -58,29 +58,6 @@ pub struct Quad {
 
     /// The border color of the [`Quad`].
     pub border_color: Color,
-}
-
-/// The border radii for the corners of a graphics primitive in the order:
-/// top-left, top-right, bottom-right, bottom-left.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct BorderRadius([f32; 4]);
-
-impl From<f32> for BorderRadius {
-    fn from(w: f32) -> Self {
-        Self([w; 4])
-    }
-}
-
-impl From<[f32; 4]> for BorderRadius {
-    fn from(radi: [f32; 4]) -> Self {
-        Self(radi)
-    }
-}
-
-impl From<BorderRadius> for [f32; 4] {
-    fn from(radi: BorderRadius) -> Self {
-        radi.0
-    }
 }
 
 /// The styling attributes of a [`Renderer`].
