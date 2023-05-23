@@ -433,7 +433,7 @@ pub fn draw<T, R>(
                 width: handle_width,
                 height: handle_height,
             },
-            border_radius: handle_border_radius.into(),
+            border_radius: handle_border_radius,
             border_width: style.handle.border_width,
             border_color: style.handle.border_color,
         },
