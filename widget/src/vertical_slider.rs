@@ -366,16 +366,16 @@ pub fn draw<T, R>(
         style_sheet.active(style)
     };
 
-    let (handle_width, handle_height, handle_border_radius) = match style
-        .handle
-        .shape
-    {
-        HandleShape::Circle { radius } => (radius * 2.0, radius * 2.0, radius),
-        HandleShape::Rectangle {
-            width,
-            border_radius,
-        } => (f32::from(width), bounds.width, border_radius),
-    };
+    let (handle_width, handle_height, handle_border_radius) =
+        match style.handle.shape {
+            HandleShape::Circle { radius } => {
+                (radius * 2.0, radius * 2.0, radius.into())
+            }
+            HandleShape::Rectangle {
+                width,
+                border_radius,
+            } => (f32::from(width), bounds.width, border_radius),
+        };
 
     let value = value.into() as f32;
     let (range_start, range_end) = {
@@ -431,7 +431,7 @@ pub fn draw<T, R>(
                 width: handle_height,
                 height: handle_width,
             },
-            border_radius: handle_border_radius.into(),
+            border_radius: handle_border_radius,
             border_width: style.handle.border_width,
             border_color: style.handle.border_color,
         },

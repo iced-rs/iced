@@ -351,12 +351,12 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
                 background: style
                     .active(&theme::Scrollable::default())
                     .background,
-                border_radius: 0.0,
+                border_radius: 0.0.into(),
                 border_width: 0.0,
                 border_color: Default::default(),
                 scroller: Scroller {
                     color: Color::from_rgb8(250, 85, 134),
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                     border_width: 0.0,
                     border_color: Default::default(),
                 },
@@ -371,6 +371,6 @@ fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
     progress_bar::Appearance {
         background: theme.extended_palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
-        border_radius: 0.0,
+        border_radius: 0.0.into(),
     }
 }

@@ -418,7 +418,7 @@ mod modal {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: renderer::BorderRadius::from(0.0),
+                    border_radius: Default::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

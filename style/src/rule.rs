@@ -1,5 +1,5 @@
 //! Change the appearance of a rule.
-use iced_core::Color;
+use iced_core::{BorderRadius, Color};
 
 /// The appearance of a rule.
 #[derive(Debug, Clone, Copy)]
@@ -9,7 +9,7 @@ pub struct Appearance {
     /// The width (thickness) of the rule line.
     pub width: u16,
     /// The radius of the line corners.
-    pub radius: f32,
+    pub radius: BorderRadius,
     /// The [`FillMode`] of the rule.
     pub fill_mode: FillMode,
 }

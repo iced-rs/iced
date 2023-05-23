@@ -1,5 +1,5 @@
 //! Change the appearance of a pane grid.
-use iced_core::{Background, Color};
+use iced_core::{Background, BorderRadius, Color};
 
 /// The appearance of the hovered region of a pane grid.
 #[derive(Debug, Clone, Copy)]
@@ -11,7 +11,7 @@ pub struct Appearance {
     /// The border [`Color`] of the hovered pane region.
     pub border_color: Color,
     /// The border radius of the hovered pane region.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
 }
 
 /// A line.
