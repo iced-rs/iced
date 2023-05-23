@@ -809,9 +809,11 @@ pub fn draw<Renderer>(
              style: Scrollbar,
              scrollbar: &internals::Scrollbar| {
                 //track
-                if style.background.is_some()
-                    || (style.border_color != Color::TRANSPARENT
-                        && style.border_width > 0.0)
+                if scrollbar.bounds.width > 0.0
+                    && scrollbar.bounds.height > 0.0
+                    && (style.background.is_some()
+                        || (style.border_color != Color::TRANSPARENT
+                            && style.border_width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
@@ -827,9 +829,11 @@ pub fn draw<Renderer>(
                 }
 
                 //thumb
-                if style.scroller.color != Color::TRANSPARENT
-                    || (style.scroller.border_color != Color::TRANSPARENT
-                        && style.scroller.border_width > 0.0)
+                if scrollbar.scroller.bounds.width > 0.0
+                    && scrollbar.scroller.bounds.height > 0.0
+                    && (style.scroller.color != Color::TRANSPARENT
+                        || (style.scroller.border_color != Color::TRANSPARENT
+                            && style.scroller.border_width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
