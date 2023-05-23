@@ -1,5 +1,5 @@
 //! Change the apperance of a slider.
-use iced_core::Color;
+use iced_core::{BorderRadius, Color};
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
@@ -45,7 +45,7 @@ pub enum HandleShape {
         /// The width of the rectangle.
         width: u16,
         /// The border radius of the corners of the rectangle.
-        border_radius: f32,
+        border_radius: BorderRadius,
     },
 }
 

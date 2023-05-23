@@ -1108,7 +1108,7 @@ pub fn draw<Renderer>(
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_radius: appearance.border_radius.into(),
+            border_radius: appearance.border_radius,
             border_width: appearance.border_width,
             border_color: appearance.border_color,
         },

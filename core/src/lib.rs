@@ -45,6 +45,7 @@ pub mod window;
 
 mod angle;
 mod background;
+mod border_radius;
 mod color;
 mod content_fit;
 mod element;
@@ -61,6 +62,7 @@ mod vector;
 pub use alignment::Alignment;
 pub use angle::{Degrees, Radians};
 pub use background::Background;
+pub use border_radius::BorderRadius;
 pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;

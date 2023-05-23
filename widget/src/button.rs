@@ -397,7 +397,7 @@ where
                         y: bounds.y + styling.shadow_offset.y,
                         ..bounds
                     },
-                    border_radius: styling.border_radius.into(),
+                    border_radius: styling.border_radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -408,7 +408,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius.into(),
+                border_radius: styling.border_radius,
                 border_width: styling.border_width,
                 border_color: styling.border_color,
             },

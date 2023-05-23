@@ -128,9 +128,8 @@ impl Properties {
     }
 
     /// Sets the scrollbar width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
     pub fn width(mut self, width: impl Into<Pixels>) -> Self {
-        self.width = width.into().0.max(1.0);
+        self.width = width.into().0.max(0.0);
         self
     }
 
@@ -141,9 +140,8 @@ impl Properties {
     }
 
     /// Sets the scroller width of the [`Scrollable`] .
-    /// Silently enforces a minimum width of 1.
     pub fn scroller_width(mut self, scroller_width: impl Into<Pixels>) -> Self {
-        self.scroller_width = scroller_width.into().0.max(1.0);
+        self.scroller_width = scroller_width.into().0.max(0.0);
         self
     }
 }
@@ -813,14 +811,16 @@ pub fn draw<Renderer>(
              style: Scrollbar,
              scrollbar: &internals::Scrollbar| {
                 //track
-                if style.background.is_some()
-                    || (style.border_color != Color::TRANSPARENT
-                        && style.border_width > 0.0)
+                if scrollbar.bounds.width > 0.0
+                    && scrollbar.bounds.height > 0.0
+                    && (style.background.is_some()
+                        || (style.border_color != Color::TRANSPARENT
+                            && style.border_width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.bounds,
-                            border_radius: style.border_radius.into(),
+                            border_radius: style.border_radius,
                             border_width: style.border_width,
                             border_color: style.border_color,
                         },
@@ -831,14 +831,16 @@ pub fn draw<Renderer>(
                 }
 
                 //thumb
-                if style.scroller.color != Color::TRANSPARENT
-                    || (style.scroller.border_color != Color::TRANSPARENT
-                        && style.scroller.border_width > 0.0)
+                if scrollbar.scroller.bounds.width > 0.0
+                    && scrollbar.scroller.bounds.height > 0.0
+                    && (style.scroller.color != Color::TRANSPARENT
+                        || (style.scroller.border_color != Color::TRANSPARENT
+                            && style.scroller.border_width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.scroller.bounds,
-                            border_radius: style.scroller.border_radius.into(),
+                            border_radius: style.scroller.border_radius,
                             border_width: style.scroller.border_width,
                             border_color: style.scroller.border_color,
                         },

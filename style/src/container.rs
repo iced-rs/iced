@@ -1,5 +1,5 @@
 //! Change the appearance of a container.
-use iced_core::{Background, Color};
+use iced_core::{Background, BorderRadius, Color};
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy)]
@@ -9,7 +9,7 @@ pub struct Appearance {
     /// The [`Background`] of the container.
     pub background: Option<Background>,
     /// The border radius of the container.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
     /// The border width of the container.
     pub border_width: f32,
     /// The border [`Color`] of the container.
@@ -21,7 +21,7 @@ impl std::default::Default for Appearance {
         Self {
             text_color: None,
             background: None,
-            border_radius: 0.0,
+            border_radius: 0.0.into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         }

@@ -105,7 +105,7 @@ impl application::StyleSheet for Theme {
     }
 }
 
-impl application::StyleSheet for fn(&Theme) -> application::Appearance {
+impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
@@ -113,8 +113,10 @@ impl application::StyleSheet for fn(&Theme) -> application::Appearance {
     }
 }
 
-impl From<fn(&Theme) -> application::Appearance> for Application {
-    fn from(f: fn(&Theme) -> application::Appearance) -> Self {
+impl<T: Fn(&Theme) -> application::Appearance + 'static> From<T>
+    for Application
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -155,7 +157,7 @@ impl button::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let appearance = button::Appearance {
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             ..button::Appearance::default()
         };
 
@@ -344,7 +346,7 @@ fn checkbox_appearance(
             base.color
         }),
         icon_color,
-        border_radius: 2.0,
+        border_radius: 2.0.into(),
         border_width: 1.0,
         border_color: accent.color,
         text_color: None,
@@ -363,8 +365,8 @@ pub enum Container {
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> container::Appearance> for Container {
-    fn from(f: fn(&Theme) -> container::Appearance) -> Self {
+impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -381,7 +383,7 @@ impl container::StyleSheet for Theme {
                 container::Appearance {
                     text_color: None,
                     background: Some(palette.background.weak.color.into()),
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 }
@@ -391,7 +393,7 @@ impl container::StyleSheet for Theme {
     }
 }
 
-impl container::StyleSheet for fn(&Theme) -> container::Appearance {
+impl<T: Fn(&Theme) -> container::Appearance> container::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
@@ -420,7 +422,7 @@ impl slider::StyleSheet for Theme {
                 let handle = slider::Handle {
                     shape: slider::HandleShape::Rectangle {
                         width: 8,
-                        border_radius: 4.0,
+                        border_radius: 4.0.into(),
                     },
                     color: Color::WHITE,
                     border_color: Color::WHITE,
@@ -505,7 +507,7 @@ impl menu::StyleSheet for Theme {
                     text_color: palette.background.weak.text,
                     background: palette.background.weak.color.into(),
                     border_width: 1.0,
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                     border_color: palette.background.strong.color,
                     selected_text_color: palette.primary.strong.text,
                     selected_background: palette.primary.strong.color.into(),
@@ -551,7 +553,7 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 1.0,
                     border_color: palette.background.strong.color,
                 }
@@ -570,7 +572,7 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 1.0,
                     border_color: palette.primary.strong.color,
                 }
@@ -727,7 +729,7 @@ impl pane_grid::StyleSheet for Theme {
                     }),
                     border_width: 2.0,
                     border_color: palette.primary.strong.color,
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                 }
             }
             PaneGrid::Custom(custom) => custom.hovered_region(self),
@@ -777,8 +779,10 @@ pub enum ProgressBar {
     Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> progress_bar::Appearance> for ProgressBar {
-    fn from(f: fn(&Theme) -> progress_bar::Appearance) -> Self {
+impl<T: Fn(&Theme) -> progress_bar::Appearance + 'static> From<T>
+    for ProgressBar
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -796,7 +800,7 @@ impl progress_bar::StyleSheet for Theme {
         let from_palette = |bar: Color| progress_bar::Appearance {
             background: palette.background.strong.color.into(),
             bar: bar.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
         };
 
         match style {
@@ -808,7 +812,7 @@ impl progress_bar::StyleSheet for Theme {
     }
 }
 
-impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
+impl<T: Fn(&Theme) -> progress_bar::Appearance> progress_bar::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
@@ -826,8 +830,8 @@ pub enum Rule {
     Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> rule::Appearance> for Rule {
-    fn from(f: fn(&Theme) -> rule::Appearance) -> Self {
+impl<T: Fn(&Theme) -> rule::Appearance + 'static> From<T> for Rule {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -842,7 +846,7 @@ impl rule::StyleSheet for Theme {
             Rule::Default => rule::Appearance {
                 color: palette.background.strong.color,
                 width: 1,
-                radius: 0.0,
+                radius: 0.0.into(),
                 fill_mode: rule::FillMode::Full,
             },
             Rule::Custom(custom) => custom.appearance(self),
@@ -850,7 +854,7 @@ impl rule::StyleSheet for Theme {
     }
 }
 
-impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
+impl<T: Fn(&Theme) -> rule::Appearance> rule::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> rule::Appearance {
@@ -925,12 +929,12 @@ impl scrollable::StyleSheet for Theme {
 
                 scrollable::Scrollbar {
                     background: Some(palette.background.weak.color.into()),
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                     scroller: scrollable::Scroller {
                         color: palette.background.strong.color,
-                        border_radius: 2.0,
+                        border_radius: 2.0.into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
@@ -952,12 +956,12 @@ impl scrollable::StyleSheet for Theme {
 
                     scrollable::Scrollbar {
                         background: Some(palette.background.weak.color.into()),
-                        border_radius: 2.0,
+                        border_radius: 2.0.into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                         scroller: scrollable::Scroller {
                             color: palette.primary.strong.color,
-                            border_radius: 2.0,
+                            border_radius: 2.0.into(),
                             border_width: 0.0,
                             border_color: Color::TRANSPARENT,
                         },
@@ -1059,7 +1063,7 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.background.strong.color,
             icon_color: palette.background.weak.text,
@@ -1075,7 +1079,7 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.background.base.text,
             icon_color: palette.background.weak.text,
@@ -1091,7 +1095,7 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.primary.strong.color,
             icon_color: palette.background.weak.text,
@@ -1137,7 +1141,7 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.weak.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.background.strong.color,
             icon_color: palette.background.strong.color,

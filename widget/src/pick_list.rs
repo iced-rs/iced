@@ -625,7 +625,7 @@ pub fn draw<'a, T, Renderer>(
             bounds,
             border_color: style.border_color,
             border_width: style.border_width,
-            border_radius: style.border_radius.into(),
+            border_radius: style.border_radius,
         },
         style.background,
     );
