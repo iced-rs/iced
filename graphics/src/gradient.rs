@@ -23,6 +23,15 @@ impl From<Linear> for Gradient {
     }
 }
 
+impl Gradient {
+    /// Packs the [`Gradient`] for use in shader code.
+    pub fn pack(&self) -> [f32; 44] {
+        match self {
+            Gradient::Linear(linear) => linear.pack(),
+        }
+    }
+}
+
 /// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
 ///
 /// [`Fill`]: crate::geometry::Fill;
@@ -84,5 +93,29 @@ impl Linear {
         }
 
         self
+    }
+
+    /// Packs the [`Gradient`] for use in shader code.
+    pub fn pack(&self) -> [f32; 44] {
+        let mut pack: [f32; 44] = [0.0; 44];
+
+        for (index, stop) in self.stops.iter().enumerate() {
+            let [r, g, b, a] =
+                stop.map_or(Color::default(), |s| s.color).into_linear();
+
+            pack[index * 4] = r;
+            pack[(index * 4) + 1] = g;
+            pack[(index * 4) + 2] = b;
+            pack[(index * 4) + 3] = a;
+
+            pack[32 + index] = stop.map_or(2.0, |s| s.offset);
+        }
+
+        pack[40] = self.start.x;
+        pack[41] = self.start.y;
+        pack[42] = self.end.x;
+        pack[43] = self.end.y;
+
+        pack
     }
 }
