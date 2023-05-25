@@ -7,6 +7,7 @@ use crate::graphics::geometry::{
 use crate::graphics::primitive::{self, Primitive};
 use crate::graphics::Gradient;
 
+use iced_graphics::gradient;
 use lyon::geom::euclid;
 use lyon::tessellation;
 use std::borrow::Cow;
@@ -490,7 +491,7 @@ impl Frame {
 }
 
 struct GradientVertex2DBuilder {
-    gradient: [f32; 44],
+    gradient: gradient::Packed,
 }
 
 impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
@@ -504,7 +505,7 @@ impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient,
+            gradient: self.gradient.data,
         }
     }
 }
@@ -520,7 +521,7 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient,
+            gradient: self.gradient.data,
         }
     }
 }
