@@ -14,7 +14,7 @@ log = "0.4.17"
 twox-hash = { version = "1.5", default-features = false }
 
 [dependencies.palette]
-version = "0.6"
+version = "0.7"
 optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
