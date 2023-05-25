@@ -22,11 +22,11 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
-use crate::core::window::Icon;
+use crate::core::window::{Icon, Level};
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
-use winit::window::{WindowBuilder, WindowLevel};
+use winit::window::WindowBuilder;
 
 use std::fmt;
 
@@ -81,8 +81,8 @@ pub struct Window {
     /// Whether the window should be transparent.
     pub transparent: bool,
 
-    /// Whether the window will always be on top of other windows.
-    pub always_on_top: bool,
+    /// The window [`Level`].
+    pub level: Level,
 
     /// The window icon, which is also usually used in the taskbar
     pub icon: Option<Icon>,
@@ -102,7 +102,7 @@ impl fmt::Debug for Window {
             .field("resizable", &self.resizable)
             .field("decorations", &self.decorations)
             .field("transparent", &self.transparent)
-            .field("always_on_top", &self.always_on_top)
+            .field("level", &self.level)
             .field("icon", &self.icon.is_some())
             .field("platform_specific", &self.platform_specific)
             .finish()
@@ -121,10 +121,6 @@ impl Window {
 
         let (width, height) = self.size;
 
-        let window_level = match self.always_on_top {
-            true => WindowLevel::AlwaysOnTop,
-            false => WindowLevel::Normal,
-        };
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
@@ -132,7 +128,7 @@ impl Window {
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
-            .with_window_level(window_level)
+            .with_window_level(conversion::window_level(self.level))
             .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
@@ -211,7 +207,7 @@ impl Default for Window {
             resizable: true,
             decorations: true,
             transparent: false,
-            always_on_top: false,
+            level: Level::default(),
             icon: None,
             platform_specific: Default::default(),
         }
