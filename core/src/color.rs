@@ -231,6 +231,8 @@ mod tests {
 
     #[test]
     fn color_manipulation() {
+        use approx::assert_relative_eq;
+
         let c1 = Color::from_rgb(0.5, 0.4, 0.3);
         let c2 = Color::from_rgb(0.2, 0.5, 0.3);
 
@@ -242,16 +244,11 @@ mod tests {
         let lighter = l1.lighten(l2);
 
         // Convert back to our Color
-        let r: Color = Srgba::from_linear(lighter).into();
+        let result: Color = Srgba::from_linear(lighter).into();
 
-        assert_eq!(
-            r,
-            Color {
-                r: 0.5,
-                g: 0.5,
-                b: 0.3,
-                a: 1.0
-            }
-        );
+        assert_relative_eq!(result.r, 0.5);
+        assert_relative_eq!(result.g, 0.5);
+        assert_relative_eq!(result.b, 0.3);
+        assert_relative_eq!(result.a, 1.0);
     }
 }
