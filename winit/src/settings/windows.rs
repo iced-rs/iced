@@ -1,5 +1,4 @@
 //! Platform specific settings for Windows.
-
 use raw_window_handle::RawWindowHandle;
 
 /// The platform specific window settings of an application.
