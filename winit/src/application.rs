@@ -26,7 +26,6 @@ use crate::{Clipboard, Error, Proxy, Settings};
 use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
-use winit::window::WindowLevel;
 
 #[cfg(feature = "trace")]
 pub use profiler::Profiler;
@@ -795,12 +794,8 @@ pub fn run_command<A, E>(
                 window::Action::GainFocus => {
                     window.focus_window();
                 }
-                window::Action::ChangeAlwaysOnTop(on_top) => {
-                    let level = match on_top {
-                        true => WindowLevel::AlwaysOnTop,
-                        false => WindowLevel::Normal,
-                    };
-                    window.set_window_level(level);
+                window::Action::ChangeLevel(level) => {
+                    window.set_window_level(conversion::window_level(level));
                 }
                 window::Action::FetchId(tag) => {
                     proxy
