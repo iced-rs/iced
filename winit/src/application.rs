@@ -794,8 +794,8 @@ pub fn run_command<A, E>(
                 window::Action::GainFocus => {
                     window.focus_window();
                 }
-                window::Action::ChangeAlwaysOnTop(on_top) => {
-                    window.set_always_on_top(on_top);
+                window::Action::ChangeLevel(level) => {
+                    window.set_window_level(conversion::window_level(level));
                 }
                 window::Action::FetchId(tag) => {
                     proxy
