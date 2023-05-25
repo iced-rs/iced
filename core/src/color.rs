@@ -1,5 +1,5 @@
 #[cfg(feature = "palette")]
-use palette::rgb::{Rgb, Rgba};
+use palette::rgb::{Srgb, Srgba};
 
 /// A color in the sRGB color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -184,33 +184,33 @@ macro_rules! color {
 
 #[cfg(feature = "palette")]
 /// Converts from palette's `Rgba` type to a [`Color`].
-impl From<Rgba> for Color {
-    fn from(rgba: Rgba) -> Self {
+impl From<Srgba> for Color {
+    fn from(rgba: Srgba) -> Self {
         Color::new(rgba.red, rgba.green, rgba.blue, rgba.alpha)
     }
 }
 
 #[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Rgba` type.
-impl From<Color> for Rgba {
+impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
-        Rgba::new(c.r, c.g, c.b, c.a)
+        Srgba::new(c.r, c.g, c.b, c.a)
     }
 }
 
 #[cfg(feature = "palette")]
 /// Converts from palette's `Rgb` type to a [`Color`].
-impl From<Rgb> for Color {
-    fn from(rgb: Rgb) -> Self {
+impl From<Srgb> for Color {
+    fn from(rgb: Srgb) -> Self {
         Color::new(rgb.red, rgb.green, rgb.blue, 1.0)
     }
 }
 
 #[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Rgb` type.
-impl From<Color> for Rgb {
+impl From<Color> for Srgb {
     fn from(c: Color) -> Self {
-        Rgb::new(c.r, c.g, c.b)
+        Srgb::new(c.r, c.g, c.b)
     }
 }
 
@@ -223,8 +223,8 @@ mod tests {
     #[test]
     fn srgba_traits() {
         let c = Color::from_rgb(0.5, 0.4, 0.3);
-        // Round-trip conversion to the palette:Rgba type
-        let s: Rgba = c.into();
+        // Round-trip conversion to the palette::Srgba type
+        let s: Srgba = c.into();
         let r: Color = s.into();
         assert_eq!(c, r);
     }
@@ -235,14 +235,15 @@ mod tests {
         let c2 = Color::from_rgb(0.2, 0.5, 0.3);
 
         // Convert to linear color for manipulation
-        let l1 = Rgba::from(c1).into_linear();
-        let l2 = Rgba::from(c2).into_linear();
+        let l1 = Srgba::from(c1).into_linear();
+        let l2 = Srgba::from(c2).into_linear();
 
-        // Take the lighter of each of the RGB components
+        // Take the lighter of each of the sRGB components
         let lighter = l1.lighten(l2);
 
         // Convert back to our Color
-        let r: Color = Rgba::from_linear(lighter).into();
+        let r: Color = Srgba::from_linear(lighter).into();
+
         assert_eq!(
             r,
             Color {
