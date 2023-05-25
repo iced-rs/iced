@@ -1,6 +1,6 @@
 use crate::core::Rectangle;
 use crate::graphics::Transformation;
-use crate::layer;
+use crate::layer::{self, quad};
 
 use std::mem;
 use wgpu::util::DeviceExt;
@@ -87,6 +87,7 @@ impl Pipeline {
         &'a self,
         layer: usize,
         bounds: Rectangle<u32>,
+        ordering: &Vec<(quad::Order, usize)>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
@@ -102,14 +103,30 @@ impl Pipeline {
             );
             render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
-            if layer.solid.instance_count > 0 {
-                render_pass.set_pipeline(&self.solid.pipeline);
-                layer.solid.draw(&layer.constants, render_pass);
-            }
+            let mut solid_offset = 0;
+            let mut gradient_offset = 0;
 
-            if layer.gradient.instance_count > 0 {
-                render_pass.set_pipeline(&self.gradient.pipeline);
-                layer.gradient.draw(&layer.constants, render_pass);
+            for (quad_order, count) in ordering {
+                match quad_order {
+                    quad::Order::Solid => {
+                        render_pass.set_pipeline(&self.solid.pipeline);
+                        layer.solid.draw(
+                            &layer.constants,
+                            render_pass,
+                            solid_offset..(solid_offset + count),
+                        );
+                        solid_offset += count;
+                    }
+                    quad::Order::Gradient => {
+                        render_pass.set_pipeline(&self.gradient.pipeline);
+                        layer.gradient.draw(
+                            &layer.constants,
+                            render_pass,
+                            gradient_offset..(gradient_offset + count),
+                        );
+                        gradient_offset += count;
+                    }
+                }
             }
         }
     }
@@ -198,6 +215,7 @@ mod solid {
     use crate::layer::quad;
     use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
     use crate::Buffer;
+    use std::ops::Range;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -229,6 +247,7 @@ mod solid {
             &'a self,
             constants: &'a wgpu::BindGroup,
             render_pass: &mut wgpu::RenderPass<'a>,
+            range: Range<usize>,
         ) {
             #[cfg(feature = "tracing")]
             let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
@@ -239,7 +258,7 @@ mod solid {
             render_pass.draw_indexed(
                 0..INDICES.len() as u32,
                 0,
-                0..self.instance_count as u32,
+                range.start as u32..range.end as u32,
             );
         }
     }
@@ -327,6 +346,7 @@ mod gradient {
     use crate::layer::quad;
     use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
     use crate::Buffer;
+    use std::ops::Range;
 
     #[derive(Debug)]
     pub struct Pipeline {
@@ -358,6 +378,7 @@ mod gradient {
             &'a self,
             constants: &'a wgpu::BindGroup,
             render_pass: &mut wgpu::RenderPass<'a>,
+            range: Range<usize>,
         ) {
             #[cfg(feature = "tracing")]
             let _ =
@@ -369,7 +390,7 @@ mod gradient {
             render_pass.draw_indexed(
                 0..INDICES.len() as u32,
                 0,
-                0..self.instance_count as u32,
+                range.start as u32..range.end as u32,
             );
         }
     }

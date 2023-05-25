@@ -43,6 +43,12 @@ pub struct Quads {
 
     /// The gradient quads of the [`Layer`].
     pub gradients: Vec<quad::Gradient>,
+
+    /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
+    pub order: Vec<(quad::Order, usize)>,
+
+    // The last index of quad ordering.
+    index: usize,
 }
 
 impl Quads {
@@ -174,12 +180,13 @@ impl<'a> Layer<'a> {
                     border_width: *border_width,
                 };
 
-                match background {
+                let quad_order = match background {
                     Background::Color(color) => {
                         layer.quads.solids.push(quad::Solid {
                             color: color.into_linear(),
                             quad,
                         });
+                        quad::Order::Solid
                     }
                     Background::Gradient(gradient) => {
                         let quad = quad::Gradient {
@@ -194,8 +201,41 @@ impl<'a> Layer<'a> {
                         };
 
                         layer.quads.gradients.push(quad);
+                        quad::Order::Gradient
                     }
                 };
+
+                match (layer.quads.order.get_mut(layer.quads.index), quad_order)
+                {
+                    (Some((quad_order, count)), quad::Order::Solid) => {
+                        match quad_order {
+                            quad::Order::Solid => {
+                                *count += 1;
+                            }
+                            quad::Order::Gradient => {
+                                layer.quads.order.push((quad::Order::Solid, 1));
+                                layer.quads.index += 1;
+                            }
+                        }
+                    }
+                    (Some((quad_order, count)), quad::Order::Gradient) => {
+                        match quad_order {
+                            quad::Order::Solid => {
+                                layer
+                                    .quads
+                                    .order
+                                    .push((quad::Order::Gradient, 1));
+                                layer.quads.index += 1;
+                            }
+                            quad::Order::Gradient => {
+                                *count += 1;
+                            }
+                        }
+                    }
+                    (None, _) => {
+                        layer.quads.order.push((quad_order, 1));
+                    }
+                }
             }
             Primitive::Image { handle, bounds } => {
                 let layer = &mut layers[current_layer];

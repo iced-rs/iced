@@ -49,3 +49,12 @@ unsafe impl Pod for Gradient {}
 
 #[allow(unsafe_code)]
 unsafe impl Zeroable for Gradient {}
+
+#[derive(Debug, Copy, Clone)]
+/// The identifier of a quad, used for ordering.
+pub enum Order {
+    /// A solid quad
+    Solid,
+    /// A gradient quad
+    Gradient,
+}

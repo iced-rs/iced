@@ -265,8 +265,12 @@ impl Backend {
             }
 
             if !layer.quads.is_empty() {
-                self.quad_pipeline
-                    .render(quad_layer, bounds, &mut render_pass);
+                self.quad_pipeline.render(
+                    quad_layer,
+                    bounds,
+                    &layer.quads.order,
+                    &mut render_pass,
+                );
 
                 quad_layer += 1;
             }
