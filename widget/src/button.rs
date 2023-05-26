@@ -1,6 +1,7 @@
 //! Allow your users to perform actions by pressing a button.
 //!
 //! A [`Button`] has some local [`State`].
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -9,11 +10,13 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
+use crate::core::window;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
     Rectangle, Shell, Vector, Widget,
 };
 
+use iced_style::animation::{AnimationEffect, HoverPressedAnimation};
 pub use iced_style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
@@ -62,6 +65,9 @@ where
     height: Length,
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
+    animation_duration_ms: u16,
+    hover_animation_effect: AnimationEffect,
+    pressed_animation_effect: AnimationEffect,
 }
 
 impl<'a, Message, Renderer> Button<'a, Message, Renderer>
@@ -78,6 +84,9 @@ where
             height: Length::Shrink,
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
+            animation_duration_ms: 250,
+            hover_animation_effect: AnimationEffect::EaseOut,
+            pressed_animation_effect: AnimationEffect::EaseOut,
         }
     }
 
@@ -115,6 +124,30 @@ where
         self.style = style;
         self
     }
+
+    /// Sets the animation duration (in milliseconds) of the [`Button`].
+    pub fn animation_duration(mut self, animation_duration_ms: u16) -> Self {
+        self.animation_duration_ms = animation_duration_ms;
+        self
+    }
+
+    /// Sets the animation effect when hovering the [`Button`].
+    pub fn hover_animation_effect(
+        mut self,
+        hover_animation_effect: AnimationEffect,
+    ) -> Self {
+        self.hover_animation_effect = hover_animation_effect;
+        self
+    }
+
+    /// Sets the animation effect when pressing the [`Button`].
+    pub fn pressed_animation_effect(
+        mut self,
+        pressed_animation_effect: AnimationEffect,
+    ) -> Self {
+        self.pressed_animation_effect = pressed_animation_effect;
+        self
+    }
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -129,7 +162,10 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::new(
+            HoverPressedAnimation::new(self.hover_animation_effect),
+            HoverPressedAnimation::new(self.hover_animation_effect),
+        ))
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -211,6 +247,7 @@ where
             shell,
             &self.on_press,
             || tree.state.downcast_mut::<State>(),
+            self.animation_duration_ms,
         )
     }
 
@@ -288,15 +325,24 @@ where
 }
 
 /// The local state of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct State {
     is_pressed: bool,
+    hovered_animation: HoverPressedAnimation,
+    pressed_animation: HoverPressedAnimation,
 }
 
 impl State {
     /// Creates a new [`State`].
-    pub fn new() -> State {
-        State::default()
+    pub fn new(
+        hovered_animation: HoverPressedAnimation,
+        pressed_animation: HoverPressedAnimation,
+    ) -> State {
+        State {
+            is_pressed: false,
+            hovered_animation,
+            pressed_animation,
+        }
     }
 }
 
@@ -309,6 +355,7 @@ pub fn update<'a, Message: Clone>(
     shell: &mut Shell<'_, Message>,
     on_press: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
+    animation_duration_ms: u16,
 ) -> event::Status {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -320,6 +367,8 @@ pub fn update<'a, Message: Clone>(
                     let state = state();
 
                     state.is_pressed = true;
+                    state.pressed_animation.on_press();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     return event::Status::Captured;
                 }
@@ -332,6 +381,8 @@ pub fn update<'a, Message: Clone>(
 
                 if state.is_pressed {
                     state.is_pressed = false;
+                    state.pressed_animation.on_released();
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
 
                     let bounds = layout.bounds();
 
@@ -347,6 +398,36 @@ pub fn update<'a, Message: Clone>(
             let state = state();
 
             state.is_pressed = false;
+        }
+        Event::Window(window::Event::RedrawRequested(now)) => {
+            let state = state();
+
+            if state.is_pressed || state.pressed_animation.is_running() {
+                if state
+                    .pressed_animation
+                    .on_redraw_request_update(animation_duration_ms, now)
+                {
+                    shell.request_redraw(window::RedrawRequest::NextFrame);
+                }
+            } else if state
+                .hovered_animation
+                .on_redraw_request_update(animation_duration_ms, now)
+            {
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
+        }
+        Event::Mouse(mouse::Event::CursorMoved { position: _ }) => {
+            let state = state();
+            let bounds = layout.bounds();
+            let is_mouse_over = bounds.contains(cursor_position);
+
+            if !state.is_pressed
+                && state
+                    .hovered_animation
+                    .on_cursor_moved_update(is_mouse_over)
+            {
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
         }
         _ => {}
     }
@@ -369,17 +450,16 @@ pub fn draw<'a, Renderer: crate::core::Renderer>(
 where
     Renderer::Theme: StyleSheet,
 {
+    let state = state();
     let is_mouse_over = bounds.contains(cursor_position);
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
-    } else if is_mouse_over {
-        let state = state();
-
-        if state.is_pressed {
-            style_sheet.pressed(style)
+    } else if is_mouse_over || state.hovered_animation.is_running() {
+        if state.is_pressed || state.pressed_animation.is_running() {
+            style_sheet.pressed(style, &state.pressed_animation)
         } else {
-            style_sheet.hovered(style)
+            style_sheet.hovered(style, &state.hovered_animation)
         }
     } else {
         style_sheet.active(style)

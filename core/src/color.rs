@@ -131,6 +131,22 @@ impl Color {
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
+
+    /// Mix with another color with the given ratio (from 0 to 1)
+    pub fn mix(&mut self, other: Color, ratio: f32) {
+        if ratio >= 1.0 {
+            self.r = other.r;
+            self.g = other.g;
+            self.b = other.b;
+            self.a = other.a;
+        } else if ratio > 0.0 {
+            let self_ratio = 1.0 - ratio;
+            self.r = self.r * self_ratio + other.r * ratio;
+            self.g = self.g * self_ratio + other.g * ratio;
+            self.b = self.b * self_ratio + other.b * ratio;
+            self.a = self.a * self_ratio + other.a * ratio;
+        }
+    }
 }
 
 impl From<[f32; 3]> for Color {
@@ -252,5 +268,12 @@ mod tests {
                 a: 1.0
             }
         );
+
+        // Mix two colors
+        let white = Color::WHITE;
+        let black = Color::BLACK;
+        let mut darkgrey = white;
+        darkgrey.mix(black, 0.75);
+        assert_eq!(darkgrey, Color::from_rgba(0.25, 0.25, 0.25, 1.0));
     }
 }

@@ -40,7 +40,11 @@ pub trait StyleSheet {
     fn active(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the hovered [`Appearance`] of a button.
-    fn hovered(&self, style: &Self::Style) -> Appearance {
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        _hover_animation: &crate::animation::HoverPressedAnimation,
+    ) -> Appearance {
         let active = self.active(style);
 
         Appearance {
@@ -50,7 +54,11 @@ pub trait StyleSheet {
     }
 
     /// Produces the pressed [`Appearance`] of a button.
-    fn pressed(&self, style: &Self::Style) -> Appearance {
+    fn pressed(
+        &self,
+        style: &Self::Style,
+        _pressed_animation: &crate::animation::HoverPressedAnimation,
+    ) -> Appearance {
         Appearance {
             shadow_offset: Vector::default(),
             ..self.active(style)

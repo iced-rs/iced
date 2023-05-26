@@ -7,6 +7,7 @@ mod value;
 pub mod cursor;
 
 pub use cursor::Cursor;
+use iced_style::animation::AnimationDirection;
 pub use value::Value;
 
 use editor::Editor;
@@ -31,6 +32,8 @@ use crate::core::{
 use crate::runtime::Command;
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
+
+use self::cursor::CursorAnimation;
 
 /// A field that can be filled with text.
 ///
@@ -74,6 +77,7 @@ where
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
+    cursor_animation_style: CursorAnimation,
 }
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
@@ -103,6 +107,7 @@ where
             on_submit: None,
             icon: None,
             style: Default::default(),
+            cursor_animation_style: Default::default(),
         }
     }
 
@@ -197,6 +202,15 @@ where
         self
     }
 
+    /// Sets the animation style of the [`Cursor`].
+    pub fn set_cursor_animation_style(
+        mut self,
+        cursor_animation_style: CursorAnimation,
+    ) -> Self {
+        self.cursor_animation_style = cursor_animation_style;
+        self
+    }
+
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
     ///
@@ -225,6 +239,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            self.cursor_animation_style,
         )
     }
 }
@@ -319,6 +334,7 @@ where
             self.on_paste.as_deref(),
             &self.on_submit,
             || tree.state.downcast_mut::<State>(),
+            self.cursor_animation_style,
         )
     }
 
@@ -347,6 +363,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            self.cursor_animation_style,
         )
     }
 
@@ -541,6 +558,7 @@ pub fn update<'a, Message, Renderer>(
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
+    cursor_animation_style: CursorAnimation,
 ) -> event::Status
 where
     Message: Clone,
@@ -699,6 +717,8 @@ where
 
                     focus.updated_at = Instant::now();
 
+                    reset_cursor(cursor_animation_style, state);
+
                     return event::Status::Captured;
                 }
             }
@@ -711,6 +731,8 @@ where
 
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
+
+                reset_cursor(cursor_animation_style, state);
 
                 match key_code {
                     keyboard::KeyCode::Enter
@@ -921,19 +943,87 @@ where
             if let Some(focus) = &mut state.is_focused {
                 focus.now = now;
 
-                let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                    - (now - focus.updated_at).as_millis()
-                        % CURSOR_BLINK_INTERVAL_MILLIS;
+                match cursor_animation_style {
+                    CursorAnimation::Blink => {
+                        let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                            - (now - focus.updated_at).as_millis()
+                                % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                shell.request_redraw(window::RedrawRequest::At(
-                    now + Duration::from_millis(millis_until_redraw as u64),
-                ));
+                        shell.request_redraw(window::RedrawRequest::At(
+                            now + Duration::from_millis(
+                                millis_until_redraw as u64,
+                            ),
+                        ));
+                    }
+                    CursorAnimation::Fade => {
+                        if let Some(last_direction_change) =
+                            &mut state.cursor_animation_last_direction_change
+                        {
+                            match state.cursor_animation_direction {
+                                AnimationDirection::Forward => {
+                                    let interval_ms = (now
+                                        - *last_direction_change)
+                                        .as_millis()
+                                        as f32;
+                                    let opacity_diff = interval_ms
+                                        / (CURSOR_FADE_INTERVAL_MILLIS as f32);
+                                    state.cursor_opacity = opacity_diff;
+                                    if state.cursor_opacity >= 1.0 {
+                                        state.cursor_animation_direction =
+                                            AnimationDirection::Backward;
+                                        state.cursor_opacity = 1.0;
+                                        *last_direction_change = now;
+                                    }
+                                }
+                                AnimationDirection::Backward => {
+                                    let interval_ms = (now
+                                        - *last_direction_change)
+                                        .as_millis()
+                                        as f32;
+
+                                    // Make a pause at full opacity
+                                    if interval_ms
+                                        > CURSOR_FADE_INTERVAL_MILLIS_PAUSE
+                                    {
+                                        let opacity_diff = (interval_ms
+                                            - CURSOR_FADE_INTERVAL_MILLIS_PAUSE)
+                                            / (CURSOR_FADE_INTERVAL_MILLIS
+                                                as f32);
+                                        state.cursor_opacity =
+                                            1.0 - opacity_diff;
+                                    }
+                                    if state.cursor_opacity <= 0.0 {
+                                        state.cursor_animation_direction =
+                                            AnimationDirection::Forward;
+                                        state.cursor_opacity = 0.0;
+                                        *last_direction_change = now;
+                                    }
+                                }
+                            }
+                        } else {
+                            state.cursor_animation_last_direction_change =
+                                Some(now);
+                            state.cursor_opacity = 1.0;
+                            state.cursor_animation_direction =
+                                AnimationDirection::Backward;
+                        }
+                        shell.request_redraw(window::RedrawRequest::NextFrame);
+                    }
+                }
             }
         }
         _ => {}
     }
 
     event::Status::Ignored
+}
+
+fn reset_cursor(cursor_animation_style: CursorAnimation, state: &mut State) {
+    if let CursorAnimation::Fade = cursor_animation_style {
+        state.cursor_animation_direction = AnimationDirection::Backward;
+        state.cursor_opacity = 1.0;
+        state.cursor_animation_last_direction_change = None;
+    }
 }
 
 /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
@@ -955,6 +1045,7 @@ pub fn draw<Renderer>(
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    cursor_animation_style: CursorAnimation,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -1025,29 +1116,50 @@ pub fn draw<Renderer>(
                         font,
                     );
 
-                let is_cursor_visible = ((focus.now - focus.updated_at)
-                    .as_millis()
-                    / CURSOR_BLINK_INTERVAL_MILLIS)
-                    % 2
-                    == 0;
-
-                let cursor = if is_cursor_visible {
-                    Some((
-                        renderer::Quad {
-                            bounds: Rectangle {
-                                x: text_bounds.x + text_value_width,
-                                y: text_bounds.y,
-                                width: 1.0,
-                                height: text_bounds.height,
+                let cursor = match cursor_animation_style {
+                    CursorAnimation::Blink => {
+                        // Check if cursor is visible
+                        if ((focus.now - focus.updated_at).as_millis()
+                            / CURSOR_BLINK_INTERVAL_MILLIS)
+                            % 2
+                            == 0
+                        {
+                            Some((
+                                renderer::Quad {
+                                    bounds: Rectangle {
+                                        x: text_bounds.x + text_value_width,
+                                        y: text_bounds.y,
+                                        width: 1.0,
+                                        height: text_bounds.height,
+                                    },
+                                    border_radius: 0.0.into(),
+                                    border_width: 0.0,
+                                    border_color: Color::TRANSPARENT,
+                                },
+                                theme.value_color(style),
+                            ))
+                        } else {
+                            None
+                        }
+                    }
+                    CursorAnimation::Fade => {
+                        let mut color = theme.value_color(style);
+                        color.a = state.cursor_opacity;
+                        Some((
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: text_bounds.x + text_value_width,
+                                    y: text_bounds.y,
+                                    width: 1.0,
+                                    height: text_bounds.height,
+                                },
+                                border_radius: 0.0.into(),
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
                             },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        },
-                        theme.value_color(style),
-                    ))
-                } else {
-                    None
+                            color,
+                        ))
+                    }
                 };
 
                 (cursor, offset)
@@ -1177,6 +1289,9 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
+    cursor_opacity: f32,
+    cursor_animation_direction: AnimationDirection,
+    cursor_animation_last_direction_change: Option<Instant>,
     // TODO: Add stateful horizontal scrolling offset
 }
 
@@ -1201,6 +1316,9 @@ impl State {
             last_click: None,
             cursor: Cursor::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
+            cursor_opacity: 1.0,
+            cursor_animation_direction: AnimationDirection::Backward,
+            cursor_animation_last_direction_change: None,
         }
     }
 
@@ -1399,3 +1517,5 @@ where
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
+const CURSOR_FADE_INTERVAL_MILLIS: u128 = 600;
+const CURSOR_FADE_INTERVAL_MILLIS_PAUSE: f32 = 400.0;
