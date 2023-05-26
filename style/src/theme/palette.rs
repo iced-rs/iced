@@ -2,7 +2,9 @@
 use iced_core::Color;
 
 use once_cell::sync::Lazy;
-use palette::{FromColor, Hsl, Mix, RelativeContrast, Srgb};
+use palette::color_difference::Wcag21RelativeContrast;
+use palette::rgb::Rgb;
+use palette::{FromColor, Hsl, Mix};
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -298,11 +300,11 @@ fn deviate(color: Color, amount: f32) -> Color {
 }
 
 fn mix(a: Color, b: Color, factor: f32) -> Color {
-    let a_lin = Srgb::from(a).into_linear();
-    let b_lin = Srgb::from(b).into_linear();
+    let a_lin = Rgb::from(a).into_linear();
+    let b_lin = Rgb::from(b).into_linear();
 
-    let mixed = a_lin.mix(&b_lin, factor);
-    Srgb::from_linear(mixed).into()
+    let mixed = a_lin.mix(b_lin, factor);
+    Rgb::from_linear(mixed).into()
 }
 
 fn readable(background: Color, text: Color) -> Color {
@@ -320,16 +322,16 @@ fn is_dark(color: Color) -> bool {
 }
 
 fn is_readable(a: Color, b: Color) -> bool {
-    let a_srgb = Srgb::from(a);
-    let b_srgb = Srgb::from(b);
+    let a_srgb = Rgb::from(a);
+    let b_srgb = Rgb::from(b);
 
-    a_srgb.has_enhanced_contrast_text(&b_srgb)
+    a_srgb.has_enhanced_contrast_text(b_srgb)
 }
 
 fn to_hsl(color: Color) -> Hsl {
-    Hsl::from_color(Srgb::from(color))
+    Hsl::from_color(Rgb::from(color))
 }
 
 fn from_hsl(hsl: Hsl) -> Color {
-    Srgb::from_color(hsl).into()
+    Rgb::from_color(hsl).into()
 }
