@@ -1,6 +1,6 @@
 use crate::core::Rectangle;
 use crate::graphics::Transformation;
-use crate::layer::{self, quad};
+use crate::layer::quad;
 
 use std::mem;
 use wgpu::util::DeviceExt;
@@ -69,7 +69,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        instances: &layer::Quads,
+        quads: &quad::Layer,
         transformation: Transformation,
         scale: f32,
     ) {
@@ -78,7 +78,7 @@ impl Pipeline {
         }
 
         let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, queue, instances, transformation, scale);
+        layer.prepare(device, queue, quads, transformation, scale);
 
         self.prepare_layer += 1;
     }
@@ -87,7 +87,7 @@ impl Pipeline {
         &'a self,
         layer: usize,
         bounds: Rectangle<u32>,
-        ordering: &Vec<(quad::Order, usize)>,
+        quads: &quad::Layer,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
@@ -106,7 +106,7 @@ impl Pipeline {
             let mut solid_offset = 0;
             let mut gradient_offset = 0;
 
-            for (quad_order, count) in ordering {
+            for (quad_order, count) in quads.ordering() {
                 match quad_order {
                     quad::Order::Solid => {
                         render_pass.set_pipeline(&self.solid.pipeline);
@@ -177,7 +177,7 @@ impl Layer {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        instances: &layer::Quads,
+        quads: &quad::Layer,
         transformation: Transformation,
         scale: f32,
     ) {
@@ -192,22 +192,15 @@ impl Layer {
             bytemuck::bytes_of(&uniforms),
         );
 
-        let _ = self.solid.instances.resize(device, instances.solids.len());
-        let _ = self
-            .gradient
-            .instances
-            .resize(device, instances.gradients.len());
-        let _ =
-            self.solid
-                .instances
-                .write(queue, 0, instances.solids.as_slice());
-        self.solid.instance_count = instances.solids.len();
-        let _ = self.gradient.instances.write(
-            queue,
-            0,
-            instances.gradients.as_slice(),
-        );
-        self.gradient.instance_count = instances.gradients.len();
+        let solids = quads.solids();
+        let gradients = quads.gradients();
+
+        let _ = self.solid.instances.resize(device, solids.len());
+        let _ = self.gradient.instances.resize(device, gradients.len());
+        let _ = self.solid.instances.write(queue, 0, solids);
+        self.solid.instance_count = solids.len();
+        let _ = self.gradient.instances.write(queue, 0, gradients);
+        self.gradient.instance_count = gradients.len();
     }
 }
 

@@ -1,4 +1,5 @@
 //! A rectangle with certain styled properties.
+use crate::core::{Background, Rectangle};
 use crate::graphics::gradient;
 use bytemuck::{Pod, Zeroable};
 
@@ -57,4 +58,92 @@ pub enum Order {
     Solid,
     /// A gradient quad
     Gradient,
+}
+
+/// A group of [`Quad`]s rendered together.
+#[derive(Default, Debug)]
+pub struct Layer {
+    /// The solid quads of the [`Layer`].
+    solids: Vec<Solid>,
+
+    /// The gradient quads of the [`Layer`].
+    gradients: Vec<Gradient>,
+
+    /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
+    order: Vec<(Order, usize)>,
+
+    /// The last index of quad ordering.
+    index: usize,
+}
+
+impl Layer {
+    /// Returns true if there are no quads of any type in [`Quads`].
+    pub fn is_empty(&self) -> bool {
+        self.solids.is_empty() && self.gradients.is_empty()
+    }
+
+    /// The [`Solid`] quads of the [`Layer`].
+    pub fn solids(&self) -> &[Solid] {
+        &self.solids
+    }
+
+    /// The [`Gradient`] quads of the [`Layer`].
+    pub fn gradients(&self) -> &[Gradient] {
+        &self.gradients
+    }
+
+    /// The order of quads within the [`Layer`], grouped by (type, count) for rendering in batches.
+    pub fn ordering(&self) -> &[(Order, usize)] {
+        &self.order
+    }
+
+    /// Adds a [`Quad`] with the provided `Background` type to the quad [`Layer`].
+    pub fn add(&mut self, quad: Quad, background: &Background) {
+        let quad_order = match background {
+            Background::Color(color) => {
+                self.solids.push(Solid {
+                    color: color.into_linear(),
+                    quad,
+                });
+
+                Order::Solid
+            }
+            Background::Gradient(gradient) => {
+                let quad = Gradient {
+                    gradient: gradient::pack(
+                        gradient,
+                        Rectangle::new(quad.position.into(), quad.size.into()),
+                    ),
+                    quad,
+                };
+
+                self.gradients.push(quad);
+                Order::Gradient
+            }
+        };
+
+        match (self.order.get_mut(self.index), quad_order) {
+            (Some((quad_order, count)), Order::Solid) => match quad_order {
+                Order::Solid => {
+                    *count += 1;
+                }
+                Order::Gradient => {
+                    self.order.push((Order::Solid, 1));
+                    self.index += 1;
+                }
+            },
+            (Some((quad_order, count)), Order::Gradient) => match quad_order {
+                Order::Solid => {
+                    self.order.push((Order::Gradient, 1));
+                    self.index += 1;
+                }
+                Order::Gradient => {
+                    *count += 1;
+                }
+            },
+            (None, _) => {
+                self.order.push((quad_order, 1));
+            }
+        }
+    }
 }

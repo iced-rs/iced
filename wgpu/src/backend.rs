@@ -268,7 +268,7 @@ impl Backend {
                 self.quad_pipeline.render(
                     quad_layer,
                     bounds,
-                    &layer.quads.order,
+                    &layer.quads,
                     &mut render_pass,
                 );
 

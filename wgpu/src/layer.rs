@@ -12,8 +12,7 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
-use crate::graphics::gradient;
+use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::{Primitive, Viewport};
 
 /// A group of primitives that should be clipped together.
@@ -23,7 +22,7 @@ pub struct Layer<'a> {
     pub bounds: Rectangle,
 
     /// The quads of the [`Layer`].
-    pub quads: Quads,
+    pub quads: quad::Layer,
 
     /// The triangle meshes of the [`Layer`].
     pub meshes: Vec<Mesh<'a>>,
@@ -35,35 +34,12 @@ pub struct Layer<'a> {
     pub images: Vec<Image>,
 }
 
-/// The quads of the [`Layer`].
-#[derive(Default, Debug)]
-pub struct Quads {
-    /// The solid quads of the [`Layer`].
-    pub solids: Vec<quad::Solid>,
-
-    /// The gradient quads of the [`Layer`].
-    pub gradients: Vec<quad::Gradient>,
-
-    /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
-    pub order: Vec<(quad::Order, usize)>,
-
-    // The last index of quad ordering.
-    index: usize,
-}
-
-impl Quads {
-    /// Returns true if there are no quads of any type in [`Quads`].
-    pub fn is_empty(&self) -> bool {
-        self.solids.is_empty() && self.gradients.is_empty()
-    }
-}
-
 impl<'a> Layer<'a> {
     /// Creates a new [`Layer`] with the given clipping bounds.
     pub fn new(bounds: Rectangle) -> Self {
         Self {
             bounds,
-            quads: Quads::default(),
+            quads: quad::Layer::default(),
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
@@ -180,62 +156,7 @@ impl<'a> Layer<'a> {
                     border_width: *border_width,
                 };
 
-                let quad_order = match background {
-                    Background::Color(color) => {
-                        layer.quads.solids.push(quad::Solid {
-                            color: color.into_linear(),
-                            quad,
-                        });
-                        quad::Order::Solid
-                    }
-                    Background::Gradient(gradient) => {
-                        let quad = quad::Gradient {
-                            gradient: gradient::pack(
-                                gradient,
-                                Rectangle::new(
-                                    quad.position.into(),
-                                    quad.size.into(),
-                                ),
-                            ),
-                            quad,
-                        };
-
-                        layer.quads.gradients.push(quad);
-                        quad::Order::Gradient
-                    }
-                };
-
-                match (layer.quads.order.get_mut(layer.quads.index), quad_order)
-                {
-                    (Some((quad_order, count)), quad::Order::Solid) => {
-                        match quad_order {
-                            quad::Order::Solid => {
-                                *count += 1;
-                            }
-                            quad::Order::Gradient => {
-                                layer.quads.order.push((quad::Order::Solid, 1));
-                                layer.quads.index += 1;
-                            }
-                        }
-                    }
-                    (Some((quad_order, count)), quad::Order::Gradient) => {
-                        match quad_order {
-                            quad::Order::Solid => {
-                                layer
-                                    .quads
-                                    .order
-                                    .push((quad::Order::Gradient, 1));
-                                layer.quads.index += 1;
-                            }
-                            quad::Order::Gradient => {
-                                *count += 1;
-                            }
-                        }
-                    }
-                    (None, _) => {
-                        layer.quads.order.push((quad_order, 1));
-                    }
-                }
+                layer.quads.add(quad, background);
             }
             Primitive::Image { handle, bounds } => {
                 let layer = &mut layers[current_layer];
