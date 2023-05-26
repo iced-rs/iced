@@ -116,13 +116,17 @@ impl Linear {
         data[42] = self.end.x;
         data[43] = self.end.y;
 
-        Packed { data }
+        Packed(data)
     }
 }
 
 /// Packed [`Gradient`] data for use in shader code.
-#[derive(Debug)]
-pub struct Packed {
-    /// The packed [`Gradient`] data.
-    pub data: [f32; 44],
+#[derive(Debug, Copy, Clone, PartialEq)]
+#[repr(C)]
+pub struct Packed([f32; 44]);
+
+impl From<[f32; 44]> for Packed {
+    fn from(value: [f32; 44]) -> Self {
+        Self(value)
+    }
 }

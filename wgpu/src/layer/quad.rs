@@ -1,5 +1,5 @@
 //! A rectangle with certain styled properties.
-
+use crate::graphics::gradient;
 use bytemuck::{Pod, Zeroable};
 
 /// The properties of a quad.
@@ -38,7 +38,7 @@ pub struct Solid {
 #[repr(C)]
 pub struct Gradient {
     /// The background gradient data of the quad.
-    pub gradient: [f32; 44],
+    pub gradient: gradient::Packed,
 
     /// The [`Quad`] data of the [`Gradient`].
     pub quad: Quad,

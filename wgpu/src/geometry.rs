@@ -505,7 +505,7 @@ impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient.data,
+            gradient: self.gradient,
         }
     }
 }
@@ -521,7 +521,7 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
 
         primitive::GradientVertex2D {
             position: [position.x, position.y],
-            gradient: self.gradient.data,
+            gradient: self.gradient,
         }
     }
 }
