@@ -264,15 +264,13 @@ impl Batch {
                 Kind::Solid
             }
             Background::Gradient(gradient) => {
-                let quad = Gradient {
+                self.gradients.push(Gradient {
                     gradient: graphics::gradient::pack(
                         gradient,
                         Rectangle::new(quad.position.into(), quad.size.into()),
                     ),
                     quad,
-                };
-
-                self.gradients.push(quad);
+                });
 
                 Kind::Gradient
             }
