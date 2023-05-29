@@ -116,21 +116,23 @@ impl Pipeline {
             for (kind, count) in &quads.order {
                 match kind {
                     Kind::Solid => {
-                        render_pass.set_pipeline(&self.solid.pipeline);
-                        layer.solid.draw(
-                            &layer.constants,
+                        self.solid.render(
                             render_pass,
+                            &layer.constants,
+                            &layer.solid,
                             solid_offset..(solid_offset + count),
                         );
+
                         solid_offset += count;
                     }
                     Kind::Gradient => {
-                        render_pass.set_pipeline(&self.gradient.pipeline);
-                        layer.gradient.draw(
-                            &layer.constants,
+                        self.gradient.render(
                             render_pass,
+                            &layer.constants,
+                            &layer.gradient,
                             gradient_offset..(gradient_offset + count),
                         );
+
                         gradient_offset += count;
                     }
                 }
@@ -199,17 +201,8 @@ impl Layer {
             bytemuck::bytes_of(&uniforms),
         );
 
-        let _ = self.solid.instances.resize(device, quads.solids.len());
-        let _ = self
-            .gradient
-            .instances
-            .resize(device, quads.gradients.len());
-
-        let _ = self.solid.instances.write(queue, 0, &quads.solids);
-        let _ = self.gradient.instances.write(queue, 0, &quads.gradients);
-
-        self.solid.instance_count = quads.solids.len();
-        self.gradient.instance_count = quads.gradients.len();
+        self.solid.prepare(device, queue, &quads.solids);
+        self.gradient.prepare(device, queue, &quads.gradients);
     }
 }
 

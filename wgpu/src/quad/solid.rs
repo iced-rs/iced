@@ -17,13 +17,13 @@ pub struct Solid {
 
 #[derive(Debug)]
 pub struct Pipeline {
-    pub pipeline: wgpu::RenderPipeline,
+    pipeline: wgpu::RenderPipeline,
 }
 
 #[derive(Debug)]
 pub struct Layer {
-    pub instances: Buffer<quad::Solid>,
-    pub instance_count: usize,
+    instances: Buffer<Solid>,
+    instance_count: usize,
 }
 
 impl Layer {
@@ -41,23 +41,16 @@ impl Layer {
         }
     }
 
-    pub fn draw<'a>(
-        &'a self,
-        constants: &'a wgpu::BindGroup,
-        render_pass: &mut wgpu::RenderPass<'a>,
-        range: Range<usize>,
+    pub fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        instances: &[Solid],
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
+        let _ = self.instances.resize(device, instances.len());
+        let _ = self.instances.write(queue, 0, instances);
 
-        render_pass.set_bind_group(0, constants, &[]);
-        render_pass.set_vertex_buffer(1, self.instances.slice(..));
-
-        render_pass.draw_indexed(
-            0..quad::INDICES.len() as u32,
-            0,
-            range.start as u32..range.end as u32,
-        );
+        self.instance_count = instances.len();
     }
 }
 
@@ -92,8 +85,7 @@ impl Pipeline {
                     buffers: &[
                         quad::Vertex::buffer_layout(),
                         wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<quad::Solid>()
-                                as u64,
+                            array_stride: std::mem::size_of::<Solid>() as u64,
                             step_mode: wgpu::VertexStepMode::Instance,
                             attributes: &wgpu::vertex_attr_array!(
                                 // Color
@@ -132,5 +124,26 @@ impl Pipeline {
             });
 
         Self { pipeline }
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        render_pass: &mut wgpu::RenderPass<'a>,
+        constants: &'a wgpu::BindGroup,
+        layer: &'a Layer,
+        range: Range<usize>,
+    ) {
+        #[cfg(feature = "tracing")]
+        let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
+
+        render_pass.set_pipeline(&self.pipeline);
+        render_pass.set_bind_group(0, constants, &[]);
+        render_pass.set_vertex_buffer(1, layer.instances.slice(..));
+
+        render_pass.draw_indexed(
+            0..quad::INDICES.len() as u32,
+            0,
+            range.start as u32..range.end as u32,
+        );
     }
 }
