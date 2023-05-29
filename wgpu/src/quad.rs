@@ -113,8 +113,8 @@ impl Pipeline {
             let mut solid_offset = 0;
             let mut gradient_offset = 0;
 
-            for (quad_order, count) in &quads.order {
-                match quad_order {
+            for (kind, count) in &quads.order {
+                match kind {
                     Kind::Solid => {
                         render_pass.set_pipeline(&self.solid.pipeline);
                         layer.solid.draw(
