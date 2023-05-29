@@ -115,7 +115,7 @@ impl Pipeline {
 
             for (quad_order, count) in &quads.order {
                 match quad_order {
-                    Order::Solid => {
+                    Kind::Solid => {
                         render_pass.set_pipeline(&self.solid.pipeline);
                         layer.solid.draw(
                             &layer.constants,
@@ -124,7 +124,7 @@ impl Pipeline {
                         );
                         solid_offset += count;
                     }
-                    Order::Gradient => {
+                    Kind::Gradient => {
                         render_pass.set_pipeline(&self.gradient.pipeline);
                         layer.gradient.draw(
                             &layer.constants,
@@ -243,7 +243,7 @@ pub struct Batch {
     gradients: Vec<Gradient>,
 
     /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
-    order: Vec<(Order, usize)>,
+    order: Vec<(Kind, usize)>,
 
     /// The last index of quad ordering.
     index: usize,
@@ -264,7 +264,7 @@ impl Batch {
                     quad,
                 });
 
-                Order::Solid
+                Kind::Solid
             }
             Background::Gradient(gradient) => {
                 let quad = Gradient {
@@ -276,26 +276,26 @@ impl Batch {
                 };
 
                 self.gradients.push(quad);
-                Order::Gradient
+                Kind::Gradient
             }
         };
 
         match (self.order.get_mut(self.index), quad_order) {
-            (Some((quad_order, count)), Order::Solid) => match quad_order {
-                Order::Solid => {
+            (Some((quad_order, count)), Kind::Solid) => match quad_order {
+                Kind::Solid => {
                     *count += 1;
                 }
-                Order::Gradient => {
-                    self.order.push((Order::Solid, 1));
+                Kind::Gradient => {
+                    self.order.push((Kind::Solid, 1));
                     self.index += 1;
                 }
             },
-            (Some((quad_order, count)), Order::Gradient) => match quad_order {
-                Order::Solid => {
-                    self.order.push((Order::Gradient, 1));
+            (Some((quad_order, count)), Kind::Gradient) => match quad_order {
+                Kind::Solid => {
+                    self.order.push((Kind::Gradient, 1));
                     self.index += 1;
                 }
-                Order::Gradient => {
+                Kind::Gradient => {
                     *count += 1;
                 }
             },
@@ -307,8 +307,8 @@ impl Batch {
 }
 
 #[derive(Debug, Copy, Clone)]
-/// The identifier of a quad, used for ordering.
-enum Order {
+/// The kind of a quad.
+enum Kind {
     /// A solid quad
     Solid,
     /// A gradient quad
