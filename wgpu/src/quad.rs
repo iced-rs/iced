@@ -244,9 +244,6 @@ pub struct Batch {
 
     /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
     order: Vec<(Kind, usize)>,
-
-    /// The last index of quad ordering.
-    index: usize,
 }
 
 impl Batch {
@@ -257,7 +254,7 @@ impl Batch {
 
     /// Adds a [`Quad`] with the provided `Background` type to the quad [`Layer`].
     pub fn add(&mut self, quad: Quad, background: &Background) {
-        let quad_order = match background {
+        let kind = match background {
             Background::Color(color) => {
                 self.solids.push(Solid {
                     color: color.into_linear(),
@@ -276,37 +273,23 @@ impl Batch {
                 };
 
                 self.gradients.push(quad);
+
                 Kind::Gradient
             }
         };
 
-        match (self.order.get_mut(self.index), quad_order) {
-            (Some((quad_order, count)), Kind::Solid) => match quad_order {
-                Kind::Solid => {
-                    *count += 1;
-                }
-                Kind::Gradient => {
-                    self.order.push((Kind::Solid, 1));
-                    self.index += 1;
-                }
-            },
-            (Some((quad_order, count)), Kind::Gradient) => match quad_order {
-                Kind::Solid => {
-                    self.order.push((Kind::Gradient, 1));
-                    self.index += 1;
-                }
-                Kind::Gradient => {
-                    *count += 1;
-                }
-            },
-            (None, _) => {
-                self.order.push((quad_order, 1));
+        match self.order.last_mut() {
+            Some((last_kind, count)) if kind == *last_kind => {
+                *count += 1;
+            }
+            _ => {
+                self.order.push((kind, 1));
             }
         }
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 /// The kind of a quad.
 enum Kind {
     /// A solid quad
