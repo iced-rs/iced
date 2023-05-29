@@ -183,7 +183,7 @@ impl<'a> Layer<'a> {
                     }
                     Background::Gradient(gradient) => {
                         let quad = quad::Gradient {
-                            gradient: pack_gradient(
+                            gradient: gradient::pack(
                                 gradient,
                                 Rectangle::new(
                                     quad.position.into(),
@@ -308,38 +308,6 @@ impl<'a> Layer<'a> {
                     primitive
                 );
             }
-        }
-    }
-}
-
-/// Packs the [`Gradient`] for use in shader code.
-fn pack_gradient(
-    gradient: &core::Gradient,
-    bounds: Rectangle,
-) -> gradient::Packed {
-    match gradient {
-        core::Gradient::Linear(linear) => {
-            let mut data: [f32; 44] = [0.0; 44];
-
-            for (index, stop) in linear.stops.iter().enumerate() {
-                let [r, g, b, a] =
-                    stop.map_or(Color::default(), |s| s.color).into_linear();
-
-                data[index * 4] = r;
-                data[(index * 4) + 1] = g;
-                data[(index * 4) + 2] = b;
-                data[(index * 4) + 3] = a;
-                data[32 + index] = stop.map_or(2.0, |s| s.offset);
-            }
-
-            let (start, end) = linear.angle.to_distance(&bounds);
-
-            data[40] = start.x;
-            data[41] = start.y;
-            data[42] = end.x;
-            data[43] = end.y;
-
-            data.into()
         }
     }
 }

@@ -4,7 +4,7 @@
 //!
 //! [`Gradient`]: crate::core::Gradient;
 use crate::core::gradient::ColorStop;
-use crate::core::{Color, Point};
+use crate::core::{self, Color, Point, Rectangle};
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -125,8 +125,31 @@ impl Linear {
 #[repr(C)]
 pub struct Packed([f32; 44]);
 
-impl From<[f32; 44]> for Packed {
-    fn from(value: [f32; 44]) -> Self {
-        Self(value)
+/// Creates a new [`Packed`] gradient for use in shader code.
+pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
+    match gradient {
+        core::Gradient::Linear(linear) => {
+            let mut data: [f32; 44] = [0.0; 44];
+
+            for (index, stop) in linear.stops.iter().enumerate() {
+                let [r, g, b, a] =
+                    stop.map_or(Color::default(), |s| s.color).into_linear();
+
+                data[index * 4] = r;
+                data[(index * 4) + 1] = g;
+                data[(index * 4) + 2] = b;
+                data[(index * 4) + 3] = a;
+                data[32 + index] = stop.map_or(2.0, |s| s.offset);
+            }
+
+            let (start, end) = linear.angle.to_distance(&bounds);
+
+            data[40] = start.x;
+            data[41] = start.y;
+            data[42] = end.x;
+            data[43] = end.y;
+
+            Packed(data)
+        }
     }
 }
