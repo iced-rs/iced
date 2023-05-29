@@ -16,11 +16,6 @@ pub struct Solid {
 }
 
 #[derive(Debug)]
-pub struct Pipeline {
-    pipeline: wgpu::RenderPipeline,
-}
-
-#[derive(Debug)]
 pub struct Layer {
     instances: Buffer<Solid>,
     instance_count: usize,
@@ -52,6 +47,11 @@ impl Layer {
 
         self.instance_count = instances.len();
     }
+}
+
+#[derive(Debug)]
+pub struct Pipeline {
+    pipeline: wgpu::RenderPipeline,
 }
 
 impl Pipeline {

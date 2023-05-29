@@ -23,11 +23,6 @@ unsafe impl Pod for Gradient {}
 unsafe impl Zeroable for Gradient {}
 
 #[derive(Debug)]
-pub struct Pipeline {
-    pipeline: wgpu::RenderPipeline,
-}
-
-#[derive(Debug)]
 pub struct Layer {
     instances: Buffer<Gradient>,
     instance_count: usize,
@@ -59,6 +54,11 @@ impl Layer {
 
         self.instance_count = instances.len();
     }
+}
+
+#[derive(Debug)]
+pub struct Pipeline {
+    pipeline: wgpu::RenderPipeline,
 }
 
 impl Pipeline {
