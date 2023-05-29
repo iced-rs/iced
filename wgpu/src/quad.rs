@@ -1,9 +1,16 @@
-use crate::core::Rectangle;
-use crate::graphics::Transformation;
-use crate::layer;
+mod gradient;
+mod solid;
+
+use gradient::Gradient;
+use solid::Solid;
+
+use crate::core::{Background, Rectangle};
+use crate::graphics::{self, Transformation};
+
+use bytemuck::{Pod, Zeroable};
+use wgpu::util::DeviceExt;
 
 use std::mem;
-use wgpu::util::DeviceExt;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -69,7 +76,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        instances: &layer::Quads,
+        quads: &Batch,
         transformation: Transformation,
         scale: f32,
     ) {
@@ -78,7 +85,7 @@ impl Pipeline {
         }
 
         let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, queue, instances, transformation, scale);
+        layer.prepare(device, queue, quads, transformation, scale);
 
         self.prepare_layer += 1;
     }
@@ -87,6 +94,7 @@ impl Pipeline {
         &'a self,
         layer: usize,
         bounds: Rectangle<u32>,
+        quads: &Batch,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
@@ -102,14 +110,32 @@ impl Pipeline {
             );
             render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
-            if layer.solid.instance_count > 0 {
-                render_pass.set_pipeline(&self.solid.pipeline);
-                layer.solid.draw(&layer.constants, render_pass);
-            }
+            let mut solid_offset = 0;
+            let mut gradient_offset = 0;
 
-            if layer.gradient.instance_count > 0 {
-                render_pass.set_pipeline(&self.gradient.pipeline);
-                layer.gradient.draw(&layer.constants, render_pass);
+            for (kind, count) in &quads.order {
+                match kind {
+                    Kind::Solid => {
+                        self.solid.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.solid,
+                            solid_offset..(solid_offset + count),
+                        );
+
+                        solid_offset += count;
+                    }
+                    Kind::Gradient => {
+                        self.gradient.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.gradient,
+                            gradient_offset..(gradient_offset + count),
+                        );
+
+                        gradient_offset += count;
+                    }
+                }
             }
         }
     }
@@ -160,7 +186,7 @@ impl Layer {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        instances: &layer::Quads,
+        quads: &Batch,
         transformation: Transformation,
         scale: f32,
     ) {
@@ -175,304 +201,92 @@ impl Layer {
             bytemuck::bytes_of(&uniforms),
         );
 
-        let _ = self.solid.instances.resize(device, instances.solids.len());
-        let _ = self
-            .gradient
-            .instances
-            .resize(device, instances.gradients.len());
-        let _ =
-            self.solid
-                .instances
-                .write(queue, 0, instances.solids.as_slice());
-        self.solid.instance_count = instances.solids.len();
-        let _ = self.gradient.instances.write(
-            queue,
-            0,
-            instances.gradients.as_slice(),
-        );
-        self.gradient.instance_count = instances.gradients.len();
+        self.solid.prepare(device, queue, &quads.solids);
+        self.gradient.prepare(device, queue, &quads.gradients);
     }
 }
 
-mod solid {
-    use crate::layer::quad;
-    use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
-    use crate::Buffer;
+/// The properties of a quad.
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+pub struct Quad {
+    /// The position of the [`Quad`].
+    pub position: [f32; 2],
 
-    #[derive(Debug)]
-    pub struct Pipeline {
-        pub pipeline: wgpu::RenderPipeline,
+    /// The size of the [`Quad`].
+    pub size: [f32; 2],
+
+    /// The border color of the [`Quad`], in __linear RGB__.
+    pub border_color: [f32; 4],
+
+    /// The border radii of the [`Quad`].
+    pub border_radius: [f32; 4],
+
+    /// The border width of the [`Quad`].
+    pub border_width: f32,
+}
+
+/// A group of [`Quad`]s rendered together.
+#[derive(Default, Debug)]
+pub struct Batch {
+    /// The solid quads of the [`Layer`].
+    solids: Vec<Solid>,
+
+    /// The gradient quads of the [`Layer`].
+    gradients: Vec<Gradient>,
+
+    /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
+    order: Vec<(Kind, usize)>,
+}
+
+impl Batch {
+    /// Returns true if there are no quads of any type in [`Quads`].
+    pub fn is_empty(&self) -> bool {
+        self.solids.is_empty() && self.gradients.is_empty()
     }
 
-    #[derive(Debug)]
-    pub struct Layer {
-        pub instances: Buffer<quad::Solid>,
-        pub instance_count: usize,
-    }
-
-    impl Layer {
-        pub fn new(device: &wgpu::Device) -> Self {
-            let instances = Buffer::new(
-                device,
-                "iced_wgpu.quad.solid.buffer",
-                INITIAL_INSTANCES,
-                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            );
-
-            Self {
-                instances,
-                instance_count: 0,
-            }
-        }
-
-        pub fn draw<'a>(
-            &'a self,
-            constants: &'a wgpu::BindGroup,
-            render_pass: &mut wgpu::RenderPass<'a>,
-        ) {
-            #[cfg(feature = "tracing")]
-            let _ = tracing::info_span!("Wgpu::Quad::Solid", "DRAW").entered();
-
-            render_pass.set_bind_group(0, constants, &[]);
-            render_pass.set_vertex_buffer(1, self.instances.slice(..));
-
-            render_pass.draw_indexed(
-                0..INDICES.len() as u32,
-                0,
-                0..self.instance_count as u32,
-            );
-        }
-    }
-
-    impl Pipeline {
-        pub fn new(
-            device: &wgpu::Device,
-            format: wgpu::TextureFormat,
-            constants_layout: &wgpu::BindGroupLayout,
-        ) -> Self {
-            let layout = device.create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("iced_wgpu.quad.solid.pipeline"),
-                    push_constant_ranges: &[],
-                    bind_group_layouts: &[constants_layout],
-                },
-            );
-
-            let shader =
-                device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some("iced_wgpu.quad.solid.shader"),
-                    source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(include_str!(
-                            "shader/quad.wgsl"
-                        )),
-                    ),
+    /// Adds a [`Quad`] with the provided `Background` type to the quad [`Layer`].
+    pub fn add(&mut self, quad: Quad, background: &Background) {
+        let kind = match background {
+            Background::Color(color) => {
+                self.solids.push(Solid {
+                    color: color.into_linear(),
+                    quad,
                 });
 
-            let pipeline = device.create_render_pipeline(
-                &wgpu::RenderPipelineDescriptor {
-                    label: Some("iced_wgpu.quad.solid.pipeline"),
-                    layout: Some(&layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "solid_vs_main",
-                        buffers: &[
-                            Vertex::buffer_layout(),
-                            wgpu::VertexBufferLayout {
-                                array_stride: std::mem::size_of::<quad::Solid>()
-                                    as u64,
-                                step_mode: wgpu::VertexStepMode::Instance,
-                                attributes: &wgpu::vertex_attr_array!(
-                                    // Color
-                                    1 => Float32x4,
-                                    // Position
-                                    2 => Float32x2,
-                                    // Size
-                                    3 => Float32x2,
-                                    // Border color
-                                    4 => Float32x4,
-                                    // Border radius
-                                    5 => Float32x4,
-                                    // Border width
-                                    6 => Float32,
-                                ),
-                            },
-                        ],
-                    },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "solid_fs_main",
-                        targets: &color_target_state(format),
-                    }),
-                    primitive: wgpu::PrimitiveState {
-                        topology: wgpu::PrimitiveTopology::TriangleList,
-                        front_face: wgpu::FrontFace::Cw,
-                        ..Default::default()
-                    },
-                    depth_stencil: None,
-                    multisample: wgpu::MultisampleState {
-                        count: 1,
-                        mask: !0,
-                        alpha_to_coverage_enabled: false,
-                    },
-                    multiview: None,
-                },
-            );
+                Kind::Solid
+            }
+            Background::Gradient(gradient) => {
+                self.gradients.push(Gradient {
+                    gradient: graphics::gradient::pack(
+                        gradient,
+                        Rectangle::new(quad.position.into(), quad.size.into()),
+                    ),
+                    quad,
+                });
 
-            Self { pipeline }
+                Kind::Gradient
+            }
+        };
+
+        match self.order.last_mut() {
+            Some((last_kind, count)) if kind == *last_kind => {
+                *count += 1;
+            }
+            _ => {
+                self.order.push((kind, 1));
+            }
         }
     }
 }
 
-mod gradient {
-    use crate::layer::quad;
-    use crate::quad::{color_target_state, Vertex, INDICES, INITIAL_INSTANCES};
-    use crate::Buffer;
-
-    #[derive(Debug)]
-    pub struct Pipeline {
-        pub pipeline: wgpu::RenderPipeline,
-    }
-
-    #[derive(Debug)]
-    pub struct Layer {
-        pub instances: Buffer<quad::Gradient>,
-        pub instance_count: usize,
-    }
-
-    impl Layer {
-        pub fn new(device: &wgpu::Device) -> Self {
-            let instances = Buffer::new(
-                device,
-                "iced_wgpu.quad.gradient.buffer",
-                INITIAL_INSTANCES,
-                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            );
-
-            Self {
-                instances,
-                instance_count: 0,
-            }
-        }
-
-        pub fn draw<'a>(
-            &'a self,
-            constants: &'a wgpu::BindGroup,
-            render_pass: &mut wgpu::RenderPass<'a>,
-        ) {
-            #[cfg(feature = "tracing")]
-            let _ =
-                tracing::info_span!("Wgpu::Quad::Gradient", "DRAW").entered();
-
-            render_pass.set_bind_group(0, constants, &[]);
-            render_pass.set_vertex_buffer(1, self.instances.slice(..));
-
-            render_pass.draw_indexed(
-                0..INDICES.len() as u32,
-                0,
-                0..self.instance_count as u32,
-            );
-        }
-    }
-
-    impl Pipeline {
-        pub fn new(
-            device: &wgpu::Device,
-            format: wgpu::TextureFormat,
-            constants_layout: &wgpu::BindGroupLayout,
-        ) -> Self {
-            let layout = device.create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("iced_wgpu.quad.gradient.pipeline"),
-                    push_constant_ranges: &[],
-                    bind_group_layouts: &[constants_layout],
-                },
-            );
-
-            let shader =
-                device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some("iced_wgpu.quad.gradient.shader"),
-                    source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(include_str!(
-                            "shader/quad.wgsl"
-                        )),
-                    ),
-                });
-
-            let pipeline =
-                device.create_render_pipeline(
-                    &wgpu::RenderPipelineDescriptor {
-                        label: Some("iced_wgpu.quad.gradient.pipeline"),
-                        layout: Some(&layout),
-                        vertex: wgpu::VertexState {
-                            module: &shader,
-                            entry_point: "gradient_vs_main",
-                            buffers: &[
-                                Vertex::buffer_layout(),
-                                wgpu::VertexBufferLayout {
-                                    array_stride: std::mem::size_of::<
-                                        quad::Gradient,
-                                    >(
-                                    )
-                                        as u64,
-                                    step_mode: wgpu::VertexStepMode::Instance,
-                                    attributes: &wgpu::vertex_attr_array!(
-                                        // Color 1
-                                        1 => Float32x4,
-                                        // Color 2
-                                        2 => Float32x4,
-                                        // Color 3
-                                        3 => Float32x4,
-                                        // Color 4
-                                        4 => Float32x4,
-                                        // Color 5
-                                        5 => Float32x4,
-                                        // Color 6
-                                        6 => Float32x4,
-                                        // Color 7
-                                        7 => Float32x4,
-                                        // Color 8
-                                        8 => Float32x4,
-                                        // Offsets 1-4
-                                        9 => Float32x4,
-                                        // Offsets 5-8
-                                        10 => Float32x4,
-                                        // Direction
-                                        11 => Float32x4,
-                                        // Position & Scale
-                                        12 => Float32x4,
-                                        // Border color
-                                        13 => Float32x4,
-                                        // Border radius
-                                        14 => Float32x4,
-                                        // Border width
-                                        15 => Float32
-                                    ),
-                                },
-                            ],
-                        },
-                        fragment: Some(wgpu::FragmentState {
-                            module: &shader,
-                            entry_point: "gradient_fs_main",
-                            targets: &color_target_state(format),
-                        }),
-                        primitive: wgpu::PrimitiveState {
-                            topology: wgpu::PrimitiveTopology::TriangleList,
-                            front_face: wgpu::FrontFace::Cw,
-                            ..Default::default()
-                        },
-                        depth_stencil: None,
-                        multisample: wgpu::MultisampleState {
-                            count: 1,
-                            mask: !0,
-                            alpha_to_coverage_enabled: false,
-                        },
-                        multiview: None,
-                    },
-                );
-
-            Self { pipeline }
-        }
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+/// The kind of a quad.
+enum Kind {
+    /// A solid quad
+    Solid,
+    /// A gradient quad
+    Gradient,
 }
 
 fn color_target_state(
