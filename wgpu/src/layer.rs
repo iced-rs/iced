@@ -13,6 +13,7 @@ pub use text::Text;
 use crate::core;
 use crate::core::alignment;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::graphics::gradient;
 use crate::graphics::{Primitive, Viewport};
 
 /// A group of primitives that should be clipped together.
@@ -182,7 +183,7 @@ impl<'a> Layer<'a> {
                     }
                     Background::Gradient(gradient) => {
                         let quad = quad::Gradient {
-                            gradient: pack_gradient(
+                            gradient: gradient::pack(
                                 gradient,
                                 Rectangle::new(
                                     quad.position.into(),
@@ -307,35 +308,6 @@ impl<'a> Layer<'a> {
                     primitive
                 );
             }
-        }
-    }
-}
-
-/// Packs the [`Gradient`] for use in shader code.
-fn pack_gradient(gradient: &core::Gradient, bounds: Rectangle) -> [f32; 44] {
-    match gradient {
-        core::Gradient::Linear(linear) => {
-            let mut pack: [f32; 44] = [0.0; 44];
-
-            for (index, stop) in linear.stops.iter().enumerate() {
-                let [r, g, b, a] =
-                    stop.map_or(Color::default(), |s| s.color).into_linear();
-
-                pack[index * 4] = r;
-                pack[(index * 4) + 1] = g;
-                pack[(index * 4) + 2] = b;
-                pack[(index * 4) + 3] = a;
-                pack[32 + index] = stop.map_or(2.0, |s| s.offset);
-            }
-
-            let (start, end) = linear.angle.to_distance(&bounds);
-
-            pack[40] = start.x;
-            pack[41] = start.y;
-            pack[42] = end.x;
-            pack[43] = end.y;
-
-            pack
         }
     }
 }
