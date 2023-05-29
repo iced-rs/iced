@@ -96,36 +96,24 @@ impl Pipeline {
                                 as u64,
                             step_mode: wgpu::VertexStepMode::Instance,
                             attributes: &wgpu::vertex_attr_array!(
-                                // Color 1
-                                1 => Float32x4,
-                                // Color 2
-                                2 => Float32x4,
-                                // Color 3
-                                3 => Float32x4,
-                                // Color 4
-                                4 => Float32x4,
-                                // Color 5
-                                5 => Float32x4,
-                                // Color 6
-                                6 => Float32x4,
-                                // Color 7
-                                7 => Float32x4,
-                                // Color 8
-                                8 => Float32x4,
+                                // Colors 1-4
+                                1 => Uint32x4,
+                                // Colors 5-8
+                                2 => Uint32x4,
                                 // Offsets 1-4
-                                9 => Float32x4,
+                                3 => Float32x4,
                                 // Offsets 5-8
-                                10 => Float32x4,
+                                4 => Float32x4,
                                 // Direction
-                                11 => Float32x4,
+                                5 => Float32x4,
                                 // Position & Scale
-                                12 => Float32x4,
+                                6 => Float32x4,
                                 // Border color
-                                13 => Float32x4,
+                                7 => Float32x4,
                                 // Border radius
-                                14 => Float32x4,
+                                8 => Float32x4,
                                 // Border width
-                                15 => Float32
+                                9 => Float32
                             ),
                         },
                     ],

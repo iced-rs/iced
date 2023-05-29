@@ -4,6 +4,19 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
+fn l(c: f32) -> f32 {
+    if (c < 0.04045) {
+        return c / 12.92;
+    } else {
+        return pow(((c + 0.055) / 1.055), 2.4);
+    };
+}
+
+fn to_linear(color: u32) -> vec4<f32> {
+    let c = unpack4x8unorm(color); //unpacks as a b g r
+    return vec4<f32>(l(c.w), l(c.z), l(c.y), c.x);
+}
+
 struct SolidVertexInput {
     @location(0) position: vec2<f32>,
     @location(1) color: vec4<f32>,
@@ -32,46 +45,28 @@ fn solid_fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
 struct GradientVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) raw_position: vec2<f32>,
-    @location(1) color_1: vec4<f32>,
-    @location(2) color_2: vec4<f32>,
-    @location(3) color_3: vec4<f32>,
-    @location(4) color_4: vec4<f32>,
-    @location(5) color_5: vec4<f32>,
-    @location(6) color_6: vec4<f32>,
-    @location(7) color_7: vec4<f32>,
-    @location(8) color_8: vec4<f32>,
-    @location(9) offsets_1: vec4<f32>,
-    @location(10) offsets_2: vec4<f32>,
-    @location(11) direction: vec4<f32>,
+    @location(1) colors_1: vec4<u32>,
+    @location(2) colors_2: vec4<u32>,
+    @location(3) offsets_1: vec4<f32>,
+    @location(4) offsets_2: vec4<f32>,
+    @location(5) direction: vec4<f32>,
 }
 
 @vertex
 fn gradient_vs_main(
     @location(0) input: vec2<f32>,
-    @location(1) color_1: vec4<f32>,
-    @location(2) color_2: vec4<f32>,
-    @location(3) color_3: vec4<f32>,
-    @location(4) color_4: vec4<f32>,
-    @location(5) color_5: vec4<f32>,
-    @location(6) color_6: vec4<f32>,
-    @location(7) color_7: vec4<f32>,
-    @location(8) color_8: vec4<f32>,
-    @location(9) offsets_1: vec4<f32>,
-    @location(10) offsets_2: vec4<f32>,
-    @location(11) direction: vec4<f32>,
+    @location(1) colors_1: vec4<u32>,
+    @location(2) colors_2: vec4<u32>,
+    @location(3) offsets_1: vec4<f32>,
+    @location(4) offsets_2: vec4<f32>,
+    @location(5) direction: vec4<f32>,
 ) -> GradientVertexOutput {
     var output: GradientVertexOutput;
 
     output.position = globals.transform * vec4<f32>(input.xy, 0.0, 1.0);
     output.raw_position = input;
-    output.color_1 = color_1;
-    output.color_2 = color_2;
-    output.color_3 = color_3;
-    output.color_4 = color_4;
-    output.color_5 = color_5;
-    output.color_6 = color_6;
-    output.color_7 = color_7;
-    output.color_8 = color_8;
+    output.colors_1 = colors_1;
+    output.colors_2 = colors_2;
     output.offsets_1 = offsets_1;
     output.offsets_2 = offsets_2;
     output.direction = direction;
@@ -135,14 +130,14 @@ fn gradient(
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
-        input.color_1,
-        input.color_2,
-        input.color_3,
-        input.color_4,
-        input.color_5,
-        input.color_6,
-        input.color_7,
-        input.color_8,
+        to_linear(input.colors_1.x),
+        to_linear(input.colors_1.y),
+        to_linear(input.colors_1.z),
+        to_linear(input.colors_1.w),
+        to_linear(input.colors_2.x),
+        to_linear(input.colors_2.y),
+        to_linear(input.colors_2.z),
+        to_linear(input.colors_2.w),
     );
 
     var offsets = array<f32, 8>(

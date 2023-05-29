@@ -99,61 +99,68 @@ impl Linear {
 
     /// Packs the [`Gradient`] for use in shader code.
     pub fn pack(&self) -> Packed {
-        let mut data: [f32; 44] = [0.0; 44];
+        let mut colors = [0u32; 8];
+        let mut offsets = [0.0f32; 8];
 
         for (index, stop) in self.stops.iter().enumerate() {
-            let [r, g, b, a] =
-                color::pack(stop.map_or(Color::default(), |s| s.color))
-                    .components();
-
-            data[index * 4] = r;
-            data[(index * 4) + 1] = g;
-            data[(index * 4) + 2] = b;
-            data[(index * 4) + 3] = a;
-
-            data[32 + index] = stop.map_or(2.0, |s| s.offset);
+            let (color, offset) = stop
+                .map_or((Color::default().into_u32(), 2.0), |s| {
+                    (s.color.into_u32(), s.offset)
+                });
+            colors[index] = color;
+            offsets[index] = offset;
         }
 
-        data[40] = self.start.x;
-        data[41] = self.start.y;
-        data[42] = self.end.x;
-        data[43] = self.end.y;
+        let direction = [self.start.x, self.start.y, self.end.x, self.end.y];
 
-        Packed(data)
+        Packed {
+            colors,
+            offsets,
+            direction,
+        }
     }
 }
 
 /// Packed [`Gradient`] data for use in shader code.
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(C)]
-pub struct Packed([f32; 44]);
+pub struct Packed {
+    // 8 colors, each packed into a u32
+    colors: [u32; 8],
+    offsets: [f32; 8],
+    direction: [f32; 4],
+}
 
 /// Creates a new [`Packed`] gradient for use in shader code.
 pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
     match gradient {
         core::Gradient::Linear(linear) => {
-            let mut data: [f32; 44] = [0.0; 44];
+            let mut colors = [0u32; 8];
+            let mut offsets = [0.0f32; 8];
 
             for (index, stop) in linear.stops.iter().enumerate() {
-                let [r, g, b, a] =
-                    color::pack(stop.map_or(Color::default(), |s| s.color))
-                        .components();
+                // let [r, g, b, a] =
+                //     color::pack(stop.map_or(Color::default(), |s| s.color))
+                //         .components();
 
-                data[index * 4] = r;
-                data[(index * 4) + 1] = g;
-                data[(index * 4) + 2] = b;
-                data[(index * 4) + 3] = a;
-                data[32 + index] = stop.map_or(2.0, |s| s.offset);
+                let (color, offset) = stop
+                    .map_or((Color::default().into_u32(), 2.0), |s| {
+                        (s.color.into_u32(), s.offset)
+                    });
+
+                colors[index] = color;
+                offsets[index] = offset;
             }
 
             let (start, end) = linear.angle.to_distance(&bounds);
 
-            data[40] = start.x;
-            data[41] = start.y;
-            data[42] = end.x;
-            data[43] = end.y;
+            let direction = [start.x, start.y, end.x, end.y];
 
-            Packed(data)
+            Packed {
+                colors,
+                offsets,
+                direction,
+            }
         }
     }
 }
