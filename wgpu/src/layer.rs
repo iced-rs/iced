@@ -3,17 +3,16 @@ mod image;
 mod text;
 
 pub mod mesh;
-pub mod quad;
 
 pub use image::Image;
 pub use mesh::Mesh;
-pub use quad::Quad;
 pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
 use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::{Primitive, Viewport};
+use crate::quad::{self, Quad};
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -22,7 +21,7 @@ pub struct Layer<'a> {
     pub bounds: Rectangle,
 
     /// The quads of the [`Layer`].
-    pub quads: quad::Layer,
+    pub quads: quad::Batch,
 
     /// The triangle meshes of the [`Layer`].
     pub meshes: Vec<Mesh<'a>>,
@@ -39,7 +38,7 @@ impl<'a> Layer<'a> {
     pub fn new(bounds: Rectangle) -> Self {
         Self {
             bounds,
-            quads: quad::Layer::default(),
+            quads: quad::Batch::default(),
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
