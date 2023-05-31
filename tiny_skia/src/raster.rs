@@ -39,12 +39,17 @@ impl Pipeline {
 
             let transform = transform.pre_scale(width_scale, height_scale);
 
+            let quality = match handle.filter().mag {
+                raster::FilterMethod::Linear => tiny_skia::FilterQuality::Bilinear,
+                raster::FilterMethod::Nearest => tiny_skia::FilterQuality::Nearest,
+            };
+
             pixels.draw_pixmap(
                 (bounds.x / width_scale) as i32,
                 (bounds.y / height_scale) as i32,
                 image,
                 &tiny_skia::PixmapPaint {
-                    quality: tiny_skia::FilterQuality::Bilinear,
+                    quality: quality,
                     ..Default::default()
                 },
                 transform,

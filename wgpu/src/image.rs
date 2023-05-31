@@ -7,6 +7,7 @@ mod raster;
 mod vector;
 
 use atlas::Atlas;
+use iced_graphics::core::image::{TextureFilter, FilterMethod};
 
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
@@ -14,6 +15,7 @@ use crate::layer;
 use crate::Buffer;
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::mem;
 
 use bytemuck::{Pod, Zeroable};
@@ -37,7 +39,7 @@ pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    sampler: wgpu::Sampler,
+    sampler: HashMap<TextureFilter,wgpu::Sampler>,
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_atlas: Atlas,
@@ -142,15 +144,32 @@ impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         use wgpu::util::DeviceExt;
 
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
-            min_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
+        let to_wgpu = |method: FilterMethod| {
+            match method {
+                FilterMethod::Linear => wgpu::FilterMode::Linear,
+                FilterMethod::Nearest => wgpu::FilterMode::Nearest,
+            }
+        };
+
+        let mut sampler = HashMap::new();
+
+        let filter = [FilterMethod::Linear, FilterMethod::Nearest];
+        for min in 0..filter.len() {
+            for mag in 0..filter.len() {
+                let _ = sampler.insert(TextureFilter {min: filter[min], mag: filter[mag]}, 
+                    device.create_sampler(&wgpu::SamplerDescriptor {
+                        address_mode_u: wgpu::AddressMode::ClampToEdge,
+                        address_mode_v: wgpu::AddressMode::ClampToEdge,
+                        address_mode_w: wgpu::AddressMode::ClampToEdge,
+                        mag_filter: to_wgpu(filter[mag]),
+                        min_filter: to_wgpu(filter[min]),
+                        mipmap_filter: wgpu::FilterMode::Linear,
+                        ..Default::default()
+                    }
+                ));
+            }
+        }
+
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -355,7 +374,7 @@ impl Pipeline {
         #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
-        let instances: &mut Vec<Instance> = &mut Vec::new();
+        let instances: &mut HashMap<TextureFilter,Vec<Instance>> = &mut HashMap::new();
 
         #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -377,7 +396,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             atlas_entry,
-                            instances,
+                            instances.entry(handle.filter().clone()).or_insert(Vec::new()),
                         );
                     }
                 }
@@ -405,7 +424,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             size,
                             atlas_entry,
-                            instances,
+                            instances.entry(TextureFilter::default()).or_insert(Vec::new()),
                         );
                     }
                 }
@@ -438,18 +457,20 @@ impl Pipeline {
             self.texture_version = texture_version;
         }
 
-        if self.layers.len() <= self.prepare_layer {
-            self.layers.push(Layer::new(
-                device,
-                &self.constant_layout,
-                &self.sampler,
-            ));
+        for (filter, instances) in instances.iter_mut() {
+            if self.layers.len() <= self.prepare_layer {
+                self.layers.push(Layer::new(
+                    device,
+                    &self.constant_layout,
+                    &self.sampler.get(filter).expect("Sampler is registered"),
+                ));
+            }
+    
+            let layer = &mut self.layers[self.prepare_layer];
+            layer.prepare(device, queue, &instances, transformation);
+    
+            self.prepare_layer += 1;
         }
-
-        let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, queue, instances, transformation);
-
-        self.prepare_layer += 1;
     }
 
     pub fn render<'a>(
