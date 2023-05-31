@@ -1,6 +1,7 @@
 use crate::core;
 use crate::core::{Color, Font, Point, Size};
 use crate::graphics::backend;
+use crate::graphics::color;
 use crate::graphics::{Primitive, Transformation, Viewport};
 use crate::quad;
 use crate::text;
@@ -239,7 +240,7 @@ impl Backend {
                         load: match clear_color {
                             Some(background_color) => wgpu::LoadOp::Clear({
                                 let [r, g, b, a] =
-                                    background_color.into_linear();
+                                    color::pack(background_color).components();
 
                                 wgpu::Color {
                                     r: f64::from(r),

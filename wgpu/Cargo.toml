@@ -11,6 +11,7 @@ repository = "https://github.com/iced-rs/iced"
 geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
 svg = ["resvg"]
+web-colors = ["iced_graphics/web-colors"]
 
 [dependencies]
 wgpu = "0.16"

@@ -3,8 +3,10 @@
 //! For a gradient that you can use as a background variant for a widget, see [`Gradient`].
 //!
 //! [`Gradient`]: crate::core::Gradient;
+use crate::color;
 use crate::core::gradient::ColorStop;
 use crate::core::{self, Color, Point, Rectangle};
+
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -101,7 +103,8 @@ impl Linear {
 
         for (index, stop) in self.stops.iter().enumerate() {
             let [r, g, b, a] =
-                stop.map_or(Color::default(), |s| s.color).into_linear();
+                color::pack(stop.map_or(Color::default(), |s| s.color))
+                    .components();
 
             data[index * 4] = r;
             data[(index * 4) + 1] = g;
@@ -133,7 +136,8 @@ pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
 
             for (index, stop) in linear.stops.iter().enumerate() {
                 let [r, g, b, a] =
-                    stop.map_or(Color::default(), |s| s.color).into_linear();
+                    color::pack(stop.map_or(Color::default(), |s| s.color))
+                        .components();
 
                 data[index * 4] = r;
                 data[(index * 4) + 1] = g;

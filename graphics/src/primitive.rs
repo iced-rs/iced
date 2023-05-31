@@ -1,4 +1,5 @@
 //! Draw using different graphical primitives.
+use crate::color;
 use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
@@ -248,7 +249,7 @@ pub struct ColoredVertex2D {
     pub position: [f32; 2],
 
     /// The color of the vertex in __linear__ RGBA.
-    pub color: [f32; 4],
+    pub color: color::Packed,
 }
 
 /// A vertex which contains 2D position & packed gradient data.

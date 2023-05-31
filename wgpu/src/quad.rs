@@ -5,6 +5,7 @@ use gradient::Gradient;
 use solid::Solid;
 
 use crate::core::{Background, Rectangle};
+use crate::graphics::color;
 use crate::graphics::{self, Transformation};
 
 use bytemuck::{Pod, Zeroable};
@@ -217,7 +218,7 @@ pub struct Quad {
     pub size: [f32; 2],
 
     /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: [f32; 4],
+    pub border_color: color::Packed,
 
     /// The border radii of the [`Quad`].
     pub border_radius: [f32; 4],
@@ -250,7 +251,7 @@ impl Batch {
         let kind = match background {
             Background::Color(color) => {
                 self.solids.push(Solid {
-                    color: color.into_linear(),
+                    color: color::pack(*color),
                     quad,
                 });
 

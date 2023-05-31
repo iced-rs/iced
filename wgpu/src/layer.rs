@@ -11,6 +11,7 @@ pub use text::Text;
 use crate::core;
 use crate::core::alignment;
 use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
+use crate::graphics::color;
 use crate::graphics::{Primitive, Viewport};
 use crate::quad::{self, Quad};
 
@@ -150,7 +151,7 @@ impl<'a> Layer<'a> {
                         bounds.y + translation.y,
                     ],
                     size: [bounds.width, bounds.height],
-                    border_color: border_color.into_linear(),
+                    border_color: color::pack(*border_color),
                     border_radius: *border_radius,
                     border_width: *border_width,
                 };
