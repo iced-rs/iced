@@ -351,7 +351,11 @@ impl Atlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: if color::GAMMA_CORRECTION {
+                wgpu::TextureFormat::Rgba8UnormSrgb
+            } else {
+                wgpu::TextureFormat::Rgba8Unorm
+            },
             usage: wgpu::TextureUsages::COPY_DST
                 | wgpu::TextureUsages::COPY_SRC
                 | wgpu::TextureUsages::TEXTURE_BINDING,
