@@ -367,7 +367,6 @@ pub fn draw<T, R>(
     } else {
         style_sheet.active(style)
     };
-    let border_radius: [f32; 4] = style.rail.border_radius.into();
 
     let (handle_width, handle_height, handle_border_radius) =
         match style.handle.shape {
@@ -404,8 +403,7 @@ pub fn draw<T, R>(
                 width: offset + handle_width / 2.0,
                 height: style.rail.width,
             },
-            border_radius: [border_radius[0], 0.0, 0.0, border_radius[3]]
-                .into(),
+            border_radius: style.rail.border_radius,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         },
@@ -420,8 +418,7 @@ pub fn draw<T, R>(
                 width: bounds.width - offset - handle_width / 2.0,
                 height: style.rail.width,
             },
-            border_radius: [0.0, border_radius[1], border_radius[2], 0.0]
-                .into(),
+            border_radius: style.rail.border_radius,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
         },
