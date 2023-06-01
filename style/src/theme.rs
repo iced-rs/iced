@@ -435,8 +435,8 @@ impl slider::StyleSheet for Theme {
                             palette.primary.base.color,
                             palette.secondary.base.color,
                         ),
-                        width: 2.0,
-                        border_radius: Default::default(),
+                        width: 4.0,
+                        border_radius: 2.0.into(),
                     },
                     handle: slider::Handle {
                         color: palette.background.base.color,
