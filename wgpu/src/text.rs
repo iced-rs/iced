@@ -36,7 +36,16 @@ impl Pipeline {
                 .into_iter(),
             )),
             renderers: Vec::new(),
-            atlas: glyphon::TextAtlas::new(device, queue, format),
+            atlas: glyphon::TextAtlas::new(
+                device,
+                queue,
+                format,
+                if color::GAMMA_CORRECTION {
+                    glyphon::ColorMode::Accurate
+                } else {
+                    glyphon::ColorMode::Web
+                },
+            ),
             prepare_layer: 0,
             measurement_cache: RefCell::new(Cache::new()),
             render_cache: Cache::new(),
