@@ -23,14 +23,15 @@ wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
-window_clipboard = "0.2"
+window_clipboard = "0.3"
 log = "0.4"
 thiserror = "1.0"
+raw-window-handle = "0.5"
 
 [dependencies.winit]
-version = "0.27"
+version = "0.28"
 git = "https://github.com/iced-rs/winit.git"
-rev = "940457522e9fb9f5dac228b0ecfafe0138b4048c"
+rev = "ac1ddfe0bd870910b3aa64a18d386fdd55b30a1d"
 default-features = false
 
 [dependencies.iced_runtime]

@@ -433,9 +433,10 @@ impl slider::StyleSheet for Theme {
                     rail: slider::Rail {
                         colors: (
                             palette.primary.base.color,
-                            palette.primary.base.color,
+                            palette.secondary.base.color,
                         ),
-                        width: 2.0,
+                        width: 4.0,
+                        border_radius: 2.0.into(),
                     },
                     handle: slider::Handle {
                         color: palette.background.base.color,

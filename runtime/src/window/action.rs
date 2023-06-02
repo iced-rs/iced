@@ -1,13 +1,13 @@
-use crate::core::window::{Icon, Mode, UserAttention};
+use crate::core::window::{Icon, Level, Mode, UserAttention};
 use crate::futures::MaybeSend;
 
 use std::fmt;
 
 /// An operation to be performed on some window.
 pub enum Action<T> {
-    /// Closes the current window and exits the application.
+    /// Close the current window and exits the application.
     Close,
-    /// Moves the window with the left mouse button until the button is
+    /// Move the window with the left mouse button until the button is
     /// released.
     ///
     /// There’s no guarantee that this will work unless the left mouse
@@ -20,7 +20,7 @@ pub enum Action<T> {
         /// The new logical height of the window
         height: u32,
     },
-    /// Sets the window to maximized or back
+    /// Set the window to maximized or back
     Maximize(bool),
     /// Set the window to minimized or back
     Minimize(bool),
@@ -70,15 +70,11 @@ pub enum Action<T> {
     ///
     /// - **Web / Wayland:** Unsupported.
     GainFocus,
-    /// Change whether or not the window will always be on top of other windows.
-    ///
-    /// ## Platform-specific
-    ///
-    /// - **Web / Wayland:** Unsupported.
-    ChangeAlwaysOnTop(bool),
+    /// Change the window [`Level`].
+    ChangeLevel(Level),
     /// Fetch an identifier unique to the window.
     FetchId(Box<dyn FnOnce(u64) -> T + 'static>),
-    /// Changes the window [`Icon`].
+    /// Change the window [`Icon`].
     ///
     /// On Windows and X11, this is typically the small icon in the top-left
     /// corner of the titlebar.
@@ -119,9 +115,7 @@ impl<T> Action<T> {
                 Action::RequestUserAttention(attention_type)
             }
             Self::GainFocus => Action::GainFocus,
-            Self::ChangeAlwaysOnTop(on_top) => {
-                Action::ChangeAlwaysOnTop(on_top)
-            }
+            Self::ChangeLevel(level) => Action::ChangeLevel(level),
             Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
             Self::ChangeIcon(icon) => Action::ChangeIcon(icon),
         }
@@ -154,8 +148,8 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::RequestUserAttention")
             }
             Self::GainFocus => write!(f, "Action::GainFocus"),
-            Self::ChangeAlwaysOnTop(on_top) => {
-                write!(f, "Action::AlwaysOnTop({on_top})")
+            Self::ChangeLevel(level) => {
+                write!(f, "Action::ChangeLevel({level:?})")
             }
             Self::FetchId(_) => write!(f, "Action::FetchId"),
             Self::ChangeIcon(_icon) => {

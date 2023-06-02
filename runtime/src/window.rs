@@ -5,7 +5,7 @@ pub use action::Action;
 
 use crate::command::{self, Command};
 use crate::core::time::Instant;
-use crate::core::window::{Event, Icon, Mode, UserAttention};
+use crate::core::window::{Event, Icon, Level, Mode, UserAttention};
 use crate::futures::subscription::{self, Subscription};
 
 /// Subscribes to the frames of the window of the running application.
@@ -53,7 +53,7 @@ pub fn move_to<Message>(x: i32, y: i32) -> Command<Message> {
     Command::single(command::Action::Window(Action::Move { x, y }))
 }
 
-/// Sets the [`Mode`] of the window.
+/// Changes the [`Mode`] of the window.
 pub fn change_mode<Message>(mode: Mode) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeMode(mode)))
 }
@@ -99,9 +99,9 @@ pub fn gain_focus<Message>() -> Command<Message> {
     Command::single(command::Action::Window(Action::GainFocus))
 }
 
-/// Changes whether or not the window will always be on top of other windows.
-pub fn change_always_on_top<Message>(on_top: bool) -> Command<Message> {
-    Command::single(command::Action::Window(Action::ChangeAlwaysOnTop(on_top)))
+/// Changes the window [`Level`].
+pub fn change_level<Message>(level: Level) -> Command<Message> {
+    Command::single(command::Action::Window(Action::ChangeLevel(level)))
 }
 
 /// Fetches an identifier unique to the window.

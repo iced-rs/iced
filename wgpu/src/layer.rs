@@ -3,17 +3,16 @@ mod image;
 mod text;
 
 pub mod mesh;
-pub mod quad;
 
 pub use image::Image;
 pub use mesh::Mesh;
-pub use quad::Quad;
 pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::{Primitive, Viewport};
+use crate::quad::{self, Quad};
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -22,7 +21,7 @@ pub struct Layer<'a> {
     pub bounds: Rectangle,
 
     /// The quads of the [`Layer`].
-    pub quads: Quads,
+    pub quads: quad::Batch,
 
     /// The triangle meshes of the [`Layer`].
     pub meshes: Vec<Mesh<'a>>,
@@ -34,29 +33,12 @@ pub struct Layer<'a> {
     pub images: Vec<Image>,
 }
 
-/// The quads of the [`Layer`].
-#[derive(Default, Debug)]
-pub struct Quads {
-    /// The solid quads of the [`Layer`].
-    pub solids: Vec<quad::Solid>,
-
-    /// The gradient quads of the [`Layer`].
-    pub gradients: Vec<quad::Gradient>,
-}
-
-impl Quads {
-    /// Returns true if there are no quads of any type in [`Quads`].
-    pub fn is_empty(&self) -> bool {
-        self.solids.is_empty() && self.gradients.is_empty()
-    }
-}
-
 impl<'a> Layer<'a> {
     /// Creates a new [`Layer`] with the given clipping bounds.
     pub fn new(bounds: Rectangle) -> Self {
         Self {
             bounds,
-            quads: Quads::default(),
+            quads: quad::Batch::default(),
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
@@ -173,28 +155,7 @@ impl<'a> Layer<'a> {
                     border_width: *border_width,
                 };
 
-                match background {
-                    Background::Color(color) => {
-                        layer.quads.solids.push(quad::Solid {
-                            color: color.into_linear(),
-                            quad,
-                        });
-                    }
-                    Background::Gradient(gradient) => {
-                        let quad = quad::Gradient {
-                            gradient: pack_gradient(
-                                gradient,
-                                Rectangle::new(
-                                    quad.position.into(),
-                                    quad.size.into(),
-                                ),
-                            ),
-                            quad,
-                        };
-
-                        layer.quads.gradients.push(quad);
-                    }
-                };
+                layer.quads.add(quad, background);
             }
             Primitive::Image { handle, bounds } => {
                 let layer = &mut layers[current_layer];
@@ -307,35 +268,6 @@ impl<'a> Layer<'a> {
                     primitive
                 );
             }
-        }
-    }
-}
-
-/// Packs the [`Gradient`] for use in shader code.
-fn pack_gradient(gradient: &core::Gradient, bounds: Rectangle) -> [f32; 44] {
-    match gradient {
-        core::Gradient::Linear(linear) => {
-            let mut pack: [f32; 44] = [0.0; 44];
-
-            for (index, stop) in linear.stops.iter().enumerate() {
-                let [r, g, b, a] =
-                    stop.map_or(Color::default(), |s| s.color).into_linear();
-
-                pack[index * 4] = r;
-                pack[(index * 4) + 1] = g;
-                pack[(index * 4) + 2] = b;
-                pack[(index * 4) + 3] = a;
-                pack[32 + index] = stop.map_or(2.0, |s| s.offset);
-            }
-
-            let (start, end) = linear.angle.to_distance(&bounds);
-
-            pack[40] = start.x;
-            pack[41] = start.y;
-            pack[42] = end.x;
-            pack[43] = end.y;
-
-            pack
         }
     }
 }

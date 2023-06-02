@@ -4,6 +4,7 @@ use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
 use crate::core::{Background, Color, Font, Rectangle, Size, Vector};
+use crate::gradient;
 
 use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
@@ -258,7 +259,7 @@ pub struct GradientVertex2D {
     pub position: [f32; 2],
 
     /// The packed vertex data of the gradient.
-    pub gradient: [f32; 44],
+    pub gradient: gradient::Packed,
 }
 
 #[allow(unsafe_code)]

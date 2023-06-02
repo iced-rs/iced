@@ -16,7 +16,7 @@ path = "../core"
 features = ["palette"]
 
 [dependencies.palette]
-version = "0.6"
+version = "0.7"
 
 [dependencies.once_cell]
 version = "1.15"

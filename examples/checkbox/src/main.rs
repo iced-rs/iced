@@ -31,7 +31,7 @@ impl Application for Example {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
             Self::default(),
-            font::load(include_bytes!("../fonts/icons.ttf").as_ref())
+            font::load(include_bytes!("../fonts/icons.ttf").as_slice())
                 .map(Message::FontLoaded),
         )
     }

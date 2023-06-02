@@ -82,6 +82,7 @@ where
 
         self.element = view(new_size);
         self.size = new_size;
+        self.layout = None;
 
         tree.diff(&self.element);
     }

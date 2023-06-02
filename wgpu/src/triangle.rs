@@ -155,6 +155,10 @@ impl Layer {
         for (index, mesh) in meshes.iter().enumerate() {
             let clip_bounds = (mesh.clip_bounds() * scale_factor).snap();
 
+            if clip_bounds.width < 1 || clip_bounds.height < 1 {
+                continue;
+            }
+
             render_pass.set_scissor_rect(
                 clip_bounds.x,
                 clip_bounds.y,
