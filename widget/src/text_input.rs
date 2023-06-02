@@ -995,7 +995,10 @@ where
                     let width = renderer.measure_width(
                         &editor.contents(),
                         size,
-                        font.clone(),
+                        font.unwrap_or_else(|| {
+                            Renderer::default_font(renderer)
+                        }),
+                        text::Shaping::Advanced,
                     );
                     let (x, y) = (
                         (text_bounds.x + width) as i32,
