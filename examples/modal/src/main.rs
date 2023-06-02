@@ -180,7 +180,7 @@ mod modal {
     use iced::advanced::overlay;
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::advanced::{self, Clipboard, Shell};
+    use iced::advanced::{self, Clipboard, Shell, IME};
     use iced::alignment::Alignment;
     use iced::event;
     use iced::mouse;
@@ -257,6 +257,7 @@ mod modal {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             self.base.as_widget_mut().on_event(
@@ -266,6 +267,7 @@ mod modal {
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         }
@@ -380,6 +382,7 @@ mod modal {
             cursor_position: Point,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             let content_bounds = layout.children().next().unwrap().bounds();
@@ -403,6 +406,7 @@ mod modal {
                 cursor_position,
                 renderer,
                 clipboard,
+                ime,
                 shell,
             )
         }

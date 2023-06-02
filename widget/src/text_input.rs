@@ -975,7 +975,7 @@ where
                 && !is_secure
                 && state.is_focused.is_some()
                 && state.ime_state.is_some())
-            .then(|| on_input)
+            .then_some(on_input)
             .flatten()
             {
                 let mut editor = Editor::new(value, &mut state.cursor);
@@ -1151,29 +1151,32 @@ pub fn draw<Renderer>(
         theme.value_color(style)
     };
 
-    let (render_text, before_preedit_text) = if let Some(ime_state) =
-        state.ime_state.as_ref()
-    {
-        let mut text = text;
-        let chars_from_left = state.cursor.start(value);
-        let before_preedit_text = text.chars().take(chars_from_left).fold(
-            String::new(),
-            |mut buffer, ch| {
-                buffer.push(ch);
-                buffer
-            },
-        );
+    let (render_text, before_preedit_text_range) =
+        if let Some(ime_state) = state.ime_state.as_ref() {
+            let mut text = text;
+            let chars_from_left =
+                if state.cursor.start(value) < state.cursor.end(value) {
+                    state.cursor.start(value) + 1
+                } else {
+                    state.cursor.start(value)
+                };
+            let last_index = text
+                .char_indices()
+                .take(chars_from_left)
+                .last()
+                .map(|(idx, _)| idx)
+                .unwrap_or_default();
 
-        text.insert_str(before_preedit_text.len(), ime_state.preedit_text());
+            text.insert_str(last_index, ime_state.preedit_text());
 
-        (text, before_preedit_text)
-    } else if text.is_empty() {
-        (placeholder.to_owned(), String::new())
-    } else {
-        (text.clone(), String::new())
-    };
-    // display preedit text and exist text concated.
-    // cursor position need to concated also.
+            (text, (0, last_index))
+        } else if text.is_empty() {
+            (placeholder.to_owned(), (0, 0))
+        } else {
+            (text, (0, 0))
+        };
+    let before_preedit_text =
+        &render_text[before_preedit_text_range.0..before_preedit_text_range.1];
 
     let (preedit_cursor_index, preedit_value) =
         if let Some(ime_state) = state.ime_state.as_ref() {
@@ -1192,7 +1195,7 @@ pub fn draw<Renderer>(
     let text_width = renderer.measure_width(
         &render_text,
         size,
-        font.clone(),
+        font,
         text::Shaping::Advanced,
     );
 
@@ -1294,7 +1297,7 @@ pub fn draw<Renderer>(
         let fill_text = Text {
             content: &render_text,
             color,
-            font: font.clone(),
+            font,
             bounds: Rectangle {
                 y: text_bounds.center_y(),
                 width: f32::INFINITY,
@@ -1310,9 +1313,9 @@ pub fn draw<Renderer>(
             // draw under line.
 
             let before_preedit_text_width = renderer.measure_width(
-                &before_preedit_text,
+                before_preedit_text,
                 size,
-                font.clone(),
+                font,
                 text::Shaping::Advanced,
             );
 
@@ -1325,7 +1328,7 @@ pub fn draw<Renderer>(
                         let width = renderer.measure_width(
                             t,
                             size,
-                            font.clone(),
+                            font,
                             text::Shaping::Advanced,
                         );
                         let quad = renderer::Quad {
