@@ -2,6 +2,7 @@ use crate::core::alignment;
 use crate::core::font::{self, Font};
 use crate::core::text::{Hit, LineHeight, Shaping};
 use crate::core::{Pixels, Point, Rectangle, Size};
+use crate::graphics::color;
 use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -35,7 +36,16 @@ impl Pipeline {
                 .into_iter(),
             )),
             renderers: Vec::new(),
-            atlas: glyphon::TextAtlas::new(device, queue, format),
+            atlas: glyphon::TextAtlas::new(
+                device,
+                queue,
+                format,
+                if color::GAMMA_CORRECTION {
+                    glyphon::ColorMode::Accurate
+                } else {
+                    glyphon::ColorMode::Web
+                },
+            ),
             prepare_layer: 0,
             measurement_cache: RefCell::new(Cache::new()),
             render_cache: Cache::new(),
@@ -155,7 +165,8 @@ impl Pipeline {
                             bottom: (clip_bounds.y + clip_bounds.height) as i32,
                         },
                         default_color: {
-                            let [r, g, b, a] = section.color.into_linear();
+                            let [r, g, b, a] =
+                                color::pack(section.color).components();
 
                             glyphon::Color::rgba(
                                 (r * 255.0) as u8,

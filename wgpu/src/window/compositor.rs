@@ -1,6 +1,7 @@
 //! Connect a window with a renderer.
 use crate::core::Color;
 use crate::graphics;
+use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::{Error, Primitive, Viewport};
 use crate::{Backend, Renderer, Settings};
@@ -69,16 +70,19 @@ impl<Theme> Compositor<Theme> {
         let format = compatible_surface.as_ref().and_then(|surface| {
             let capabilities = surface.get_capabilities(&adapter);
 
-            capabilities
-                .formats
-                .iter()
-                .copied()
-                .find(wgpu::TextureFormat::is_srgb)
-                .or_else(|| {
-                    log::warn!("No sRGB format found!");
+            let mut formats = capabilities.formats.iter().copied();
 
-                    capabilities.formats.first().copied()
-                })
+            let format = if color::GAMMA_CORRECTION {
+                formats.find(wgpu::TextureFormat::is_srgb)
+            } else {
+                formats.find(|format| !wgpu::TextureFormat::is_srgb(format))
+            };
+
+            format.or_else(|| {
+                log::warn!("No format found!");
+
+                capabilities.formats.first().copied()
+            })
         })?;
 
         log::info!("Selected format: {:?}", format);

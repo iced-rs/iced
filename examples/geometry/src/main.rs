@@ -3,6 +3,7 @@
 mod rainbow {
     use iced_graphics::primitive::{ColoredVertex2D, Primitive};
 
+    use iced::advanced::graphics::color;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
@@ -84,39 +85,39 @@ mod rainbow {
                     vertices: vec![
                         ColoredVertex2D {
                             position: posn_center,
-                            color: [1.0, 1.0, 1.0, 1.0],
+                            color: color::pack([1.0, 1.0, 1.0, 1.0]),
                         },
                         ColoredVertex2D {
                             position: posn_tl,
-                            color: color_r,
+                            color: color::pack(color_r),
                         },
                         ColoredVertex2D {
                             position: posn_t,
-                            color: color_o,
+                            color: color::pack(color_o),
                         },
                         ColoredVertex2D {
                             position: posn_tr,
-                            color: color_y,
+                            color: color::pack(color_y),
                         },
                         ColoredVertex2D {
                             position: posn_r,
-                            color: color_g,
+                            color: color::pack(color_g),
                         },
                         ColoredVertex2D {
                             position: posn_br,
-                            color: color_gb,
+                            color: color::pack(color_gb),
                         },
                         ColoredVertex2D {
                             position: posn_b,
-                            color: color_b,
+                            color: color::pack(color_b),
                         },
                         ColoredVertex2D {
                             position: posn_bl,
-                            color: color_i,
+                            color: color::pack(color_i),
                         },
                         ColoredVertex2D {
                             position: posn_l,
-                            color: color_v,
+                            color: color::pack(color_v),
                         },
                     ],
                     indices: vec![

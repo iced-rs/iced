@@ -1,5 +1,6 @@
 //! Build and draw geometry.
 use crate::core::{Point, Rectangle, Size, Vector};
+use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
@@ -68,7 +69,7 @@ impl BufferStack {
             (Style::Solid(color), Buffer::Solid(buffer)) => {
                 Box::new(tessellation::BuffersBuilder::new(
                     buffer,
-                    TriangleVertex2DBuilder(color.into_linear()),
+                    TriangleVertex2DBuilder(color::pack(*color)),
                 ))
             }
             (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
@@ -91,7 +92,7 @@ impl BufferStack {
             (Style::Solid(color), Buffer::Solid(buffer)) => {
                 Box::new(tessellation::BuffersBuilder::new(
                     buffer,
-                    TriangleVertex2DBuilder(color.into_linear()),
+                    TriangleVertex2DBuilder(color::pack(*color)),
                 ))
             }
             (Style::Gradient(gradient), Buffer::Gradient(buffer)) => {
@@ -526,7 +527,7 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
     }
 }
 
-struct TriangleVertex2DBuilder([f32; 4]);
+struct TriangleVertex2DBuilder(color::Packed);
 
 impl tessellation::FillVertexConstructor<primitive::ColoredVertex2D>
     for TriangleVertex2DBuilder
