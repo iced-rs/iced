@@ -153,11 +153,11 @@ impl Application for Example {
         let crop_origin_controls = row![
             text("X:")
                 .vertical_alignment(alignment::Vertical::Center)
-                .width(20),
+                .width(30),
             numeric_input("0", self.x_input_value).map(Message::XInputChanged),
             text("Y:")
                 .vertical_alignment(alignment::Vertical::Center)
-                .width(20),
+                .width(30),
             numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
@@ -166,12 +166,12 @@ impl Application for Example {
         let crop_dimension_controls = row![
             text("W:")
                 .vertical_alignment(alignment::Vertical::Center)
-                .width(20),
+                .width(30),
             numeric_input("0", self.width_input_value)
                 .map(Message::WidthInputChanged),
             text("H:")
                 .vertical_alignment(alignment::Vertical::Center)
-                .width(20),
+                .width(30),
             numeric_input("0", self.height_input_value)
                 .map(Message::HeightInputChanged)
         ]
