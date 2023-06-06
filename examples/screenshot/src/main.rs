@@ -1,12 +1,10 @@
 use ::image as img;
 use ::image::ColorType;
-use iced::alignment::{Horizontal, Vertical};
+use iced::alignment;
 use iced::keyboard::KeyCode;
 use iced::theme::{Button, Container};
 use iced::widget::runtime::{CropError, Screenshot};
-use iced::widget::{
-    button, column as col, container, image, row, text, text_input,
-};
+use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::{
     event, executor, keyboard, subscription, Alignment, Application, Command,
     ContentFit, Element, Event, Length, Rectangle, Renderer, Subscription,
@@ -153,19 +151,27 @@ impl Application for Example {
             .center_y();
 
         let crop_origin_controls = row![
-            text("X:").vertical_alignment(Vertical::Center).width(20),
+            text("X:")
+                .vertical_alignment(alignment::Vertical::Center)
+                .width(20),
             numeric_input("0", self.x_input_value).map(Message::XInputChanged),
-            text("Y:").vertical_alignment(Vertical::Center).width(20),
+            text("Y:")
+                .vertical_alignment(alignment::Vertical::Center)
+                .width(20),
             numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
         .align_items(Alignment::Center);
 
         let crop_dimension_controls = row![
-            text("W:").vertical_alignment(Vertical::Center).width(20),
+            text("W:")
+                .vertical_alignment(alignment::Vertical::Center)
+                .width(20),
             numeric_input("0", self.width_input_value)
                 .map(Message::WidthInputChanged),
-            text("H:").vertical_alignment(Vertical::Center).width(20),
+            text("H:")
+                .vertical_alignment(alignment::Vertical::Center)
+                .width(20),
             numeric_input("0", self.height_input_value)
                 .map(Message::HeightInputChanged)
         ]
@@ -173,7 +179,7 @@ impl Application for Example {
         .align_items(Alignment::Center);
 
         let mut crop_controls =
-            col![crop_origin_controls, crop_dimension_controls]
+            column![crop_origin_controls, crop_dimension_controls]
                 .spacing(10)
                 .align_items(Alignment::Center);
 
@@ -182,30 +188,36 @@ impl Application for Example {
                 .push(text(format!("Crop error! \n{}", crop_error)));
         }
 
-        let png_button = if !self.png_saving {
-            button("Save to png")
+        let mut controls = column![
+            column![
+                button(centered_text("Screenshot!"))
+                    .padding([10, 20, 10, 20])
+                    .width(Length::Fill)
+                    .on_press(Message::Screenshot),
+                if !self.png_saving {
+                    button(centered_text("Save as png")).on_press_maybe(
+                        self.screenshot.is_some().then(|| Message::Png),
+                    )
+                } else {
+                    button(centered_text("Saving...")).style(Button::Secondary)
+                }
                 .style(Button::Secondary)
                 .padding([10, 20, 10, 20])
-                .on_press_maybe(self.screenshot.is_some().then(|| Message::Png))
-        } else {
-            button("Saving...")
-                .style(Button::Secondary)
-                .padding([10, 20, 10, 20])
-        };
-
-        let mut controls = col![
-            button("Screenshot!")
-                .padding([10, 20, 10, 20])
-                .on_press(Message::Screenshot),
-            button("Crop")
-                .style(Button::Destructive)
-                .padding([10, 20, 10, 20])
-                .on_press(Message::Crop),
-            crop_controls,
-            png_button,
+                .width(Length::Fill)
+            ]
+            .spacing(10),
+            column![
+                crop_controls,
+                button(centered_text("Crop"))
+                    .on_press(Message::Crop)
+                    .style(Button::Destructive)
+                    .padding([10, 20, 10, 20])
+                    .width(Length::Fill),
+            ]
+            .spacing(10)
+            .align_items(Alignment::Center),
         ]
-        .spacing(40)
-        .align_items(Alignment::Center);
+        .spacing(40);
 
         if let Some(png_result) = &self.saved_png_path {
             let msg = match png_result {
@@ -219,21 +231,22 @@ impl Application for Example {
         }
 
         let side_content = container(controls)
-            .align_x(Horizontal::Center)
+            .align_x(alignment::Horizontal::Center)
             .width(Length::FillPortion(1))
             .height(Length::Fill)
             .center_y()
             .center_x();
 
         let content = row![side_content, image]
+            .spacing(10)
             .width(Length::Fill)
             .height(Length::Fill)
             .align_items(Alignment::Center);
 
         container(content)
-            .padding(10)
             .width(Length::Fill)
             .height(Length::Fill)
+            .padding(10)
             .center_x()
             .center_y()
             .into()
@@ -296,4 +309,11 @@ fn numeric_input(
     })
     .width(40)
     .into()
+}
+
+fn centered_text(content: &str) -> Element<'_, Message> {
+    text(content)
+        .width(Length::Fill)
+        .horizontal_alignment(alignment::Horizontal::Center)
+        .into()
 }
