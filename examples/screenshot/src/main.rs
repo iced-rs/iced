@@ -153,19 +153,19 @@ impl Application for Example {
             .center_y();
 
         let crop_origin_controls = row![
-            text("X:").vertical_alignment(Vertical::Center).width(14),
+            text("X:").vertical_alignment(Vertical::Center).width(20),
             numeric_input("0", self.x_input_value).map(Message::XInputChanged),
-            text("Y:").vertical_alignment(Vertical::Center).width(14),
+            text("Y:").vertical_alignment(Vertical::Center).width(20),
             numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
         .align_items(Alignment::Center);
 
         let crop_dimension_controls = row![
-            text("W:").vertical_alignment(Vertical::Center).width(14),
+            text("W:").vertical_alignment(Vertical::Center).width(20),
             numeric_input("0", self.width_input_value)
                 .map(Message::WidthInputChanged),
-            text("H:").vertical_alignment(Vertical::Center).width(14),
+            text("H:").vertical_alignment(Vertical::Center).width(20),
             numeric_input("0", self.height_input_value)
                 .map(Message::HeightInputChanged)
         ]
