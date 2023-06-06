@@ -1,5 +1,7 @@
-use iced_core::{Rectangle, Size};
+use crate::core::{Rectangle, Size};
+
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 
 /// Data of a screenshot, captured with `window::screenshot()`.
 ///
@@ -7,7 +9,7 @@ use std::fmt::{Debug, Formatter};
 #[derive(Clone)]
 pub struct Screenshot {
     /// The bytes of the [`Screenshot`].
-    pub bytes: Vec<u8>,
+    pub bytes: Arc<Vec<u8>>,
     /// The size of the [`Screenshot`].
     pub size: Size<u32>,
 }
@@ -26,7 +28,10 @@ impl Debug for Screenshot {
 impl Screenshot {
     /// Creates a new [`Screenshot`].
     pub fn new(bytes: Vec<u8>, size: Size<u32>) -> Self {
-        Self { bytes, size }
+        Self {
+            bytes: Arc::new(bytes),
+            size,
+        }
     }
 
     /// Crops a [`Screenshot`] to the provided `region`. This will always be relative to the
@@ -62,9 +67,15 @@ impl Screenshot {
         );
 
         Ok(Self {
-            bytes: chopped,
+            bytes: Arc::new(chopped),
             size: Size::new(region.width, region.height),
         })
+    }
+}
+
+impl AsRef<[u8]> for Screenshot {
+    fn as_ref(&self) -> &[u8] {
+        &self.bytes
     }
 }
 

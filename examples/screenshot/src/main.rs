@@ -133,7 +133,7 @@ impl Application for Example {
             image(image::Handle::from_pixels(
                 screenshot.size.width,
                 screenshot.size.height,
-                screenshot.bytes.clone(),
+                screenshot.clone(),
             ))
             .content_fit(ContentFit::ScaleDown)
             .width(Length::Fill)
