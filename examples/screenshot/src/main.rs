@@ -1,18 +1,17 @@
+use ::image as img;
+use ::image::ColorType;
 use iced::alignment::{Horizontal, Vertical};
 use iced::keyboard::KeyCode;
 use iced::theme::{Button, Container};
 use iced::widget::runtime::{CropError, Screenshot};
 use iced::widget::{
-    button, column as col, container, image as iced_image, row, text,
-    text_input,
+    button, column as col, container, image, row, text, text_input,
 };
 use iced::{
     event, executor, keyboard, subscription, Alignment, Application, Command,
     ContentFit, Element, Event, Length, Rectangle, Renderer, Subscription,
     Theme,
 };
-use image as img;
-use image::ColorType;
 
 fn main() -> iced::Result {
     env_logger::builder().format_timestamp(None).init();
@@ -131,7 +130,7 @@ impl Application for Example {
     fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
-            iced_image(iced_image::Handle::from_pixels(
+            image(image::Handle::from_pixels(
                 screenshot.size.width,
                 screenshot.size.height,
                 screenshot.bytes.clone(),
