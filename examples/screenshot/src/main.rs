@@ -25,10 +25,10 @@ struct Example {
     saved_png_path: Option<Result<String, PngError>>,
     png_saving: bool,
     crop_error: Option<CropError>,
-    x_input_value: u32,
-    y_input_value: u32,
-    width_input_value: u32,
-    height_input_value: u32,
+    x_input_value: Option<u32>,
+    y_input_value: Option<u32>,
+    width_input_value: Option<u32>,
+    height_input_value: Option<u32>,
 }
 
 #[derive(Clone, Debug)]
@@ -38,10 +38,10 @@ enum Message {
     ScreenshotData(Screenshot),
     Png,
     PngSaved(Result<String, PngError>),
-    XInputChanged(String),
-    YInputChanged(String),
-    WidthInputChanged(String),
-    HeightInputChanged(String),
+    XInputChanged(Option<u32>),
+    YInputChanged(Option<u32>),
+    WidthInputChanged(Option<u32>),
+    HeightInputChanged(Option<u32>),
 }
 
 impl Application for Example {
@@ -57,10 +57,10 @@ impl Application for Example {
                 saved_png_path: None,
                 png_saving: false,
                 crop_error: None,
-                x_input_value: 0,
-                y_input_value: 0,
-                width_input_value: 0,
-                height_input_value: 0,
+                x_input_value: None,
+                y_input_value: None,
+                width_input_value: None,
+                height_input_value: None,
             },
             Command::none(),
         )
@@ -91,33 +91,25 @@ impl Application for Example {
                 self.png_saving = false;
                 self.saved_png_path = Some(res);
             }
-            Message::XInputChanged(new) => {
-                if let Ok(value) = new.parse::<u32>() {
-                    self.x_input_value = value;
-                }
+            Message::XInputChanged(new_value) => {
+                self.x_input_value = new_value;
             }
-            Message::YInputChanged(new) => {
-                if let Ok(value) = new.parse::<u32>() {
-                    self.y_input_value = value;
-                }
+            Message::YInputChanged(new_value) => {
+                self.y_input_value = new_value;
             }
-            Message::WidthInputChanged(new) => {
-                if let Ok(value) = new.parse::<u32>() {
-                    self.width_input_value = value;
-                }
+            Message::WidthInputChanged(new_value) => {
+                self.width_input_value = new_value;
             }
-            Message::HeightInputChanged(new) => {
-                if let Ok(value) = new.parse::<u32>() {
-                    self.height_input_value = value;
-                }
+            Message::HeightInputChanged(new_value) => {
+                self.height_input_value = new_value;
             }
             Message::Crop => {
                 if let Some(screenshot) = &self.screenshot {
                     let cropped = screenshot.crop(Rectangle::<u32> {
-                        x: self.x_input_value,
-                        y: self.y_input_value,
-                        width: self.width_input_value,
-                        height: self.height_input_value,
+                        x: self.x_input_value.unwrap_or(0),
+                        y: self.y_input_value.unwrap_or(0),
+                        width: self.width_input_value.unwrap_or(0),
+                        height: self.height_input_value.unwrap_or(0),
                     });
 
                     match cropped {
@@ -162,26 +154,20 @@ impl Application for Example {
 
         let crop_origin_controls = row![
             text("X:").vertical_alignment(Vertical::Center).width(14),
-            text_input("0", &format!("{}", self.x_input_value),)
-                .on_input(Message::XInputChanged)
-                .width(40),
+            numeric_input("0", self.x_input_value).map(Message::XInputChanged),
             text("Y:").vertical_alignment(Vertical::Center).width(14),
-            text_input("0", &format!("{}", self.y_input_value),)
-                .on_input(Message::YInputChanged)
-                .width(40),
+            numeric_input("0", self.y_input_value).map(Message::YInputChanged)
         ]
         .spacing(10)
         .align_items(Alignment::Center);
 
         let crop_dimension_controls = row![
             text("W:").vertical_alignment(Vertical::Center).width(14),
-            text_input("0", &format!("{}", self.width_input_value),)
-                .on_input(Message::WidthInputChanged)
-                .width(40),
+            numeric_input("0", self.width_input_value)
+                .map(Message::WidthInputChanged),
             text("H:").vertical_alignment(Vertical::Center).width(14),
-            text_input("0", &format!("{}", self.height_input_value),)
-                .on_input(Message::HeightInputChanged)
-                .width(40),
+            numeric_input("0", self.height_input_value)
+                .map(Message::HeightInputChanged)
         ]
         .spacing(10)
         .align_items(Alignment::Center);
@@ -287,3 +273,27 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
 
 #[derive(Clone, Debug)]
 struct PngError(String);
+
+fn numeric_input(
+    placeholder: &str,
+    value: Option<u32>,
+) -> Element<'_, Option<u32>> {
+    text_input(
+        placeholder,
+        &value
+            .as_ref()
+            .map(ToString::to_string)
+            .unwrap_or_else(String::new),
+    )
+    .on_input(move |text| {
+        if text.is_empty() {
+            None
+        } else if let Ok(new_value) = text.parse() {
+            Some(new_value)
+        } else {
+            value
+        }
+    })
+    .width(40)
+    .into()
+}
