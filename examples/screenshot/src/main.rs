@@ -154,7 +154,7 @@ impl Application for Example {
 
         let image = container(image)
             .padding(10)
-            .style(Container::Custom(Box::new(ScreenshotDisplayContainer)))
+            .style(Container::Box)
             .width(Length::FillPortion(2))
             .height(Length::Fill)
             .center_x()
@@ -269,22 +269,6 @@ impl Application for Example {
                 None
             }
         })
-    }
-}
-
-struct ScreenshotDisplayContainer;
-
-impl container::StyleSheet for ScreenshotDisplayContainer {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
-        container::Appearance {
-            text_color: None,
-            background: None,
-            border_radius: 5.0,
-            border_width: 4.0,
-            border_color: style.palette().primary,
-        }
     }
 }
 
