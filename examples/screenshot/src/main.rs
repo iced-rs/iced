@@ -183,12 +183,12 @@ impl Application for Example {
         }
 
         let png_button = if !self.png_saving {
-            button("Save to png.")
+            button("Save to png")
                 .style(Button::Secondary)
                 .padding([10, 20, 10, 20])
                 .on_press(Message::Png)
         } else {
-            button("Saving..")
+            button("Saving...")
                 .style(Button::Secondary)
                 .padding([10, 20, 10, 20])
         };
