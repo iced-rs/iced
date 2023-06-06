@@ -79,12 +79,13 @@ impl Application for Example {
             }
             Message::Png => {
                 if let Some(screenshot) = &self.screenshot {
+                    self.png_saving = true;
+
                     return Command::perform(
                         save_to_png(screenshot.clone()),
                         Message::PngSaved,
                     );
                 }
-                self.png_saving = true;
             }
             Message::PngSaved(res) => {
                 self.png_saving = false;
@@ -185,7 +186,7 @@ impl Application for Example {
             button("Save to png")
                 .style(Button::Secondary)
                 .padding([10, 20, 10, 20])
-                .on_press(Message::Png)
+                .on_press_maybe(self.screenshot.is_some().then(|| Message::Png))
         } else {
             button("Saving...")
                 .style(Button::Secondary)
