@@ -4,17 +4,10 @@ struct Globals {
 
 @group(0) @binding(0) var<uniform> globals: Globals;
 
-fn l(c: f32) -> f32 {
-    if (c < 0.04045) {
-        return c / 12.92;
-    } else {
-        return pow(((c + 0.055) / 1.055), 2.4);
-    };
-}
+fn unpack_u32(color: u32) -> vec4<f32> {
+    let u = unpack4x8unorm(color);
 
-fn to_linear(color: u32) -> vec4<f32> {
-    let c = unpack4x8unorm(color); //unpacks as a b g r
-    return vec4<f32>(l(c.w), l(c.z), l(c.y), c.x);
+    return vec4<f32>(u.w, u.z, u.y, u.x);
 }
 
 struct SolidVertexInput {
@@ -130,14 +123,14 @@ fn gradient(
 @fragment
 fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     let colors = array<vec4<f32>, 8>(
-        to_linear(input.colors_1.x),
-        to_linear(input.colors_1.y),
-        to_linear(input.colors_1.z),
-        to_linear(input.colors_1.w),
-        to_linear(input.colors_2.x),
-        to_linear(input.colors_2.y),
-        to_linear(input.colors_2.z),
-        to_linear(input.colors_2.w),
+        unpack_u32(input.colors_1.x),
+        unpack_u32(input.colors_1.y),
+        unpack_u32(input.colors_1.z),
+        unpack_u32(input.colors_1.w),
+        unpack_u32(input.colors_2.x),
+        unpack_u32(input.colors_2.y),
+        unpack_u32(input.colors_2.z),
+        unpack_u32(input.colors_2.w),
     );
 
     var offsets = array<f32, 8>(

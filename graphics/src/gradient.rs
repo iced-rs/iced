@@ -103,11 +103,17 @@ impl Linear {
         let mut offsets = [0.0f32; 8];
 
         for (index, stop) in self.stops.iter().enumerate() {
-            let (color, offset) = stop
-                .map_or((Color::default().into_u32(), 2.0), |s| {
-                    (s.color.into_u32(), s.offset)
-                });
-            colors[index] = color;
+            let (color, offset) =
+                stop.map_or((Color::default(), 2.0), |s| (s.color, s.offset));
+
+            if color::GAMMA_CORRECTION {
+                //correct colors, convert to linear before uploading to GPU
+                colors[index] = color.into_linear_u32();
+            } else {
+                //web colors, don't convert to linear before uploading to GPU
+                colors[index] = color.into_u32();
+            }
+
             offsets[index] = offset;
         }
 
@@ -139,16 +145,17 @@ pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
             let mut offsets = [0.0f32; 8];
 
             for (index, stop) in linear.stops.iter().enumerate() {
-                // let [r, g, b, a] =
-                //     color::pack(stop.map_or(Color::default(), |s| s.color))
-                //         .components();
-
                 let (color, offset) = stop
-                    .map_or((Color::default().into_u32(), 2.0), |s| {
-                        (s.color.into_u32(), s.offset)
-                    });
+                    .map_or((Color::default(), 2.0), |s| (s.color, s.offset));
 
-                colors[index] = color;
+                if color::GAMMA_CORRECTION {
+                    //correct colors, convert to linear before uploading to GPU
+                    colors[index] = color.into_linear_u32();
+                } else {
+                    //web colors, don't convert to linear before uploading to GPU
+                    colors[index] = color.into_u32();
+                }
+
                 offsets[index] = offset;
             }
 
