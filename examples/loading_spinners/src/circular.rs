@@ -14,7 +14,6 @@ use iced_core::{
 
 use super::easing::{self, Easing};
 
-use std::borrow::Cow;
 use std::f32::consts::PI;
 use std::time::Duration;
 
@@ -22,7 +21,7 @@ type R<Theme> = iced_widget::renderer::Renderer<Theme>;
 
 const MIN_RADIANS: f32 = PI / 8.0;
 const WRAP_RADIANS: f32 = 2.0 * PI - PI / 4.0;
-const PROCESSION_VELOCITY: u32 = u32::MAX / 120;
+const BASE_ROTATION_SPEED: u32 = u32::MAX / 80;
 
 #[allow(missing_debug_implementations)]
 pub struct Circular<'a, Theme>
@@ -32,8 +31,9 @@ where
     size: f32,
     bar_height: f32,
     style: <Theme as StyleSheet>::Style,
-    easing: Cow<'a, Easing>,
+    easing: &'a Easing,
     cycle_duration: Duration,
+    rotation_speed: u32,
 }
 
 impl<'a, Theme> Circular<'a, Theme>
@@ -46,8 +46,9 @@ where
             size: 40.0,
             bar_height: 4.0,
             style: <Theme as StyleSheet>::Style::default(),
-            easing: Cow::Borrowed(&easing::STANDARD),
+            easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
+            rotation_speed: BASE_ROTATION_SPEED,
         }
     }
 
@@ -70,14 +71,22 @@ where
     }
 
     /// Sets the easing of this [`Circular`].
-    pub fn easing(mut self, easing: impl Into<Cow<'a, Easing>>) -> Self {
-        self.easing = easing.into();
+    pub fn easing(mut self, easing: &'a Easing) -> Self {
+        self.easing = easing;
         self
     }
 
     /// Sets the cycle duration of this [`Circular`].
     pub fn cycle_duration(mut self, duration: Duration) -> Self {
         self.cycle_duration = duration / 2;
+        self
+    }
+
+    /// Sets the rotation speed of this [`Circular`]. Must be set to between 0.0 and 10.0.
+    /// Defaults to 1.0.
+    pub fn rotation_speed(mut self, speed: f32) -> Self {
+        let multiplier = speed.min(10.0).max(0.0);
+        self.rotation_speed = (BASE_ROTATION_SPEED as f32 * multiplier) as u32;
         self
     }
 }
@@ -121,13 +130,13 @@ impl State {
             Self::Expanding { procession, .. } => Self::Contracting {
                 start: now,
                 progress: 0.0,
-                procession: procession.wrapping_add(PROCESSION_VELOCITY),
+                procession: procession.wrapping_add(BASE_ROTATION_SPEED),
             },
             Self::Contracting { procession, .. } => Self::Expanding {
                 start: now,
                 progress: 0.0,
                 procession: procession.wrapping_add(
-                    PROCESSION_VELOCITY.wrapping_add(
+                    BASE_ROTATION_SPEED.wrapping_add(
                         ((WRAP_RADIANS / (2.0 * PI)) * u32::MAX as f32) as u32,
                     ),
                 ),
@@ -143,18 +152,24 @@ impl State {
         }
     }
 
-    fn timed_transition(&self, cycle_duration: Duration, now: Instant) -> Self {
+    fn timed_transition(
+        &self,
+        cycle_duration: Duration,
+        rotation_speed: u32,
+        now: Instant,
+    ) -> Self {
         let elapsed = now.duration_since(self.start());
 
         match elapsed {
             elapsed if elapsed > cycle_duration => self.next(now),
-            _ => self.with_elapsed(cycle_duration, elapsed),
+            _ => self.with_elapsed(cycle_duration, rotation_speed, elapsed),
         }
     }
 
     fn with_elapsed(
         &self,
         cycle_duration: Duration,
+        rotation_speed: u32,
         elapsed: Duration,
     ) -> Self {
         let progress = elapsed.as_secs_f32() / cycle_duration.as_secs_f32();
@@ -164,14 +179,14 @@ impl State {
             } => Self::Expanding {
                 start: *start,
                 progress,
-                procession: procession.wrapping_add(PROCESSION_VELOCITY),
+                procession: procession.wrapping_add(rotation_speed),
             },
             Self::Contracting {
                 start, procession, ..
             } => Self::Contracting {
                 start: *start,
                 progress,
-                procession: procession.wrapping_add(PROCESSION_VELOCITY),
+                procession: procession.wrapping_add(rotation_speed),
             },
         }
     }
@@ -231,7 +246,11 @@ where
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
-            *state = state.timed_transition(self.cycle_duration, now);
+            *state = state.timed_transition(
+                self.cycle_duration,
+                self.rotation_speed,
+                now,
+            );
 
             shell.request_redraw(RedrawRequest::NextFrame);
         }
@@ -263,7 +282,7 @@ where
                         state,
                         style: &self.style,
                         bar_height: self.bar_height,
-                        easing: self.easing.as_ref(),
+                        easing: self.easing,
                     },
                     &(),
                     renderer,

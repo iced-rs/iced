@@ -1,6 +1,6 @@
-## Progress indicators
+## Loading Spinners
 
-Example implementation of animated indeterminate progress indicators.
+Example implementation of animated indeterminate loading spinners.
 
 <div align="center">
   <a href="https://gfycat.com/importantdevotedhammerheadbird">
@@ -10,5 +10,5 @@ Example implementation of animated indeterminate progress indicators.
 
 You can run it with `cargo run`:
 ```
-cargo run --package progress_indicators
+cargo run --package loading_spinners
 ```

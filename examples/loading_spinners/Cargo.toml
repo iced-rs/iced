@@ -1,5 +1,5 @@
 [package]
-name = "progress_indicators"
+name = "loading_spinners"
 version = "0.1.0"
 authors = ["Nick Senger <dev@nsenger.com>"]
 edition = "2021"
@@ -10,4 +10,5 @@ flo_curves = "0.7"
 iced = { path = "../..", features = ["canvas"] }
 iced_core = { path = "../../core" }
 iced_widget = { path = "../../widget" }
-lazy_static = "1.4"
+once_cell = "1"
+lyon = "1"

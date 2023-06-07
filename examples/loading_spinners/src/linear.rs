@@ -13,7 +13,6 @@ use iced_core::{
 
 use super::easing::{self, Easing};
 
-use std::borrow::Cow;
 use std::time::Duration;
 
 #[allow(missing_debug_implementations)]
@@ -25,7 +24,7 @@ where
     width: Length,
     height: Length,
     style: <Renderer::Theme as StyleSheet>::Style,
-    easing: Cow<'a, Easing>,
+    easing: &'a Easing,
     cycle_duration: Duration,
 }
 
@@ -40,7 +39,7 @@ where
             width: Length::Fixed(100.0),
             height: Length::Fixed(4.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
-            easing: Cow::Borrowed(&easing::STANDARD),
+            easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
         }
     }
@@ -67,8 +66,8 @@ where
     }
 
     /// Sets the motion easing of this [`Linear`].
-    pub fn easing(mut self, easing: impl Into<Cow<'a, Easing>>) -> Self {
-        self.easing = easing.into();
+    pub fn easing(mut self, easing: &'a Easing) -> Self {
+        self.easing = easing;
         self
     }
 
