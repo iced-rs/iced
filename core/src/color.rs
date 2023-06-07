@@ -120,37 +120,6 @@ impl Color {
         ]
     }
 
-    /// Converts the [`Color`] into a `u32` value containing its RGBA8 components.
-    pub fn into_u32(self) -> u32 {
-        let [r, g, b, a] = self.into_rgba8();
-
-        let r = (r as u32) << 24;
-        let g = (g as u32) << 16;
-        let b = (b as u32) << 8;
-        let a = a as u32;
-
-        r | g | b | a
-    }
-
-    /// Converts the [`Color`] into a `u32` value containing its linear RGBA8 components.
-    pub fn into_linear_u32(self) -> u32 {
-        let [r, g, b, a] = self.into_linear();
-
-        let [r, g, b, a] = [
-            (r * 255.0).round() as u8,
-            (g * 255.0).round() as u8,
-            (b * 255.0).round() as u8,
-            (a * 255.0).round() as u8,
-        ];
-
-        let r = (r as u32) << 24;
-        let g = (g as u32) << 16;
-        let b = (b as u32) << 8;
-        let a = a as u32;
-
-        r | g | b | a
-    }
-
     /// Inverts the [`Color`] in-place.
     pub fn invert(&mut self) {
         self.r = 1.0f32 - self.r;

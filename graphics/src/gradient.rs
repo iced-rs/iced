@@ -7,6 +7,7 @@ use crate::color;
 use crate::core::gradient::ColorStop;
 use crate::core::{self, Color, Point, Rectangle};
 
+use half::f16;
 use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -99,23 +100,29 @@ impl Linear {
 
     /// Packs the [`Gradient`] for use in shader code.
     pub fn pack(&self) -> Packed {
-        let mut colors = [0u32; 8];
-        let mut offsets = [0.0f32; 8];
+        let mut colors = [[0u32; 2]; 8];
+        let mut offsets = [f16::from(0u8); 8];
 
         for (index, stop) in self.stops.iter().enumerate() {
-            let (color, offset) =
-                stop.map_or((Color::default(), 2.0), |s| (s.color, s.offset));
+            let [r, g, b, a] =
+                color::pack(stop.map_or(Color::default(), |s| s.color))
+                    .components();
 
-            if color::GAMMA_CORRECTION {
-                //correct colors, convert to linear before uploading to GPU
-                colors[index] = color.into_linear_u32();
-            } else {
-                //web colors, don't convert to linear before uploading to GPU
-                colors[index] = color.into_u32();
-            }
+            colors[index] = [
+                pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
+                pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
+            ];
 
-            offsets[index] = offset;
+            offsets[index] =
+                stop.map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
         }
+
+        let offsets = [
+            pack_f16s([offsets[0], offsets[1]]),
+            pack_f16s([offsets[2], offsets[3]]),
+            pack_f16s([offsets[4], offsets[5]]),
+            pack_f16s([offsets[6], offsets[7]]),
+        ];
 
         let direction = [self.start.x, self.start.y, self.end.x, self.end.y];
 
@@ -131,9 +138,10 @@ impl Linear {
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[repr(C)]
 pub struct Packed {
-    // 8 colors, each packed into a u32
-    colors: [u32; 8],
-    offsets: [f32; 8],
+    // 8 colors, each channel = 16 bit float, 2 colors packed into 1 u32
+    colors: [[u32; 2]; 8],
+    // 8 offsets, 8x 16 bit floats packed into 4 u32s
+    offsets: [u32; 4],
     direction: [f32; 4],
 }
 
@@ -141,23 +149,29 @@ pub struct Packed {
 pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
     match gradient {
         core::Gradient::Linear(linear) => {
-            let mut colors = [0u32; 8];
-            let mut offsets = [0.0f32; 8];
+            let mut colors = [[0u32; 2]; 8];
+            let mut offsets = [f16::from(0u8); 8];
 
             for (index, stop) in linear.stops.iter().enumerate() {
-                let (color, offset) = stop
-                    .map_or((Color::default(), 2.0), |s| (s.color, s.offset));
+                let [r, g, b, a] =
+                    color::pack(stop.map_or(Color::default(), |s| s.color))
+                        .components();
 
-                if color::GAMMA_CORRECTION {
-                    //correct colors, convert to linear before uploading to GPU
-                    colors[index] = color.into_linear_u32();
-                } else {
-                    //web colors, don't convert to linear before uploading to GPU
-                    colors[index] = color.into_u32();
-                }
+                colors[index] = [
+                    pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
+                    pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
+                ];
 
-                offsets[index] = offset;
+                offsets[index] = stop
+                    .map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
             }
+
+            let offsets = [
+                pack_f16s([offsets[0], offsets[1]]),
+                pack_f16s([offsets[2], offsets[3]]),
+                pack_f16s([offsets[4], offsets[5]]),
+                pack_f16s([offsets[6], offsets[7]]),
+            ];
 
             let (start, end) = linear.angle.to_distance(&bounds);
 
@@ -170,4 +184,12 @@ pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
             }
         }
     }
+}
+
+/// Packs two f16s into one u32.
+fn pack_f16s(f: [f16; 2]) -> u32 {
+    let one = (f[0].to_bits() as u32) << 16;
+    let two = f[1].to_bits() as u32;
+
+    one | two
 }
