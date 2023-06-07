@@ -33,7 +33,7 @@ where
     style: <Theme as StyleSheet>::Style,
     easing: &'a Easing,
     cycle_duration: Duration,
-    rotation_speed: u32,
+    rotaion_duration: Duration,
 }
 
 impl<'a, Theme> Circular<'a, Theme>
@@ -48,7 +48,7 @@ where
             style: <Theme as StyleSheet>::Style::default(),
             easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
-            rotation_speed: BASE_ROTATION_SPEED,
+            rotaion_duration: Duration::from_secs(2),
         }
     }
 
@@ -82,11 +82,10 @@ where
         self
     }
 
-    /// Sets the rotation speed of this [`Circular`]. Must be set to between 0.0 and 10.0.
-    /// Defaults to 1.0.
-    pub fn rotation_speed(mut self, speed: f32) -> Self {
-        let multiplier = speed.min(10.0).max(0.0);
-        self.rotation_speed = (BASE_ROTATION_SPEED as f32 * multiplier) as u32;
+    /// Sets the base rotation duration of this [`Circular`]. This is the duration that a full
+    /// rotation would take if the cycle rotation were set to 0.0 (no expanding or contracting)
+    pub fn rotation_duration(mut self, duration: Duration) -> Self {
+        self.rotaion_duration = duration;
         self
     }
 }
@@ -105,12 +104,14 @@ enum State {
     Expanding {
         start: Instant,
         progress: f32,
-        procession: u32,
+        rotation: u32,
+        last: Instant,
     },
     Contracting {
         start: Instant,
         progress: f32,
-        procession: u32,
+        rotation: u32,
+        last: Instant,
     },
 }
 
@@ -119,27 +120,30 @@ impl Default for State {
         Self::Expanding {
             start: Instant::now(),
             progress: 0.0,
-            procession: 0,
+            rotation: 0,
+            last: Instant::now(),
         }
     }
 }
 
 impl State {
-    fn next(&self, now: Instant) -> Self {
+    fn next(&self, additional_rotation: u32, now: Instant) -> Self {
         match self {
-            Self::Expanding { procession, .. } => Self::Contracting {
+            Self::Expanding { rotation, .. } => Self::Contracting {
                 start: now,
                 progress: 0.0,
-                procession: procession.wrapping_add(BASE_ROTATION_SPEED),
+                rotation: rotation.wrapping_add(additional_rotation),
+                last: now,
             },
-            Self::Contracting { procession, .. } => Self::Expanding {
+            Self::Contracting { rotation, .. } => Self::Expanding {
                 start: now,
                 progress: 0.0,
-                procession: procession.wrapping_add(
+                rotation: rotation.wrapping_add(
                     BASE_ROTATION_SPEED.wrapping_add(
                         ((WRAP_RADIANS / (2.0 * PI)) * u32::MAX as f32) as u32,
                     ),
                 ),
+                last: now,
             },
         }
     }
@@ -152,50 +156,71 @@ impl State {
         }
     }
 
+    fn last(&self) -> Instant {
+        match self {
+            Self::Expanding { last, .. } | Self::Contracting { last, .. } => {
+                *last
+            }
+        }
+    }
+
     fn timed_transition(
         &self,
         cycle_duration: Duration,
-        rotation_speed: u32,
+        rotation_duration: Duration,
         now: Instant,
     ) -> Self {
         let elapsed = now.duration_since(self.start());
+        let additional_rotation = ((now - self.last()).as_secs_f32()
+            / rotation_duration.as_secs_f32()
+            * (u32::MAX) as f32) as u32;
 
         match elapsed {
-            elapsed if elapsed > cycle_duration => self.next(now),
-            _ => self.with_elapsed(cycle_duration, rotation_speed, elapsed),
+            elapsed if elapsed > cycle_duration => {
+                self.next(additional_rotation, now)
+            }
+            _ => self.with_elapsed(
+                cycle_duration,
+                additional_rotation,
+                elapsed,
+                now,
+            ),
         }
     }
 
     fn with_elapsed(
         &self,
         cycle_duration: Duration,
-        rotation_speed: u32,
+        additional_rotation: u32,
         elapsed: Duration,
+        now: Instant,
     ) -> Self {
         let progress = elapsed.as_secs_f32() / cycle_duration.as_secs_f32();
         match self {
             Self::Expanding {
-                start, procession, ..
+                start, rotation, ..
             } => Self::Expanding {
                 start: *start,
                 progress,
-                procession: procession.wrapping_add(rotation_speed),
+                rotation: rotation.wrapping_add(additional_rotation),
+                last: now,
             },
             Self::Contracting {
-                start, procession, ..
+                start, rotation, ..
             } => Self::Contracting {
                 start: *start,
                 progress,
-                procession: procession.wrapping_add(rotation_speed),
+                rotation: rotation.wrapping_add(additional_rotation),
+                last: now,
             },
         }
     }
 
-    fn procession(&self) -> f32 {
+    fn rotation(&self) -> f32 {
         match self {
-            Self::Expanding { procession, .. }
-            | Self::Contracting { procession, .. } => {
-                *procession as f32 / u32::MAX as f32
+            Self::Expanding { rotation, .. }
+            | Self::Contracting { rotation, .. } => {
+                *rotation as f32 / u32::MAX as f32
             }
         }
     }
@@ -248,7 +273,7 @@ where
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(
                 self.cycle_duration,
-                self.rotation_speed,
+                self.rotaion_duration,
                 now,
             );
 
@@ -406,7 +431,7 @@ where
 
         let mut builder = canvas::path::Builder::new();
 
-        let start = self.state.procession() * 2.0 * PI;
+        let start = self.state.rotation() * 2.0 * PI;
 
         match self.state {
             State::Expanding { progress, .. } => {
