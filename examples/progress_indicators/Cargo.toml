@@ -1,0 +1,13 @@
+[package]
+name = "progress_indicators"
+version = "0.1.0"
+authors = ["Nick Senger <dev@nsenger.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+flo_curves = "0.7"
+iced = { path = "../..", features = ["canvas"] }
+iced_core = { path = "../../core" }
+iced_widget = { path = "../../widget" }
+lazy_static = "1.4"
