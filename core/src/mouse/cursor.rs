@@ -1,12 +1,13 @@
 use crate::{Point, Rectangle, Vector};
 
 /// The mouse cursor state.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum Cursor {
     /// The cursor has a defined position.
     Available(Point),
 
     /// The cursor is currently unavailable (i.e. out of bounds or busy).
+    #[default]
     Unavailable,
 }
 

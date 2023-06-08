@@ -6,6 +6,7 @@ use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::{Color, Size};
 use iced_winit::runtime::program;
@@ -194,10 +195,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // We update iced
                     let _ = state.update(
                         viewport.logical_size(),
-                        conversion::cursor_position(
+                        mouse::Cursor::Available(conversion::cursor_position(
                             cursor_position,
                             viewport.scale_factor(),
-                        ),
+                        )),
                         &mut renderer,
                         &Theme::Dark,
                         &renderer::Style { text_color: Color::WHITE },

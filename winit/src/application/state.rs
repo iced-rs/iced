@@ -1,7 +1,8 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
 use crate::core;
-use crate::core::{Color, Point, Size};
+use crate::core::mouse;
+use crate::core::{Color, Size};
 use crate::graphics::Viewport;
 use crate::runtime::Debug;
 use crate::Application;
@@ -20,7 +21,7 @@ where
     scale_factor: f64,
     viewport: Viewport,
     viewport_version: usize,
-    cursor_position: winit::dpi::PhysicalPosition<f64>,
+    cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::event::ModifiersState,
     theme: <A::Renderer as core::Renderer>::Theme,
     appearance: application::Appearance,
@@ -52,8 +53,7 @@ where
             scale_factor,
             viewport,
             viewport_version: 0,
-            // TODO: Encode cursor availability in the type-system
-            cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
+            cursor_position: None,
             modifiers: winit::event::ModifiersState::default(),
             theme,
             appearance,
@@ -89,11 +89,16 @@ where
     }
 
     /// Returns the current cursor position of the [`State`].
-    pub fn cursor_position(&self) -> Point {
-        conversion::cursor_position(
-            self.cursor_position,
-            self.viewport.scale_factor(),
-        )
+    pub fn cursor(&self) -> mouse::Cursor {
+        self.cursor_position
+            .map(|cursor_position| {
+                conversion::cursor_position(
+                    cursor_position,
+                    self.viewport.scale_factor(),
+                )
+            })
+            .map(mouse::Cursor::Available)
+            .unwrap_or(mouse::Cursor::Unavailable)
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
@@ -153,12 +158,10 @@ where
             | WindowEvent::Touch(Touch {
                 location: position, ..
             }) => {
-                self.cursor_position = *position;
+                self.cursor_position = Some(*position);
             }
             WindowEvent::CursorLeft { .. } => {
-                // TODO: Encode cursor availability in the type-system
-                self.cursor_position =
-                    winit::dpi::PhysicalPosition::new(-1.0, -1.0);
+                self.cursor_position = None;
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = *new_modifiers;
