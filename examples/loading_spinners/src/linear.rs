@@ -194,12 +194,16 @@ where
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
+        const FRAME_RATE: u64 = 60;
+
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(self.cycle_duration, now);
 
-            shell.request_redraw(RedrawRequest::NextFrame);
+            shell.request_redraw(RedrawRequest::At(
+                now + Duration::from_millis(1000 / FRAME_RATE),
+            ));
         }
 
         event::Status::Ignored
