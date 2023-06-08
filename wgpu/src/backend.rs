@@ -139,7 +139,7 @@ impl Backend {
         primitives: &[Primitive],
         viewport: &Viewport,
         overlay_text: &[T],
-        texture_extent: wgpu::Extent3d,
+        size: wgpu::Extent3d,
     ) -> Option<wgpu::Texture> {
         #[cfg(feature = "tracing")]
         let _ = info_span!("iced_wgpu::offscreen", "DRAW").entered();
@@ -159,24 +159,7 @@ impl Backend {
             log::info!("Texture format is {format:?}; performing conversion to rgba8..");
             let pipeline = offscreen::Pipeline::new(device);
 
-            let texture = device.create_texture(&wgpu::TextureDescriptor {
-                label: Some("iced_wgpu.offscreen.conversion.source_texture"),
-                size: texture_extent,
-                mip_level_count: 1,
-                sample_count: 1,
-                dimension: wgpu::TextureDimension::D2,
-                format: wgpu::TextureFormat::Rgba8Unorm,
-                usage: wgpu::TextureUsages::STORAGE_BINDING
-                    | wgpu::TextureUsages::COPY_SRC,
-                view_formats: &[],
-            });
-
-            let view =
-                texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-            pipeline.convert(device, texture_extent, frame, &view, encoder);
-
-            return Some(texture);
+            return Some(pipeline.convert(device, frame, size, encoder));
         }
 
         None

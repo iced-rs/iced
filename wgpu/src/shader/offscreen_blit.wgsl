@@ -1,22 +1,27 @@
-@group(0) @binding(0) var u_texture: texture_2d<f32>;
-@group(0) @binding(1) var out_texture: texture_storage_2d<rgba8unorm, write>;
+@group(0) @binding(0) var frame_texture: texture_2d<f32>;
+@group(0) @binding(1) var frame_sampler: sampler;
 
-fn srgb(color: f32) -> f32 {
-    if (color <= 0.0031308) {
-        return 12.92 * color;
-    } else {
-        return (1.055 * (pow(color, (1.0/2.4)))) - 0.055;
-    }
+struct VertexInput {
+    @location(0) v_pos: vec2<f32>,
+    @location(1) texel_coord: vec2<f32>,
 }
 
-@compute @workgroup_size(1)
-fn main(@builtin(global_invocation_id) id: vec3<u32>) {
-    // texture coord must be i32 due to a naga bug:
-    // https://github.com/gfx-rs/naga/issues/1997
-    let coords = vec2(i32(id.x), i32(id.y));
+struct VertexOutput {
+    @builtin(position) clip_pos: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+}
 
-    let src: vec4<f32> = textureLoad(u_texture, coords, 0);
-    let srgb_color: vec4<f32> = vec4(srgb(src.x), srgb(src.y), srgb(src.z), src.w);
+@vertex
+fn vs_main(input: VertexInput) -> VertexOutput {
+    var output: VertexOutput;
 
-    textureStore(out_texture, coords, srgb_color);
+    output.clip_pos = vec4<f32>(input.v_pos, 0.0, 1.0);
+    output.uv = input.texel_coord;
+
+    return output;
+}
+
+@fragment
+fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+    return textureSample(frame_texture, frame_sampler, input.uv);
 }

@@ -134,7 +134,7 @@ impl Application for Example {
                 screenshot.size.height,
                 screenshot.clone(),
             ))
-            .content_fit(ContentFit::ScaleDown)
+            .content_fit(ContentFit::Contain)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
