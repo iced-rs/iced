@@ -3,7 +3,8 @@ mod quad {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::{Color, Element, Length, Point, Rectangle, Size};
+    use iced::mouse;
+    use iced::{Color, Element, Length, Rectangle, Size};
 
     pub struct CustomQuad {
         size: f32,
@@ -48,7 +49,7 @@ mod quad {
             _theme: &Renderer::Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
-            _cursor_position: Point,
+            _cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
             renderer.fill_quad(

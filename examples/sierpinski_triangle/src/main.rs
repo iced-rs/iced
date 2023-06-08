@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use iced::executor;
+use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{column, row, slider, text};
@@ -105,7 +106,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         _state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
-        cursor: canvas::Cursor,
+        cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
         let cursor_position =
             if let Some(position) = cursor.position_in(&bounds) {
@@ -137,7 +138,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: canvas::Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(

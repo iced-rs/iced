@@ -38,7 +38,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
     );
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
@@ -66,7 +66,7 @@ where
         &mut self,
         _event: Event,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
@@ -80,7 +80,7 @@ where
     fn mouse_interaction(
         &self,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {

@@ -204,15 +204,14 @@ fn view_controls<'a>(
 
 mod grid {
     use crate::Preset;
+    use iced::alignment;
+    use iced::mouse;
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
-    };
+    use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
     use iced::{
-        alignment, mouse, Color, Element, Length, Point, Rectangle, Renderer,
-        Size, Theme, Vector,
+        Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -401,7 +400,7 @@ mod grid {
             interaction: &mut Interaction,
             event: Event,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
@@ -539,7 +538,7 @@ mod grid {
             renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
@@ -670,7 +669,7 @@ mod grid {
             &self,
             interaction: &Interaction,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> mouse::Interaction {
             match interaction {
                 Interaction::Drawing => mouse::Interaction::Crosshair,

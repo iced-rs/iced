@@ -203,7 +203,7 @@ where
                 let event_status = overlay.on_event(
                     event,
                     Layout::new(&layout),
-                    cursor_position,
+                    mouse::Cursor::Available(cursor_position),
                     renderer,
                     clipboard,
                     &mut shell,
@@ -257,17 +257,17 @@ where
                 .filter(|overlay| {
                     overlay.is_over(Layout::new(&layout), cursor_position)
                 })
-                .map(|_| {
-                    // TODO: Type-safe cursor availability
-                    Point::new(-1.0, -1.0)
-                })
-                .unwrap_or(cursor_position);
+                .map(|_| mouse::Cursor::Unavailable)
+                .unwrap_or(mouse::Cursor::Available(cursor_position));
 
             self.overlay = Some(layout);
 
             (base_cursor, event_statuses)
         } else {
-            (cursor_position, vec![event::Status::Ignored; events.len()])
+            (
+                mouse::Cursor::Available(cursor_position),
+                vec![event::Status::Ignored; events.len()],
+            )
         };
 
         let _ = ManuallyDrop::into_inner(manual_overlay);
@@ -427,19 +427,19 @@ where
                 overlay.layout(renderer, self.bounds, Vector::ZERO)
             });
 
-            let new_cursor_position = if overlay
+            let cursor = if overlay
                 .is_over(Layout::new(&overlay_layout), cursor_position)
             {
-                Point::new(-1.0, -1.0)
+                mouse::Cursor::Unavailable
             } else {
-                cursor_position
+                mouse::Cursor::Available(cursor_position)
             };
 
             self.overlay = Some(overlay_layout);
 
-            new_cursor_position
+            cursor
         } else {
-            cursor_position
+            mouse::Cursor::Available(cursor_position)
         };
 
         self.root.as_widget().draw(
@@ -455,7 +455,7 @@ where
         let base_interaction = self.root.as_widget().mouse_interaction(
             &self.state,
             Layout::new(&self.base),
-            cursor_position,
+            base_cursor,
             &viewport,
             renderer,
         );
@@ -480,7 +480,7 @@ where
                     .map(|overlay| {
                         let overlay_interaction = overlay.mouse_interaction(
                             Layout::new(layout),
-                            cursor_position,
+                            mouse::Cursor::Available(cursor_position),
                             &viewport,
                             renderer,
                         );
@@ -493,7 +493,7 @@ where
                                 theme,
                                 style,
                                 Layout::new(layout),
-                                cursor_position,
+                                mouse::Cursor::Available(cursor_position),
                             );
                         });
 

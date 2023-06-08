@@ -7,9 +7,8 @@ mod rainbow {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::{
-        Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
-    };
+    use iced::mouse;
+    use iced::{Element, Length, Rectangle, Renderer, Size, Theme, Vector};
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -44,13 +43,13 @@ mod rainbow {
             _theme: &Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
             use iced::advanced::Renderer as _;
             use iced_graphics::primitive::Mesh2D;
 
-            let b = layout.bounds();
+            let bounds = layout.bounds();
 
             // R O Y G B I V
             let color_r = [1.0, 0.0, 0.0, 1.0];
@@ -63,24 +62,24 @@ mod rainbow {
             let color_v = [0.75, 0.0, 0.5, 1.0];
 
             let posn_center = {
-                if b.contains(cursor_position) {
-                    [cursor_position.x - b.x, cursor_position.y - b.y]
+                if let Some(cursor_position) = cursor.position_in(&bounds) {
+                    [cursor_position.x, cursor_position.y]
                 } else {
-                    [b.width / 2.0, b.height / 2.0]
+                    [bounds.width / 2.0, bounds.height / 2.0]
                 }
             };
 
             let posn_tl = [0.0, 0.0];
-            let posn_t = [b.width / 2.0, 0.0];
-            let posn_tr = [b.width, 0.0];
-            let posn_r = [b.width, b.height / 2.0];
-            let posn_br = [b.width, b.height];
-            let posn_b = [(b.width / 2.0), b.height];
-            let posn_bl = [0.0, b.height];
-            let posn_l = [0.0, b.height / 2.0];
+            let posn_t = [bounds.width / 2.0, 0.0];
+            let posn_tr = [bounds.width, 0.0];
+            let posn_r = [bounds.width, bounds.height / 2.0];
+            let posn_br = [bounds.width, bounds.height];
+            let posn_b = [(bounds.width / 2.0), bounds.height];
+            let posn_bl = [0.0, bounds.height];
+            let posn_l = [0.0, bounds.height / 2.0];
 
             let mesh = Primitive::SolidMesh {
-                size: b.size(),
+                size: bounds.size(),
                 buffers: Mesh2D {
                     vertices: vec![
                         ColoredVertex2D {
@@ -133,9 +132,12 @@ mod rainbow {
                 },
             };
 
-            renderer.with_translation(Vector::new(b.x, b.y), |renderer| {
-                renderer.draw_primitive(mesh);
-            });
+            renderer.with_translation(
+                Vector::new(bounds.x, bounds.y),
+                |renderer| {
+                    renderer.draw_primitive(mesh);
+                },
+            );
         }
     }
 

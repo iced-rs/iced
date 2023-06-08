@@ -207,14 +207,14 @@ where
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         value: Option<&Value>,
     ) {
         draw(
             renderer,
             theme,
             layout,
-            cursor_position,
+            cursor,
             tree.state.downcast_ref::<State>(),
             value.unwrap_or(&self.value),
             &self.placeholder,
@@ -298,7 +298,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -306,7 +306,7 @@ where
         update(
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             shell,
@@ -329,14 +329,14 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         draw(
             renderer,
             theme,
             layout,
-            cursor_position,
+            cursor,
             tree.state.downcast_ref::<State>(),
             &self.value,
             &self.placeholder,
@@ -354,11 +354,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position, self.on_input.is_none())
+        mouse_interaction(layout, cursor, self.on_input.is_none())
     }
 }
 
@@ -528,7 +528,7 @@ where
 pub fn update<'a, Message, Renderer>(
     event: Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     renderer: &Renderer,
     clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
@@ -550,10 +550,14 @@ where
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let state = state();
-            let is_clicked =
-                layout.bounds().contains(cursor_position) && on_input.is_some();
 
-            state.is_focused = if is_clicked {
+            let click_position = if on_input.is_some() {
+                cursor.position_over(&layout.bounds())
+            } else {
+                None
+            };
+
+            state.is_focused = if click_position.is_some() {
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
 
@@ -566,7 +570,7 @@ where
                 None
             };
 
-            if is_clicked {
+            if let Some(cursor_position) = click_position {
                 let text_layout = layout.children().next().unwrap();
                 let target = cursor_position.x - text_layout.bounds().x;
 
@@ -944,7 +948,7 @@ pub fn draw<Renderer>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     state: &State,
     value: &Value,
     placeholder: &str,
@@ -967,7 +971,7 @@ pub fn draw<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor.is_over(&bounds);
 
     let appearance = if is_disabled {
         theme.disabled(style)
@@ -1154,10 +1158,10 @@ pub fn draw<Renderer>(
 /// Computes the current [`mouse::Interaction`] of the [`TextInput`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     is_disabled: bool,
 ) -> mouse::Interaction {
-    if layout.bounds().contains(cursor_position) {
+    if cursor.is_over(&layout.bounds()) {
         if is_disabled {
             mouse::Interaction::NotAllowed
         } else {

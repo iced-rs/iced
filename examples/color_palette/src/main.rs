@@ -1,8 +1,10 @@
-use iced::widget::canvas::{self, Canvas, Cursor, Frame, Geometry, Path};
+use iced::alignment::{self, Alignment};
+use iced::mouse;
+use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    alignment, Alignment, Color, Element, Length, Point, Rectangle, Renderer,
-    Sandbox, Settings, Size, Vector,
+    Color, Element, Length, Point, Rectangle, Renderer, Sandbox, Settings,
+    Size, Vector,
 };
 use palette::{
     self, convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue,
@@ -246,7 +248,7 @@ impl<Message> canvas::Program<Message> for Theme {
         renderer: &Renderer,
         _theme: &iced::Theme,
         bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
             self.draw(frame);

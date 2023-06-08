@@ -1,10 +1,8 @@
 //! Draw 2D graphics for your users.
 pub mod event;
 
-mod cursor;
 mod program;
 
-pub use cursor::Cursor;
 pub use event::Event;
 pub use program::Program;
 
@@ -17,7 +15,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{Clipboard, Element, Shell, Widget};
-use crate::core::{Length, Point, Rectangle, Size, Vector};
+use crate::core::{Length, Rectangle, Size, Vector};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -28,8 +26,9 @@ use std::marker::PhantomData;
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// # use iced_widget::canvas::{self, Canvas, Cursor, Fill, Frame, Geometry, Path, Program};
+/// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
 /// # use iced_widget::core::{Color, Rectangle};
+/// # use iced_widget::core::mouse;
 /// # use iced_widget::style::Theme;
 /// #
 /// # pub type Renderer = iced_widget::renderer::Renderer<Theme>;
@@ -43,7 +42,7 @@ use std::marker::PhantomData;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry>{
 ///         // We prepare a new `Frame`
 ///         let mut frame = Frame::new(renderer, bounds.size());
 ///
@@ -144,7 +143,7 @@ where
         tree: &mut Tree,
         event: core::Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -159,8 +158,6 @@ where
             }
             _ => None,
         };
-
-        let cursor = Cursor::from_window_position(cursor_position);
 
         if let Some(canvas_event) = canvas_event {
             let state = tree.state.downcast_mut::<P::State>();
@@ -182,12 +179,11 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
-        let cursor = Cursor::from_window_position(cursor_position);
         let state = tree.state.downcast_ref::<P::State>();
 
         self.program.mouse_interaction(state, bounds, cursor)
@@ -200,7 +196,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
@@ -209,7 +205,6 @@ where
             return;
         }
 
-        let cursor = Cursor::from_window_position(cursor_position);
         let state = tree.state.downcast_ref::<P::State>();
 
         renderer.with_translation(

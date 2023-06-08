@@ -259,36 +259,25 @@ where
         &mut self,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.container.on_event(
-            self.state,
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            shell,
+            self.state, event, layout, cursor, renderer, clipboard, shell,
         )
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.container.mouse_interaction(
-            self.state,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.container
+            .mouse_interaction(self.state, layout, cursor, viewport, renderer)
     }
 
     fn draw(
@@ -297,7 +286,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
     ) {
         let appearance = theme.appearance(&self.style);
         let bounds = layout.bounds();
@@ -312,15 +301,8 @@ where
             appearance.background,
         );
 
-        self.container.draw(
-            self.state,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            &bounds,
-        );
+        self.container
+            .draw(self.state, renderer, theme, style, layout, cursor, &bounds);
     }
 }
 
@@ -387,7 +369,7 @@ where
         _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
@@ -396,7 +378,7 @@ where
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 let bounds = layout.bounds();
 
-                if bounds.contains(cursor_position) {
+                if cursor.is_over(&bounds) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             *self.last_selection = Some(option.clone());
@@ -405,9 +387,9 @@ where
                 }
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
-                let bounds = layout.bounds();
-
-                if bounds.contains(cursor_position) {
+                if let Some(cursor_position) =
+                    cursor.position_in(&layout.bounds())
+                {
                     let text_size = self
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
@@ -416,16 +398,14 @@ where
                         self.text_line_height.to_absolute(Pixels(text_size)),
                     ) + self.padding.vertical();
 
-                    *self.hovered_option = Some(
-                        ((cursor_position.y - bounds.y) / option_height)
-                            as usize,
-                    );
+                    *self.hovered_option =
+                        Some((cursor_position.y / option_height) as usize);
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let bounds = layout.bounds();
-
-                if bounds.contains(cursor_position) {
+                if let Some(cursor_position) =
+                    cursor.position_in(&layout.bounds())
+                {
                     let text_size = self
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
@@ -434,10 +414,8 @@ where
                         self.text_line_height.to_absolute(Pixels(text_size)),
                     ) + self.padding.vertical();
 
-                    *self.hovered_option = Some(
-                        ((cursor_position.y - bounds.y) / option_height)
-                            as usize,
-                    );
+                    *self.hovered_option =
+                        Some((cursor_position.y / option_height) as usize);
 
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
@@ -456,11 +434,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let is_mouse_over = layout.bounds().contains(cursor_position);
+        let is_mouse_over = cursor.is_over(&layout.bounds());
 
         if is_mouse_over {
             mouse::Interaction::Pointer
@@ -476,7 +454,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let appearance = theme.appearance(&self.style);
