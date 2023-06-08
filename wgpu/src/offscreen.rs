@@ -1,3 +1,4 @@
+use crate::graphics::color;
 use std::borrow::Cow;
 use wgpu::util::DeviceExt;
 use wgpu::vertex_attr_array;
@@ -16,7 +17,7 @@ pub struct Pipeline {
 #[repr(C)]
 struct Vertex {
     ndc: [f32; 2],
-    texel: [f32; 2],
+    uv: [f32; 2],
 }
 
 impl Pipeline {
@@ -36,22 +37,22 @@ impl Pipeline {
                     //bottom left
                     Vertex {
                         ndc: [-1.0, -1.0],
-                        texel: [0.0, 1.0],
+                        uv: [0.0, 1.0],
                     },
                     //bottom right
                     Vertex {
                         ndc: [1.0, -1.0],
-                        texel: [1.0, 1.0],
+                        uv: [1.0, 1.0],
                     },
                     //top right
                     Vertex {
                         ndc: [1.0, 1.0],
-                        texel: [1.0, 0.0],
+                        uv: [1.0, 0.0],
                     },
                     //top left
                     Vertex {
                         ndc: [-1.0, 1.0],
-                        texel: [0.0, 0.0],
+                        uv: [0.0, 0.0],
                     },
                 ]),
                 usage: wgpu::BufferUsages::VERTEX,
@@ -123,7 +124,11 @@ impl Pipeline {
                     module: &shader,
                     entry_point: "fs_main",
                     targets: &[Some(wgpu::ColorTargetState {
-                        format: wgpu::TextureFormat::Rgba8UnormSrgb,
+                        format: if color::GAMMA_CORRECTION {
+                            wgpu::TextureFormat::Rgba8UnormSrgb
+                        } else {
+                            wgpu::TextureFormat::Rgba8Unorm
+                        },
                         blend: Some(wgpu::BlendState {
                             color: wgpu::BlendComponent {
                                 src_factor: wgpu::BlendFactor::SrcAlpha,
@@ -171,7 +176,11 @@ impl Pipeline {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8UnormSrgb,
+            format: if color::GAMMA_CORRECTION {
+                wgpu::TextureFormat::Rgba8UnormSrgb
+            } else {
+                wgpu::TextureFormat::Rgba8Unorm
+            },
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT
                 | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
