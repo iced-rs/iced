@@ -15,7 +15,6 @@ use iced_winit::style::Theme;
 use iced_winit::{conversion, futures, winit, Clipboard};
 
 use winit::{
-    dpi::PhysicalPosition,
     event::{Event, ModifiersState, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
 };
@@ -40,6 +39,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             .and_then(|element| element.dyn_into::<HtmlCanvasElement>().ok())
             .expect("Get canvas element")
     };
+
     #[cfg(not(target_arch = "wasm32"))]
     env_logger::init();
 
@@ -59,7 +59,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         Size::new(physical_size.width, physical_size.height),
         window.scale_factor(),
     );
-    let mut cursor_position = PhysicalPosition::new(-1.0, -1.0);
+    let mut cursor_position = None;
     let mut modifiers = ModifiersState::default();
     let mut clipboard = Clipboard::connect(&window);
 
@@ -166,7 +166,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             Event::WindowEvent { event, .. } => {
                 match event {
                     WindowEvent::CursorMoved { position, .. } => {
-                        cursor_position = position;
+                        cursor_position = Some(position);
                     }
                     WindowEvent::ModifiersChanged(new_modifiers) => {
                         modifiers = new_modifiers;
@@ -195,13 +195,20 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // We update iced
                     let _ = state.update(
                         viewport.logical_size(),
-                        mouse::Cursor::Available(conversion::cursor_position(
-                            cursor_position,
-                            viewport.scale_factor(),
-                        )),
+                        cursor_position
+                            .map(|p| {
+                                conversion::cursor_position(
+                                    p,
+                                    viewport.scale_factor(),
+                                )
+                            })
+                            .map(mouse::Cursor::Available)
+                            .unwrap_or(mouse::Cursor::Unavailable),
                         &mut renderer,
                         &Theme::Dark,
-                        &renderer::Style { text_color: Color::WHITE },
+                        &renderer::Style {
+                            text_color: Color::WHITE,
+                        },
                         &mut clipboard,
                         &mut debug,
                     );
@@ -243,7 +250,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         let program = state.program();
 
-                        let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                        let view = frame.texture.create_view(
+                            &wgpu::TextureViewDescriptor::default(),
+                        );
 
                         {
                             // We clear the frame
@@ -276,15 +285,18 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                         frame.present();
 
                         // Update the mouse cursor
-                         window.set_cursor_icon(
-                             iced_winit::conversion::mouse_interaction(
-                                 state.mouse_interaction(),
-                             ),
-                         );
+                        window.set_cursor_icon(
+                            iced_winit::conversion::mouse_interaction(
+                                state.mouse_interaction(),
+                            ),
+                        );
                     }
                     Err(error) => match error {
                         wgpu::SurfaceError::OutOfMemory => {
-                            panic!("Swapchain error: {error}. Rendering cannot continue.")
+                            panic!(
+                                "Swapchain error: {error}. \
+                                Rendering cannot continue."
+                            )
                         }
                         _ => {
                             // Try rendering again next frame.
