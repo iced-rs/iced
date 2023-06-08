@@ -300,7 +300,7 @@ fn view_content<'a>(
         )
     ]
     .spacing(5)
-    .max_width(150);
+    .max_width(160);
 
     if total_panes > 1 && !is_pinned {
         controls = controls.push(
