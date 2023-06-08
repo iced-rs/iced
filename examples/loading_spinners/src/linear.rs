@@ -1,15 +1,13 @@
 //! Show a linear progress indicator.
-use iced::window;
-use iced_core::event::{self, Event};
-use iced_core::renderer;
-use iced_core::time::Instant;
-use iced_core::widget::tree::{self, Tree};
-use iced_core::window::RedrawRequest;
-use iced_core::{layout, Size};
-use iced_core::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Shell, Widget,
-};
+use iced::advanced::layout;
+use iced::advanced::renderer::{self, Quad};
+use iced::advanced::widget::tree::{self, Tree};
+use iced::advanced::{Clipboard, Layout, Shell, Widget};
+use iced::event;
+use iced::time::Instant;
+use iced::window::{self, RedrawRequest};
+use iced::{Background, Color, Element, Rectangle};
+use iced::{Event, Length, Point, Size};
 
 use super::easing::{self, Easing};
 
@@ -18,7 +16,7 @@ use std::time::Duration;
 #[allow(missing_debug_implementations)]
 pub struct Linear<'a, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: iced::advanced::Renderer,
     Renderer::Theme: StyleSheet,
 {
     width: Length,
@@ -30,7 +28,7 @@ where
 
 impl<'a, Renderer> Linear<'a, Renderer>
 where
-    Renderer: iced_widget::core::Renderer,
+    Renderer: iced::advanced::Renderer,
     Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Linear`] with the given content.
@@ -80,7 +78,7 @@ where
 
 impl<'a, Renderer> Default for Linear<'a, Renderer>
 where
-    Renderer: iced_core::Renderer,
+    Renderer: iced::advanced::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn default() -> Self {
@@ -156,7 +154,7 @@ impl State {
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Linear<'a, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + iced_core::Renderer,
+    Renderer: 'a + iced::advanced::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
@@ -253,7 +251,7 @@ where
             ),
 
             State::Contracting { progress, .. } => renderer.fill_quad(
-                renderer::Quad {
+                Quad {
                     bounds: Rectangle {
                         x: bounds.x
                             + self.easing.y_at_x(*progress) * bounds.width,
@@ -276,7 +274,7 @@ impl<'a, Message, Renderer> From<Linear<'a, Renderer>>
     for Element<'a, Message, Renderer>
 where
     Message: Clone + 'a,
-    Renderer: iced_core::Renderer + 'a,
+    Renderer: iced::advanced::Renderer + 'a,
     Renderer::Theme: StyleSheet,
 {
     fn from(linear: Linear<'a, Renderer>) -> Self {

@@ -1,23 +1,21 @@
 //! Show a circular progress indicator.
-use iced::widget::canvas::{self, Cursor, Program, Renderer as CanvasRenderer};
-use iced::window;
-use iced_core::event::{self, Event};
-use iced_core::time::Instant;
-use iced_core::widget::tree::{self, Tree};
-use iced_core::window::RedrawRequest;
-use iced_core::{layout, Size};
-use iced_core::{renderer, Vector};
-use iced_core::{
-    Background, Clipboard, Color, Element, Layout, Length, Point, Rectangle,
-    Renderer, Shell, Widget,
-};
+use iced::advanced::layout;
+use iced::advanced::renderer;
+use iced::advanced::widget::tree::{self, Tree};
+use iced::advanced::{Clipboard, Layout, Renderer, Shell, Widget};
+use iced::event;
+use iced::time::Instant;
+use iced::widget::canvas::{self, Cursor, Program};
+use iced::window::{self, RedrawRequest};
+use iced::{Background, Color, Element, Rectangle};
+use iced::{Event, Length, Point, Size, Vector};
 
 use super::easing::{self, Easing};
 
 use std::f32::consts::PI;
 use std::time::Duration;
 
-type R<Theme> = iced_widget::renderer::Renderer<Theme>;
+type R<Theme> = iced::Renderer<Theme>;
 
 const MIN_RADIANS: f32 = PI / 8.0;
 const WRAP_RADIANS: f32 = 2.0 * PI - PI / 4.0;
@@ -249,7 +247,7 @@ where
 
     fn layout(
         &self,
-        _renderer: &iced_widget::renderer::Renderer<Theme>,
+        _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.width(self.size).height(self.size);
@@ -264,7 +262,7 @@ where
         event: Event,
         _layout: Layout<'_>,
         _cursor_position: Point,
-        _renderer: &iced_widget::renderer::Renderer<Theme>,
+        _renderer: &iced::Renderer<Theme>,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
@@ -299,22 +297,22 @@ where
         renderer.with_translation(
             Vector::new(bounds.x, bounds.y),
             |renderer| {
-                renderer.draw(<StateWithStyle<Theme> as Program<
-                    Message,
-                    R<Theme>,
-                >>::draw(
-                    &StateWithStyle {
-                        state,
-                        style: &self.style,
-                        bar_height: self.bar_height,
-                        easing: self.easing,
-                    },
-                    &(),
+                canvas::Renderer::draw(
                     renderer,
-                    theme,
-                    bounds,
-                    Cursor::Unavailable,
-                ));
+                    <StateWithStyle<Theme> as Program<Message, R<Theme>>>::draw(
+                        &StateWithStyle {
+                            state,
+                            style: &self.style,
+                            bar_height: self.bar_height,
+                            easing: self.easing,
+                        },
+                        &(),
+                        renderer,
+                        theme,
+                        bounds,
+                        Cursor::Unavailable,
+                    ),
+                );
             },
         );
     }
@@ -384,8 +382,7 @@ where
     bar_height: f32,
 }
 
-impl<'a, Message, Theme>
-    canvas::Program<Message, iced_widget::renderer::Renderer<Theme>>
+impl<'a, Message, Theme> Program<Message, iced::Renderer<Theme>>
     for StateWithStyle<'a, Theme>
 where
     Theme: StyleSheet,
@@ -405,7 +402,7 @@ where
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &iced_widget::renderer::Renderer<Theme>,
+        renderer: &iced::Renderer<Theme>,
         theme: &Theme,
         bounds: Rectangle,
         _cursor: canvas::Cursor,

@@ -1,9 +1,7 @@
-use iced_core::Point;
-use lyon::algorithms::measure::PathMeasurements;
-use lyon::path::builder::NoAttributes;
-use lyon::path::path::BuilderImpl;
-use lyon::path::Path;
+use iced::Point;
 
+use lyon_algorithms::measure::PathMeasurements;
+use lyon_algorithms::path::{builder::NoAttributes, path::BuilderImpl, Path};
 use once_cell::sync::Lazy;
 
 pub static EMPHASIZED: Lazy<Easing> = Lazy::new(|| {
@@ -56,7 +54,7 @@ impl Easing {
     pub fn y_at_x(&self, x: f32) -> f32 {
         let mut sampler = self.measurements.create_sampler(
             &self.path,
-            lyon::algorithms::measure::SampleType::Normalized,
+            lyon_algorithms::measure::SampleType::Normalized,
         );
         let sample = sampler.sample(x);
 
@@ -69,7 +67,7 @@ pub struct Builder(NoAttributes<BuilderImpl>);
 impl Builder {
     pub fn new() -> Self {
         let mut builder = Path::builder();
-        builder.begin(lyon::geom::point(0.0, 0.0));
+        builder.begin(lyon_algorithms::geom::point(0.0, 0.0));
 
         Self(builder)
     }
@@ -110,7 +108,7 @@ impl Builder {
     }
 
     pub fn build(mut self) -> Easing {
-        self.0.line_to(lyon::geom::point(1.0, 1.0));
+        self.0.line_to(lyon_algorithms::geom::point(1.0, 1.0));
         self.0.end(false);
 
         let path = self.0.build();
@@ -119,9 +117,12 @@ impl Builder {
         Easing { path, measurements }
     }
 
-    fn point(p: impl Into<Point>) -> lyon::geom::Point<f32> {
+    fn point(p: impl Into<Point>) -> lyon_algorithms::geom::Point<f32> {
         let p: Point = p.into();
-        lyon::geom::point(p.x.min(1.0).max(0.0), p.y.min(1.0).max(0.0))
+        lyon_algorithms::geom::point(
+            p.x.min(1.0).max(0.0),
+            p.y.min(1.0).max(0.0),
+        )
     }
 }
 
