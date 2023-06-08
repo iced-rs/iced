@@ -209,7 +209,7 @@ where
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let mouse_over = cursor.is_over(&layout.bounds());
+                let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
                     shell.publish((self.on_toggle)(!self.is_toggled));
@@ -231,7 +231,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(&layout.bounds()) {
+        if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -278,7 +278,7 @@ where
         let toggler_layout = children.next().unwrap();
         let bounds = toggler_layout.bounds();
 
-        let is_mouse_over = cursor.is_over(&layout.bounds());
+        let is_mouse_over = cursor.is_over(layout.bounds());
 
         let style = if is_mouse_over {
             theme.hovered(&self.style, self.is_toggled)

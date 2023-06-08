@@ -407,7 +407,7 @@ mod grid {
             }
 
             let cursor_position =
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     position
                 } else {
                     return (event::Status::Ignored, None);
@@ -567,10 +567,9 @@ mod grid {
             let overlay = {
                 let mut frame = Frame::new(renderer, bounds.size());
 
-                let hovered_cell =
-                    cursor.position_in(&bounds).map(|position| {
-                        Cell::at(self.project(position, frame.size()))
-                    });
+                let hovered_cell = cursor.position_in(bounds).map(|position| {
+                    Cell::at(self.project(position, frame.size()))
+                });
 
                 if let Some(cell) = hovered_cell {
                     frame.with_save(|frame| {
@@ -675,7 +674,7 @@ mod grid {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
                 Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
-                Interaction::None if cursor.is_over(&bounds) => {
+                Interaction::None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
                 _ => mouse::Interaction::default(),

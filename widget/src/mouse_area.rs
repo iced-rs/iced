@@ -240,7 +240,7 @@ fn update<Message: Clone, Renderer>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if !cursor.is_over(&layout.bounds()) {
+    if !cursor.is_over(layout.bounds()) {
         return event::Status::Ignored;
     }
 

@@ -552,7 +552,7 @@ where
             let state = state();
 
             let click_position = if on_input.is_some() {
-                cursor.position_over(&layout.bounds())
+                cursor.position_over(layout.bounds())
             } else {
                 None
             };
@@ -971,7 +971,7 @@ pub fn draw<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
 
     let appearance = if is_disabled {
         theme.disabled(style)
@@ -1161,7 +1161,7 @@ pub fn mouse_interaction(
     cursor: mouse::Cursor,
     is_disabled: bool,
 ) -> mouse::Interaction {
-    if cursor.is_over(&layout.bounds()) {
+    if cursor.is_over(layout.bounds()) {
         if is_disabled {
             mouse::Interaction::NotAllowed
         } else {

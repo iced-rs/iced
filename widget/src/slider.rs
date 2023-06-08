@@ -305,8 +305,7 @@ where
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            if let Some(cursor_position) =
-                cursor.position_over(&layout.bounds())
+            if let Some(cursor_position) = cursor.position_over(layout.bounds())
             {
                 change(cursor_position);
                 state.is_dragging = true;
@@ -356,7 +355,7 @@ pub fn draw<T, R>(
     R::Theme: StyleSheet,
 {
     let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
 
     let style = if state.is_dragging {
         style_sheet.dragging(style)
@@ -446,7 +445,7 @@ pub fn mouse_interaction(
     state: &State,
 ) -> mouse::Interaction {
     let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
 
     if state.is_dragging {
         mouse::Interaction::Grabbing

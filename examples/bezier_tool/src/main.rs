@@ -101,7 +101,7 @@ mod bezier {
             cursor: mouse::Cursor,
         ) -> (event::Status, Option<Curve>) {
             let cursor_position =
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     position
                 } else {
                     return (event::Status::Ignored, None);
@@ -183,7 +183,7 @@ mod bezier {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> mouse::Interaction {
-            if cursor.is_over(&bounds) {
+            if cursor.is_over(bounds) {
                 mouse::Interaction::Crosshair
             } else {
                 mouse::Interaction::default()
@@ -226,7 +226,7 @@ mod bezier {
         ) -> Geometry {
             let mut frame = Frame::new(renderer, bounds.size());
 
-            if let Some(cursor_position) = cursor.position_in(&bounds) {
+            if let Some(cursor_position) = cursor.position_in(bounds) {
                 match *self {
                     Pending::One { from } => {
                         let line = Path::line(from, cursor_position);

@@ -287,7 +287,7 @@ pub fn draw<Renderer>(
 
     let bounds = layout.bounds();
 
-    if let Some(cursor_position) = cursor.position_over(&bounds) {
+    if let Some(cursor_position) = cursor.position_over(bounds) {
         let style = theme.appearance(style);
 
         let defaults = renderer::Style {

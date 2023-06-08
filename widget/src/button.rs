@@ -311,7 +311,7 @@ pub fn update<'a, Message: Clone>(
             if on_press.is_some() {
                 let bounds = layout.bounds();
 
-                if cursor.is_over(&bounds) {
+                if cursor.is_over(bounds) {
                     let state = state();
 
                     state.is_pressed = true;
@@ -330,7 +330,7 @@ pub fn update<'a, Message: Clone>(
 
                     let bounds = layout.bounds();
 
-                    if cursor.is_over(&bounds) {
+                    if cursor.is_over(bounds) {
                         shell.publish(on_press);
                     }
 
@@ -364,7 +364,7 @@ pub fn draw<'a, Renderer: crate::core::Renderer>(
 where
     Renderer::Theme: StyleSheet,
 {
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
 
     let styling = if !is_enabled {
         style_sheet.disabled(style)
@@ -440,7 +440,7 @@ pub fn mouse_interaction(
     cursor: mouse::Cursor,
     is_enabled: bool,
 ) -> mouse::Interaction {
-    let is_mouse_over = cursor.is_over(&layout.bounds());
+    let is_mouse_over = cursor.is_over(layout.bounds());
 
     if is_mouse_over && is_enabled {
         mouse::Interaction::Pointer

@@ -108,12 +108,12 @@ impl canvas::Program<Message> for SierpinskiGraph {
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
-        let cursor_position =
-            if let Some(position) = cursor.position_in(&bounds) {
-                position
-            } else {
-                return (event::Status::Ignored, None);
-            };
+        let cursor_position = if let Some(position) = cursor.position_in(bounds)
+        {
+            position
+        } else {
+            return (event::Status::Ignored, None);
+        };
 
         match event {
             Event::Mouse(mouse_event) => {

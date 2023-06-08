@@ -212,7 +212,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                let mouse_over = cursor.is_over(&layout.bounds());
+                let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
                     shell.publish((self.on_toggle)(!self.is_checked));
@@ -234,7 +234,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(&layout.bounds()) {
+        if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -251,7 +251,7 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let is_mouse_over = cursor.is_over(&layout.bounds());
+        let is_mouse_over = cursor.is_over(layout.bounds());
 
         let mut children = layout.children();
 

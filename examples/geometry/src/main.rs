@@ -62,7 +62,7 @@ mod rainbow {
             let color_v = [0.75, 0.0, 0.5, 1.0];
 
             let posn_center = {
-                if let Some(cursor_position) = cursor.position_in(&bounds) {
+                if let Some(cursor_position) = cursor.position_in(bounds) {
                     [cursor_position.x, cursor_position.y]
                 } else {
                     [bounds.width / 2.0, bounds.height / 2.0]

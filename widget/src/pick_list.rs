@@ -452,7 +452,7 @@ where
                 state.is_open = false;
 
                 event::Status::Captured
-            } else if cursor.is_over(&layout.bounds()) {
+            } else if cursor.is_over(layout.bounds()) {
                 state.is_open = true;
                 state.hovered_option =
                     options.iter().position(|option| Some(option) == selected);
@@ -478,7 +478,7 @@ where
             let state = state();
 
             if state.keyboard_modifiers.command()
-                && cursor.is_over(&layout.bounds())
+                && cursor.is_over(layout.bounds())
                 && !state.is_open
             {
                 fn find_next<'a, T: PartialEq>(
@@ -532,7 +532,7 @@ pub fn mouse_interaction(
     cursor: mouse::Cursor,
 ) -> mouse::Interaction {
     let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
 
     if is_mouse_over {
         mouse::Interaction::Pointer
@@ -610,7 +610,7 @@ pub fn draw<'a, T, Renderer>(
     T: ToString + 'a,
 {
     let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(&bounds);
+    let is_mouse_over = cursor.is_over(bounds);
     let is_selected = selected.is_some();
 
     let style = if is_mouse_over {

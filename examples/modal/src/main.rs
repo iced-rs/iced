@@ -390,7 +390,7 @@ mod modal {
                     mouse::Button::Left,
                 )) = &event
                 {
-                    if !cursor.is_over(&content_bounds) {
+                    if !cursor.is_over(content_bounds) {
                         shell.publish(message.clone());
                         return event::Status::Captured;
                     }

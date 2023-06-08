@@ -113,7 +113,7 @@ where
             let title_bar_layout = children.next().unwrap();
             let body_layout = children.next().unwrap();
 
-            let show_controls = cursor.is_over(&bounds);
+            let show_controls = cursor.is_over(bounds);
 
             self.body.as_widget().draw(
                 &tree.children[0],

@@ -524,7 +524,7 @@ pub fn update<'a, Message, T: Draggable>(
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let bounds = layout.bounds();
 
-            if let Some(cursor_position) = cursor.position_over(&bounds) {
+            if let Some(cursor_position) = cursor.position_over(bounds) {
                 event_status = event::Status::Captured;
 
                 match on_resize {

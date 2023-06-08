@@ -376,9 +376,7 @@ where
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let bounds = layout.bounds();
-
-                if cursor.is_over(&bounds) {
+                if cursor.is_over(layout.bounds()) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
                             *self.last_selection = Some(option.clone());
@@ -388,7 +386,7 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { .. }) => {
                 if let Some(cursor_position) =
-                    cursor.position_in(&layout.bounds())
+                    cursor.position_in(layout.bounds())
                 {
                     let text_size = self
                         .text_size
@@ -404,7 +402,7 @@ where
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
                 if let Some(cursor_position) =
-                    cursor.position_in(&layout.bounds())
+                    cursor.position_in(layout.bounds())
                 {
                     let text_size = self
                         .text_size
@@ -438,7 +436,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        let is_mouse_over = cursor.is_over(&layout.bounds());
+        let is_mouse_over = cursor.is_over(layout.bounds());
 
         if is_mouse_over {
             mouse::Interaction::Pointer

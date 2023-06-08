@@ -286,7 +286,7 @@ where
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = cursor.is_over(&bounds);
+        let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_cursor_grabbed() {
             mouse::Interaction::Grabbing

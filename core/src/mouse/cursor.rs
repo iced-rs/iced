@@ -24,7 +24,7 @@ impl Cursor {
     ///
     /// If the [`Cursor`] is not over the provided bounds, this method will
     /// return `None`.
-    pub fn position_over(self, bounds: &Rectangle) -> Option<Point> {
+    pub fn position_over(self, bounds: Rectangle) -> Option<Point> {
         self.position().filter(|p| bounds.contains(*p))
     }
 
@@ -33,7 +33,7 @@ impl Cursor {
     ///
     /// If the [`Cursor`] is not over the provided bounds, this method will
     /// return `None`.
-    pub fn position_in(self, bounds: &Rectangle) -> Option<Point> {
+    pub fn position_in(self, bounds: Rectangle) -> Option<Point> {
         self.position_over(bounds)
             .map(|p| p - Vector::new(bounds.x, bounds.y))
     }
@@ -45,7 +45,7 @@ impl Cursor {
     }
 
     /// Returns true if the [`Cursor`] is over the given `bounds`.
-    pub fn is_over(self, bounds: &Rectangle) -> bool {
+    pub fn is_over(self, bounds: Rectangle) -> bool {
         self.position_over(bounds).is_some()
     }
 }

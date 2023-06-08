@@ -443,7 +443,7 @@ pub fn update<Message>(
     ) -> event::Status,
 ) -> event::Status {
     let bounds = layout.bounds();
-    let cursor_over_scrollable = cursor.position_over(&bounds);
+    let cursor_over_scrollable = cursor.position_over(bounds);
 
     let content = layout.children().next().unwrap();
     let content_bounds = content.bounds();
@@ -698,7 +698,7 @@ pub fn mouse_interaction(
     ) -> mouse::Interaction,
 ) -> mouse::Interaction {
     let bounds = layout.bounds();
-    let cursor_over_scrollable = cursor.position_over(&bounds);
+    let cursor_over_scrollable = cursor.position_over(bounds);
 
     let content_layout = layout.children().next().unwrap();
     let content_bounds = content_layout.bounds();
@@ -759,7 +759,7 @@ pub fn draw<Renderer>(
     let scrollbars =
         Scrollbars::new(state, vertical, horizontal, bounds, content_bounds);
 
-    let cursor_over_scrollable = cursor.position_over(&bounds);
+    let cursor_over_scrollable = cursor.position_over(bounds);
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor);
 
