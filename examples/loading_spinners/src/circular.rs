@@ -31,7 +31,7 @@ where
     style: <Theme as StyleSheet>::Style,
     easing: &'a Easing,
     cycle_duration: Duration,
-    rotaion_duration: Duration,
+    rotation_duration: Duration,
 }
 
 impl<'a, Theme> Circular<'a, Theme>
@@ -46,7 +46,7 @@ where
             style: <Theme as StyleSheet>::Style::default(),
             easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
-            rotaion_duration: Duration::from_secs(2),
+            rotation_duration: Duration::from_secs(2),
         }
     }
 
@@ -83,7 +83,7 @@ where
     /// Sets the base rotation duration of this [`Circular`]. This is the duration that a full
     /// rotation would take if the cycle rotation were set to 0.0 (no expanding or contracting)
     pub fn rotation_duration(mut self, duration: Duration) -> Self {
-        self.rotaion_duration = duration;
+        self.rotation_duration = duration;
         self
     }
 }
@@ -273,7 +273,7 @@ where
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(
                 self.cycle_duration,
-                self.rotaion_duration,
+                self.rotation_duration,
                 now,
             );
 
