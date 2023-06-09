@@ -11,8 +11,8 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Widget,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle, Shell,
+    Size, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
@@ -196,7 +196,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -204,7 +204,7 @@ where
         update(
             event,
             layout,
-            cursor_position,
+            cursor,
             shell,
             self.on_selected.as_ref(),
             self.selected.as_ref(),
@@ -217,11 +217,11 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
+        mouse_interaction(layout, cursor)
     }
 
     fn draw(
@@ -231,7 +231,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
@@ -239,7 +239,7 @@ where
             renderer,
             theme,
             layout,
-            cursor_position,
+            cursor,
             self.padding,
             self.text_size,
             self.text_line_height,
@@ -431,7 +431,7 @@ where
 pub fn update<'a, T, Message>(
     event: Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     on_selected: &dyn Fn(T) -> Message,
     selected: Option<&T>,
@@ -452,7 +452,7 @@ where
                 state.is_open = false;
 
                 event::Status::Captured
-            } else if layout.bounds().contains(cursor_position) {
+            } else if cursor.is_over(layout.bounds()) {
                 state.is_open = true;
                 state.hovered_option =
                     options.iter().position(|option| Some(option) == selected);
@@ -478,7 +478,7 @@ where
             let state = state();
 
             if state.keyboard_modifiers.command()
-                && layout.bounds().contains(cursor_position)
+                && cursor.is_over(layout.bounds())
                 && !state.is_open
             {
                 fn find_next<'a, T: PartialEq>(
@@ -529,10 +529,10 @@ where
 /// Returns the current [`mouse::Interaction`] of a [`PickList`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
 ) -> mouse::Interaction {
     let bounds = layout.bounds();
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor.is_over(bounds);
 
     if is_mouse_over {
         mouse::Interaction::Pointer
@@ -593,7 +593,7 @@ pub fn draw<'a, T, Renderer>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     padding: Padding,
     text_size: Option<f32>,
     text_line_height: text::LineHeight,
@@ -610,7 +610,7 @@ pub fn draw<'a, T, Renderer>(
     T: ToString + 'a,
 {
     let bounds = layout.bounds();
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor.is_over(bounds);
     let is_selected = selected.is_some();
 
     let style = if is_mouse_over {

@@ -196,7 +196,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -205,7 +205,7 @@ where
             &mut tree.children[0],
             event,
             layout.children().next().unwrap(),
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             shell,
@@ -216,14 +216,14 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout.children().next().unwrap(),
-            cursor_position,
+            cursor,
             viewport,
             renderer,
         )
@@ -236,7 +236,7 @@ where
         theme: &Renderer::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let style = theme.appearance(&self.style);
@@ -253,7 +253,7 @@ where
                     .unwrap_or(renderer_style.text_color),
             },
             layout.children().next().unwrap(),
-            cursor_position,
+            cursor,
             viewport,
         );
     }

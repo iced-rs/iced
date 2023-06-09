@@ -8,8 +8,8 @@ use crate::core::text;
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Alignment, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Widget,
+    Alignment, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
+    Shell, Widget,
 };
 use crate::{Row, Text};
 
@@ -229,7 +229,7 @@ where
         _state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -237,7 +237,7 @@ where
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
             | Event::Touch(touch::Event::FingerPressed { .. }) => {
-                if layout.bounds().contains(cursor_position) {
+                if cursor.is_over(layout.bounds()) {
                     shell.publish(self.on_click.clone());
 
                     return event::Status::Captured;
@@ -253,11 +253,11 @@ where
         &self,
         _state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if layout.bounds().contains(cursor_position) {
+        if cursor.is_over(layout.bounds()) {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -271,11 +271,10 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
+        let is_mouse_over = cursor.is_over(layout.bounds());
 
         let mut children = layout.children();
 

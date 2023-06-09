@@ -265,7 +265,7 @@ where
         tree: &mut Tree,
         event: core::Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -279,7 +279,7 @@ where
                 &mut t.borrow_mut().as_mut().unwrap().children[0],
                 event,
                 layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 &mut local_shell,
@@ -397,7 +397,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let tree = tree.state.downcast_ref::<Rc<RefCell<Option<Tree>>>>();
@@ -408,7 +408,7 @@ where
                 theme,
                 style,
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         });
@@ -418,7 +418,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -427,7 +427,7 @@ where
             element.as_widget().mouse_interaction(
                 &tree.borrow().as_ref().unwrap().children[0],
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
@@ -569,27 +569,22 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
     ) {
         let _ = self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, theme, style, layout, cursor_position);
+            overlay.draw(renderer, theme, style, layout, cursor);
         });
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(
-                layout,
-                cursor_position,
-                viewport,
-                renderer,
-            )
+            overlay.mouse_interaction(layout, cursor, viewport, renderer)
         })
         .unwrap_or_default()
     }
@@ -598,7 +593,7 @@ where
         &mut self,
         event: core::Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -611,7 +606,7 @@ where
                 overlay.on_event(
                     event,
                     layout,
-                    cursor_position,
+                    cursor,
                     renderer,
                     clipboard,
                     &mut local_shell,

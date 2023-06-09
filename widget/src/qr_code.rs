@@ -1,6 +1,7 @@
 //! Encode and display information in a QR code.
 use crate::canvas;
 use crate::core::layout;
+use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::Tree;
 use crate::core::{
@@ -74,7 +75,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
         _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();

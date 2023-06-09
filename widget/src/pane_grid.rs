@@ -313,7 +313,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -331,7 +331,7 @@ where
             self.contents.layout(),
             &event,
             layout,
-            cursor_position,
+            cursor,
             shell,
             self.spacing,
             self.contents.iter(),
@@ -353,7 +353,7 @@ where
                     tree,
                     event.clone(),
                     layout,
-                    cursor_position,
+                    cursor,
                     renderer,
                     clipboard,
                     shell,
@@ -367,7 +367,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -375,7 +375,7 @@ where
             tree.state.downcast_ref(),
             self.contents.layout(),
             layout,
-            cursor_position,
+            cursor,
             self.spacing,
             self.on_resize.as_ref().map(|(leeway, _)| *leeway),
         )
@@ -388,7 +388,7 @@ where
                     content.mouse_interaction(
                         tree,
                         layout,
-                        cursor_position,
+                        cursor,
                         viewport,
                         renderer,
                         self.drag_enabled(),
@@ -406,14 +406,14 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         draw(
             tree.state.downcast_ref(),
             self.contents.layout(),
             layout,
-            cursor_position,
+            cursor,
             renderer,
             theme,
             style,
@@ -425,20 +425,9 @@ where
                 .iter()
                 .zip(&tree.children)
                 .map(|((pane, content), tree)| (pane, (content, tree))),
-            |(content, tree),
-             renderer,
-             style,
-             layout,
-             cursor_position,
-             rectangle| {
+            |(content, tree), renderer, style, layout, cursor, rectangle| {
                 content.draw(
-                    tree,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    rectangle,
+                    tree, renderer, theme, style, layout, cursor, rectangle,
                 );
             },
         )
@@ -520,7 +509,7 @@ pub fn update<'a, Message, T: Draggable>(
     node: &Node,
     event: &Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     spacing: f32,
     contents: impl Iterator<Item = (Pane, T)>,
@@ -535,7 +524,7 @@ pub fn update<'a, Message, T: Draggable>(
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let bounds = layout.bounds();
 
-            if bounds.contains(cursor_position) {
+            if let Some(cursor_position) = cursor.position_over(bounds) {
                 event_status = event::Status::Captured;
 
                 match on_resize {
@@ -592,14 +581,18 @@ pub fn update<'a, Message, T: Draggable>(
         | Event::Touch(touch::Event::FingerLost { .. }) => {
             if let Some((pane, _)) = action.picked_pane() {
                 if let Some(on_drag) = on_drag {
-                    let mut dropped_region = contents
-                        .zip(layout.children())
-                        .filter_map(|(target, layout)| {
-                            layout_region(layout, cursor_position)
-                                .map(|region| (target, region))
+                    let dropped_region =
+                        cursor.position().and_then(|cursor_position| {
+                            contents
+                                .zip(layout.children())
+                                .filter_map(|(target, layout)| {
+                                    layout_region(layout, cursor_position)
+                                        .map(|region| (target, region))
+                                })
+                                .next()
                         });
 
-                    let event = match dropped_region.next() {
+                    let event = match dropped_region {
                         Some(((target, _), region)) if pane != target => {
                             DragEvent::Dropped {
                                 pane,
@@ -634,24 +627,32 @@ pub fn update<'a, Message, T: Draggable>(
                     );
 
                     if let Some((axis, rectangle, _)) = splits.get(&split) {
-                        let ratio = match axis {
-                            Axis::Horizontal => {
-                                let position =
-                                    cursor_position.y - bounds.y - rectangle.y;
+                        if let Some(cursor_position) = cursor.position() {
+                            let ratio = match axis {
+                                Axis::Horizontal => {
+                                    let position = cursor_position.y
+                                        - bounds.y
+                                        - rectangle.y;
 
-                                (position / rectangle.height).clamp(0.1, 0.9)
-                            }
-                            Axis::Vertical => {
-                                let position =
-                                    cursor_position.x - bounds.x - rectangle.x;
+                                    (position / rectangle.height)
+                                        .clamp(0.1, 0.9)
+                                }
+                                Axis::Vertical => {
+                                    let position = cursor_position.x
+                                        - bounds.x
+                                        - rectangle.x;
 
-                                (position / rectangle.width).clamp(0.1, 0.9)
-                            }
-                        };
+                                    (position / rectangle.width).clamp(0.1, 0.9)
+                                }
+                            };
 
-                        shell.publish(on_resize(ResizeEvent { split, ratio }));
+                            shell.publish(on_resize(ResizeEvent {
+                                split,
+                                ratio,
+                            }));
 
-                        event_status = event::Status::Captured;
+                            event_status = event::Status::Captured;
+                        }
                     }
                 }
             }
@@ -724,7 +725,7 @@ pub fn mouse_interaction(
     action: &state::Action,
     node: &Node,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     spacing: f32,
     resize_leeway: Option<f32>,
 ) -> Option<mouse::Interaction> {
@@ -735,6 +736,7 @@ pub fn mouse_interaction(
     let resize_axis =
         action.picked_split().map(|(_, axis)| axis).or_else(|| {
             resize_leeway.and_then(|leeway| {
+                let cursor_position = cursor.position()?;
                 let bounds = layout.bounds();
 
                 let splits = node.split_regions(spacing, bounds.size());
@@ -764,7 +766,7 @@ pub fn draw<Renderer, T>(
     action: &state::Action,
     node: &Node,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     default_style: &renderer::Style,
@@ -778,7 +780,7 @@ pub fn draw<Renderer, T>(
         &mut Renderer,
         &renderer::Style,
         Layout<'_>,
-        Point,
+        mouse::Cursor,
         &Rectangle,
     ),
 ) where
@@ -802,6 +804,7 @@ pub fn draw<Renderer, T>(
         })
         .or_else(|| match resize_leeway {
             Some(leeway) => {
+                let cursor_position = cursor.position()?;
                 let bounds = layout.bounds();
 
                 let relative_cursor = Point::new(
@@ -822,12 +825,10 @@ pub fn draw<Renderer, T>(
             None => None,
         });
 
-    let pane_cursor_position = if picked_pane.is_some() {
-        // TODO: Remove once cursor availability is encoded in the type
-        // system
-        Point::new(-1.0, -1.0)
+    let pane_cursor = if picked_pane.is_some() {
+        mouse::Cursor::Unavailable
     } else {
-        cursor_position
+        cursor
     };
 
     let mut render_picked_pane = None;
@@ -843,12 +844,15 @@ pub fn draw<Renderer, T>(
                     renderer,
                     default_style,
                     layout,
-                    pane_cursor_position,
+                    pane_cursor,
                     viewport,
                 );
 
                 if picked_pane.is_some() {
-                    if let Some(region) = layout_region(layout, cursor_position)
+                    if let Some(region) =
+                        cursor.position().and_then(|cursor_position| {
+                            layout_region(layout, cursor_position)
+                        })
                     {
                         let bounds = layout_region_bounds(layout, region);
                         let hovered_region_style = theme.hovered_region(style);
@@ -872,7 +876,7 @@ pub fn draw<Renderer, T>(
                     renderer,
                     default_style,
                     layout,
-                    pane_cursor_position,
+                    pane_cursor,
                     viewport,
                 );
             }
@@ -881,25 +885,27 @@ pub fn draw<Renderer, T>(
 
     // Render picked pane last
     if let Some((pane, origin, layout)) = render_picked_pane {
-        let bounds = layout.bounds();
+        if let Some(cursor_position) = cursor.position() {
+            let bounds = layout.bounds();
 
-        renderer.with_translation(
-            cursor_position
-                - Point::new(bounds.x + origin.x, bounds.y + origin.y),
-            |renderer| {
-                renderer.with_layer(bounds, |renderer| {
-                    draw_pane(
-                        pane,
-                        renderer,
-                        default_style,
-                        layout,
-                        pane_cursor_position,
-                        viewport,
-                    );
-                });
-            },
-        );
-    };
+            renderer.with_translation(
+                cursor_position
+                    - Point::new(bounds.x + origin.x, bounds.y + origin.y),
+                |renderer| {
+                    renderer.with_layer(bounds, |renderer| {
+                        draw_pane(
+                            pane,
+                            renderer,
+                            default_style,
+                            layout,
+                            pane_cursor,
+                            viewport,
+                        );
+                    });
+                },
+            );
+        }
+    }
 
     if let Some((axis, split_region, is_picked)) = picked_split {
         let highlight = if is_picked {

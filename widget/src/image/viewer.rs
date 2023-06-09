@@ -144,18 +144,19 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
 
         match event {
-            Event::Mouse(mouse::Event::WheelScrolled { delta })
-                if is_mouse_over =>
-            {
+            Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+                let Some(cursor_position) = cursor.position() else {
+                    return event::Status::Ignored;
+                };
+
                 match delta {
                     mouse::ScrollDelta::Lines { y, .. }
                     | mouse::ScrollDelta::Pixels { y, .. } => {
@@ -205,9 +206,11 @@ where
 
                 event::Status::Captured
             }
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-                if is_mouse_over =>
-            {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+                let Some(cursor_position) = cursor.position() else {
+                    return event::Status::Ignored;
+                };
+
                 let state = tree.state.downcast_mut::<State>();
 
                 state.cursor_grabbed_at = Some(cursor_position);
@@ -277,13 +280,13 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
-        let is_mouse_over = bounds.contains(cursor_position);
+        let is_mouse_over = cursor.is_over(bounds);
 
         if state.is_cursor_grabbed() {
             mouse::Interaction::Grabbing
@@ -301,7 +304,7 @@ where
         _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();

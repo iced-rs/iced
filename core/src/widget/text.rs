@@ -1,12 +1,11 @@
 //! Write some text for your users to read.
 use crate::alignment;
 use crate::layout;
+use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::widget::Tree;
-use crate::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
-};
+use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget};
 
 use std::borrow::Cow;
 
@@ -163,7 +162,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         draw(

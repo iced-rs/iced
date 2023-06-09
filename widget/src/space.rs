@@ -1,9 +1,10 @@
 //! Distribute content vertically.
 use crate::core;
 use crate::core::layout;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
-use crate::core::{Element, Layout, Length, Point, Rectangle, Size, Widget};
+use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};
 
 /// An amount of empty space.
 ///
@@ -69,7 +70,7 @@ where
         _theme: &Renderer::Theme,
         _style: &renderer::Style,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
     }

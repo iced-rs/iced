@@ -4,10 +4,11 @@ pub use viewer::Viewer;
 
 use crate::core::image;
 use crate::core::layout;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -186,7 +187,7 @@ where
         _theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         draw(renderer, layout, &self.handle, self.content_fit)

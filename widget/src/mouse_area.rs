@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Widget,
+    Clipboard, Element, Layout, Length, Rectangle, Shell, Widget,
 };
 
 /// Emit messages on mouse events.
@@ -146,7 +146,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -155,7 +155,7 @@ where
             &mut tree.children[0],
             event.clone(),
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             shell,
@@ -163,21 +163,21 @@ where
             return event::Status::Captured;
         }
 
-        update(self, &event, layout, cursor_position, shell)
+        update(self, &event, layout, cursor, shell)
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
-            cursor_position,
+            cursor,
             viewport,
             renderer,
         )
@@ -190,7 +190,7 @@ where
         theme: &Renderer::Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         self.content.as_widget().draw(
@@ -199,7 +199,7 @@ where
             theme,
             renderer_style,
             layout,
-            cursor_position,
+            cursor,
             viewport,
         );
     }
@@ -237,10 +237,10 @@ fn update<Message: Clone, Renderer>(
     widget: &mut MouseArea<'_, Message, Renderer>,
     event: &Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if !layout.bounds().contains(cursor_position) {
+    if !cursor.is_over(layout.bounds()) {
         return event::Status::Ignored;
     }
 

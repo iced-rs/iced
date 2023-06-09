@@ -1,9 +1,10 @@
 //! Display a horizontal or vertical rule for dividing content.
 use crate::core::layout;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+    Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
 };
 
 pub use crate::style::rule::{Appearance, FillMode, StyleSheet};
@@ -86,7 +87,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();

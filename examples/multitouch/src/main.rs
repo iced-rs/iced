@@ -1,9 +1,10 @@
 //! This example shows how to use touch events in `Canvas` to draw
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
+use iced::mouse;
 use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::{self, Canvas, Cursor, Geometry};
+use iced::widget::canvas::{self, Canvas, Geometry};
 use iced::{
     executor, touch, window, Application, Color, Command, Element, Length,
     Point, Rectangle, Renderer, Settings, Subscription, Theme,
@@ -103,7 +104,7 @@ impl canvas::Program<Message, Renderer> for State {
         _state: &mut Self::State,
         event: event::Event,
         _bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
         match event {
             event::Event::Touch(touch_event) => match touch_event {
@@ -128,7 +129,7 @@ impl canvas::Program<Message, Renderer> for State {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let fingerweb = self.cache.draw(renderer, bounds.size(), |frame| {
             if self.fingers.len() < 2 {

@@ -356,7 +356,7 @@ async fn run_instance<A, E, C>(
 
                 let (interface_state, statuses) = user_interface.update(
                     &events,
-                    state.cursor_position(),
+                    state.cursor(),
                     &mut renderer,
                     &mut clipboard,
                     &mut messages,
@@ -422,7 +422,7 @@ async fn run_instance<A, E, C>(
 
                 let (interface_state, _) = user_interface.update(
                     &[redraw_event.clone()],
-                    state.cursor_position(),
+                    state.cursor(),
                     &mut renderer,
                     &mut clipboard,
                     &mut messages,
@@ -435,7 +435,7 @@ async fn run_instance<A, E, C>(
                     &renderer::Style {
                         text_color: state.text_color(),
                     },
-                    state.cursor_position(),
+                    state.cursor(),
                 );
                 debug.draw_finished();
 
@@ -508,7 +508,7 @@ async fn run_instance<A, E, C>(
                         &renderer::Style {
                             text_color: state.text_color(),
                         },
-                        state.cursor_position(),
+                        state.cursor(),
                     );
 
                     if new_mouse_interaction != mouse_interaction {

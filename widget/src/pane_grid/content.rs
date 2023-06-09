@@ -95,7 +95,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         use container::StyleSheet;
@@ -113,7 +113,7 @@ where
             let title_bar_layout = children.next().unwrap();
             let body_layout = children.next().unwrap();
 
-            let show_controls = bounds.contains(cursor_position);
+            let show_controls = cursor.is_over(bounds);
 
             self.body.as_widget().draw(
                 &tree.children[0],
@@ -121,7 +121,7 @@ where
                 theme,
                 style,
                 body_layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
 
@@ -131,7 +131,7 @@ where
                 theme,
                 style,
                 title_bar_layout,
-                cursor_position,
+                cursor,
                 viewport,
                 show_controls,
             );
@@ -142,7 +142,7 @@ where
                 theme,
                 style,
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         }
@@ -218,7 +218,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
@@ -233,7 +233,7 @@ where
                 &mut tree.children[1],
                 event.clone(),
                 children.next().unwrap(),
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 shell,
@@ -251,7 +251,7 @@ where
                 &mut tree.children[0],
                 event,
                 body_layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 shell,
@@ -265,42 +265,48 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
         drag_enabled: bool,
     ) -> mouse::Interaction {
-        let (body_layout, title_bar_interaction) =
-            if let Some(title_bar) = &self.title_bar {
-                let mut children = layout.children();
-                let title_bar_layout = children.next().unwrap();
+        let (body_layout, title_bar_interaction) = if let Some(title_bar) =
+            &self.title_bar
+        {
+            let mut children = layout.children();
+            let title_bar_layout = children.next().unwrap();
 
-                let is_over_pick_area = title_bar
-                    .is_over_pick_area(title_bar_layout, cursor_position);
+            let is_over_pick_area = cursor
+                .position()
+                .map(|cursor_position| {
+                    title_bar
+                        .is_over_pick_area(title_bar_layout, cursor_position)
+                })
+                .unwrap_or_default();
 
-                if is_over_pick_area && drag_enabled {
-                    return mouse::Interaction::Grab;
-                }
+            if is_over_pick_area && drag_enabled {
+                return mouse::Interaction::Grab;
+            }
 
-                let mouse_interaction = title_bar.mouse_interaction(
-                    &tree.children[1],
-                    title_bar_layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                );
+            let mouse_interaction = title_bar.mouse_interaction(
+                &tree.children[1],
+                title_bar_layout,
+                cursor,
+                viewport,
+                renderer,
+            );
 
-                (children.next().unwrap(), mouse_interaction)
-            } else {
-                (layout, mouse::Interaction::default())
-            };
+            (children.next().unwrap(), mouse_interaction)
+        } else {
+            (layout, mouse::Interaction::default())
+        };
 
         self.body
             .as_widget()
             .mouse_interaction(
                 &tree.children[0],
                 body_layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
