@@ -5,7 +5,7 @@ use iced::advanced::widget::tree::{self, Tree};
 use iced::advanced::{Clipboard, Layout, Renderer, Shell, Widget};
 use iced::event;
 use iced::time::Instant;
-use iced::widget::canvas::{self, Cursor, Program};
+use iced::widget::canvas;
 use iced::window::{self, RedrawRequest};
 use iced::{Background, Color, Element, Rectangle};
 use iced::{Event, Length, Point, Size, Vector};
@@ -14,8 +14,6 @@ use super::easing::{self, Easing};
 
 use std::f32::consts::PI;
 use std::time::Duration;
-
-type R<Theme> = iced::Renderer<Theme>;
 
 const MIN_RADIANS: f32 = PI / 8.0;
 const WRAP_RADIANS: f32 = 2.0 * PI - PI / 4.0;
@@ -98,7 +96,7 @@ where
 }
 
 #[derive(Clone, Copy)]
-enum State {
+enum Animation {
     Expanding {
         start: Instant,
         progress: f32,
@@ -113,7 +111,7 @@ enum State {
     },
 }
 
-impl Default for State {
+impl Default for Animation {
     fn default() -> Self {
         Self::Expanding {
             start: Instant::now(),
@@ -124,7 +122,7 @@ impl Default for State {
     }
 }
 
-impl State {
+impl Animation {
     fn next(&self, additional_rotation: u32, now: Instant) -> Self {
         match self {
             Self::Expanding { rotation, .. } => Self::Contracting {
@@ -224,7 +222,14 @@ impl State {
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, R<Theme>> for Circular<'a, Theme>
+#[derive(Default)]
+struct State {
+    animation: Animation,
+    cache: canvas::Cache,
+}
+
+impl<'a, Message, Theme> Widget<Message, iced::Renderer<Theme>>
+    for Circular<'a, Theme>
 where
     Message: 'a + Clone,
     Theme: StyleSheet,
@@ -271,12 +276,13 @@ where
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(window::Event::RedrawRequested(now)) = event {
-            *state = state.timed_transition(
+            state.animation = state.animation.timed_transition(
                 self.cycle_duration,
                 self.rotation_duration,
                 now,
             );
 
+            state.cache.clear();
             shell.request_redraw(RedrawRequest::At(
                 now + Duration::from_millis(1000 / FRAME_RATE),
             ));
@@ -288,42 +294,76 @@ where
     fn draw(
         &self,
         tree: &Tree,
-        renderer: &mut R<Theme>,
+        renderer: &mut iced::Renderer<Theme>,
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: Point,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<State>();
+        let bounds = layout.bounds();
+        let custom_style =
+            <Theme as StyleSheet>::appearance(theme, &self.style);
+
+        let geometry = state.cache.draw(renderer, bounds.size(), |frame| {
+            let track_radius = frame.width() / 2.0 - self.bar_height;
+            let track_path = canvas::Path::circle(frame.center(), track_radius);
+
+            frame.stroke(
+                &track_path,
+                canvas::Stroke::default()
+                    .with_color(custom_style.track_color)
+                    .with_width(self.bar_height),
+            );
+
+            let mut builder = canvas::path::Builder::new();
+
+            let start = state.animation.rotation() * 2.0 * PI;
+
+            match state.animation {
+                Animation::Expanding { progress, .. } => {
+                    builder.arc(canvas::path::Arc {
+                        center: frame.center(),
+                        radius: track_radius,
+                        start_angle: start,
+                        end_angle: start
+                            + MIN_RADIANS
+                            + WRAP_RADIANS * (self.easing.y_at_x(progress)),
+                    });
+                }
+                Animation::Contracting { progress, .. } => {
+                    builder.arc(canvas::path::Arc {
+                        center: frame.center(),
+                        radius: track_radius,
+                        start_angle: start
+                            + WRAP_RADIANS * (self.easing.y_at_x(progress)),
+                        end_angle: start + MIN_RADIANS + WRAP_RADIANS,
+                    });
+                }
+            }
+
+            let bar_path = builder.build();
+
+            frame.stroke(
+                &bar_path,
+                canvas::Stroke::default()
+                    .with_color(custom_style.bar_color)
+                    .with_width(self.bar_height),
+            );
+        });
 
         renderer.with_translation(
             Vector::new(bounds.x, bounds.y),
             |renderer| {
-                canvas::Renderer::draw(
-                    renderer,
-                    <StateWithStyle<Theme> as Program<Message, R<Theme>>>::draw(
-                        &StateWithStyle {
-                            state,
-                            style: &self.style,
-                            bar_height: self.bar_height,
-                            easing: self.easing,
-                        },
-                        &(),
-                        renderer,
-                        theme,
-                        bounds,
-                        Cursor::Unavailable,
-                    ),
-                );
+                renderer.draw_primitive(geometry.0);
             },
         );
     }
 }
 
 impl<'a, Message, Theme> From<Circular<'a, Theme>>
-    for Element<'a, Message, R<Theme>>
+    for Element<'a, Message, iced::Renderer<Theme>>
 where
     Message: Clone + 'a,
     Theme: StyleSheet + 'a,
@@ -373,98 +413,5 @@ impl StyleSheet for iced::Theme {
             track_color: palette.background.weak.color,
             bar_color: palette.primary.base.color,
         }
-    }
-}
-
-struct StateWithStyle<'a, Theme>
-where
-    Theme: StyleSheet,
-{
-    state: &'a State,
-    style: &'a <Theme as StyleSheet>::Style,
-    easing: &'a Easing,
-    bar_height: f32,
-}
-
-impl<'a, Message, Theme> Program<Message, iced::Renderer<Theme>>
-    for StateWithStyle<'a, Theme>
-where
-    Theme: StyleSheet,
-{
-    type State = ();
-
-    fn update(
-        &self,
-        _state: &mut Self::State,
-        _event: canvas::Event,
-        _bounds: Rectangle,
-        _cursor: canvas::Cursor,
-    ) -> (canvas::event::Status, Option<Message>) {
-        (canvas::event::Status::Ignored, None)
-    }
-
-    fn draw(
-        &self,
-        _state: &Self::State,
-        renderer: &iced::Renderer<Theme>,
-        theme: &Theme,
-        bounds: Rectangle,
-        _cursor: canvas::Cursor,
-    ) -> Vec<canvas::Geometry> {
-        let mut frame = canvas::Frame::new(renderer, bounds.size());
-        let custom_style = <Theme as StyleSheet>::appearance(theme, self.style);
-        let track_radius = frame.width() / 2.0 - self.bar_height;
-
-        if let Some(Background::Color(color)) = custom_style.background {
-            let background_path =
-                canvas::Path::circle(frame.center(), track_radius);
-            frame.fill(&background_path, color);
-        }
-
-        let track_path = canvas::Path::circle(frame.center(), track_radius);
-
-        frame.stroke(
-            &track_path,
-            canvas::Stroke::default()
-                .with_color(custom_style.track_color)
-                .with_width(self.bar_height),
-        );
-
-        let mut builder = canvas::path::Builder::new();
-
-        let start = self.state.rotation() * 2.0 * PI;
-
-        match self.state {
-            State::Expanding { progress, .. } => {
-                builder.arc(canvas::path::Arc {
-                    center: frame.center(),
-                    radius: track_radius,
-                    start_angle: start,
-                    end_angle: start
-                        + MIN_RADIANS
-                        + WRAP_RADIANS * (self.easing.y_at_x(*progress)),
-                });
-            }
-            State::Contracting { progress, .. } => {
-                builder.arc(canvas::path::Arc {
-                    center: frame.center(),
-                    radius: track_radius,
-                    start_angle: start
-                        + WRAP_RADIANS * (self.easing.y_at_x(*progress)),
-                    end_angle: start + MIN_RADIANS + WRAP_RADIANS,
-                });
-            }
-        }
-
-        let bar_path = builder.build();
-
-        frame.stroke(
-            &bar_path,
-            canvas::Stroke::default()
-                .with_color(custom_style.bar_color)
-                .with_width(self.bar_height),
-        );
-
-        vec![frame.into_geometry()]
     }
 }
