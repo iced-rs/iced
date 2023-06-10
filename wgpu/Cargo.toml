@@ -55,7 +55,7 @@ version = "1.0"
 optional = true
 
 [dependencies.resvg]
-version = "0.32"
+version = "0.34"
 optional = true
 
 [dependencies.tracing]

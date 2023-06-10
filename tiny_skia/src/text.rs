@@ -3,6 +3,7 @@ use crate::core::font::{self, Font};
 use crate::core::text::{Hit, LineHeight, Shaping};
 use crate::core::{Color, Pixels, Point, Rectangle, Size};
 
+use bytemuck::cast;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -288,14 +289,15 @@ impl GlyphCache {
 
                     for _y in 0..image.placement.height {
                         for _x in 0..image.placement.width {
-                            buffer[i] = tiny_skia::ColorU8::from_rgba(
-                                b,
-                                g,
-                                r,
-                                image.data[i],
-                            )
-                            .premultiply()
-                            .get();
+                            buffer[i] = cast(
+                                tiny_skia::ColorU8::from_rgba(
+                                    b,
+                                    g,
+                                    r,
+                                    image.data[i],
+                                )
+                                .premultiply(),
+                            );
 
                             i += 1;
                         }
@@ -307,14 +309,15 @@ impl GlyphCache {
                     for _y in 0..image.placement.height {
                         for _x in 0..image.placement.width {
                             // TODO: Blend alpha
-                            buffer[i >> 2] = tiny_skia::ColorU8::from_rgba(
-                                image.data[i + 2],
-                                image.data[i + 1],
-                                image.data[i],
-                                image.data[i + 3],
-                            )
-                            .premultiply()
-                            .get();
+                            buffer[i >> 2] = cast(
+                                tiny_skia::ColorU8::from_rgba(
+                                    image.data[i + 2],
+                                    image.data[i + 1],
+                                    image.data[i],
+                                    image.data[i + 3],
+                                )
+                                .premultiply(),
+                            );
 
                             i += 4;
                         }

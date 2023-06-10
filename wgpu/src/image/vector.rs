@@ -114,16 +114,27 @@ impl Cache {
                 // It would be cool to be able to smooth resize the `svg` example.
                 let mut img = tiny_skia::Pixmap::new(width, height)?;
 
-                resvg::render(
-                    tree,
-                    if width > height {
-                        resvg::FitTo::Width(width)
-                    } else {
-                        resvg::FitTo::Height(height)
-                    },
-                    tiny_skia::Transform::default(),
-                    img.as_mut(),
-                )?;
+                let tree_size = tree.size.to_int_size();
+                let target_size;
+                if width > height {
+                    target_size = tree_size.scale_to_width(width);
+                } else {
+                    target_size = tree_size.scale_to_height(height);
+                }
+                let transform;
+                if let Some(target_size) = target_size {
+                    let tree_size = tree_size.to_size();
+                    let target_size = target_size.to_size();
+                    transform = tiny_skia::Transform::from_scale(
+                        target_size.width() / tree_size.width(),
+                        target_size.height() / tree_size.height(),
+                    );
+                } else {
+                    transform = tiny_skia::Transform::default();
+                }
+
+                resvg::Tree::from_usvg(tree)
+                    .render(transform, &mut img.as_mut());
 
                 let mut rgba = img.take();
 
