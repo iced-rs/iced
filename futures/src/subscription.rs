@@ -417,7 +417,7 @@ where
 pub fn channel<I, Fut, Message>(
     id: I,
     size: usize,
-    f: impl Fn(mpsc::Sender<Message>) -> Fut + MaybeSend + Sync + 'static,
+    f: impl FnOnce(mpsc::Sender<Message>) -> Fut + MaybeSend + 'static,
 ) -> Subscription<Message>
 where
     I: Hash + 'static,
