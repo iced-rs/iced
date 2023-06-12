@@ -1,5 +1,6 @@
 //! Query or update internal widget state.
 pub mod focusable;
+pub mod layout;
 pub mod scrollable;
 pub mod text_input;
 
@@ -7,7 +8,7 @@ pub use focusable::Focusable;
 pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
-use crate::widget::Id;
+use crate::{widget::Id, Rectangle};
 
 use std::any::Any;
 use std::fmt;
@@ -34,6 +35,9 @@ pub trait Operation<T> {
 
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
+
+    /// Queries a a widget for its layout.
+    fn layout(&mut self, _layout_bounds: Rectangle, _id: Option<&Id>) {}
 
     /// Operates on a custom widget with some state.
     fn custom(&mut self, _state: &mut dyn Any, _id: Option<&Id>) {}
@@ -135,6 +139,14 @@ where
                     self.operation.text_input(state, id);
                 }
 
+                fn layout(
+                    &mut self,
+                    layout_bounds: Rectangle,
+                    id: Option<&Id>,
+                ) {
+                    self.operation.layout(layout_bounds, id);
+                }
+
                 fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {
                     self.operation.custom(state, id);
                 }
@@ -158,6 +170,10 @@ where
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
             self.operation.text_input(state, id);
+        }
+
+        fn layout(&mut self, layout_bounds: Rectangle, id: Option<&Id>) {
+            self.operation.layout(layout_bounds, id);
         }
 
         fn custom(&mut self, state: &mut dyn Any, id: Option<&Id>) {

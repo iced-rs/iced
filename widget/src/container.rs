@@ -5,11 +5,13 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Operation, Tree};
+use crate::core::widget::{self, operation, Operation, Tree};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
     Point, Rectangle, Shell, Widget,
 };
+use crate::runtime::Command;
+use iced_runtime::futures::MaybeSend;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
@@ -178,6 +180,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
+        operation.layout(layout.bounds(), self.id.as_ref().map(|id| &id.0));
+
         operation.container(
             self.id.as_ref().map(|id| &id.0),
             &mut |operation| {
@@ -365,4 +369,12 @@ impl From<Id> for widget::Id {
     fn from(id: Id) -> Self {
         id.0
     }
+}
+
+/// Produces a [`Command`] that focuses the [`TextInput`] with the given [`Id`].
+pub fn get_layout<Message: 'static>(
+    id: Id,
+    f: impl Fn(Rectangle) -> Message + 'static + MaybeSend + Sync + Clone,
+) -> Command<Message> {
+    Command::widget(operation::layout::layout(id.0)).map(f)
 }
