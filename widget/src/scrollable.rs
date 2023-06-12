@@ -482,6 +482,10 @@ pub fn update<Message>(
 
     match event {
         Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
+            if cursor_over_scrollable.is_none() {
+                return event::Status::Ignored;
+            }
+
             let delta = match delta {
                 mouse::ScrollDelta::Lines { x, y } => {
                     // TODO: Configurable speed/friction (?)
