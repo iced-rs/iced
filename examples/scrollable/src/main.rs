@@ -20,6 +20,7 @@ struct ScrollableDemo {
     scrollbar_margin: u16,
     scroller_width: u16,
     current_scroll_offset: scrollable::RelativeOffset,
+    alignment: scrollable::Alignment,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -32,6 +33,7 @@ enum Direction {
 #[derive(Debug, Clone)]
 enum Message {
     SwitchDirection(Direction),
+    AlignmentChanged(scrollable::Alignment),
     ScrollbarWidthChanged(u16),
     ScrollbarMarginChanged(u16),
     ScrollerWidthChanged(u16),
@@ -54,6 +56,7 @@ impl Application for ScrollableDemo {
                 scrollbar_margin: 0,
                 scroller_width: 10,
                 current_scroll_offset: scrollable::RelativeOffset::START,
+                alignment: scrollable::Alignment::Start,
             },
             Command::none(),
         )
@@ -68,6 +71,15 @@ impl Application for ScrollableDemo {
             Message::SwitchDirection(direction) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
+
+                scrollable::snap_to(
+                    SCROLLABLE_ID.clone(),
+                    self.current_scroll_offset,
+                )
+            }
+            Message::AlignmentChanged(alignment) => {
+                self.current_scroll_offset = scrollable::RelativeOffset::START;
+                self.alignment = alignment;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),
@@ -165,10 +177,33 @@ impl Application for ScrollableDemo {
         .spacing(10)
         .width(Length::Fill);
 
-        let scroll_controls =
-            row![scroll_slider_controls, scroll_orientation_controls]
-                .spacing(20)
-                .width(Length::Fill);
+        let scroll_alignment_controls = column(vec![
+            text("Scrollable alignment:").into(),
+            radio(
+                "Start",
+                scrollable::Alignment::Start,
+                Some(self.alignment),
+                Message::AlignmentChanged,
+            )
+            .into(),
+            radio(
+                "End",
+                scrollable::Alignment::End,
+                Some(self.alignment),
+                Message::AlignmentChanged,
+            )
+            .into(),
+        ])
+        .spacing(10)
+        .width(Length::Fill);
+
+        let scroll_controls = row![
+            scroll_slider_controls,
+            scroll_orientation_controls,
+            scroll_alignment_controls
+        ]
+        .spacing(20)
+        .width(Length::Fill);
 
         let scroll_to_end_button = || {
             button("Scroll to end")
@@ -204,7 +239,8 @@ impl Application for ScrollableDemo {
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
                 ))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
@@ -228,7 +264,8 @@ impl Application for ScrollableDemo {
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
                 ))
                 .style(theme::Scrollable::custom(ScrollbarCustomStyle))
                 .id(SCROLLABLE_ID.clone())
@@ -269,7 +306,8 @@ impl Application for ScrollableDemo {
                     let properties = Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width);
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment);
 
                     scrollable::Direction::Both {
                         horizontal: properties,
