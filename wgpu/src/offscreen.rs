@@ -1,16 +1,12 @@
 use crate::graphics::color;
 use std::borrow::Cow;
-use wgpu::util::DeviceExt;
-use wgpu::vertex_attr_array;
 
 /// A simple compute pipeline to convert any texture to Rgba8UnormSrgb.
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
-    vertices: wgpu::Buffer,
-    indices: wgpu::Buffer,
-    sampler: wgpu::Sampler,
-    layout: wgpu::BindGroupLayout,
+    sampler_bind_group: wgpu::BindGroup,
+    texture_layout: wgpu::BindGroupLayout,
 }
 
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -22,86 +18,65 @@ struct Vertex {
 
 impl Pipeline {
     pub fn new(device: &wgpu::Device) -> Self {
-        let shader =
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu.offscreen.blit.shader"),
-                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(
-                    "shader/offscreen_blit.wgsl"
-                ))),
-            });
-
-        let vertices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu.offscreen.vertex_buffer"),
-                contents: bytemuck::cast_slice(&[
-                    //bottom left
-                    Vertex {
-                        ndc: [-1.0, -1.0],
-                        uv: [0.0, 1.0],
-                    },
-                    //bottom right
-                    Vertex {
-                        ndc: [1.0, -1.0],
-                        uv: [1.0, 1.0],
-                    },
-                    //top right
-                    Vertex {
-                        ndc: [1.0, 1.0],
-                        uv: [1.0, 0.0],
-                    },
-                    //top left
-                    Vertex {
-                        ndc: [-1.0, 1.0],
-                        uv: [0.0, 0.0],
-                    },
-                ]),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-
-        let indices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu.offscreen.index_buffer"),
-                contents: bytemuck::cast_slice(&[0u16, 1, 2, 2, 3, 0]),
-                usage: wgpu::BufferUsages::INDEX,
-            });
-
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("iced_wgpu.offscreen.sampler"),
             ..Default::default()
         });
 
-        let bind_group_layout =
+        //sampler in 0
+        let sampler_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu.offscreen.blit.bind_group_layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Texture {
-                            sample_type: wgpu::TextureSampleType::Float {
-                                filterable: false,
-                            },
-                            view_dimension: wgpu::TextureViewDimension::D2,
-                            multisampled: false,
+                label: Some("iced_wgpu.offscreen.blit.sampler_layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(
+                        wgpu::SamplerBindingType::NonFiltering,
+                    ),
+                    count: None,
+                }],
+            });
+
+        let sampler_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("iced_wgpu.offscreen.sampler.bind_group"),
+                layout: &sampler_layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                }],
+            });
+
+        let texture_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("iced_wgpu.offscreen.blit.texture_layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: false,
                         },
-                        count: None,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
                     },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::NonFiltering,
-                        ),
-                        count: None,
-                    },
-                ],
+                    count: None,
+                }],
             });
 
         let pipeline_layout =
             device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: Some("iced_wgpu.offscreen.blit.pipeline_layout"),
-                bind_group_layouts: &[&bind_group_layout],
+                bind_group_layouts: &[&sampler_layout, &texture_layout],
                 push_constant_ranges: &[],
+            });
+
+        let shader =
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu.offscreen.blit.shader"),
+                source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(
+                    "shader/blit.wgsl"
+                ))),
             });
 
         let pipeline =
@@ -111,14 +86,7 @@ impl Pipeline {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: std::mem::size_of::<Vertex>() as u64,
-                        step_mode: wgpu::VertexStepMode::Vertex,
-                        attributes: &vertex_attr_array![
-                            0 => Float32x2, // quad ndc pos
-                            1 => Float32x2, // texture uv
-                        ],
-                    }],
+                    buffers: &[],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -156,10 +124,8 @@ impl Pipeline {
 
         Self {
             pipeline,
-            vertices,
-            indices,
-            sampler,
-            layout: bind_group_layout,
+            sampler_bind_group,
+            texture_layout,
         }
     }
 
@@ -189,20 +155,15 @@ impl Pipeline {
         let view =
             &texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-        let bind = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu.offscreen.blit.bind_group"),
-            layout: &self.layout,
-            entries: &[
-                wgpu::BindGroupEntry {
+        let texture_bind_group =
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("iced_wgpu.offscreen.blit.texture_bind_group"),
+                layout: &self.texture_layout,
+                entries: &[wgpu::BindGroupEntry {
                     binding: 0,
                     resource: wgpu::BindingResource::TextureView(frame),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(&self.sampler),
-                },
-            ],
-        });
+                }],
+            });
 
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("iced_wgpu.offscreen.blit.render_pass"),
@@ -218,13 +179,9 @@ impl Pipeline {
         });
 
         pass.set_pipeline(&self.pipeline);
-        pass.set_bind_group(0, &bind, &[]);
-        pass.set_vertex_buffer(0, self.vertices.slice(..));
-        pass.set_index_buffer(
-            self.indices.slice(..),
-            wgpu::IndexFormat::Uint16,
-        );
-        pass.draw_indexed(0..6u32, 0, 0..1);
+        pass.set_bind_group(0, &self.sampler_bind_group, &[]);
+        pass.set_bind_group(1, &texture_bind_group, &[]);
+        pass.draw(0..6, 0..1);
 
         texture
     }
