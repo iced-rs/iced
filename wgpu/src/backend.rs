@@ -124,7 +124,7 @@ impl Backend {
     }
 
     /// Performs an offscreen render pass. If the `format` selected by WGPU is not
-    /// `wgpu::TextureFormat::Rgba8UnormSrgb`, a conversion compute pipeline will run.
+    /// `wgpu::TextureFormat::Rgba8UnormSrgb`, it will be run through a blit.
     ///
     /// Returns `None` if the `frame` is `Rgba8UnormSrgb`, else returns the newly
     /// converted texture view in `Rgba8UnormSrgb`.
