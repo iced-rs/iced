@@ -94,7 +94,7 @@ where
                     .and_then(|(cursor_position, nested_layout)| {
                         element.overlay(layout, renderer).map(|nested| {
                             nested.is_over(
-                                nested_layout,
+                                nested_layout.children().next().unwrap(),
                                 renderer,
                                 cursor_position,
                             )
