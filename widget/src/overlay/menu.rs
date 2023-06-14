@@ -19,7 +19,7 @@ pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Renderer = crate::Renderer>
+pub struct Menu<'a, T, Message, Renderer = crate::Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -27,7 +27,7 @@ where
     state: &'a mut State,
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
-    last_selection: &'a mut Option<T>,
+    on_selected: Box<dyn FnMut(T) -> Message + 'a>,
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
@@ -37,9 +37,10 @@ where
     style: <Renderer::Theme as StyleSheet>::Style,
 }
 
-impl<'a, T, Renderer> Menu<'a, T, Renderer>
+impl<'a, T, Message, Renderer> Menu<'a, T, Message, Renderer>
 where
     T: ToString + Clone,
+    Message: 'a,
     Renderer: text::Renderer + 'a,
     Renderer::Theme:
         StyleSheet + container::StyleSheet + scrollable::StyleSheet,
@@ -50,13 +51,13 @@ where
         state: &'a mut State,
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
-        last_selection: &'a mut Option<T>,
+        on_selected: impl FnMut(T) -> Message + 'a,
     ) -> Self {
         Menu {
             state,
             options,
             hovered_option,
-            last_selection,
+            on_selected: Box::new(on_selected),
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
@@ -121,7 +122,7 @@ where
     /// The `target_height` will be used to display the menu either on top
     /// of the target or under it, depending on the screen position and the
     /// dimensions of the [`Menu`].
-    pub fn overlay<Message: 'a>(
+    pub fn overlay(
         self,
         position: Point,
         target_height: f32,
@@ -174,7 +175,10 @@ where
     Renderer::Theme:
         StyleSheet + container::StyleSheet + scrollable::StyleSheet,
 {
-    pub fn new<T>(menu: Menu<'a, T, Renderer>, target_height: f32) -> Self
+    pub fn new<T>(
+        menu: Menu<'a, T, Message, Renderer>,
+        target_height: f32,
+    ) -> Self
     where
         T: Clone + ToString,
     {
@@ -182,7 +186,7 @@ where
             state,
             options,
             hovered_option,
-            last_selection,
+            on_selected,
             width,
             padding,
             font,
@@ -195,7 +199,7 @@ where
         let container = Container::new(Scrollable::new(List {
             options,
             hovered_option,
-            last_selection,
+            on_selected,
             font,
             text_size,
             text_line_height,
@@ -306,14 +310,14 @@ where
     }
 }
 
-struct List<'a, T, Renderer>
+struct List<'a, T, Message, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
-    last_selection: &'a mut Option<T>,
+    on_selected: Box<dyn FnMut(T) -> Message + 'a>,
     padding: Padding,
     text_size: Option<f32>,
     text_line_height: text::LineHeight,
@@ -323,7 +327,7 @@ where
 }
 
 impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for List<'a, T, Renderer>
+    for List<'a, T, Message, Renderer>
 where
     T: Clone + ToString,
     Renderer: text::Renderer,
@@ -372,14 +376,15 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
-        _shell: &mut Shell<'_, Message>,
+        shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
                 if cursor.is_over(layout.bounds()) {
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
-                            *self.last_selection = Some(option.clone());
+                            shell.publish((self.on_selected)(option.clone()));
+                            return event::Status::Captured;
                         }
                     }
                 }
@@ -417,7 +422,8 @@ where
 
                     if let Some(index) = *self.hovered_option {
                         if let Some(option) = self.options.get(index) {
-                            *self.last_selection = Some(option.clone());
+                            shell.publish((self.on_selected)(option.clone()));
+                            return event::Status::Captured;
                         }
                     }
                 }
@@ -521,7 +527,7 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<List<'a, T, Renderer>>
+impl<'a, T, Message, Renderer> From<List<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
     T: ToString + Clone,
@@ -529,7 +535,7 @@ where
     Renderer: 'a + text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn from(list: List<'a, T, Renderer>) -> Self {
+    fn from(list: List<'a, T, Message, Renderer>) -> Self {
         Element::new(list)
     }
 }

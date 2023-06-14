@@ -147,11 +147,33 @@ where
         });
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn is_over(
+        &self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
         self.children
             .iter()
             .zip(layout.children())
-            .any(|(child, layout)| child.is_over(layout, cursor_position))
+            .any(|(child, layout)| {
+                child.is_over(layout, renderer, cursor_position)
+            })
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        let children = self
+            .children
+            .iter_mut()
+            .zip(layout.children())
+            .filter_map(|(child, layout)| child.overlay(layout, renderer))
+            .collect::<Vec<_>>();
+
+        (!children.is_empty()).then(|| Group::with_children(children).overlay())
     }
 }
 
