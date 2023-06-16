@@ -45,7 +45,7 @@ path = "../graphics"
 [dependencies.glyphon]
 version = "0.2"
 git = "https://github.com/hecrj/glyphon.git"
-rev = "26f92369da3704988e3e27f0b35e705c6b2de203"
+rev = "8dbf36020e5759fa9144517b321372266160113e"
 
 [dependencies.glam]
 version = "0.24"
