@@ -163,14 +163,11 @@ impl Pipeline {
             },
         );
 
-        let (total_lines, max_width) = paragraph
+        paragraph
             .layout_runs()
-            .enumerate()
-            .fold((0, 0.0), |(_, max), (i, buffer)| {
-                (i + 1, buffer.line_w.max(max))
-            });
-
-        (max_width, line_height * total_lines as f32)
+            .fold((0.0, 0.0), |(max, _), buffer| {
+                (buffer.line_w.max(max), buffer.line_y)
+            })
     }
 
     pub fn hit_test(
