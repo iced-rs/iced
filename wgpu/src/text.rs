@@ -18,8 +18,7 @@ pub struct Pipeline {
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     prepare_layer: usize,
-    measurement_cache: RefCell<Cache>,
-    render_cache: Cache,
+    cache: RefCell<Cache>,
 }
 
 impl Pipeline {
@@ -47,8 +46,7 @@ impl Pipeline {
                 },
             ),
             prepare_layer: 0,
-            measurement_cache: RefCell::new(Cache::new()),
-            render_cache: Cache::new(),
+            cache: RefCell::new(Cache::new()),
         }
     }
 
@@ -78,25 +76,25 @@ impl Pipeline {
 
         let font_system = self.font_system.get_mut();
         let renderer = &mut self.renderers[self.prepare_layer];
+        let cache = self.cache.get_mut();
 
         let keys: Vec<_> = sections
             .iter()
             .map(|section| {
-                let (key, _) = self.render_cache.allocate(
+                let (key, _) = cache.allocate(
                     font_system,
                     Key {
                         content: section.content,
-                        size: section.size * scale_factor,
+                        size: section.size,
                         line_height: f32::from(
                             section
                                 .line_height
                                 .to_absolute(Pixels(section.size)),
-                        ) * scale_factor,
+                        ),
                         font: section.font,
                         bounds: Size {
-                            width: (section.bounds.width * scale_factor).ceil(),
-                            height: (section.bounds.height * scale_factor)
-                                .ceil(),
+                            width: section.bounds.width,
+                            height: section.bounds.height,
                         },
                         shaping: section.shaping,
                     },
@@ -113,13 +111,15 @@ impl Pipeline {
                 .iter()
                 .zip(keys.iter())
                 .filter_map(|(section, key)| {
-                    let buffer =
-                        self.render_cache.get(key).expect("Get cached buffer");
-
-                    let (max_width, total_height) = measure(buffer);
+                    let buffer = cache.get(key).expect("Get cached buffer");
 
                     let x = section.bounds.x * scale_factor;
                     let y = section.bounds.y * scale_factor;
+
+                    let (max_width, total_height) = measure(buffer);
+
+                    let max_width = max_width * scale_factor;
+                    let total_height = total_height * scale_factor;
 
                     let left = match section.horizontal_alignment {
                         alignment::Horizontal::Left => x,
@@ -142,14 +142,11 @@ impl Pipeline {
 
                     let clip_bounds = bounds.intersection(&section_bounds)?;
 
-                    // TODO: Subpixel glyph positioning
-                    let left = left.round() as i32;
-                    let top = top.round() as i32;
-
                     Some(glyphon::TextArea {
                         buffer,
                         left,
                         top,
+                        scale: scale_factor,
                         bounds: glyphon::TextBounds {
                             left: clip_bounds.x as i32,
                             top: clip_bounds.y as i32,
@@ -227,7 +224,7 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.atlas.trim();
-        self.render_cache.trim();
+        self.cache.get_mut().trim();
 
         self.prepare_layer = 0;
     }
@@ -241,7 +238,7 @@ impl Pipeline {
         bounds: Size,
         shaping: Shaping,
     ) -> (f32, f32) {
-        let mut measurement_cache = self.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
@@ -271,7 +268,7 @@ impl Pipeline {
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        let mut measurement_cache = self.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
@@ -290,10 +287,6 @@ impl Pipeline {
         let cursor = paragraph.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
-    }
-
-    pub fn trim_measurement_cache(&mut self) {
-        self.measurement_cache.borrow_mut().trim();
     }
 }
 

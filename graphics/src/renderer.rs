@@ -1,5 +1,5 @@
 //! Create a renderer from a [`Backend`].
-use crate::backend::{self, Backend};
+use crate::backend;
 use crate::Primitive;
 
 use iced_core::image;
@@ -16,13 +16,13 @@ use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
-pub struct Renderer<B: Backend, Theme> {
+pub struct Renderer<B, Theme> {
     backend: B,
     primitives: Vec<Primitive>,
     theme: PhantomData<Theme>,
 }
 
-impl<B: Backend, T> Renderer<B, T> {
+impl<B, T> Renderer<B, T> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
     pub fn new(backend: B) -> Self {
         Self {
@@ -52,10 +52,7 @@ impl<B: Backend, T> Renderer<B, T> {
     }
 }
 
-impl<B, T> iced_core::Renderer for Renderer<B, T>
-where
-    B: Backend,
-{
+impl<B, T> iced_core::Renderer for Renderer<B, T> {
     type Theme = T;
 
     fn layout<Message>(
@@ -63,11 +60,7 @@ where
         element: &Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.as_widget().layout(self, limits);
-
-        self.backend.trim_measurements();
-
-        layout
+        element.as_widget().layout(self, limits)
     }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
@@ -116,7 +109,7 @@ where
 
 impl<B, T> text::Renderer for Renderer<B, T>
 where
-    B: Backend + backend::Text,
+    B: backend::Text,
 {
     type Font = Font;
 
@@ -195,7 +188,7 @@ where
 
 impl<B, T> image::Renderer for Renderer<B, T>
 where
-    B: Backend + backend::Image,
+    B: backend::Image,
 {
     type Handle = image::Handle;
 
@@ -210,7 +203,7 @@ where
 
 impl<B, T> svg::Renderer for Renderer<B, T>
 where
-    B: Backend + backend::Svg,
+    B: backend::Svg,
 {
     fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
@@ -231,10 +224,7 @@ where
 }
 
 #[cfg(feature = "geometry")]
-impl<B, T> crate::geometry::Renderer for Renderer<B, T>
-where
-    B: Backend,
-{
+impl<B, T> crate::geometry::Renderer for Renderer<B, T> {
     fn draw(&mut self, layers: Vec<crate::Geometry>) {
         self.primitives
             .extend(layers.into_iter().map(crate::Geometry::into));
