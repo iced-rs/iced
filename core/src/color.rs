@@ -1,8 +1,10 @@
+use serde::{Serialize, Deserialize};
+
 #[cfg(feature = "palette")]
 use palette::rgb::{Srgb, Srgba};
 
 /// A color in the sRGB color space.
-#[derive(Debug, Clone, Copy, PartialEq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
     pub r: f32,

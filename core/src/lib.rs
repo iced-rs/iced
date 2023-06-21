@@ -22,7 +22,8 @@
     clippy::new_without_default,
     clippy::useless_conversion
 )]
-#![forbid(unsafe_code, rust_2018_idioms)]
+#![forbid(unsafe_code)]
+#![warn(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub mod alignment;
 pub mod clipboard;
