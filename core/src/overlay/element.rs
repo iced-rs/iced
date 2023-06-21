@@ -74,15 +74,8 @@ where
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.overlay.on_event(
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            ime,
-            shell,
-        )
+        self.overlay
+            .on_event(event, layout, cursor, renderer, clipboard, ime, shell)
     }
 
     /// Returns the current [`mouse::Interaction`] of the [`Element`].

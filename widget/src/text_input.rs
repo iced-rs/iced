@@ -563,8 +563,8 @@ where
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            let is_clicked =
-                layout.bounds().contains(cursor_position) && on_input.is_some();
+            let is_clicked = cursor.position_over(layout.bounds()).is_some()
+                && on_input.is_some();
             // if gain focus enable ime
             let focus_gained = state.is_focused.is_none() && is_clicked;
             let focus_lost = state.is_focused.is_some() && !is_clicked;

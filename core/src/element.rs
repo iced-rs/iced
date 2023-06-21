@@ -516,14 +516,7 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.element.widget.on_event(
-            state,
-            event,
-            layout,
-            cursor_position,
-            renderer,
-            clipboard,
-            ime,
-            shell,
+            state, event, layout, cursor, renderer, clipboard, ime, shell,
         )
     }
 
