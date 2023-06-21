@@ -132,6 +132,7 @@ where
     /// # }
     /// use iced_runtime::core::{clipboard,ime, Size, Point};
     /// use iced_runtime::user_interface::{self, UserInterface};
+    /// use iced_core::mouse;
     /// use iced_wgpu::Renderer;
     ///
     /// let mut counter = Counter::new();
