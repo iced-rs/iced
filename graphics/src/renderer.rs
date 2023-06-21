@@ -3,13 +3,10 @@ use crate::backend::{self, Backend};
 use crate::Primitive;
 
 use iced_core::image;
-use iced_core::layout;
 use iced_core::renderer;
 use iced_core::svg;
 use iced_core::text::{self, Text};
-use iced_core::{
-    Background, Color, Element, Font, Point, Rectangle, Size, Vector,
-};
+use iced_core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -83,14 +80,6 @@ impl<B: Backend, T> Renderer<B, T> {
 
 impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
     type Theme = T;
-
-    fn layout<Message>(
-        &mut self,
-        element: &Element<'_, Message, Self>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        element.as_widget().layout(self, limits)
-    }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         let current = self.start_layer();

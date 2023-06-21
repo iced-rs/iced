@@ -95,8 +95,9 @@ where
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
+        let base = root
+            .as_widget()
+            .layout(renderer, &layout::Limits::new(Size::ZERO, bounds));
 
         UserInterface {
             root,
@@ -226,8 +227,8 @@ where
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -322,8 +323,8 @@ where
                 }
 
                 shell.revalidate_layout(|| {
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
