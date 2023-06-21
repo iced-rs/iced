@@ -44,7 +44,7 @@ where
         where
             Renderer: renderer::Renderer,
         {
-            let translation = position - element.position();
+            let translation = position - Point::ORIGIN;
 
             let node = element.layout(renderer, bounds, translation);
 
