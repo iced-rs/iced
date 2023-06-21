@@ -36,6 +36,8 @@ impl Pipeline {
         self.font_system.get_mut().db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
+
+        self.cache = RefCell::new(Cache::new());
     }
 
     pub fn draw(
