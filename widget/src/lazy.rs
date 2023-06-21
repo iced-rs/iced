@@ -279,11 +279,7 @@ where
 }
 
 #[self_referencing]
-struct Inner<'a, Message, Renderer>
-where
-    Message: 'a,
-    Renderer: 'a,
-{
+struct Inner<'a, Message: 'a, Renderer: 'a> {
     cell: Rc<RefCell<Option<Element<'static, Message, Renderer>>>>,
     element: Element<'static, Message, Renderer>,
     tree: &'a mut Tree,
