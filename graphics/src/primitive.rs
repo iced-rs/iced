@@ -12,8 +12,7 @@ use std::sync::Arc;
 
 /// A rendering primitive.
 #[derive(Debug, Clone, PartialEq)]
-#[non_exhaustive]
-pub enum Primitive {
+pub enum Primitive<T> {
     /// A text primitive
     Text {
         /// The contents of the text
@@ -90,41 +89,17 @@ pub enum Primitive {
         /// Any geometry that falls out of this region will be clipped.
         size: Size,
     },
-    /// A [`tiny_skia`] path filled with some paint.
-    #[cfg(feature = "tiny-skia")]
-    Fill {
-        /// The path to fill.
-        path: tiny_skia::Path,
-        /// The paint to use.
-        paint: tiny_skia::Paint<'static>,
-        /// The fill rule to follow.
-        rule: tiny_skia::FillRule,
-        /// The transform to apply to the path.
-        transform: tiny_skia::Transform,
-    },
-    /// A [`tiny_skia`] path stroked with some paint.
-    #[cfg(feature = "tiny-skia")]
-    Stroke {
-        /// The path to stroke.
-        path: tiny_skia::Path,
-        /// The paint to use.
-        paint: tiny_skia::Paint<'static>,
-        /// The stroke settings.
-        stroke: tiny_skia::Stroke,
-        /// The transform to apply to the path.
-        transform: tiny_skia::Transform,
-    },
     /// A group of primitives
     Group {
         /// The primitives of the group
-        primitives: Vec<Primitive>,
+        primitives: Vec<Primitive<T>>,
     },
     /// A clip primitive
     Clip {
         /// The bounds of the clip
         bounds: Rectangle,
         /// The content of the clip
-        content: Box<Primitive>,
+        content: Box<Primitive<T>>,
     },
     /// A primitive that applies a translation
     Translate {
@@ -132,7 +107,7 @@ pub enum Primitive {
         translation: Vector,
 
         /// The primitive to translate
-        content: Box<Primitive>,
+        content: Box<Primitive<T>>,
     },
     /// A cached primitive.
     ///
@@ -140,11 +115,13 @@ pub enum Primitive {
     /// generation is expensive.
     Cache {
         /// The cached primitive
-        content: Arc<Primitive>,
+        content: Arc<Primitive<T>>,
     },
+    /// A backend-specific primitive.
+    Custom(T),
 }
 
-impl Primitive {
+impl<T> Primitive<T> {
     /// Creates a [`Primitive::Group`].
     pub fn group(primitives: Vec<Self>) -> Self {
         Self::Group { primitives }
@@ -163,68 +140,6 @@ impl Primitive {
         Self::Translate {
             translation,
             content: Box::new(self),
-        }
-    }
-
-    /// Returns the bounds of the [`Primitive`].
-    pub fn bounds(&self) -> Rectangle {
-        match self {
-            Self::Text {
-                bounds,
-                horizontal_alignment,
-                vertical_alignment,
-                ..
-            } => {
-                let mut bounds = *bounds;
-
-                bounds.x = match horizontal_alignment {
-                    alignment::Horizontal::Left => bounds.x,
-                    alignment::Horizontal::Center => {
-                        bounds.x - bounds.width / 2.0
-                    }
-                    alignment::Horizontal::Right => bounds.x - bounds.width,
-                };
-
-                bounds.y = match vertical_alignment {
-                    alignment::Vertical::Top => bounds.y,
-                    alignment::Vertical::Center => {
-                        bounds.y - bounds.height / 2.0
-                    }
-                    alignment::Vertical::Bottom => bounds.y - bounds.height,
-                };
-
-                bounds.expand(1.5)
-            }
-            Self::Quad { bounds, .. }
-            | Self::Image { bounds, .. }
-            | Self::Svg { bounds, .. } => bounds.expand(1.0),
-            Self::Clip { bounds, .. } => bounds.expand(1.0),
-            Self::SolidMesh { size, .. } | Self::GradientMesh { size, .. } => {
-                Rectangle::with_size(*size)
-            }
-            #[cfg(feature = "tiny-skia")]
-            Self::Fill { path, .. } | Self::Stroke { path, .. } => {
-                let bounds = path.bounds();
-
-                Rectangle {
-                    x: bounds.x(),
-                    y: bounds.y(),
-                    width: bounds.width(),
-                    height: bounds.height(),
-                }
-                .expand(1.0)
-            }
-            Self::Group { primitives } => primitives
-                .iter()
-                .map(Self::bounds)
-                .fold(Rectangle::with_size(Size::ZERO), |a, b| {
-                    Rectangle::union(&a, &b)
-                }),
-            Self::Translate {
-                translation,
-                content,
-            } => content.bounds() + *translation,
-            Self::Cache { content } => content.bounds(),
         }
     }
 }
@@ -268,9 +183,3 @@ unsafe impl Zeroable for GradientVertex2D {}
 
 #[allow(unsafe_code)]
 unsafe impl Pod for GradientVertex2D {}
-
-impl From<()> for Primitive {
-    fn from(_: ()) -> Self {
-        Self::Group { primitives: vec![] }
-    }
-}

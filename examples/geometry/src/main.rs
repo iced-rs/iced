@@ -1,9 +1,8 @@
 //! This example showcases a simple native custom widget that renders using
 //! arbitrary low-level geometry.
 mod rainbow {
-    use iced_graphics::primitive::{ColoredVertex2D, Primitive};
-
     use iced::advanced::graphics::color;
+    use iced::advanced::graphics::primitive::{ColoredVertex2D, Primitive};
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
@@ -46,8 +45,8 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
+            use iced::advanced::graphics::primitive::Mesh2D;
             use iced::advanced::Renderer as _;
-            use iced_graphics::primitive::Mesh2D;
 
             let bounds = layout.bounds();
 
@@ -135,7 +134,7 @@ mod rainbow {
             renderer.with_translation(
                 Vector::new(bounds.x, bounds.y),
                 |renderer| {
-                    renderer.draw_primitive(mesh);
+                    renderer.draw_with_wgpu(mesh);
                 },
             );
         }

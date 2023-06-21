@@ -7,4 +7,3 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["advanced"] }
-iced_graphics = { path = "../../graphics" }

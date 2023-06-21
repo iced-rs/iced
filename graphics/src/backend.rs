@@ -6,6 +6,13 @@ use iced_core::{Font, Point, Size};
 
 use std::borrow::Cow;
 
+/// The graphics backend of a [`Renderer`].
+///
+/// [`Renderer`]: crate::Renderer
+pub trait Backend {
+    type Primitive;
+}
+
 /// A graphics backend that supports text rendering.
 pub trait Text {
     /// The icon font of the backend.

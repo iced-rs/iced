@@ -8,8 +8,8 @@
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
 #![deny(
-    missing_debug_implementations,
-    missing_docs,
+    //missing_debug_implementations,
+    //missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,
@@ -41,15 +41,14 @@ pub mod geometry;
 pub mod image;
 
 pub use antialiasing::Antialiasing;
+pub use backend::Backend;
 pub use compositor::Compositor;
+pub use damage::Damage;
 pub use error::Error;
 pub use gradient::Gradient;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
 pub use viewport::Viewport;
-
-#[cfg(feature = "geometry")]
-pub use geometry::Geometry;
 
 pub use iced_core as core;

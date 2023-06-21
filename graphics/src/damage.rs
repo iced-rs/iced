@@ -1,11 +1,68 @@
 //! Track and compute the damage of graphical primitives.
+use crate::core::alignment;
 use crate::core::{Rectangle, Size};
 use crate::Primitive;
 
 use std::sync::Arc;
 
-/// Computes the damage regions between the two given primitives.
-pub fn regions(a: &Primitive, b: &Primitive) -> Vec<Rectangle> {
+pub trait Damage: PartialEq {
+    /// Returns the bounds of the [`Damage`].
+    fn bounds(&self) -> Rectangle;
+}
+
+impl<T: Damage> Damage for Primitive<T> {
+    fn bounds(&self) -> Rectangle {
+        match self {
+            Self::Text {
+                bounds,
+                horizontal_alignment,
+                vertical_alignment,
+                ..
+            } => {
+                let mut bounds = *bounds;
+
+                bounds.x = match horizontal_alignment {
+                    alignment::Horizontal::Left => bounds.x,
+                    alignment::Horizontal::Center => {
+                        bounds.x - bounds.width / 2.0
+                    }
+                    alignment::Horizontal::Right => bounds.x - bounds.width,
+                };
+
+                bounds.y = match vertical_alignment {
+                    alignment::Vertical::Top => bounds.y,
+                    alignment::Vertical::Center => {
+                        bounds.y - bounds.height / 2.0
+                    }
+                    alignment::Vertical::Bottom => bounds.y - bounds.height,
+                };
+
+                bounds.expand(1.5)
+            }
+            Self::Quad { bounds, .. }
+            | Self::Image { bounds, .. }
+            | Self::Svg { bounds, .. } => bounds.expand(1.0),
+            Self::Clip { bounds, .. } => bounds.expand(1.0),
+            Self::SolidMesh { size, .. } | Self::GradientMesh { size, .. } => {
+                Rectangle::with_size(*size)
+            }
+            Self::Group { primitives } => primitives
+                .iter()
+                .map(Self::bounds)
+                .fold(Rectangle::with_size(Size::ZERO), |a, b| {
+                    Rectangle::union(&a, &b)
+                }),
+            Self::Translate {
+                translation,
+                content,
+            } => content.bounds() + *translation,
+            Self::Cache { content } => content.bounds(),
+            Self::Custom(custom) => custom.bounds(),
+        }
+    }
+}
+
+fn regions<T: Damage>(a: &Primitive<T>, b: &Primitive<T>) -> Vec<Rectangle> {
     match (a, b) {
         (
             Primitive::Group {
@@ -76,7 +133,10 @@ pub fn regions(a: &Primitive, b: &Primitive) -> Vec<Rectangle> {
 }
 
 /// Computes the damage regions between the two given lists of primitives.
-pub fn list(previous: &[Primitive], current: &[Primitive]) -> Vec<Rectangle> {
+pub fn list<T: Damage>(
+    previous: &[Primitive<T>],
+    current: &[Primitive<T>],
+) -> Vec<Rectangle> {
     let damage = previous
         .iter()
         .zip(current)
@@ -93,7 +153,7 @@ pub fn list(previous: &[Primitive], current: &[Primitive]) -> Vec<Rectangle> {
 
         // Extend damage by the added/removed primitives
         damage
-            .chain(bigger[smaller.len()..].iter().map(Primitive::bounds))
+            .chain(bigger[smaller.len()..].iter().map(Damage::bounds))
             .collect()
     }
 }

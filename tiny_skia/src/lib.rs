@@ -1,6 +1,7 @@
 pub mod window;
 
 mod backend;
+mod primitive;
 mod settings;
 mod text;
 
@@ -17,6 +18,7 @@ pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
 pub use backend::Backend;
+pub use primitive::Primitive;
 pub use settings::Settings;
 
 /// A [`tiny-skia`] graphics renderer for [`iced`].

@@ -7,6 +7,7 @@ use crate::core::widget::Tree;
 use crate::core::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
+use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
 use thiserror::Error;
 
@@ -121,7 +122,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
         let translation = Vector::new(bounds.x, bounds.y);
 
         renderer.with_translation(translation, |renderer| {
-            renderer.draw_primitive(geometry.0);
+            renderer.draw(vec![geometry]);
         });
     }
 }

@@ -5,10 +5,10 @@ use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
-use crate::graphics::primitive::{self, Primitive};
-use crate::graphics::Gradient;
+use crate::graphics::gradient::{self, Gradient};
+use crate::graphics::primitive;
+use crate::Primitive;
 
-use iced_graphics::gradient;
 use lyon::geom::euclid;
 use lyon::tessellation;
 use std::borrow::Cow;

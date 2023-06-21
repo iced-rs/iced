@@ -32,10 +32,6 @@ features = ["derive"]
 version = "0.9"
 path = "../core"
 
-[dependencies.tiny-skia]
-version = "0.9"
-optional = true
-
 [dependencies.image]
 version = "0.24"
 optional = true

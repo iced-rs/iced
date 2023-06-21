@@ -12,8 +12,9 @@ use crate::core;
 use crate::core::alignment;
 use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::color;
-use crate::graphics::{Primitive, Viewport};
+use crate::graphics::Viewport;
 use crate::quad::{self, Quad};
+use crate::Primitive;
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -262,13 +263,7 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            _ => {
-                // Not supported!
-                log::warn!(
-                    "Unsupported primitive in `iced_wgpu`: {:?}",
-                    primitive
-                );
-            }
+            Primitive::Custom(()) => {}
         }
     }
 }

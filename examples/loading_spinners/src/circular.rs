@@ -358,7 +358,9 @@ where
         renderer.with_translation(
             Vector::new(bounds.x, bounds.y),
             |renderer| {
-                renderer.draw_primitive(geometry.0);
+                use iced::advanced::graphics::geometry::Renderer as _;
+
+                renderer.draw(vec![geometry]);
             },
         );
     }

@@ -2,7 +2,8 @@ use crate::core;
 use crate::core::{Color, Font, Point, Size};
 use crate::graphics::backend;
 use crate::graphics::color;
-use crate::graphics::{Primitive, Transformation, Viewport};
+use crate::graphics::{Transformation, Viewport};
+use crate::primitive::{self, Primitive};
 use crate::quad;
 use crate::text;
 use crate::triangle;
@@ -332,6 +333,10 @@ impl Backend {
 
         let _ = ManuallyDrop::into_inner(render_pass);
     }
+}
+
+impl crate::graphics::Backend for Backend {
+    type Primitive = primitive::Custom;
 }
 
 impl backend::Text for Backend {

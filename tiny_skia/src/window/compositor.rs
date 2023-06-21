@@ -1,8 +1,8 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
-use crate::graphics::{Error, Primitive, Viewport};
-use crate::{Backend, Renderer, Settings};
+use crate::graphics::{Error, Viewport};
+use crate::{Backend, Primitive, Renderer, Settings};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
