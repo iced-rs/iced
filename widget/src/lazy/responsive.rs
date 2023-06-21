@@ -10,6 +10,7 @@ use crate::core::{
     IME,
 };
 use crate::horizontal_space;
+use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
 use std::cell::{RefCell, RefMut};
@@ -178,7 +179,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -200,7 +201,7 @@ where
                     tree,
                     event,
                     layout,
-                    cursor_position,
+                    cursor,
                     renderer,
                     clipboard,
                     ime,
@@ -225,7 +226,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
@@ -238,13 +239,7 @@ where
             &self.view,
             |tree, renderer, layout, element| {
                 element.as_widget().draw(
-                    tree,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    viewport,
+                    tree, renderer, theme, style, layout, cursor, viewport,
                 )
             },
         )
@@ -254,7 +249,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -267,13 +262,9 @@ where
             layout,
             &self.view,
             |tree, renderer, layout, element| {
-                element.as_widget().mouse_interaction(
-                    tree,
-                    layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
-                )
+                element
+                    .as_widget()
+                    .mouse_interaction(tree, layout, cursor, viewport, renderer)
             },
         )
     }
@@ -311,13 +302,13 @@ where
                 element
                     .as_widget_mut()
                     .overlay(tree, content_layout, renderer)
+                    .map(|overlay| RefCell::new(Nested::new(overlay)))
             },
         }
         .build();
 
-        let has_overlay = overlay.with_overlay(|overlay| {
-            overlay.as_ref().map(overlay::Element::position)
-        });
+        let has_overlay =
+            overlay.with_overlay_maybe(|overlay| overlay.position());
 
         has_overlay
             .map(|position| overlay::Element::new(position, Box::new(overlay)))
@@ -342,23 +333,27 @@ struct Overlay<'a, 'b, Message, Renderer> {
     types: PhantomData<Message>,
 
     #[borrows(mut content, mut tree)]
-    #[covariant]
-    overlay: Option<overlay::Element<'this, Message, Renderer>>,
+    #[not_covariant]
+    overlay: Option<RefCell<Nested<'this, Message, Renderer>>>,
 }
 
 impl<'a, 'b, Message, Renderer> Overlay<'a, 'b, Message, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&overlay::Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.borrow_overlay().as_ref().map(f)
+        self.with_overlay(|overlay| {
+            overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
+        })
     }
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut overlay::Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
     ) -> Option<T> {
-        self.with_overlay_mut(|overlay| overlay.as_mut().map(f))
+        self.with_overlay_mut(|overlay| {
+            overlay.as_mut().map(|nested| (f)(nested.get_mut()))
+        })
     }
 }
 
@@ -374,9 +369,7 @@ where
         position: Point,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            let translation = position - overlay.position();
-
-            overlay.layout(renderer, bounds, translation)
+            overlay.layout(renderer, bounds, position)
         })
         .unwrap_or_default()
     }
@@ -387,27 +380,22 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
     ) {
         let _ = self.with_overlay_maybe(|overlay| {
-            overlay.draw(renderer, theme, style, layout, cursor_position);
+            overlay.draw(renderer, theme, style, layout, cursor);
         });
     }
 
     fn mouse_interaction(
         &self,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.with_overlay_maybe(|overlay| {
-            overlay.mouse_interaction(
-                layout,
-                cursor_position,
-                viewport,
-                renderer,
-            )
+            overlay.mouse_interaction(layout, cursor, viewport, renderer)
         })
         .unwrap_or_default()
     }
@@ -416,7 +404,7 @@ where
         &mut self,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -424,21 +412,20 @@ where
     ) -> event::Status {
         self.with_overlay_mut_maybe(|overlay| {
             overlay.on_event(
-                event,
-                layout,
-                cursor_position,
-                renderer,
-                clipboard,
-                ime,
-                shell,
+                event, layout, cursor, renderer, clipboard, ime, shell,
             )
         })
         .unwrap_or(event::Status::Ignored)
     }
 
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn is_over(
+        &self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
         self.with_overlay_maybe(|overlay| {
-            overlay.is_over(layout, cursor_position)
+            overlay.is_over(layout, renderer, cursor_position)
         })
         .unwrap_or_default()
     }

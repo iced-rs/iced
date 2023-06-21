@@ -62,8 +62,8 @@ body:
 
         If you are using an older release, please upgrade to the latest one before filing an issue.
       options:
+        - crates.io release
         - master
-        - 0.7
     validations:
       required: true
   - type: dropdown

@@ -61,9 +61,7 @@ impl Sandbox for Example {
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        self, Canvas, Cursor, Frame, Geometry, Path, Stroke,
-    };
+    use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
     use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
@@ -100,10 +98,10 @@ mod bezier {
             state: &mut Self::State,
             event: Event,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> (event::Status, Option<Curve>) {
             let cursor_position =
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     position
                 } else {
                     return (event::Status::Ignored, None);
@@ -155,7 +153,7 @@ mod bezier {
             renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
             let content = self.state.cache.draw(
                 renderer,
@@ -183,9 +181,9 @@ mod bezier {
             &self,
             _state: &Self::State,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> mouse::Interaction {
-            if cursor.is_over(&bounds) {
+            if cursor.is_over(bounds) {
                 mouse::Interaction::Crosshair
             } else {
                 mouse::Interaction::default()
@@ -224,11 +222,11 @@ mod bezier {
             &self,
             renderer: &Renderer,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> Geometry {
             let mut frame = Frame::new(renderer, bounds.size());
 
-            if let Some(cursor_position) = cursor.position_in(&bounds) {
+            if let Some(cursor_position) = cursor.position_in(bounds) {
                 match *self {
                     Pending::One { from } => {
                         let line = Path::line(from, cursor_position);

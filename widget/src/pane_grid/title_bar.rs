@@ -122,7 +122,7 @@ where
         theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         show_controls: bool,
     ) {
@@ -158,7 +158,7 @@ where
                     theme,
                     &inherited_style,
                     controls_layout,
-                    cursor_position,
+                    cursor,
                     viewport,
                 );
             }
@@ -171,7 +171,7 @@ where
                 theme,
                 &inherited_style,
                 title_layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         }
@@ -300,7 +300,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -325,7 +325,7 @@ where
                 &mut tree.children[1],
                 event.clone(),
                 controls_layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 ime,
@@ -340,7 +340,7 @@ where
                 &mut tree.children[0],
                 event,
                 title_layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 ime,
@@ -357,7 +357,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -370,7 +370,7 @@ where
         let title_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
             title_layout,
-            cursor_position,
+            cursor,
             viewport,
             renderer,
         );
@@ -380,7 +380,7 @@ where
             let controls_interaction = controls.as_widget().mouse_interaction(
                 &tree.children[1],
                 controls_layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             );

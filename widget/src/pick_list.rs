@@ -11,8 +11,8 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Widget, IME,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle, Shell,
+    Size, Widget, IME,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
@@ -157,11 +157,11 @@ where
         From<<Renderer::Theme as StyleSheet>::Style>,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State<T>>()
+        tree::Tag::of::<State>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::<T>::new())
+        tree::State::new(State::new())
     }
 
     fn width(&self) -> Length {
@@ -196,7 +196,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
@@ -205,12 +205,12 @@ where
         update(
             event,
             layout,
-            cursor_position,
+            cursor,
             shell,
             self.on_selected.as_ref(),
             self.selected.as_ref(),
             &self.options,
-            || tree.state.downcast_mut::<State<T>>(),
+            || tree.state.downcast_mut::<State>(),
         )
     }
 
@@ -218,11 +218,11 @@ where
         &self,
         _tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor_position)
+        mouse_interaction(layout, cursor)
     }
 
     fn draw(
@@ -232,7 +232,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
@@ -240,7 +240,7 @@ where
             renderer,
             theme,
             layout,
-            cursor_position,
+            cursor,
             self.padding,
             self.text_size,
             self.text_line_height,
@@ -250,7 +250,7 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
-            || tree.state.downcast_ref::<State<T>>(),
+            || tree.state.downcast_ref::<State>(),
         )
     }
 
@@ -260,7 +260,7 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let state = tree.state.downcast_mut::<State<T>>();
+        let state = tree.state.downcast_mut::<State>();
 
         overlay(
             layout,
@@ -270,6 +270,7 @@ where
             self.text_shaping,
             self.font.unwrap_or_else(|| renderer.default_font()),
             &self.options,
+            &self.on_selected,
             self.style.clone(),
         )
     }
@@ -296,15 +297,14 @@ where
 
 /// The local state of a [`PickList`].
 #[derive(Debug)]
-pub struct State<T> {
+pub struct State {
     menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
-    last_selection: Option<T>,
 }
 
-impl<T> State<T> {
+impl State {
     /// Creates a new [`State`] for a [`PickList`].
     pub fn new() -> Self {
         Self {
@@ -312,12 +312,11 @@ impl<T> State<T> {
             keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
-            last_selection: Option::default(),
         }
     }
 }
 
-impl<T> Default for State<T> {
+impl Default for State {
     fn default() -> Self {
         Self::new()
     }
@@ -432,12 +431,12 @@ where
 pub fn update<'a, T, Message>(
     event: Event,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     on_selected: &dyn Fn(T) -> Message,
     selected: Option<&T>,
     options: &[T],
-    state: impl FnOnce() -> &'a mut State<T>,
+    state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
 where
     T: PartialEq + Clone + 'a,
@@ -447,13 +446,13 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let state = state();
 
-            let event_status = if state.is_open {
+            if state.is_open {
                 // Event wasn't processed by overlay, so cursor was clicked either outside it's
                 // bounds or on the drop-down, either way we close the overlay.
                 state.is_open = false;
 
                 event::Status::Captured
-            } else if layout.bounds().contains(cursor_position) {
+            } else if cursor.is_over(layout.bounds()) {
                 state.is_open = true;
                 state.hovered_option =
                     options.iter().position(|option| Some(option) == selected);
@@ -461,16 +460,6 @@ where
                 event::Status::Captured
             } else {
                 event::Status::Ignored
-            };
-
-            if let Some(last_selection) = state.last_selection.take() {
-                shell.publish((on_selected)(last_selection));
-
-                state.is_open = false;
-
-                event::Status::Captured
-            } else {
-                event_status
             }
         }
         Event::Mouse(mouse::Event::WheelScrolled {
@@ -479,7 +468,7 @@ where
             let state = state();
 
             if state.keyboard_modifiers.command()
-                && layout.bounds().contains(cursor_position)
+                && cursor.is_over(layout.bounds())
                 && !state.is_open
             {
                 fn find_next<'a, T: PartialEq>(
@@ -530,10 +519,10 @@ where
 /// Returns the current [`mouse::Interaction`] of a [`PickList`].
 pub fn mouse_interaction(
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
 ) -> mouse::Interaction {
     let bounds = layout.bounds();
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor.is_over(bounds);
 
     if is_mouse_over {
         mouse::Interaction::Pointer
@@ -545,12 +534,13 @@ pub fn mouse_interaction(
 /// Returns the current overlay of a [`PickList`].
 pub fn overlay<'a, T, Message, Renderer>(
     layout: Layout<'_>,
-    state: &'a mut State<T>,
+    state: &'a mut State,
     padding: Padding,
     text_size: Option<f32>,
     text_shaping: text::Shaping,
     font: Renderer::Font,
     options: &'a [T],
+    on_selected: &'a dyn Fn(T) -> Message,
     style: <Renderer::Theme as StyleSheet>::Style,
 ) -> Option<overlay::Element<'a, Message, Renderer>>
 where
@@ -571,7 +561,11 @@ where
             &mut state.menu,
             options,
             &mut state.hovered_option,
-            &mut state.last_selection,
+            |option| {
+                state.is_open = false;
+
+                (on_selected)(option)
+            },
         )
         .width(bounds.width)
         .padding(padding)
@@ -594,7 +588,7 @@ pub fn draw<'a, T, Renderer>(
     renderer: &mut Renderer,
     theme: &Renderer::Theme,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     padding: Padding,
     text_size: Option<f32>,
     text_line_height: text::LineHeight,
@@ -604,14 +598,14 @@ pub fn draw<'a, T, Renderer>(
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    state: impl FnOnce() -> &'a State<T>,
+    state: impl FnOnce() -> &'a State,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
     T: ToString + 'a,
 {
     let bounds = layout.bounds();
-    let is_mouse_over = bounds.contains(cursor_position);
+    let is_mouse_over = cursor.is_over(bounds);
     let is_selected = selected.is_some();
 
     let style = if is_mouse_over {

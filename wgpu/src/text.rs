@@ -2,6 +2,7 @@ use crate::core::alignment;
 use crate::core::font::{self, Font};
 use crate::core::text::{Hit, LineHeight, Shaping};
 use crate::core::{Pixels, Point, Rectangle, Size};
+use crate::graphics::color;
 use crate::layer::Text;
 
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -35,7 +36,16 @@ impl Pipeline {
                 .into_iter(),
             )),
             renderers: Vec::new(),
-            atlas: glyphon::TextAtlas::new(device, queue, format),
+            atlas: glyphon::TextAtlas::new(
+                device,
+                queue,
+                format,
+                if color::GAMMA_CORRECTION {
+                    glyphon::ColorMode::Accurate
+                } else {
+                    glyphon::ColorMode::Web
+                },
+            ),
             prepare_layer: 0,
             measurement_cache: RefCell::new(Cache::new()),
             render_cache: Cache::new(),
@@ -43,7 +53,7 @@ impl Pipeline {
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.get_mut().db_mut().load_font_source(
+        let _ = self.font_system.get_mut().db_mut().load_font_source(
             glyphon::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
     }
@@ -106,15 +116,7 @@ impl Pipeline {
                     let buffer =
                         self.render_cache.get(key).expect("Get cached buffer");
 
-                    let (total_lines, max_width) = buffer
-                        .layout_runs()
-                        .enumerate()
-                        .fold((0, 0.0), |(_, max), (i, buffer)| {
-                            (i + 1, buffer.line_w.max(max))
-                        });
-
-                    let total_height =
-                        total_lines as f32 * buffer.metrics().line_height;
+                    let (max_width, total_height) = measure(buffer);
 
                     let x = section.bounds.x * scale_factor;
                     let y = section.bounds.y * scale_factor;
@@ -155,7 +157,8 @@ impl Pipeline {
                             bottom: (clip_bounds.y + clip_bounds.height) as i32,
                         },
                         default_color: {
-                            let [r, g, b, a] = section.color.into_linear();
+                            let [r, g, b, a] =
+                                color::pack(section.color).components();
 
                             glyphon::Color::rgba(
                                 (r * 255.0) as u8,
@@ -254,14 +257,7 @@ impl Pipeline {
             },
         );
 
-        let (total_lines, max_width) = paragraph
-            .layout_runs()
-            .enumerate()
-            .fold((0, 0.0), |(_, max), (i, buffer)| {
-                (i + 1, buffer.line_w.max(max))
-            });
-
-        (max_width, line_height * total_lines as f32)
+        measure(paragraph)
     }
 
     pub fn hit_test(
@@ -299,6 +295,16 @@ impl Pipeline {
     pub fn trim_measurement_cache(&mut self) {
         self.measurement_cache.borrow_mut().trim();
     }
+}
+
+fn measure(buffer: &glyphon::Buffer) -> (f32, f32) {
+    let (width, total_lines) = buffer
+        .layout_runs()
+        .fold((0.0, 0usize), |(width, total_lines), run| {
+            (run.line_w.max(width), total_lines + 1)
+        });
+
+    (width, total_lines as f32 * buffer.metrics().line_height)
 }
 
 fn to_family(family: font::Family) -> glyphon::Family<'static> {

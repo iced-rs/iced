@@ -1,7 +1,6 @@
 use iced::executor;
-use iced::widget::canvas::{
-    stroke, Cache, Cursor, Geometry, LineCap, Path, Stroke,
-};
+use iced::mouse;
+use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
@@ -92,7 +91,7 @@ impl<Message> canvas::Program<Message, Renderer> for Clock {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();

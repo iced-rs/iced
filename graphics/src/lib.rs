@@ -27,6 +27,7 @@ mod transformation;
 mod viewport;
 
 pub mod backend;
+pub mod color;
 pub mod compositor;
 pub mod damage;
 pub mod gradient;

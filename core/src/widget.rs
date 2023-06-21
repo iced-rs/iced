@@ -15,7 +15,7 @@ use crate::layout::{self, Layout};
 use crate::overlay;
 use crate::renderer;
 use crate::{mouse, IME};
-use crate::{Clipboard, Length, Point, Rectangle, Shell};
+use crate::{Clipboard, Length, Rectangle, Shell};
 
 /// A component that displays information and allows interaction.
 ///
@@ -67,7 +67,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     );
 
@@ -111,7 +111,7 @@ where
         _state: &mut Tree,
         _event: Event,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
@@ -127,7 +127,7 @@ where
         &self,
         _state: &Tree,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {

@@ -6,8 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Widget, IME,
+    Alignment, Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell,
+    Widget, IME,
 };
 
 /// A container that distributes its contents horizontally.
@@ -155,7 +155,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -170,7 +170,7 @@ where
                     state,
                     event.clone(),
                     layout,
-                    cursor_position,
+                    cursor,
                     renderer,
                     clipboard,
                     ime,
@@ -184,7 +184,7 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -194,11 +194,7 @@ where
             .zip(layout.children())
             .map(|((child, state), layout)| {
                 child.as_widget().mouse_interaction(
-                    state,
-                    layout,
-                    cursor_position,
-                    viewport,
-                    renderer,
+                    state, layout, cursor, viewport, renderer,
                 )
             })
             .max()
@@ -212,7 +208,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         for ((child, state), layout) in self
@@ -221,15 +217,9 @@ where
             .zip(&tree.children)
             .zip(layout.children())
         {
-            child.as_widget().draw(
-                state,
-                renderer,
-                theme,
-                style,
-                layout,
-                cursor_position,
-                viewport,
-            );
+            child
+                .as_widget()
+                .draw(state, renderer, theme, style, layout, cursor, viewport);
         }
     }
 

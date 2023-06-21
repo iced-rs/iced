@@ -38,7 +38,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
     );
 
     /// Applies a [`widget::Operation`] to the [`Overlay`].
@@ -66,7 +66,7 @@ where
         &mut self,
         _event: Event,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
@@ -81,7 +81,7 @@ where
     fn mouse_interaction(
         &self,
         _layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
@@ -92,8 +92,22 @@ where
     ///
     /// By default, it returns true if the bounds of the `layout` contain
     /// the `cursor_position`.
-    fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+    fn is_over(
+        &self,
+        layout: Layout<'_>,
+        _renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
         layout.bounds().contains(cursor_position)
+    }
+
+    /// Returns the nested overlay of the [`Overlay`], if there is any.
+    fn overlay<'a>(
+        &'a mut self,
+        _layout: Layout<'_>,
+        _renderer: &Renderer,
+    ) -> Option<Element<'a, Message, Renderer>> {
+        None
     }
 }
 

@@ -5,9 +5,7 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{layout, IME};
-use crate::{
-    Clipboard, Color, Layout, Length, Point, Rectangle, Shell, Widget,
-};
+use crate::{Clipboard, Color, Layout, Length, Rectangle, Shell, Widget};
 
 use std::any::Any;
 use std::borrow::Borrow;
@@ -378,7 +376,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -391,7 +389,7 @@ where
             tree,
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             ime,
@@ -410,35 +408,23 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        self.widget.draw(
-            tree,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            viewport,
-        )
+        self.widget
+            .draw(tree, renderer, theme, style, layout, cursor, viewport)
     }
 
     fn mouse_interaction(
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.widget.mouse_interaction(
-            tree,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.widget
+            .mouse_interaction(tree, layout, cursor, viewport, renderer)
     }
 
     fn overlay<'b>(
@@ -523,7 +509,7 @@ where
         state: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -548,7 +534,7 @@ where
         theme: &Renderer::Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         fn explain_layout<Renderer: crate::Renderer>(
@@ -571,15 +557,9 @@ where
             }
         }
 
-        self.element.widget.draw(
-            state,
-            renderer,
-            theme,
-            style,
-            layout,
-            cursor_position,
-            viewport,
-        );
+        self.element
+            .widget
+            .draw(state, renderer, theme, style, layout, cursor, viewport);
 
         explain_layout(renderer, self.color, layout);
     }
@@ -588,17 +568,13 @@ where
         &self,
         state: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.element.widget.mouse_interaction(
-            state,
-            layout,
-            cursor_position,
-            viewport,
-            renderer,
-        )
+        self.element
+            .widget
+            .mouse_interaction(state, layout, cursor, viewport, renderer)
     }
 
     fn overlay<'b>(

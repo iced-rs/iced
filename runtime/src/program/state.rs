@@ -1,7 +1,7 @@
 use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::{Clipboard, Point, Size, IME};
+use crate::core::{Clipboard, Size, IME};
 use crate::user_interface::{self, UserInterface};
 use crate::{Command, Debug, Program};
 
@@ -88,7 +88,7 @@ where
     pub fn update(
         &mut self,
         bounds: Size,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &mut P::Renderer,
         theme: &<P::Renderer as iced_core::Renderer>::Theme,
         style: &renderer::Style,
@@ -109,7 +109,7 @@ where
 
         let (_, event_statuses) = user_interface.update(
             &self.queued_events,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             ime,
@@ -133,7 +133,7 @@ where
         let command = if messages.is_empty() {
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, theme, style, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());
@@ -165,7 +165,7 @@ where
 
             debug.draw_started();
             self.mouse_interaction =
-                user_interface.draw(renderer, theme, style, cursor_position);
+                user_interface.draw(renderer, theme, style, cursor);
             debug.draw_finished();
 
             self.cache = Some(user_interface.into_cache());

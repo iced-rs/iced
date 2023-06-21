@@ -1,10 +1,11 @@
 //! Display vector graphics in your application.
 use crate::core::layout;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -143,7 +144,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor_position: Point,
+        _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let Size { width, height } = renderer.dimensions(&self.handle);

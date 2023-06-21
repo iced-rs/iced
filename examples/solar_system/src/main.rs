@@ -8,11 +8,12 @@
 //! [1]: https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial/Basic_animations#An_animated_solar_system
 use iced::application;
 use iced::executor;
+use iced::mouse;
 use iced::theme::{self, Theme};
 use iced::widget::canvas;
 use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::{Cursor, Path};
+use iced::widget::canvas::Path;
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
@@ -161,7 +162,7 @@ impl<Message> canvas::Program<Message> for State {
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
         use std::f32::consts::PI;
 

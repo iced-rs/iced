@@ -1,3 +1,4 @@
+use crate::graphics::color;
 use crate::quad::{self, Quad};
 use crate::Buffer;
 
@@ -9,7 +10,7 @@ use std::ops::Range;
 #[repr(C)]
 pub struct Solid {
     /// The background color data of the quad.
-    pub color: [f32; 4],
+    pub color: color::Packed,
 
     /// The [`Quad`] data of the [`Solid`].
     pub quad: Quad,

@@ -11,7 +11,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::widget::Tree;
 use crate::core::{
-    Clipboard, Element, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
     Vector, Widget,
 };
 use crate::Text;
@@ -138,7 +138,7 @@ where
         tree: &mut Tree,
         event: Event,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
@@ -148,7 +148,7 @@ where
             &mut tree.children[0],
             event,
             layout,
-            cursor_position,
+            cursor,
             renderer,
             clipboard,
             ime,
@@ -160,14 +160,14 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
-            cursor_position,
+            cursor,
             viewport,
             renderer,
         )
@@ -180,7 +180,7 @@ where
         theme: &Renderer::Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
-        cursor_position: Point,
+        cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         self.content.as_widget().draw(
@@ -189,7 +189,7 @@ where
             theme,
             inherited_style,
             layout,
-            cursor_position,
+            cursor,
             viewport,
         );
 
@@ -200,7 +200,7 @@ where
             theme,
             inherited_style,
             layout,
-            cursor_position,
+            cursor,
             viewport,
             self.position,
             self.gap,
@@ -210,7 +210,7 @@ where
             |renderer, limits| {
                 Widget::<(), Renderer>::layout(tooltip, renderer, limits)
             },
-            |renderer, defaults, layout, cursor_position, viewport| {
+            |renderer, defaults, layout, viewport| {
                 Widget::<(), Renderer>::draw(
                     tooltip,
                     &Tree::empty(),
@@ -218,7 +218,7 @@ where
                     theme,
                     defaults,
                     layout,
-                    cursor_position,
+                    cursor,
                     viewport,
                 );
             },
@@ -274,7 +274,7 @@ pub fn draw<Renderer>(
     theme: &Renderer::Theme,
     inherited_style: &renderer::Style,
     layout: Layout<'_>,
-    cursor_position: Point,
+    cursor: mouse::Cursor,
     viewport: &Rectangle,
     position: Position,
     gap: f32,
@@ -282,13 +282,7 @@ pub fn draw<Renderer>(
     snap_within_viewport: bool,
     style: &<Renderer::Theme as container::StyleSheet>::Style,
     layout_text: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
-    draw_text: impl FnOnce(
-        &mut Renderer,
-        &renderer::Style,
-        Layout<'_>,
-        Point,
-        &Rectangle,
-    ),
+    draw_text: impl FnOnce(&mut Renderer, &renderer::Style, Layout<'_>, &Rectangle),
 ) where
     Renderer: core::Renderer,
     Renderer::Theme: container::StyleSheet,
@@ -297,7 +291,7 @@ pub fn draw<Renderer>(
 
     let bounds = layout.bounds();
 
-    if bounds.contains(cursor_position) {
+    if let Some(cursor_position) = cursor.position_over(bounds) {
         let style = theme.appearance(style);
 
         let defaults = renderer::Style {
@@ -384,7 +378,6 @@ pub fn draw<Renderer>(
                     ),
                     &text_layout,
                 ),
-                cursor_position,
                 viewport,
             )
         });

@@ -1,10 +1,10 @@
+use iced::executor;
+use iced::keyboard;
+use iced::subscription::{self, Subscription};
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
-use iced::{
-    executor, keyboard, subscription, Alignment, Application, Command, Element,
-    Event, Length, Settings, Subscription,
-};
+use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
 
 use toast::{Status, Toast};
 
@@ -396,7 +396,7 @@ mod toast {
             state: &mut Tree,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             ime: &dyn IME,
@@ -406,7 +406,7 @@ mod toast {
                 &mut state.children[0],
                 event,
                 layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 ime,
@@ -421,7 +421,7 @@ mod toast {
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
             self.content.as_widget().draw(
@@ -430,7 +430,7 @@ mod toast {
                 theme,
                 style,
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         }
@@ -439,14 +439,14 @@ mod toast {
             &self,
             state: &Tree,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
                 &state.children[0],
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
@@ -525,7 +525,7 @@ mod toast {
             &mut self,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             ime: &dyn IME,
@@ -575,7 +575,7 @@ mod toast {
                         state,
                         event.clone(),
                         layout,
-                        cursor_position,
+                        cursor,
                         renderer,
                         clipboard,
                         ime,
@@ -599,7 +599,7 @@ mod toast {
             theme: &<Renderer as advanced::Renderer>::Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
         ) {
             let viewport = layout.bounds();
 
@@ -610,13 +610,7 @@ mod toast {
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    &viewport,
+                    state, renderer, theme, style, layout, cursor, &viewport,
                 );
             }
         }
@@ -643,7 +637,7 @@ mod toast {
         fn mouse_interaction(
             &self,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
@@ -653,18 +647,19 @@ mod toast {
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
                     child.as_widget().mouse_interaction(
-                        state,
-                        layout,
-                        cursor_position,
-                        viewport,
-                        renderer,
+                        state, layout, cursor, viewport, renderer,
                     )
                 })
                 .max()
                 .unwrap_or_default()
         }
 
-        fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        fn is_over(
+            &self,
+            layout: Layout<'_>,
+            _renderer: &Renderer,
+            cursor_position: Point,
+        ) -> bool {
             layout
                 .children()
                 .any(|layout| layout.bounds().contains(cursor_position))
