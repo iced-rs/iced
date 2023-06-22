@@ -3,7 +3,6 @@
 mod profiler;
 mod state;
 
-use iced_graphics::core::window::SizeType;
 pub use state::State;
 
 use crate::conversion;
@@ -748,19 +747,11 @@ pub fn run_command<A, E>(
                         height,
                     });
                 }
-                window::Action::FetchSize {
-                    size_type,
-                    callback,
-                } => {
-                    let width_height = match size_type {
-                        SizeType::Inner => window.inner_size(),
-                        SizeType::Outer => window.outer_size(),
-                    };
-                    let width_height =
-                        (width_height.width, width_height.height);
+                window::Action::FetchSize(callback) => {
+                    let size = window.inner_size();
 
                     proxy
-                        .send_event(callback(width_height))
+                        .send_event(callback((size.width, size.height)))
                         .expect("Send message to event loop")
                 }
                 window::Action::Maximize(maximized) => {
