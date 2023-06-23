@@ -31,7 +31,7 @@ raw-window-handle = "0.5"
 [dependencies.winit]
 version = "0.28"
 git = "https://github.com/iced-rs/winit.git"
-rev = "ac1ddfe0bd870910b3aa64a18d386fdd55b30a1d"
+rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e"
 default-features = false
 
 [dependencies.iced_runtime]
