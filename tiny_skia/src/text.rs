@@ -23,8 +23,7 @@ impl Pipeline {
         Pipeline {
             font_system: RefCell::new(cosmic_text::FontSystem::new_with_fonts(
                 [cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../../wgpu/fonts/Iced-Icons.ttf")
-                        .as_slice(),
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
                 ))]
                 .into_iter(),
             )),
