@@ -69,8 +69,8 @@ body:
   - type: dropdown
     id: os
     attributes:
-      label: Operative System
-      description: Which operative system are you using?
+      label: Operating System
+      description: Which operating system are you using?
       options:
         - Windows
         - macOS
