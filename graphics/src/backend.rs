@@ -6,18 +6,6 @@ use iced_core::{Font, Point, Size};
 
 use std::borrow::Cow;
 
-/// The graphics backend of a [`Renderer`].
-///
-/// [`Renderer`]: crate::Renderer
-pub trait Backend {
-    /// Trims the measurements cache.
-    ///
-    /// This method is currently necessary to properly trim the text cache in
-    /// `iced_wgpu` and `iced_glow` because of limitations in the text rendering
-    /// pipeline. It will be removed in the future.
-    fn trim_measurements(&mut self) {}
-}
-
 /// A graphics backend that supports text rendering.
 pub trait Text {
     /// The icon font of the backend.

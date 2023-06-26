@@ -21,12 +21,6 @@ macro_rules! delegate {
     };
 }
 
-impl iced_graphics::Backend for Backend {
-    fn trim_measurements(&mut self) {
-        delegate!(self, backend, backend.trim_measurements());
-    }
-}
-
 impl backend::Text for Backend {
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';

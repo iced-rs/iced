@@ -14,8 +14,7 @@ use std::sync::Arc;
 pub struct Pipeline {
     font_system: RefCell<cosmic_text::FontSystem>,
     glyph_cache: GlyphCache,
-    measurement_cache: RefCell<Cache>,
-    render_cache: Cache,
+    cache: RefCell<Cache>,
 }
 
 impl Pipeline {
@@ -28,8 +27,7 @@ impl Pipeline {
                 .into_iter(),
             )),
             glyph_cache: GlyphCache::new(),
-            measurement_cache: RefCell::new(Cache::new()),
-            render_cache: Cache::new(),
+            cache: RefCell::new(Cache::new()),
         }
     }
 
@@ -37,6 +35,8 @@ impl Pipeline {
         self.font_system.get_mut().db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
+
+        self.cache = RefCell::new(Cache::new());
     }
 
     pub fn draw(
@@ -54,20 +54,11 @@ impl Pipeline {
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
-        let line_height =
-            f32::from(line_height.to_absolute(Pixels(size))) * scale_factor;
-
-        let bounds = bounds * scale_factor;
-        let size = size * scale_factor;
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let font_system = self.font_system.get_mut();
         let key = Key {
-            bounds: {
-                let size = bounds.size();
-
-                // TODO: Reuse buffers from layouting
-                Size::new(size.width.ceil(), size.height.ceil())
-            },
+            bounds: bounds.size(),
             content,
             font,
             size,
@@ -75,7 +66,7 @@ impl Pipeline {
             shaping,
         };
 
-        let (_, buffer) = self.render_cache.allocate(font_system, key);
+        let (_, buffer) = self.cache.get_mut().allocate(font_system, key);
 
         let (total_lines, max_width) = buffer
             .layout_runs()
@@ -84,7 +75,10 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        let total_height = total_lines as f32 * line_height;
+        let total_height = total_lines as f32 * line_height * scale_factor;
+        let max_width = max_width * scale_factor;
+
+        let bounds = bounds * scale_factor;
 
         let x = match horizontal_alignment {
             alignment::Horizontal::Left => bounds.x,
@@ -98,16 +92,14 @@ impl Pipeline {
             alignment::Vertical::Bottom => bounds.y - total_height,
         };
 
-        // TODO: Subpixel glyph positioning
-        let x = x.round() as i32;
-        let y = y.round() as i32;
-
         let mut swash = cosmic_text::SwashCache::new();
 
         for run in buffer.layout_runs() {
             for glyph in run.glyphs {
+                let physical_glyph = glyph.physical((x, y), scale_factor);
+
                 if let Some((buffer, placement)) = self.glyph_cache.allocate(
-                    glyph.cache_key,
+                    physical_glyph.cache_key,
                     color,
                     font_system,
                     &mut swash,
@@ -120,8 +112,9 @@ impl Pipeline {
                     .expect("Create glyph pixel map");
 
                     pixels.draw_pixmap(
-                        x + glyph.x_int + placement.left,
-                        y - glyph.y_int - placement.top + run.line_y as i32,
+                        physical_glyph.x + placement.left,
+                        physical_glyph.y - placement.top
+                            + (run.line_y * scale_factor).round() as i32,
                         pixmap,
                         &tiny_skia::PixmapPaint::default(),
                         tiny_skia::Transform::identity(),
@@ -133,7 +126,7 @@ impl Pipeline {
     }
 
     pub fn trim_cache(&mut self) {
-        self.render_cache.trim();
+        self.cache.get_mut().trim();
         self.glyph_cache.trim();
     }
 
@@ -146,7 +139,7 @@ impl Pipeline {
         bounds: Size,
         shaping: Shaping,
     ) -> (f32, f32) {
-        let mut measurement_cache = self.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
@@ -183,7 +176,7 @@ impl Pipeline {
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        let mut measurement_cache = self.measurement_cache.borrow_mut();
+        let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
@@ -202,10 +195,6 @@ impl Pipeline {
         let cursor = paragraph.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
-    }
-
-    pub fn trim_measurement_cache(&mut self) {
-        self.measurement_cache.borrow_mut().trim();
     }
 }
 

@@ -658,12 +658,6 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
     );
 }
 
-impl iced_graphics::Backend for Backend {
-    fn trim_measurements(&mut self) {
-        self.text_pipeline.trim_measurement_cache();
-    }
-}
-
 impl backend::Text for Backend {
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
