@@ -66,17 +66,10 @@ impl Pipeline {
             shaping,
         };
 
-        let (_, buffer) = self.cache.get_mut().allocate(font_system, key);
+        let (_, entry) = self.cache.get_mut().allocate(font_system, key);
 
-        let (total_lines, max_width) = buffer
-            .layout_runs()
-            .enumerate()
-            .fold((0, 0.0), |(_, max), (i, buffer)| {
-                (i + 1, buffer.line_w.max(max))
-            });
-
-        let total_height = total_lines as f32 * line_height * scale_factor;
-        let max_width = max_width * scale_factor;
+        let max_width = entry.bounds.width * scale_factor;
+        let total_height = entry.bounds.height * scale_factor;
 
         let bounds = bounds * scale_factor;
 
@@ -94,7 +87,7 @@ impl Pipeline {
 
         let mut swash = cosmic_text::SwashCache::new();
 
-        for run in buffer.layout_runs() {
+        for run in entry.buffer.layout_runs() {
             for glyph in run.glyphs {
                 let physical_glyph = glyph.physical((x, y), scale_factor);
 
@@ -143,7 +136,7 @@ impl Pipeline {
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, paragraph) = measurement_cache.allocate(
+        let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -155,14 +148,7 @@ impl Pipeline {
             },
         );
 
-        let (total_lines, max_width) = paragraph
-            .layout_runs()
-            .enumerate()
-            .fold((0, 0.0), |(_, max), (i, buffer)| {
-                (i + 1, buffer.line_w.max(max))
-            });
-
-        Size::new(max_width, line_height * total_lines as f32)
+        entry.bounds
     }
 
     pub fn hit_test(
@@ -180,7 +166,7 @@ impl Pipeline {
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, paragraph) = measurement_cache.allocate(
+        let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -192,10 +178,20 @@ impl Pipeline {
             },
         );
 
-        let cursor = paragraph.hit(point.x, point.y)?;
+        let cursor = entry.buffer.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
     }
+}
+
+fn measure(buffer: &cosmic_text::Buffer) -> Size {
+    let (width, total_lines) = buffer
+        .layout_runs()
+        .fold((0.0, 0usize), |(width, total_lines), run| {
+            (run.line_w.max(width), total_lines + 1)
+        });
+
+    Size::new(width, total_lines as f32 * buffer.metrics().line_height)
 }
 
 fn to_family(family: font::Family) -> cosmic_text::Family<'static> {
@@ -354,10 +350,16 @@ impl GlyphCache {
 }
 
 struct Cache {
-    entries: FxHashMap<KeyHash, cosmic_text::Buffer>,
+    entries: FxHashMap<KeyHash, Entry>,
+    measurements: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
     trim_count: usize,
+}
+
+struct Entry {
+    buffer: cosmic_text::Buffer,
+    bounds: Size,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -372,6 +374,7 @@ impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
+            measurements: FxHashMap::default(),
             recently_used: FxHashSet::default(),
             hasher: HashBuilder::default(),
             trim_count: 0,
@@ -382,20 +385,18 @@ impl Cache {
         &mut self,
         font_system: &mut cosmic_text::FontSystem,
         key: Key<'_>,
-    ) -> (KeyHash, &mut cosmic_text::Buffer) {
-        let hash = {
-            let mut hasher = self.hasher.build_hasher();
+    ) -> (KeyHash, &mut Entry) {
+        let hash = key.hash(self.hasher.build_hasher());
 
-            key.content.hash(&mut hasher);
-            key.size.to_bits().hash(&mut hasher);
-            key.line_height.to_bits().hash(&mut hasher);
-            key.font.hash(&mut hasher);
-            key.bounds.width.to_bits().hash(&mut hasher);
-            key.bounds.height.to_bits().hash(&mut hasher);
-            key.shaping.hash(&mut hasher);
+        if let Some(measured_hash) = self.measurements.get(&hash) {
+            let _ = self.recently_used.insert(hash);
+            let _ = self.recently_used.insert(*measured_hash);
 
-            hasher.finish()
-        };
+            return (
+                *measured_hash,
+                self.entries.get_mut(&measured_hash).unwrap(),
+            );
+        }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = cosmic_text::Metrics::new(key.size, key.size * 1.2);
@@ -416,7 +417,16 @@ impl Cache {
                 to_shaping(key.shaping),
             );
 
-            let _ = entry.insert(buffer);
+            let bounds = measure(&buffer);
+
+            let _ = entry.insert(Entry { buffer, bounds });
+
+            if key.bounds != bounds {
+                let _ = self.measurements.insert(
+                    Key { bounds, ..key }.hash(self.hasher.build_hasher()),
+                    hash,
+                );
+            }
         }
 
         let _ = self.recently_used.insert(hash);
@@ -427,6 +437,8 @@ impl Cache {
     fn trim(&mut self) {
         if self.trim_count > Self::TRIM_INTERVAL {
             self.entries
+                .retain(|key, _| self.recently_used.contains(key));
+            self.measurements
                 .retain(|key, _| self.recently_used.contains(key));
 
             self.recently_used.clear();
@@ -446,6 +458,20 @@ struct Key<'a> {
     font: Font,
     bounds: Size,
     shaping: Shaping,
+}
+
+impl Key<'_> {
+    fn hash<H: Hasher>(self, mut hasher: H) -> KeyHash {
+        self.content.hash(&mut hasher);
+        self.size.to_bits().hash(&mut hasher);
+        self.line_height.to_bits().hash(&mut hasher);
+        self.font.hash(&mut hasher);
+        self.bounds.width.to_bits().hash(&mut hasher);
+        self.bounds.height.to_bits().hash(&mut hasher);
+        self.shaping.hash(&mut hasher);
+
+        hasher.finish()
+    }
 }
 
 type KeyHash = u64;

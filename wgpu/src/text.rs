@@ -348,7 +348,7 @@ fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
 
 struct Cache {
     entries: FxHashMap<KeyHash, Entry>,
-    bound_entries: FxHashMap<KeyHash, KeyHash>,
+    measurements: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
 }
@@ -368,7 +368,7 @@ impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
-            bound_entries: FxHashMap::default(),
+            measurements: FxHashMap::default(),
             recently_used: FxHashSet::default(),
             hasher: HashBuilder::default(),
         }
@@ -385,11 +385,14 @@ impl Cache {
     ) -> (KeyHash, &mut Entry) {
         let hash = key.hash(self.hasher.build_hasher());
 
-        if let Some(bound_hash) = self.bound_entries.get(&hash) {
+        if let Some(measured_hash) = self.measurements.get(&hash) {
             let _ = self.recently_used.insert(hash);
-            let _ = self.recently_used.insert(*bound_hash);
+            let _ = self.recently_used.insert(*measured_hash);
 
-            return (*bound_hash, self.entries.get_mut(&bound_hash).unwrap());
+            return (
+                *measured_hash,
+                self.entries.get_mut(&measured_hash).unwrap(),
+            );
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
@@ -416,7 +419,7 @@ impl Cache {
             let _ = entry.insert(Entry { buffer, bounds });
 
             if key.bounds != bounds {
-                let _ = self.bound_entries.insert(
+                let _ = self.measurements.insert(
                     Key { bounds, ..key }.hash(self.hasher.build_hasher()),
                     hash,
                 );
@@ -431,7 +434,7 @@ impl Cache {
     fn trim(&mut self) {
         self.entries
             .retain(|key, _| self.recently_used.contains(key));
-        self.bound_entries
+        self.measurements
             .retain(|key, _| self.recently_used.contains(key));
 
         self.recently_used.clear();
