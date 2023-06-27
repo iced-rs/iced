@@ -102,8 +102,17 @@ where
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// Unless `on_press` is called, the [`Button`] will be disabled.
-    pub fn on_press(mut self, msg: Message) -> Self {
-        self.on_press = Some(msg);
+    pub fn on_press(mut self, on_press: Message) -> Self {
+        self.on_press = Some(on_press);
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed,
+    /// if `Some`.
+    ///
+    /// If `None`, the [`Button`] will be disabled.
+    pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
+        self.on_press = on_press;
         self
     }
 

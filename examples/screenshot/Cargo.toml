@@ -1,0 +1,11 @@
+[package]
+name = "screenshot"
+version = "0.1.0"
+authors = ["Bingus <shankern@protonmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["debug", "image", "advanced"] }
+image = { version = "0.24.6", features = ["png"]}
+env_logger = "0.10.0"

@@ -1,7 +1,10 @@
 //! Build window-based GUI applications.
 mod action;
 
+pub mod screenshot;
+
 pub use action::Action;
+pub use screenshot::Screenshot;
 
 use crate::command::{self, Command};
 use crate::core::time::Instant;
@@ -114,4 +117,11 @@ pub fn fetch_id<Message>(
 /// Changes the [`Icon`] of the window.
 pub fn change_icon<Message>(icon: Icon) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeIcon(icon)))
+}
+
+/// Captures a [`Screenshot`] from the window.
+pub fn screenshot<Message>(
+    f: impl FnOnce(Screenshot) -> Message + Send + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::Screenshot(Box::new(f))))
 }

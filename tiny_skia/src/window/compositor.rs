@@ -1,5 +1,5 @@
-use crate::core::{Color, Rectangle};
-use crate::graphics::compositor::{self, Information, SurfaceError};
+use crate::core::{Color, Rectangle, Size};
+use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
 use crate::graphics::{Error, Primitive, Viewport};
 use crate::{Backend, Renderer, Settings};
@@ -79,11 +79,31 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
-    ) -> Result<(), SurfaceError> {
+    ) -> Result<(), compositor::SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
             present(
                 backend,
                 surface,
+                primitives,
+                viewport,
+                background_color,
+                overlay,
+            )
+        })
+    }
+
+    fn screenshot<T: AsRef<str>>(
+        &mut self,
+        renderer: &mut Self::Renderer,
+        surface: &mut Self::Surface,
+        viewport: &Viewport,
+        background_color: Color,
+        overlay: &[T],
+    ) -> Vec<u8> {
+        renderer.with_primitives(|backend, primitives| {
+            screenshot(
+                surface,
+                backend,
                 primitives,
                 viewport,
                 background_color,
@@ -155,4 +175,54 @@ pub fn present<T: AsRef<str>>(
     );
 
     Ok(())
+}
+
+pub fn screenshot<T: AsRef<str>>(
+    surface: &mut Surface,
+    backend: &mut Backend,
+    primitives: &[Primitive],
+    viewport: &Viewport,
+    background_color: Color,
+    overlay: &[T],
+) -> Vec<u8> {
+    let size = viewport.physical_size();
+
+    let mut offscreen_buffer: Vec<u32> =
+        vec![0; size.width as usize * size.height as usize];
+
+    backend.draw(
+        &mut tiny_skia::PixmapMut::from_bytes(
+            bytemuck::cast_slice_mut(&mut offscreen_buffer),
+            size.width,
+            size.height,
+        )
+        .expect("Create offscreen pixel map"),
+        &mut surface.clip_mask,
+        primitives,
+        viewport,
+        &[Rectangle::with_size(Size::new(
+            size.width as f32,
+            size.height as f32,
+        ))],
+        background_color,
+        overlay,
+    );
+
+    offscreen_buffer.iter().fold(
+        Vec::with_capacity(offscreen_buffer.len() * 4),
+        |mut acc, pixel| {
+            const A_MASK: u32 = 0xFF_00_00_00;
+            const R_MASK: u32 = 0x00_FF_00_00;
+            const G_MASK: u32 = 0x00_00_FF_00;
+            const B_MASK: u32 = 0x00_00_00_FF;
+
+            let a = ((A_MASK & pixel) >> 24) as u8;
+            let r = ((R_MASK & pixel) >> 16) as u8;
+            let g = ((G_MASK & pixel) >> 8) as u8;
+            let b = (B_MASK & pixel) as u8;
+
+            acc.extend([r, g, b, a]);
+            acc
+        },
+    )
 }

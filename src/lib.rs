@@ -278,6 +278,7 @@ pub mod widget {
     mod native {}
     mod renderer {}
     mod style {}
+    mod runtime {}
 }
 
 pub use application::Application;

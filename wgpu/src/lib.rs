@@ -46,6 +46,7 @@ pub mod geometry;
 
 mod backend;
 mod buffer;
+mod color;
 mod quad;
 mod text;
 mod triangle;
