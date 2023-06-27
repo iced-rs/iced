@@ -1,5 +1,3 @@
-use tiny_skia::{Mask, Pixmap, PixmapPaint};
-
 use crate::core::text;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::backend;
@@ -256,13 +254,13 @@ impl Backend {
                     } else {
                         // Draw corners that have too small border radii as having no border radius,
                         // but mask them with the rounded rectangle with the correct border radius.
-                        let mut temp_pixmap = Pixmap::new(
+                        let mut temp_pixmap = tiny_skia::Pixmap::new(
                             bounds.width as u32,
                             bounds.height as u32,
                         )
                         .unwrap();
 
-                        let mut quad_mask = Mask::new(
+                        let mut quad_mask = tiny_skia::Mask::new(
                             bounds.width as u32,
                             bounds.height as u32,
                         )
@@ -314,7 +312,7 @@ impl Backend {
                             bounds.x as i32,
                             bounds.y as i32,
                             temp_pixmap.as_ref(),
-                            &PixmapPaint::default(),
+                            &tiny_skia::PixmapPaint::default(),
                             transform,
                             clip_mask,
                         );
