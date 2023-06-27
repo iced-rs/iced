@@ -5,6 +5,7 @@ use iced::widget::{
 };
 use iced::{executor, theme, Alignment, Color};
 use iced::{Application, Command, Element, Length, Settings, Theme};
+
 use once_cell::sync::Lazy;
 
 static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
@@ -199,12 +200,12 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .vertical_scroll(
+                .direction(scrollable::Direction::Vertical(
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width),
-                )
+                ))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Horizontal => scrollable(
@@ -223,12 +224,12 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .horizontal_scroll(
+                .direction(scrollable::Direction::Horizontal(
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
                         .scroller_width(self.scroller_width),
-                )
+                ))
                 .style(theme::Scrollable::custom(ScrollbarCustomStyle))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
@@ -264,18 +265,17 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .vertical_scroll(
-                    Properties::new()
+                .direction({
+                    let properties = Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
-                .horizontal_scroll(
-                    Properties::new()
-                        .width(self.scrollbar_width)
-                        .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
+                        .scroller_width(self.scroller_width);
+
+                    scrollable::Direction::Both {
+                        horizontal: properties,
+                        vertical: properties,
+                    }
+                })
                 .style(theme::Scrollable::Custom(Box::new(
                     ScrollbarCustomStyle,
                 )))
