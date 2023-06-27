@@ -159,7 +159,6 @@ impl Backend {
                 border_width,
                 border_color,
             } => {
-                // XXX border seems to be contained by the bounds of the primitive in wgpu and for damage regions, so we do the same here
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
@@ -206,115 +205,120 @@ impl Backend {
                     clip_mask,
                 );
 
-                // border path is offset by half the border width
-                let path_bounds = Rectangle {
-                    x: bounds.x + border_width / 2.0,
-                    y: bounds.y + border_width / 2.0,
-                    width: bounds.width - border_width,
-                    height: bounds.height - border_width,
-                };
-
-                // Make sure the border radius is correct
-                let mut border_radius = *border_radius;
-                let mut border_radius_gt_half_border_width =
-                    [true, true, true, true];
-                for (i, radius) in &mut border_radius.iter_mut().enumerate() {
-                    *radius = if *radius == 0.0 {
-                        // Path should handle this fine
-                        0.0
-                    } else if *radius > border_width / 2.0 {
-                        *radius - border_width / 2.0
-                    } else {
-                        border_radius_gt_half_border_width[i] = false;
-                        0.0
-                    }
-                    .min(path_bounds.width / 2.0)
-                    .min(path_bounds.height / 2.0);
-                }
-
-                // Stroking a path works well in this case.
-                if border_radius_gt_half_border_width.iter().all(|b| *b) {
-                    let border_radius_path =
-                        rounded_rectangle(path_bounds, border_radius);
-
-                    pixels.stroke_path(
-                        &border_radius_path,
-                        &tiny_skia::Paint {
-                            shader: tiny_skia::Shader::SolidColor(into_color(
-                                *border_color,
-                            )),
-                            anti_alias: true,
-                            ..tiny_skia::Paint::default()
-                        },
-                        &tiny_skia::Stroke {
-                            width: border_width,
-                            ..tiny_skia::Stroke::default()
-                        },
-                        transform,
-                        clip_mask,
-                    );
-                } else {
-                    // Draw corners that have to small border radii as having no border radius,
-                    // but mask them with the rounded rectangle with the correct border radius.
-
-                    let mut temp_pixmap =
-                        Pixmap::new(bounds.width as u32, bounds.height as u32)
-                            .unwrap();
-
-                    let mut quad_mask =
-                        Mask::new(bounds.width as u32, bounds.height as u32)
-                            .unwrap();
-
-                    let zero_bounds = Rectangle {
-                        x: 0.0,
-                        y: 0.0,
-                        width: bounds.width,
-                        height: bounds.height,
-                    };
-                    let path =
-                        rounded_rectangle(zero_bounds, fill_border_radius);
-
-                    quad_mask.fill_path(
-                        &path,
-                        tiny_skia::FillRule::EvenOdd,
-                        true,
-                        transform,
-                    );
-                    let path_bounds = Rectangle {
-                        x: border_width / 2.0,
-                        y: border_width / 2.0,
+                if border_width > 0.0 {
+                    // Border path is offset by half the border width
+                    let border_bounds = Rectangle {
+                        x: bounds.x + border_width / 2.0,
+                        y: bounds.y + border_width / 2.0,
                         width: bounds.width - border_width,
                         height: bounds.height - border_width,
                     };
 
-                    let border_radius_path =
-                        rounded_rectangle(path_bounds, border_radius);
+                    // Make sure the border radius is correct
+                    let mut border_radius = *border_radius;
+                    let mut is_simple_border = true;
 
-                    temp_pixmap.stroke_path(
-                        &border_radius_path,
-                        &tiny_skia::Paint {
-                            shader: tiny_skia::Shader::SolidColor(into_color(
-                                *border_color,
-                            )),
-                            anti_alias: true,
-                            ..tiny_skia::Paint::default()
-                        },
-                        &tiny_skia::Stroke {
-                            width: border_width,
-                            ..tiny_skia::Stroke::default()
-                        },
-                        transform,
-                        Some(&quad_mask),
-                    );
+                    for radius in &mut border_radius {
+                        *radius = if *radius == 0.0 {
+                            // Path should handle this fine
+                            0.0
+                        } else if *radius > border_width / 2.0 {
+                            *radius - border_width / 2.0
+                        } else {
+                            is_simple_border = false;
+                            0.0
+                        }
+                        .min(border_bounds.width / 2.0)
+                        .min(border_bounds.height / 2.0);
+                    }
 
-                    pixels.draw_pixmap(
-                        bounds.x as i32,
-                        bounds.y as i32,
-                        temp_pixmap.as_ref(),
-                        &PixmapPaint::default(),
-                        transform,
-                        clip_mask,
-                    );
+                    // Stroking a path works well in this case
+                    if is_simple_border {
+                        let border_path =
+                            rounded_rectangle(border_bounds, border_radius);
+
+                        pixels.stroke_path(
+                            &border_path,
+                            &tiny_skia::Paint {
+                                shader: tiny_skia::Shader::SolidColor(
+                                    into_color(*border_color),
+                                ),
+                                anti_alias: true,
+                                ..tiny_skia::Paint::default()
+                            },
+                            &tiny_skia::Stroke {
+                                width: border_width,
+                                ..tiny_skia::Stroke::default()
+                            },
+                            transform,
+                            clip_mask,
+                        );
+                    } else {
+                        // Draw corners that have too small border radii as having no border radius,
+                        // but mask them with the rounded rectangle with the correct border radius.
+                        let mut temp_pixmap = Pixmap::new(
+                            bounds.width as u32,
+                            bounds.height as u32,
+                        )
+                        .unwrap();
+
+                        let mut quad_mask = Mask::new(
+                            bounds.width as u32,
+                            bounds.height as u32,
+                        )
+                        .unwrap();
+
+                        let zero_bounds = Rectangle {
+                            x: 0.0,
+                            y: 0.0,
+                            width: bounds.width,
+                            height: bounds.height,
+                        };
+                        let path =
+                            rounded_rectangle(zero_bounds, fill_border_radius);
+
+                        quad_mask.fill_path(
+                            &path,
+                            tiny_skia::FillRule::EvenOdd,
+                            true,
+                            transform,
+                        );
+                        let path_bounds = Rectangle {
+                            x: border_width / 2.0,
+                            y: border_width / 2.0,
+                            width: bounds.width - border_width,
+                            height: bounds.height - border_width,
+                        };
+
+                        let border_radius_path =
+                            rounded_rectangle(path_bounds, border_radius);
+
+                        temp_pixmap.stroke_path(
+                            &border_radius_path,
+                            &tiny_skia::Paint {
+                                shader: tiny_skia::Shader::SolidColor(
+                                    into_color(*border_color),
+                                ),
+                                anti_alias: true,
+                                ..tiny_skia::Paint::default()
+                            },
+                            &tiny_skia::Stroke {
+                                width: border_width,
+                                ..tiny_skia::Stroke::default()
+                            },
+                            transform,
+                            Some(&quad_mask),
+                        );
+
+                        pixels.draw_pixmap(
+                            bounds.x as i32,
+                            bounds.y as i32,
+                            temp_pixmap.as_ref(),
+                            &PixmapPaint::default(),
+                            transform,
+                            clip_mask,
+                        );
+                    }
                 }
             }
             Primitive::Text {
