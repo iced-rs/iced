@@ -358,10 +358,11 @@ where
                 let bounds = layout.bounds();
                 let content_layout = layout.children().next().unwrap();
                 let content_bounds = content_layout.bounds();
-                let offset = tree
-                    .state
-                    .downcast_ref::<State>()
-                    .offset(bounds, content_bounds);
+                let offset = tree.state.downcast_ref::<State>().offset(
+                    &self.direction,
+                    bounds,
+                    content_bounds,
+                );
 
                 overlay.translate(Vector::new(-offset.x, -offset.y))
             })
@@ -493,7 +494,8 @@ pub fn update<Message>(
                 if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
             {
                 mouse::Cursor::Available(
-                    cursor_position + state.offset(bounds, content_bounds),
+                    cursor_position
+                        + state.offset(direction, bounds, content_bounds),
                 )
             }
             _ => mouse::Cursor::Unavailable,
@@ -562,12 +564,6 @@ pub fn update<Message>(
                         let delta = Vector::new(
                             cursor_position.x - scroll_box_touched_at.x,
                             cursor_position.y - scroll_box_touched_at.y,
-                        );
-
-                        let delta = Vector::new(
-                            delta.x
-                                * direction.horizontal().map_or(0.0, |_| 1.0),
-                            delta.y * direction.vertical().map_or(0.0, |_| 1.0),
                         );
 
                         state.scroll(delta, bounds, content_bounds);
@@ -775,7 +771,7 @@ pub fn mouse_interaction(
     {
         mouse::Interaction::Idle
     } else {
-        let offset = state.offset(bounds, content_bounds);
+        let offset = state.offset(direction, bounds, content_bounds);
 
         let cursor = match cursor_over_scrollable {
             Some(cursor_position)
@@ -822,7 +818,7 @@ pub fn draw<Renderer>(
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor);
 
-    let offset = state.offset(bounds, content_bounds);
+    let offset = state.offset(direction, bounds, content_bounds);
 
     let cursor = match cursor_over_scrollable {
         Some(cursor_position)
@@ -1161,16 +1157,25 @@ impl State {
         );
     }
 
-    /// Returns the scrolling offset of the [`State`], given the bounds of the
-    /// [`Scrollable`] and its contents.
+    /// Returns the scrolling offset of the [`State`], given a [`Direction`],
+    /// the bounds of the [`Scrollable`] and its contents.
     pub fn offset(
         &self,
+        direction: &Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) -> Vector {
         Vector::new(
-            self.offset_x.absolute(bounds.width, content_bounds.width),
-            self.offset_y.absolute(bounds.height, content_bounds.height),
+            if direction.horizontal().is_some() {
+                self.offset_x.absolute(bounds.width, content_bounds.width)
+            } else {
+                0.0
+            },
+            if direction.vertical().is_some() {
+                self.offset_y.absolute(bounds.height, content_bounds.height)
+            } else {
+                0.0
+            },
         )
     }
 
@@ -1196,7 +1201,7 @@ impl Scrollbars {
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) -> Self {
-        let offset = state.offset(bounds, content_bounds);
+        let offset = state.offset(direction, bounds, content_bounds);
 
         let show_scrollbar_x = direction.horizontal().and_then(|h| {
             if content_bounds.width > bounds.width {
