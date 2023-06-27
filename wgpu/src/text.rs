@@ -385,14 +385,10 @@ impl Cache {
     ) -> (KeyHash, &mut Entry) {
         let hash = key.hash(self.hasher.build_hasher());
 
-        if let Some(measured_hash) = self.measurements.get(&hash) {
-            let _ = self.recently_used.insert(hash);
-            let _ = self.recently_used.insert(*measured_hash);
+        if let Some(hash) = self.measurements.get(&hash) {
+            let _ = self.recently_used.insert(*hash);
 
-            return (
-                *measured_hash,
-                self.entries.get_mut(measured_hash).unwrap(),
-            );
+            return (*hash, self.entries.get_mut(hash).unwrap());
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
@@ -415,14 +411,21 @@ impl Cache {
             );
 
             let bounds = measure(&buffer);
-
             let _ = entry.insert(Entry { buffer, bounds });
 
-            if key.bounds != bounds {
-                let _ = self.measurements.insert(
-                    Key { bounds, ..key }.hash(self.hasher.build_hasher()),
-                    hash,
-                );
+            for bounds in [
+                bounds,
+                Size {
+                    width: key.bounds.width,
+                    ..bounds
+                },
+            ] {
+                if key.bounds != bounds {
+                    let _ = self.measurements.insert(
+                        Key { bounds, ..key }.hash(self.hasher.build_hasher()),
+                        hash,
+                    );
+                }
             }
         }
 
@@ -434,10 +437,8 @@ impl Cache {
     fn trim(&mut self) {
         self.entries
             .retain(|key, _| self.recently_used.contains(key));
-        self.measurements.retain(|key, value| {
-            self.recently_used.contains(key)
-                || self.recently_used.contains(value)
-        });
+        self.measurements
+            .retain(|_, value| self.recently_used.contains(value));
 
         self.recently_used.clear();
     }
