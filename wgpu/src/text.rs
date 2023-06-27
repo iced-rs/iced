@@ -434,8 +434,10 @@ impl Cache {
     fn trim(&mut self) {
         self.entries
             .retain(|key, _| self.recently_used.contains(key));
-        self.measurements
-            .retain(|key, _| self.recently_used.contains(key));
+        self.measurements.retain(|key, value| {
+            self.recently_used.contains(key)
+                || self.recently_used.contains(value)
+        });
 
         self.recently_used.clear();
     }
