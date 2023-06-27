@@ -391,7 +391,7 @@ impl Cache {
 
             return (
                 *measured_hash,
-                self.entries.get_mut(&measured_hash).unwrap(),
+                self.entries.get_mut(measured_hash).unwrap(),
             );
         }
 
