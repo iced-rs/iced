@@ -652,28 +652,18 @@ mod gradient {
                             attributes: &wgpu::vertex_attr_array!(
                                 // Position
                                 0 => Float32x2,
-                                // Color 1
-                                1 => Float32x4,
-                                // Color 2
-                                2 => Float32x4,
-                                // Color 3
-                                3 => Float32x4,
-                                // Color 4
-                                4 => Float32x4,
-                                // Color 5
-                                5 => Float32x4,
-                                // Color 6
-                                6 => Float32x4,
-                                // Color 7
-                                7 => Float32x4,
-                                // Color 8
-                                8 => Float32x4,
-                                // Offsets 1-4
-                                9 => Float32x4,
-                                // Offsets 5-8
-                                10 => Float32x4,
+                                // Colors 1-2
+                                1 => Uint32x4,
+                                // Colors 3-4
+                                2 => Uint32x4,
+                                // Colors 5-6
+                                3 => Uint32x4,
+                                // Colors 7-8
+                                4 => Uint32x4,
+                                // Offsets
+                                5 => Uint32x4,
                                 // Direction
-                                11 => Float32x4
+                                6 => Float32x4
                             ),
                         }],
                     },

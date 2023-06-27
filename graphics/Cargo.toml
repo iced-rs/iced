@@ -18,6 +18,7 @@ web-colors = []
 
 [dependencies]
 glam = "0.24"
+half = "2.2.1"
 log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
