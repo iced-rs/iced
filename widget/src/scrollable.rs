@@ -29,7 +29,7 @@ where
     id: Option<Id>,
     width: Length,
     height: Length,
-    scrollbar_properties: ScrollbarProperties,
+    direction: Direction,
     content: Element<'a, Message, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
     style: <Renderer::Theme as StyleSheet>::Style,
@@ -46,7 +46,7 @@ where
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            scrollbar_properties: Default::default(),
+            direction: Default::default(),
             content: content.into(),
             on_scroll: None,
             style: Default::default(),
@@ -71,12 +71,9 @@ where
         self
     }
 
-    /// Configures the scrollbar(s) of the [`Scrollable`] .
-    pub fn scrollbar_properties(
-        mut self,
-        scrollbar_properties: ScrollbarProperties,
-    ) -> Self {
-        self.scrollbar_properties = scrollbar_properties;
+    /// Sets the [`Direction`] of the [`Scrollable`] .
+    pub fn direction(mut self, direction: Direction) -> Self {
+        self.direction = direction;
         self
     }
 
@@ -98,45 +95,50 @@ where
     }
 }
 
-/// Properties of the scrollbar(s) within a [`Scrollable`].
-#[derive(Debug)]
-pub enum ScrollbarProperties {
-    /// Vertical Scrollbar.
+/// The direction of [`Scrollable`].
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Direction {
+    /// Vertical scrolling
     Vertical(Properties),
-    /// Horizontal Scrollbar.
+    /// Horizontal scrolling
     Horizontal(Properties),
-    /// Both Vertical and Horizontal Scrollbars.
-    Both(Properties, Properties),
+    /// Both vertical and horizontal scrolling
+    Both {
+        /// The properties of the vertical scrollbar.
+        vertical: Properties,
+        /// The properties of the horizontal scrollbar.
+        horizontal: Properties,
+    },
 }
 
-impl ScrollbarProperties {
-    /// Returns the horizontal [`Properties`] of the [`ScrollbarProperties`].
+impl Direction {
+    /// Returns the [`Properties`] of the horizontal scrollbar, if any.
     pub fn horizontal(&self) -> Option<&Properties> {
         match self {
             Self::Horizontal(properties) => Some(properties),
-            Self::Both(_, properties) => Some(properties),
+            Self::Both { horizontal, .. } => Some(horizontal),
             _ => None,
         }
     }
 
-    /// Returns the vertical [`Properties`] of the [`ScrollbarProperties`].
+    /// Returns the [`Properties`] of the vertical scrollbar, if any.
     pub fn vertical(&self) -> Option<&Properties> {
         match self {
             Self::Vertical(properties) => Some(properties),
-            Self::Both(properties, _) => Some(properties),
+            Self::Both { vertical, .. } => Some(vertical),
             _ => None,
         }
     }
 }
 
-impl Default for ScrollbarProperties {
+impl Default for Direction {
     fn default() -> Self {
         Self::Vertical(Properties::default())
     }
 }
 
 /// Properties of a scrollbar within a [`Scrollable`].
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Properties {
     width: f32,
     margin: f32,
@@ -218,8 +220,7 @@ where
             limits,
             self.width,
             self.height,
-            self.scrollbar_properties.horizontal().is_some(),
-            self.scrollbar_properties.vertical().is_some(),
+            &self.direction,
             |renderer, limits| {
                 self.content.as_widget().layout(renderer, limits)
             },
@@ -267,7 +268,7 @@ where
             cursor,
             clipboard,
             shell,
-            &self.scrollbar_properties,
+            &self.direction,
             &self.on_scroll,
             |event, layout, cursor, clipboard, shell| {
                 self.content.as_widget_mut().on_event(
@@ -299,7 +300,7 @@ where
             theme,
             layout,
             cursor,
-            &self.scrollbar_properties,
+            &self.direction,
             &self.style,
             |renderer, layout, cursor, viewport| {
                 self.content.as_widget().draw(
@@ -327,7 +328,7 @@ where
             tree.state.downcast_ref::<State>(),
             layout,
             cursor,
-            &self.scrollbar_properties,
+            &self.direction,
             |layout, cursor, viewport| {
                 self.content.as_widget().mouse_interaction(
                     &tree.children[0],
@@ -429,8 +430,7 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     height: Length,
-    horizontal_enabled: bool,
-    vertical_enabled: bool,
+    direction: &Direction,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
@@ -438,12 +438,12 @@ pub fn layout<Renderer>(
     let child_limits = layout::Limits::new(
         Size::new(limits.min().width, limits.min().height),
         Size::new(
-            if horizontal_enabled {
+            if direction.horizontal().is_some() {
                 f32::INFINITY
             } else {
                 limits.max().width
             },
-            if vertical_enabled {
+            if direction.vertical().is_some() {
                 f32::MAX
             } else {
                 limits.max().height
@@ -466,7 +466,7 @@ pub fn update<Message>(
     cursor: mouse::Cursor,
     clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
-    scrollbar_properties: &ScrollbarProperties,
+    direction: &Direction,
     on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
     update_content: impl FnOnce(
         Event,
@@ -482,8 +482,7 @@ pub fn update<Message>(
     let content = layout.children().next().unwrap();
     let content_bounds = content.bounds();
 
-    let scrollbars =
-        Scrollbars::new(state, &scrollbar_properties, bounds, content_bounds);
+    let scrollbars = Scrollbars::new(state, direction, bounds, content_bounds);
 
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor);
@@ -567,13 +566,8 @@ pub fn update<Message>(
 
                         let delta = Vector::new(
                             delta.x
-                                * scrollbar_properties
-                                    .horizontal()
-                                    .map_or(0.0, |_| 1.0),
-                            delta.y
-                                * scrollbar_properties
-                                    .vertical()
-                                    .map_or(0.0, |_| 1.0),
+                                * direction.horizontal().map_or(0.0, |_| 1.0),
+                            delta.y * direction.vertical().map_or(0.0, |_| 1.0),
                         );
 
                         state.scroll(delta, bounds, content_bounds);
@@ -758,7 +752,7 @@ pub fn mouse_interaction(
     state: &State,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
-    scrollbar_properties: &ScrollbarProperties,
+    direction: &Direction,
     content_interaction: impl FnOnce(
         Layout<'_>,
         mouse::Cursor,
@@ -771,8 +765,7 @@ pub fn mouse_interaction(
     let content_layout = layout.children().next().unwrap();
     let content_bounds = content_layout.bounds();
 
-    let scrollbars =
-        Scrollbars::new(state, scrollbar_properties, bounds, content_bounds);
+    let scrollbars = Scrollbars::new(state, direction, bounds, content_bounds);
 
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor);
@@ -812,7 +805,7 @@ pub fn draw<Renderer>(
     theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
-    scrollbar_properties: &ScrollbarProperties,
+    direction: &Direction,
     style: &<Renderer::Theme as StyleSheet>::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, mouse::Cursor, &Rectangle),
 ) where
@@ -823,8 +816,7 @@ pub fn draw<Renderer>(
     let content_layout = layout.children().next().unwrap();
     let content_bounds = content_layout.bounds();
 
-    let scrollbars =
-        Scrollbars::new(state, &scrollbar_properties, bounds, content_bounds);
+    let scrollbars = Scrollbars::new(state, direction, bounds, content_bounds);
 
     let cursor_over_scrollable = cursor.position_over(bounds);
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
@@ -1200,22 +1192,21 @@ impl Scrollbars {
     /// Create y and/or x scrollbar(s) if content is overflowing the [`Scrollable`] bounds.
     fn new(
         state: &State,
-        scrollbar_properties: &ScrollbarProperties,
+        direction: &Direction,
         bounds: Rectangle,
         content_bounds: Rectangle,
     ) -> Self {
         let offset = state.offset(bounds, content_bounds);
 
-        let show_scrollbar_x =
-            scrollbar_properties.horizontal().and_then(|h| {
-                if content_bounds.width > bounds.width {
-                    Some(h)
-                } else {
-                    None
-                }
-            });
+        let show_scrollbar_x = direction.horizontal().and_then(|h| {
+            if content_bounds.width > bounds.width {
+                Some(h)
+            } else {
+                None
+            }
+        });
 
-        let show_scrollbar_y = scrollbar_properties.vertical().and_then(|v| {
+        let show_scrollbar_y = direction.vertical().and_then(|v| {
             if content_bounds.height > bounds.height {
                 Some(v)
             } else {
