@@ -138,7 +138,7 @@ impl Pipeline {
         font: Font,
         bounds: Size,
         shaping: Shaping,
-    ) -> (f32, f32) {
+    ) -> Size {
         let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
@@ -162,7 +162,7 @@ impl Pipeline {
                 (i + 1, buffer.line_w.max(max))
             });
 
-        (max_width, line_height * total_lines as f32)
+        Size::new(max_width, line_height * total_lines as f32)
     }
 
     pub fn hit_test(

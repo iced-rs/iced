@@ -64,8 +64,8 @@ impl text::Renderer for Null {
         _font: Font,
         _bounds: Size,
         _shaping: text::Shaping,
-    ) -> (f32, f32) {
-        (0.0, 20.0)
+    ) -> Size {
+        Size::new(0.0, 20.0)
     }
 
     fn hit_test(

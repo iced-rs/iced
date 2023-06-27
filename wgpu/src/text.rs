@@ -113,15 +113,13 @@ impl Pipeline {
                 .iter()
                 .zip(keys.iter())
                 .filter_map(|(section, key)| {
-                    let buffer = cache.get(key).expect("Get cached buffer");
+                    let entry = cache.get(key).expect("Get cached buffer");
 
                     let x = section.bounds.x * scale_factor;
                     let y = section.bounds.y * scale_factor;
 
-                    let (max_width, total_height) = measure(buffer);
-
-                    let max_width = max_width * scale_factor;
-                    let total_height = total_height * scale_factor;
+                    let max_width = entry.bounds.width * scale_factor;
+                    let total_height = entry.bounds.height * scale_factor;
 
                     let left = match section.horizontal_alignment {
                         alignment::Horizontal::Left => x,
@@ -145,7 +143,7 @@ impl Pipeline {
                     let clip_bounds = bounds.intersection(&section_bounds)?;
 
                     Some(glyphon::TextArea {
-                        buffer,
+                        buffer: &entry.buffer,
                         left,
                         top,
                         scale: scale_factor,
@@ -239,12 +237,12 @@ impl Pipeline {
         font: Font,
         bounds: Size,
         shaping: Shaping,
-    ) -> (f32, f32) {
+    ) -> Size {
         let mut measurement_cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, paragraph) = measurement_cache.allocate(
+        let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -256,7 +254,7 @@ impl Pipeline {
             },
         );
 
-        measure(paragraph)
+        entry.bounds
     }
 
     pub fn hit_test(
@@ -274,7 +272,7 @@ impl Pipeline {
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, paragraph) = measurement_cache.allocate(
+        let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -286,20 +284,20 @@ impl Pipeline {
             },
         );
 
-        let cursor = paragraph.hit(point.x, point.y)?;
+        let cursor = entry.buffer.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
     }
 }
 
-fn measure(buffer: &glyphon::Buffer) -> (f32, f32) {
+fn measure(buffer: &glyphon::Buffer) -> Size {
     let (width, total_lines) = buffer
         .layout_runs()
         .fold((0.0, 0usize), |(width, total_lines), run| {
             (run.line_w.max(width), total_lines + 1)
         });
 
-    (width, total_lines as f32 * buffer.metrics().line_height)
+    Size::new(width, total_lines as f32 * buffer.metrics().line_height)
 }
 
 fn to_family(family: font::Family) -> glyphon::Family<'static> {
@@ -349,9 +347,15 @@ fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
 }
 
 struct Cache {
-    entries: FxHashMap<KeyHash, glyphon::Buffer>,
+    entries: FxHashMap<KeyHash, Entry>,
+    bound_entries: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
+}
+
+struct Entry {
+    buffer: glyphon::Buffer,
+    bounds: Size,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -364,12 +368,13 @@ impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
+            bound_entries: FxHashMap::default(),
             recently_used: FxHashSet::default(),
             hasher: HashBuilder::default(),
         }
     }
 
-    fn get(&self, key: &KeyHash) -> Option<&glyphon::Buffer> {
+    fn get(&self, key: &KeyHash) -> Option<&Entry> {
         self.entries.get(key)
     }
 
@@ -377,20 +382,15 @@ impl Cache {
         &mut self,
         font_system: &mut glyphon::FontSystem,
         key: Key<'_>,
-    ) -> (KeyHash, &mut glyphon::Buffer) {
-        let hash = {
-            let mut hasher = self.hasher.build_hasher();
+    ) -> (KeyHash, &mut Entry) {
+        let hash = key.hash(self.hasher.build_hasher());
 
-            key.content.hash(&mut hasher);
-            key.size.to_bits().hash(&mut hasher);
-            key.line_height.to_bits().hash(&mut hasher);
-            key.font.hash(&mut hasher);
-            key.bounds.width.to_bits().hash(&mut hasher);
-            key.bounds.height.to_bits().hash(&mut hasher);
-            key.shaping.hash(&mut hasher);
+        if let Some(bound_hash) = self.bound_entries.get(&hash) {
+            let _ = self.recently_used.insert(hash);
+            let _ = self.recently_used.insert(*bound_hash);
 
-            hasher.finish()
-        };
+            return (*bound_hash, self.entries.get_mut(&bound_hash).unwrap());
+        }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = glyphon::Metrics::new(key.size, key.line_height);
@@ -411,7 +411,16 @@ impl Cache {
                 to_shaping(key.shaping),
             );
 
-            let _ = entry.insert(buffer);
+            let bounds = measure(&buffer);
+
+            let _ = entry.insert(Entry { buffer, bounds });
+
+            if key.bounds != bounds {
+                let _ = self.bound_entries.insert(
+                    Key { bounds, ..key }.hash(self.hasher.build_hasher()),
+                    hash,
+                );
+            }
         }
 
         let _ = self.recently_used.insert(hash);
@@ -421,6 +430,8 @@ impl Cache {
 
     fn trim(&mut self) {
         self.entries
+            .retain(|key, _| self.recently_used.contains(key));
+        self.bound_entries
             .retain(|key, _| self.recently_used.contains(key));
 
         self.recently_used.clear();
@@ -435,6 +446,20 @@ struct Key<'a> {
     font: Font,
     bounds: Size,
     shaping: Shaping,
+}
+
+impl Key<'_> {
+    fn hash<H: Hasher>(self, mut hasher: H) -> KeyHash {
+        self.content.hash(&mut hasher);
+        self.size.to_bits().hash(&mut hasher);
+        self.line_height.to_bits().hash(&mut hasher);
+        self.font.hash(&mut hasher);
+        self.bounds.width.to_bits().hash(&mut hasher);
+        self.bounds.height.to_bits().hash(&mut hasher);
+        self.shaping.hash(&mut hasher);
+
+        hasher.finish()
+    }
 }
 
 type KeyHash = u64;

@@ -355,7 +355,7 @@ impl backend::Text for Backend {
         font: Font,
         bounds: Size,
         shaping: core::text::Shaping,
-    ) -> (f32, f32) {
+    ) -> Size {
         self.text_pipeline.measure(
             contents,
             size,
