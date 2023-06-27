@@ -5,7 +5,7 @@ use crate::mouse;
 use crate::renderer;
 use crate::text;
 use crate::widget::Tree;
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget};
+use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Widget};
 
 use std::borrow::Cow;
 
@@ -139,18 +139,16 @@ where
 
         let size = self.size.unwrap_or_else(|| renderer.default_size());
 
-        let bounds = limits.max();
-
-        let (width, height) = renderer.measure(
+        let bounds = renderer.measure(
             &self.content,
             size,
             self.line_height,
             self.font.unwrap_or_else(|| renderer.default_font()),
-            bounds,
+            limits.max(),
             self.shaping,
         );
 
-        let size = limits.resolve(Size::new(width, height));
+        let size = limits.resolve(bounds);
 
         layout::Node::new(size)
     }

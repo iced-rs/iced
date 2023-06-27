@@ -42,7 +42,7 @@ impl backend::Text for Backend {
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
-    ) -> (f32, f32) {
+    ) -> Size {
         delegate!(
             self,
             backend,

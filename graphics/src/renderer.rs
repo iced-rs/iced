@@ -133,7 +133,7 @@ where
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
-    ) -> (f32, f32) {
+    ) -> Size {
         self.backend().measure(
             content,
             size,

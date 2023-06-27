@@ -163,7 +163,7 @@ pub trait Renderer: crate::Renderer {
         font: Self::Font,
         bounds: Size,
         shaping: Shaping,
-    ) -> (f32, f32);
+    ) -> Size;
 
     /// Measures the width of the text as if it were laid out in a single line.
     fn measure_width(
@@ -173,7 +173,7 @@ pub trait Renderer: crate::Renderer {
         font: Self::Font,
         shaping: Shaping,
     ) -> f32 {
-        let (width, _) = self.measure(
+        let bounds = self.measure(
             content,
             size,
             LineHeight::Absolute(Pixels(size)),
@@ -182,7 +182,7 @@ pub trait Renderer: crate::Renderer {
             shaping,
         );
 
-        width
+        bounds.width
     }
 
     /// Tests whether the provided point is within the boundaries of text

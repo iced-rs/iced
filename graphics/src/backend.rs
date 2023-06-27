@@ -38,7 +38,7 @@ pub trait Text {
         font: Font,
         bounds: Size,
         shaping: text::Shaping,
-    ) -> (f32, f32);
+    ) -> Size;
 
     /// Tests whether the provided point is within the boundaries of [`Text`]
     /// laid out with the given parameters, returning information about
