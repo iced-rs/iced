@@ -345,17 +345,26 @@ pub fn screenshot<Theme, T: AsRef<str>>(
 
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    let rgba_texture = backend.offscreen(
+    backend.present(
         &compositor.device,
         &compositor.queue,
         &mut encoder,
         Some(background_color),
         &view,
-        compositor.format,
         primitives,
         viewport,
         overlay,
-        texture_extent,
+    );
+
+    let texture = crate::color::convert(
+        &compositor.device,
+        &mut encoder,
+        texture,
+        if color::GAMMA_CORRECTION {
+            wgpu::TextureFormat::Rgba8UnormSrgb
+        } else {
+            wgpu::TextureFormat::Rgba8Unorm
+        },
     );
 
     let output_buffer =
@@ -368,7 +377,7 @@ pub fn screenshot<Theme, T: AsRef<str>>(
         });
 
     encoder.copy_texture_to_buffer(
-        rgba_texture.unwrap_or(texture).as_image_copy(),
+        texture.as_image_copy(),
         wgpu::ImageCopyBuffer {
             buffer: &output_buffer,
             layout: wgpu::ImageDataLayout {

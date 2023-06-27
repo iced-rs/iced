@@ -1,3 +1,4 @@
+use crate::core;
 use crate::core::{Color, Font, Point, Size};
 use crate::graphics::backend;
 use crate::graphics::color;
@@ -5,7 +6,6 @@ use crate::graphics::{Primitive, Transformation, Viewport};
 use crate::quad;
 use crate::text;
 use crate::triangle;
-use crate::{core, offscreen};
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -121,48 +121,6 @@ impl Backend {
 
         #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.end_frame();
-    }
-
-    /// Performs an offscreen render pass. If the `format` selected by WGPU is not
-    /// `wgpu::TextureFormat::Rgba8UnormSrgb`, it will be run through a blit.
-    ///
-    /// Returns `None` if the `frame` is `Rgba8UnormSrgb`, else returns the newly
-    /// converted texture view in `Rgba8UnormSrgb`.
-    pub fn offscreen<T: AsRef<str>>(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        encoder: &mut wgpu::CommandEncoder,
-        clear_color: Option<Color>,
-        frame: &wgpu::TextureView,
-        format: wgpu::TextureFormat,
-        primitives: &[Primitive],
-        viewport: &Viewport,
-        overlay_text: &[T],
-        size: wgpu::Extent3d,
-    ) -> Option<wgpu::Texture> {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("iced_wgpu::offscreen", "DRAW").entered();
-
-        self.present(
-            device,
-            queue,
-            encoder,
-            clear_color,
-            frame,
-            primitives,
-            viewport,
-            overlay_text,
-        );
-
-        if format != wgpu::TextureFormat::Rgba8UnormSrgb {
-            log::info!("Texture format is {format:?}; performing conversion to rgba8..");
-            let pipeline = offscreen::Pipeline::new(device);
-
-            return Some(pipeline.convert(device, frame, size, encoder));
-        }
-
-        None
     }
 
     fn prepare_text(
