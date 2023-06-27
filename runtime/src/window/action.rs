@@ -1,7 +1,7 @@
 use crate::core::window::{Icon, Level, Mode, UserAttention};
 use crate::futures::MaybeSend;
+use crate::window::Screenshot;
 
-use crate::screenshot::Screenshot;
 use std::fmt;
 
 /// An operation to be performed on some window.

@@ -1,15 +1,16 @@
-use ::image as img;
-use ::image::ColorType;
 use iced::alignment;
 use iced::keyboard::KeyCode;
 use iced::theme::{Button, Container};
-use iced::widget::runtime::{CropError, Screenshot};
 use iced::widget::{button, column, container, image, row, text, text_input};
+use iced::window::screenshot::{self, Screenshot};
 use iced::{
     event, executor, keyboard, subscription, Alignment, Application, Command,
     ContentFit, Element, Event, Length, Rectangle, Renderer, Subscription,
     Theme,
 };
+
+use ::image as img;
+use ::image::ColorType;
 
 fn main() -> iced::Result {
     env_logger::builder().format_timestamp(None).init();
@@ -21,7 +22,7 @@ struct Example {
     screenshot: Option<Screenshot>,
     saved_png_path: Option<Result<String, PngError>>,
     png_saving: bool,
-    crop_error: Option<CropError>,
+    crop_error: Option<screenshot::CropError>,
     x_input_value: Option<u32>,
     y_input_value: Option<u32>,
     width_input_value: Option<u32>,

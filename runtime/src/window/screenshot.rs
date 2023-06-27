@@ -1,3 +1,4 @@
+//! Take screenshots of a window.
 use crate::core::{Rectangle, Size};
 
 use std::fmt::{Debug, Formatter};

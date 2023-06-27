@@ -19,7 +19,7 @@ use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
-use crate::runtime::{Command, Debug, Screenshot};
+use crate::runtime::{Command, Debug};
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -819,7 +819,7 @@ pub fn run_command<A, C, E>(
                     );
 
                     proxy
-                        .send_event(tag(Screenshot::new(
+                        .send_event(tag(window::Screenshot::new(
                             bytes,
                             state.physical_size(),
                         )))
