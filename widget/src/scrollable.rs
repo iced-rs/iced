@@ -1203,21 +1203,13 @@ impl Scrollbars {
     ) -> Self {
         let offset = state.offset(direction, bounds, content_bounds);
 
-        let show_scrollbar_x = direction.horizontal().and_then(|h| {
-            if content_bounds.width > bounds.width {
-                Some(h)
-            } else {
-                None
-            }
-        });
+        let show_scrollbar_x = direction
+            .horizontal()
+            .filter(|_| content_bounds.width > bounds.width);
 
-        let show_scrollbar_y = direction.vertical().and_then(|v| {
-            if content_bounds.height > bounds.height {
-                Some(v)
-            } else {
-                None
-            }
-        });
+        let show_scrollbar_y = direction
+            .vertical()
+            .filter(|_| content_bounds.height > bounds.height);
 
         let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
             let Properties {
