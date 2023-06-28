@@ -1,11 +1,11 @@
 //! Show toggle controls using togglers.
-use crate::core::{alignment, touch};
 use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::widget::Tree;
+use crate::core::{alignment, touch};
 use crate::core::{
     Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle,
     Shell, Widget,
