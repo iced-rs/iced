@@ -1,5 +1,5 @@
 //! Show toggle controls using togglers.
-use crate::core::alignment;
+use crate::core::{alignment, touch};
 use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
@@ -208,7 +208,8 @@ where
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
