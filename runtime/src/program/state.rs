@@ -1,6 +1,7 @@
 use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::{Clipboard, Size};
 use crate::user_interface::{self, UserInterface};
 use crate::{Command, Debug, Program};
@@ -172,6 +173,43 @@ where
         };
 
         (uncaptured_events, command)
+    }
+
+    /// Applies [`widget::Operation`]s to the [`State`]
+    pub fn operate(
+        &mut self,
+        renderer: &mut P::Renderer,
+        operations: impl Iterator<Item = Box<dyn Operation<P::Message>>>,
+        bounds: Size,
+        debug: &mut Debug,
+    ) {
+        let mut user_interface = build_user_interface(
+            &mut self.program,
+            self.cache.take().unwrap(),
+            renderer,
+            bounds,
+            debug,
+        );
+
+        for operation in operations {
+            let mut current_operation = Some(operation);
+
+            while let Some(mut operation) = current_operation.take() {
+                user_interface.operate(renderer, operation.as_mut());
+
+                match operation.finish() {
+                    operation::Outcome::None => {}
+                    operation::Outcome::Some(message) => {
+                        self.queued_messages.push(message)
+                    }
+                    operation::Outcome::Chain(next) => {
+                        current_operation = Some(next);
+                    }
+                };
+            }
+        }
+
+        self.cache = Some(user_interface.into_cache());
     }
 }
 
