@@ -48,10 +48,12 @@ impl<B: Backend, T> Renderer<B, T> {
         f(&mut self.backend, &self.primitives)
     }
 
+    /// Starts recording a new layer.
     pub fn start_layer(&mut self) -> Vec<Primitive<B::Primitive>> {
         std::mem::take(&mut self.primitives)
     }
 
+    /// Ends the recording of a layer.
     pub fn end_layer(
         &mut self,
         primitives: Vec<Primitive<B::Primitive>>,
@@ -62,10 +64,12 @@ impl<B: Backend, T> Renderer<B, T> {
         self.primitives.push(Primitive::group(layer).clip(bounds));
     }
 
+    /// Starts recording a translation.
     pub fn start_translation(&mut self) -> Vec<Primitive<B::Primitive>> {
         std::mem::take(&mut self.primitives)
     }
 
+    /// Ends the recording of a translation.
     pub fn end_translation(
         &mut self,
         primitives: Vec<Primitive<B::Primitive>>,

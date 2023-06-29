@@ -1,3 +1,4 @@
+//! Draw triangles!
 use crate::color;
 use crate::core::{Rectangle, Size};
 use crate::gradient;

@@ -5,6 +5,7 @@ use crate::Primitive;
 
 use std::sync::Arc;
 
+/// A type that has some damage bounds.
 pub trait Damage: PartialEq {
     /// Returns the bounds of the [`Damage`].
     fn bounds(&self) -> Rectangle;

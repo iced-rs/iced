@@ -10,6 +10,7 @@ use std::borrow::Cow;
 ///
 /// [`Renderer`]: crate::Renderer
 pub trait Backend {
+    /// The custom kind of primitives this [`Backend`] supports.
     type Primitive;
 }
 

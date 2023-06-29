@@ -16,6 +16,7 @@ pub use crate::gradient::{self, Gradient};
 
 /// A renderer capable of drawing some [`Geometry`].
 pub trait Renderer: crate::core::Renderer {
+    /// The kind of geometry this renderer can draw.
     type Geometry;
 
     /// Draws the given layers of [`Geometry`].
