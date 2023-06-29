@@ -1,7 +1,7 @@
 use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
-use crate::core::widget::operation::{Operation, Outcome};
+use crate::core::widget::operation::{self, Operation};
 use crate::core::{Clipboard, Size};
 use crate::user_interface::{self, UserInterface};
 use crate::{Command, Debug, Program};
@@ -198,11 +198,11 @@ where
                 user_interface.operate(renderer, operation.as_mut());
 
                 match operation.finish() {
-                    Outcome::None => {}
-                    Outcome::Some(message) => {
+                    operation::Outcome::None => {}
+                    operation::Outcome::Some(message) => {
                         self.queued_messages.push(message)
                     }
-                    Outcome::Chain(next) => {
+                    operation::Outcome::Chain(next) => {
                         current_operation = Some(next);
                     }
                 };
