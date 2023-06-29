@@ -11,10 +11,11 @@ pub use text::Text;
 use crate::core;
 use crate::core::alignment;
 use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
+use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::Viewport;
+use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
-use crate::Primitive;
 
 /// A group of primitives that should be clipped together.
 #[derive(Debug)]
@@ -180,40 +181,6 @@ impl<'a> Layer<'a> {
                     bounds: *bounds + translation,
                 });
             }
-            Primitive::SolidMesh { buffers, size } => {
-                let layer = &mut layers[current_layer];
-
-                let bounds = Rectangle::new(
-                    Point::new(translation.x, translation.y),
-                    *size,
-                );
-
-                // Only draw visible content
-                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh::Solid {
-                        origin: Point::new(translation.x, translation.y),
-                        buffers,
-                        clip_bounds,
-                    });
-                }
-            }
-            Primitive::GradientMesh { buffers, size } => {
-                let layer = &mut layers[current_layer];
-
-                let bounds = Rectangle::new(
-                    Point::new(translation.x, translation.y),
-                    *size,
-                );
-
-                // Only draw visible content
-                if let Some(clip_bounds) = layer.bounds.intersection(&bounds) {
-                    layer.meshes.push(Mesh::Gradient {
-                        origin: Point::new(translation.x, translation.y),
-                        buffers,
-                        clip_bounds,
-                    });
-                }
-            }
             Primitive::Group { primitives } => {
                 // TODO: Inspect a bit and regroup (?)
                 for primitive in primitives {
@@ -263,7 +230,54 @@ impl<'a> Layer<'a> {
                     current_layer,
                 );
             }
-            Primitive::Custom(()) => {}
+            Primitive::Custom(custom) => match custom {
+                primitive::Custom::Mesh(mesh) => match mesh {
+                    graphics::Mesh::Solid { buffers, size } => {
+                        let layer = &mut layers[current_layer];
+
+                        let bounds = Rectangle::new(
+                            Point::new(translation.x, translation.y),
+                            *size,
+                        );
+
+                        // Only draw visible content
+                        if let Some(clip_bounds) =
+                            layer.bounds.intersection(&bounds)
+                        {
+                            layer.meshes.push(Mesh::Solid {
+                                origin: Point::new(
+                                    translation.x,
+                                    translation.y,
+                                ),
+                                buffers,
+                                clip_bounds,
+                            });
+                        }
+                    }
+                    graphics::Mesh::Gradient { buffers, size } => {
+                        let layer = &mut layers[current_layer];
+
+                        let bounds = Rectangle::new(
+                            Point::new(translation.x, translation.y),
+                            *size,
+                        );
+
+                        // Only draw visible content
+                        if let Some(clip_bounds) =
+                            layer.bounds.intersection(&bounds)
+                        {
+                            layer.meshes.push(Mesh::Gradient {
+                                origin: Point::new(
+                                    translation.x,
+                                    translation.y,
+                                ),
+                                buffers,
+                                clip_bounds,
+                            });
+                        }
+                    }
+                },
+            },
         }
     }
 }

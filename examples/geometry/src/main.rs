@@ -2,7 +2,6 @@
 //! arbitrary low-level geometry.
 mod rainbow {
     use iced::advanced::graphics::color;
-    use iced::advanced::graphics::primitive::{ColoredVertex2D, Primitive};
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
@@ -45,7 +44,7 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
-            use iced::advanced::graphics::primitive::Mesh2D;
+            use iced::advanced::graphics::mesh::{self, Mesh, SolidVertex2D};
             use iced::advanced::Renderer as _;
 
             let bounds = layout.bounds();
@@ -77,43 +76,43 @@ mod rainbow {
             let posn_bl = [0.0, bounds.height];
             let posn_l = [0.0, bounds.height / 2.0];
 
-            let mesh = Primitive::SolidMesh {
+            let mesh = Mesh::Solid {
                 size: bounds.size(),
-                buffers: Mesh2D {
+                buffers: mesh::Indexed {
                     vertices: vec![
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_center,
                             color: color::pack([1.0, 1.0, 1.0, 1.0]),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_tl,
                             color: color::pack(color_r),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_t,
                             color: color::pack(color_o),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_tr,
                             color: color::pack(color_y),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_r,
                             color: color::pack(color_g),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_br,
                             color: color::pack(color_gb),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_b,
                             color: color::pack(color_b),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_bl,
                             color: color::pack(color_i),
                         },
-                        ColoredVertex2D {
+                        SolidVertex2D {
                             position: posn_l,
                             color: color::pack(color_v),
                         },
@@ -134,7 +133,7 @@ mod rainbow {
             renderer.with_translation(
                 Vector::new(bounds.x, bounds.y),
                 |renderer| {
-                    renderer.draw_with_wgpu(mesh);
+                    renderer.draw_mesh(mesh);
                 },
             );
         }

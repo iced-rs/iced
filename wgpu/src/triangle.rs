@@ -393,7 +393,7 @@ impl Uniforms {
 }
 
 mod solid {
-    use crate::graphics::primitive;
+    use crate::graphics::mesh;
     use crate::graphics::Antialiasing;
     use crate::triangle;
     use crate::Buffer;
@@ -406,7 +406,7 @@ mod solid {
 
     #[derive(Debug)]
     pub struct Layer {
-        pub vertices: Buffer<primitive::ColoredVertex2D>,
+        pub vertices: Buffer<mesh::SolidVertex2D>,
         pub uniforms: Buffer<triangle::Uniforms>,
         pub constants: wgpu::BindGroup,
     }
@@ -493,38 +493,40 @@ mod solid {
                     ),
                 });
 
-            let pipeline = device.create_render_pipeline(
-                &wgpu::RenderPipelineDescriptor {
-                    label: Some("iced_wgpu::triangle::solid pipeline"),
-                    layout: Some(&layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "solid_vs_main",
-                        buffers: &[wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<
-                                primitive::ColoredVertex2D,
-                            >()
-                                as u64,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &wgpu::vertex_attr_array!(
-                                // Position
-                                0 => Float32x2,
-                                // Color
-                                1 => Float32x4,
-                            ),
-                        }],
+            let pipeline =
+                device.create_render_pipeline(
+                    &wgpu::RenderPipelineDescriptor {
+                        label: Some("iced_wgpu::triangle::solid pipeline"),
+                        layout: Some(&layout),
+                        vertex: wgpu::VertexState {
+                            module: &shader,
+                            entry_point: "solid_vs_main",
+                            buffers: &[wgpu::VertexBufferLayout {
+                                array_stride: std::mem::size_of::<
+                                    mesh::SolidVertex2D,
+                                >(
+                                )
+                                    as u64,
+                                step_mode: wgpu::VertexStepMode::Vertex,
+                                attributes: &wgpu::vertex_attr_array!(
+                                    // Position
+                                    0 => Float32x2,
+                                    // Color
+                                    1 => Float32x4,
+                                ),
+                            }],
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &shader,
+                            entry_point: "solid_fs_main",
+                            targets: &[triangle::fragment_target(format)],
+                        }),
+                        primitive: triangle::primitive_state(),
+                        depth_stencil: None,
+                        multisample: triangle::multisample_state(antialiasing),
+                        multiview: None,
                     },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "solid_fs_main",
-                        targets: &[triangle::fragment_target(format)],
-                    }),
-                    primitive: triangle::primitive_state(),
-                    depth_stencil: None,
-                    multisample: triangle::multisample_state(antialiasing),
-                    multiview: None,
-                },
-            );
+                );
 
             Self {
                 pipeline,
@@ -535,7 +537,8 @@ mod solid {
 }
 
 mod gradient {
-    use crate::graphics::{primitive, Antialiasing};
+    use crate::graphics::mesh;
+    use crate::graphics::Antialiasing;
     use crate::triangle;
     use crate::Buffer;
 
@@ -547,7 +550,7 @@ mod gradient {
 
     #[derive(Debug)]
     pub struct Layer {
-        pub vertices: Buffer<primitive::GradientVertex2D>,
+        pub vertices: Buffer<mesh::GradientVertex2D>,
         pub uniforms: Buffer<triangle::Uniforms>,
         pub constants: wgpu::BindGroup,
     }
@@ -645,7 +648,7 @@ mod gradient {
                         entry_point: "gradient_vs_main",
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<
-                                primitive::GradientVertex2D,
+                                mesh::GradientVertex2D,
                             >()
                                 as u64,
                             step_mode: wgpu::VertexStepMode::Vertex,

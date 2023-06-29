@@ -43,9 +43,6 @@ impl<T: Damage> Damage for Primitive<T> {
             | Self::Image { bounds, .. }
             | Self::Svg { bounds, .. } => bounds.expand(1.0),
             Self::Clip { bounds, .. } => bounds.expand(1.0),
-            Self::SolidMesh { size, .. } | Self::GradientMesh { size, .. } => {
-                Rectangle::with_size(*size)
-            }
             Self::Group { primitives } => primitives
                 .iter()
                 .map(Self::bounds)

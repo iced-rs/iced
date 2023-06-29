@@ -17,6 +17,7 @@ pub use geometry::Geometry;
 use crate::core::renderer;
 use crate::core::text::{self, Text};
 use crate::core::{Background, Font, Point, Rectangle, Size, Vector};
+use crate::graphics::Mesh;
 
 use std::borrow::Cow;
 
@@ -40,10 +41,17 @@ macro_rules! delegate {
 }
 
 impl<T> Renderer<T> {
-    #[cfg(feature = "wgpu")]
-    pub fn draw_with_wgpu(&mut self, primitive: iced_wgpu::Primitive) {
-        if let Self::Wgpu(renderer) = self {
-            renderer.draw_primitive(primitive);
+    pub fn draw_mesh(&mut self, mesh: Mesh) {
+        match self {
+            Self::TinySkia(_) => {
+                log::warn!("Unsupported mesh primitive: {:?}", mesh)
+            }
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu(renderer) => {
+                renderer.draw_primitive(iced_wgpu::Primitive::Custom(
+                    iced_wgpu::primitive::Custom::Mesh(mesh),
+                ));
+            }
         }
     }
 }

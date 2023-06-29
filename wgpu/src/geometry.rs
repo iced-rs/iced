@@ -6,8 +6,8 @@ use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
 };
 use crate::graphics::gradient::{self, Gradient};
-use crate::graphics::primitive;
-use crate::Primitive;
+use crate::graphics::mesh::{self, Mesh};
+use crate::primitive::{self, Primitive};
 
 use lyon::geom::euclid;
 use lyon::tessellation;
@@ -25,8 +25,8 @@ pub struct Frame {
 }
 
 enum Buffer {
-    Solid(tessellation::VertexBuffers<primitive::ColoredVertex2D, u32>),
-    Gradient(tessellation::VertexBuffers<primitive::GradientVertex2D, u32>),
+    Solid(tessellation::VertexBuffers<mesh::SolidVertex2D, u32>),
+    Gradient(tessellation::VertexBuffers<mesh::GradientVertex2D, u32>),
 }
 
 struct BufferStack {
@@ -464,24 +464,28 @@ impl Frame {
             match buffer {
                 Buffer::Solid(buffer) => {
                     if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::SolidMesh {
-                            buffers: primitive::Mesh2D {
-                                vertices: buffer.vertices,
-                                indices: buffer.indices,
-                            },
-                            size: self.size,
-                        })
+                        self.primitives.push(Primitive::Custom(
+                            primitive::Custom::Mesh(Mesh::Solid {
+                                buffers: mesh::Indexed {
+                                    vertices: buffer.vertices,
+                                    indices: buffer.indices,
+                                },
+                                size: self.size,
+                            }),
+                        ))
                     }
                 }
                 Buffer::Gradient(buffer) => {
                     if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::GradientMesh {
-                            buffers: primitive::Mesh2D {
-                                vertices: buffer.vertices,
-                                indices: buffer.indices,
-                            },
-                            size: self.size,
-                        })
+                        self.primitives.push(Primitive::Custom(
+                            primitive::Custom::Mesh(Mesh::Gradient {
+                                buffers: mesh::Indexed {
+                                    vertices: buffer.vertices,
+                                    indices: buffer.indices,
+                                },
+                                size: self.size,
+                            }),
+                        ))
                     }
                 }
             }
@@ -495,32 +499,32 @@ struct GradientVertex2DBuilder {
     gradient: gradient::Packed,
 }
 
-impl tessellation::FillVertexConstructor<primitive::GradientVertex2D>
+impl tessellation::FillVertexConstructor<mesh::GradientVertex2D>
     for GradientVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::FillVertex<'_>,
-    ) -> primitive::GradientVertex2D {
+    ) -> mesh::GradientVertex2D {
         let position = vertex.position();
 
-        primitive::GradientVertex2D {
+        mesh::GradientVertex2D {
             position: [position.x, position.y],
             gradient: self.gradient,
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
+impl tessellation::StrokeVertexConstructor<mesh::GradientVertex2D>
     for GradientVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> primitive::GradientVertex2D {
+    ) -> mesh::GradientVertex2D {
         let position = vertex.position();
 
-        primitive::GradientVertex2D {
+        mesh::GradientVertex2D {
             position: [position.x, position.y],
             gradient: self.gradient,
         }
@@ -529,32 +533,32 @@ impl tessellation::StrokeVertexConstructor<primitive::GradientVertex2D>
 
 struct TriangleVertex2DBuilder(color::Packed);
 
-impl tessellation::FillVertexConstructor<primitive::ColoredVertex2D>
+impl tessellation::FillVertexConstructor<mesh::SolidVertex2D>
     for TriangleVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::FillVertex<'_>,
-    ) -> primitive::ColoredVertex2D {
+    ) -> mesh::SolidVertex2D {
         let position = vertex.position();
 
-        primitive::ColoredVertex2D {
+        mesh::SolidVertex2D {
             position: [position.x, position.y],
             color: self.0,
         }
     }
 }
 
-impl tessellation::StrokeVertexConstructor<primitive::ColoredVertex2D>
+impl tessellation::StrokeVertexConstructor<mesh::SolidVertex2D>
     for TriangleVertex2DBuilder
 {
     fn new_vertex(
         &mut self,
         vertex: tessellation::StrokeVertex<'_, '_>,
-    ) -> primitive::ColoredVertex2D {
+    ) -> mesh::SolidVertex2D {
         let position = vertex.position();
 
-        primitive::ColoredVertex2D {
+        mesh::SolidVertex2D {
             position: [position.x, position.y],
             color: self.0,
         }

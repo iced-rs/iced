@@ -1,13 +1,10 @@
 //! Draw using different graphical primitives.
-use crate::color;
 use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
-use crate::core::{Background, Color, Font, Rectangle, Size, Vector};
-use crate::gradient;
+use crate::core::{Background, Color, Font, Rectangle, Vector};
 
-use bytemuck::{Pod, Zeroable};
 use std::sync::Arc;
 
 /// A rendering primitive.
@@ -65,30 +62,6 @@ pub enum Primitive<T> {
         /// The bounds of the viewport
         bounds: Rectangle,
     },
-    /// A low-level primitive to render a mesh of triangles with a solid color.
-    ///
-    /// It can be used to render many kinds of geometry freely.
-    SolidMesh {
-        /// The vertices and indices of the mesh.
-        buffers: Mesh2D<ColoredVertex2D>,
-
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
-    },
-    /// A low-level primitive to render a mesh of triangles with a gradient.
-    ///
-    /// It can be used to render many kinds of geometry freely.
-    GradientMesh {
-        /// The vertices and indices of the mesh.
-        buffers: Mesh2D<GradientVertex2D>,
-
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
-    },
     /// A group of primitives
     Group {
         /// The primitives of the group
@@ -143,43 +116,3 @@ impl<T> Primitive<T> {
         }
     }
 }
-
-/// A set of [`Vertex2D`] and indices representing a list of triangles.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Mesh2D<T> {
-    /// The vertices of the mesh
-    pub vertices: Vec<T>,
-
-    /// The list of vertex indices that defines the triangles of the mesh.
-    ///
-    /// Therefore, this list should always have a length that is a multiple of 3.
-    pub indices: Vec<u32>,
-}
-
-/// A two-dimensional vertex with a color.
-#[derive(Copy, Clone, Debug, PartialEq, Zeroable, Pod)]
-#[repr(C)]
-pub struct ColoredVertex2D {
-    /// The vertex position in 2D space.
-    pub position: [f32; 2],
-
-    /// The color of the vertex in __linear__ RGBA.
-    pub color: color::Packed,
-}
-
-/// A vertex which contains 2D position & packed gradient data.
-#[derive(Copy, Clone, Debug, PartialEq)]
-#[repr(C)]
-pub struct GradientVertex2D {
-    /// The vertex position in 2D space.
-    pub position: [f32; 2],
-
-    /// The packed vertex data of the gradient.
-    pub gradient: gradient::Packed,
-}
-
-#[allow(unsafe_code)]
-unsafe impl Zeroable for GradientVertex2D {}
-
-#[allow(unsafe_code)]
-unsafe impl Pod for GradientVertex2D {}

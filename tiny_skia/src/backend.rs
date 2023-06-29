@@ -595,14 +595,6 @@ impl Backend {
                     translation,
                 );
             }
-            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
-                // Not supported!
-                // TODO: Draw a placeholder (?)
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
-                );
-            }
         }
     }
 }

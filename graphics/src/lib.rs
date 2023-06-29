@@ -31,6 +31,7 @@ pub mod color;
 pub mod compositor;
 pub mod damage;
 pub mod gradient;
+pub mod mesh;
 pub mod primitive;
 pub mod renderer;
 
@@ -46,6 +47,7 @@ pub use compositor::Compositor;
 pub use damage::Damage;
 pub use error::Error;
 pub use gradient::Gradient;
+pub use mesh::Mesh;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
