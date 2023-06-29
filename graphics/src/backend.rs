@@ -12,6 +12,13 @@ use std::borrow::Cow;
 pub trait Backend {
     /// The custom kind of primitives this [`Backend`] supports.
     type Primitive;
+
+    /// Trims the measurements cache.
+    ///
+    /// This method is currently necessary to properly trim the text cache in
+    /// `iced_wgpu` and `iced_glow` because of limitations in the text rendering
+    /// pipeline. It will be removed in the future.
+    fn trim_measurements(&mut self) {}
 }
 
 /// A graphics backend that supports text rendering.

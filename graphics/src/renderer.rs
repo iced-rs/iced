@@ -93,6 +93,8 @@ impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
         element: &Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
+        self.backend.trim_measurements();
+
         element.as_widget().layout(self, limits)
     }
 

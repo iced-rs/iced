@@ -81,8 +81,7 @@ impl Pipeline {
         let cache = self.cache.get_mut();
 
         if self.prepare_layer == 0 {
-            let _ = cache.switch(Mode::Drawing);
-            cache.trim();
+            cache.trim(Purpose::Drawing);
         }
 
         let keys: Vec<_> = sections
@@ -105,6 +104,7 @@ impl Pipeline {
                         },
                         shaping: section.shaping,
                     },
+                    Purpose::Drawing,
                 );
 
                 key
@@ -233,6 +233,10 @@ impl Pipeline {
         self.prepare_layer = 0;
     }
 
+    pub fn trim_measurements(&mut self) {
+        self.cache.get_mut().trim(Purpose::Measuring);
+    }
+
     pub fn measure(
         &self,
         content: &str,
@@ -246,10 +250,6 @@ impl Pipeline {
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        if cache.switch(Mode::Measuring) {
-            cache.trim();
-        }
-
         let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
@@ -260,6 +260,7 @@ impl Pipeline {
                 bounds,
                 shaping,
             },
+            Purpose::Measuring,
         );
 
         entry.bounds
@@ -280,10 +281,6 @@ impl Pipeline {
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        if cache.switch(Mode::Measuring) {
-            cache.trim();
-        }
-
         let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
@@ -294,6 +291,7 @@ impl Pipeline {
                 bounds,
                 shaping,
             },
+            Purpose::Measuring,
         );
 
         let cursor = entry.buffer.hit(point.x, point.y)?;
@@ -364,7 +362,6 @@ struct Cache {
     recently_measured: FxHashSet<KeyHash>,
     recently_drawn: FxHashSet<KeyHash>,
     hasher: HashBuilder,
-    mode: Mode,
 }
 
 struct Entry {
@@ -373,7 +370,7 @@ struct Entry {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Mode {
+enum Purpose {
     Measuring,
     Drawing,
 }
@@ -392,7 +389,6 @@ impl Cache {
             recently_measured: FxHashSet::default(),
             recently_drawn: FxHashSet::default(),
             hasher: HashBuilder::default(),
-            mode: Mode::Measuring,
         }
     }
 
@@ -400,24 +396,17 @@ impl Cache {
         self.entries.get(key)
     }
 
-    fn switch(&mut self, mode: Mode) -> bool {
-        let has_changed = self.mode != mode;
-
-        self.mode = mode;
-
-        has_changed
-    }
-
     fn allocate(
         &mut self,
         font_system: &mut glyphon::FontSystem,
         key: Key<'_>,
+        purpose: Purpose,
     ) -> (KeyHash, &mut Entry) {
         let hash = key.hash(self.hasher.build_hasher());
 
-        let recently_used = match self.mode {
-            Mode::Measuring => &mut self.recently_measured,
-            Mode::Drawing => &mut self.recently_drawn,
+        let recently_used = match purpose {
+            Purpose::Measuring => &mut self.recently_measured,
+            Purpose::Drawing => &mut self.recently_drawn,
         };
 
         if let Some(hash) = self.aliases.get(&hash) {
@@ -469,7 +458,7 @@ impl Cache {
         (hash, self.entries.get_mut(&hash).unwrap())
     }
 
-    fn trim(&mut self) {
+    fn trim(&mut self, purpose: Purpose) {
         self.entries.retain(|key, _| {
             self.recently_measured.contains(key)
                 || self.recently_drawn.contains(key)
@@ -479,11 +468,11 @@ impl Cache {
                 || self.recently_drawn.contains(value)
         });
 
-        match self.mode {
-            Mode::Measuring => {
+        match purpose {
+            Purpose::Measuring => {
                 self.recently_measured.clear();
             }
-            Mode::Drawing => {
+            Purpose::Drawing => {
                 self.recently_drawn.clear();
             }
         }
