@@ -1,28 +1,25 @@
 //! Create a renderer from a [`Backend`].
-use crate::backend;
+use crate::backend::{self, Backend};
 use crate::Primitive;
 
 use iced_core::image;
-use iced_core::layout;
 use iced_core::renderer;
 use iced_core::svg;
 use iced_core::text::{self, Text};
-use iced_core::{
-    Background, Color, Element, Font, Point, Rectangle, Size, Vector,
-};
+use iced_core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 
 use std::borrow::Cow;
 use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
-pub struct Renderer<B, Theme> {
+pub struct Renderer<B: Backend, Theme> {
     backend: B,
-    primitives: Vec<Primitive>,
+    primitives: Vec<Primitive<B::Primitive>>,
     theme: PhantomData<Theme>,
 }
 
-impl<B, T> Renderer<B, T> {
+impl<B: Backend, T> Renderer<B, T> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
     pub fn new(backend: B) -> Self {
         Self {
@@ -38,7 +35,7 @@ impl<B, T> Renderer<B, T> {
     }
 
     /// Enqueues the given [`Primitive`] in the [`Renderer`] for drawing.
-    pub fn draw_primitive(&mut self, primitive: Primitive) {
+    pub fn draw_primitive(&mut self, primitive: Primitive<B::Primitive>) {
         self.primitives.push(primitive);
     }
 
@@ -46,31 +43,54 @@ impl<B, T> Renderer<B, T> {
     /// of the [`Renderer`].
     pub fn with_primitives<O>(
         &mut self,
-        f: impl FnOnce(&mut B, &[Primitive]) -> O,
+        f: impl FnOnce(&mut B, &[Primitive<B::Primitive>]) -> O,
     ) -> O {
         f(&mut self.backend, &self.primitives)
     }
-}
 
-impl<B, T> iced_core::Renderer for Renderer<B, T> {
-    type Theme = T;
-
-    fn layout<Message>(
-        &mut self,
-        element: &Element<'_, Message, Self>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        element.as_widget().layout(self, limits)
+    /// Starts recording a new layer.
+    pub fn start_layer(&mut self) -> Vec<Primitive<B::Primitive>> {
+        std::mem::take(&mut self.primitives)
     }
 
+    /// Ends the recording of a layer.
+    pub fn end_layer(
+        &mut self,
+        primitives: Vec<Primitive<B::Primitive>>,
+        bounds: Rectangle,
+    ) {
+        let layer = std::mem::replace(&mut self.primitives, primitives);
+
+        self.primitives.push(Primitive::group(layer).clip(bounds));
+    }
+
+    /// Starts recording a translation.
+    pub fn start_translation(&mut self) -> Vec<Primitive<B::Primitive>> {
+        std::mem::take(&mut self.primitives)
+    }
+
+    /// Ends the recording of a translation.
+    pub fn end_translation(
+        &mut self,
+        primitives: Vec<Primitive<B::Primitive>>,
+        translation: Vector,
+    ) {
+        let layer = std::mem::replace(&mut self.primitives, primitives);
+
+        self.primitives
+            .push(Primitive::group(layer).translate(translation));
+    }
+}
+
+impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
+    type Theme = T;
+
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        let current = std::mem::take(&mut self.primitives);
+        let current = self.start_layer();
 
         f(self);
 
-        let layer = std::mem::replace(&mut self.primitives, current);
-
-        self.primitives.push(Primitive::group(layer).clip(bounds));
+        self.end_layer(current, bounds);
     }
 
     fn with_translation(
@@ -78,14 +98,11 @@ impl<B, T> iced_core::Renderer for Renderer<B, T> {
         translation: Vector,
         f: impl FnOnce(&mut Self),
     ) {
-        let current = std::mem::take(&mut self.primitives);
+        let current = self.start_translation();
 
         f(self);
 
-        let layer = std::mem::replace(&mut self.primitives, current);
-
-        self.primitives
-            .push(Primitive::group(layer).translate(translation));
+        self.end_translation(current, translation);
     }
 
     fn fill_quad(
@@ -109,7 +126,7 @@ impl<B, T> iced_core::Renderer for Renderer<B, T> {
 
 impl<B, T> text::Renderer for Renderer<B, T>
 where
-    B: backend::Text,
+    B: Backend + backend::Text,
 {
     type Font = Font;
 
@@ -188,7 +205,7 @@ where
 
 impl<B, T> image::Renderer for Renderer<B, T>
 where
-    B: backend::Image,
+    B: Backend + backend::Image,
 {
     type Handle = image::Handle;
 
@@ -203,7 +220,7 @@ where
 
 impl<B, T> svg::Renderer for Renderer<B, T>
 where
-    B: backend::Svg,
+    B: Backend + backend::Svg,
 {
     fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
@@ -220,13 +237,5 @@ where
             color,
             bounds,
         })
-    }
-}
-
-#[cfg(feature = "geometry")]
-impl<B, T> crate::geometry::Renderer for Renderer<B, T> {
-    fn draw(&mut self, layers: Vec<crate::Geometry>) {
-        self.primitives
-            .extend(layers.into_iter().map(crate::Geometry::into));
     }
 }

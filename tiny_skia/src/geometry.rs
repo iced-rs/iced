@@ -3,7 +3,7 @@ use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
 use crate::graphics::Gradient;
-use crate::graphics::Primitive;
+use crate::primitive::{self, Primitive};
 
 pub struct Frame {
     size: Size,
@@ -42,12 +42,13 @@ impl Frame {
         let Some(path) = convert_path(path) else { return };
         let fill = fill.into();
 
-        self.primitives.push(Primitive::Fill {
-            path,
-            paint: into_paint(fill.style),
-            rule: into_fill_rule(fill.rule),
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Fill {
+                path,
+                paint: into_paint(fill.style),
+                rule: into_fill_rule(fill.rule),
+                transform: self.transform,
+            }));
     }
 
     pub fn fill_rectangle(
@@ -59,15 +60,16 @@ impl Frame {
         let Some(path) = convert_path(&Path::rectangle(top_left, size)) else { return };
         let fill = fill.into();
 
-        self.primitives.push(Primitive::Fill {
-            path,
-            paint: tiny_skia::Paint {
-                anti_alias: false,
-                ..into_paint(fill.style)
-            },
-            rule: into_fill_rule(fill.rule),
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Fill {
+                path,
+                paint: tiny_skia::Paint {
+                    anti_alias: false,
+                    ..into_paint(fill.style)
+                },
+                rule: into_fill_rule(fill.rule),
+                transform: self.transform,
+            }));
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
@@ -76,12 +78,13 @@ impl Frame {
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
 
-        self.primitives.push(Primitive::Stroke {
-            path,
-            paint: into_paint(stroke.style),
-            stroke: skia_stroke,
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Stroke {
+                path,
+                paint: into_paint(stroke.style),
+                stroke: skia_stroke,
+                transform: self.transform,
+            }));
     }
 
     pub fn fill_text(&mut self, text: impl Into<Text>) {

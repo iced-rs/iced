@@ -5,25 +5,12 @@ mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
-use crate::layout;
-use crate::{Background, BorderRadius, Color, Element, Rectangle, Vector};
+use crate::{Background, BorderRadius, Color, Rectangle, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
     /// The supported theme of the [`Renderer`].
     type Theme;
-
-    /// Lays out the elements of a user interface.
-    ///
-    /// You should override this if you need to perform any operations before or
-    /// after layouting. For instance, trimming the measurements cache.
-    fn layout<Message>(
-        &mut self,
-        element: &Element<'_, Message, Self>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        element.as_widget().layout(self, limits)
-    }
 
     /// Draws the primitives recorded in the given closure in a new layer.
     ///

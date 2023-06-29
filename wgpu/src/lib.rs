@@ -38,6 +38,7 @@
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod layer;
+pub mod primitive;
 pub mod settings;
 pub mod window;
 
@@ -60,6 +61,7 @@ pub use wgpu;
 
 pub use backend::Backend;
 pub use layer::Layer;
+pub use primitive::Primitive;
 pub use settings::Settings;
 
 #[cfg(any(feature = "image", feature = "svg"))]

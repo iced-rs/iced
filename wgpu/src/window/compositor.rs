@@ -3,8 +3,8 @@ use crate::core::{Color, Size};
 use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::compositor;
-use crate::graphics::{Error, Primitive, Viewport};
-use crate::{Backend, Renderer, Settings};
+use crate::graphics::{Error, Viewport};
+use crate::{Backend, Primitive, Renderer, Settings};
 
 use futures::stream::{self, StreamExt};
 

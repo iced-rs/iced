@@ -20,7 +20,6 @@ log = "0.4"
 [dependencies.iced_graphics]
 version = "0.8"
 path = "../graphics"
-features = ["tiny-skia"]
 
 [dependencies.cosmic-text]
 git = "https://github.com/hecrj/cosmic-text.git"

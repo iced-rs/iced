@@ -2,7 +2,8 @@ use crate::core::text;
 use crate::core::Gradient;
 use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::backend;
-use crate::graphics::{Primitive, Viewport};
+use crate::graphics::{Damage, Viewport};
+use crate::primitive::{self, Primitive};
 use crate::Settings;
 
 use std::borrow::Cow;
@@ -419,6 +420,13 @@ impl Backend {
                 self.raster_pipeline
                     .draw(handle, *bounds, pixels, transform, clip_mask);
             }
+            #[cfg(not(feature = "image"))]
+            Primitive::Image { .. } => {
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
+                    primitive
+                );
+            }
             #[cfg(feature = "svg")]
             Primitive::Svg {
                 handle,
@@ -442,12 +450,19 @@ impl Backend {
                     clip_mask,
                 );
             }
-            Primitive::Fill {
+            #[cfg(not(feature = "svg"))]
+            Primitive::Svg { .. } => {
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
+                    primitive
+                );
+            }
+            Primitive::Custom(primitive::Custom::Fill {
                 path,
                 paint,
                 rule,
                 transform,
-            } => {
+            }) => {
                 let bounds = path.bounds();
 
                 let physical_bounds = (Rectangle {
@@ -475,12 +490,12 @@ impl Backend {
                     clip_mask,
                 );
             }
-            Primitive::Stroke {
+            Primitive::Custom(primitive::Custom::Stroke {
                 path,
                 paint,
                 stroke,
                 transform,
-            } => {
+            }) => {
                 let bounds = path.bounds();
 
                 let physical_bounds = (Rectangle {
@@ -578,21 +593,6 @@ impl Backend {
                     clip_bounds,
                     scale_factor,
                     translation,
-                );
-            }
-            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
-                // Not supported!
-                // TODO: Draw a placeholder (?)
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
-                );
-            }
-            _ => {
-                // Not supported!
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
                 );
             }
         }
@@ -764,6 +764,10 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
         false,
         tiny_skia::Transform::default(),
     );
+}
+
+impl iced_graphics::Backend for Backend {
+    type Primitive = primitive::Custom;
 }
 
 impl backend::Text for Backend {

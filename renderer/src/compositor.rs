@@ -100,26 +100,28 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         background_color: Color,
         overlay: &[T],
     ) -> Result<(), SurfaceError> {
-        renderer.with_primitives(|backend, primitives| {
-            match (self, backend, surface) {
-                (
-                    Self::TinySkia(_compositor),
-                    crate::Backend::TinySkia(backend),
-                    Surface::TinySkia(surface),
-                ) => iced_tiny_skia::window::compositor::present(
+        match (self, renderer, surface) {
+            (
+                Self::TinySkia(_compositor),
+                crate::Renderer::TinySkia(renderer),
+                Surface::TinySkia(surface),
+            ) => renderer.with_primitives(|backend, primitives| {
+                iced_tiny_skia::window::compositor::present(
                     backend,
                     surface,
                     primitives,
                     viewport,
                     background_color,
                     overlay,
-                ),
-                #[cfg(feature = "wgpu")]
-                (
-                    Self::Wgpu(compositor),
-                    crate::Backend::Wgpu(backend),
-                    Surface::Wgpu(surface),
-                ) => iced_wgpu::window::compositor::present(
+                )
+            }),
+            #[cfg(feature = "wgpu")]
+            (
+                Self::Wgpu(compositor),
+                crate::Renderer::Wgpu(renderer),
+                Surface::Wgpu(surface),
+            ) => renderer.with_primitives(|backend, primitives| {
+                iced_wgpu::window::compositor::present(
                     compositor,
                     backend,
                     surface,
@@ -127,14 +129,14 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                     viewport,
                     background_color,
                     overlay,
-                ),
-                #[allow(unreachable_patterns)]
-                _ => panic!(
-                    "The provided renderer or surface are not compatible \
+                )
+            }),
+            #[allow(unreachable_patterns)]
+            _ => panic!(
+                "The provided renderer or surface are not compatible \
                     with the compositor."
-                ),
-            }
-        })
+            ),
+        }
     }
 
     fn screenshot<T: AsRef<str>>(
@@ -145,12 +147,27 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         background_color: Color,
         overlay: &[T],
     ) -> Vec<u8> {
-        renderer.with_primitives(|backend, primitives| match (self, backend, surface) {
-            (Self::TinySkia(_compositor), crate::Backend::TinySkia(backend), Surface::TinySkia(surface)) => {
-                iced_tiny_skia::window::compositor::screenshot(surface, backend, primitives, viewport, background_color, overlay)
-            },
+        match (self, renderer, surface) {
+            (
+                Self::TinySkia(_compositor),
+                Renderer::TinySkia(renderer),
+                Surface::TinySkia(surface),
+            ) => renderer.with_primitives(|backend, primitives| {
+                iced_tiny_skia::window::compositor::screenshot(
+                    surface,
+                    backend,
+                    primitives,
+                    viewport,
+                    background_color,
+                    overlay,
+                )
+            }),
             #[cfg(feature = "wgpu")]
-            (Self::Wgpu(compositor), crate::Backend::Wgpu(backend), Surface::Wgpu(_)) => {
+            (
+                Self::Wgpu(compositor),
+                Renderer::Wgpu(renderer),
+                Surface::Wgpu(_),
+            ) => renderer.with_primitives(|backend, primitives| {
                 iced_wgpu::window::compositor::screenshot(
                     compositor,
                     backend,
@@ -159,12 +176,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
                     background_color,
                     overlay,
                 )
-            },
+            }),
             #[allow(unreachable_patterns)]
             _ => panic!(
-                "The provided renderer or backend are not compatible with the compositor."
+                "The provided renderer or backend are not compatible \
+                with the compositor."
             ),
-        })
+        }
     }
 }
 
@@ -215,7 +233,7 @@ impl Candidate {
 
                 Ok((
                     Compositor::TinySkia(compositor),
-                    Renderer::new(crate::Backend::TinySkia(backend)),
+                    Renderer::TinySkia(iced_tiny_skia::Renderer::new(backend)),
                 ))
             }
             #[cfg(feature = "wgpu")]
@@ -232,7 +250,7 @@ impl Candidate {
 
                 Ok((
                     Compositor::Wgpu(compositor),
-                    Renderer::new(crate::Backend::Wgpu(backend)),
+                    Renderer::Wgpu(iced_wgpu::Renderer::new(backend)),
                 ))
             }
             #[cfg(not(feature = "wgpu"))]

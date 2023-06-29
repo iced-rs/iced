@@ -7,6 +7,7 @@ use crate::color;
 use crate::core::gradient::ColorStop;
 use crate::core::{self, Color, Point, Rectangle};
 
+use bytemuck::{Pod, Zeroable};
 use half::f16;
 use std::cmp::Ordering;
 
@@ -135,7 +136,7 @@ impl Linear {
 }
 
 /// Packed [`Gradient`] data for use in shader code.
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Zeroable, Pod)]
 #[repr(C)]
 pub struct Packed {
     // 8 colors, each channel = 16 bit float, 2 colors packed into 1 u32

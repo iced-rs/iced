@@ -3,13 +3,19 @@ mod cache;
 pub use cache::Cache;
 
 use crate::core::{Point, Rectangle, Size, Vector};
-use crate::graphics::geometry::{Fill, Geometry, Path, Stroke, Text};
-use crate::Backend;
+use crate::graphics::geometry::{Fill, Path, Stroke, Text};
+use crate::Renderer;
 
 pub enum Frame {
     TinySkia(iced_tiny_skia::geometry::Frame),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::geometry::Frame),
+}
+
+pub enum Geometry {
+    TinySkia(iced_tiny_skia::Primitive),
+    #[cfg(feature = "wgpu")]
+    Wgpu(iced_wgpu::Primitive),
 }
 
 macro_rules! delegate {
@@ -23,13 +29,13 @@ macro_rules! delegate {
 }
 
 impl Frame {
-    pub fn new<Theme>(renderer: &crate::Renderer<Theme>, size: Size) -> Self {
-        match renderer.backend() {
-            Backend::TinySkia(_) => {
+    pub fn new<Theme>(renderer: &Renderer<Theme>, size: Size) -> Self {
+        match renderer {
+            Renderer::TinySkia(_) => {
                 Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))
             }
             #[cfg(feature = "wgpu")]
-            Backend::Wgpu(_) => {
+            Renderer::Wgpu(_) => {
                 Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
             }
         }
@@ -169,6 +175,10 @@ impl Frame {
     }
 
     pub fn into_geometry(self) -> Geometry {
-        Geometry(delegate!(self, frame, frame.into_primitive()))
+        match self {
+            Self::TinySkia(frame) => Geometry::TinySkia(frame.into_primitive()),
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu(frame) => Geometry::Wgpu(frame.into_primitive()),
+        }
     }
 }
