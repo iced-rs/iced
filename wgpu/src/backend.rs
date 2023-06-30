@@ -337,6 +337,10 @@ impl Backend {
 
 impl crate::graphics::Backend for Backend {
     type Primitive = primitive::Custom;
+
+    fn trim_measurements(&mut self) {
+        self.text_pipeline.trim_measurements();
+    }
 }
 
 impl backend::Text for Backend {

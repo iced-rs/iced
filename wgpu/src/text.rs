@@ -80,6 +80,10 @@ impl Pipeline {
         let renderer = &mut self.renderers[self.prepare_layer];
         let cache = self.cache.get_mut();
 
+        if self.prepare_layer == 0 {
+            cache.trim(Purpose::Drawing);
+        }
+
         let keys: Vec<_> = sections
             .iter()
             .map(|section| {
@@ -100,6 +104,7 @@ impl Pipeline {
                         },
                         shaping: section.shaping,
                     },
+                    Purpose::Drawing,
                 );
 
                 key
@@ -224,9 +229,12 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.atlas.trim();
-        self.cache.get_mut().trim();
 
         self.prepare_layer = 0;
+    }
+
+    pub fn trim_measurements(&mut self) {
+        self.cache.get_mut().trim(Purpose::Measuring);
     }
 
     pub fn measure(
@@ -238,11 +246,11 @@ impl Pipeline {
         bounds: Size,
         shaping: Shaping,
     ) -> Size {
-        let mut measurement_cache = self.cache.borrow_mut();
+        let mut cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, entry) = measurement_cache.allocate(
+        let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -252,6 +260,7 @@ impl Pipeline {
                 bounds,
                 shaping,
             },
+            Purpose::Measuring,
         );
 
         entry.bounds
@@ -268,11 +277,11 @@ impl Pipeline {
         point: Point,
         _nearest_only: bool,
     ) -> Option<Hit> {
-        let mut measurement_cache = self.cache.borrow_mut();
+        let mut cache = self.cache.borrow_mut();
 
         let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
-        let (_, entry) = measurement_cache.allocate(
+        let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
             Key {
                 content,
@@ -282,6 +291,7 @@ impl Pipeline {
                 bounds,
                 shaping,
             },
+            Purpose::Measuring,
         );
 
         let cursor = entry.buffer.hit(point.x, point.y)?;
@@ -348,14 +358,21 @@ fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
 
 struct Cache {
     entries: FxHashMap<KeyHash, Entry>,
-    measurements: FxHashMap<KeyHash, KeyHash>,
-    recently_used: FxHashSet<KeyHash>,
+    aliases: FxHashMap<KeyHash, KeyHash>,
+    recently_measured: FxHashSet<KeyHash>,
+    recently_drawn: FxHashSet<KeyHash>,
     hasher: HashBuilder,
 }
 
 struct Entry {
     buffer: glyphon::Buffer,
     bounds: Size,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Purpose {
+    Measuring,
+    Drawing,
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -368,8 +385,9 @@ impl Cache {
     fn new() -> Self {
         Self {
             entries: FxHashMap::default(),
-            measurements: FxHashMap::default(),
-            recently_used: FxHashSet::default(),
+            aliases: FxHashMap::default(),
+            recently_measured: FxHashSet::default(),
+            recently_drawn: FxHashSet::default(),
             hasher: HashBuilder::default(),
         }
     }
@@ -382,11 +400,17 @@ impl Cache {
         &mut self,
         font_system: &mut glyphon::FontSystem,
         key: Key<'_>,
+        purpose: Purpose,
     ) -> (KeyHash, &mut Entry) {
         let hash = key.hash(self.hasher.build_hasher());
 
-        if let Some(hash) = self.measurements.get(&hash) {
-            let _ = self.recently_used.insert(*hash);
+        let recently_used = match purpose {
+            Purpose::Measuring => &mut self.recently_measured,
+            Purpose::Drawing => &mut self.recently_drawn,
+        };
+
+        if let Some(hash) = self.aliases.get(&hash) {
+            let _ = recently_used.insert(*hash);
 
             return (*hash, self.entries.get_mut(hash).unwrap());
         }
@@ -421,7 +445,7 @@ impl Cache {
                 },
             ] {
                 if key.bounds != bounds {
-                    let _ = self.measurements.insert(
+                    let _ = self.aliases.insert(
                         Key { bounds, ..key }.hash(self.hasher.build_hasher()),
                         hash,
                     );
@@ -429,18 +453,29 @@ impl Cache {
             }
         }
 
-        let _ = self.recently_used.insert(hash);
+        let _ = recently_used.insert(hash);
 
         (hash, self.entries.get_mut(&hash).unwrap())
     }
 
-    fn trim(&mut self) {
-        self.entries
-            .retain(|key, _| self.recently_used.contains(key));
-        self.measurements
-            .retain(|_, value| self.recently_used.contains(value));
+    fn trim(&mut self, purpose: Purpose) {
+        self.entries.retain(|key, _| {
+            self.recently_measured.contains(key)
+                || self.recently_drawn.contains(key)
+        });
+        self.aliases.retain(|_, value| {
+            self.recently_measured.contains(value)
+                || self.recently_drawn.contains(value)
+        });
 
-        self.recently_used.clear();
+        match purpose {
+            Purpose::Measuring => {
+                self.recently_measured.clear();
+            }
+            Purpose::Drawing => {
+                self.recently_drawn.clear();
+            }
+        }
     }
 }
 
