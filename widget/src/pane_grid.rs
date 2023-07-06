@@ -843,9 +843,13 @@ pub fn draw<Renderer, T>(
 
     let mut render_picked_pane = None;
 
-    let cursor_in_edge = cursor
-        .position()
-        .and_then(|cursor_position| in_edge(layout, cursor_position));
+    let pane_in_edge = if picked_pane.is_some() {
+        cursor
+            .position()
+            .and_then(|cursor_position| in_edge(layout, cursor_position))
+    } else {
+        None
+    };
 
     for ((id, pane), pane_layout) in contents.zip(layout.children()) {
         match picked_pane {
@@ -862,7 +866,7 @@ pub fn draw<Renderer, T>(
                     viewport,
                 );
 
-                if picked_pane.is_some() && cursor_in_edge.is_none() {
+                if picked_pane.is_some() && pane_in_edge.is_none() {
                     if let Some(region) =
                         cursor.position().and_then(|cursor_position| {
                             layout_region(pane_layout, cursor_position)
@@ -897,21 +901,19 @@ pub fn draw<Renderer, T>(
         }
     }
 
-    if picked_pane.is_some() {
-        if let Some(edge) = cursor_in_edge {
-            let hovered_region_style = theme.hovered_region(style);
-            let bounds = edge_bounds(layout, edge);
+    if let Some(edge) = pane_in_edge {
+        let hovered_region_style = theme.hovered_region(style);
+        let bounds = edge_bounds(layout, edge);
 
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds,
-                    border_radius: hovered_region_style.border_radius.into(),
-                    border_width: hovered_region_style.border_width,
-                    border_color: hovered_region_style.border_color,
-                },
-                theme.hovered_region(style).background,
-            );
-        }
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border_radius: hovered_region_style.border_radius.into(),
+                border_width: hovered_region_style.border_width,
+                border_color: hovered_region_style.border_color,
+            },
+            theme.hovered_region(style).background,
+        );
     }
 
     // Render picked pane last
