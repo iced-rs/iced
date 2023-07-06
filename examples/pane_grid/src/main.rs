@@ -109,13 +109,12 @@ impl Application for Example {
                 pane,
                 target,
             }) => match target {
-                pane_grid::Target::PaneGrid(edge) => {
+                pane_grid::Target::Edge(edge) => {
                     self.panes.move_to_edge(&pane, edge)
                 }
-                pane_grid::Target::Pane {
-                    pane: target,
-                    region,
-                } => self.panes.split_with(&target, &pane, region),
+                pane_grid::Target::Pane(target, region) => {
+                    self.panes.split_with(&target, &pane, region)
+                }
             },
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
