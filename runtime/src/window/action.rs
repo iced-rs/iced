@@ -1,4 +1,5 @@
 use crate::core::window::{Icon, Level, Mode, UserAttention};
+use crate::core::Size;
 use crate::futures::MaybeSend;
 
 use std::fmt;
@@ -14,14 +15,9 @@ pub enum Action<T> {
     /// button was pressed immediately before this function is called.
     Drag,
     /// Resize the window.
-    Resize {
-        /// The new logical width of the window
-        width: u32,
-        /// The new logical height of the window
-        height: u32,
-    },
+    Resize(Size<u32>),
     /// Fetch the current size of the window.
-    FetchSize(Box<dyn FnOnce((u32, u32)) -> T + 'static>),
+    FetchSize(Box<dyn FnOnce(Size<u32>) -> T + 'static>),
     /// Set the window to maximized or back
     Maximize(bool),
     /// Set the window to minimized or back
@@ -105,7 +101,7 @@ impl<T> Action<T> {
         match self {
             Self::Close => Action::Close,
             Self::Drag => Action::Drag,
-            Self::Resize { width, height } => Action::Resize { width, height },
+            Self::Resize(size) => Action::Resize(size),
             Self::FetchSize(o) => Action::FetchSize(Box::new(move |s| f(o(s)))),
             Self::Maximize(maximized) => Action::Maximize(maximized),
             Self::Minimize(minimized) => Action::Minimize(minimized),
@@ -130,10 +126,7 @@ impl<T> fmt::Debug for Action<T> {
         match self {
             Self::Close => write!(f, "Action::Close"),
             Self::Drag => write!(f, "Action::Drag"),
-            Self::Resize { width, height } => write!(
-                f,
-                "Action::Resize {{ widget: {width}, height: {height} }}"
-            ),
+            Self::Resize(size) => write!(f, "Action::Resize({size:?})"),
             Self::FetchSize(_) => write!(f, "Action::FetchSize"),
             Self::Maximize(maximized) => {
                 write!(f, "Action::Maximize({maximized})")
