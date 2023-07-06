@@ -39,6 +39,13 @@ pub fn resize<Message>(new_size: Size<u32>) -> Command<Message> {
     Command::single(command::Action::Window(Action::Resize(new_size)))
 }
 
+/// Fetches the current window size in logical dimensions.
+pub fn fetch_size<Message>(
+    f: impl FnOnce(Size<u32>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchSize(Box::new(f))))
+}
+
 /// Maximizes the window.
 pub fn maximize<Message>(maximized: bool) -> Command<Message> {
     Command::single(command::Action::Window(Action::Maximize(maximized)))
