@@ -3,7 +3,7 @@
 //! [`PaneGrid`]: crate::widget::PaneGrid
 use crate::core::{Point, Size};
 use crate::pane_grid::{
-    Axis, Configuration, Direction, Edge, Node, Pane, Region, Split,
+    Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
 };
 
 use std::collections::HashMap;
@@ -148,6 +148,39 @@ impl<T> State<T> {
         self.split_node(axis, Some(pane), state, false)
     }
 
+    /// Split a target [`Pane`] with a given [`Pane`] on a given [`Region`].
+    ///
+    /// Panes will be swapped by default for [`Region::Center`].
+    pub fn split_with(&mut self, target: &Pane, pane: &Pane, region: Region) {
+        match region {
+            Region::Center => self.swap(pane, target),
+            Region::Edge(edge) => match edge {
+                Edge::Top => {
+                    self.split_and_swap(Axis::Horizontal, target, pane, true)
+                }
+                Edge::Bottom => {
+                    self.split_and_swap(Axis::Horizontal, target, pane, false)
+                }
+                Edge::Left => {
+                    self.split_and_swap(Axis::Vertical, target, pane, true)
+                }
+                Edge::Right => {
+                    self.split_and_swap(Axis::Vertical, target, pane, false)
+                }
+            },
+        }
+    }
+
+    /// Drops the given [`Pane`] into the provided [`Target`].
+    pub fn drop(&mut self, pane: &Pane, target: Target) {
+        match target {
+            Target::Edge(edge) => self.move_to_edge(pane, edge),
+            Target::Pane(target, region) => {
+                self.split_with(&target, pane, region)
+            }
+        }
+    }
+
     fn split_node(
         &mut self,
         axis: Axis,
@@ -184,29 +217,6 @@ impl<T> State<T> {
         let _ = self.maximized.take();
 
         Some((new_pane, new_split))
-    }
-
-    /// Split a target [`Pane`] with a given [`Pane`] on a given [`Region`].
-    ///
-    /// Panes will be swapped by default for [`Region::Center`].
-    pub fn split_with(&mut self, target: &Pane, pane: &Pane, region: Region) {
-        match region {
-            Region::Center => self.swap(pane, target),
-            Region::Edge(edge) => match edge {
-                Edge::Top => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, true)
-                }
-                Edge::Bottom => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, false)
-                }
-                Edge::Left => {
-                    self.split_and_swap(Axis::Vertical, target, pane, true)
-                }
-                Edge::Right => {
-                    self.split_and_swap(Axis::Vertical, target, pane, false)
-                }
-            },
-        }
     }
 
     fn split_and_swap(

@@ -108,14 +108,9 @@ impl Application for Example {
             Message::Dragged(pane_grid::DragEvent::Dropped {
                 pane,
                 target,
-            }) => match target {
-                pane_grid::Target::Edge(edge) => {
-                    self.panes.move_to_edge(&pane, edge)
-                }
-                pane_grid::Target::Pane(target, region) => {
-                    self.panes.split_with(&target, &pane, region)
-                }
-            },
+            }) => {
+                self.panes.drop(&pane, target);
+            }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
                 if let Some(Pane { is_pinned, .. }) = self.panes.get_mut(&pane)
