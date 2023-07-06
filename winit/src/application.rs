@@ -748,11 +748,21 @@ pub fn run_command<A, C, E>(
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
-                window::Action::Resize { width, height } => {
+                window::Action::Resize(size) => {
                     window.set_inner_size(winit::dpi::LogicalSize {
-                        width,
-                        height,
+                        width: size.width,
+                        height: size.height,
                     });
+                }
+                window::Action::FetchSize(callback) => {
+                    let size = window.inner_size();
+
+                    proxy
+                        .send_event(callback(Size::new(
+                            size.width,
+                            size.height,
+                        )))
+                        .expect("Send message to event loop")
                 }
                 window::Action::Maximize(maximized) => {
                     window.set_maximized(maximized);

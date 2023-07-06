@@ -9,6 +9,7 @@ pub use screenshot::Screenshot;
 use crate::command::{self, Command};
 use crate::core::time::Instant;
 use crate::core::window::{Event, Icon, Level, Mode, UserAttention};
+use crate::core::Size;
 use crate::futures::subscription::{self, Subscription};
 
 /// Subscribes to the frames of the window of the running application.
@@ -37,8 +38,15 @@ pub fn drag<Message>() -> Command<Message> {
 }
 
 /// Resizes the window to the given logical dimensions.
-pub fn resize<Message>(width: u32, height: u32) -> Command<Message> {
-    Command::single(command::Action::Window(Action::Resize { width, height }))
+pub fn resize<Message>(new_size: Size<u32>) -> Command<Message> {
+    Command::single(command::Action::Window(Action::Resize(new_size)))
+}
+
+/// Fetches the current window size in logical dimensions.
+pub fn fetch_size<Message>(
+    f: impl FnOnce(Size<u32>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchSize(Box::new(f))))
 }
 
 /// Maximizes the window.
