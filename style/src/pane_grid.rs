@@ -31,7 +31,7 @@ pub trait StyleSheet {
     /// The supported style of the [`StyleSheet`].
     type Style: Default;
 
-    /// The [`Region`] to draw when a pane is hovered.
+    /// The [`Appearance`] to draw when a pane is hovered.
     fn hovered_region(&self, style: &Self::Style) -> Appearance;
 
     /// The [`Line`] to draw when a split is picked.

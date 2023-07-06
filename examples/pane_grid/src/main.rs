@@ -108,9 +108,8 @@ impl Application for Example {
             Message::Dragged(pane_grid::DragEvent::Dropped {
                 pane,
                 target,
-                region,
             }) => {
-                self.panes.split_with(&target, &pane, region);
+                self.panes.drop(&pane, target);
             }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
