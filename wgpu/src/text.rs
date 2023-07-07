@@ -35,7 +35,7 @@ impl Pipeline {
                 .into_iter(),
             )),
             renderers: Vec::new(),
-            atlas: glyphon::TextAtlas::new(
+            atlas: glyphon::TextAtlas::with_color_mode(
                 device,
                 queue,
                 format,
@@ -66,7 +66,7 @@ impl Pipeline {
         bounds: Rectangle,
         scale_factor: f32,
         target_size: Size<u32>,
-    ) -> bool {
+    ) {
         if self.renderers.len() <= self.prepare_layer {
             self.renderers.push(glyphon::TextRenderer::new(
                 &mut self.atlas,
@@ -188,21 +188,11 @@ impl Pipeline {
         match result {
             Ok(()) => {
                 self.prepare_layer += 1;
-
-                true
             }
-            Err(glyphon::PrepareError::AtlasFull(content_type)) => {
-                self.prepare_layer = 0;
-
-                #[allow(clippy::needless_bool)]
-                if self.atlas.grow(device, content_type) {
-                    false
-                } else {
-                    // If the atlas cannot grow, then all bets are off.
-                    // Instead of panicking, we will just pray that the result
-                    // will be somewhat readable...
-                    true
-                }
+            Err(glyphon::PrepareError::AtlasFull) => {
+                // If the atlas cannot grow, then all bets are off.
+                // Instead of panicking, we will just pray that the result
+                // will be somewhat readable...
             }
         }
     }
