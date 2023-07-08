@@ -624,6 +624,10 @@ where
 
         local_shell.revalidate_layout(|| shell.invalidate_layout());
 
+        if let Some(redraw_request) = local_shell.redraw_request() {
+            shell.request_redraw(redraw_request);
+        }
+
         if !local_messages.is_empty() {
             let mut inner =
                 self.overlay.take().unwrap().0.take().unwrap().into_heads();
