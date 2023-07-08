@@ -7,6 +7,16 @@ mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
+#[cfg(any(
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd",
+))]
+#[path = "settings/unix.rs"]
+mod platform;
+
 #[cfg(target_arch = "wasm32")]
 #[path = "settings/wasm.rs"]
 mod platform;
@@ -14,6 +24,11 @@ mod platform;
 #[cfg(not(any(
     target_os = "windows",
     target_os = "macos",
+    target_os = "linux",
+    target_os = "dragonfly",
+    target_os = "freebsd",
+    target_os = "netbsd",
+    target_os = "openbsd",
     target_arch = "wasm32"
 )))]
 #[path = "settings/other.rs"]
@@ -158,12 +173,16 @@ impl Window {
         ))]
         {
             // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
-            // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
-            use ::winit::platform::wayland::WindowBuilderExtWayland;
+            // exactly the same thing. We arbitrarily choose `WindowBuilderExtX11` here.
+            use winit::platform::x11::WindowBuilderExtX11;
 
             if let Some(id) = _id {
                 window_builder = window_builder.with_name(id.clone(), id);
             }
+
+            window_builder = window_builder.with_x11_window_type(
+                self.platform_specific.x11_window_type.clone(),
+            )
         }
 
         #[cfg(target_os = "windows")]
