@@ -46,8 +46,10 @@ pub mod window;
 pub mod geometry;
 
 mod backend;
+mod blur;
 mod buffer;
 mod color;
+mod composite;
 mod quad;
 mod text;
 mod triangle;

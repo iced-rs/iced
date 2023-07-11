@@ -14,7 +14,7 @@ pub use settings::Settings;
 #[cfg(feature = "geometry")]
 pub use geometry::Geometry;
 
-use crate::core::renderer;
+use crate::core::renderer::{self, Effect};
 use crate::core::text::{self, Text};
 use crate::core::{Background, Font, Point, Rectangle, Size, Vector};
 use crate::graphics::Mesh;
@@ -59,7 +59,12 @@ impl<T> Renderer<T> {
 impl<T> core::Renderer for Renderer<T> {
     type Theme = T;
 
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+    fn with_layer(
+        &mut self,
+        bounds: Rectangle,
+        effect: Option<Effect>,
+        f: impl FnOnce(&mut Self),
+    ) {
         match self {
             Self::TinySkia(renderer) => {
                 let primitives = renderer.start_layer();
@@ -68,7 +73,7 @@ impl<T> core::Renderer for Renderer<T> {
 
                 match self {
                     Self::TinySkia(renderer) => {
-                        renderer.end_layer(primitives, bounds);
+                        renderer.end_layer(primitives, effect, bounds);
                     }
                     #[cfg(feature = "wgpu")]
                     _ => unreachable!(),
@@ -83,7 +88,7 @@ impl<T> core::Renderer for Renderer<T> {
                 match self {
                     #[cfg(feature = "wgpu")]
                     Self::Wgpu(renderer) => {
-                        renderer.end_layer(primitives, bounds);
+                        renderer.end_layer(primitives, effect, bounds);
                     }
                     _ => unreachable!(),
                 }

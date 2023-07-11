@@ -177,7 +177,7 @@ impl Pipeline {
             queue,
             font_system,
             &mut self.atlas,
-            glyphon::Resolution {
+            glyphon::TextureSize {
                 width: target_size.width,
                 height: target_size.height,
             },

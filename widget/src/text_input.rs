@@ -1147,7 +1147,7 @@ pub fn draw<Renderer>(
     };
 
     if text_width > text_bounds.width {
-        renderer.with_layer(text_bounds, |renderer| {
+        renderer.with_layer(text_bounds, None, |renderer| {
             renderer.with_translation(Vector::new(-offset, 0.0), render)
         });
     } else {

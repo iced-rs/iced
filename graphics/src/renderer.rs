@@ -4,7 +4,7 @@ use crate::Primitive;
 
 use iced_core::image;
 use iced_core::layout;
-use iced_core::renderer;
+use iced_core::renderer::{self, Effect};
 use iced_core::svg;
 use iced_core::text::{self, Text};
 use iced_core::{
@@ -60,11 +60,17 @@ impl<B: Backend, T> Renderer<B, T> {
     pub fn end_layer(
         &mut self,
         primitives: Vec<Primitive<B::Primitive>>,
+        effect: Option<Effect>,
         bounds: Rectangle,
     ) {
         let layer = std::mem::replace(&mut self.primitives, primitives);
 
-        self.primitives.push(Primitive::group(layer).clip(bounds));
+        if let Some(effect) = effect {
+            self.primitives
+                .push(Primitive::group(layer).effect(bounds, effect));
+        } else {
+            self.primitives.push(Primitive::group(layer).clip(bounds));
+        }
     }
 
     /// Starts recording a translation.
@@ -98,12 +104,17 @@ impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
         element.as_widget().layout(self, limits)
     }
 
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
+    fn with_layer(
+        &mut self,
+        bounds: Rectangle,
+        effect: Option<Effect>,
+        f: impl FnOnce(&mut Self),
+    ) {
         let current = self.start_layer();
 
         f(self);
 
-        self.end_layer(current, bounds);
+        self.end_layer(current, effect, bounds);
     }
 
     fn with_translation(

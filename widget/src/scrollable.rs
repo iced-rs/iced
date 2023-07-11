@@ -831,7 +831,7 @@ pub fn draw<Renderer>(
 
     // Draw inner content
     if scrollbars.active() {
-        renderer.with_layer(bounds, |renderer| {
+        renderer.with_layer(bounds, None, |renderer| {
             renderer.with_translation(
                 Vector::new(-offset.x, -offset.y),
                 |renderer| {
@@ -898,6 +898,7 @@ pub fn draw<Renderer>(
                 height: bounds.height + 2.0,
                 ..bounds
             },
+            None,
             |renderer| {
                 //draw y scrollbar
                 if let Some(scrollbar) = scrollbars.y {

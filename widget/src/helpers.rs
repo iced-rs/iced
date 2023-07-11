@@ -1,4 +1,5 @@
 //! Helper functions to create pure widgets.
+use crate::blur::Blur;
 use crate::button::{self, Button};
 use crate::checkbox::{self, Checkbox};
 use crate::container::{self, Container};
@@ -365,4 +366,18 @@ where
     Renderer: core::Renderer,
 {
     MouseArea::new(widget)
+}
+
+/// Creates a new [`Blur`] widget which blurs the `content`.
+///
+/// [`Blur`]: widget::Blur
+pub fn blur<'a, Message, Renderer>(
+    radius: u16,
+    content: impl Into<Element<'a, Message, Renderer>>,
+) -> Blur<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+    Renderer::Theme: container::StyleSheet,
+{
+    Blur::new(radius, content)
 }

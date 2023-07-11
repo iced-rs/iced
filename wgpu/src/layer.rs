@@ -10,6 +10,7 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
+use crate::core::renderer::Effect;
 use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
 use crate::graphics;
 use crate::graphics::color;
@@ -34,17 +35,47 @@ pub struct Layer<'a> {
 
     /// The images of the [`Layer`].
     pub images: Vec<Image>,
+
+    /// The kind of [`Layer`].
+    pub kind: Kind,
+}
+
+/// The [`Kind`] of a layer.
+#[derive(Debug)]
+pub enum Kind {
+    /// A [`Layer`] which is rendered directly to the viewport's surface.
+    Immediate,
+    /// A [`Layer`] which is first rendered to an intermediate texture, and then composited on to the
+    /// viewport's surface. A composited layer must have some `effect` which requires intermediate
+    /// processing, or else could just be rendered directly to the surface.
+    Deferred {
+        /// The supported [`Effect`] that this [`Layer`] has.
+        effect: Effect,
+    },
 }
 
 impl<'a> Layer<'a> {
-    /// Creates a new [`Layer`] with the given clipping bounds.
-    pub fn new(bounds: Rectangle) -> Self {
+    /// Creates a new [`Layer`] which is rendered directly to the viewport.
+    pub fn viewport(bounds: Rectangle) -> Self {
         Self {
             bounds,
             quads: quad::Batch::default(),
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
+            kind: Kind::Immediate,
+        }
+    }
+
+    /// Creates a new [`Layer`] which is rendered to its own texture.
+    pub fn composite(bounds: Rectangle, effect: Effect) -> Self {
+        Self {
+            bounds,
+            quads: quad::Batch::default(),
+            meshes: Vec::new(),
+            text: Vec::new(),
+            images: Vec::new(),
+            kind: Kind::Deferred { effect },
         }
     }
 
@@ -53,7 +84,7 @@ impl<'a> Layer<'a> {
     /// This can be useful for displaying debug information.
     pub fn overlay(lines: &'a [impl AsRef<str>], viewport: &Viewport) -> Self {
         let mut overlay =
-            Layer::new(Rectangle::with_size(viewport.logical_size()));
+            Layer::viewport(Rectangle::with_size(viewport.logical_size()));
 
         for (i, line) in lines.iter().enumerate() {
             let text = Text {
@@ -90,7 +121,7 @@ impl<'a> Layer<'a> {
         viewport: &Viewport,
     ) -> Vec<Self> {
         let first_layer =
-            Layer::new(Rectangle::with_size(viewport.logical_size()));
+            Layer::viewport(Rectangle::with_size(viewport.logical_size()));
 
         let mut layers = vec![first_layer];
 
@@ -200,7 +231,7 @@ impl<'a> Layer<'a> {
                 if let Some(clip_bounds) =
                     layer.bounds.intersection(&translated_bounds)
                 {
-                    let clip_layer = Layer::new(clip_bounds);
+                    let clip_layer = Layer::viewport(clip_bounds);
                     layers.push(clip_layer);
 
                     Self::process_primitive(
@@ -278,6 +309,30 @@ impl<'a> Layer<'a> {
                     }
                 },
             },
+            Primitive::Effect {
+                bounds,
+                effect,
+                content,
+            } => {
+                match effect {
+                    Effect::Blur { radius } => {
+                        let blurred_layer = Layer::composite(
+                            *bounds,
+                            Effect::Blur { radius: *radius },
+                        );
+
+                        layers.push(blurred_layer);
+
+                        Self::process_primitive(
+                            layers,
+                            //shift up to origin to properly align to texture
+                            translation - Vector::new(bounds.x, bounds.y),
+                            content,
+                            layers.len() - 1,
+                        );
+                    }
+                }
+            }
         }
     }
 }

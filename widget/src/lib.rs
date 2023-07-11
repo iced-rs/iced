@@ -25,6 +25,7 @@ mod column;
 mod mouse_area;
 mod row;
 
+pub mod blur;
 pub mod button;
 pub mod checkbox;
 pub mod container;

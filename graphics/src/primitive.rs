@@ -1,6 +1,7 @@
 //! Draw using different graphical primitives.
 use crate::core::alignment;
 use crate::core::image;
+use crate::core::renderer::Effect;
 use crate::core::svg;
 use crate::core::text;
 use crate::core::{Background, Color, Font, Rectangle, Vector};
@@ -90,6 +91,15 @@ pub enum Primitive<T> {
         /// The cached primitive
         content: Arc<Primitive<T>>,
     },
+    /// A primitive which can apply [`Effect`]s to other primitives.
+    Effect {
+        /// The bounds of the [`Effect`].
+        bounds: Rectangle,
+        /// The [`Effect`] to apply to the `content`.
+        effect: Effect,
+        /// The primitives to apply the [`Effect`] to.
+        content: Box<Primitive<T>>,
+    },
     /// A backend-specific primitive.
     Custom(T),
 }
@@ -112,6 +122,15 @@ impl<T> Primitive<T> {
     pub fn translate(self, translation: Vector) -> Self {
         Self::Translate {
             translation,
+            content: Box::new(self),
+        }
+    }
+
+    /// Wraps a primitive in an [`Effect`].
+    pub fn effect(self, bounds: Rectangle, effect: Effect) -> Self {
+        Self::Effect {
+            bounds,
+            effect,
             content: Box::new(self),
         }
     }

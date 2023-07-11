@@ -102,7 +102,7 @@ where
                     })
                     .unwrap_or_default();
 
-                renderer.with_layer(layout.bounds(), |renderer| {
+                renderer.with_layer(layout.bounds(), None, |renderer| {
                     element.draw(
                         renderer,
                         theme,

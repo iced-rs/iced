@@ -361,7 +361,7 @@ pub fn draw<Renderer>(
             }
         }
 
-        renderer.with_layer(Rectangle::with_size(Size::INFINITY), |renderer| {
+        renderer.with_layer(Rectangle::with_size(Size::INFINITY), None, |renderer| {
             container::draw_background(renderer, &style, tooltip_bounds);
 
             draw_text(

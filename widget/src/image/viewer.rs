@@ -322,7 +322,7 @@ where
             image_top_left - state.offset(bounds, image_size)
         };
 
-        renderer.with_layer(bounds, |renderer| {
+        renderer.with_layer(bounds, None, |renderer| {
             renderer.with_translation(translation, |renderer| {
                 image::Renderer::draw(
                     renderer,

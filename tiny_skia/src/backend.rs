@@ -594,6 +594,13 @@ impl Backend {
                     scale_factor,
                     translation,
                 );
+            },
+            //TODO think of a better way to do this
+            Primitive::Effect { .. } => {
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
+                    primitive
+                );
             }
         }
     }
