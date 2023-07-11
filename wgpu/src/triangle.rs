@@ -243,9 +243,6 @@ impl Pipeline {
         meshes: &[Mesh<'_>],
         transformation: Transformation,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Triangle", "PREPARE").entered();
-
         if self.layers.len() <= self.prepare_layer {
             self.layers
                 .push(Layer::new(device, &self.solid, &self.gradient));
@@ -274,9 +271,6 @@ impl Pipeline {
         meshes: &[Mesh<'_>],
         scale_factor: f32,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = tracing::info_span!("Wgpu::Triangle", "DRAW").entered();
-
         {
             let (attachment, resolve_target, load) = if let Some(blit) =
                 &mut self.blit

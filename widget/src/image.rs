@@ -146,7 +146,7 @@ pub fn draw<Renderer, Handle>(
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
     {
-        renderer.with_layer(bounds, render);
+        renderer.with_layer(bounds, None, render);
     } else {
         render(renderer)
     }

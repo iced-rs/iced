@@ -13,9 +13,6 @@ use wgpu::util::DeviceExt;
 
 use std::mem;
 
-#[cfg(feature = "tracing")]
-use tracing::info_span;
-
 const INITIAL_INSTANCES: usize = 2_000;
 
 #[derive(Debug)]
@@ -191,9 +188,6 @@ impl Layer {
         transformation: Transformation,
         scale: f32,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Quad", "PREPARE").entered();
-
         let uniforms = Uniforms::new(transformation, scale);
 
         queue.write_buffer(
@@ -295,18 +289,7 @@ fn color_target_state(
 ) -> [Option<wgpu::ColorTargetState>; 1] {
     [Some(wgpu::ColorTargetState {
         format,
-        blend: Some(wgpu::BlendState {
-            color: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::SrcAlpha,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
-            alpha: wgpu::BlendComponent {
-                src_factor: wgpu::BlendFactor::One,
-                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                operation: wgpu::BlendOperation::Add,
-            },
-        }),
+        blend: Some(wgpu::BlendState::ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
     })]
 }

@@ -339,7 +339,8 @@ fn gradient_fs_main(input: GradientVertexOutput) -> @location(0) vec4<f32> {
     var radius_alpha: f32 = 1.0 - smoothstep(
         max(border_radius - 0.5, 0.0),
         border_radius + 0.5,
-        dist);
+        dist
+    );
 
     return vec4<f32>(mixed_color.x, mixed_color.y, mixed_color.z, mixed_color.w * radius_alpha);
 }

@@ -1,4 +1,4 @@
-use crate::renderer::{self, Renderer};
+use crate::renderer::{self, Effect, Renderer};
 use crate::text::{self, Text};
 use crate::{Background, Font, Point, Rectangle, Size, Vector};
 
@@ -20,7 +20,13 @@ impl Null {
 impl Renderer for Null {
     type Theme = ();
 
-    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+    fn with_layer(
+        &mut self,
+        _bounds: Rectangle,
+        _effect: Option<Effect>,
+        _f: impl FnOnce(&mut Self),
+    ) {
+    }
 
     fn with_translation(
         &mut self,

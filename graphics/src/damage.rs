@@ -55,6 +55,7 @@ impl<T: Damage> Damage for Primitive<T> {
                 content,
             } => content.bounds() + *translation,
             Self::Cache { content } => content.bounds(),
+            Self::Effect { bounds, .. } => *bounds,
             Self::Custom(custom) => custom.bounds(),
         }
     }

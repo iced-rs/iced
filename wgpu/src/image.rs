@@ -24,9 +24,6 @@ use crate::core::image;
 #[cfg(feature = "svg")]
 use crate::core::svg;
 
-#[cfg(feature = "tracing")]
-use tracing::info_span;
-
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
@@ -349,12 +346,6 @@ impl Pipeline {
         transformation: Transformation,
         _scale: f32,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "PREPARE").entered();
-
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "DRAW").entered();
-
         let instances: &mut Vec<Instance> = &mut Vec::new();
 
         #[cfg(feature = "image")]

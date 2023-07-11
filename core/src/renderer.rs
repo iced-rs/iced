@@ -28,7 +28,14 @@ pub trait Renderer: Sized {
     /// Draws the primitives recorded in the given closure in a new layer.
     ///
     /// The layer will clip its contents to the provided `bounds`.
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
+    ///
+    /// Optionally, an `effect` can be provided for the new layer.
+    fn with_layer( //TODO move effect somewhere that exists only with wgpu
+        &mut self,
+        bounds: Rectangle,
+        effect: Option<Effect>,
+        f: impl FnOnce(&mut Self),
+    );
 
     /// Applies a `translation` to the primitives recorded in the given closure.
     fn with_translation(
@@ -72,5 +79,15 @@ impl Default for Style {
         Style {
             text_color: Color::BLACK,
         }
+    }
+}
+
+/// Various supported rendering effects.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Effect {
+    /// A simple gaussian blur.
+    Blur {
+        /// The amount to blur.
+        radius: u16,
     }
 }
