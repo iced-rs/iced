@@ -34,5 +34,5 @@ version = "1.6.1"
 features = ["std"]
 
 [dependencies.resvg]
-version = "0.34"
+version = "0.35"
 optional = true
