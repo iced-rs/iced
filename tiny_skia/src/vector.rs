@@ -130,30 +130,42 @@ impl Cache {
 
             let mut image = tiny_skia::Pixmap::new(size.width, size.height)?;
 
-            resvg::render(
-                tree,
-                if size.width > size.height {
-                    resvg::FitTo::Width(size.width)
-                } else {
-                    resvg::FitTo::Height(size.height)
-                },
-                tiny_skia::Transform::default(),
-                image.as_mut(),
-            )?;
+            let tree_size = tree.size.to_int_size();
+
+            let target_size = if size.width > size.height {
+                tree_size.scale_to_width(size.width)
+            } else {
+                tree_size.scale_to_height(size.height)
+            };
+
+            let transform = if let Some(target_size) = target_size {
+                let tree_size = tree_size.to_size();
+                let target_size = target_size.to_size();
+
+                tiny_skia::Transform::from_scale(
+                    target_size.width() / tree_size.width(),
+                    target_size.height() / tree_size.height(),
+                )
+            } else {
+                tiny_skia::Transform::default()
+            };
+
+            resvg::Tree::from_usvg(tree).render(transform, &mut image.as_mut());
 
             if let Some([r, g, b, _]) = key.color {
                 // Apply color filter
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = tiny_skia::ColorU8::from_rgba(
-                        b,
-                        g,
-                        r,
-                        (*pixel >> 24) as u8,
-                    )
-                    .premultiply()
-                    .get();
+                    *pixel = bytemuck::cast(
+                        tiny_skia::ColorU8::from_rgba(
+                            b,
+                            g,
+                            r,
+                            (*pixel >> 24) as u8,
+                        )
+                        .premultiply(),
+                    );
                 }
             } else {
                 // Swap R and B channels for `softbuffer` presentation

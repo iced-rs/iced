@@ -80,9 +80,9 @@ impl Cache {
             for (i, pixel) in image.pixels().enumerate() {
                 let [r, g, b, a] = pixel.0;
 
-                buffer[i] = tiny_skia::ColorU8::from_rgba(b, g, r, a)
-                    .premultiply()
-                    .get();
+                buffer[i] = bytemuck::cast(
+                    tiny_skia::ColorU8::from_rgba(b, g, r, a).premultiply(),
+                );
             }
 
             entry.insert(Some(Entry {

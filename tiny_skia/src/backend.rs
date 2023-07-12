@@ -753,7 +753,15 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
 
     let path = {
         let mut builder = tiny_skia::PathBuilder::new();
-        builder.push_rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        builder.push_rect(
+            tiny_skia::Rect::from_xywh(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            )
+            .unwrap(),
+        );
 
         builder.finish().unwrap()
     };
