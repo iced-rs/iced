@@ -1476,20 +1476,14 @@ pub(super) mod internals {
             grabbed_at: f32,
             cursor_position: Point,
         ) -> f32 {
-            let pct = if cursor_position.x < 0.0 && cursor_position.y < 0.0 {
-                // cursor position is unavailable! Set to either end or beginning of scrollbar depending
-                // on where the thumb currently is in the track
-                (self.scroller.bounds.y / self.total_bounds.height).round()
-            } else {
-                (cursor_position.y
-                    - self.bounds.y
-                    - self.scroller.bounds.height * grabbed_at)
-                    / (self.bounds.height - self.scroller.bounds.height)
-            };
+            let percentage = (cursor_position.y
+                - self.bounds.y
+                - self.scroller.bounds.height * grabbed_at)
+                / (self.bounds.height - self.scroller.bounds.height);
 
             match self.alignment {
-                Alignment::Start => pct,
-                Alignment::End => 1.0 - pct,
+                Alignment::Start => percentage,
+                Alignment::End => 1.0 - percentage,
             }
         }
 
@@ -1499,18 +1493,14 @@ pub(super) mod internals {
             grabbed_at: f32,
             cursor_position: Point,
         ) -> f32 {
-            let pct = if cursor_position.x < 0.0 && cursor_position.y < 0.0 {
-                (self.scroller.bounds.x / self.total_bounds.width).round()
-            } else {
-                (cursor_position.x
-                    - self.bounds.x
-                    - self.scroller.bounds.width * grabbed_at)
-                    / (self.bounds.width - self.scroller.bounds.width)
-            };
+            let percentage = (cursor_position.x
+                - self.bounds.x
+                - self.scroller.bounds.width * grabbed_at)
+                / (self.bounds.width - self.scroller.bounds.width);
 
             match self.alignment {
-                Alignment::Start => pct,
-                Alignment::End => 1.0 - pct,
+                Alignment::Start => percentage,
+                Alignment::End => 1.0 - percentage,
             }
         }
     }
