@@ -47,9 +47,8 @@ impl Sandbox for Component {
 
 mod numeric_input {
     use iced::alignment::{self, Alignment};
-    use iced::widget::{self, button, row, text, text_input};
-    use iced::{Element, Length};
-    use iced_lazy::{self, Component};
+    use iced::widget::{button, component, row, text, text_input, Component};
+    use iced::{Element, Length, Renderer};
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -82,13 +81,7 @@ mod numeric_input {
         }
     }
 
-    impl<Message, Renderer> Component<Message, Renderer> for NumericInput<Message>
-    where
-        Renderer: iced_native::text::Renderer + 'static,
-        Renderer::Theme: widget::button::StyleSheet
-            + widget::text_input::StyleSheet
-            + widget::text::StyleSheet,
-    {
+    impl<Message> Component<Message, Renderer> for NumericInput<Message> {
         type State = ();
         type Event = Event;
 
@@ -141,8 +134,8 @@ mod numeric_input {
                         .map(u32::to_string)
                         .as_deref()
                         .unwrap_or(""),
-                    Event::InputChanged,
                 )
+                .on_input(Event::InputChanged)
                 .padding(10),
                 button("+", Event::IncrementPressed),
             ]
@@ -152,17 +145,12 @@ mod numeric_input {
         }
     }
 
-    impl<'a, Message, Renderer> From<NumericInput<Message>>
-        for Element<'a, Message, Renderer>
+    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message, Renderer>
     where
         Message: 'a,
-        Renderer: 'static + iced_native::text::Renderer,
-        Renderer::Theme: widget::button::StyleSheet
-            + widget::text_input::StyleSheet
-            + widget::text::StyleSheet,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
-            iced_lazy::component(numeric_input)
+            component(numeric_input)
         }
     }
 }

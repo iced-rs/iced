@@ -1,12 +1,15 @@
+use iced::executor;
+use iced::keyboard;
+use iced::subscription::{self, Subscription};
+use iced::theme;
 use iced::widget::{
-    self, button, column, container, horizontal_space, row, text, text_input,
+    self, button, column, container, horizontal_space, pick_list, row, text,
+    text_input,
 };
-use iced::{
-    executor, keyboard, subscription, theme, Alignment, Application, Command,
-    Element, Event, Length, Settings, Subscription,
-};
+use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
 
-use self::modal::Modal;
+use modal::Modal;
+use std::fmt;
 
 pub fn main() -> iced::Result {
     App::run(Settings::default())
@@ -17,6 +20,7 @@ struct App {
     show_modal: bool,
     email: String,
     password: String,
+    plan: Plan,
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +29,7 @@ enum Message {
     HideModal,
     Email(String),
     Password(String),
+    Plan(Plan),
     Submit,
     Event(Event),
 }
@@ -63,6 +68,10 @@ impl Application for App {
             }
             Message::Password(password) => {
                 self.password = password;
+                Command::none()
+            }
+            Message::Plan(plan) => {
+                self.plan = plan;
                 Command::none()
             }
             Message::Submit => {
@@ -133,21 +142,29 @@ impl Application for App {
                     column![
                         column![
                             text("Email").size(12),
-                            text_input(
-                                "abc@123.com",
-                                &self.email,
-                                Message::Email
-                            )
-                            .on_submit(Message::Submit)
-                            .padding(5),
+                            text_input("abc@123.com", &self.email,)
+                                .on_input(Message::Email)
+                                .on_submit(Message::Submit)
+                                .padding(5),
                         ]
                         .spacing(5),
                         column![
                             text("Password").size(12),
-                            text_input("", &self.password, Message::Password)
+                            text_input("", &self.password)
+                                .on_input(Message::Password)
                                 .on_submit(Message::Submit)
                                 .password()
                                 .padding(5),
+                        ]
+                        .spacing(5),
+                        column![
+                            text("Plan").size(12),
+                            pick_list(
+                                Plan::ALL,
+                                Some(self.plan),
+                                Message::Plan
+                            )
+                            .padding(5),
                         ]
                         .spacing(5),
                         button(text("Submit")).on_press(Message::HideModal),
@@ -177,13 +194,39 @@ impl App {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+enum Plan {
+    #[default]
+    Basic,
+    Pro,
+    Enterprise,
+}
+
+impl Plan {
+    pub const ALL: &[Self] = &[Self::Basic, Self::Pro, Self::Enterprise];
+}
+
+impl fmt::Display for Plan {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Plan::Basic => "Basic",
+            Plan::Pro => "Pro",
+            Plan::Enterprise => "Enterprise",
+        }
+        .fmt(f)
+    }
+}
+
 mod modal {
-    use iced_native::alignment::Alignment;
-    use iced_native::widget::{self, Tree};
-    use iced_native::{
-        event, layout, mouse, overlay, renderer, Clipboard, Color, Element,
-        Event, Layout, Length, Point, Rectangle, Shell, Size, Widget,
-    };
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::overlay;
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Widget};
+    use iced::advanced::{self, Clipboard, Shell};
+    use iced::alignment::Alignment;
+    use iced::event;
+    use iced::mouse;
+    use iced::{Color, Element, Event, Length, Point, Rectangle, Size};
 
     /// A widget that centers a modal element over some base element
     pub struct Modal<'a, Message, Renderer> {
@@ -218,14 +261,17 @@ mod modal {
     impl<'a, Message, Renderer> Widget<Message, Renderer>
         for Modal<'a, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
+        Renderer: advanced::Renderer,
         Message: Clone,
     {
-        fn children(&self) -> Vec<Tree> {
-            vec![Tree::new(&self.base), Tree::new(&self.modal)]
+        fn children(&self) -> Vec<widget::Tree> {
+            vec![
+                widget::Tree::new(&self.base),
+                widget::Tree::new(&self.modal),
+            ]
         }
 
-        fn diff(&self, tree: &mut Tree) {
+        fn diff(&self, tree: &mut widget::Tree) {
             tree.diff_children(&[&self.base, &self.modal]);
         }
 
@@ -247,10 +293,10 @@ mod modal {
 
         fn on_event(
             &mut self,
-            state: &mut Tree,
+            state: &mut widget::Tree,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -259,7 +305,7 @@ mod modal {
                 &mut state.children[0],
                 event,
                 layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 shell,
@@ -268,12 +314,12 @@ mod modal {
 
         fn draw(
             &self,
-            state: &Tree,
+            state: &widget::Tree,
             renderer: &mut Renderer,
-            theme: &<Renderer as iced_native::Renderer>::Theme,
+            theme: &<Renderer as advanced::Renderer>::Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
             self.base.as_widget().draw(
@@ -282,14 +328,14 @@ mod modal {
                 theme,
                 style,
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         }
 
         fn overlay<'b>(
             &'b mut self,
-            state: &'b mut Tree,
+            state: &'b mut widget::Tree,
             layout: Layout<'_>,
             _renderer: &Renderer,
         ) -> Option<overlay::Element<'b, Message, Renderer>> {
@@ -306,16 +352,16 @@ mod modal {
 
         fn mouse_interaction(
             &self,
-            state: &Tree,
+            state: &widget::Tree,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.base.as_widget().mouse_interaction(
                 &state.children[0],
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
@@ -323,7 +369,7 @@ mod modal {
 
         fn operate(
             &self,
-            state: &mut Tree,
+            state: &mut widget::Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn widget::Operation<Message>,
@@ -339,7 +385,7 @@ mod modal {
 
     struct Overlay<'a, 'b, Message, Renderer> {
         content: &'b mut Element<'a, Message, Renderer>,
-        tree: &'b mut Tree,
+        tree: &'b mut widget::Tree,
         size: Size,
         on_blur: Option<Message>,
     }
@@ -347,7 +393,7 @@ mod modal {
     impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
         for Overlay<'a, 'b, Message, Renderer>
     where
-        Renderer: iced_native::Renderer,
+        Renderer: advanced::Renderer,
         Message: Clone,
     {
         fn layout(
@@ -373,7 +419,7 @@ mod modal {
             &mut self,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -385,7 +431,7 @@ mod modal {
                     mouse::Button::Left,
                 )) = &event
                 {
-                    if !content_bounds.contains(cursor_position) {
+                    if !cursor.is_over(content_bounds) {
                         shell.publish(message.clone());
                         return event::Status::Captured;
                     }
@@ -396,7 +442,7 @@ mod modal {
                 self.tree,
                 event,
                 layout.children().next().unwrap(),
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 shell,
@@ -409,12 +455,12 @@ mod modal {
             theme: &Renderer::Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
         ) {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: renderer::BorderRadius::from(0.0),
+                    border_radius: Default::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },
@@ -430,7 +476,7 @@ mod modal {
                 theme,
                 style,
                 layout.children().next().unwrap(),
-                cursor_position,
+                cursor,
                 &layout.bounds(),
             );
         }
@@ -452,15 +498,27 @@ mod modal {
         fn mouse_interaction(
             &self,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
                 self.tree,
                 layout.children().next().unwrap(),
-                cursor_position,
+                cursor,
                 viewport,
+                renderer,
+            )
+        }
+
+        fn overlay<'c>(
+            &'c mut self,
+            layout: Layout<'_>,
+            renderer: &Renderer,
+        ) -> Option<overlay::Element<'c, Message, Renderer>> {
+            self.content.as_widget_mut().overlay(
+                self.tree,
+                layout.children().next().unwrap(),
                 renderer,
             )
         }
@@ -469,7 +527,7 @@ mod modal {
     impl<'a, Message, Renderer> From<Modal<'a, Message, Renderer>>
         for Element<'a, Message, Renderer>
     where
-        Renderer: 'a + iced_native::Renderer,
+        Renderer: 'a + advanced::Renderer,
         Message: 'a + Clone,
     {
         fn from(modal: Modal<'a, Message, Renderer>) -> Self {

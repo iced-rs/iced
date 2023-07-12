@@ -1,117 +1,196 @@
-//! For creating a Gradient.
-pub mod linear;
+//! A gradient that can be used as a [`Fill`] for some geometry.
+//!
+//! For a gradient that you can use as a background variant for a widget, see [`Gradient`].
+//!
+//! [`Gradient`]: crate::core::Gradient;
+use crate::color;
+use crate::core::gradient::ColorStop;
+use crate::core::{self, Color, Point, Rectangle};
 
-pub use linear::Linear;
-
-use crate::{Color, Point, Size};
+use bytemuck::{Pod, Zeroable};
+use half::f16;
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone, PartialEq)]
-/// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
-/// or conically (TBD).
+/// A fill which linearly interpolates colors along a direction.
+///
+/// For a gradient which can be used as a fill for a background of a widget, see [`crate::core::Gradient`].
 pub enum Gradient {
     /// A linear gradient interpolates colors along a direction from its `start` to its `end`
     /// point.
     Linear(Linear),
 }
 
+impl From<Linear> for Gradient {
+    fn from(gradient: Linear) -> Self {
+        Self::Linear(gradient)
+    }
+}
+
 impl Gradient {
-    /// Creates a new linear [`linear::Builder`].
-    pub fn linear(position: impl Into<Position>) -> linear::Builder {
-        linear::Builder::new(position.into())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-/// A point along the gradient vector where the specified [`color`] is unmixed.
-///
-/// [`color`]: Self::color
-pub struct ColorStop {
-    /// Offset along the gradient vector.
-    pub offset: f32,
-
-    /// The color of the gradient at the specified [`offset`].
-    ///
-    /// [`offset`]: Self::offset
-    pub color: Color,
-}
-
-#[derive(Debug)]
-/// The position of the gradient within its bounds.
-pub enum Position {
-    /// The gradient will be positioned with respect to two points.
-    Absolute {
-        /// The starting point of the gradient.
-        start: Point,
-        /// The ending point of the gradient.
-        end: Point,
-    },
-    /// The gradient will be positioned relative to the provided bounds.
-    Relative {
-        /// The top left position of the bounds.
-        top_left: Point,
-        /// The width & height of the bounds.
-        size: Size,
-        /// The start [Location] of the gradient.
-        start: Location,
-        /// The end [Location] of the gradient.
-        end: Location,
-    },
-}
-
-impl From<(Point, Point)> for Position {
-    fn from((start, end): (Point, Point)) -> Self {
-        Self::Absolute { start, end }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-/// The location of a relatively-positioned gradient.
-pub enum Location {
-    /// Top left.
-    TopLeft,
-    /// Top.
-    Top,
-    /// Top right.
-    TopRight,
-    /// Right.
-    Right,
-    /// Bottom right.
-    BottomRight,
-    /// Bottom.
-    Bottom,
-    /// Bottom left.
-    BottomLeft,
-    /// Left.
-    Left,
-}
-
-impl Location {
-    fn to_absolute(self, top_left: Point, size: Size) -> Point {
+    /// Packs the [`Gradient`] for use in shader code.
+    pub fn pack(&self) -> Packed {
         match self {
-            Location::TopLeft => top_left,
-            Location::Top => {
-                Point::new(top_left.x + size.width / 2.0, top_left.y)
+            Gradient::Linear(linear) => linear.pack(),
+        }
+    }
+}
+
+/// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
+///
+/// [`Fill`]: crate::geometry::Fill;
+/// [`Stroke`]: crate::geometry::Stroke;
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Linear {
+    /// The absolute starting position of the gradient.
+    pub start: Point,
+
+    /// The absolute ending position of the gradient.
+    pub end: Point,
+
+    /// [`ColorStop`]s along the linear gradient direction.
+    pub stops: [Option<ColorStop>; 8],
+}
+
+impl Linear {
+    /// Creates a new [`Builder`].
+    pub fn new(start: Point, end: Point) -> Self {
+        Self {
+            start,
+            end,
+            stops: [None; 8],
+        }
+    }
+
+    /// Adds a new [`ColorStop`], defined by an offset and a color, to the gradient.
+    ///
+    /// Any `offset` that is not within `0.0..=1.0` will be silently ignored.
+    ///
+    /// Any stop added after the 8th will be silently ignored.
+    pub fn add_stop(mut self, offset: f32, color: Color) -> Self {
+        if offset.is_finite() && (0.0..=1.0).contains(&offset) {
+            let (Ok(index) | Err(index)) =
+                self.stops.binary_search_by(|stop| match stop {
+                    None => Ordering::Greater,
+                    Some(stop) => stop.offset.partial_cmp(&offset).unwrap(),
+                });
+
+            if index < 8 {
+                self.stops[index] = Some(ColorStop { offset, color });
             }
-            Location::TopRight => {
-                Point::new(top_left.x + size.width, top_left.y)
+        } else {
+            log::warn!("Gradient: ColorStop must be within 0.0..=1.0 range.");
+        };
+
+        self
+    }
+
+    /// Adds multiple [`ColorStop`]s to the gradient.
+    ///
+    /// Any stop added after the 8th will be silently ignored.
+    pub fn add_stops(
+        mut self,
+        stops: impl IntoIterator<Item = ColorStop>,
+    ) -> Self {
+        for stop in stops.into_iter() {
+            self = self.add_stop(stop.offset, stop.color)
+        }
+
+        self
+    }
+
+    /// Packs the [`Gradient`] for use in shader code.
+    pub fn pack(&self) -> Packed {
+        let mut colors = [[0u32; 2]; 8];
+        let mut offsets = [f16::from(0u8); 8];
+
+        for (index, stop) in self.stops.iter().enumerate() {
+            let [r, g, b, a] =
+                color::pack(stop.map_or(Color::default(), |s| s.color))
+                    .components();
+
+            colors[index] = [
+                pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
+                pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
+            ];
+
+            offsets[index] =
+                stop.map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
+        }
+
+        let offsets = [
+            pack_f16s([offsets[0], offsets[1]]),
+            pack_f16s([offsets[2], offsets[3]]),
+            pack_f16s([offsets[4], offsets[5]]),
+            pack_f16s([offsets[6], offsets[7]]),
+        ];
+
+        let direction = [self.start.x, self.start.y, self.end.x, self.end.y];
+
+        Packed {
+            colors,
+            offsets,
+            direction,
+        }
+    }
+}
+
+/// Packed [`Gradient`] data for use in shader code.
+#[derive(Debug, Copy, Clone, PartialEq, Zeroable, Pod)]
+#[repr(C)]
+pub struct Packed {
+    // 8 colors, each channel = 16 bit float, 2 colors packed into 1 u32
+    colors: [[u32; 2]; 8],
+    // 8 offsets, 8x 16 bit floats packed into 4 u32s
+    offsets: [u32; 4],
+    direction: [f32; 4],
+}
+
+/// Creates a new [`Packed`] gradient for use in shader code.
+pub fn pack(gradient: &core::Gradient, bounds: Rectangle) -> Packed {
+    match gradient {
+        core::Gradient::Linear(linear) => {
+            let mut colors = [[0u32; 2]; 8];
+            let mut offsets = [f16::from(0u8); 8];
+
+            for (index, stop) in linear.stops.iter().enumerate() {
+                let [r, g, b, a] =
+                    color::pack(stop.map_or(Color::default(), |s| s.color))
+                        .components();
+
+                colors[index] = [
+                    pack_f16s([f16::from_f32(r), f16::from_f32(g)]),
+                    pack_f16s([f16::from_f32(b), f16::from_f32(a)]),
+                ];
+
+                offsets[index] = stop
+                    .map_or(f16::from_f32(2.0), |s| f16::from_f32(s.offset));
             }
-            Location::Right => Point::new(
-                top_left.x + size.width,
-                top_left.y + size.height / 2.0,
-            ),
-            Location::BottomRight => {
-                Point::new(top_left.x + size.width, top_left.y + size.height)
-            }
-            Location::Bottom => Point::new(
-                top_left.x + size.width / 2.0,
-                top_left.y + size.height,
-            ),
-            Location::BottomLeft => {
-                Point::new(top_left.x, top_left.y + size.height)
-            }
-            Location::Left => {
-                Point::new(top_left.x, top_left.y + size.height / 2.0)
+
+            let offsets = [
+                pack_f16s([offsets[0], offsets[1]]),
+                pack_f16s([offsets[2], offsets[3]]),
+                pack_f16s([offsets[4], offsets[5]]),
+                pack_f16s([offsets[6], offsets[7]]),
+            ];
+
+            let (start, end) = linear.angle.to_distance(&bounds);
+
+            let direction = [start.x, start.y, end.x, end.y];
+
+            Packed {
+                colors,
+                offsets,
+                direction,
             }
         }
     }
+}
+
+/// Packs two f16s into one u32.
+fn pack_f16s(f: [f16; 2]) -> u32 {
+    let one = (f[0].to_bits() as u32) << 16;
+    let two = f[1].to_bits() as u32;
+
+    one | two
 }

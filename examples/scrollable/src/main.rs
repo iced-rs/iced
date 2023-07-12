@@ -5,6 +5,7 @@ use iced::widget::{
 };
 use iced::{executor, theme, Alignment, Color};
 use iced::{Application, Command, Element, Length, Settings, Theme};
+
 use once_cell::sync::Lazy;
 
 static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
@@ -19,6 +20,7 @@ struct ScrollableDemo {
     scrollbar_margin: u16,
     scroller_width: u16,
     current_scroll_offset: scrollable::RelativeOffset,
+    alignment: scrollable::Alignment,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Copy)]
@@ -31,12 +33,13 @@ enum Direction {
 #[derive(Debug, Clone)]
 enum Message {
     SwitchDirection(Direction),
+    AlignmentChanged(scrollable::Alignment),
     ScrollbarWidthChanged(u16),
     ScrollbarMarginChanged(u16),
     ScrollerWidthChanged(u16),
     ScrollToBeginning,
     ScrollToEnd,
-    Scrolled(scrollable::RelativeOffset),
+    Scrolled(scrollable::Viewport),
 }
 
 impl Application for ScrollableDemo {
@@ -53,6 +56,7 @@ impl Application for ScrollableDemo {
                 scrollbar_margin: 0,
                 scroller_width: 10,
                 current_scroll_offset: scrollable::RelativeOffset::START,
+                alignment: scrollable::Alignment::Start,
             },
             Command::none(),
         )
@@ -67,6 +71,15 @@ impl Application for ScrollableDemo {
             Message::SwitchDirection(direction) => {
                 self.current_scroll_offset = scrollable::RelativeOffset::START;
                 self.scrollable_direction = direction;
+
+                scrollable::snap_to(
+                    SCROLLABLE_ID.clone(),
+                    self.current_scroll_offset,
+                )
+            }
+            Message::AlignmentChanged(alignment) => {
+                self.current_scroll_offset = scrollable::RelativeOffset::START;
+                self.alignment = alignment;
 
                 scrollable::snap_to(
                     SCROLLABLE_ID.clone(),
@@ -104,8 +117,8 @@ impl Application for ScrollableDemo {
                     self.current_scroll_offset,
                 )
             }
-            Message::Scrolled(offset) => {
-                self.current_scroll_offset = offset;
+            Message::Scrolled(viewport) => {
+                self.current_scroll_offset = viewport.relative_offset();
 
                 Command::none()
             }
@@ -164,10 +177,33 @@ impl Application for ScrollableDemo {
         .spacing(10)
         .width(Length::Fill);
 
-        let scroll_controls =
-            row![scroll_slider_controls, scroll_orientation_controls]
-                .spacing(20)
-                .width(Length::Fill);
+        let scroll_alignment_controls = column(vec![
+            text("Scrollable alignment:").into(),
+            radio(
+                "Start",
+                scrollable::Alignment::Start,
+                Some(self.alignment),
+                Message::AlignmentChanged,
+            )
+            .into(),
+            radio(
+                "End",
+                scrollable::Alignment::End,
+                Some(self.alignment),
+                Message::AlignmentChanged,
+            )
+            .into(),
+        ])
+        .spacing(10)
+        .width(Length::Fill);
+
+        let scroll_controls = row![
+            scroll_slider_controls,
+            scroll_orientation_controls,
+            scroll_alignment_controls
+        ]
+        .spacing(20)
+        .width(Length::Fill);
 
         let scroll_to_end_button = || {
             button("Scroll to end")
@@ -199,12 +235,13 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .vertical_scroll(
+                .direction(scrollable::Direction::Vertical(
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
+                ))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Horizontal => scrollable(
@@ -223,12 +260,13 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .horizontal_scroll(
+                .direction(scrollable::Direction::Horizontal(
                     Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment),
+                ))
                 .style(theme::Scrollable::custom(ScrollbarCustomStyle))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
@@ -264,18 +302,18 @@ impl Application for ScrollableDemo {
                     .spacing(40),
                 )
                 .height(Length::Fill)
-                .vertical_scroll(
-                    Properties::new()
+                .direction({
+                    let properties = Properties::new()
                         .width(self.scrollbar_width)
                         .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
-                .horizontal_scroll(
-                    Properties::new()
-                        .width(self.scrollbar_width)
-                        .margin(self.scrollbar_margin)
-                        .scroller_width(self.scroller_width),
-                )
+                        .scroller_width(self.scroller_width)
+                        .alignment(self.alignment);
+
+                    scrollable::Direction::Both {
+                        horizontal: properties,
+                        vertical: properties,
+                    }
+                })
                 .style(theme::Scrollable::Custom(Box::new(
                     ScrollbarCustomStyle,
                 )))
@@ -289,18 +327,13 @@ impl Application for ScrollableDemo {
             }
             Direction::Horizontal => {
                 progress_bar(0.0..=1.0, self.current_scroll_offset.x)
-                    .style(theme::ProgressBar::Custom(Box::new(
-                        ProgressBarCustomStyle,
-                    )))
+                    .style(progress_bar_custom_style)
                     .into()
             }
             Direction::Multi => column![
                 progress_bar(0.0..=1.0, self.current_scroll_offset.y),
-                progress_bar(0.0..=1.0, self.current_scroll_offset.x).style(
-                    theme::ProgressBar::Custom(Box::new(
-                        ProgressBarCustomStyle,
-                    ))
-                )
+                progress_bar(0.0..=1.0, self.current_scroll_offset.x)
+                    .style(progress_bar_custom_style)
             ]
             .spacing(10)
             .into(),
@@ -338,36 +371,44 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
         style.active(&theme::Scrollable::Default)
     }
 
-    fn hovered(&self, style: &Self::Style) -> Scrollbar {
-        style.hovered(&theme::Scrollable::Default)
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar {
+        style.hovered(&theme::Scrollable::Default, is_mouse_over_scrollbar)
     }
 
-    fn hovered_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        Scrollbar {
-            background: style.active(&theme::Scrollable::default()).background,
-            border_radius: 0.0,
-            border_width: 0.0,
-            border_color: Default::default(),
-            scroller: Scroller {
-                color: Color::from_rgb8(250, 85, 134),
-                border_radius: 0.0,
+    fn hovered_horizontal(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar {
+        if is_mouse_over_scrollbar {
+            Scrollbar {
+                background: style
+                    .active(&theme::Scrollable::default())
+                    .background,
+                border_radius: 0.0.into(),
                 border_width: 0.0,
                 border_color: Default::default(),
-            },
+                scroller: Scroller {
+                    color: Color::from_rgb8(250, 85, 134),
+                    border_radius: 0.0.into(),
+                    border_width: 0.0,
+                    border_color: Default::default(),
+                },
+            }
+        } else {
+            self.active(style)
         }
     }
 }
 
-struct ProgressBarCustomStyle;
-
-impl progress_bar::StyleSheet for ProgressBarCustomStyle {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
-        progress_bar::Appearance {
-            background: style.extended_palette().background.strong.color.into(),
-            bar: Color::from_rgb8(250, 85, 134).into(),
-            border_radius: 0.0,
-        }
+fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
+    progress_bar::Appearance {
+        background: theme.extended_palette().background.strong.color.into(),
+        bar: Color::from_rgb8(250, 85, 134).into(),
+        border_radius: 0.0.into(),
     }
 }

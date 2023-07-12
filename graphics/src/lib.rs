@@ -20,7 +20,7 @@
 )]
 #![forbid(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 mod antialiasing;
 mod error;
 mod primitive;
@@ -28,28 +28,29 @@ mod transformation;
 mod viewport;
 
 pub mod backend;
-pub mod font;
+pub mod color;
+pub mod compositor;
+pub mod damage;
 pub mod gradient;
-pub mod image;
-pub mod layer;
-pub mod overlay;
+pub mod mesh;
 pub mod renderer;
-pub mod triangle;
-pub mod widget;
-pub mod window;
+
+#[cfg(feature = "geometry")]
+pub mod geometry;
+
+#[cfg(feature = "image")]
+pub mod image;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
+pub use compositor::Compositor;
+pub use damage::Damage;
 pub use error::Error;
 pub use gradient::Gradient;
-pub use layer::Layer;
+pub use mesh::Mesh;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
 pub use transformation::Transformation;
 pub use viewport::Viewport;
-pub use window::compositor;
 
-pub use iced_native::alignment;
-pub use iced_native::{
-    Alignment, Background, Color, Font, Point, Rectangle, Size, Vector,
-};
+pub use iced_core as core;

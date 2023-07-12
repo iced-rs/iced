@@ -19,6 +19,7 @@ Once a step is completed, it is collapsed and added to this list:
   * [x] Custom styling ([#146])
   * [x] Canvas for 2D graphics ([#193])
   * [x] Basic overlay support ([#444])
+  * [x] Animations [#31]
 
 [#24]: https://github.com/iced-rs/iced/issues/24
 [#25]: https://github.com/iced-rs/iced/issues/25
@@ -29,6 +30,7 @@ Once a step is completed, it is collapsed and added to this list:
 [#146]: https://github.com/iced-rs/iced/pull/146
 [#193]: https://github.com/iced-rs/iced/pull/193
 [#444]: https://github.com/iced-rs/iced/pull/444
+[#31]: https://github.com/iced-rs/iced/issues/31
 
 ### Multi-window support ([#27])
 Open and control multiple windows at runtime.
@@ -39,16 +41,7 @@ This approach should also allow us to perform custom optimizations for this part
 
 [#27]: https://github.com/iced-rs/iced/issues/27
 
-### Animations ([#31])
-Allow widgets to request a redraw at a specific time.
-
-This is a necessary feature to render loading spinners, a blinking text cursor, GIF images, etc.
-
-[`winit`] allows flexible control of its event loop. We may be able to use [`ControlFlow::WaitUntil`](https://docs.rs/winit/0.20.0-alpha3/winit/event_loop/enum.ControlFlow.html#variant.WaitUntil) for this purpose.
-
-[#31]: https://github.com/iced-rs/iced/issues/31
-
-### Canvas widget for 3D graphics ([#32])
+### Canvas widget for 3D graphics (~~[#32]~~ [#343])
 A widget to draw freely in 3D. It could be used to draw charts, implement a Paint clone, a CAD application, etc.
 
 As a first approach, we could expose the underlying renderer directly here, and couple this widget with it ([`wgpu`] for now). Once [`wgpu`] gets WebGL or WebGPU support, this widget will be able to run on the web too. The renderer primitive could be a simple texture that the widget draws to.
@@ -56,6 +49,7 @@ As a first approach, we could expose the underlying renderer directly here, and 
 In the long run, we could expose a renderer-agnostic abstraction to perform the drawing.
 
 [#32]: https://github.com/iced-rs/iced/issues/32
+[#343]: https://github.com/iced-rs/iced/issues/343
 
 ### Text shaping and font fallback ([#33])
 [`wgpu_glyph`] uses [`glyph_brush`], which in turn uses [`rusttype`]. While the current implementation is able to layout text quite nicely, it does not perform any [text shaping].

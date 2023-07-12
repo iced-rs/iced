@@ -90,13 +90,10 @@ impl Sandbox for Styling {
                     },
                 );
 
-        let text_input = text_input(
-            "Type something...",
-            &self.input_value,
-            Message::InputChanged,
-        )
-        .padding(10)
-        .size(20);
+        let text_input = text_input("Type something...", &self.input_value)
+            .on_input(Message::InputChanged)
+            .padding(10)
+            .size(20);
 
         let button = button("Submit")
             .padding(10)
@@ -130,7 +127,9 @@ impl Sandbox for Styling {
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button].spacing(10),
+            row![text_input, button]
+                .spacing(10)
+                .align_items(Alignment::Center),
             slider,
             progress_bar,
             row![

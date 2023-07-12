@@ -1,5 +1,5 @@
 //! Change the appearance of a scrollable.
-use iced_core::{Background, Color};
+use iced_core::{Background, BorderRadius, Color};
 
 /// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
@@ -7,7 +7,7 @@ pub struct Scrollbar {
     /// The [`Background`] of a scrollable.
     pub background: Option<Background>,
     /// The border radius of a scrollable.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
     /// The border width of a scrollable.
     pub border_width: f32,
     /// The border [`Color`] of a scrollable.
@@ -22,7 +22,7 @@ pub struct Scroller {
     /// The [`Color`] of the scroller.
     pub color: Color,
     /// The border radius of the scroller.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
     /// The border width of the scroller.
     pub border_width: f32,
     /// The border [`Color`] of the scroller.
@@ -37,12 +37,16 @@ pub trait StyleSheet {
     /// Produces the style of an active scrollbar.
     fn active(&self, style: &Self::Style) -> Scrollbar;
 
-    /// Produces the style of a hovered scrollbar.
-    fn hovered(&self, style: &Self::Style) -> Scrollbar;
+    /// Produces the style of a scrollbar when the scrollable is being hovered.
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar;
 
     /// Produces the style of a scrollbar that is being dragged.
     fn dragging(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered(style)
+        self.hovered(style, true)
     }
 
     /// Produces the style of an active horizontal scrollbar.
@@ -50,13 +54,17 @@ pub trait StyleSheet {
         self.active(style)
     }
 
-    /// Produces the style of a hovered horizontal scrollbar.
-    fn hovered_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered(style)
+    /// Produces the style of a horizontal scrollbar when the scrollable is being hovered.
+    fn hovered_horizontal(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> Scrollbar {
+        self.hovered(style, is_mouse_over_scrollbar)
     }
 
     /// Produces the style of a horizontal scrollbar that is being dragged.
     fn dragging_horizontal(&self, style: &Self::Style) -> Scrollbar {
-        self.hovered_horizontal(style)
+        self.hovered_horizontal(style, true)
     }
 }

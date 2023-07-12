@@ -8,6 +8,7 @@ use crate::application;
 use crate::button;
 use crate::checkbox;
 use crate::container;
+use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
@@ -17,7 +18,6 @@ use crate::rule;
 use crate::scrollable;
 use crate::slider;
 use crate::svg;
-use crate::text;
 use crate::text_input;
 use crate::toggler;
 
@@ -105,7 +105,7 @@ impl application::StyleSheet for Theme {
     }
 }
 
-impl application::StyleSheet for fn(&Theme) -> application::Appearance {
+impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
@@ -113,8 +113,10 @@ impl application::StyleSheet for fn(&Theme) -> application::Appearance {
     }
 }
 
-impl From<fn(&Theme) -> application::Appearance> for Application {
-    fn from(f: fn(&Theme) -> application::Appearance) -> Self {
+impl<T: Fn(&Theme) -> application::Appearance + 'static> From<T>
+    for Application
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -139,6 +141,15 @@ pub enum Button {
     Custom(Box<dyn button::StyleSheet<Style = Theme>>),
 }
 
+impl Button {
+    /// Creates a custom [`Button`] style variant.
+    pub fn custom(
+        style_sheet: impl button::StyleSheet<Style = Theme> + 'static,
+    ) -> Self {
+        Self::Custom(Box::new(style_sheet))
+    }
+}
+
 impl button::StyleSheet for Theme {
     type Style = Button;
 
@@ -146,7 +157,7 @@ impl button::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let appearance = button::Appearance {
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             ..button::Appearance::default()
         };
 
@@ -217,6 +228,9 @@ impl button::StyleSheet for Theme {
                     a: color.a * 0.5,
                     ..color
                 }),
+                Background::Gradient(gradient) => {
+                    Background::Gradient(gradient.mul_alpha(0.5))
+                }
             }),
             text_color: Color {
                 a: active.text_color.a * 0.5,
@@ -332,7 +346,7 @@ fn checkbox_appearance(
             base.color
         }),
         icon_color,
-        border_radius: 2.0,
+        border_radius: 2.0.into(),
         border_width: 1.0,
         border_color: accent.color,
         text_color: None,
@@ -351,8 +365,8 @@ pub enum Container {
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> container::Appearance> for Container {
-    fn from(f: fn(&Theme) -> container::Appearance) -> Self {
+impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -368,8 +382,8 @@ impl container::StyleSheet for Theme {
 
                 container::Appearance {
                     text_color: None,
-                    background: palette.background.weak.color.into(),
-                    border_radius: 2.0,
+                    background: Some(palette.background.weak.color.into()),
+                    border_radius: 2.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 }
@@ -379,7 +393,7 @@ impl container::StyleSheet for Theme {
     }
 }
 
-impl container::StyleSheet for fn(&Theme) -> container::Appearance {
+impl<T: Fn(&Theme) -> container::Appearance> container::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
@@ -408,7 +422,7 @@ impl slider::StyleSheet for Theme {
                 let handle = slider::Handle {
                     shape: slider::HandleShape::Rectangle {
                         width: 8,
-                        border_radius: 4.0,
+                        border_radius: 4.0.into(),
                     },
                     color: Color::WHITE,
                     border_color: Color::WHITE,
@@ -416,10 +430,14 @@ impl slider::StyleSheet for Theme {
                 };
 
                 slider::Appearance {
-                    rail_colors: (
-                        palette.primary.base.color,
-                        Color::TRANSPARENT,
-                    ),
+                    rail: slider::Rail {
+                        colors: (
+                            palette.primary.base.color,
+                            palette.secondary.base.color,
+                        ),
+                        width: 4.0,
+                        border_radius: 2.0.into(),
+                    },
                     handle: slider::Handle {
                         color: palette.background.base.color,
                         border_color: palette.primary.base.color,
@@ -490,7 +508,7 @@ impl menu::StyleSheet for Theme {
                     text_color: palette.background.weak.text,
                     background: palette.background.weak.color.into(),
                     border_width: 1.0,
-                    border_radius: 0.0,
+                    border_radius: 0.0.into(),
                     border_color: palette.background.strong.color,
                     selected_text_color: palette.primary.strong.text,
                     selected_background: palette.primary.strong.color.into(),
@@ -536,7 +554,7 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 1.0,
                     border_color: palette.background.strong.color,
                 }
@@ -555,7 +573,7 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0,
+                    border_radius: 2.0.into(),
                     border_width: 1.0,
                     border_color: palette.primary.strong.color,
                 }
@@ -700,6 +718,25 @@ pub enum PaneGrid {
 impl pane_grid::StyleSheet for Theme {
     type Style = PaneGrid;
 
+    fn hovered_region(&self, style: &Self::Style) -> pane_grid::Appearance {
+        match style {
+            PaneGrid::Default => {
+                let palette = self.extended_palette();
+
+                pane_grid::Appearance {
+                    background: Background::Color(Color {
+                        a: 0.5,
+                        ..palette.primary.base.color
+                    }),
+                    border_width: 2.0,
+                    border_color: palette.primary.strong.color,
+                    border_radius: 0.0.into(),
+                }
+            }
+            PaneGrid::Custom(custom) => custom.hovered_region(self),
+        }
+    }
+
     fn picked_split(&self, style: &Self::Style) -> Option<pane_grid::Line> {
         match style {
             PaneGrid::Default => {
@@ -743,8 +780,10 @@ pub enum ProgressBar {
     Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> progress_bar::Appearance> for ProgressBar {
-    fn from(f: fn(&Theme) -> progress_bar::Appearance) -> Self {
+impl<T: Fn(&Theme) -> progress_bar::Appearance + 'static> From<T>
+    for ProgressBar
+{
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -762,7 +801,7 @@ impl progress_bar::StyleSheet for Theme {
         let from_palette = |bar: Color| progress_bar::Appearance {
             background: palette.background.strong.color.into(),
             bar: bar.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
         };
 
         match style {
@@ -774,7 +813,7 @@ impl progress_bar::StyleSheet for Theme {
     }
 }
 
-impl progress_bar::StyleSheet for fn(&Theme) -> progress_bar::Appearance {
+impl<T: Fn(&Theme) -> progress_bar::Appearance> progress_bar::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
@@ -792,8 +831,8 @@ pub enum Rule {
     Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
 }
 
-impl From<fn(&Theme) -> rule::Appearance> for Rule {
-    fn from(f: fn(&Theme) -> rule::Appearance) -> Self {
+impl<T: Fn(&Theme) -> rule::Appearance + 'static> From<T> for Rule {
+    fn from(f: T) -> Self {
         Self::Custom(Box::new(f))
     }
 }
@@ -808,7 +847,7 @@ impl rule::StyleSheet for Theme {
             Rule::Default => rule::Appearance {
                 color: palette.background.strong.color,
                 width: 1,
-                radius: 0.0,
+                radius: 0.0.into(),
                 fill_mode: rule::FillMode::Full,
             },
             Rule::Custom(custom) => custom.appearance(self),
@@ -816,7 +855,7 @@ impl rule::StyleSheet for Theme {
     }
 }
 
-impl rule::StyleSheet for fn(&Theme) -> rule::Appearance {
+impl<T: Fn(&Theme) -> rule::Appearance> rule::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> rule::Appearance {
@@ -890,13 +929,13 @@ impl scrollable::StyleSheet for Theme {
                 let palette = self.extended_palette();
 
                 scrollable::Scrollbar {
-                    background: palette.background.weak.color.into(),
-                    border_radius: 2.0,
+                    background: Some(palette.background.weak.color.into()),
+                    border_radius: 2.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                     scroller: scrollable::Scroller {
                         color: palette.background.strong.color,
-                        border_radius: 2.0,
+                        border_radius: 2.0.into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
                     },
@@ -906,31 +945,41 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => {
-                let palette = self.extended_palette();
+                if is_mouse_over_scrollbar {
+                    let palette = self.extended_palette();
 
-                scrollable::Scrollbar {
-                    background: palette.background.weak.color.into(),
-                    border_radius: 2.0,
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                    scroller: scrollable::Scroller {
-                        color: palette.primary.strong.color,
-                        border_radius: 2.0,
+                    scrollable::Scrollbar {
+                        background: Some(palette.background.weak.color.into()),
+                        border_radius: 2.0.into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
-                    },
+                        scroller: scrollable::Scroller {
+                            color: palette.primary.strong.color,
+                            border_radius: 2.0.into(),
+                            border_width: 0.0,
+                            border_color: Color::TRANSPARENT,
+                        },
+                    }
+                } else {
+                    self.active(style)
                 }
             }
-            Scrollable::Custom(custom) => custom.hovered(self),
+            Scrollable::Custom(custom) => {
+                custom.hovered(self, is_mouse_over_scrollbar)
+            }
         }
     }
 
     fn dragging(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
+            Scrollable::Default => self.hovered(style, true),
             Scrollable::Custom(custom) => custom.dragging(self),
         }
     }
@@ -942,10 +991,16 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn hovered_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn hovered_horizontal(
+        &self,
+        style: &Self::Style,
+        is_mouse_over_scrollbar: bool,
+    ) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered(style),
-            Scrollable::Custom(custom) => custom.hovered_horizontal(self),
+            Scrollable::Default => self.hovered(style, is_mouse_over_scrollbar),
+            Scrollable::Custom(custom) => {
+                custom.hovered_horizontal(self, is_mouse_over_scrollbar)
+            }
         }
     }
 
@@ -954,7 +1009,7 @@ impl scrollable::StyleSheet for Theme {
         style: &Self::Style,
     ) -> scrollable::Scrollbar {
         match style {
-            Scrollable::Default => self.hovered_horizontal(style),
+            Scrollable::Default => self.hovered_horizontal(style, true),
             Scrollable::Custom(custom) => custom.dragging_horizontal(self),
         }
     }
@@ -1009,9 +1064,10 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.background.strong.color,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1024,9 +1080,10 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.background.base.text,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1039,9 +1096,10 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0,
+            border_radius: 2.0.into(),
             border_width: 1.0,
             border_color: palette.primary.strong.color,
+            icon_color: palette.background.weak.text,
         }
     }
 
@@ -1073,5 +1131,29 @@ impl text_input::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         palette.primary.weak.color
+    }
+
+    fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
+        if let TextInput::Custom(custom) = style {
+            return custom.disabled(self);
+        }
+
+        let palette = self.extended_palette();
+
+        text_input::Appearance {
+            background: palette.background.weak.color.into(),
+            border_radius: 2.0.into(),
+            border_width: 1.0,
+            border_color: palette.background.strong.color,
+            icon_color: palette.background.strong.color,
+        }
+    }
+
+    fn disabled_color(&self, style: &Self::Style) -> Color {
+        if let TextInput::Custom(custom) = style {
+            return custom.disabled_color(self);
+        }
+
+        self.placeholder_color(style)
     }
 }

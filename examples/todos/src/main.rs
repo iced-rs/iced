@@ -1,5 +1,6 @@
 use iced::alignment::{self, Alignment};
 use iced::event::{self, Event};
+use iced::font::{self, Font};
 use iced::keyboard::{self, KeyCode, Modifiers};
 use iced::subscription;
 use iced::theme::{self, Theme};
@@ -9,7 +10,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Font, Length, Settings, Subscription};
+use iced::{Color, Command, Length, Settings, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -44,6 +45,7 @@ struct State {
 #[derive(Debug, Clone)]
 enum Message {
     Loaded(Result<SavedState, LoadError>),
+    FontLoaded(Result<(), font::Error>),
     Saved(Result<(), SaveError>),
     InputChanged(String),
     CreateTask,
@@ -62,7 +64,11 @@ impl Application for Todos {
     fn new(_flags: ()) -> (Todos, Command<Message>) {
         (
             Todos::Loading,
-            Command::perform(SavedState::load(), Message::Loaded),
+            Command::batch(vec![
+                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
+                    .map(Message::FontLoaded),
+                Command::perform(SavedState::load(), Message::Loaded),
+            ]),
         )
     }
 
@@ -204,15 +210,12 @@ impl Application for Todos {
                     .style(Color::from([0.5, 0.5, 0.5]))
                     .horizontal_alignment(alignment::Horizontal::Center);
 
-                let input = text_input(
-                    "What needs to be done?",
-                    input_value,
-                    Message::InputChanged,
-                )
-                .id(INPUT_ID.clone())
-                .padding(15)
-                .size(30)
-                .on_submit(Message::CreateTask);
+                let input = text_input("What needs to be done?", input_value)
+                    .id(INPUT_ID.clone())
+                    .on_input(Message::InputChanged)
+                    .on_submit(Message::CreateTask)
+                    .padding(15)
+                    .size(30);
 
                 let controls = view_controls(tasks, *filter);
                 let filtered_tasks =
@@ -361,7 +364,8 @@ impl Task {
                     self.completed,
                     TaskMessage::Completed,
                 )
-                .width(Length::Fill);
+                .width(Length::Fill)
+                .text_shaping(text::Shaping::Advanced);
 
                 row![
                     checkbox,
@@ -375,21 +379,23 @@ impl Task {
                 .into()
             }
             TaskState::Editing => {
-                let text_input = text_input(
-                    "Describe your task...",
-                    &self.description,
-                    TaskMessage::DescriptionEdited,
-                )
-                .id(Self::text_input_id(i))
-                .on_submit(TaskMessage::FinishEdition)
-                .padding(10);
+                let text_input =
+                    text_input("Describe your task...", &self.description)
+                        .id(Self::text_input_id(i))
+                        .on_input(TaskMessage::DescriptionEdited)
+                        .on_submit(TaskMessage::FinishEdition)
+                        .padding(10);
 
                 row![
                     text_input,
-                    button(row![delete_icon(), "Delete"].spacing(10))
-                        .on_press(TaskMessage::Delete)
-                        .padding(10)
-                        .style(theme::Button::Destructive)
+                    button(
+                        row![delete_icon(), "Delete"]
+                            .spacing(10)
+                            .align_items(Alignment::Center)
+                    )
+                    .on_press(TaskMessage::Delete)
+                    .padding(10)
+                    .style(theme::Button::Destructive)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -403,7 +409,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     let tasks_left = tasks.iter().filter(|task| !task.completed).count();
 
     let filter_button = |label, filter, current_filter| {
-        let label = text(label).size(16);
+        let label = text(label);
 
         let button = button(label).style(if filter == current_filter {
             theme::Button::Primary
@@ -420,8 +426,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
             tasks_left,
             if tasks_left == 1 { "task" } else { "tasks" }
         ))
-        .width(Length::Fill)
-        .size(16),
+        .width(Length::Fill),
         row![
             filter_button("All", Filter::All, current_filter),
             filter_button("Active", Filter::Active, current_filter),
@@ -435,17 +440,14 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
     .into()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize,
+)]
 pub enum Filter {
+    #[default]
     All,
     Active,
     Completed,
-}
-
-impl Default for Filter {
-    fn default() -> Self {
-        Filter::All
-    }
 }
 
 impl Filter {
@@ -485,17 +487,13 @@ fn empty_message(message: &str) -> Element<'_, Message> {
 }
 
 // Fonts
-const ICONS: Font = Font::External {
-    name: "Icons",
-    bytes: include_bytes!("../../todos/fonts/icons.ttf"),
-};
+const ICONS: Font = Font::with_name("Iced-Todos-Icons");
 
 fn icon(unicode: char) -> Text<'static> {
     text(unicode.to_string())
         .font(ICONS)
         .width(20)
         .horizontal_alignment(alignment::Horizontal::Center)
-        .size(20)
 }
 
 fn edit_icon() -> Text<'static> {

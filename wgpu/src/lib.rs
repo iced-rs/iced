@@ -16,7 +16,7 @@
 //! - Meshes of triangles, useful to draw geometry freely.
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.8/native
+//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
 //! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
@@ -36,25 +36,33 @@
 )]
 #![forbid(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+pub mod layer;
+pub mod primitive;
 pub mod settings;
 pub mod window;
 
+#[cfg(feature = "geometry")]
+pub mod geometry;
+
 mod backend;
 mod buffer;
+mod color;
 mod quad;
 mod text;
 mod triangle;
 
-pub use iced_graphics::{Antialiasing, Color, Error, Primitive, Viewport};
-pub use iced_native::Theme;
+use buffer::Buffer;
+
+pub use iced_graphics as graphics;
+pub use iced_graphics::core;
+
 pub use wgpu;
 
 pub use backend::Backend;
+pub use layer::Layer;
+pub use primitive::Primitive;
 pub use settings::Settings;
-
-pub(crate) use iced_graphics::Transformation;
 
 #[cfg(any(feature = "image", feature = "svg"))]
 mod image;
@@ -63,5 +71,4 @@ mod image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer<Theme = iced_native::Theme> =
-    iced_graphics::Renderer<Backend, Theme>;
+pub type Renderer<Theme> = iced_graphics::Renderer<Backend, Theme>;

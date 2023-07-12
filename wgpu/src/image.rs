@@ -1,16 +1,17 @@
 mod atlas;
 
 #[cfg(feature = "image")]
-use iced_graphics::image::raster;
+mod raster;
 
 #[cfg(feature = "svg")]
-use iced_graphics::image::vector;
+mod vector;
 
-use crate::Transformation;
 use atlas::Atlas;
 
-use iced_graphics::layer;
-use iced_native::{Rectangle, Size};
+use crate::core::{Rectangle, Size};
+use crate::graphics::Transformation;
+use crate::layer;
+use crate::Buffer;
 
 use std::cell::RefCell;
 use std::mem;
@@ -18,10 +19,10 @@ use std::mem;
 use bytemuck::{Pod, Zeroable};
 
 #[cfg(feature = "image")]
-use iced_native::image;
+use crate::core::image;
 
 #[cfg(feature = "svg")]
-use iced_native::svg;
+use crate::core::svg;
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
@@ -29,20 +30,112 @@ use tracing::info_span;
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
-    raster_cache: RefCell<raster::Cache<Atlas>>,
+    raster_cache: RefCell<raster::Cache>,
     #[cfg(feature = "svg")]
-    vector_cache: RefCell<vector::Cache<Atlas>>,
+    vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
-    uniforms: wgpu::Buffer,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    instances: wgpu::Buffer,
-    constants: wgpu::BindGroup,
+    sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
     texture_version: usize,
-    texture_layout: wgpu::BindGroupLayout,
     texture_atlas: Atlas,
+    texture_layout: wgpu::BindGroupLayout,
+    constant_layout: wgpu::BindGroupLayout,
+
+    layers: Vec<Layer>,
+    prepare_layer: usize,
+}
+
+#[derive(Debug)]
+struct Layer {
+    uniforms: wgpu::Buffer,
+    constants: wgpu::BindGroup,
+    instances: Buffer<Instance>,
+    instance_count: usize,
+}
+
+impl Layer {
+    fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+    ) -> Self {
+        let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu::image uniforms buffer"),
+            size: mem::size_of::<Uniforms>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image constants bind group"),
+            layout: constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(
+                        wgpu::BufferBinding {
+                            buffer: &uniforms,
+                            offset: 0,
+                            size: None,
+                        },
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(sampler),
+                },
+            ],
+        });
+
+        let instances = Buffer::new(
+            device,
+            "iced_wgpu::image instance buffer",
+            Instance::INITIAL,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        );
+
+        Self {
+            uniforms,
+            constants,
+            instances,
+            instance_count: 0,
+        }
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        instances: &[Instance],
+        transformation: Transformation,
+    ) {
+        queue.write_buffer(
+            &self.uniforms,
+            0,
+            bytemuck::bytes_of(&Uniforms {
+                transform: transformation.into(),
+            }),
+        );
+
+        let _ = self.instances.resize(device, instances.len());
+        let _ = self.instances.write(queue, 0, instances);
+
+        self.instance_count = instances.len();
+    }
+
+    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        render_pass.set_bind_group(0, &self.constants, &[]);
+        render_pass.set_vertex_buffer(1, self.instances.slice(..));
+
+        render_pass.draw_indexed(
+            0..QUAD_INDICES.len() as u32,
+            0,
+            0..self.instance_count as u32,
+        );
+    }
 }
 
 impl Pipeline {
@@ -86,35 +179,6 @@ impl Pipeline {
                 ],
             });
 
-        let uniforms_buffer = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu::image uniforms buffer"),
-            size: mem::size_of::<Uniforms>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let constant_bind_group =
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::image constants bind group"),
-                layout: &constant_layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(
-                            wgpu::BufferBinding {
-                                buffer: &uniforms_buffer,
-                                offset: 0,
-                                size: None,
-                            },
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&sampler),
-                    },
-                ],
-            });
-
         let texture_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("iced_wgpu::image texture atlas layout"),
@@ -141,7 +205,7 @@ impl Pipeline {
 
         let shader =
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu::image::shader"),
+                label: Some("iced_wgpu image shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     include_str!("shader/image.wgsl"),
                 )),
@@ -214,7 +278,7 @@ impl Pipeline {
         let vertices =
             device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("iced_wgpu::image vertex buffer"),
-                contents: bytemuck::cast_slice(&QUAD_VERTS),
+                contents: bytemuck::cast_slice(&QUAD_VERTICES),
                 usage: wgpu::BufferUsages::VERTEX,
             });
 
@@ -224,13 +288,6 @@ impl Pipeline {
                 contents: bytemuck::cast_slice(&QUAD_INDICES),
                 usage: wgpu::BufferUsages::INDEX,
             });
-
-        let instances = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu::image instance buffer"),
-            size: mem::size_of::<Instance>() as u64 * Instance::MAX as u64,
-            usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
 
         let texture_atlas = Atlas::new(device);
 
@@ -253,15 +310,17 @@ impl Pipeline {
             vector_cache: RefCell::new(vector::Cache::default()),
 
             pipeline,
-            uniforms: uniforms_buffer,
             vertices,
             indices,
-            instances,
-            constants: constant_bind_group,
+            sampler,
             texture,
             texture_version: texture_atlas.layer_count(),
-            texture_layout,
             texture_atlas,
+            texture_layout,
+            constant_layout,
+
+            layers: Vec::new(),
+            prepare_layer: 0,
         }
     }
 
@@ -281,17 +340,18 @@ impl Pipeline {
         svg.viewport_dimensions()
     }
 
-    pub fn draw(
+    pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
+        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         images: &[layer::Image],
         transformation: Transformation,
-        bounds: Rectangle<u32>,
-        target: &wgpu::TextureView,
         _scale: f32,
     ) {
+        #[cfg(feature = "tracing")]
+        let _ = info_span!("Wgpu::Image", "PREPARE").entered();
+
         #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
@@ -308,8 +368,9 @@ impl Pipeline {
                 #[cfg(feature = "image")]
                 layer::Image::Raster { handle, bounds } => {
                     if let Some(atlas_entry) = raster_cache.upload(
+                        device,
+                        encoder,
                         handle,
-                        &mut (device, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -332,11 +393,12 @@ impl Pipeline {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = vector_cache.upload(
+                        device,
+                        encoder,
                         handle,
                         *color,
                         size,
                         _scale,
-                        &mut (device, encoder),
                         &mut self.texture_atlas,
                     ) {
                         add_instances(
@@ -376,68 +438,28 @@ impl Pipeline {
             self.texture_version = texture_version;
         }
 
-        {
-            let mut uniforms_buffer = staging_belt.write_buffer(
-                encoder,
-                &self.uniforms,
-                0,
-                wgpu::BufferSize::new(mem::size_of::<Uniforms>() as u64)
-                    .unwrap(),
+        if self.layers.len() <= self.prepare_layer {
+            self.layers.push(Layer::new(
                 device,
-            );
-
-            uniforms_buffer.copy_from_slice(bytemuck::bytes_of(&Uniforms {
-                transform: transformation.into(),
-            }));
+                &self.constant_layout,
+                &self.sampler,
+            ));
         }
 
-        let mut i = 0;
-        let total = instances.len();
+        let layer = &mut self.layers[self.prepare_layer];
+        layer.prepare(device, queue, instances, transformation);
 
-        while i < total {
-            let end = (i + Instance::MAX).min(total);
-            let amount = end - i;
+        self.prepare_layer += 1;
+    }
 
-            let mut instances_buffer = staging_belt.write_buffer(
-                encoder,
-                &self.instances,
-                0,
-                wgpu::BufferSize::new(
-                    (amount * std::mem::size_of::<Instance>()) as u64,
-                )
-                .unwrap(),
-                device,
-            );
-
-            instances_buffer.copy_from_slice(bytemuck::cast_slice(
-                &instances[i..i + amount],
-            ));
-
-            let mut render_pass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::image render pass"),
-                    color_attachments: &[Some(
-                        wgpu::RenderPassColorAttachment {
-                            view: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: true,
-                            },
-                        },
-                    )],
-                    depth_stencil_attachment: None,
-                });
-
+    pub fn render<'a>(
+        &'a self,
+        layer: usize,
+        bounds: Rectangle<u32>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        if let Some(layer) = self.layers.get(layer) {
             render_pass.set_pipeline(&self.pipeline);
-            render_pass.set_bind_group(0, &self.constants, &[]);
-            render_pass.set_bind_group(1, &self.texture, &[]);
-            render_pass.set_index_buffer(
-                self.indices.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
-            render_pass.set_vertex_buffer(1, self.instances.slice(..));
 
             render_pass.set_scissor_rect(
                 bounds.x,
@@ -446,30 +468,25 @@ impl Pipeline {
                 bounds.height,
             );
 
-            render_pass.draw_indexed(
-                0..QUAD_INDICES.len() as u32,
-                0,
-                0..amount as u32,
+            render_pass.set_bind_group(1, &self.texture, &[]);
+            render_pass.set_index_buffer(
+                self.indices.slice(..),
+                wgpu::IndexFormat::Uint16,
             );
+            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
-            i += Instance::MAX;
+            layer.render(render_pass);
         }
     }
 
-    pub fn trim_cache(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-    ) {
+    pub fn end_frame(&mut self) {
         #[cfg(feature = "image")]
-        self.raster_cache
-            .borrow_mut()
-            .trim(&mut self.texture_atlas, &mut (device, encoder));
+        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         #[cfg(feature = "svg")]
-        self.vector_cache
-            .borrow_mut()
-            .trim(&mut self.texture_atlas, &mut (device, encoder));
+        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
+
+        self.prepare_layer = 0;
     }
 }
 
@@ -481,7 +498,7 @@ pub struct Vertex {
 
 const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
 
-const QUAD_VERTS: [Vertex; 4] = [
+const QUAD_VERTICES: [Vertex; 4] = [
     Vertex {
         _position: [0.0, 0.0],
     },
@@ -507,7 +524,7 @@ struct Instance {
 }
 
 impl Instance {
-    pub const MAX: usize = 1_000;
+    pub const INITIAL: usize = 1_000;
 }
 
 #[repr(C)]

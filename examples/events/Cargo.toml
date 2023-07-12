@@ -7,4 +7,3 @@ publish = false
 
 [dependencies]
 iced = { path = "../..", features = ["debug"] }
-iced_native = { path = "../../native" }

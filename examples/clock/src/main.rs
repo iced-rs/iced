@@ -1,11 +1,10 @@
 use iced::executor;
-use iced::widget::canvas::{
-    stroke, Cache, Cursor, Geometry, LineCap, Path, Stroke,
-};
+use iced::mouse;
+use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Settings,
-    Subscription, Theme, Vector,
+    Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
+    Settings, Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -83,17 +82,18 @@ impl Application for Clock {
     }
 }
 
-impl<Message> canvas::Program<Message> for Clock {
+impl<Message> canvas::Program<Message, Renderer> for Clock {
     type State = ();
 
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        let clock = self.clock.draw(bounds.size(), |frame| {
+        let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
 

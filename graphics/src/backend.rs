@@ -1,13 +1,18 @@
 //! Write a graphics backend.
-use iced_native::image;
-use iced_native::svg;
-use iced_native::text;
-use iced_native::{Font, Point, Size};
+use iced_core::image;
+use iced_core::svg;
+use iced_core::text;
+use iced_core::{Font, Point, Size};
+
+use std::borrow::Cow;
 
 /// The graphics backend of a [`Renderer`].
 ///
 /// [`Renderer`]: crate::Renderer
 pub trait Backend {
+    /// The custom kind of primitives this [`Backend`] supports.
+    type Primitive;
+
     /// Trims the measurements cache.
     ///
     /// This method is currently necessary to properly trim the text cache in
@@ -31,6 +36,9 @@ pub trait Text {
     /// [`ICON_FONT`]: Self::ICON_FONT
     const ARROW_DOWN_ICON: char;
 
+    /// Returns the default [`Font`].
+    fn default_font(&self) -> Font;
+
     /// Returns the default size of text.
     fn default_size(&self) -> f32;
 
@@ -41,9 +49,11 @@ pub trait Text {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
-    ) -> (f32, f32);
+        shaping: text::Shaping,
+    ) -> Size;
 
     /// Tests whether the provided point is within the boundaries of [`Text`]
     /// laid out with the given parameters, returning information about
@@ -56,11 +66,16 @@ pub trait Text {
         &self,
         contents: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit>;
+
+    /// Loads a [`Font`] from its bytes.
+    fn load_font(&mut self, font: Cow<'static, [u8]>);
 }
 
 /// A graphics backend that supports image rendering.

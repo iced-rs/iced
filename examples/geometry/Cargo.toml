@@ -6,6 +6,4 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../.." }
-iced_native = { path = "../../native" }
-iced_graphics = { path = "../../graphics" }
+iced = { path = "../..", features = ["advanced"] }
