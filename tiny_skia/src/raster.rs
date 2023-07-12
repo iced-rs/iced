@@ -2,7 +2,6 @@ use crate::core::image as raster;
 use crate::core::{Rectangle, Size};
 use crate::graphics;
 
-use bytemuck::cast;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::RefCell;
 use std::collections::hash_map;
@@ -81,8 +80,9 @@ impl Cache {
             for (i, pixel) in image.pixels().enumerate() {
                 let [r, g, b, a] = pixel.0;
 
-                buffer[i] = cast(tiny_skia::ColorU8::from_rgba(b, g, r, a)
-                    .premultiply());
+                buffer[i] = bytemuck::cast(
+                    tiny_skia::ColorU8::from_rgba(b, g, r, a).premultiply(),
+                );
             }
 
             entry.insert(Some(Entry {

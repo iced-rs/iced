@@ -1,7 +1,6 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
 
-use bytemuck::cast;
 use resvg::usvg;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -157,7 +156,7 @@ impl Cache {
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = cast(
+                    *pixel = bytemuck::cast(
                         tiny_skia::ColorU8::from_rgba(
                             b,
                             g,
