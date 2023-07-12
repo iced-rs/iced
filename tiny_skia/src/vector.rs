@@ -131,23 +131,24 @@ impl Cache {
             let mut image = tiny_skia::Pixmap::new(size.width, size.height)?;
 
             let tree_size = tree.size.to_int_size();
-            let target_size;
-            if size.width > size.height {
-                target_size = tree_size.scale_to_width(size.width);
+
+            let target_size = if size.width > size.height {
+                tree_size.scale_to_width(size.width)
             } else {
-                target_size = tree_size.scale_to_height(size.height);
-            }
-            let transform;
-            if let Some(target_size) = target_size {
+                tree_size.scale_to_height(size.height)
+            };
+
+            let transform = if let Some(target_size) = target_size {
                 let tree_size = tree_size.to_size();
                 let target_size = target_size.to_size();
-                transform = tiny_skia::Transform::from_scale(
+
+                tiny_skia::Transform::from_scale(
                     target_size.width() / tree_size.width(),
                     target_size.height() / tree_size.height(),
-                );
+                )
             } else {
-                transform = tiny_skia::Transform::default();
-            }
+                tiny_skia::Transform::default()
+            };
 
             resvg::Tree::from_usvg(tree).render(transform, &mut image.as_mut());
 
