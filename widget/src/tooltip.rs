@@ -316,8 +316,6 @@ where
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let gap = f32::from(self.gap);
-
         let text_layout = Widget::<(), Renderer>::layout(
             self.tooltip,
             renderer,
@@ -330,8 +328,6 @@ where
             .pad(Padding::new(self.padding)),
         );
 
-        let padding = f32::from(self.padding);
-
         let text_bounds = text_layout.bounds();
         let x_center = self.content_bounds.x
             + (self.content_bounds.width - text_bounds.width) / 2.0;
@@ -342,24 +338,30 @@ where
             let offset = match self.position {
                 Position::Top => Vector::new(
                     x_center,
-                    self.content_bounds.y - text_bounds.height - gap - padding,
+                    self.content_bounds.y
+                        - text_bounds.height
+                        - self.gap
+                        - self.padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
                     self.content_bounds.y
                         + self.content_bounds.height
-                        + gap
-                        + padding,
+                        + self.gap
+                        + self.padding,
                 ),
                 Position::Left => Vector::new(
-                    self.content_bounds.x - text_bounds.width - gap - padding,
+                    self.content_bounds.x
+                        - text_bounds.width
+                        - self.gap
+                        - self.padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
                     self.content_bounds.x
                         + self.content_bounds.width
-                        + gap
-                        + padding,
+                        + self.gap
+                        + self.padding,
                     y_center,
                 ),
                 Position::FollowCursor => Vector::new(
@@ -369,10 +371,10 @@ where
             };
 
             Rectangle {
-                x: offset.x - padding,
-                y: offset.y - padding,
-                width: text_bounds.width + padding * 2.0,
-                height: text_bounds.height + padding * 2.0,
+                x: offset.x - self.padding,
+                y: offset.y - self.padding,
+                width: text_bounds.width + self.padding * 2.0,
+                height: text_bounds.height + self.padding * 2.0,
             }
         };
 
@@ -398,7 +400,7 @@ where
 
         layout::Node::with_children(
             tooltip_bounds.size(),
-            vec![text_layout.translate(Vector::new(padding, padding))],
+            vec![text_layout.translate(Vector::new(self.padding, self.padding))],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }
