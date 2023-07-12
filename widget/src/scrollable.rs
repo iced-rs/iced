@@ -1058,7 +1058,7 @@ impl Offset {
         }
     }
 
-    fn absolute_from_start(
+    fn translation(
         self,
         viewport: f32,
         content: f32,
@@ -1219,7 +1219,7 @@ impl State {
     ) -> Vector {
         Vector::new(
             if let Some(horizontal) = direction.horizontal() {
-                self.offset_x.absolute_from_start(
+                self.offset_x.translation(
                     bounds.width,
                     content_bounds.width,
                     horizontal.alignment,
@@ -1228,7 +1228,7 @@ impl State {
                 0.0
             },
             if let Some(vertical) = direction.vertical() {
-                self.offset_y.absolute_from_start(
+                self.offset_y.translation(
                     bounds.height,
                     content_bounds.height,
                     vertical.alignment,
