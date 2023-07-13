@@ -1095,6 +1095,20 @@ impl Viewport {
         AbsoluteOffset { x, y }
     }
 
+    /// Returns the [`AbsoluteOffset`] of the current [`Viewport`], but with its
+    /// alignment reversed.
+    ///
+    /// This method can be useful to switch the alignment of a [`Scrollable`]
+    /// while maintaining its scrolling position.
+    pub fn absolute_offset_reversed(&self) -> AbsoluteOffset {
+        let AbsoluteOffset { x, y } = self.absolute_offset();
+
+        AbsoluteOffset {
+            x: (self.content_bounds.width - self.bounds.width).max(0.0) - x,
+            y: (self.content_bounds.height - self.bounds.height).max(0.0) - y,
+        }
+    }
+
     /// Returns the [`RelativeOffset`] of the current [`Viewport`].
     pub fn relative_offset(&self) -> RelativeOffset {
         let AbsoluteOffset { x, y } = self.absolute_offset();
