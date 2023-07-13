@@ -1104,10 +1104,8 @@ impl Viewport {
         let AbsoluteOffset { x, y } = self.absolute_offset();
 
         AbsoluteOffset {
-            x: ((self.content_bounds.width - self.bounds.width).max(0.0) - x)
-                .max(0.0),
-            y: ((self.content_bounds.height - self.bounds.height).max(0.0) - y)
-                .max(0.0),
+            x: (self.content_bounds.width - self.bounds.width).max(0.0) - x,
+            y: (self.content_bounds.height - self.bounds.height).max(0.0) - y,
         }
     }
 
