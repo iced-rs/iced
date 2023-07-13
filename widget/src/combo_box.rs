@@ -58,7 +58,7 @@ where
         let text_input = TextInput::new(placeholder, &state.value())
             .on_input(TextInputEvent::TextChanged);
 
-        let selection = selection.map(T::to_string).unwrap_or_else(String::new);
+        let selection = selection.map(T::to_string).unwrap_or_default();
 
         Self {
             state,
@@ -204,7 +204,7 @@ where
     /// Creates a new [`State`] for a [`ComboBox`] with the given list of options
     /// and selected value.
     pub fn with_selection(options: Vec<T>, selection: Option<&T>) -> Self {
-        let value = selection.map(T::to_string).unwrap_or_else(String::new);
+        let value = selection.map(T::to_string).unwrap_or_default();
 
         // Pre-build "matcher" strings ahead of time so that search is fast
         let option_matchers = build_matchers(&options);
