@@ -26,7 +26,7 @@ struct Events {
 enum Message {
     EventOccurred(Event),
     Toggled(bool),
-    Exit(window::Id),
+    Exit,
 }
 
 impl Application for Events {
@@ -55,7 +55,8 @@ impl Application for Events {
                 Command::none()
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(id, window::Event::CloseRequested) = event {
+                if let Event::Window(id, window::Event::CloseRequested) = event
+                {
                     window::close(id)
                 } else {
                     Command::none()
@@ -66,7 +67,7 @@ impl Application for Events {
 
                 Command::none()
             }
-            Message::Exit(id) => window::close(id),
+            Message::Exit => window::close(window::Id::MAIN),
         }
     }
 

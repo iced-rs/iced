@@ -7,7 +7,6 @@ use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point};
-use crate::Position;
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -169,17 +168,17 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
 pub fn position(
     monitor: Option<&winit::monitor::MonitorHandle>,
     (width, height): (u32, u32),
-    position: Position,
+    position: window::Position,
 ) -> Option<winit::dpi::Position> {
     match position {
-        Position::Default => None,
-        Position::Specific(x, y) => {
+        window::Position::Default => None,
+        window::Position::Specific(x, y) => {
             Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
                 x: f64::from(x),
                 y: f64::from(y),
             }))
         }
-        Position::Centered => {
+        window::Position::Centered => {
             if let Some(monitor) = monitor {
                 let start = monitor.position();
 

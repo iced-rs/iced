@@ -51,20 +51,14 @@ pub mod settings;
 pub mod system;
 
 mod error;
-mod icon;
 mod proxy;
-#[cfg(feature = "trace")]
-mod profiler;
 
 #[cfg(feature = "application")]
 pub use application::Application;
-#[cfg(feature = "trace")]
-pub use profiler::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
-pub use icon::Icon;
 pub use proxy::Proxy;
 pub use settings::Settings;
 
+pub use crate::core::window::*;
 pub use iced_graphics::Viewport;
-pub use iced_native::window::Position;

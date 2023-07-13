@@ -1,33 +1,50 @@
-use crate::application::{self, StyleSheet as _};
 use crate::conversion;
+use crate::core;
+use crate::core::{mouse, window};
+use crate::core::{Color, Size};
+use crate::graphics::Viewport;
 use crate::multi_window::Application;
-use crate::window;
-use crate::{Color, Debug, Point, Size, Viewport};
+use crate::style::application;
+use std::fmt::{Debug, Formatter};
 
-use std::marker::PhantomData;
+use iced_style::application::StyleSheet;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
 /// The state of a multi-windowed [`Application`].
-#[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
-    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
 {
     title: String,
     scale_factor: f64,
     viewport: Viewport,
-    viewport_changed: bool,
-    cursor_position: winit::dpi::PhysicalPosition<f64>,
+    viewport_version: usize,
+    cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::event::ModifiersState,
-    theme: <A::Renderer as crate::Renderer>::Theme,
+    theme: <A::Renderer as core::Renderer>::Theme,
     appearance: application::Appearance,
-    application: PhantomData<A>,
+}
+
+impl<A: Application> Debug for State<A>
+where
+    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+{
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("multi_window::State")
+            .field("title", &self.title)
+            .field("scale_factor", &self.scale_factor)
+            .field("viewport", &self.viewport)
+            .field("viewport_version", &self.viewport_version)
+            .field("cursor_position", &self.cursor_position)
+            .field("appearance", &self.appearance)
+            .finish()
+    }
 }
 
 impl<A: Application> State<A>
 where
-    <A::Renderer as crate::Renderer>::Theme: application::StyleSheet,
+    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] for the provided [`Application`]'s `window`.
     pub fn new(
@@ -53,13 +70,11 @@ where
             title,
             scale_factor,
             viewport,
-            viewport_changed: false,
-            // TODO: Encode cursor availability in the type-system
-            cursor_position: winit::dpi::PhysicalPosition::new(-1.0, -1.0),
+            viewport_version: 0,
+            cursor_position: None,
             modifiers: winit::event::ModifiersState::default(),
             theme,
             appearance,
-            application: PhantomData,
         }
     }
 
@@ -68,9 +83,11 @@ where
         &self.viewport
     }
 
-    /// Returns whether or not the viewport changed.
-    pub fn viewport_changed(&self) -> bool {
-        self.viewport_changed
+    /// Returns the version of the [`Viewport`] of the [`State`].
+    ///
+    /// The version is incremented every time the [`Viewport`] changes.
+    pub fn viewport_version(&self) -> usize {
+        self.viewport_version
     }
 
     /// Returns the physical [`Size`] of the [`Viewport`] of the [`State`].
@@ -89,11 +106,16 @@ where
     }
 
     /// Returns the current cursor position of the [`State`].
-    pub fn cursor_position(&self) -> Point {
-        conversion::cursor_position(
-            self.cursor_position,
-            self.viewport.scale_factor(),
-        )
+    pub fn cursor(&self) -> mouse::Cursor {
+        self.cursor_position
+            .map(|cursor_position| {
+                conversion::cursor_position(
+                    cursor_position,
+                    self.viewport.scale_factor(),
+                )
+            })
+            .map(mouse::Cursor::Available)
+            .unwrap_or(mouse::Cursor::Unavailable)
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
@@ -102,7 +124,7 @@ where
     }
 
     /// Returns the current theme of the [`State`].
-    pub fn theme(&self) -> &<A::Renderer as crate::Renderer>::Theme {
+    pub fn theme(&self) -> &<A::Renderer as core::Renderer>::Theme {
         &self.theme
     }
 
@@ -121,7 +143,7 @@ where
         &mut self,
         window: &Window,
         event: &WindowEvent<'_>,
-        _debug: &mut Debug,
+        _debug: &mut crate::runtime::Debug,
     ) {
         match event {
             WindowEvent::Resized(new_size) => {
@@ -132,7 +154,7 @@ where
                     window.scale_factor() * self.scale_factor,
                 );
 
-                self.viewport_changed = true;
+                self.viewport_version = self.viewport_version.wrapping_add(1);
             }
             WindowEvent::ScaleFactorChanged {
                 scale_factor: new_scale_factor,
@@ -146,18 +168,16 @@ where
                     new_scale_factor * self.scale_factor,
                 );
 
-                self.viewport_changed = true;
+                self.viewport_version = self.viewport_version.wrapping_add(1);
             }
             WindowEvent::CursorMoved { position, .. }
             | WindowEvent::Touch(Touch {
                 location: position, ..
             }) => {
-                self.cursor_position = *position;
+                self.cursor_position = Some(*position);
             }
             WindowEvent::CursorLeft { .. } => {
-                // TODO: Encode cursor availability in the type-system
-                self.cursor_position =
-                    winit::dpi::PhysicalPosition::new(-1.0, -1.0);
+                self.cursor_position = None;
             }
             WindowEvent::ModifiersChanged(new_modifiers) => {
                 self.modifiers = *new_modifiers;
@@ -197,16 +217,20 @@ where
             self.title = new_title;
         }
 
-        // Update scale factor
+        // Update scale factor and size
         let new_scale_factor = application.scale_factor(window_id);
+        let new_size = window.inner_size();
+        let current_size = self.viewport.physical_size();
 
-        if self.scale_factor != new_scale_factor {
-            let size = window.inner_size();
-
+        if self.scale_factor != new_scale_factor
+            || (current_size.width, current_size.height)
+                != (new_size.width, new_size.height)
+        {
             self.viewport = Viewport::with_physical_size(
-                Size::new(size.width, size.height),
+                Size::new(new_size.width, new_size.height),
                 window.scale_factor() * new_scale_factor,
             );
+            self.viewport_version = self.viewport_version.wrapping_add(1);
 
             self.scale_factor = new_scale_factor;
         }

@@ -1,19 +1,27 @@
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use iced_native::application::{Appearance, StyleSheet};
+pub use crate::style::application::{Appearance, StyleSheet};
 
 /// An interactive cross-platform multi-window application.
 ///
 /// This trait is the main entrypoint of Iced. Once implemented, you can run
 /// your GUI application by simply calling [`run`](#method.run).
 ///
+/// - On native platforms, it will run in its own windows.
+/// - On the web, it will take control of the `<title>` and the `<body>` of the
+///   document and display only the contents of the `window::Id::MAIN` window.
+///
 /// An [`Application`] can execute asynchronous actions by returning a
-/// [`Command`] in some of its methods. For example, to spawn a new window, you
-/// can use the `iced_winit::window::spawn()` [`Command`].
+/// [`Command`] in some of its methods. If you do not intend to perform any
+/// background work in your program, the [`Sandbox`] trait offers a simplified
+/// interface.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.
+///
+/// # Examples
+/// See the `examples/multi-window` example to see this multi-window `Application` trait in action.
 ///
 /// ## A simple "Hello, world!"
 ///
@@ -21,10 +29,9 @@ pub use iced_native::application::{Appearance, StyleSheet};
 /// says "Hello, world!":
 ///
 /// ```no_run
-/// use iced::executor;
-/// use iced::multi_window::Application;
-/// use iced::window;
+/// use iced::{executor, window};
 /// use iced::{Command, Element, Settings, Theme};
+/// use iced::multi_window::{self, Application};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -32,17 +39,17 @@ pub use iced_native::application::{Appearance, StyleSheet};
 ///
 /// struct Hello;
 ///
-/// impl Application for Hello {
+/// impl multi_window::Application for Hello {
 ///     type Executor = executor::Default;
+///     type Flags = ();
 ///     type Message = ();
 ///     type Theme = Theme;
-///     type Flags = ();
 ///
 ///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
 ///         (Hello, Command::none())
 ///     }
 ///
-///     fn title(&self, window: window::Id) -> String {
+///     fn title(&self, _window: window::Id) -> String {
 ///         String::from("A cool application")
 ///     }
 ///
@@ -50,12 +57,8 @@ pub use iced_native::application::{Appearance, StyleSheet};
 ///         Command::none()
 ///     }
 ///
-///     fn view(&self, window: window::Id) -> Element<Self::Message> {
+///     fn view(&self, _window: window::Id) -> Element<Self::Message> {
 ///         "Hello, world!".into()
-///     }
-///
-///     fn close_requested(&self, window: window::Id) -> Self::Message {
-///         ()
 ///     }
 /// }
 /// ```
@@ -89,10 +92,10 @@ pub trait Application: Sized {
     /// [`run`]: Self::run
     fn new(flags: Self::Flags) -> (Self, Command<Self::Message>);
 
-    /// Returns the current title of the [`Application`].
+    /// Returns the current title of the `window` of the [`Application`].
     ///
     /// This title can be dynamic! The runtime will automatically update the
-    /// title of your application when necessary.
+    /// title of your window when necessary.
     fn title(&self, window: window::Id) -> String;
 
     /// Handles a __message__ and updates the state of the [`Application`].
@@ -104,7 +107,15 @@ pub trait Application: Sized {
     /// Any [`Command`] returned will be executed immediately in the background.
     fn update(&mut self, message: Self::Message) -> Command<Self::Message>;
 
-    /// Returns the current [`Theme`] of the [`Application`].
+    /// Returns the widgets to display in the `window` of the [`Application`].
+    ///
+    /// These widgets can produce __messages__ based on user interaction.
+    fn view(
+        &self,
+        window: window::Id,
+    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+
+    /// Returns the current [`Theme`] of the `window` of the [`Application`].
     ///
     /// [`Theme`]: Self::Theme
     #[allow(unused_variables)]
@@ -112,9 +123,8 @@ pub trait Application: Sized {
         Self::Theme::default()
     }
 
-    /// Returns the current [`Style`] of the [`Theme`].
+    /// Returns the current `Style` of the [`Theme`].
     ///
-    /// [`Style`]: <Self::Theme as StyleSheet>::Style
     /// [`Theme`]: Self::Theme
     fn style(&self) -> <Self::Theme as StyleSheet>::Style {
         <Self::Theme as StyleSheet>::Style::default()
@@ -132,14 +142,6 @@ pub trait Application: Sized {
         Subscription::none()
     }
 
-    /// Returns the widgets to display in the [`Application`].
-    ///
-    /// These widgets can produce __messages__ based on user interaction.
-    fn view(
-        &self,
-        window: window::Id,
-    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
-
     /// Returns the scale factor of the `window` of the [`Application`].
     ///
     /// It can be used to dynamically control the size of the UI at runtime
@@ -154,18 +156,7 @@ pub trait Application: Sized {
         1.0
     }
 
-    /// Returns whether the [`Application`] should be terminated.
-    ///
-    /// By default, it returns `false`.
-    fn should_exit(&self) -> bool {
-        false
-    }
-
-    /// Returns the `Self::Message` that should be processed when a `window` is requested to
-    /// be closed.
-    fn close_requested(&self, window: window::Id) -> Self::Message;
-
-    /// Runs the [`Application`].
+    /// Runs the multi-window [`Application`].
     ///
     /// On native platforms, this method will take control of the current thread
     /// until the [`Application`] exits.
@@ -182,30 +173,28 @@ pub trait Application: Sized {
         let renderer_settings = crate::renderer::Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
-            text_multithreading: settings.text_multithreading,
             antialiasing: if settings.antialiasing {
-                Some(crate::renderer::settings::Antialiasing::MSAAx4)
+                Some(crate::graphics::Antialiasing::MSAAx4)
             } else {
                 None
             },
-            ..crate::renderer::Settings::from_env()
+            ..crate::renderer::Settings::default()
         };
 
-        Ok(crate::runtime::multi_window::run::<
+        Ok(crate::shell::multi_window::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::window::Compositor<Self::Theme>,
+            crate::renderer::Compositor<Self::Theme>,
         >(settings.into(), renderer_settings)?)
     }
 }
 
 struct Instance<A: Application>(A);
 
-impl<A> crate::runtime::multi_window::Application for Instance<A>
+impl<A> crate::runtime::multi_window::Program for Instance<A>
 where
     A: Application,
 {
-    type Flags = A::Flags;
     type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
 
@@ -219,6 +208,13 @@ where
     ) -> Element<'_, Self::Message, Self::Renderer> {
         self.0.view(window)
     }
+}
+
+impl<A> crate::shell::multi_window::Application for Instance<A>
+where
+    A: Application,
+{
+    type Flags = A::Flags;
 
     fn new(flags: Self::Flags) -> (Self, Command<A::Message>) {
         let (app, command) = A::new(flags);
@@ -244,13 +240,5 @@ where
 
     fn scale_factor(&self, window: window::Id) -> f64 {
         self.0.scale_factor(window)
-    }
-
-    fn should_exit(&self) -> bool {
-        self.0.should_exit()
-    }
-
-    fn close_requested(&self, window: window::Id) -> Self::Message {
-        self.0.close_requested(window)
     }
 }

@@ -91,7 +91,7 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
             id: settings.id,
-            window: settings.window.into(),
+            window: settings.window,
             flags: settings.flags,
             exit_on_close_request: settings.exit_on_close_request,
         }

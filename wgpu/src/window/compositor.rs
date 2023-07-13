@@ -219,6 +219,10 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         Ok((compositor, Renderer::new(backend)))
     }
 
+    fn renderer(&self) -> Self::Renderer {
+        Renderer::new(self.create_backend())
+    }
+
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,

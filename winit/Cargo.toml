@@ -12,8 +12,6 @@ categories = ["gui"]
 
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
-trace = ["tracing", "tracing-core", "tracing-subscriber"]
-chrome-trace = ["trace", "tracing-chrome"]
 debug = ["iced_runtime/debug"]
 system = ["sysinfo"]
 application = []
@@ -21,7 +19,7 @@ x11 = ["winit/x11"]
 wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
-multi-window = []
+multi-window = ["iced_runtime/multi-window"]
 
 [dependencies]
 window_clipboard = "0.3"
@@ -46,24 +44,6 @@ path = "../graphics"
 [dependencies.iced_style]
 version = "0.8"
 path = "../style"
-
-[dependencies.tracing]
-version = "0.1.37"
-optional = true
-features = ["std"]
-
-[dependencies.tracing-core]
-version = "0.1.30"
-optional = true
-
-[dependencies.tracing-subscriber]
-version = "0.3.16"
-optional = true
-features = ["registry"]
-
-[dependencies.tracing-chrome]
-version = "0.7.0"
-optional = true
 
 [target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3.6"

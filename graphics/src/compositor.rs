@@ -24,6 +24,9 @@ pub trait Compositor: Sized {
         compatible_window: Option<&W>,
     ) -> Result<(Self, Self::Renderer), Error>;
 
+    /// Creates a [`Renderer`] for the [`Compositor`].
+    fn renderer(&self) -> Self::Renderer;
+
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface

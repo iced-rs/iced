@@ -1,4 +1,4 @@
-use crate::core::window::{Icon, Level, Mode, UserAttention, Settings};
+use crate::core::window::{Icon, Level, Mode, Settings, UserAttention};
 use crate::core::Size;
 use crate::futures::MaybeSend;
 use crate::window::Screenshot;
@@ -15,7 +15,7 @@ pub enum Action<T> {
     /// There’s no guarantee that this will work unless the left mouse
     /// button was pressed immediately before this function is called.
     Drag,
-    /// Spawns a new window with the provided [`window::Settings`].
+    /// Spawns a new window.
     Spawn {
         /// The settings of the [`Window`].
         settings: Settings,

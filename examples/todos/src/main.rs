@@ -164,7 +164,7 @@ impl Application for Todos {
                         }
                     }
                     Message::ToggleFullscreen(mode) => {
-                        window::change_mode(mode)
+                        window::change_mode(window::Id::MAIN, mode)
                     }
                     _ => Command::none(),
                 };

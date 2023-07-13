@@ -12,7 +12,6 @@ categories = ["gui"]
 
 [features]
 geometry = ["lyon_path"]
-opengl = []
 image = ["dep:image", "kamadak-exif"]
 web-colors = []
 

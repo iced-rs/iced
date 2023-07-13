@@ -1,6 +1,26 @@
 use crate::window::{Icon, Level, Position};
 
-pub use iced_winit::settings::PlatformSpecific;
+#[cfg(target_os = "windows")]
+#[path = "settings/windows.rs"]
+mod platform;
+
+#[cfg(target_os = "macos")]
+#[path = "settings/macos.rs"]
+mod platform;
+
+#[cfg(target_arch = "wasm32")]
+#[path = "settings/wasm.rs"]
+mod platform;
+
+#[cfg(not(any(
+    target_os = "windows",
+    target_os = "macos",
+    target_arch = "wasm32"
+)))]
+#[path = "settings/other.rs"]
+mod platform;
+
+pub use platform::PlatformSpecific;
 
 /// The window settings of an application.
 #[derive(Debug, Clone)]
@@ -53,24 +73,6 @@ impl Default for Settings {
             level: Level::default(),
             icon: None,
             platform_specific: Default::default(),
-        }
-    }
-}
-
-impl From<Settings> for iced_winit::settings::Window {
-    fn from(settings: Settings) -> Self {
-        Self {
-            size: settings.size,
-            position: iced_winit::Position::from(settings.position),
-            min_size: settings.min_size,
-            max_size: settings.max_size,
-            visible: settings.visible,
-            resizable: settings.resizable,
-            decorations: settings.decorations,
-            transparent: settings.transparent,
-            level: settings.level,
-            icon: settings.icon.map(Icon::into),
-            platform_specific: settings.platform_specific,
         }
     }
 }

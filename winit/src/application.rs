@@ -18,17 +18,13 @@ use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
+use crate::settings;
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
-
-#[cfg(feature = "trace")]
-pub use crate::Profiler;
-#[cfg(feature = "trace")]
-use tracing::{info_span, instrument::Instrument};
 
 /// An interactive, native cross-platform application.
 ///
@@ -117,14 +113,8 @@ where
     use futures::Future;
     use winit::event_loop::EventLoopBuilder;
 
-    #[cfg(feature = "trace")]
-    let _guard = Profiler::init();
-
     let mut debug = Debug::new();
     debug.startup_started();
-
-    #[cfg(feature = "trace")]
-    let _ = info_span!("Application", "RUN").entered();
 
     let event_loop = EventLoopBuilder::with_user_event().build();
     let proxy = event_loop.create_proxy();
@@ -146,14 +136,13 @@ where
     let target = settings.window.platform_specific.target.clone();
 
     let should_be_visible = settings.window.visible;
-    let builder = settings
-        .window
-        .into_builder(
-            &application.title(),
-            event_loop.primary_monitor(),
-            settings.id,
-        )
-        .with_visible(false);
+    let builder = settings::window_builder(
+        settings.window,
+        &application.title(),
+        event_loop.primary_monitor(),
+        settings.id,
+    )
+    .with_visible(false);
 
     log::debug!("Window builder: {:#?}", builder);
 
@@ -196,28 +185,20 @@ where
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
 
-    let mut instance = Box::pin({
-        let run_instance = run_instance::<A, E, C>(
-            application,
-            compositor,
-            renderer,
-            runtime,
-            proxy,
-            debug,
-            event_receiver,
-            control_sender,
-            init_command,
-            window,
-            should_be_visible,
-            settings.exit_on_close_request,
-        );
-
-        #[cfg(feature = "trace")]
-        let run_instance =
-            run_instance.instrument(info_span!("Application", "LOOP"));
-
-        run_instance
-    });
+    let mut instance = Box::pin(run_instance::<A, E, C>(
+        application,
+        compositor,
+        renderer,
+        runtime,
+        proxy,
+        debug,
+        event_receiver,
+        control_sender,
+        init_command,
+        window,
+        should_be_visible,
+        settings.exit_on_close_request,
+    ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
@@ -480,9 +461,6 @@ async fn run_instance<A, E, C>(
                 messages.push(message);
             }
             event::Event::RedrawRequested(_) => {
-                #[cfg(feature = "trace")]
-                let _ = info_span!("Application", "FRAME").entered();
-
                 let physical_size = state.physical_size();
 
                 if physical_size.width == 0 || physical_size.height == 0 {
@@ -622,24 +600,12 @@ pub fn build_user_interface<'a, A: Application>(
 where
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
-    #[cfg(feature = "trace")]
-    let view_span = info_span!("Application", "VIEW").entered();
-
     debug.view_started();
     let view = application.view();
-
-    #[cfg(feature = "trace")]
-    let _ = view_span.exit();
     debug.view_finished();
-
-    #[cfg(feature = "trace")]
-    let layout_span = info_span!("Application", "LAYOUT").entered();
 
     debug.layout_started();
     let user_interface = UserInterface::build(view, size, cache, renderer);
-
-    #[cfg(feature = "trace")]
-    let _ = layout_span.exit();
     debug.layout_finished();
 
     user_interface
@@ -666,16 +632,10 @@ pub fn update<A: Application, C, E: Executor>(
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
-        #[cfg(feature = "trace")]
-        let update_span = info_span!("Application", "UPDATE").entered();
-
         debug.log_message(&message);
 
         debug.update_started();
         let command = runtime.enter(|| application.update(message));
-
-        #[cfg(feature = "trace")]
-        let _ = update_span.exit();
         debug.update_finished();
 
         run_command(
@@ -750,7 +710,7 @@ pub fn run_command<A, C, E>(
                 }
                 window::Action::Spawn { .. } => {
                     log::info!(
-                        "Spawning a window is only available with `multi_window::Application`s."
+                        "Spawning a window is only available with multi-window applications."
                     )
                 }
                 window::Action::Resize(size) => {

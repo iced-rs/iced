@@ -1,25 +1,32 @@
 use iced::multi_window::{self, Application};
 use iced::widget::{button, column, container, scrollable, text, text_input};
+use iced::window::{Id, Position};
 use iced::{
-    executor, window, Alignment, Command, Element, Length, Settings, Theme,
+    executor, subscription, window, Alignment, Command, Element, Length,
+    Settings, Subscription, Theme,
 };
 use std::collections::HashMap;
 
 fn main() -> iced::Result {
-    Example::run(Settings::default())
+    Example::run(Settings {
+        exit_on_close_request: false,
+        ..Default::default()
+    })
 }
 
 #[derive(Default)]
 struct Example {
-    windows_count: usize,
     windows: HashMap<window::Id, Window>,
+    next_window_pos: window::Position,
 }
 
+#[derive(Debug)]
 struct Window {
-    id: window::Id,
     title: String,
     scale_input: String,
     current_scale: f64,
+    theme: Theme,
+    input_id: iced::widget::text_input::Id,
 }
 
 #[derive(Debug, Clone)]
@@ -28,6 +35,8 @@ enum Message {
     ScaleChanged(window::Id, String),
     TitleChanged(window::Id, String),
     CloseWindow(window::Id),
+    WindowDestroyed(window::Id),
+    WindowCreated(window::Id, (i32, i32)),
     NewWindow,
 }
 
@@ -40,11 +49,8 @@ impl multi_window::Application for Example {
     fn new(_flags: ()) -> (Self, Command<Message>) {
         (
             Example {
-                windows_count: 0,
-                windows: HashMap::from([(
-                    window::Id::MAIN,
-                    Window::new(window::Id::MAIN),
-                )]),
+                windows: HashMap::from([(window::Id::MAIN, Window::new(1))]),
+                next_window_pos: Position::Default,
             },
             Command::none(),
         )
@@ -82,12 +88,32 @@ impl multi_window::Application for Example {
             Message::CloseWindow(id) => {
                 return window::close(id);
             }
-            Message::NewWindow => {
-                self.windows_count += 1;
-                let id = window::Id::new(self.windows_count);
-                self.windows.insert(id, Window::new(id));
+            Message::WindowDestroyed(id) => {
+                self.windows.remove(&id);
+            }
+            Message::WindowCreated(id, position) => {
+                self.next_window_pos = window::Position::Specific(
+                    position.0 + 20,
+                    position.1 + 20,
+                );
 
-                return window::spawn(id, window::Settings::default());
+                if let Some(window) = self.windows.get(&id) {
+                    return text_input::focus(window.input_id.clone());
+                }
+            }
+            Message::NewWindow => {
+                let count = self.windows.len() + 1;
+                let id = window::Id::new(count);
+
+                self.windows.insert(id, Window::new(count));
+
+                return window::spawn(
+                    id,
+                    window::Settings {
+                        position: self.next_window_pos,
+                        ..Default::default()
+                    },
+                );
             }
         }
 
@@ -95,18 +121,18 @@ impl multi_window::Application for Example {
     }
 
     fn view(&self, window: window::Id) -> Element<Message> {
-        let window = self
-            .windows
-            .get(&window)
-            .map(|window| window.view())
-            .unwrap();
+        let content = self.windows.get(&window).unwrap().view(window);
 
-        container(window)
+        container(content)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
             .center_y()
             .into()
+    }
+
+    fn theme(&self, window: Id) -> Self::Theme {
+        self.windows.get(&window).unwrap().theme.clone()
     }
 
     fn scale_factor(&self, window: window::Id) -> f64 {
@@ -116,55 +142,71 @@ impl multi_window::Application for Example {
             .unwrap_or(1.0)
     }
 
-    fn close_requested(&self, window: window::Id) -> Self::Message {
-        Message::CloseWindow(window)
+    fn subscription(&self) -> Subscription<Self::Message> {
+        subscription::events_with(|event, _| {
+            if let iced::Event::Window(id, window_event) = event {
+                match window_event {
+                    window::Event::CloseRequested => {
+                        Some(Message::CloseWindow(id))
+                    }
+                    window::Event::Destroyed => {
+                        Some(Message::WindowDestroyed(id))
+                    }
+                    window::Event::Created { position, .. } => {
+                        Some(Message::WindowCreated(id, position))
+                    }
+                    _ => None,
+                }
+            } else {
+                None
+            }
+        })
     }
 }
 
 impl Window {
-    fn new(id: window::Id) -> Self {
+    fn new(count: usize) -> Self {
         Self {
-            id,
-            title: "Window".to_string(),
+            title: format!("Window_{}", count),
             scale_input: "1.0".to_string(),
             current_scale: 1.0,
+            theme: if count % 2 == 0 {
+                Theme::Light
+            } else {
+                Theme::Dark
+            },
+            input_id: text_input::Id::unique(),
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        window_view(self.id, &self.scale_input, &self.title)
+    fn view(&self, id: window::Id) -> Element<Message> {
+        let scale_input = column![
+            text("Window scale factor:"),
+            text_input("Window Scale", &self.scale_input)
+                .on_input(move |msg| { Message::ScaleInputChanged(id, msg) })
+                .on_submit(Message::ScaleChanged(
+                    id,
+                    self.scale_input.to_string()
+                ))
+        ];
+
+        let title_input = column![
+            text("Window title:"),
+            text_input("Window Title", &self.title)
+                .on_input(move |msg| { Message::TitleChanged(id, msg) })
+                .id(self.input_id.clone())
+        ];
+
+        let new_window_button =
+            button(text("New Window")).on_press(Message::NewWindow);
+
+        let content = scrollable(
+            column![scale_input, title_input, new_window_button]
+                .spacing(50)
+                .width(Length::Fill)
+                .align_items(Alignment::Center),
+        );
+
+        container(content).width(200).center_x().into()
     }
-}
-
-fn window_view<'a>(
-    id: window::Id,
-    scale_input: &'a str,
-    title: &'a str,
-) -> Element<'a, Message> {
-    let scale_input = column![
-        text("Window scale factor:"),
-        text_input("Window Scale", scale_input, move |msg| {
-            Message::ScaleInputChanged(id, msg)
-        })
-        .on_submit(Message::ScaleChanged(id, scale_input.to_string()))
-    ];
-
-    let title_input = column![
-        text("Window title:"),
-        text_input("Window Title", title, move |msg| {
-            Message::TitleChanged(id, msg)
-        })
-    ];
-
-    let new_window_button =
-        button(text("New Window")).on_press(Message::NewWindow);
-
-    let content = scrollable(
-        column![scale_input, title_input, new_window_button]
-            .spacing(50)
-            .width(Length::Fill)
-            .align_items(Alignment::Center),
-    );
-
-    container(content).width(200).center_x().into()
 }

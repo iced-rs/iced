@@ -8,6 +8,7 @@ use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::marker::PhantomData;
 
 pub struct Compositor<Theme> {
+    settings: Settings,
     _theme: PhantomData<Theme>,
 }
 
@@ -31,6 +32,10 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         let (compositor, backend) = new(settings);
 
         Ok((compositor, Renderer::new(backend)))
+    }
+
+    fn renderer(&self) -> Self::Renderer {
+        Renderer::new(Backend::new(self.settings))
     }
 
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
@@ -116,6 +121,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
     (
         Compositor {
+            settings,
             _theme: PhantomData,
         },
         Backend::new(settings),

@@ -1,4 +1,5 @@
 use crate::time::Instant;
+use crate::Size;
 
 use std::path::PathBuf;
 
@@ -31,6 +32,22 @@ pub enum Event {
     /// Usually, you will want to terminate the execution whenever this event
     /// occurs.
     CloseRequested,
+
+    /// A window was destroyed by the runtime.
+    Destroyed,
+
+    /// A window was created.
+    ///
+    /// **Note:** this event is not supported on Wayland.
+    Created {
+        /// The position of the created window. This is relative to the top-left corner of the desktop
+        /// the window is on, including virtual desktops. Refers to window's "inner" position,
+        /// or the client area, in logical pixels.
+        position: (i32, i32),
+        /// The size of the created window. This is its "inner" size, or the size of the
+        /// client area, in logical pixels.
+        size: Size<u32>,
+    },
 
     /// A window was focused.
     Focused,

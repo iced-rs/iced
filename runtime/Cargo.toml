@@ -9,6 +9,7 @@ repository = "https://github.com/iced-rs/iced"
 
 [features]
 debug = []
+multi-window = []
 
 [dependencies]
 thiserror = "1"

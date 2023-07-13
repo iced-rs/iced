@@ -46,6 +46,22 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         Err(error)
     }
 
+    fn renderer(&self) -> Self::Renderer {
+        match self {
+            Compositor::TinySkia(compositor) => {
+                Renderer::TinySkia(compositor.renderer())
+            }
+            #[cfg(feature = "wgpu")]
+            Compositor::Wgpu(compositor) => {
+                Renderer::Wgpu(compositor.renderer())
+            }
+            #[cfg(not(feature = "wgpu"))]
+            Self::Wgpu => {
+                panic!("`wgpu` feature was not enabled in `iced_renderer`")
+            }
+        }
+    }
+
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
         &mut self,
         window: &W,

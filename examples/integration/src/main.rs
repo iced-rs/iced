@@ -6,8 +6,8 @@ use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
-use iced_winit::core::mouse;
 use iced_winit::core::renderer;
+use iced_winit::core::{mouse, window};
 use iced_winit::core::{Color, Size};
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
