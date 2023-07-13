@@ -932,6 +932,9 @@ where
 
             if let Some(focus) = &mut state.is_focused {
                 focus.is_window_focused = true;
+                focus.updated_at = Instant::now();
+
+                shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }
         Event::Window(window::Event::RedrawRequested(now)) => {
