@@ -564,6 +564,7 @@ where
                     Some(Focus {
                         updated_at: now,
                         now,
+                        is_window_focused: true,
                     })
                 })
             } else {
@@ -919,19 +920,38 @@ where
 
             state.keyboard_modifiers = modifiers;
         }
+        Event::Window(window::Event::Unfocused) => {
+            let state = state();
+
+            if let Some(focus) = &mut state.is_focused {
+                focus.is_window_focused = false;
+            }
+        }
+        Event::Window(window::Event::Focused) => {
+            let state = state();
+
+            if let Some(focus) = &mut state.is_focused {
+                focus.is_window_focused = true;
+                focus.updated_at = Instant::now();
+
+                shell.request_redraw(window::RedrawRequest::NextFrame);
+            }
+        }
         Event::Window(window::Event::RedrawRequested(now)) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                focus.now = now;
+                if focus.is_window_focused {
+                    focus.now = now;
 
-                let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                    - (now - focus.updated_at).as_millis()
-                        % CURSOR_BLINK_INTERVAL_MILLIS;
+                    let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                        - (now - focus.updated_at).as_millis()
+                            % CURSOR_BLINK_INTERVAL_MILLIS;
 
-                shell.request_redraw(window::RedrawRequest::At(
-                    now + Duration::from_millis(millis_until_redraw as u64),
-                ));
+                    shell.request_redraw(window::RedrawRequest::At(
+                        now + Duration::from_millis(millis_until_redraw as u64),
+                    ));
+                }
             }
         }
         _ => {}
@@ -1016,7 +1036,11 @@ pub fn draw<Renderer>(
     let font = font.unwrap_or_else(|| renderer.default_font());
     let size = size.unwrap_or_else(|| renderer.default_size());
 
-    let (cursor, offset) = if let Some(focus) = &state.is_focused {
+    let (cursor, offset) = if let Some(focus) = state
+        .is_focused
+        .as_ref()
+        .filter(|focus| focus.is_window_focused)
+    {
         match state.cursor.state(value) {
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
@@ -1188,6 +1212,7 @@ pub struct State {
 struct Focus {
     updated_at: Instant,
     now: Instant,
+    is_window_focused: bool,
 }
 
 impl State {
@@ -1225,6 +1250,7 @@ impl State {
         self.is_focused = Some(Focus {
             updated_at: now,
             now,
+            is_window_focused: true,
         });
 
         self.move_cursor_to_end();
