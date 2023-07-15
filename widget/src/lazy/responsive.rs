@@ -182,6 +182,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();
@@ -203,6 +204,7 @@ where
                     renderer,
                     clipboard,
                     &mut local_shell,
+                    viewport,
                 )
             },
         );

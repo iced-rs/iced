@@ -148,6 +148,7 @@ where
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         let bounds = layout.bounds();
 
