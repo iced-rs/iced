@@ -222,6 +222,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
         is_picked: bool,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
@@ -237,6 +238,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             );
 
             children.next().unwrap()
@@ -255,6 +257,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             )
         };
 

@@ -159,6 +159,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.children
             .iter_mut()
@@ -173,6 +174,7 @@ where
                     renderer,
                     clipboard,
                     shell,
+                    viewport,
                 )
             })
             .fold(event::Status::Ignored, event::Status::merge)

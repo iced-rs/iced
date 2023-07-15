@@ -380,6 +380,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
@@ -392,6 +393,7 @@ where
             renderer,
             clipboard,
             &mut local_shell,
+            viewport,
         );
 
         shell.merge(local_shell, &self.mapper);
@@ -511,10 +513,11 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
-        self.element
-            .widget
-            .on_event(state, event, layout, cursor, renderer, clipboard, shell)
+        self.element.widget.on_event(
+            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+        )
     }
 
     fn draw(

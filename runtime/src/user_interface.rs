@@ -284,6 +284,8 @@ where
             (cursor, vec![event::Status::Ignored; events.len()])
         };
 
+        let viewport = Rectangle::with_size(self.bounds);
+
         let _ = ManuallyDrop::into_inner(manual_overlay);
 
         let event_statuses = events
@@ -305,6 +307,7 @@ where
                     renderer,
                     clipboard,
                     &mut shell,
+                    &viewport,
                 );
 
                 if matches!(event_status, event::Status::Captured) {
