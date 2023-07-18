@@ -201,10 +201,8 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 Contributions are greatly appreciated! If you want to contribute, please
 read our [contributing guidelines] for more details.
 
-Feedback is also welcome! You can open an issue or, if you want to talk,
-come chat to our [Discord server]. Moreover, you can find me (and a bunch of
-awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
-the [Rust Community Discord]. I go by `lone_scientist#9554` there.
+Feedback is also welcome! You can open a discussion or come chat to our
+[Discord server]. 
 
 ## Sponsors
 
