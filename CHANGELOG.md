@@ -6,6 +6,95 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Text shaping, font fallback, and `iced_wgpu` overhaul. [#1697](https://github.com/iced-rs/iced/pull/1697)
+- Software renderer, runtime renderer fallback, and core consolidation. [#1748](https://github.com/iced-rs/iced/pull/1748)
+- Incremental rendering for `iced_tiny_skia`. [#1811](https://github.com/iced-rs/iced/pull/1811)
+- Configurable `LineHeight` support for text widgets. [#1828](https://github.com/iced-rs/iced/pull/1828)
+- `text::Shaping` strategy selection. [#1822](https://github.com/iced-rs/iced/pull/1822)
+- Subpixel glyph positioning and layout linearity. [#1921](https://github.com/iced-rs/iced/pull/1921)
+- Background gradients. [#1846](https://github.com/iced-rs/iced/pull/1846)
+- Offscreen rendering and screenshots. [#1845](https://github.com/iced-rs/iced/pull/1845)
+- Nested overlays. [#1719](https://github.com/iced-rs/iced/pull/1719)
+- Cursor availability. [#1904](https://github.com/iced-rs/iced/pull/1904)
+- Backend-specific primitives. [#1932](https://github.com/iced-rs/iced/pull/1932)
+- `web-colors` feature flag to enable "sRGB linear" blending. [#1888](https://github.com/iced-rs/iced/pull/1888)
+- `PaneGrid` logic to split panes by drag & drop. [#1856](https://github.com/iced-rs/iced/pull/1856)
+- `PaneGrid` logic to drag & drop panes to the edges. [#1865](https://github.com/iced-rs/iced/pull/1865)
+- Type-safe `Scrollable` direction. [#1878](https://github.com/iced-rs/iced/pull/1878)
+- `Scrollable` alignment. [#1912](https://github.com/iced-rs/iced/pull/1912)
+- Helpers to change viewport alignment of a `Scrollable`. [#1953](https://github.com/iced-rs/iced/pull/1953)
+- `scroll_to` widget operation. [#1796](https://github.com/iced-rs/iced/pull/1796)
+- `scroll_to` helper. [#1804](https://github.com/iced-rs/iced/pull/1804)
+- Command to fetch window size. [#1927](https://github.com/iced-rs/iced/pull/1927)
+- Conversion support from `Fn` trait to custom theme. [#1861](https://github.com/iced-rs/iced/pull/1861)
+- Configurable border radii on relevant widgets. [#1869](https://github.com/iced-rs/iced/pull/1869)
+- `border_radius` styling to `Slider` rail. [#1892](https://github.com/iced-rs/iced/pull/1892)
+- Aliased entries in `text::Cache`. [#1934](https://github.com/iced-rs/iced/pull/1934)
+- Text cache modes. [#1938](https://github.com/iced-rs/iced/pull/1938)
+- `operate` method for `program::State`. [#1913](https://github.com/iced-rs/iced/pull/1913)
+- Nix instructions to `DEPENDENCIES.md`. [#1859](https://github.com/iced-rs/iced/pull/1859)
+- Loading spinners example. [#1902](https://github.com/iced-rs/iced/pull/1902)
+- `Viewport` argument to `Widget::on_event`. [#1956](https://github.com/iced-rs/iced/pull/1956)
+
+### Changed
+- Updated `wgpu` to `0.16`. [#1807](https://github.com/iced-rs/iced/pull/1807)
+- Updated `glam` to `0.24`. [#1840](https://github.com/iced-rs/iced/pull/1840)
+- Updated `winit` to `0.28`. [#1738](https://github.com/iced-rs/iced/pull/1738)
+- Updated `palette` to `0.7`. [#1875](https://github.com/iced-rs/iced/pull/1875)
+- Updated `ouroboros` to `0.17`. [#1925](https://github.com/iced-rs/iced/pull/1925)
+- Updated `resvg` to `0.35` and `tiny-skia` to `0.10`. [#1907](https://github.com/iced-rs/iced/pull/1907)
+- Changed `mouse::Button::Other` to take `u16` instead of `u8`. [#1797](https://github.com/iced-rs/iced/pull/1797)
+- Changed `subscription::channel` to take a `FnOnce` non-`Sync` closure. [#1917](https://github.com/iced-rs/iced/pull/1917)
+- Removed `Copy` requirement for text `StyleSheet::Style`. [#1814](https://github.com/iced-rs/iced/pull/1814)
+- Removed `min_width` of 1 from scrollbar & scroller for `Scrollable`. [#1844](https://github.com/iced-rs/iced/pull/1844)
+- Used `Widget::overlay` for `Tooltip`. [#1692](https://github.com/iced-rs/iced/pull/1692)
+
+### Fixed
+- Invalidate `Responsive` layout when shell layout is invalidated. [#1799](https://github.com/iced-rs/iced/pull/1799)
+- Invalidate `Responsive` layout when size changes without a `view` call. [#1890](https://github.com/iced-rs/iced/pull/1890)
+- Broken link in `ROADMAP.md`. [#1815](https://github.com/iced-rs/iced/pull/1815)
+- `bounds` of selected option background in `Menu`. [#1831](https://github.com/iced-rs/iced/pull/1831)
+- Border radius logic in `iced_tiny_skia`. [#1842](https://github.com/iced-rs/iced/pull/1842)
+- `Svg` filtered color not premultiplied. [#1841](https://github.com/iced-rs/iced/pull/1841)
+- Race condition when growing an `image::Atlas`. [#1847](https://github.com/iced-rs/iced/pull/1847)
+- Clearing damaged surface with background color in `iced_tiny_skia`. [#1854](https://github.com/iced-rs/iced/pull/1854)
+- Private gradient pack logic for `iced_graphics::Gradient`. [#1871](https://github.com/iced-rs/iced/pull/1871)
+- Unordered quads of different background types. [#1873](https://github.com/iced-rs/iced/pull/1873)
+- Panic in `glyphon` when glyphs are missing. [#1883](https://github.com/iced-rs/iced/pull/1883)
+- Empty scissor rectangle in `iced_wgpu::triangle` pipeline. [#1893](https://github.com/iced-rs/iced/pull/1893)
+- `Scrollable` scrolling when mouse not over it. [#1910](https://github.com/iced-rs/iced/pull/1910)
+- `translation` in `layout` of `Nested` overlay. [#1924](https://github.com/iced-rs/iced/pull/1924)
+- Build when using vendored dependencies. [#1928](https://github.com/iced-rs/iced/pull/1928)
+- Minor grammar mistake. [#1931](https://github.com/iced-rs/iced/pull/1931)
+- Quad rendering including border only inside of the bounds. [#1843](https://github.com/iced-rs/iced/pull/1843)
+- Redraw requests not being forwarded for `Component` overlays. [#1949](https://github.com/iced-rs/iced/pull/1949)
+- Blinking input cursor when window loses focus. [#1955](https://github.com/iced-rs/iced/pull/1955)
+
+Many thanks to...
+
+- @a1phyr
+- @alec-deason
+- @AustinMReppert
+- @bbb651
+- @bungoboingo
+- @casperstorm
+- @clarkmoody
+- @Davidster
+- @Drakulix
+- @GyulyVGC
+- @ids1024
+- @jhff
+- @JonathanLindsey
+- @kr105
+- @marienz
+- @nicksenger
+- @nicoburns
+- @RGBCube
+- @tarkah
+- @thunderstorm010
+- @wash2
+
 ## [0.9.0] - 2023-04-13
 ### Added
 - `MouseArea` widget. [#1594](https://github.com/iced-rs/iced/pull/1594)

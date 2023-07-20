@@ -13,7 +13,7 @@ PR_COMMIT_REGEX = re.compile(r"(?i)Merge pull request #(\d+).*")
 
 def get_merged_prs_since_release(repo: str, previous_release_branch: str) -> List[Tuple[str, int, str, str]]:
     prs = []
-    compare_url = f"https://api.github.com/repos/{repo}/compare/{previous_release_branch}...master"
+    compare_url = f"https://api.github.com/repos/{repo}/compare/{previous_release_branch}...master?per_page=1000"
     compare_response = requests.get(compare_url, headers=HEADERS)
 
     if compare_response.status_code == 200:
@@ -23,7 +23,10 @@ def get_merged_prs_since_release(repo: str, previous_release_branch: str) -> Lis
             if match:
                 pr_number = int(match.group(1))
                 pr_url = f"https://api.github.com/repos/{repo}/pulls/{pr_number}"
+
+                print(f"Querying PR {pr_number}")
                 pr_response = requests.get(pr_url, headers=HEADERS)
+
                 if pr_response.status_code == 200:
                     pr_data = pr_response.json()
                     prs.append((pr_data["title"], pr_number, pr_data["html_url"], pr_data["user"]["login"]))
