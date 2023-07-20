@@ -51,8 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Used `Widget::overlay` for `Tooltip`. [#1692](https://github.com/iced-rs/iced/pull/1692)
 
 ### Fixed
-- Invalidate `Responsive` layout when shell layout is invalidated. [#1799](https://github.com/iced-rs/iced/pull/1799)
-- Invalidate `Responsive` layout when size changes without a `view` call. [#1890](https://github.com/iced-rs/iced/pull/1890)
+- `Responsive` layout not invalidated when shell layout is invalidated. [#1799](https://github.com/iced-rs/iced/pull/1799)
+- `Responsive` layout not invalidated when size changes without a `view` call. [#1890](https://github.com/iced-rs/iced/pull/1890)
 - Broken link in `ROADMAP.md`. [#1815](https://github.com/iced-rs/iced/pull/1815)
 - `bounds` of selected option background in `Menu`. [#1831](https://github.com/iced-rs/iced/pull/1831)
 - Border radius logic in `iced_tiny_skia`. [#1842](https://github.com/iced-rs/iced/pull/1842)
