@@ -7,6 +7,10 @@ mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
+#[cfg(target_os = "linux")]
+#[path = "settings/linux.rs"]
+mod platform;
+
 #[cfg(target_arch = "wasm32")]
 #[path = "settings/wasm.rs"]
 mod platform;
@@ -14,6 +18,7 @@ mod platform;
 #[cfg(not(any(
     target_os = "windows",
     target_os = "macos",
+    target_os = "linux",
     target_arch = "wasm32"
 )))]
 #[path = "settings/other.rs"]
@@ -150,7 +155,6 @@ impl Window {
         }
 
         #[cfg(any(
-            target_os = "linux",
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "netbsd",
@@ -190,6 +194,28 @@ impl Window {
                 .with_fullsize_content_view(
                     self.platform_specific.fullsize_content_view,
                 );
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            #[cfg(feature = "x11")]
+            {
+                use winit::platform::x11::WindowBuilderExtX11;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
+            #[cfg(feature = "wayland")]
+            {
+                use winit::platform::wayland::WindowBuilderExtWayland;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
         }
 
         window_builder
