@@ -1,0 +1,1697 @@
+{
+    // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+    // Pointez pour afficher la description des attributs existants.
+    // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_core'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_core"
+                ],
+                "filter": {
+                    "name": "iced_core",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_futures'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_futures"
+                ],
+                "filter": {
+                    "name": "iced_futures",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_graphics'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_graphics"
+                ],
+                "filter": {
+                    "name": "iced_graphics",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_runtime'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_runtime"
+                ],
+                "filter": {
+                    "name": "iced_runtime",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_renderer'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_renderer"
+                ],
+                "filter": {
+                    "name": "iced_renderer",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_tiny_skia'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_tiny_skia"
+                ],
+                "filter": {
+                    "name": "iced_tiny_skia",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_wgpu'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_wgpu"
+                ],
+                "filter": {
+                    "name": "iced_wgpu",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_style'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_style"
+                ],
+                "filter": {
+                    "name": "iced_style",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_widget'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_widget"
+                ],
+                "filter": {
+                    "name": "iced_widget",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced_winit'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced_winit"
+                ],
+                "filter": {
+                    "name": "iced_winit",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'arc'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=arc",
+                    "--package=arc"
+                ],
+                "filter": {
+                    "name": "arc",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'arc'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=arc",
+                    "--package=arc"
+                ],
+                "filter": {
+                    "name": "arc",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'iced'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=iced"
+                ],
+                "filter": {
+                    "name": "iced",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'bezier_tool'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=bezier_tool",
+                    "--package=bezier_tool"
+                ],
+                "filter": {
+                    "name": "bezier_tool",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'bezier_tool'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=bezier_tool",
+                    "--package=bezier_tool"
+                ],
+                "filter": {
+                    "name": "bezier_tool",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'checkbox'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=checkbox",
+                    "--package=checkbox"
+                ],
+                "filter": {
+                    "name": "checkbox",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'checkbox'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=checkbox",
+                    "--package=checkbox"
+                ],
+                "filter": {
+                    "name": "checkbox",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'clock'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=clock",
+                    "--package=clock"
+                ],
+                "filter": {
+                    "name": "clock",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'clock'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=clock",
+                    "--package=clock"
+                ],
+                "filter": {
+                    "name": "clock",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'color_palette'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=color_palette",
+                    "--package=color_palette"
+                ],
+                "filter": {
+                    "name": "color_palette",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'color_palette'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=color_palette",
+                    "--package=color_palette"
+                ],
+                "filter": {
+                    "name": "color_palette",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'component'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=component",
+                    "--package=component"
+                ],
+                "filter": {
+                    "name": "component",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'component'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=component",
+                    "--package=component"
+                ],
+                "filter": {
+                    "name": "component",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'counter'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=counter",
+                    "--package=counter"
+                ],
+                "filter": {
+                    "name": "counter",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'counter'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=counter",
+                    "--package=counter"
+                ],
+                "filter": {
+                    "name": "counter",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'custom_quad'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=custom_quad",
+                    "--package=custom_quad"
+                ],
+                "filter": {
+                    "name": "custom_quad",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'custom_quad'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=custom_quad",
+                    "--package=custom_quad"
+                ],
+                "filter": {
+                    "name": "custom_quad",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'custom_widget'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=custom_widget",
+                    "--package=custom_widget"
+                ],
+                "filter": {
+                    "name": "custom_widget",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'custom_widget'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=custom_widget",
+                    "--package=custom_widget"
+                ],
+                "filter": {
+                    "name": "custom_widget",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'download_progress'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=download_progress",
+                    "--package=download_progress"
+                ],
+                "filter": {
+                    "name": "download_progress",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'download_progress'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=download_progress",
+                    "--package=download_progress"
+                ],
+                "filter": {
+                    "name": "download_progress",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'events'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=events",
+                    "--package=events"
+                ],
+                "filter": {
+                    "name": "events",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'events'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=events",
+                    "--package=events"
+                ],
+                "filter": {
+                    "name": "events",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'exit'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=exit",
+                    "--package=exit"
+                ],
+                "filter": {
+                    "name": "exit",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'exit'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=exit",
+                    "--package=exit"
+                ],
+                "filter": {
+                    "name": "exit",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'game_of_life'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=game_of_life",
+                    "--package=game_of_life"
+                ],
+                "filter": {
+                    "name": "game_of_life",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'game_of_life'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=game_of_life",
+                    "--package=game_of_life"
+                ],
+                "filter": {
+                    "name": "game_of_life",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'geometry'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=geometry",
+                    "--package=geometry"
+                ],
+                "filter": {
+                    "name": "geometry",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'geometry'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=geometry",
+                    "--package=geometry"
+                ],
+                "filter": {
+                    "name": "geometry",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'integration'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=integration",
+                    "--package=integration"
+                ],
+                "filter": {
+                    "name": "integration",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'integration'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=integration",
+                    "--package=integration"
+                ],
+                "filter": {
+                    "name": "integration",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'lazy'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=lazy",
+                    "--package=lazy"
+                ],
+                "filter": {
+                    "name": "lazy",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'lazy'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=lazy",
+                    "--package=lazy"
+                ],
+                "filter": {
+                    "name": "lazy",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'loading_spinners'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=loading_spinners",
+                    "--package=loading_spinners"
+                ],
+                "filter": {
+                    "name": "loading_spinners",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'loading_spinners'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=loading_spinners",
+                    "--package=loading_spinners"
+                ],
+                "filter": {
+                    "name": "loading_spinners",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'modal'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=modal",
+                    "--package=modal"
+                ],
+                "filter": {
+                    "name": "modal",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'modal'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=modal",
+                    "--package=modal"
+                ],
+                "filter": {
+                    "name": "modal",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'multitouch'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=multitouch",
+                    "--package=multitouch"
+                ],
+                "filter": {
+                    "name": "multitouch",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'multitouch'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=multitouch",
+                    "--package=multitouch"
+                ],
+                "filter": {
+                    "name": "multitouch",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'pane_grid'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=pane_grid",
+                    "--package=pane_grid"
+                ],
+                "filter": {
+                    "name": "pane_grid",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'pane_grid'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=pane_grid",
+                    "--package=pane_grid"
+                ],
+                "filter": {
+                    "name": "pane_grid",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'pick_list'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=pick_list",
+                    "--package=pick_list"
+                ],
+                "filter": {
+                    "name": "pick_list",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'pick_list'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=pick_list",
+                    "--package=pick_list"
+                ],
+                "filter": {
+                    "name": "pick_list",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'pokedex'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=pokedex",
+                    "--package=pokedex"
+                ],
+                "filter": {
+                    "name": "pokedex",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'pokedex'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=pokedex",
+                    "--package=pokedex"
+                ],
+                "filter": {
+                    "name": "pokedex",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'progress_bar'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=progress_bar",
+                    "--package=progress_bar"
+                ],
+                "filter": {
+                    "name": "progress_bar",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'progress_bar'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=progress_bar",
+                    "--package=progress_bar"
+                ],
+                "filter": {
+                    "name": "progress_bar",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'proxy'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=proxy",
+                    "--package=proxy"
+                ],
+                "filter": {
+                    "name": "proxy",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'proxy'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=proxy",
+                    "--package=proxy"
+                ],
+                "filter": {
+                    "name": "proxy",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'qr_code'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=qr_code",
+                    "--package=qr_code"
+                ],
+                "filter": {
+                    "name": "qr_code",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'qr_code'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=qr_code",
+                    "--package=qr_code"
+                ],
+                "filter": {
+                    "name": "qr_code",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'screenshot'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=screenshot",
+                    "--package=screenshot"
+                ],
+                "filter": {
+                    "name": "screenshot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'screenshot'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=screenshot",
+                    "--package=screenshot"
+                ],
+                "filter": {
+                    "name": "screenshot",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'scrollable'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=scrollable",
+                    "--package=scrollable"
+                ],
+                "filter": {
+                    "name": "scrollable",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'scrollable'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=scrollable",
+                    "--package=scrollable"
+                ],
+                "filter": {
+                    "name": "scrollable",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'sierpinski_triangle'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=sierpinski_triangle",
+                    "--package=sierpinski_triangle"
+                ],
+                "filter": {
+                    "name": "sierpinski_triangle",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'sierpinski_triangle'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=sierpinski_triangle",
+                    "--package=sierpinski_triangle"
+                ],
+                "filter": {
+                    "name": "sierpinski_triangle",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'slider'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=slider",
+                    "--package=slider"
+                ],
+                "filter": {
+                    "name": "slider",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'slider'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=slider",
+                    "--package=slider"
+                ],
+                "filter": {
+                    "name": "slider",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'solar_system'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=solar_system",
+                    "--package=solar_system"
+                ],
+                "filter": {
+                    "name": "solar_system",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'solar_system'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=solar_system",
+                    "--package=solar_system"
+                ],
+                "filter": {
+                    "name": "solar_system",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'stopwatch'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=stopwatch",
+                    "--package=stopwatch"
+                ],
+                "filter": {
+                    "name": "stopwatch",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'stopwatch'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=stopwatch",
+                    "--package=stopwatch"
+                ],
+                "filter": {
+                    "name": "stopwatch",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'styling'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=styling",
+                    "--package=styling"
+                ],
+                "filter": {
+                    "name": "styling",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'styling'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=styling",
+                    "--package=styling"
+                ],
+                "filter": {
+                    "name": "styling",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'svg'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=svg",
+                    "--package=svg"
+                ],
+                "filter": {
+                    "name": "svg",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'svg'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=svg",
+                    "--package=svg"
+                ],
+                "filter": {
+                    "name": "svg",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'system_information'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=system_information",
+                    "--package=system_information"
+                ],
+                "filter": {
+                    "name": "system_information",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'system_information'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=system_information",
+                    "--package=system_information"
+                ],
+                "filter": {
+                    "name": "system_information",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'toast'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=toast",
+                    "--package=toast"
+                ],
+                "filter": {
+                    "name": "toast",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'toast'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=toast",
+                    "--package=toast"
+                ],
+                "filter": {
+                    "name": "toast",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'todos'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=todos",
+                    "--package=todos"
+                ],
+                "filter": {
+                    "name": "todos",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'todos'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=todos",
+                    "--package=todos"
+                ],
+                "filter": {
+                    "name": "todos",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'tooltip'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=tooltip",
+                    "--package=tooltip"
+                ],
+                "filter": {
+                    "name": "tooltip",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'tooltip'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=tooltip",
+                    "--package=tooltip"
+                ],
+                "filter": {
+                    "name": "tooltip",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'tour'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=tour",
+                    "--package=tour"
+                ],
+                "filter": {
+                    "name": "tour",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'tour'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=tour",
+                    "--package=tour"
+                ],
+                "filter": {
+                    "name": "tour",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'url_handler'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=url_handler",
+                    "--package=url_handler"
+                ],
+                "filter": {
+                    "name": "url_handler",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'url_handler'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=url_handler",
+                    "--package=url_handler"
+                ],
+                "filter": {
+                    "name": "url_handler",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'websocket'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=websocket",
+                    "--package=websocket"
+                ],
+                "filter": {
+                    "name": "websocket",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'websocket'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=websocket",
+                    "--package=websocket"
+                ],
+                "filter": {
+                    "name": "websocket",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
