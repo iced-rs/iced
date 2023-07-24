@@ -136,6 +136,8 @@ where
     let target = settings.window.platform_specific.target.clone();
 
     let should_be_visible = settings.window.visible;
+    let exit_on_close_request = settings.window.exit_on_close_request;
+
     let builder = settings::window_builder(
         settings.window,
         &application.title(),
@@ -197,7 +199,7 @@ where
         init_command,
         window,
         should_be_visible,
-        settings.exit_on_close_request,
+        exit_on_close_request,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());

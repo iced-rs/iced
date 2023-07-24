@@ -1,6 +1,6 @@
 //! Configure your application.
-use crate::conversion;
 use crate::core::window;
+use crate::conversion;
 
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
@@ -21,16 +21,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
-
-    /// Whether the [`Application`] should exit when the user requests the
-    /// window to close (e.g. the user presses the close button).
-    ///
-    /// With a [`multi_window::Application`] this will instead be used to determine whether the
-    /// application should exit when the "main"" window is closed, i.e. the first window created on
-    /// app launch.
-    ///
-    /// [`Application`]: crate::Application
-    pub exit_on_close_request: bool,
 }
 
 /// Converts the window settings into a `WindowBuilder` from `winit`.

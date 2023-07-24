@@ -14,6 +14,7 @@ where
     pub raw: Vec<winit::window::Window>,
     pub states: Vec<State<A>>,
     pub viewport_versions: Vec<usize>,
+    pub exit_on_close_requested: Vec<bool>,
     pub surfaces: Vec<C::Surface>,
     pub renderers: Vec<A::Renderer>,
     pub pending_destroy: Vec<(window::Id, winit::window::WindowId)>,
@@ -52,6 +53,7 @@ where
         compositor: &mut C,
         renderer: A::Renderer,
         main: winit::window::Window,
+        exit_on_close_requested: bool,
     ) -> Self {
         let state = State::new(application, window::Id::MAIN, &main);
         let viewport_version = state.viewport_version();
@@ -67,6 +69,7 @@ where
             raw: vec![main],
             states: vec![state],
             viewport_versions: vec![viewport_version],
+            exit_on_close_requested: vec![exit_on_close_requested],
             surfaces: vec![surface],
             renderers: vec![renderer],
             pending_destroy: vec![],
@@ -81,6 +84,7 @@ where
         compositor: &mut C,
         id: window::Id,
         window: winit::window::Window,
+        exit_on_close_requested: bool,
     ) -> (Size, usize) {
         let state = State::new(application, id, &window);
         let window_size = state.logical_size();
@@ -96,6 +100,7 @@ where
         self.ids.push(id);
         self.raw.push(window);
         self.states.push(state);
+        self.exit_on_close_requested.push(exit_on_close_requested);
         self.viewport_versions.push(viewport_version);
         self.surfaces.push(surface);
         self.renderers.push(renderer);
@@ -145,6 +150,7 @@ where
         let id = self.ids.remove(i);
         let window = self.raw.remove(i);
         let _ = self.states.remove(i);
+        let _ = self.exit_on_close_requested.remove(i);
         let _ = self.viewport_versions.remove(i);
         let _ = self.surfaces.remove(i);
 
@@ -166,5 +172,25 @@ where
 
         let (id, _) = self.pending_destroy.remove(i);
         id
+    }
+
+    /// Returns the windows that need to be requested to closed, and also the windows that can be
+    /// closed immediately.
+    pub fn partition_close_requests(&self) -> (Vec<window::Id>, Vec<window::Id>) {
+        self.exit_on_close_requested.iter().enumerate().fold(
+            (vec![], vec![]),
+            |(mut close_immediately, mut needs_request_closed),
+             (i, close)| {
+                let id = self.ids[i];
+
+                if *close {
+                    close_immediately.push(id);
+                } else {
+                    needs_request_closed.push(id);
+                }
+
+                (close_immediately, needs_request_closed)
+            },
+        )
     }
 }

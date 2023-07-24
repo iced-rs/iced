@@ -28,9 +28,6 @@ pub enum Event {
     RedrawRequested(Instant),
 
     /// The user has requested for the window to close.
-    ///
-    /// Usually, you will want to terminate the execution whenever this event
-    /// occurs.
     CloseRequested,
 
     /// A window was destroyed by the runtime.

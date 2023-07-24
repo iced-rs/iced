@@ -8,10 +8,7 @@ use iced::{
 use std::collections::HashMap;
 
 fn main() -> iced::Result {
-    Example::run(Settings {
-        exit_on_close_request: false,
-        ..Default::default()
-    })
+    Example::run(Settings::default())
 }
 
 #[derive(Default)]
@@ -111,6 +108,7 @@ impl multi_window::Application for Example {
                     id,
                     window::Settings {
                         position: self.next_window_pos,
+                        exit_on_close_request: count % 2 == 0,
                         ..Default::default()
                     },
                 );

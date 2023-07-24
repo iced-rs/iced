@@ -46,7 +46,14 @@ pub enum Event<Message> {
     /// An internal event for closing a window.
     CloseWindow(window::Id),
     /// An internal event for when the window has finished being created.
-    WindowCreated(window::Id, winit::window::Window),
+    WindowCreated {
+        /// The internal ID of the window.
+        id: window::Id,
+        /// The raw window.
+        window: winit::window::Window,
+        /// Whether or not the window should close when a user requests it does.
+        exit_on_close_request: bool,
+    },
 }
 
 #[allow(unsafe_code)]
@@ -161,6 +168,8 @@ where
     };
 
     let should_main_be_visible = settings.window.visible;
+    let exit_on_close_request = settings.window.exit_on_close_request;
+
     let builder = window_builder(
         settings.window,
         &application.title(window::Id::MAIN),
@@ -208,8 +217,13 @@ where
     let (mut compositor, renderer) =
         C::new(compositor_settings, Some(&main_window))?;
 
-    let windows =
-        Windows::new(&application, &mut compositor, renderer, main_window);
+    let windows = Windows::new(
+        &application,
+        &mut compositor,
+        renderer,
+        main_window,
+        exit_on_close_request,
+    );
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
@@ -225,7 +239,6 @@ where
         init_command,
         windows,
         should_main_be_visible,
-        settings.exit_on_close_request,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
@@ -255,14 +268,18 @@ where
                 title,
                 monitor,
             }) => {
+                let exit_on_close_request = settings.exit_on_close_request;
+
                 let window =
                     settings::window_builder(settings, &title, monitor, None)
                         .build(window_target)
                         .expect("Failed to build window");
 
-                Some(winit::event::Event::UserEvent(Event::WindowCreated(
-                    id, window,
-                )))
+                Some(winit::event::Event::UserEvent(Event::WindowCreated {
+                    id,
+                    window,
+                    exit_on_close_request,
+                }))
             }
             _ => event.to_static(),
         };
@@ -299,7 +316,6 @@ async fn run_instance<A, E, C>(
     init_command: Command<A::Message>,
     mut windows: Windows<A, C>,
     should_main_window_be_visible: bool,
-    exit_on_main_closed: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -548,11 +564,20 @@ async fn run_instance<A, E, C>(
                 Event::Application(message) => {
                     messages.push(message);
                 }
-                Event::WindowCreated(id, window) => {
+                Event::WindowCreated {
+                    id,
+                    window,
+                    exit_on_close_request,
+                } => {
                     let bounds = logical_bounds_of(&window);
 
-                    let (inner_size, i) =
-                        windows.add(&application, &mut compositor, id, window);
+                    let (inner_size, i) = windows.add(
+                        &application,
+                        &mut compositor,
+                        id,
+                        window,
+                        exit_on_close_request,
+                    );
 
                     user_interfaces.push(build_user_interface(
                         &application,
@@ -680,50 +705,61 @@ async fn run_instance<A, E, C>(
                 event: window_event,
                 window_id,
             } => {
-                let window_deleted = windows
-                    .pending_destroy
-                    .iter()
-                    .any(|(_, w_id)| window_id == *w_id);
+                let window_index =
+                    windows.raw.iter().position(|w| w.id() == window_id);
 
-                if matches!(window_event, winit::event::WindowEvent::Destroyed)
-                {
-                    // This is the only special case, since in order trigger the Destroyed event the
-                    // window reference from winit must be dropped, but we still want to inform the
-                    // user that the window was destroyed so they can clean up any specific window
-                    // code for this window
-                    let id = windows.get_pending_destroy(window_id);
+                match window_index {
+                    Some(i) => {
+                        let id = windows.ids[i];
+                        let raw = &windows.raw[i];
+                        let exit_on_close_request =
+                            windows.exit_on_close_requested[i];
 
-                    events.push((
-                        None,
-                        core::Event::Window(id, window::Event::Destroyed),
-                    ));
-                } else if !window_deleted {
-                    let i = windows.index_from_raw(window_id);
-                    let id = windows.ids[i];
-                    let raw = &windows.raw[i];
-                    let state = &mut windows.states[i];
+                        if matches!(
+                            window_event,
+                            winit::event::WindowEvent::CloseRequested
+                        ) && exit_on_close_request
+                        {
+                            let i = windows.delete(id);
+                            let _ = user_interfaces.remove(i);
+                            let _ = ui_caches.remove(i);
 
-                    // first check if we need to just break the entire application
-                    // e.g. a user does a force quit on MacOS, or if a user has set "exit on main closed"
-                    // as an option in window settings and wants to close the main window
-                    if requests_exit(
-                        i,
-                        exit_on_main_closed,
-                        &window_event,
-                        state.modifiers(),
-                    ) {
-                        break 'main;
+                            if windows.is_empty() {
+                                break 'main;
+                            }
+                        } else {
+                            let state = &mut windows.states[i];
+                            state.update(raw, &window_event, &mut debug);
+
+                            if let Some(event) = conversion::window_event(
+                                id,
+                                &window_event,
+                                state.scale_factor(),
+                                state.modifiers(),
+                            ) {
+                                events.push((Some(id), event));
+                            }
+                        }
                     }
+                    None => {
+                        // This is the only special case, since in order to trigger the Destroyed event the
+                        // window reference from winit must be dropped, but we still want to inform the
+                        // user that the window was destroyed so they can clean up any specific window
+                        // code for this window
+                        if matches!(
+                            window_event,
+                            winit::event::WindowEvent::Destroyed
+                        ) {
+                            let id = windows.get_pending_destroy(window_id);
 
-                    state.update(raw, &window_event, &mut debug);
-
-                    if let Some(event) = conversion::window_event(
-                        id,
-                        &window_event,
-                        state.scale_factor(),
-                        state.modifiers(),
-                    ) {
-                        events.push((Some(id), event));
+                            events.push((
+                                None,
+                                core::Event::Window(
+                                    id,
+                                    window::Event::Destroyed,
+                                ),
+                            ));
+                        }
                     }
                 }
             }
@@ -1068,17 +1104,13 @@ where
 
 /// Returns true if the provided event should cause an [`Application`] to
 /// exit.
-pub fn requests_exit(
-    window: usize,
-    exit_on_main_closed: bool,
+pub fn user_force_quit(
     event: &winit::event::WindowEvent<'_>,
     _modifiers: winit::event::ModifiersState,
 ) -> bool {
     use winit::event::WindowEvent;
 
-    //TODO alt f4..?
     match event {
-        WindowEvent::CloseRequested => exit_on_main_closed && window == 0,
         #[cfg(target_os = "macos")]
         WindowEvent::KeyboardInput {
             input:

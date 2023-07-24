@@ -57,6 +57,16 @@ pub struct Settings {
 
     /// Platform specific settings.
     pub platform_specific: PlatformSpecific,
+
+    /// Whether the window will close when the user requests it, e.g. when a user presses the
+    /// close button.
+    ///
+    /// This can be useful if you want to have some behavior that executes before the window is
+    /// actually destroyed. If you disable this, you must manually close the window with the
+    /// `window::close` command.
+    ///
+    /// By default this is enabled.
+    pub exit_on_close_request: bool,
 }
 
 impl Default for Settings {
@@ -73,6 +83,7 @@ impl Default for Settings {
             level: Level::default(),
             icon: None,
             platform_specific: Default::default(),
+            exit_on_close_request: true,
         }
     }
 }
