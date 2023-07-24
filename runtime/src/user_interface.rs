@@ -513,17 +513,13 @@ where
                             renderer,
                         );
 
-                        let overlay_bounds = layout.bounds();
-
-                        renderer.with_layer(overlay_bounds, |renderer| {
-                            overlay.draw(
-                                renderer,
-                                theme,
-                                style,
-                                Layout::new(layout),
-                                cursor,
-                            );
-                        });
+                        overlay.draw(
+                            renderer,
+                            theme,
+                            style,
+                            Layout::new(layout),
+                            cursor,
+                        );
 
                         if cursor
                             .position()
