@@ -52,6 +52,8 @@ pub mod program;
 pub mod system;
 pub mod user_interface;
 pub mod window;
+/// Get proxy
+pub mod proxy;
 
 // We disable debug capabilities on release builds unless the `debug` feature
 // is explicitly enabled.

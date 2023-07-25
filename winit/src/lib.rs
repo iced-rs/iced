@@ -49,7 +49,7 @@ pub mod system;
 
 mod error;
 mod position;
-mod proxy;
+pub mod proxy;
 
 #[cfg(feature = "application")]
 pub use application::Application;
