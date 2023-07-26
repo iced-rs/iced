@@ -394,6 +394,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let menu = tree.state.downcast_mut::<Menu<T>>();
 
@@ -416,6 +417,7 @@ where
             renderer,
             clipboard,
             &mut local_shell,
+            viewport,
         );
         self.state.update_text_input(tree);
 
@@ -554,6 +556,7 @@ where
                     renderer,
                     clipboard,
                     &mut Shell::new(&mut vec![]),
+                    viewport,
                 );
                 state.update_text_input(tree);
             }
