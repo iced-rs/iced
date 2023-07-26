@@ -5,6 +5,7 @@ use iced::theme::{self, Theme};
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
 };
+use iced::window;
 use iced::{
     Alignment, Application, Color, Command, Element, Event, Font, Length,
     Point, Rectangle, Settings,
@@ -23,6 +24,7 @@ struct Example {
 #[derive(Debug, Clone, Copy)]
 enum Message {
     MouseMoved(Point),
+    WindowResized,
     Scrolled(scrollable::Viewport),
     OuterBoundsFetched(Option<Rectangle>),
     InnerBoundsFetched(Option<Rectangle>),
@@ -56,12 +58,14 @@ impl Application for Example {
 
                 Command::none()
             }
-            Message::Scrolled(_) => Command::batch(vec![
-                container::visible_bounds(OUTER_CONTAINER.clone())
-                    .map(Message::OuterBoundsFetched),
-                container::visible_bounds(INNER_CONTAINER.clone())
-                    .map(Message::InnerBoundsFetched),
-            ]),
+            Message::Scrolled(_) | Message::WindowResized => {
+                Command::batch(vec![
+                    container::visible_bounds(OUTER_CONTAINER.clone())
+                        .map(Message::OuterBoundsFetched),
+                    container::visible_bounds(INNER_CONTAINER.clone())
+                        .map(Message::InnerBoundsFetched),
+                ])
+            }
             Message::OuterBoundsFetched(outer_bounds) => {
                 self.outer_bounds = outer_bounds;
 
@@ -162,6 +166,9 @@ impl Application for Example {
         subscription::events_with(|event, _| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
+            }
+            Event::Window(window::Event::Resized { .. }) => {
+                Some(Message::WindowResized)
             }
             _ => None,
         })
