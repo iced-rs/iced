@@ -1,6 +1,7 @@
 //! Helper functions to create pure widgets.
 use crate::button::{self, Button};
 use crate::checkbox::{self, Checkbox};
+use crate::combo_box::{self, ComboBox};
 use crate::container::{self, Container};
 use crate::core;
 use crate::core::widget::operation;
@@ -250,6 +251,23 @@ where
         From<<Renderer::Theme as pick_list::StyleSheet>::Style>,
 {
     PickList::new(options, selected, on_selected)
+}
+
+/// Creates a new [`ComboBox`].
+///
+/// [`ComboBox`]: widget::ComboBox
+pub fn combo_box<'a, T, Message, Renderer>(
+    state: &'a combo_box::State<T>,
+    placeholder: &str,
+    selection: Option<&T>,
+    on_selected: impl Fn(T) -> Message + 'static,
+) -> ComboBox<'a, T, Message, Renderer>
+where
+    T: std::fmt::Display + Clone,
+    Renderer: core::text::Renderer,
+    Renderer::Theme: text_input::StyleSheet + overlay::menu::StyleSheet,
+{
+    ComboBox::new(state, placeholder, selection, on_selected)
 }
 
 /// Creates a new horizontal [`Space`] with the given [`Length`].

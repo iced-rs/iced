@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nested overlays. [#1719](https://github.com/iced-rs/iced/pull/1719)
 - Cursor availability. [#1904](https://github.com/iced-rs/iced/pull/1904)
 - Backend-specific primitives. [#1932](https://github.com/iced-rs/iced/pull/1932)
+- `ComboBox` widget. [#1954](https://github.com/iced-rs/iced/pull/1954)
 - `web-colors` feature flag to enable "sRGB linear" blending. [#1888](https://github.com/iced-rs/iced/pull/1888)
 - `PaneGrid` logic to split panes by drag & drop. [#1856](https://github.com/iced-rs/iced/pull/1856)
 - `PaneGrid` logic to drag & drop panes to the edges. [#1865](https://github.com/iced-rs/iced/pull/1865)
