@@ -14,6 +14,6 @@ jobs:
       run: |
         ! git diff --exit-code master HEAD CHANGELOG.md
     - name: Check `CHANGELOG.md` has PR author
-      if: ${{ github.event.pull_request.user.name != 'hecrj' }}
+      if: ${{ github.event.pull_request.user.login != 'hecrj' }}
       run: |
-        sed -n '/## \[Unreleased\]/,/^## /p' CHANGELOG.md | sed -n '/Many thanks to.../,//p' | grep '@${{ github.event.pull_request.user.name }}'
+        sed -n '/## \[Unreleased\]/,/^## /p' CHANGELOG.md | sed -n '/Many thanks to.../,//p' | grep '@${{ github.event.pull_request.user.login }}'
