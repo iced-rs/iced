@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Helpers to change viewport alignment of a `Scrollable`. [#1953](https://github.com/iced-rs/iced/pull/1953)
 - `scroll_to` widget operation. [#1796](https://github.com/iced-rs/iced/pull/1796)
 - `scroll_to` helper. [#1804](https://github.com/iced-rs/iced/pull/1804)
+- `visible_bounds` widget operation for `Container`. [#1971](https://github.com/iced-rs/iced/pull/1971)
 - Command to fetch window size. [#1927](https://github.com/iced-rs/iced/pull/1927)
 - Conversion support from `Fn` trait to custom theme. [#1861](https://github.com/iced-rs/iced/pull/1861)
 - Configurable border radii on relevant widgets. [#1869](https://github.com/iced-rs/iced/pull/1869)
