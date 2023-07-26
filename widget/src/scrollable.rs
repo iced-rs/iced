@@ -254,10 +254,22 @@ where
     ) {
         let state = tree.state.downcast_mut::<State>();
 
-        operation.scrollable(state, self.id.as_ref().map(|id| &id.0));
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+        let translation =
+            state.translation(self.direction, bounds, content_bounds);
+
+        operation.scrollable(
+            state,
+            self.id.as_ref().map(|id| &id.0),
+            bounds,
+            translation,
+        );
 
         operation.container(
             self.id.as_ref().map(|id| &id.0),
+            bounds,
             &mut |operation| {
                 self.content.as_widget().operate(
                     &mut tree.children[0],

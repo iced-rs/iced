@@ -197,3 +197,18 @@ where
         }
     }
 }
+
+impl<T> std::ops::Sub<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Rectangle<T>;
+
+    fn sub(self, translation: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x - translation.x,
+            y: self.y - translation.y,
+            ..self
+        }
+    }
+}
