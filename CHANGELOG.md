@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conversion support from `Fn` trait to custom theme. [#1861](https://github.com/iced-rs/iced/pull/1861)
 - Configurable border radii on relevant widgets. [#1869](https://github.com/iced-rs/iced/pull/1869)
 - `border_radius` styling to `Slider` rail. [#1892](https://github.com/iced-rs/iced/pull/1892)
+- `application_id` in `PlatformSpecific` settings for Linux. [#1963](https://github.com/iced-rs/iced/pull/1963)
 - Aliased entries in `text::Cache`. [#1934](https://github.com/iced-rs/iced/pull/1934)
 - Text cache modes. [#1938](https://github.com/iced-rs/iced/pull/1938)
 - `operate` method for `program::State`. [#1913](https://github.com/iced-rs/iced/pull/1913)
