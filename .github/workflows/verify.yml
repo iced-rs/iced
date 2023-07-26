@@ -13,7 +13,7 @@ jobs:
     - name: Check `CHANGELOG.md` has changes
       run: |
         ! git diff --exit-code origin/master HEAD -- CHANGELOG.md
-    - name: Check `CHANGELOG.md` has PR author
+    - name: Check `CHANGELOG.md` thanks the PR author
       if: ${{ github.event.pull_request.user.login != 'hecrj' }}
       run: |
         sed -n '/## \[Unreleased\]/,/^## /p' CHANGELOG.md | sed -n '/Many thanks to.../,//p' | grep '@${{ github.event.pull_request.user.login }}'
