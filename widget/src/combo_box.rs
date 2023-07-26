@@ -70,7 +70,7 @@ where
             on_input: None,
             on_blur: None,
             menu_style: Default::default(),
-            padding: Padding::new(0.0),
+            padding: text_input::DEFAULT_PADDING,
             size: None,
         }
     }
