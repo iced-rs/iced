@@ -72,6 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quad rendering including border only inside of the bounds. [#1843](https://github.com/iced-rs/iced/pull/1843)
 - Redraw requests not being forwarded for `Component` overlays. [#1949](https://github.com/iced-rs/iced/pull/1949)
 - Blinking input cursor when window loses focus. [#1955](https://github.com/iced-rs/iced/pull/1955)
+- Outdated `ROADMAP`. [#1958](https://github.com/iced-rs/iced/pull/1958)
 
 Many thanks to...
 
@@ -92,6 +93,7 @@ Many thanks to...
 - @marienz
 - @nicksenger
 - @nicoburns
+- @Redhawk18
 - @RGBCube
 - @tarkah
 - @thunderstorm010
