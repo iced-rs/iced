@@ -2,9 +2,12 @@ use iced::executor;
 use iced::mouse;
 use iced::subscription::{self, Subscription};
 use iced::theme::{self, Theme};
-use iced::widget::{column, container, scrollable, text, vertical_space};
+use iced::widget::{
+    column, container, horizontal_space, row, scrollable, text, vertical_space,
+};
 use iced::{
-    Application, Command, Element, Event, Length, Point, Rectangle, Settings,
+    Alignment, Application, Color, Command, Element, Event, Font, Length,
+    Point, Rectangle, Settings,
 };
 
 pub fn main() -> iced::Result {
@@ -73,26 +76,52 @@ impl Application for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let view_bounds = |label, bounds| {
-            text(format!(
-                "The {label} container is {}",
+        let data_row = |label, value, color| {
+            row![
+                text(label),
+                horizontal_space(Length::Fill),
+                text(value).font(Font::MONOSPACE).size(14).style(color),
+            ]
+            .height(40)
+            .align_items(Alignment::Center)
+        };
+
+        let view_bounds = |label, bounds: Option<Rectangle>| {
+            data_row(
+                label,
                 match bounds {
-                    Some(bounds) => format!("visible at {:?}", bounds),
+                    Some(bounds) => format!("{:?}", bounds),
                     None => "not visible".to_string(),
-                }
-            ))
+                },
+                if bounds
+                    .zip(self.mouse_position)
+                    .map(|(bounds, mouse_position)| {
+                        bounds.contains(mouse_position)
+                    })
+                    .unwrap_or_default()
+                {
+                    Color {
+                        g: 1.0,
+                        ..Color::BLACK
+                    }
+                    .into()
+                } else {
+                    theme::Text::Default
+                },
+            )
         };
 
         column![
-            text(format!(
-                "Mouse position is {}",
+            data_row(
+                "Mouse position",
                 match self.mouse_position {
                     Some(Point { x, y }) => format!("({x}, {y})"),
                     None => "unknown".to_string(),
-                }
-            )),
-            view_bounds("outer", self.outer_bounds),
-            view_bounds("inner", self.inner_bounds),
+                },
+                theme::Text::Default,
+            ),
+            view_bounds("Outer container", self.outer_bounds),
+            view_bounds("Inner container", self.inner_bounds),
             scrollable(
                 column![
                     text("Scroll me!"),
