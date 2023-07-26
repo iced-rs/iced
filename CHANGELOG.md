@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Viewport` argument to `Widget::on_event`. [#1956](https://github.com/iced-rs/iced/pull/1956)
 - Nix instructions to `DEPENDENCIES.md`. [#1859](https://github.com/iced-rs/iced/pull/1859)
 - Loading spinners example. [#1902](https://github.com/iced-rs/iced/pull/1902)
+- Workflow that verifies `CHANGELOG` is always up-to-date. [#1970](https://github.com/iced-rs/iced/pull/1970)
 
 ### Changed
 - Updated `wgpu` to `0.16`. [#1807](https://github.com/iced-rs/iced/pull/1807)
