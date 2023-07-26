@@ -28,6 +28,7 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
+    on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     width: f32,
     padding: Padding,
     text_size: Option<f32>,
@@ -52,12 +53,14 @@ where
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
+        on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     ) -> Self {
         Menu {
             state,
             options,
             hovered_option,
             on_selected: Box::new(on_selected),
+            on_option_hovered,
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
@@ -187,6 +190,7 @@ where
             options,
             hovered_option,
             on_selected,
+            on_option_hovered,
             width,
             padding,
             font,
@@ -200,6 +204,7 @@ where
             options,
             hovered_option,
             on_selected,
+            on_option_hovered,
             font,
             text_size,
             text_line_height,
@@ -321,6 +326,7 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
+    on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     padding: Padding,
     text_size: Option<f32>,
     text_line_height: text::LineHeight,
@@ -405,8 +411,21 @@ where
                         self.text_line_height.to_absolute(Pixels(text_size)),
                     ) + self.padding.vertical();
 
-                    *self.hovered_option =
-                        Some((cursor_position.y / option_height) as usize);
+                    let new_hovered_option =
+                        (cursor_position.y / option_height) as usize;
+
+                    if let Some(on_option_hovered) = self.on_option_hovered {
+                        if *self.hovered_option != Some(new_hovered_option) {
+                            if let Some(option) =
+                                self.options.get(new_hovered_option)
+                            {
+                                shell
+                                    .publish(on_option_hovered(option.clone()));
+                            }
+                        }
+                    }
+
+                    *self.hovered_option = Some(new_hovered_option);
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {

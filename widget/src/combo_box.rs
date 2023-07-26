@@ -32,8 +32,8 @@ where
     font: Option<Renderer::Font>,
     selection: text_input::Value,
     on_selected: Box<dyn Fn(T) -> Message>,
-    on_selection: Option<Box<dyn Fn(T) -> Message>>,
-    on_blur: Option<Message>,
+    on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
+    on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
     menu_style: <Renderer::Theme as menu::StyleSheet>::Style,
     padding: Padding,
@@ -66,9 +66,9 @@ where
             font: None,
             selection: text_input::Value::new(&selection),
             on_selected: Box::new(on_selected),
-            on_selection: None,
+            on_option_hovered: None,
             on_input: None,
-            on_blur: None,
+            on_close: None,
             menu_style: Default::default(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
@@ -87,18 +87,18 @@ where
 
     /// Sets the message that will be produced when an option of the
     /// [`ComboBox`] is hovered using the arrow keys.
-    pub fn on_selection(
+    pub fn on_option_hovered(
         mut self,
         on_selection: impl Fn(T) -> Message + 'static,
     ) -> Self {
-        self.on_selection = Some(Box::new(on_selection));
+        self.on_option_hovered = Some(Box::new(on_selection));
         self
     }
 
     /// Sets the message that will be produced when the outside area
     /// of the [`ComboBox`] is pressed.
-    pub fn on_blur(mut self, message: Message) -> Self {
-        self.on_blur = Some(message);
+    pub fn on_close(mut self, message: Message) -> Self {
+        self.on_close = Some(message);
         self
     }
 
@@ -424,6 +424,7 @@ where
         // Then finally react to them here
         for message in local_messages {
             let TextInputEvent::TextChanged(new_value) = message;
+
             if let Some(on_input) = &self.on_input {
                 shell.publish((on_input)(new_value.clone()));
                 published_message_to_shell = true;
@@ -451,6 +452,20 @@ where
 
         if self.state.is_focused() {
             self.state.with_inner(|state| {
+                if !started_focused {
+                    if let Some(on_option_hovered) = &mut self.on_option_hovered
+                    {
+                        let hovered_option = menu.hovered_option.unwrap_or(0);
+
+                        if let Some(option) =
+                            state.filtered_options.options.get(hovered_option)
+                        {
+                            shell.publish(on_option_hovered(option.clone()));
+                            published_message_to_shell = true;
+                        }
+                    }
+                }
+
                 if let Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code,
                     ..
@@ -475,7 +490,9 @@ where
                                 menu.hovered_option = Some(0);
                             }
 
-                            if let Some(on_selection) = &mut self.on_selection {
+                            if let Some(on_selection) =
+                                &mut self.on_option_hovered
+                            {
                                 if let Some(option) =
                                     menu.hovered_option.and_then(|index| {
                                         state
@@ -507,7 +524,9 @@ where
                                 menu.hovered_option = Some(0);
                             }
 
-                            if let Some(on_selection) = &mut self.on_selection {
+                            if let Some(on_selection) =
+                                &mut self.on_option_hovered
+                            {
                                 if let Some(option) =
                                     menu.hovered_option.and_then(|index| {
                                         state
@@ -566,7 +585,7 @@ where
             && !self.state.is_focused()
             && !published_message_to_shell
         {
-            if let Some(message) = self.on_blur.take() {
+            if let Some(message) = self.on_close.take() {
                 shell.publish(message);
             }
         }
@@ -637,6 +656,7 @@ where
                 &filtered_options.options,
                 hovered_option,
                 |x| (self.on_selected)(x),
+                self.on_option_hovered.as_deref(),
             )
             .width(bounds.width)
             .padding(self.padding)

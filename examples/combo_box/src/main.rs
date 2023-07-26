@@ -15,9 +15,9 @@ struct Example {
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    LanguageSelected(Language),
-    LanguagePreview(Language),
-    LanguageBlurred,
+    Selected(Language),
+    OptionHovered(Language),
+    Closed,
 }
 
 impl Sandbox for Example {
@@ -37,15 +37,15 @@ impl Sandbox for Example {
 
     fn update(&mut self, message: Message) {
         match message {
-            Message::LanguageSelected(language) => {
+            Message::Selected(language) => {
                 self.selected_language = Some(language);
                 self.text = language.hello().to_string();
                 self.languages.unfocus();
             }
-            Message::LanguagePreview(language) => {
+            Message::OptionHovered(language) => {
                 self.text = language.hello().to_string();
             }
-            Message::LanguageBlurred => {
+            Message::Closed => {
                 self.text = self
                     .selected_language
                     .map(|language| language.hello().to_string())
@@ -59,17 +59,17 @@ impl Sandbox for Example {
             &self.languages,
             "Type a language...",
             self.selected_language.as_ref(),
-            Message::LanguageSelected,
+            Message::Selected,
         )
-        .on_selection(Message::LanguagePreview)
-        .on_blur(Message::LanguageBlurred)
+        .on_option_hovered(Message::OptionHovered)
+        .on_close(Message::Closed)
         .width(250);
 
         let content = column![
+            text(&self.text),
             "What is your language?",
             combo_box,
             vertical_space(150),
-            text(&self.text),
         ]
         .width(Length::Fill)
         .align_items(Alignment::Center)
