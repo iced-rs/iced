@@ -89,9 +89,9 @@ where
     /// [`ComboBox`] is hovered using the arrow keys.
     pub fn on_option_hovered(
         mut self,
-        on_selection: impl Fn(T) -> Message + 'static,
+        on_option_hovered: impl Fn(T) -> Message + 'static,
     ) -> Self {
-        self.on_option_hovered = Some(Box::new(on_selection));
+        self.on_option_hovered = Some(Box::new(on_option_hovered));
         self
     }
 
@@ -490,7 +490,7 @@ where
                                 menu.hovered_option = Some(0);
                             }
 
-                            if let Some(on_selection) =
+                            if let Some(on_option_hovered) =
                                 &mut self.on_option_hovered
                             {
                                 if let Some(option) =
@@ -502,7 +502,7 @@ where
                                     })
                                 {
                                     // Notify the selection
-                                    shell.publish((on_selection)(
+                                    shell.publish((on_option_hovered)(
                                         option.clone(),
                                     ));
                                     published_message_to_shell = true;
@@ -524,7 +524,7 @@ where
                                 menu.hovered_option = Some(0);
                             }
 
-                            if let Some(on_selection) =
+                            if let Some(on_option_hovered) =
                                 &mut self.on_option_hovered
                             {
                                 if let Some(option) =
@@ -536,7 +536,7 @@ where
                                     })
                                 {
                                     // Notify the selection
-                                    shell.publish((on_selection)(
+                                    shell.publish((on_option_hovered)(
                                         option.clone(),
                                     ));
                                     published_message_to_shell = true;
