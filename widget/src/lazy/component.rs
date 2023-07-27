@@ -7,7 +7,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 use crate::runtime::overlay::Nested;
 
@@ -340,11 +341,12 @@ where
             fn container(
                 &mut self,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
                 operate_on_children: &mut dyn FnMut(
                     &mut dyn widget::Operation<T>,
                 ),
             ) {
-                self.operation.container(id, &mut |operation| {
+                self.operation.container(id, bounds, &mut |operation| {
                     operate_on_children(&mut MapOperation { operation });
                 });
             }
@@ -369,8 +371,10 @@ where
                 &mut self,
                 state: &mut dyn widget::operation::Scrollable,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
+                translation: Vector,
             ) {
-                self.operation.scrollable(state, id);
+                self.operation.scrollable(state, id, bounds, translation);
             }
 
             fn custom(

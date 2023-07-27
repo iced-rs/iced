@@ -1,5 +1,6 @@
 //! Operate on widgets that can be scrolled.
 use crate::widget::{Id, Operation};
+use crate::{Rectangle, Vector};
 
 /// The internal state of a widget that can be scrolled.
 pub trait Scrollable {
@@ -22,12 +23,19 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
         }
 
-        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
+        fn scrollable(
+            &mut self,
+            state: &mut dyn Scrollable,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            _translation: Vector,
+        ) {
             if Some(&self.target) == id {
                 state.snap_to(self.offset);
             }
@@ -49,12 +57,19 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
         }
 
-        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
+        fn scrollable(
+            &mut self,
+            state: &mut dyn Scrollable,
+            id: Option<&Id>,
+            _bounds: Rectangle,
+            _translation: Vector,
+        ) {
             if Some(&self.target) == id {
                 state.scroll_to(self.offset);
             }

@@ -1,6 +1,7 @@
 //! Operate on widgets that can be focused.
 use crate::widget::operation::{Operation, Outcome};
 use crate::widget::Id;
+use crate::Rectangle;
 
 /// The internal state of a widget that can be focused.
 pub trait Focusable {
@@ -45,6 +46,7 @@ pub fn focus<T>(target: Id) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
@@ -80,6 +82,7 @@ where
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
@@ -126,6 +129,7 @@ pub fn focus_previous<T>() -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
@@ -159,6 +163,7 @@ pub fn focus_next<T>() -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
             operate_on_children(self)
@@ -185,6 +190,7 @@ pub fn find_focused() -> impl Operation<Id> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<Id>),
         ) {
             operate_on_children(self)

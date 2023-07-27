@@ -138,7 +138,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
                 |(child, layout)| {
                     child.operate(layout, renderer, operation);
