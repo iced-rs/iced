@@ -15,13 +15,14 @@ web-colors = ["iced_graphics/web-colors"]
 
 [dependencies]
 wgpu = "0.16"
+glyphon = "0.3"
 raw-window-handle = "0.5"
-log = "0.4"
 guillotiere = "0.6"
 futures = "0.3"
 bitflags = "1.2"
 once_cell = "1.0"
 rustc-hash = "1.1"
+log = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { version = "0.16", features = ["webgl"] }
@@ -41,11 +42,6 @@ features = ["derive"]
 [dependencies.iced_graphics]
 version = "0.8"
 path = "../graphics"
-
-[dependencies.glyphon]
-version = "0.2"
-git = "https://github.com/grovesNL/glyphon.git"
-rev = "81dedbd04237e181c2118931c5f37d341aeb6837"
 
 [dependencies.glam]
 version = "0.24"
