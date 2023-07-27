@@ -191,7 +191,7 @@ pub use crate::core::event;
 pub use crate::core::gradient;
 pub use crate::core::{
     color, Alignment, Background, Color, ContentFit, Degrees, Gradient, Length,
-    Padding, Pixels, Point, Radians, Rectangle, Size, Vector,
+    Padding, Pixels, Point, Radians, Rectangle, Size, Vector, BorderRadius
 };
 pub use crate::runtime::Command;
 
