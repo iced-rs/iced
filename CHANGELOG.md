@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2023-07-28
 ### Added
 - Text shaping, font fallback, and `iced_wgpu` overhaul. [#1697](https://github.com/iced-rs/iced/pull/1697)
 - Software renderer, runtime renderer fallback, and core consolidation. [#1748](https://github.com/iced-rs/iced/pull/1748)
@@ -564,7 +565,8 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/iced-rs/iced/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/iced-rs/iced/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/iced-rs/iced/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/iced-rs/iced/compare/0.6.0...0.7.0
