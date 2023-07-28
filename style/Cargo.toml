@@ -1,6 +1,6 @@
 [package]
 name = "iced_style"
-version = "0.8.0"
+version = "0.9.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "The default set of styles of Iced"
@@ -11,7 +11,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 categories = ["gui"]
 
 [dependencies.iced_core]
-version = "0.9"
+version = "0.10"
 path = "../core"
 features = ["palette"]
 

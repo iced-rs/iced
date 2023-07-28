@@ -1,14 +1,11 @@
 //! The core library of [Iced].
 //!
 //! This library holds basic types that can be reused and re-exported in
-//! different runtime implementations. For instance, both [`iced_native`] and
-//! [`iced_web`] are built on top of `iced_core`.
+//! different runtime implementations.
 //!
 //! ![The foundations of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/foundations.png?raw=true)
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
-//! [`iced_web`]: https://github.com/iced-rs/iced_web
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]

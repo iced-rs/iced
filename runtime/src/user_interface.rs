@@ -19,7 +19,7 @@ use crate::overlay;
 /// The [`integration`] example uses a [`UserInterface`] to integrate Iced in an
 /// existing graphical application.
 ///
-/// [`integration`]: https://github.com/iced-rs/iced/tree/0.9/examples/integration
+/// [`integration`]: https://github.com/iced-rs/iced/tree/0.10/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,

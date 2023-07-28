@@ -39,15 +39,15 @@ pub use crate::style::application::{Appearance, StyleSheet};
 /// to listen to time.
 /// - [`todos`], a todos tracker inspired by [TodoMVC].
 ///
-/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.9/examples
-/// [`clock`]: https://github.com/iced-rs/iced/tree/0.9/examples/clock
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.9/examples/download_progress
-/// [`events`]: https://github.com/iced-rs/iced/tree/0.9/examples/events
-/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.9/examples/game_of_life
-/// [`pokedex`]: https://github.com/iced-rs/iced/tree/0.9/examples/pokedex
-/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.9/examples/solar_system
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.9/examples/stopwatch
-/// [`todos`]: https://github.com/iced-rs/iced/tree/0.9/examples/todos
+/// [The repository has a bunch of examples]: https://github.com/iced-rs/iced/tree/0.10/examples
+/// [`clock`]: https://github.com/iced-rs/iced/tree/0.10/examples/clock
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.10/examples/download_progress
+/// [`events`]: https://github.com/iced-rs/iced/tree/0.10/examples/events
+/// [`game_of_life`]: https://github.com/iced-rs/iced/tree/0.10/examples/game_of_life
+/// [`pokedex`]: https://github.com/iced-rs/iced/tree/0.10/examples/pokedex
+/// [`solar_system`]: https://github.com/iced-rs/iced/tree/0.10/examples/solar_system
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.10/examples/stopwatch
+/// [`todos`]: https://github.com/iced-rs/iced/tree/0.10/examples/todos
 /// [`Sandbox`]: crate::Sandbox
 /// [`Canvas`]: crate::widget::Canvas
 /// [PokéAPI]: https://pokeapi.co/

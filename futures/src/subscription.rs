@@ -128,9 +128,9 @@ impl<Message> std::fmt::Debug for Subscription<Message> {
 /// - [`stopwatch`], a watch with start/stop and reset buttons showcasing how
 /// to listen to time.
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.9/examples
-/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.9/examples/download_progress
-/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.9/examples/stopwatch
+/// [examples]: https://github.com/iced-rs/iced/tree/0.10/examples
+/// [`download_progress`]: https://github.com/iced-rs/iced/tree/0.10/examples/download_progress
+/// [`stopwatch`]: https://github.com/iced-rs/iced/tree/0.10/examples/stopwatch
 pub trait Recipe {
     /// The events that will be produced by a [`Subscription`] with this
     /// [`Recipe`].
@@ -413,7 +413,7 @@ where
 /// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
 /// connection open.
 ///
-/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.9/examples/websocket
+/// [`websocket`]: https://github.com/iced-rs/iced/tree/0.10/examples/websocket
 pub fn channel<I, Fut, Message>(
     id: I,
     size: usize,

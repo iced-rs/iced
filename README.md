@@ -68,7 +68,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.9"
+iced = "0.10"
 ```
 
 If your project is using a Rust edition older than 2021, then you will need to

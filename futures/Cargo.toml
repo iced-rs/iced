@@ -1,6 +1,6 @@
 [package]
 name = "iced_futures"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "Commands, subscriptions, and runtimes for Iced"
@@ -17,7 +17,7 @@ thread-pool = ["futures/thread-pool"]
 log = "0.4"
 
 [dependencies.iced_core]
-version = "0.9"
+version = "0.10"
 path = "../core"
 
 [dependencies.futures]

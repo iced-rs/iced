@@ -2,7 +2,7 @@
 //!
 //! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
 //!
-//! `iced_winit` offers some convenient abstractions on top of [`iced_native`]
+//! `iced_winit` offers some convenient abstractions on top of [`iced_runtime`]
 //! to quickstart development when using [`winit`].
 //!
 //! It exposes a renderer-agnostic [`Application`] trait that can be implemented
@@ -11,7 +11,7 @@
 //! Additionally, a [`conversion`] module is available for users that decide to
 //! implement a custom event loop.
 //!
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+//! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`conversion`]: crate::conversion
 #![doc(

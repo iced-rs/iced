@@ -1,7 +1,14 @@
 [package]
 name = "iced_tiny_skia"
 version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
+description = "A software renderer for Iced"
+license = "MIT"
+repository = "https://github.com/iced-rs/iced"
+documentation = "https://docs.rs/iced_tiny_skia"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
 
 [features]
 image = ["iced_graphics/image"]
@@ -19,7 +26,7 @@ kurbo = "0.9"
 log = "0.4"
 
 [dependencies.iced_graphics]
-version = "0.8"
+version = "0.9"
 path = "../graphics"
 
 [dependencies.twox-hash]

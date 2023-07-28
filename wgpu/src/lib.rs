@@ -1,25 +1,22 @@
-//! A [`wgpu`] renderer for [`iced_native`].
+//! A [`wgpu`] renderer for [Iced].
 //!
 //! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
-//!
-//! For now, it is the default renderer of [Iced] in native platforms.
 //!
 //! [`wgpu`] supports most modern graphics backends: Vulkan, Metal, DX11, and
 //! DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the
 //! incoming [WebGPU API].
 //!
 //! Currently, `iced_wgpu` supports the following primitives:
-//! - Text, which is rendered using [`wgpu_glyph`]. No shaping at all.
+//! - Text, which is rendered using [`glyphon`].
 //! - Quads or rectangles, with rounded borders and a solid background color.
 //! - Clip areas, useful to implement scrollables or hide overflowing content.
 //! - Images and SVG, loaded from memory or the file system.
 //! - Meshes of triangles, useful to draw geometry freely.
 //!
 //! [Iced]: https://github.com/iced-rs/iced
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 //! [WebGPU API]: https://gpuweb.github.io/gpuweb/
-//! [`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph
+//! [`glyphon`]: https://github.com/grovesNL/glyphon
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]

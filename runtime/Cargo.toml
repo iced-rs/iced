@@ -3,7 +3,7 @@ name = "iced_runtime"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
-description = "A renderer-agnostic library for native GUIs"
+description = "The renderer-agnostic runtime for Iced"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 
@@ -14,10 +14,10 @@ debug = []
 thiserror = "1"
 
 [dependencies.iced_core]
-version = "0.9"
+version = "0.10"
 path = "../core"
 
 [dependencies.iced_futures]
-version = "0.6"
+version = "0.7"
 path = "../futures"
 features = ["thread-pool"]

@@ -1,6 +1,6 @@
 [package]
 name = "iced"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
@@ -61,11 +61,11 @@ members = [
 ]
 
 [dependencies]
-iced_core = { version = "0.9", path = "core" }
-iced_futures = { version = "0.6", path = "futures" }
+iced_core = { version = "0.10", path = "core" }
+iced_futures = { version = "0.7", path = "futures" }
 iced_renderer = { version = "0.1", path = "renderer" }
 iced_widget = { version = "0.1", path = "widget" }
-iced_winit = { version = "0.9", path = "winit", features = ["application"] }
+iced_winit = { version = "0.10", path = "winit", features = ["application"] }
 thiserror = "1"
 
 [dependencies.image_rs]
