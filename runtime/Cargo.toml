@@ -3,7 +3,7 @@ name = "iced_runtime"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
-description = "The renderer-agnostic runtime for Iced"
+description = "A renderer-agnostic runtime for Iced"
 license = "MIT"
 repository = "https://github.com/iced-rs/iced"
 
