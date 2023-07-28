@@ -75,7 +75,7 @@ optional = true
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
-features = ["image", "svg", "canvas", "qr_code"]
+all-features = true
 
 [profile.release-opt]
 inherits = "release"
