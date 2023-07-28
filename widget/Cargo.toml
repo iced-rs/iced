@@ -42,3 +42,7 @@ optional = true
 version = "0.12"
 optional = true
 default-features = false
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
