@@ -1,5 +1,5 @@
 //! Change the appearance of a progress bar.
-use iced_core::Background;
+use iced_core::{Background, BorderRadius};
 
 /// The appearance of a progress bar.
 #[derive(Debug, Clone, Copy)]
@@ -9,7 +9,7 @@ pub struct Appearance {
     /// The [`Background`] of the bar of the progress bar.
     pub bar: Background,
     /// The border radius of the progress bar.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
 }
 
 /// A set of rules that dictate the style of a progress bar.

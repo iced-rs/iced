@@ -18,28 +18,26 @@ impl crate::Executor for Executor {
 
 pub mod time {
     //! Listen and react to time.
+    use crate::core::Hasher;
     use crate::subscription::{self, Subscription};
 
     /// Returns a [`Subscription`] that produces messages at a set interval.
     ///
     /// The first message is produced after a `duration`, and then continues to
     /// produce more messages every `duration` after that.
-    pub fn every<H: std::hash::Hasher, E>(
+    pub fn every(
         duration: std::time::Duration,
-    ) -> Subscription<H, E, std::time::Instant> {
+    ) -> Subscription<std::time::Instant> {
         Subscription::from_recipe(Every(duration))
     }
 
     #[derive(Debug)]
     struct Every(std::time::Duration);
 
-    impl<H, E> subscription::Recipe<H, E> for Every
-    where
-        H: std::hash::Hasher,
-    {
+    impl subscription::Recipe for Every {
         type Output = std::time::Instant;
 
-        fn hash(&self, state: &mut H) {
+        fn hash(&self, state: &mut Hasher) {
             use std::hash::Hash;
 
             std::any::TypeId::of::<Self>().hash(state);
@@ -48,7 +46,7 @@ pub mod time {
 
         fn stream(
             self: Box<Self>,
-            _input: futures::stream::BoxStream<'static, E>,
+            _input: subscription::EventStream,
         ) -> futures::stream::BoxStream<'static, Self::Output> {
             use futures::stream::StreamExt;
 

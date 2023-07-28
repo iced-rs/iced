@@ -61,10 +61,8 @@ impl Sandbox for Example {
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        self, Canvas, Cursor, Frame, Geometry, Path, Stroke,
-    };
-    use iced::{Element, Length, Point, Rectangle, Theme};
+    use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
+    use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
     pub struct State {
@@ -100,10 +98,10 @@ mod bezier {
             state: &mut Self::State,
             event: Event,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> (event::Status, Option<Curve>) {
             let cursor_position =
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     position
                 } else {
                     return (event::Status::Ignored, None);
@@ -152,22 +150,26 @@ mod bezier {
         fn draw(
             &self,
             state: &Self::State,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
-            let content =
-                self.state.cache.draw(bounds.size(), |frame: &mut Frame| {
+            let content = self.state.cache.draw(
+                renderer,
+                bounds.size(),
+                |frame: &mut Frame| {
                     Curve::draw_all(self.curves, frame);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
                         Stroke::default().with_width(2.0),
                     );
-                });
+                },
+            );
 
             if let Some(pending) = state {
-                let pending_curve = pending.draw(bounds, cursor);
+                let pending_curve = pending.draw(renderer, bounds, cursor);
 
                 vec![content, pending_curve]
             } else {
@@ -179,9 +181,9 @@ mod bezier {
             &self,
             _state: &Self::State,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> mouse::Interaction {
-            if cursor.is_over(&bounds) {
+            if cursor.is_over(bounds) {
                 mouse::Interaction::Crosshair
             } else {
                 mouse::Interaction::default()
@@ -216,10 +218,15 @@ mod bezier {
     }
 
     impl Pending {
-        fn draw(&self, bounds: Rectangle, cursor: Cursor) -> Geometry {
-            let mut frame = Frame::new(bounds.size());
+        fn draw(
+            &self,
+            renderer: &Renderer,
+            bounds: Rectangle,
+            cursor: mouse::Cursor,
+        ) -> Geometry {
+            let mut frame = Frame::new(renderer, bounds.size());
 
-            if let Some(cursor_position) = cursor.position_in(&bounds) {
+            if let Some(cursor_position) = cursor.position_in(bounds) {
                 match *self {
                     Pending::One { from } => {
                         let line = Path::line(from, cursor_position);

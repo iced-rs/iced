@@ -1,5 +1,5 @@
 //! Change the apperance of a button.
-use iced_core::{Background, Color, Vector};
+use iced_core::{Background, BorderRadius, Color, Vector};
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy)]
@@ -9,7 +9,7 @@ pub struct Appearance {
     /// The [`Background`] of the button.
     pub background: Option<Background>,
     /// The border radius of the button.
-    pub border_radius: f32,
+    pub border_radius: BorderRadius,
     /// The border width of the button.
     pub border_width: f32,
     /// The border [`Color`] of the button.
@@ -23,7 +23,7 @@ impl std::default::Default for Appearance {
         Self {
             shadow_offset: Vector::default(),
             background: None,
-            border_radius: 0.0,
+            border_radius: 0.0.into(),
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
             text_color: Color::BLACK,
@@ -68,6 +68,9 @@ pub trait StyleSheet {
                     a: color.a * 0.5,
                     ..color
                 }),
+                Background::Gradient(gradient) => {
+                    Background::Gradient(gradient.mul_alpha(0.5))
+                }
             }),
             text_color: Color {
                 a: active.text_color.a * 0.5,

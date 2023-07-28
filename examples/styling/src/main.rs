@@ -127,7 +127,9 @@ impl Sandbox for Styling {
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button].spacing(10),
+            row![text_input, button]
+                .spacing(10)
+                .align_items(Alignment::Center),
             slider,
             progress_bar,
             row![

@@ -145,7 +145,7 @@ impl Application for GameOfLife {
             self.grid
                 .view()
                 .map(move |message| Message::Grid(message, version)),
-            controls
+            controls,
         ];
 
         container(content)
@@ -204,15 +204,14 @@ fn view_controls<'a>(
 
 mod grid {
     use crate::Preset;
+    use iced::alignment;
+    use iced::mouse;
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        Cache, Canvas, Cursor, Frame, Geometry, Path, Text,
-    };
+    use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
     use iced::{
-        alignment, mouse, Color, Element, Length, Point, Rectangle, Size,
-        Theme, Vector,
+        Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
     use rustc_hash::{FxHashMap, FxHashSet};
     use std::future::Future;
@@ -401,14 +400,14 @@ mod grid {
             interaction: &mut Interaction,
             event: Event,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> (event::Status, Option<Message>) {
             if let Event::Mouse(mouse::Event::ButtonReleased(_)) = event {
                 *interaction = Interaction::None;
             }
 
             let cursor_position =
-                if let Some(position) = cursor.position_in(&bounds) {
+                if let Some(position) = cursor.position_in(bounds) {
                     position
                 } else {
                     return (event::Status::Ignored, None);
@@ -536,13 +535,14 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
-            let life = self.life_cache.draw(bounds.size(), |frame| {
+            let life = self.life_cache.draw(renderer, bounds.size(), |frame| {
                 let background = Path::rectangle(Point::ORIGIN, frame.size());
                 frame.fill(&background, Color::from_rgb8(0x40, 0x44, 0x4B));
 
@@ -565,12 +565,11 @@ mod grid {
             });
 
             let overlay = {
-                let mut frame = Frame::new(bounds.size());
+                let mut frame = Frame::new(renderer, bounds.size());
 
-                let hovered_cell =
-                    cursor.position_in(&bounds).map(|position| {
-                        Cell::at(self.project(position, frame.size()))
-                    });
+                let hovered_cell = cursor.position_in(bounds).map(|position| {
+                    Cell::at(self.project(position, frame.size()))
+                });
 
                 if let Some(cell) = hovered_cell {
                     frame.with_save(|frame| {
@@ -626,38 +625,40 @@ mod grid {
             if self.scaling < 0.2 || !self.show_lines {
                 vec![life, overlay]
             } else {
-                let grid = self.grid_cache.draw(bounds.size(), |frame| {
-                    frame.translate(center);
-                    frame.scale(self.scaling);
-                    frame.translate(self.translation);
-                    frame.scale(Cell::SIZE as f32);
+                let grid =
+                    self.grid_cache.draw(renderer, bounds.size(), |frame| {
+                        frame.translate(center);
+                        frame.scale(self.scaling);
+                        frame.translate(self.translation);
+                        frame.scale(Cell::SIZE as f32);
 
-                    let region = self.visible_region(frame.size());
-                    let rows = region.rows();
-                    let columns = region.columns();
-                    let (total_rows, total_columns) =
-                        (rows.clone().count(), columns.clone().count());
-                    let width = 2.0 / Cell::SIZE as f32;
-                    let color = Color::from_rgb8(70, 74, 83);
+                        let region = self.visible_region(frame.size());
+                        let rows = region.rows();
+                        let columns = region.columns();
+                        let (total_rows, total_columns) =
+                            (rows.clone().count(), columns.clone().count());
+                        let width = 2.0 / Cell::SIZE as f32;
+                        let color = Color::from_rgb8(70, 74, 83);
 
-                    frame.translate(Vector::new(-width / 2.0, -width / 2.0));
+                        frame
+                            .translate(Vector::new(-width / 2.0, -width / 2.0));
 
-                    for row in region.rows() {
-                        frame.fill_rectangle(
-                            Point::new(*columns.start() as f32, row as f32),
-                            Size::new(total_columns as f32, width),
-                            color,
-                        );
-                    }
+                        for row in region.rows() {
+                            frame.fill_rectangle(
+                                Point::new(*columns.start() as f32, row as f32),
+                                Size::new(total_columns as f32, width),
+                                color,
+                            );
+                        }
 
-                    for column in region.columns() {
-                        frame.fill_rectangle(
-                            Point::new(column as f32, *rows.start() as f32),
-                            Size::new(width, total_rows as f32),
-                            color,
-                        );
-                    }
-                });
+                        for column in region.columns() {
+                            frame.fill_rectangle(
+                                Point::new(column as f32, *rows.start() as f32),
+                                Size::new(width, total_rows as f32),
+                                color,
+                            );
+                        }
+                    });
 
                 vec![life, grid, overlay]
             }
@@ -667,13 +668,13 @@ mod grid {
             &self,
             interaction: &Interaction,
             bounds: Rectangle,
-            cursor: Cursor,
+            cursor: mouse::Cursor,
         ) -> mouse::Interaction {
             match interaction {
                 Interaction::Drawing => mouse::Interaction::Crosshair,
                 Interaction::Erasing => mouse::Interaction::Crosshair,
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
-                Interaction::None if cursor.is_over(&bounds) => {
+                Interaction::None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
                 _ => mouse::Interaction::default(),

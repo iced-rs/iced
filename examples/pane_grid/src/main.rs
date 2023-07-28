@@ -1,14 +1,16 @@
 use iced::alignment::{self, Alignment};
+use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
+use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
-use iced::widget::{button, column, container, row, scrollable, text};
+use iced::widget::{
+    button, column, container, responsive, row, scrollable, text,
+};
 use iced::{
     Application, Color, Command, Element, Length, Settings, Size, Subscription,
 };
-use iced_lazy::responsive;
-use iced_native::{event, subscription, Event};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -107,7 +109,7 @@ impl Application for Example {
                 pane,
                 target,
             }) => {
-                self.panes.swap(&pane, &target);
+                self.panes.drop(&pane, target);
             }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
@@ -253,6 +255,7 @@ fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
     }
 }
 
+#[derive(Clone, Copy)]
 struct Pane {
     id: usize,
     pub is_pinned: bool,
@@ -296,7 +299,7 @@ fn view_content<'a>(
         )
     ]
     .spacing(5)
-    .max_width(150);
+    .max_width(160);
 
     if total_panes > 1 && !is_pinned {
         controls = controls.push(

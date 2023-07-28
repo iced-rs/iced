@@ -1,12 +1,13 @@
 use std::fmt::Debug;
 
 use iced::executor;
+use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{column, row, slider, text};
 use iced::{
-    Application, Color, Command, Length, Point, Rectangle, Settings, Size,
-    Theme,
+    Application, Color, Command, Length, Point, Rectangle, Renderer, Settings,
+    Size, Theme,
 };
 
 use rand::Rng;
@@ -105,14 +106,14 @@ impl canvas::Program<Message> for SierpinskiGraph {
         _state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
-        cursor: canvas::Cursor,
+        cursor: mouse::Cursor,
     ) -> (event::Status, Option<Message>) {
-        let cursor_position =
-            if let Some(position) = cursor.position_in(&bounds) {
-                position
-            } else {
-                return (event::Status::Ignored, None);
-            };
+        let cursor_position = if let Some(position) = cursor.position_in(bounds)
+        {
+            position
+        } else {
+            return (event::Status::Ignored, None);
+        };
 
         match event {
             Event::Mouse(mouse_event) => {
@@ -134,11 +135,12 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn draw(
         &self,
         _state: &Self::State,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
-        _cursor: canvas::Cursor,
+        _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        let geom = self.cache.draw(bounds.size(), |frame| {
+        let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(
                 &canvas::Path::rectangle(Point::ORIGIN, frame.size()),
                 canvas::Stroke::default(),

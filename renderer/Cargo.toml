@@ -1,0 +1,37 @@
+[package]
+name = "iced_renderer"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2021"
+description = "The official renderer for Iced"
+license = "MIT"
+repository = "https://github.com/iced-rs/iced"
+documentation = "https://docs.rs/iced_renderer"
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
+categories = ["gui"]
+
+[features]
+wgpu = ["iced_wgpu"]
+image = ["iced_tiny_skia/image", "iced_wgpu?/image"]
+svg = ["iced_tiny_skia/svg", "iced_wgpu?/svg"]
+geometry = ["iced_graphics/geometry", "iced_tiny_skia/geometry", "iced_wgpu?/geometry"]
+tracing = ["iced_wgpu?/tracing"]
+web-colors = ["iced_wgpu?/web-colors"]
+
+[dependencies]
+raw-window-handle = "0.5"
+thiserror = "1"
+log = "0.4"
+
+[dependencies.iced_graphics]
+version = "0.9"
+path = "../graphics"
+
+[dependencies.iced_tiny_skia]
+version = "0.1"
+path = "../tiny_skia"
+
+[dependencies.iced_wgpu]
+version = "0.11"
+path = "../wgpu"
+optional = true

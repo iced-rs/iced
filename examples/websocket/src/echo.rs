@@ -1,7 +1,7 @@
 pub mod server;
 
-use iced_futures::futures;
-use iced_native::subscription::{self, Subscription};
+use iced::futures;
+use iced::subscription::{self, Subscription};
 
 use futures::channel::mpsc;
 use futures::sink::SinkExt;

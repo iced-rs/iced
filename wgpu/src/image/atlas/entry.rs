@@ -1,7 +1,5 @@
+use crate::core::Size;
 use crate::image::atlas;
-
-use iced_graphics::image;
-use iced_graphics::Size;
 
 #[derive(Debug)]
 pub enum Entry {
@@ -12,8 +10,9 @@ pub enum Entry {
     },
 }
 
-impl image::storage::Entry for Entry {
-    fn size(&self) -> Size<u32> {
+impl Entry {
+    #[cfg(feature = "image")]
+    pub fn size(&self) -> Size<u32> {
         match self {
             Entry::Contiguous(allocation) => allocation.size(),
             Entry::Fragmented { size, .. } => *size,

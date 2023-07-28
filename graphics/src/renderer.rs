@@ -1,22 +1,24 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
-use crate::{Primitive, Vector};
-use iced_native::image;
-use iced_native::layout;
-use iced_native::renderer;
-use iced_native::svg;
-use iced_native::text::{self, Text};
-use iced_native::{Background, Color, Element, Font, Point, Rectangle, Size};
+use crate::Primitive;
 
-pub use iced_native::renderer::Style;
+use iced_core::image;
+use iced_core::layout;
+use iced_core::renderer;
+use iced_core::svg;
+use iced_core::text::{self, Text};
+use iced_core::{
+    Background, Color, Element, Font, Point, Rectangle, Size, Vector,
+};
 
+use std::borrow::Cow;
 use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
 pub struct Renderer<B: Backend, Theme> {
     backend: B,
-    primitives: Vec<Primitive>,
+    primitives: Vec<Primitive<B::Primitive>>,
     theme: PhantomData<Theme>,
 }
 
@@ -30,27 +32,60 @@ impl<B: Backend, T> Renderer<B, T> {
         }
     }
 
-    /// Returns the [`Backend`] of the [`Renderer`].
+    /// Returns a reference to the [`Backend`] of the [`Renderer`].
     pub fn backend(&self) -> &B {
         &self.backend
     }
 
     /// Enqueues the given [`Primitive`] in the [`Renderer`] for drawing.
-    pub fn draw_primitive(&mut self, primitive: Primitive) {
+    pub fn draw_primitive(&mut self, primitive: Primitive<B::Primitive>) {
         self.primitives.push(primitive);
     }
 
     /// Runs the given closure with the [`Backend`] and the recorded primitives
     /// of the [`Renderer`].
-    pub fn with_primitives(&mut self, f: impl FnOnce(&mut B, &[Primitive])) {
-        f(&mut self.backend, &self.primitives);
+    pub fn with_primitives<O>(
+        &mut self,
+        f: impl FnOnce(&mut B, &[Primitive<B::Primitive>]) -> O,
+    ) -> O {
+        f(&mut self.backend, &self.primitives)
+    }
+
+    /// Starts recording a new layer.
+    pub fn start_layer(&mut self) -> Vec<Primitive<B::Primitive>> {
+        std::mem::take(&mut self.primitives)
+    }
+
+    /// Ends the recording of a layer.
+    pub fn end_layer(
+        &mut self,
+        primitives: Vec<Primitive<B::Primitive>>,
+        bounds: Rectangle,
+    ) {
+        let layer = std::mem::replace(&mut self.primitives, primitives);
+
+        self.primitives.push(Primitive::group(layer).clip(bounds));
+    }
+
+    /// Starts recording a translation.
+    pub fn start_translation(&mut self) -> Vec<Primitive<B::Primitive>> {
+        std::mem::take(&mut self.primitives)
+    }
+
+    /// Ends the recording of a translation.
+    pub fn end_translation(
+        &mut self,
+        primitives: Vec<Primitive<B::Primitive>>,
+        translation: Vector,
+    ) {
+        let layer = std::mem::replace(&mut self.primitives, primitives);
+
+        self.primitives
+            .push(Primitive::group(layer).translate(translation));
     }
 }
 
-impl<B, T> iced_native::Renderer for Renderer<B, T>
-where
-    B: Backend,
-{
+impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
     type Theme = T;
 
     fn layout<Message>(
@@ -58,27 +93,17 @@ where
         element: &Element<'_, Message, Self>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let layout = element.as_widget().layout(self, limits);
-
         self.backend.trim_measurements();
 
-        layout
+        element.as_widget().layout(self, limits)
     }
 
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        let current_primitives = std::mem::take(&mut self.primitives);
+        let current = self.start_layer();
 
         f(self);
 
-        let layer_primitives =
-            std::mem::replace(&mut self.primitives, current_primitives);
-
-        self.primitives.push(Primitive::Clip {
-            bounds,
-            content: Box::new(Primitive::Group {
-                primitives: layer_primitives,
-            }),
-        });
+        self.end_layer(current, bounds);
     }
 
     fn with_translation(
@@ -86,19 +111,11 @@ where
         translation: Vector,
         f: impl FnOnce(&mut Self),
     ) {
-        let current_primitives = std::mem::take(&mut self.primitives);
+        let current = self.start_translation();
 
         f(self);
 
-        let layer_primitives =
-            std::mem::replace(&mut self.primitives, current_primitives);
-
-        self.primitives.push(Primitive::Translate {
-            translation,
-            content: Box::new(Primitive::Group {
-                primitives: layer_primitives,
-            }),
-        });
+        self.end_translation(current, translation);
     }
 
     fn fill_quad(
@@ -130,6 +147,10 @@ where
     const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
     const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
 
+    fn default_font(&self) -> Self::Font {
+        self.backend().default_font()
+    }
+
     fn default_size(&self) -> f32 {
         self.backend().default_size()
     }
@@ -138,29 +159,46 @@ where
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
-    ) -> (f32, f32) {
-        self.backend().measure(content, size, font, bounds)
+        shaping: text::Shaping,
+    ) -> Size {
+        self.backend().measure(
+            content,
+            size,
+            line_height,
+            font,
+            bounds,
+            shaping,
+        )
     }
 
     fn hit_test(
         &self,
         content: &str,
         size: f32,
+        line_height: text::LineHeight,
         font: Font,
         bounds: Size,
+        shaping: text::Shaping,
         point: Point,
         nearest_only: bool,
     ) -> Option<text::Hit> {
         self.backend().hit_test(
             content,
             size,
+            line_height,
             font,
             bounds,
+            shaping,
             point,
             nearest_only,
         )
+    }
+
+    fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        self.backend.load_font(bytes);
     }
 
     fn fill_text(&mut self, text: Text<'_, Self::Font>) {
@@ -168,10 +206,12 @@ where
             content: text.content.to_string(),
             bounds: text.bounds,
             size: text.size,
+            line_height: text.line_height,
             color: text.color,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
         });
     }
 }
@@ -187,7 +227,7 @@ where
     }
 
     fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
-        self.draw_primitive(Primitive::Image { handle, bounds })
+        self.primitives.push(Primitive::Image { handle, bounds })
     }
 }
 
@@ -205,7 +245,7 @@ where
         color: Option<Color>,
         bounds: Rectangle,
     ) {
-        self.draw_primitive(Primitive::Svg {
+        self.primitives.push(Primitive::Svg {
             handle,
             color,
             bounds,

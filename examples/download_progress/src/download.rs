@@ -1,4 +1,4 @@
-use iced_native::subscription;
+use iced::subscription;
 
 use std::hash::Hash;
 

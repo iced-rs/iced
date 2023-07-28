@@ -1,12 +1,13 @@
-//! Convert [`winit`] types into [`iced_native`] types, and viceversa.
+//! Convert [`winit`] types into [`iced_runtime`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
-use crate::keyboard;
-use crate::mouse;
-use crate::touch;
-use crate::window;
-use crate::{Event, Point, Position};
+//! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
+use crate::core::keyboard;
+use crate::core::mouse;
+use crate::core::touch;
+use crate::core::window;
+use crate::core::{Event, Point};
+use crate::Position;
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -139,6 +140,19 @@ pub fn window_event(
     }
 }
 
+/// Converts a [`window::Level`] to a [`winit`] window level.
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
+    match level {
+        window::Level::Normal => winit::window::WindowLevel::Normal,
+        window::Level::AlwaysOnBottom => {
+            winit::window::WindowLevel::AlwaysOnBottom
+        }
+        window::Level::AlwaysOnTop => winit::window::WindowLevel::AlwaysOnTop,
+    }
+}
+
 /// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
@@ -215,10 +229,9 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+/// Converts a [`mouse::Interaction`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
 ) -> winit::window::CursorIcon {
@@ -240,26 +253,24 @@ pub fn mouse_interaction(
     }
 }
 
-/// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+/// Converts a `MouseButton` from [`winit`] to an [`iced`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
         winit::event::MouseButton::Right => mouse::Button::Right,
         winit::event::MouseButton::Middle => mouse::Button::Middle,
-        winit::event::MouseButton::Other(other) => {
-            mouse::Button::Other(other as u8)
-        }
+        winit::event::MouseButton::Other(other) => mouse::Button::Other(other),
     }
 }
 
-/// Converts some `ModifiersState` from [`winit`] to an [`iced_native`]
-/// modifiers state.
+/// Converts some `ModifiersState` from [`winit`] to an [`iced`] modifiers
+/// state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
@@ -283,10 +294,10 @@ pub fn cursor_position(
     Point::new(logical_position.x, logical_position.y)
 }
 
-/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+/// Converts a `Touch` from [`winit`] to an [`iced`] touch event.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn touch_event(
     touch: winit::event::Touch,
     scale_factor: f64,
@@ -314,10 +325,10 @@ pub fn touch_event(
     }
 }
 
-/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn key_code(
     virtual_keycode: winit::event::VirtualKeyCode,
 ) -> keyboard::KeyCode {

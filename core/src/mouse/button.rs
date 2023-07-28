@@ -11,5 +11,5 @@ pub enum Button {
     Middle,
 
     /// Some other button.
-    Other(u8),
+    Other(u16),
 }

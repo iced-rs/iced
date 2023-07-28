@@ -20,13 +20,13 @@ jobs:
           -p iced_core \
           -p iced_style \
           -p iced_futures \
-          -p iced_native \
-          -p iced_lazy \
+          -p iced_runtime \
           -p iced_graphics \
           -p iced_wgpu \
-          -p iced_glow \
+          -p iced_tiny_skia \
+          -p iced_renderer \
+          -p iced_widget \
           -p iced_winit \
-          -p iced_glutin \
           -p iced
     - name: Write CNAME file
       run: echo 'docs.iced.rs' > ./target/doc/CNAME

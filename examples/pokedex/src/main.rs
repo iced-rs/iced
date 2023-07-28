@@ -151,7 +151,7 @@ impl Pokemon {
         }
 
         let id = {
-            let mut rng = rand::rngs::OsRng::default();
+            let mut rng = rand::rngs::OsRng;
 
             rng.gen_range(0, Pokemon::TOTAL)
         };

@@ -1,24 +1,15 @@
-use iced_native::image;
-use iced_native::svg;
-use iced_native::{Background, Color, Font, Rectangle, Size, Vector};
-
-use crate::alignment;
-use crate::gradient::Gradient;
-use crate::triangle;
+//! Draw using different graphical primitives.
+use crate::core::alignment;
+use crate::core::image;
+use crate::core::svg;
+use crate::core::text;
+use crate::core::{Background, Color, Font, Rectangle, Vector};
 
 use std::sync::Arc;
 
 /// A rendering primitive.
-#[derive(Debug, Clone, Default)]
-pub enum Primitive {
-    /// An empty primitive
-    #[default]
-    None,
-    /// A group of primitives
-    Group {
-        /// The primitives of the group
-        primitives: Vec<Primitive>,
-    },
+#[derive(Debug, Clone, PartialEq)]
+pub enum Primitive<T> {
     /// A text primitive
     Text {
         /// The contents of the text
@@ -27,14 +18,18 @@ pub enum Primitive {
         bounds: Rectangle,
         /// The color of the text
         color: Color,
-        /// The size of the text
+        /// The size of the text in logical pixels
         size: f32,
+        /// The line height of the text
+        line_height: text::LineHeight,
         /// The font of the text
         font: Font,
         /// The horizontal alignment of the text
         horizontal_alignment: alignment::Horizontal,
         /// The vertical alignment of the text
         vertical_alignment: alignment::Vertical,
+        /// The shaping strategy of the text.
+        shaping: text::Shaping,
     },
     /// A quad primitive
     Quad {
@@ -42,7 +37,7 @@ pub enum Primitive {
         bounds: Rectangle,
         /// The background of the quad
         background: Background,
-        /// The border radius of the quad
+        /// The border radii of the quad
         border_radius: [f32; 4],
         /// The border width of the quad
         border_width: f32,
@@ -67,12 +62,17 @@ pub enum Primitive {
         /// The bounds of the viewport
         bounds: Rectangle,
     },
+    /// A group of primitives
+    Group {
+        /// The primitives of the group
+        primitives: Vec<Primitive<T>>,
+    },
     /// A clip primitive
     Clip {
         /// The bounds of the clip
         bounds: Rectangle,
         /// The content of the clip
-        content: Box<Primitive>,
+        content: Box<Primitive<T>>,
     },
     /// A primitive that applies a translation
     Translate {
@@ -80,41 +80,39 @@ pub enum Primitive {
         translation: Vector,
 
         /// The primitive to translate
-        content: Box<Primitive>,
-    },
-    /// A low-level primitive to render a mesh of triangles with a solid color.
-    ///
-    /// It can be used to render many kinds of geometry freely.
-    SolidMesh {
-        /// The vertices and indices of the mesh.
-        buffers: triangle::Mesh2D<triangle::ColoredVertex2D>,
-
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
-    },
-    /// A low-level primitive to render a mesh of triangles with a gradient.
-    ///
-    /// It can be used to render many kinds of geometry freely.
-    GradientMesh {
-        /// The vertices and indices of the mesh.
-        buffers: triangle::Mesh2D<triangle::Vertex2D>,
-
-        /// The size of the drawable region of the mesh.
-        ///
-        /// Any geometry that falls out of this region will be clipped.
-        size: Size,
-
-        /// The [`Gradient`] to apply to the mesh.
-        gradient: Gradient,
+        content: Box<Primitive<T>>,
     },
     /// A cached primitive.
     ///
     /// This can be useful if you are implementing a widget where primitive
     /// generation is expensive.
-    Cached {
+    Cache {
         /// The cached primitive
-        cache: Arc<Primitive>,
+        content: Arc<Primitive<T>>,
     },
+    /// A backend-specific primitive.
+    Custom(T),
+}
+
+impl<T> Primitive<T> {
+    /// Creates a [`Primitive::Group`].
+    pub fn group(primitives: Vec<Self>) -> Self {
+        Self::Group { primitives }
+    }
+
+    /// Creates a [`Primitive::Clip`].
+    pub fn clip(self, bounds: Rectangle) -> Self {
+        Self::Clip {
+            bounds,
+            content: Box::new(self),
+        }
+    }
+
+    /// Creates a [`Primitive::Translate`].
+    pub fn translate(self, translation: Vector) -> Self {
+        Self::Translate {
+            translation,
+            content: Box::new(self),
+        }
+    }
 }

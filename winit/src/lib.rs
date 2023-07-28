@@ -2,7 +2,7 @@
 //!
 //! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/0525d76ff94e828b7b21634fa94a747022001c83/docs/graphs/native.png?raw=true)
 //!
-//! `iced_winit` offers some convenient abstractions on top of [`iced_native`]
+//! `iced_winit` offers some convenient abstractions on top of [`iced_runtime`]
 //! to quickstart development when using [`winit`].
 //!
 //! It exposes a renderer-agnostic [`Application`] trait that can be implemented
@@ -11,7 +11,7 @@
 //! Additionally, a [`conversion`] module is available for users that decide to
 //! implement a custom event loop.
 //!
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+//! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`conversion`]: crate::conversion
 #![doc(
@@ -25,14 +25,17 @@
     clippy::from_over_into,
     clippy::needless_borrow,
     clippy::new_without_default,
-    clippy::useless_conversion
+    clippy::useless_conversion,
+    unsafe_code
 )]
-#![forbid(rust_2018_idioms, unsafe_code)]
+#![forbid(rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
-#![cfg_attr(docsrs, feature(doc_cfg))]
-
-#[doc(no_inline)]
-pub use iced_native::*;
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+pub use iced_graphics as graphics;
+pub use iced_runtime as runtime;
+pub use iced_runtime::core;
+pub use iced_runtime::futures;
+pub use iced_style as style;
 pub use winit;
 
 #[cfg(feature = "application")]
@@ -40,7 +43,6 @@ pub mod application;
 pub mod clipboard;
 pub mod conversion;
 pub mod settings;
-pub mod window;
 
 #[cfg(feature = "system")]
 pub mod system;

@@ -1,0 +1,286 @@
+pub use crate::Overlay;
+
+use crate::event::{self, Event};
+use crate::layout;
+use crate::mouse;
+use crate::renderer;
+use crate::widget;
+use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
+
+use std::any::Any;
+
+/// A generic [`Overlay`].
+#[allow(missing_debug_implementations)]
+pub struct Element<'a, Message, Renderer> {
+    position: Point,
+    overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+}
+
+impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    /// Creates a new [`Element`] containing the given [`Overlay`].
+    pub fn new(
+        position: Point,
+        overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+    ) -> Self {
+        Self { position, overlay }
+    }
+
+    /// Returns the position of the [`Element`].
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
+    /// Translates the [`Element`].
+    pub fn translate(mut self, translation: Vector) -> Self {
+        self.position = self.position + translation;
+        self
+    }
+
+    /// Applies a transformation to the produced message of the [`Element`].
+    pub fn map<B>(self, f: &'a dyn Fn(Message) -> B) -> Element<'a, B, Renderer>
+    where
+        Message: 'a,
+        Renderer: 'a,
+        B: 'a,
+    {
+        Element {
+            position: self.position,
+            overlay: Box::new(Map::new(self.overlay, f)),
+        }
+    }
+
+    /// Computes the layout of the [`Element`] in the given bounds.
+    pub fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        translation: Vector,
+    ) -> layout::Node {
+        self.overlay
+            .layout(renderer, bounds, self.position + translation)
+    }
+
+    /// Processes a runtime [`Event`].
+    pub fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+    ) -> event::Status {
+        self.overlay
+            .on_event(event, layout, cursor, renderer, clipboard, shell)
+    }
+
+    /// Returns the current [`mouse::Interaction`] of the [`Element`].
+    pub fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.overlay
+            .mouse_interaction(layout, cursor, viewport, renderer)
+    }
+
+    /// Draws the [`Element`] and its children using the given [`Layout`].
+    pub fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) {
+        self.overlay.draw(renderer, theme, style, layout, cursor)
+    }
+
+    /// Applies a [`widget::Operation`] to the [`Element`].
+    pub fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<Message>,
+    ) {
+        self.overlay.operate(layout, renderer, operation);
+    }
+
+    /// Returns true if the cursor is over the [`Element`].
+    pub fn is_over(
+        &self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
+        self.overlay.is_over(layout, renderer, cursor_position)
+    }
+
+    /// Returns the nested overlay of the [`Element`], if there is any.
+    pub fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<Element<'b, Message, Renderer>> {
+        self.overlay.overlay(layout, renderer)
+    }
+}
+
+struct Map<'a, A, B, Renderer> {
+    content: Box<dyn Overlay<A, Renderer> + 'a>,
+    mapper: &'a dyn Fn(A) -> B,
+}
+
+impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
+    pub fn new(
+        content: Box<dyn Overlay<A, Renderer> + 'a>,
+        mapper: &'a dyn Fn(A) -> B,
+    ) -> Map<'a, A, B, Renderer> {
+        Map { content, mapper }
+    }
+}
+
+impl<'a, A, B, Renderer> Overlay<B, Renderer> for Map<'a, A, B, Renderer>
+where
+    Renderer: crate::Renderer,
+{
+    fn layout(
+        &self,
+        renderer: &Renderer,
+        bounds: Size,
+        position: Point,
+    ) -> layout::Node {
+        self.content.layout(renderer, bounds, position)
+    }
+
+    fn operate(
+        &mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        operation: &mut dyn widget::Operation<B>,
+    ) {
+        struct MapOperation<'a, B> {
+            operation: &'a mut dyn widget::Operation<B>,
+        }
+
+        impl<'a, T, B> widget::Operation<T> for MapOperation<'a, B> {
+            fn container(
+                &mut self,
+                id: Option<&widget::Id>,
+                bounds: Rectangle,
+                operate_on_children: &mut dyn FnMut(
+                    &mut dyn widget::Operation<T>,
+                ),
+            ) {
+                self.operation.container(id, bounds, &mut |operation| {
+                    operate_on_children(&mut MapOperation { operation });
+                });
+            }
+
+            fn focusable(
+                &mut self,
+                state: &mut dyn widget::operation::Focusable,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.focusable(state, id);
+            }
+
+            fn scrollable(
+                &mut self,
+                state: &mut dyn widget::operation::Scrollable,
+                id: Option<&widget::Id>,
+                bounds: Rectangle,
+                translation: Vector,
+            ) {
+                self.operation.scrollable(state, id, bounds, translation);
+            }
+
+            fn text_input(
+                &mut self,
+                state: &mut dyn widget::operation::TextInput,
+                id: Option<&widget::Id>,
+            ) {
+                self.operation.text_input(state, id)
+            }
+
+            fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
+                self.operation.custom(state, id);
+            }
+        }
+
+        self.content
+            .operate(layout, renderer, &mut MapOperation { operation });
+    }
+
+    fn on_event(
+        &mut self,
+        event: Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, B>,
+    ) -> event::Status {
+        let mut local_messages = Vec::new();
+        let mut local_shell = Shell::new(&mut local_messages);
+
+        let event_status = self.content.on_event(
+            event,
+            layout,
+            cursor,
+            renderer,
+            clipboard,
+            &mut local_shell,
+        );
+
+        shell.merge(local_shell, self.mapper);
+
+        event_status
+    }
+
+    fn mouse_interaction(
+        &self,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+        renderer: &Renderer,
+    ) -> mouse::Interaction {
+        self.content
+            .mouse_interaction(layout, cursor, viewport, renderer)
+    }
+
+    fn draw(
+        &self,
+        renderer: &mut Renderer,
+        theme: &Renderer::Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+    ) {
+        self.content.draw(renderer, theme, style, layout, cursor)
+    }
+
+    fn is_over(
+        &self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+        cursor_position: Point,
+    ) -> bool {
+        self.content.is_over(layout, renderer, cursor_position)
+    }
+
+    fn overlay<'b>(
+        &'b mut self,
+        layout: Layout<'_>,
+        renderer: &Renderer,
+    ) -> Option<Element<'b, B, Renderer>> {
+        self.content
+            .overlay(layout, renderer)
+            .map(|overlay| overlay.map(self.mapper))
+    }
+}

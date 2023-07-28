@@ -1,11 +1,14 @@
+use crate::gradient::{self, Gradient};
 use crate::Color;
 
 /// The background of some element.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Background {
-    /// A solid color
+    /// A solid color.
     Color(Color),
-    // TODO: Add gradient and image variants
+    /// Linearly interpolate between several colors.
+    Gradient(Gradient),
+    // TODO: Add image variant
 }
 
 impl From<Color> for Background {
@@ -14,8 +17,14 @@ impl From<Color> for Background {
     }
 }
 
-impl From<Color> for Option<Background> {
-    fn from(color: Color) -> Self {
-        Some(Background::from(color))
+impl From<Gradient> for Background {
+    fn from(gradient: Gradient) -> Self {
+        Background::Gradient(gradient)
+    }
+}
+
+impl From<gradient::Linear> for Background {
+    fn from(gradient: gradient::Linear) -> Self {
+        Background::Gradient(Gradient::Linear(gradient))
     }
 }

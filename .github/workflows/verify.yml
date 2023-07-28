@@ -1,0 +1,19 @@
+name: Verify
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  changelog:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Check `CHANGELOG.md` has changes
+      run: |
+        ! git diff --exit-code origin/master HEAD -- CHANGELOG.md
+    - name: Check `CHANGELOG.md` thanks the PR author
+      if: ${{ github.event.pull_request.user.login != 'hecrj' }}
+      run: |
+        sed -n '/## \[Unreleased\]/,/^## /p' CHANGELOG.md | sed -n '/Many thanks to.../,//p' | grep '@${{ github.event.pull_request.user.login }}'

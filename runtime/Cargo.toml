@@ -1,0 +1,23 @@
+[package]
+name = "iced_runtime"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
+edition = "2021"
+description = "A renderer-agnostic runtime for Iced"
+license = "MIT"
+repository = "https://github.com/iced-rs/iced"
+
+[features]
+debug = []
+
+[dependencies]
+thiserror = "1"
+
+[dependencies.iced_core]
+version = "0.10"
+path = "../core"
+
+[dependencies.iced_futures]
+version = "0.7"
+path = "../futures"
+features = ["thread-pool"]

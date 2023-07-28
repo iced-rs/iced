@@ -7,6 +7,10 @@ mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
+#[cfg(target_os = "linux")]
+#[path = "settings/linux.rs"]
+mod platform;
+
 #[cfg(target_arch = "wasm32")]
 #[path = "settings/wasm.rs"]
 mod platform;
@@ -14,6 +18,7 @@ mod platform;
 #[cfg(not(any(
     target_os = "windows",
     target_os = "macos",
+    target_os = "linux",
     target_arch = "wasm32"
 )))]
 #[path = "settings/other.rs"]
@@ -22,6 +27,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
+use crate::core::window::{Icon, Level};
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
@@ -51,14 +57,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
-
-    /// Whether the [`Application`] should try to build the context
-    /// using OpenGL ES first then OpenGL.
-    ///
-    /// NOTE: Only works for the `glow` backend.
-    ///
-    /// [`Application`]: crate::Application
-    pub try_opengles_first: bool,
 }
 
 /// The window settings of an application.
@@ -88,11 +86,11 @@ pub struct Window {
     /// Whether the window should be transparent.
     pub transparent: bool,
 
-    /// Whether the window will always be on top of other windows.
-    pub always_on_top: bool,
+    /// The window [`Level`].
+    pub level: Level,
 
     /// The window icon, which is also usually used in the taskbar
-    pub icon: Option<crate::window::Icon>,
+    pub icon: Option<Icon>,
 
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
@@ -109,7 +107,7 @@ impl fmt::Debug for Window {
             .field("resizable", &self.resizable)
             .field("decorations", &self.decorations)
             .field("transparent", &self.transparent)
-            .field("always_on_top", &self.always_on_top)
+            .field("level", &self.level)
             .field("icon", &self.icon.is_some())
             .field("platform_specific", &self.platform_specific)
             .finish()
@@ -135,7 +133,7 @@ impl Window {
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
-            .with_always_on_top(self.always_on_top)
+            .with_window_level(conversion::window_level(self.level))
             .with_visible(self.visible);
 
         if let Some(position) = conversion::position(
@@ -157,14 +155,15 @@ impl Window {
         }
 
         #[cfg(any(
-            target_os = "linux",
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "netbsd",
             target_os = "openbsd"
         ))]
         {
-            use ::winit::platform::unix::WindowBuilderExtUnix;
+            // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
+            // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
+            use ::winit::platform::wayland::WindowBuilderExtWayland;
 
             if let Some(id) = _id {
                 window_builder = window_builder.with_name(id.clone(), id);
@@ -174,11 +173,11 @@ impl Window {
         #[cfg(target_os = "windows")]
         {
             use winit::platform::windows::WindowBuilderExtWindows;
-
-            if let Some(parent) = self.platform_specific.parent {
-                window_builder = window_builder.with_parent_window(parent);
+            #[allow(unsafe_code)]
+            unsafe {
+                window_builder = window_builder
+                    .with_parent_window(self.platform_specific.parent);
             }
-
             window_builder = window_builder
                 .with_drag_and_drop(self.platform_specific.drag_and_drop);
         }
@@ -197,6 +196,28 @@ impl Window {
                 );
         }
 
+        #[cfg(target_os = "linux")]
+        {
+            #[cfg(feature = "x11")]
+            {
+                use winit::platform::x11::WindowBuilderExtX11;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
+            #[cfg(feature = "wayland")]
+            {
+                use winit::platform::wayland::WindowBuilderExtWayland;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
+        }
+
         window_builder
     }
 }
@@ -212,7 +233,7 @@ impl Default for Window {
             resizable: true,
             decorations: true,
             transparent: false,
-            always_on_top: false,
+            level: Level::default(),
             icon: None,
             platform_specific: Default::default(),
         }

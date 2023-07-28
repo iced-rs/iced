@@ -1,10 +1,10 @@
+use iced::executor;
+use iced::keyboard;
+use iced::subscription::{self, Subscription};
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
-use iced::{
-    executor, keyboard, subscription, Alignment, Application, Command, Element,
-    Event, Length, Settings, Subscription,
-};
+use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
 
 use toast::{Status, Toast};
 
@@ -178,17 +178,23 @@ mod toast {
     use std::fmt;
     use std::time::{Duration, Instant};
 
+    use iced::advanced;
+    use iced::advanced::layout::{self, Layout};
+    use iced::advanced::overlay;
+    use iced::advanced::renderer;
+    use iced::advanced::widget::{self, Operation, Tree};
+    use iced::advanced::{Clipboard, Shell, Widget};
+    use iced::event::{self, Event};
+    use iced::mouse;
     use iced::theme;
     use iced::widget::{
         button, column, container, horizontal_rule, horizontal_space, row, text,
     };
+    use iced::window;
     use iced::{
         Alignment, Element, Length, Point, Rectangle, Renderer, Size, Theme,
         Vector,
     };
-    use iced_native::widget::{tree, Operation, Tree};
-    use iced_native::{event, layout, mouse, overlay, renderer, window};
-    use iced_native::{Clipboard, Event, Layout, Shell, Widget};
 
     pub const DEFAULT_TIMEOUT: u64 = 5;
 
@@ -220,7 +226,7 @@ mod toast {
             };
 
             container::Appearance {
-                background: pair.color.into(),
+                background: Some(pair.color.into()),
                 text_color: pair.text.into(),
                 ..Default::default()
             }
@@ -326,13 +332,13 @@ mod toast {
             self.content.as_widget().layout(renderer, limits)
         }
 
-        fn tag(&self) -> tree::Tag {
+        fn tag(&self) -> widget::tree::Tag {
             struct Marker(Vec<Instant>);
-            iced_native::widget::tree::Tag::of::<Marker>()
+            widget::tree::Tag::of::<Marker>()
         }
 
-        fn state(&self) -> tree::State {
-            iced_native::widget::tree::State::new(Vec::<Option<Instant>>::new())
+        fn state(&self) -> widget::tree::State {
+            widget::tree::State::new(Vec::<Option<Instant>>::new())
         }
 
         fn children(&self) -> Vec<Tree> {
@@ -375,7 +381,7 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn Operation<Message>,
         ) {
-            operation.container(None, &mut |operation| {
+            operation.container(None, layout.bounds(), &mut |operation| {
                 self.content.as_widget().operate(
                     &mut state.children[0],
                     layout,
@@ -390,19 +396,21 @@ mod toast {
             state: &mut Tree,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
+            viewport: &Rectangle,
         ) -> event::Status {
             self.content.as_widget_mut().on_event(
                 &mut state.children[0],
                 event,
                 layout,
-                cursor_position,
+                cursor,
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             )
         }
 
@@ -413,7 +421,7 @@ mod toast {
             theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
             self.content.as_widget().draw(
@@ -422,7 +430,7 @@ mod toast {
                 theme,
                 style,
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
             );
         }
@@ -431,14 +439,14 @@ mod toast {
             &self,
             state: &Tree,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
             self.content.as_widget().mouse_interaction(
                 &state.children[0],
                 layout,
-                cursor_position,
+                cursor,
                 viewport,
                 renderer,
             )
@@ -517,7 +525,7 @@ mod toast {
             &mut self,
             event: Event,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
@@ -553,6 +561,8 @@ mod toast {
                 }
             }
 
+            let viewport = layout.bounds();
+
             self.toasts
                 .iter_mut()
                 .zip(self.state.iter_mut())
@@ -566,10 +576,11 @@ mod toast {
                         state,
                         event.clone(),
                         layout,
-                        cursor_position,
+                        cursor,
                         renderer,
                         clipboard,
                         &mut local_shell,
+                        &viewport,
                     );
 
                     if !local_shell.is_empty() {
@@ -586,10 +597,10 @@ mod toast {
         fn draw(
             &self,
             renderer: &mut Renderer,
-            theme: &<Renderer as iced_native::Renderer>::Theme,
+            theme: &<Renderer as advanced::Renderer>::Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
         ) {
             let viewport = layout.bounds();
 
@@ -600,13 +611,7 @@ mod toast {
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state,
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor_position,
-                    &viewport,
+                    state, renderer, theme, style, layout, cursor, &viewport,
                 );
             }
         }
@@ -615,9 +620,9 @@ mod toast {
             &mut self,
             layout: Layout<'_>,
             renderer: &Renderer,
-            operation: &mut dyn iced_native::widget::Operation<Message>,
+            operation: &mut dyn widget::Operation<Message>,
         ) {
-            operation.container(None, &mut |operation| {
+            operation.container(None, layout.bounds(), &mut |operation| {
                 self.toasts
                     .iter()
                     .zip(self.state.iter_mut())
@@ -633,7 +638,7 @@ mod toast {
         fn mouse_interaction(
             &self,
             layout: Layout<'_>,
-            cursor_position: Point,
+            cursor: mouse::Cursor,
             viewport: &Rectangle,
             renderer: &Renderer,
         ) -> mouse::Interaction {
@@ -643,18 +648,19 @@ mod toast {
                 .zip(layout.children())
                 .map(|((child, state), layout)| {
                     child.as_widget().mouse_interaction(
-                        state,
-                        layout,
-                        cursor_position,
-                        viewport,
-                        renderer,
+                        state, layout, cursor, viewport, renderer,
                     )
                 })
                 .max()
                 .unwrap_or_default()
         }
 
-        fn is_over(&self, layout: Layout<'_>, cursor_position: Point) -> bool {
+        fn is_over(
+            &self,
+            layout: Layout<'_>,
+            _renderer: &Renderer,
+            cursor_position: Point,
+        ) -> bool {
             layout
                 .children()
                 .any(|layout| layout.bounds().contains(cursor_position))

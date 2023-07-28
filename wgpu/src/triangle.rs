@@ -1,63 +1,59 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::buffer::r#static::Buffer;
-use crate::settings;
-use crate::Transformation;
+use crate::core::Size;
+use crate::graphics::{Antialiasing, Transformation};
+use crate::layer::mesh::{self, Mesh};
+use crate::Buffer;
 
-use iced_graphics::layer::mesh::{self, Mesh};
-use iced_graphics::triangle::ColoredVertex2D;
-use iced_graphics::Size;
-#[cfg(feature = "tracing")]
-use tracing::info_span;
+const INITIAL_INDEX_COUNT: usize = 1_000;
+const INITIAL_VERTEX_COUNT: usize = 1_000;
 
 #[derive(Debug)]
 pub struct Pipeline {
     blit: Option<msaa::Blit>,
-    index_buffer: Buffer<u32>,
-    index_strides: Vec<u32>,
     solid: solid::Pipeline,
-
-    /// Gradients are currently not supported on WASM targets due to their need of storage buffers.
-    #[cfg(not(target_arch = "wasm32"))]
     gradient: gradient::Pipeline,
+    layers: Vec<Layer>,
+    prepare_layer: usize,
 }
 
-impl Pipeline {
-    pub fn new(
+#[derive(Debug)]
+struct Layer {
+    index_buffer: Buffer<u32>,
+    index_strides: Vec<u32>,
+    solid: solid::Layer,
+    gradient: gradient::Layer,
+}
+
+impl Layer {
+    fn new(
         device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-        antialiasing: Option<settings::Antialiasing>,
-    ) -> Pipeline {
-        Pipeline {
-            blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
+        solid: &solid::Pipeline,
+        gradient: &gradient::Pipeline,
+    ) -> Self {
+        Self {
             index_buffer: Buffer::new(
                 device,
-                "iced_wgpu::triangle vertex buffer",
+                "iced_wgpu.triangle.index_buffer",
+                INITIAL_INDEX_COUNT,
                 wgpu::BufferUsages::INDEX | wgpu::BufferUsages::COPY_DST,
             ),
             index_strides: Vec::new(),
-            solid: solid::Pipeline::new(device, format, antialiasing),
-
-            #[cfg(not(target_arch = "wasm32"))]
-            gradient: gradient::Pipeline::new(device, format, antialiasing),
+            solid: solid::Layer::new(device, &solid.constants_layout),
+            gradient: gradient::Layer::new(device, &gradient.constants_layout),
         }
     }
 
-    pub fn draw(
+    fn prepare(
         &mut self,
         device: &wgpu::Device,
-        staging_belt: &mut wgpu::util::StagingBelt,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        target_size: Size<u32>,
-        transformation: Transformation,
-        scale_factor: f32,
+        queue: &wgpu::Queue,
+        solid: &solid::Pipeline,
+        gradient: &gradient::Pipeline,
         meshes: &[Mesh<'_>],
+        transformation: Transformation,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Triangle", "DRAW").entered();
-
         // Count the total amount of vertices & indices we need to handle
         let count = mesh::attribute_count_of(meshes);
 
@@ -67,175 +63,220 @@ impl Pipeline {
         // the majority of use cases. Therefore we will write GPU data every frame (for now).
         let _ = self.index_buffer.resize(device, count.indices);
         let _ = self.solid.vertices.resize(device, count.solid_vertices);
-
-        #[cfg(not(target_arch = "wasm32"))]
         let _ = self
             .gradient
             .vertices
             .resize(device, count.gradient_vertices);
 
-        // Prepare dynamic buffers & data store for writing
-        self.index_strides.clear();
-        self.solid.vertices.clear();
-        self.solid.uniforms.clear();
-
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            self.gradient.uniforms.clear();
-            self.gradient.vertices.clear();
-            self.gradient.storage.clear();
+        if self.solid.uniforms.resize(device, count.solids) {
+            self.solid.constants = solid::Layer::bind_group(
+                device,
+                &self.solid.uniforms.raw,
+                &solid.constants_layout,
+            );
         }
 
-        let mut solid_vertex_offset = 0;
-        let mut index_offset = 0;
+        if self.gradient.uniforms.resize(device, count.gradients) {
+            self.gradient.constants = gradient::Layer::bind_group(
+                device,
+                &self.gradient.uniforms.raw,
+                &gradient.constants_layout,
+            );
+        }
 
-        #[cfg(not(target_arch = "wasm32"))]
+        self.index_strides.clear();
+        self.index_buffer.clear();
+        self.solid.vertices.clear();
+        self.solid.uniforms.clear();
+        self.gradient.vertices.clear();
+        self.gradient.uniforms.clear();
+
+        let mut solid_vertex_offset = 0;
+        let mut solid_uniform_offset = 0;
         let mut gradient_vertex_offset = 0;
+        let mut gradient_uniform_offset = 0;
+        let mut index_offset = 0;
 
         for mesh in meshes {
             let origin = mesh.origin();
             let indices = mesh.indices();
 
-            let transform =
-                transformation * Transformation::translate(origin.x, origin.y);
-
-            let new_index_offset = self.index_buffer.write(
-                device,
-                staging_belt,
-                encoder,
-                index_offset,
-                indices,
+            let uniforms = Uniforms::new(
+                transformation * Transformation::translate(origin.x, origin.y),
             );
 
-            index_offset += new_index_offset;
+            index_offset +=
+                self.index_buffer.write(queue, index_offset, indices);
             self.index_strides.push(indices.len() as u32);
 
-            //push uniform data to CPU buffers
             match mesh {
                 Mesh::Solid { buffers, .. } => {
-                    self.solid.uniforms.push(&solid::Uniforms::new(transform));
-
-                    let written_bytes = self.solid.vertices.write(
-                        device,
-                        staging_belt,
-                        encoder,
+                    solid_vertex_offset += self.solid.vertices.write(
+                        queue,
                         solid_vertex_offset,
                         &buffers.vertices,
                     );
 
-                    solid_vertex_offset += written_bytes;
+                    solid_uniform_offset += self.solid.uniforms.write(
+                        queue,
+                        solid_uniform_offset,
+                        &[uniforms],
+                    );
                 }
-                #[cfg(not(target_arch = "wasm32"))]
-                Mesh::Gradient {
-                    buffers, gradient, ..
-                } => {
-                    let written_bytes = self.gradient.vertices.write(
-                        device,
-                        staging_belt,
-                        encoder,
+                Mesh::Gradient { buffers, .. } => {
+                    gradient_vertex_offset += self.gradient.vertices.write(
+                        queue,
                         gradient_vertex_offset,
                         &buffers.vertices,
                     );
 
-                    gradient_vertex_offset += written_bytes;
-
-                    match gradient {
-                        iced_graphics::Gradient::Linear(linear) => {
-                            use glam::{IVec4, Vec4};
-
-                            let start_offset = self.gradient.color_stop_offset;
-                            let end_offset = (linear.color_stops.len() as i32)
-                                + start_offset
-                                - 1;
-
-                            self.gradient.uniforms.push(&gradient::Uniforms {
-                                transform: transform.into(),
-                                direction: Vec4::new(
-                                    linear.start.x,
-                                    linear.start.y,
-                                    linear.end.x,
-                                    linear.end.y,
-                                ),
-                                stop_range: IVec4::new(
-                                    start_offset,
-                                    end_offset,
-                                    0,
-                                    0,
-                                ),
-                            });
-
-                            self.gradient.color_stop_offset = end_offset + 1;
-
-                            let stops: Vec<gradient::ColorStop> = linear
-                                .color_stops
-                                .iter()
-                                .map(|stop| {
-                                    let [r, g, b, a] = stop.color.into_linear();
-
-                                    gradient::ColorStop {
-                                        offset: stop.offset,
-                                        color: Vec4::new(r, g, b, a),
-                                    }
-                                })
-                                .collect();
-
-                            self.gradient
-                                .color_stops_pending_write
-                                .color_stops
-                                .extend(stops);
-                        }
-                    }
+                    gradient_uniform_offset += self.gradient.uniforms.write(
+                        queue,
+                        gradient_uniform_offset,
+                        &[uniforms],
+                    );
                 }
-                #[cfg(target_arch = "wasm32")]
-                Mesh::Gradient { .. } => {}
             }
         }
+    }
 
-        // Write uniform data to GPU
-        if count.solid_vertices > 0 {
-            let uniforms_resized = self.solid.uniforms.resize(device);
+    fn render<'a>(
+        &'a self,
+        solid: &'a solid::Pipeline,
+        gradient: &'a gradient::Pipeline,
+        meshes: &[Mesh<'_>],
+        scale_factor: f32,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        let mut num_solids = 0;
+        let mut num_gradients = 0;
+        let mut last_is_solid = None;
 
-            if uniforms_resized {
-                self.solid.bind_group = solid::Pipeline::bind_group(
-                    device,
-                    self.solid.uniforms.raw(),
-                    &self.solid.bind_group_layout,
-                )
+        for (index, mesh) in meshes.iter().enumerate() {
+            let clip_bounds = (mesh.clip_bounds() * scale_factor).snap();
+
+            if clip_bounds.width < 1 || clip_bounds.height < 1 {
+                continue;
             }
 
-            self.solid.uniforms.write(device, staging_belt, encoder);
+            render_pass.set_scissor_rect(
+                clip_bounds.x,
+                clip_bounds.y,
+                clip_bounds.width,
+                clip_bounds.height,
+            );
+
+            match mesh {
+                Mesh::Solid { .. } => {
+                    if !last_is_solid.unwrap_or(false) {
+                        render_pass.set_pipeline(&solid.pipeline);
+
+                        last_is_solid = Some(true);
+                    }
+
+                    render_pass.set_bind_group(
+                        0,
+                        &self.solid.constants,
+                        &[(num_solids * std::mem::size_of::<Uniforms>())
+                            as u32],
+                    );
+
+                    render_pass.set_vertex_buffer(
+                        0,
+                        self.solid.vertices.slice_from_index(num_solids),
+                    );
+
+                    num_solids += 1;
+                }
+                Mesh::Gradient { .. } => {
+                    if last_is_solid.unwrap_or(true) {
+                        render_pass.set_pipeline(&gradient.pipeline);
+
+                        last_is_solid = Some(false);
+                    }
+
+                    render_pass.set_bind_group(
+                        0,
+                        &self.gradient.constants,
+                        &[(num_gradients * std::mem::size_of::<Uniforms>())
+                            as u32],
+                    );
+
+                    render_pass.set_vertex_buffer(
+                        0,
+                        self.gradient.vertices.slice_from_index(num_gradients),
+                    );
+
+                    num_gradients += 1;
+                }
+            };
+
+            render_pass.set_index_buffer(
+                self.index_buffer.slice_from_index(index),
+                wgpu::IndexFormat::Uint32,
+            );
+
+            render_pass.draw_indexed(0..self.index_strides[index], 0, 0..1);
+        }
+    }
+}
+
+impl Pipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        antialiasing: Option<Antialiasing>,
+    ) -> Pipeline {
+        Pipeline {
+            blit: antialiasing.map(|a| msaa::Blit::new(device, format, a)),
+            solid: solid::Pipeline::new(device, format, antialiasing),
+            gradient: gradient::Pipeline::new(device, format, antialiasing),
+            layers: Vec::new(),
+            prepare_layer: 0,
+        }
+    }
+
+    pub fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        meshes: &[Mesh<'_>],
+        transformation: Transformation,
+    ) {
+        #[cfg(feature = "tracing")]
+        let _ = tracing::info_span!("Wgpu::Triangle", "PREPARE").entered();
+
+        if self.layers.len() <= self.prepare_layer {
+            self.layers
+                .push(Layer::new(device, &self.solid, &self.gradient));
         }
 
-        #[cfg(not(target_arch = "wasm32"))]
-        if count.gradient_vertices > 0 {
-            // First write the pending color stops to the CPU buffer
-            self.gradient
-                .storage
-                .push(&self.gradient.color_stops_pending_write);
+        let layer = &mut self.layers[self.prepare_layer];
+        layer.prepare(
+            device,
+            queue,
+            &self.solid,
+            &self.gradient,
+            meshes,
+            transformation,
+        );
 
-            // Resize buffers if needed
-            let uniforms_resized = self.gradient.uniforms.resize(device);
-            let storage_resized = self.gradient.storage.resize(device);
+        self.prepare_layer += 1;
+    }
 
-            if uniforms_resized || storage_resized {
-                self.gradient.bind_group = gradient::Pipeline::bind_group(
-                    device,
-                    self.gradient.uniforms.raw(),
-                    self.gradient.storage.raw(),
-                    &self.gradient.bind_group_layout,
-                );
-            }
+    pub fn render(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        layer: usize,
+        target_size: Size<u32>,
+        meshes: &[Mesh<'_>],
+        scale_factor: f32,
+    ) {
+        #[cfg(feature = "tracing")]
+        let _ = tracing::info_span!("Wgpu::Triangle", "DRAW").entered();
 
-            // Write to GPU
-            self.gradient.uniforms.write(device, staging_belt, encoder);
-            self.gradient.storage.write(device, staging_belt, encoder);
-
-            // Cleanup
-            self.gradient.color_stop_offset = 0;
-            self.gradient.color_stops_pending_write.color_stops.clear();
-        }
-
-        // Configure render pass
         {
             let (attachment, resolve_target, load) = if let Some(blit) =
                 &mut self.blit
@@ -252,12 +293,9 @@ impl Pipeline {
                 (target, None, wgpu::LoadOp::Load)
             };
 
-            #[cfg(feature = "tracing")]
-            let _ = info_span!("Wgpu::Triangle", "BEGIN_RENDER_PASS").enter();
-
             let mut render_pass =
                 encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::triangle render pass"),
+                    label: Some("iced_wgpu.triangle.render_pass"),
                     color_attachments: &[Some(
                         wgpu::RenderPassColorAttachment {
                             view: attachment,
@@ -268,86 +306,24 @@ impl Pipeline {
                     depth_stencil_attachment: None,
                 });
 
-            let mut num_solids = 0;
-            #[cfg(not(target_arch = "wasm32"))]
-            let mut num_gradients = 0;
-            let mut last_is_solid = None;
+            let layer = &mut self.layers[layer];
 
-            for (index, mesh) in meshes.iter().enumerate() {
-                let clip_bounds = (mesh.clip_bounds() * scale_factor).snap();
-
-                render_pass.set_scissor_rect(
-                    clip_bounds.x,
-                    clip_bounds.y,
-                    clip_bounds.width,
-                    clip_bounds.height,
-                );
-
-                match mesh {
-                    Mesh::Solid { .. } => {
-                        if !last_is_solid.unwrap_or(false) {
-                            render_pass.set_pipeline(&self.solid.pipeline);
-
-                            last_is_solid = Some(true);
-                        }
-
-                        render_pass.set_bind_group(
-                            0,
-                            &self.solid.bind_group,
-                            &[self.solid.uniforms.offset_at_index(num_solids)],
-                        );
-
-                        render_pass.set_vertex_buffer(
-                            0,
-                            self.solid.vertices.slice_from_index(num_solids),
-                        );
-
-                        num_solids += 1;
-                    }
-                    #[cfg(not(target_arch = "wasm32"))]
-                    Mesh::Gradient { .. } => {
-                        if last_is_solid.unwrap_or(true) {
-                            render_pass.set_pipeline(&self.gradient.pipeline);
-
-                            last_is_solid = Some(false);
-                        }
-
-                        render_pass.set_bind_group(
-                            0,
-                            &self.gradient.bind_group,
-                            &[self
-                                .gradient
-                                .uniforms
-                                .offset_at_index(num_gradients)],
-                        );
-
-                        render_pass.set_vertex_buffer(
-                            0,
-                            self.gradient
-                                .vertices
-                                .slice_from_index(num_gradients),
-                        );
-
-                        num_gradients += 1;
-                    }
-                    #[cfg(target_arch = "wasm32")]
-                    Mesh::Gradient { .. } => {}
-                };
-
-                render_pass.set_index_buffer(
-                    self.index_buffer.slice_from_index(index),
-                    wgpu::IndexFormat::Uint32,
-                );
-
-                render_pass.draw_indexed(0..self.index_strides[index], 0, 0..1);
-            }
+            layer.render(
+                &self.solid,
+                &self.gradient,
+                meshes,
+                scale_factor,
+                &mut render_pass,
+            );
         }
-
-        self.index_buffer.clear();
 
         if let Some(blit) = &mut self.blit {
             blit.draw(encoder, target);
         }
+    }
+
+    pub fn end_frame(&mut self) {
+        self.prepare_layer = 0;
     }
 }
 
@@ -370,7 +346,7 @@ fn primitive_state() -> wgpu::PrimitiveState {
 }
 
 fn multisample_state(
-    antialiasing: Option<settings::Antialiasing>,
+    antialiasing: Option<Antialiasing>,
 ) -> wgpu::MultisampleState {
     wgpu::MultisampleState {
         count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
@@ -379,132 +355,88 @@ fn multisample_state(
     }
 }
 
+#[derive(Debug, Clone, Copy, bytemuck::Pod, bytemuck::Zeroable)]
+#[repr(C)]
+pub struct Uniforms {
+    transform: [f32; 16],
+    /// Uniform values must be 256-aligned;
+    /// see: [`wgpu::Limits`] `min_uniform_buffer_offset_alignment`.
+    _padding: [f32; 48],
+}
+
+impl Uniforms {
+    pub fn new(transform: Transformation) -> Self {
+        Self {
+            transform: transform.into(),
+            _padding: [0.0; 48],
+        }
+    }
+
+    pub fn entry() -> wgpu::BindGroupLayoutEntry {
+        wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Buffer {
+                ty: wgpu::BufferBindingType::Uniform,
+                has_dynamic_offset: true,
+                min_binding_size: wgpu::BufferSize::new(
+                    std::mem::size_of::<Self>() as u64,
+                ),
+            },
+            count: None,
+        }
+    }
+
+    pub fn min_size() -> Option<wgpu::BufferSize> {
+        wgpu::BufferSize::new(std::mem::size_of::<Self>() as u64)
+    }
+}
+
 mod solid {
-    use crate::buffer::dynamic;
-    use crate::buffer::r#static::Buffer;
-    use crate::settings;
+    use crate::graphics::mesh;
+    use crate::graphics::Antialiasing;
     use crate::triangle;
-    use encase::ShaderType;
-    use iced_graphics::Transformation;
+    use crate::Buffer;
 
     #[derive(Debug)]
     pub struct Pipeline {
         pub pipeline: wgpu::RenderPipeline,
-        pub vertices: Buffer<triangle::ColoredVertex2D>,
-        pub uniforms: dynamic::Buffer<Uniforms>,
-        pub bind_group_layout: wgpu::BindGroupLayout,
-        pub bind_group: wgpu::BindGroup,
+        pub constants_layout: wgpu::BindGroupLayout,
     }
 
-    #[derive(Debug, Clone, Copy, ShaderType)]
-    pub struct Uniforms {
-        transform: glam::Mat4,
+    #[derive(Debug)]
+    pub struct Layer {
+        pub vertices: Buffer<mesh::SolidVertex2D>,
+        pub uniforms: Buffer<triangle::Uniforms>,
+        pub constants: wgpu::BindGroup,
     }
 
-    impl Uniforms {
-        pub fn new(transform: Transformation) -> Self {
-            Self {
-                transform: transform.into(),
-            }
-        }
-    }
-
-    impl Pipeline {
-        /// Creates a new [SolidPipeline] using `solid.wgsl` shader.
+    impl Layer {
         pub fn new(
             device: &wgpu::Device,
-            format: wgpu::TextureFormat,
-            antialiasing: Option<settings::Antialiasing>,
+            constants_layout: &wgpu::BindGroupLayout,
         ) -> Self {
             let vertices = Buffer::new(
                 device,
-                "iced_wgpu::triangle::solid vertex buffer",
+                "iced_wgpu.triangle.solid.vertex_buffer",
+                triangle::INITIAL_VERTEX_COUNT,
                 wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
             );
 
-            let uniforms = dynamic::Buffer::uniform(
+            let uniforms = Buffer::new(
                 device,
-                "iced_wgpu::triangle::solid uniforms",
+                "iced_wgpu.triangle.solid.uniforms",
+                1,
+                wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             );
 
-            let bind_group_layout = device.create_bind_group_layout(
-                &wgpu::BindGroupLayoutDescriptor {
-                    label: Some("iced_wgpu::triangle::solid bind group layout"),
-                    entries: &[wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: true,
-                            min_binding_size: Some(Uniforms::min_size()),
-                        },
-                        count: None,
-                    }],
-                },
-            );
-
-            let bind_group =
-                Self::bind_group(device, uniforms.raw(), &bind_group_layout);
-
-            let layout = device.create_pipeline_layout(
-                &wgpu::PipelineLayoutDescriptor {
-                    label: Some("iced_wgpu::triangle::solid pipeline layout"),
-                    bind_group_layouts: &[&bind_group_layout],
-                    push_constant_ranges: &[],
-                },
-            );
-
-            let shader =
-                device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some(
-                        "iced_wgpu triangle solid create shader module",
-                    ),
-                    source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(include_str!(
-                            "shader/solid.wgsl"
-                        )),
-                    ),
-                });
-
-            let pipeline = device.create_render_pipeline(
-                &wgpu::RenderPipelineDescriptor {
-                    label: Some("iced_wgpu::triangle::solid pipeline"),
-                    layout: Some(&layout),
-                    vertex: wgpu::VertexState {
-                        module: &shader,
-                        entry_point: "vs_main",
-                        buffers: &[wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<
-                                triangle::ColoredVertex2D,
-                            >()
-                                as u64,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &wgpu::vertex_attr_array!(
-                                // Position
-                                0 => Float32x2,
-                                // Color
-                                1 => Float32x4,
-                            ),
-                        }],
-                    },
-                    fragment: Some(wgpu::FragmentState {
-                        module: &shader,
-                        entry_point: "fs_main",
-                        targets: &[triangle::fragment_target(format)],
-                    }),
-                    primitive: triangle::primitive_state(),
-                    depth_stencil: None,
-                    multisample: triangle::multisample_state(antialiasing),
-                    multiview: None,
-                },
-            );
+            let constants =
+                Self::bind_group(device, &uniforms.raw, constants_layout);
 
             Self {
-                pipeline,
                 vertices,
                 uniforms,
-                bind_group_layout,
-                bind_group,
+                constants,
             }
         }
 
@@ -514,7 +446,7 @@ mod solid {
             layout: &wgpu::BindGroupLayout,
         ) -> wgpu::BindGroup {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::triangle::solid bind group"),
+                label: Some("iced_wgpu.triangle.solid.bind_group"),
                 layout,
                 entries: &[wgpu::BindGroupEntry {
                     binding: 0,
@@ -522,167 +454,225 @@ mod solid {
                         wgpu::BufferBinding {
                             buffer,
                             offset: 0,
-                            size: Some(Uniforms::min_size()),
+                            size: triangle::Uniforms::min_size(),
                         },
                     ),
                 }],
             })
         }
     }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-mod gradient {
-    use crate::buffer::dynamic;
-    use crate::buffer::r#static::Buffer;
-    use crate::settings;
-    use crate::triangle;
-
-    use encase::ShaderType;
-    use glam::{IVec4, Vec4};
-    use iced_graphics::triangle::Vertex2D;
-
-    #[derive(Debug)]
-    pub struct Pipeline {
-        pub pipeline: wgpu::RenderPipeline,
-        pub vertices: Buffer<Vertex2D>,
-        pub uniforms: dynamic::Buffer<Uniforms>,
-        pub storage: dynamic::Buffer<Storage>,
-        pub color_stop_offset: i32,
-        //Need to store these and then write them all at once
-        //or else they will be padded to 256 and cause gaps in the storage buffer
-        pub color_stops_pending_write: Storage,
-        pub bind_group_layout: wgpu::BindGroupLayout,
-        pub bind_group: wgpu::BindGroup,
-    }
-
-    #[derive(Debug, ShaderType)]
-    pub struct Uniforms {
-        pub transform: glam::Mat4,
-        //xy = start, zw = end
-        pub direction: Vec4,
-        //x = start stop, y = end stop, zw = padding
-        pub stop_range: IVec4,
-    }
-
-    #[derive(Debug, ShaderType)]
-    pub struct ColorStop {
-        pub color: Vec4,
-        pub offset: f32,
-    }
-
-    #[derive(Debug, ShaderType)]
-    pub struct Storage {
-        #[size(runtime)]
-        pub color_stops: Vec<ColorStop>,
-    }
 
     impl Pipeline {
-        /// Creates a new [GradientPipeline] using `gradient.wgsl` shader.
-        pub(super) fn new(
+        pub fn new(
             device: &wgpu::Device,
             format: wgpu::TextureFormat,
-            antialiasing: Option<settings::Antialiasing>,
+            antialiasing: Option<Antialiasing>,
         ) -> Self {
-            let vertices = Buffer::new(
-                device,
-                "iced_wgpu::triangle::gradient vertex buffer",
-                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-            );
-
-            let uniforms = dynamic::Buffer::uniform(
-                device,
-                "iced_wgpu::triangle::gradient uniforms",
-            );
-
-            //Note: with a WASM target storage buffers are not supported. Will need to use UBOs & static
-            // sized array (eg like the 32-sized array on OpenGL side right now) to make gradients work
-            let storage = dynamic::Buffer::storage(
-                device,
-                "iced_wgpu::triangle::gradient storage",
-            );
-
-            let bind_group_layout = device.create_bind_group_layout(
+            let constants_layout = device.create_bind_group_layout(
                 &wgpu::BindGroupLayoutDescriptor {
-                    label: Some(
-                        "iced_wgpu::triangle::gradient bind group layout",
-                    ),
-                    entries: &[
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 0,
-                            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Uniform,
-                                has_dynamic_offset: true,
-                                min_binding_size: Some(Uniforms::min_size()),
-                            },
-                            count: None,
-                        },
-                        wgpu::BindGroupLayoutEntry {
-                            binding: 1,
-                            visibility: wgpu::ShaderStages::FRAGMENT,
-                            ty: wgpu::BindingType::Buffer {
-                                ty: wgpu::BufferBindingType::Storage {
-                                    read_only: true,
-                                },
-                                has_dynamic_offset: false,
-                                min_binding_size: Some(Storage::min_size()),
-                            },
-                            count: None,
-                        },
-                    ],
+                    label: Some("iced_wgpu.triangle.solid.bind_group_layout"),
+                    entries: &[triangle::Uniforms::entry()],
                 },
-            );
-
-            let bind_group = Pipeline::bind_group(
-                device,
-                uniforms.raw(),
-                storage.raw(),
-                &bind_group_layout,
             );
 
             let layout = device.create_pipeline_layout(
                 &wgpu::PipelineLayoutDescriptor {
-                    label: Some(
-                        "iced_wgpu::triangle::gradient pipeline layout",
-                    ),
-                    bind_group_layouts: &[&bind_group_layout],
+                    label: Some("iced_wgpu.triangle.solid.pipeline_layout"),
+                    bind_group_layouts: &[&constants_layout],
                     push_constant_ranges: &[],
                 },
             );
 
             let shader =
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: Some(
-                        "iced_wgpu triangle gradient create shader module",
-                    ),
+                    label: Some("iced_wgpu.triangle.solid.shader"),
                     source: wgpu::ShaderSource::Wgsl(
                         std::borrow::Cow::Borrowed(include_str!(
-                            "shader/gradient.wgsl"
+                            "shader/triangle.wgsl"
+                        )),
+                    ),
+                });
+
+            let pipeline =
+                device.create_render_pipeline(
+                    &wgpu::RenderPipelineDescriptor {
+                        label: Some("iced_wgpu::triangle::solid pipeline"),
+                        layout: Some(&layout),
+                        vertex: wgpu::VertexState {
+                            module: &shader,
+                            entry_point: "solid_vs_main",
+                            buffers: &[wgpu::VertexBufferLayout {
+                                array_stride: std::mem::size_of::<
+                                    mesh::SolidVertex2D,
+                                >(
+                                )
+                                    as u64,
+                                step_mode: wgpu::VertexStepMode::Vertex,
+                                attributes: &wgpu::vertex_attr_array!(
+                                    // Position
+                                    0 => Float32x2,
+                                    // Color
+                                    1 => Float32x4,
+                                ),
+                            }],
+                        },
+                        fragment: Some(wgpu::FragmentState {
+                            module: &shader,
+                            entry_point: "solid_fs_main",
+                            targets: &[triangle::fragment_target(format)],
+                        }),
+                        primitive: triangle::primitive_state(),
+                        depth_stencil: None,
+                        multisample: triangle::multisample_state(antialiasing),
+                        multiview: None,
+                    },
+                );
+
+            Self {
+                pipeline,
+                constants_layout,
+            }
+        }
+    }
+}
+
+mod gradient {
+    use crate::graphics::mesh;
+    use crate::graphics::Antialiasing;
+    use crate::triangle;
+    use crate::Buffer;
+
+    #[derive(Debug)]
+    pub struct Pipeline {
+        pub pipeline: wgpu::RenderPipeline,
+        pub constants_layout: wgpu::BindGroupLayout,
+    }
+
+    #[derive(Debug)]
+    pub struct Layer {
+        pub vertices: Buffer<mesh::GradientVertex2D>,
+        pub uniforms: Buffer<triangle::Uniforms>,
+        pub constants: wgpu::BindGroup,
+    }
+
+    impl Layer {
+        pub fn new(
+            device: &wgpu::Device,
+            constants_layout: &wgpu::BindGroupLayout,
+        ) -> Self {
+            let vertices = Buffer::new(
+                device,
+                "iced_wgpu.triangle.gradient.vertex_buffer",
+                triangle::INITIAL_VERTEX_COUNT,
+                wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+            );
+
+            let uniforms = Buffer::new(
+                device,
+                "iced_wgpu.triangle.gradient.uniforms",
+                1,
+                wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            );
+
+            let constants =
+                Self::bind_group(device, &uniforms.raw, constants_layout);
+
+            Self {
+                vertices,
+                uniforms,
+                constants,
+            }
+        }
+
+        pub fn bind_group(
+            device: &wgpu::Device,
+            uniform_buffer: &wgpu::Buffer,
+            layout: &wgpu::BindGroupLayout,
+        ) -> wgpu::BindGroup {
+            device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("iced_wgpu.triangle.gradient.bind_group"),
+                layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(
+                        wgpu::BufferBinding {
+                            buffer: uniform_buffer,
+                            offset: 0,
+                            size: triangle::Uniforms::min_size(),
+                        },
+                    ),
+                }],
+            })
+        }
+    }
+
+    impl Pipeline {
+        pub fn new(
+            device: &wgpu::Device,
+            format: wgpu::TextureFormat,
+            antialiasing: Option<Antialiasing>,
+        ) -> Self {
+            let constants_layout = device.create_bind_group_layout(
+                &wgpu::BindGroupLayoutDescriptor {
+                    label: Some(
+                        "iced_wgpu.triangle.gradient.bind_group_layout",
+                    ),
+                    entries: &[triangle::Uniforms::entry()],
+                },
+            );
+
+            let layout = device.create_pipeline_layout(
+                &wgpu::PipelineLayoutDescriptor {
+                    label: Some("iced_wgpu.triangle.gradient.pipeline_layout"),
+                    bind_group_layouts: &[&constants_layout],
+                    push_constant_ranges: &[],
+                },
+            );
+
+            let shader =
+                device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("iced_wgpu.triangle.gradient.shader"),
+                    source: wgpu::ShaderSource::Wgsl(
+                        std::borrow::Cow::Borrowed(include_str!(
+                            "shader/triangle.wgsl"
                         )),
                     ),
                 });
 
             let pipeline = device.create_render_pipeline(
                 &wgpu::RenderPipelineDescriptor {
-                    label: Some("iced_wgpu::triangle::gradient pipeline"),
+                    label: Some("iced_wgpu.triangle.gradient.pipeline"),
                     layout: Some(&layout),
                     vertex: wgpu::VertexState {
                         module: &shader,
-                        entry_point: "vs_main",
+                        entry_point: "gradient_vs_main",
                         buffers: &[wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<Vertex2D>()
+                            array_stride: std::mem::size_of::<
+                                mesh::GradientVertex2D,
+                            >()
                                 as u64,
                             step_mode: wgpu::VertexStepMode::Vertex,
                             attributes: &wgpu::vertex_attr_array!(
                                 // Position
                                 0 => Float32x2,
+                                // Colors 1-2
+                                1 => Uint32x4,
+                                // Colors 3-4
+                                2 => Uint32x4,
+                                // Colors 5-6
+                                3 => Uint32x4,
+                                // Colors 7-8
+                                4 => Uint32x4,
+                                // Offsets
+                                5 => Uint32x4,
+                                // Direction
+                                6 => Float32x4
                             ),
                         }],
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
-                        entry_point: "fs_main",
+                        entry_point: "gradient_fs_main",
                         targets: &[triangle::fragment_target(format)],
                     }),
                     primitive: triangle::primitive_state(),
@@ -694,44 +684,8 @@ mod gradient {
 
             Self {
                 pipeline,
-                vertices,
-                uniforms,
-                storage,
-                color_stop_offset: 0,
-                color_stops_pending_write: Storage {
-                    color_stops: vec![],
-                },
-                bind_group_layout,
-                bind_group,
+                constants_layout,
             }
-        }
-
-        pub fn bind_group(
-            device: &wgpu::Device,
-            uniform_buffer: &wgpu::Buffer,
-            storage_buffer: &wgpu::Buffer,
-            layout: &wgpu::BindGroupLayout,
-        ) -> wgpu::BindGroup {
-            device.create_bind_group(&wgpu::BindGroupDescriptor {
-                label: Some("iced_wgpu::triangle::gradient bind group"),
-                layout,
-                entries: &[
-                    wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::Buffer(
-                            wgpu::BufferBinding {
-                                buffer: uniform_buffer,
-                                offset: 0,
-                                size: Some(Uniforms::min_size()),
-                            },
-                        ),
-                    },
-                    wgpu::BindGroupEntry {
-                        binding: 1,
-                        resource: storage_buffer.as_entire_binding(),
-                    },
-                ],
-            })
         }
     }
 }
