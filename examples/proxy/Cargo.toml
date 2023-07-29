@@ -7,3 +7,4 @@ publish = false
 [dependencies]
 iced = { path = "../.." }
 notify = "6.0.1"
+futures = "0.3.28"

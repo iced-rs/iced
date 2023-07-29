@@ -1,57 +1,43 @@
-use std::path::PathBuf;
-
-use notify::{EventKind, Event, RecommendedWatcher, Watcher, Config, INotifyWatcher};
-
-
-
+use notify::{Config, Event, EventKind, INotifyWatcher, RecommendedWatcher, Watcher};
 
 pub struct Explorer {
     pub nb_deleted: i32,
-    watcher: INotifyWatcher
-}
-
-
-
-#[derive(Debug, Clone)]
-pub enum Message {
-    Notify(Event),
-    Watch(PathBuf)
+    #[allow(dead_code)]
+    watcher: INotifyWatcher,
 }
 
 impl Explorer {
-
-    pub fn new(path: PathBuf) -> Self {
-
+    pub fn new(path: PathBuf, proxy: Proxy<AppMsg>) -> Option<Self> {
+        if !path.is_dir() {
+            println!("path is not a dir");
+            return None;
+        }
 
         let mut watcher = RecommendedWatcher::new(
             move |res: Result<Event, notify::Error>| {
-                dbg!(res).unwrap();
+                proxy.send(AppMsg::Event(res.unwrap()))
             },
             Config::default(),
-        ).unwrap();
+        )
+        .unwrap();
 
-        watcher.watch(&path, notify::RecursiveMode::NonRecursive).unwrap();
+        watcher
+            .watch(&path, notify::RecursiveMode::NonRecursive)
+            .unwrap();
 
-        Explorer {
+        println!("watching {}", path.to_string_lossy());
+
+        let explorer = Explorer {
             nb_deleted: 0,
-            watcher
-        }
+            watcher,
+        };
 
+        Some(explorer)
     }
 
-    pub fn update(&mut self, message: Message) {
-
-        match message {
-            Message::Notify(event) => match event.kind {
-                EventKind::Remove(_) => self.nb_deleted += 1,
-                _ => {} 
-            }
-            Message::Watch(path) => {
-                self.watcher.watch(&path, notify::RecursiveMode::NonRecursive).unwrap();
-            },
+    pub fn process_event(&mut self, event: Event) {
+        if let EventKind::Remove(_) = event.kind {
+            self.nb_deleted += 1;
         }
     }
-
-
-
 }
