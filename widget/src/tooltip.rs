@@ -314,7 +314,7 @@ where
         &self,
         renderer: &Renderer,
         bounds: Size,
-        _position: Point,
+        position: Point,
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
@@ -331,45 +331,43 @@ where
         );
 
         let text_bounds = text_layout.bounds();
-        let x_center = self.content_bounds.x
-            + (self.content_bounds.width - text_bounds.width) / 2.0;
-        let y_center = self.content_bounds.y
+        let x_center =
+            position.x + (self.content_bounds.width - text_bounds.width) / 2.0;
+        let y_center = position.y
             + (self.content_bounds.height - text_bounds.height) / 2.0;
 
         let mut tooltip_bounds = {
             let offset = match self.position {
                 Position::Top => Vector::new(
                     x_center,
-                    self.content_bounds.y
-                        - text_bounds.height
-                        - self.gap
-                        - self.padding,
+                    position.y - text_bounds.height - self.gap - self.padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
-                    self.content_bounds.y
+                    position.y
                         + self.content_bounds.height
                         + self.gap
                         + self.padding,
                 ),
                 Position::Left => Vector::new(
-                    self.content_bounds.x
-                        - text_bounds.width
-                        - self.gap
-                        - self.padding,
+                    position.x - text_bounds.width - self.gap - self.padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
-                    self.content_bounds.x
+                    position.x
                         + self.content_bounds.width
                         + self.gap
                         + self.padding,
                     y_center,
                 ),
-                Position::FollowCursor => Vector::new(
-                    self.cursor_position.x,
-                    self.cursor_position.y - text_bounds.height,
-                ),
+                Position::FollowCursor => {
+                    let translation = position - self.content_bounds.position();
+
+                    Vector::new(
+                        self.cursor_position.x,
+                        self.cursor_position.y - text_bounds.height,
+                    ) + translation
+                }
             };
 
             Rectangle {
