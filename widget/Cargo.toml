@@ -1,6 +1,6 @@
 [package]
 name = "iced_widget"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "The built-in widgets for Iced"
