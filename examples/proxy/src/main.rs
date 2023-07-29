@@ -62,20 +62,24 @@ impl Application for State {
 
     fn update(&mut self, message: Self::Message) -> iced::Command<Self::Message> {
         match self {
-            State::Loading => {}
+            State::Loading => {
+                if let AppMsg::ProxyReceived(proxy) = message {
+                    *self = State::Loaded(App::new(proxy))
+                }
+            }
             State::Loaded(app) => match message {
                 AppMsg::OnInput(input) => {
                     app.path = input;
                 }
                 AppMsg::OnSubmit => {
-                    app.explorer = Explorer::new(PathBuf::from(app.path.clone()));
+                    app.explorer = Explorer::new(PathBuf::from(app.path.clone()), app.proxy.clone());
                 }
-                AppMsg::ProxyReceived(proxy) => *self = State::Loaded(App::new(proxy)),
                 AppMsg::Event(e) => {
                     if let Some(explorer) = &mut app.explorer {
                         explorer.process_event(e);
                     }
                 }
+                _ => {}
             },
         }
 
