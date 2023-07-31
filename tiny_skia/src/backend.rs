@@ -210,9 +210,9 @@ impl Backend {
                                             tiny_skia::GradientStop::new(
                                                 stop.offset,
                                                 tiny_skia::Color::from_rgba(
-                                                    stop.color.b,
-                                                    stop.color.g,
                                                     stop.color.r,
+                                                    stop.color.g,
+                                                    stop.color.b,
                                                     stop.color.a,
                                                 )
                                                 .expect("Create color"),
@@ -600,7 +600,7 @@ impl Backend {
 }
 
 fn into_color(color: Color) -> tiny_skia::Color {
-    tiny_skia::Color::from_rgba(color.b, color.g, color.r, color.a)
+    tiny_skia::Color::from_rgba(color.r, color.g, color.b, color.a)
         .expect("Convert color from iced to tiny_skia")
 }
 
