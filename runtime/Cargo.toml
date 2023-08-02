@@ -1,6 +1,6 @@
 [package]
 name = "iced_runtime"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
 description = "A renderer-agnostic runtime for Iced"
