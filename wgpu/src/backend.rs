@@ -87,7 +87,10 @@ impl Backend {
         let transformation = viewport.projection();
 
         let mut layers = Layer::generate(primitives, viewport);
-        layers.push(Layer::overlay(overlay_text, viewport));
+
+        if !overlay_text.is_empty() {
+            layers.push(Layer::overlay(overlay_text, viewport));
+        }
 
         self.prepare(
             device,
@@ -236,7 +239,7 @@ impl Backend {
             let bounds = (layer.bounds * scale_factor).snap();
 
             if bounds.width < 1 || bounds.height < 1 {
-                return;
+                continue;
             }
 
             if !layer.quads.is_empty() {
