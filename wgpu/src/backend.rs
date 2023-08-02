@@ -87,7 +87,10 @@ impl Backend {
         let transformation = viewport.projection();
 
         let mut layers = Layer::generate(primitives, viewport);
-        layers.push(Layer::overlay(overlay_text, viewport));
+
+        if !overlay_text.is_empty() {
+            layers.push(Layer::overlay(overlay_text, viewport));
+        }
 
         self.prepare(
             device,
