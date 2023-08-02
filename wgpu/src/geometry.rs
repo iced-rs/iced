@@ -388,12 +388,14 @@ impl Frame {
     /// This method is useful to compose transforms and perform drawing
     /// operations in different coordinate systems.
     #[inline]
-    pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
+    pub fn with_save<R>(&mut self, f: impl FnOnce(&mut Frame) -> R) -> R {
         self.push_transform();
 
-        f(self);
+        let result = f(self);
 
         self.pop_transform();
+
+        result
     }
 
     /// Pushes the current transform in the transform stack.
@@ -413,14 +415,20 @@ impl Frame {
     /// This method is useful to perform drawing operations that need to be
     /// clipped.
     #[inline]
-    pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
+    pub fn with_clip<R>(
+        &mut self,
+        region: Rectangle,
+        f: impl FnOnce(&mut Frame) -> R,
+    ) -> R {
         let mut frame = Frame::new(region.size());
 
-        f(&mut frame);
+        let result = f(&mut frame);
 
         let origin = Point::new(region.x, region.y);
 
         self.clip(frame, origin);
+
+        result
     }
 
     /// Draws the clipped contents of the given [`Frame`] with origin at the given [`Point`].

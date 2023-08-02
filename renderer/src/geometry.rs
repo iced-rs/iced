@@ -111,12 +111,14 @@ impl Frame {
     /// This method is useful to compose transforms and perform drawing
     /// operations in different coordinate systems.
     #[inline]
-    pub fn with_save(&mut self, f: impl FnOnce(&mut Frame)) {
+    pub fn with_save<R>(&mut self, f: impl FnOnce(&mut Frame) -> R) -> R {
         delegate!(self, frame, frame.push_transform());
 
-        f(self);
+        let result = f(self);
 
         delegate!(self, frame, frame.pop_transform());
+
+        result
     }
 
     /// Executes the given drawing operations within a [`Rectangle`] region,
@@ -126,7 +128,11 @@ impl Frame {
     /// This method is useful to perform drawing operations that need to be
     /// clipped.
     #[inline]
-    pub fn with_clip(&mut self, region: Rectangle, f: impl FnOnce(&mut Frame)) {
+    pub fn with_clip<R>(
+        &mut self,
+        region: Rectangle,
+        f: impl FnOnce(&mut Frame) -> R,
+    ) -> R {
         let mut frame = match self {
             Self::TinySkia(_) => Self::TinySkia(
                 iced_tiny_skia::geometry::Frame::new(region.size()),
@@ -137,7 +143,7 @@ impl Frame {
             }
         };
 
-        f(&mut frame);
+        let result = f(&mut frame);
 
         let origin = Point::new(region.x, region.y);
 
@@ -152,6 +158,8 @@ impl Frame {
             #[allow(unreachable_patterns)]
             _ => unreachable!(),
         };
+
+        result
     }
 
     /// Applies a translation to the current transform of the [`Frame`].
