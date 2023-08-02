@@ -78,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Tooltip` overlay position inside `Scrollable`. [#1978](https://github.com/iced-rs/iced/pull/1978)
 - `BorderRadius` not exposed in root crate. [#1972](https://github.com/iced-rs/iced/pull/1972)
 - Outdated `ROADMAP`. [#1958](https://github.com/iced-rs/iced/pull/1958)
+- `iced_wgpu` freezing on empty layers. [#1996](https://github.com/iced-rs/iced/pull/1996)
 
 Many thanks to...
 
