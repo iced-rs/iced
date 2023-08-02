@@ -468,11 +468,13 @@ where
 
                 if let Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code,
+                    modifiers,
                     ..
                 }) = event
                 {
-                    match key_code {
-                        keyboard::KeyCode::Enter => {
+                    let shift_modifer = modifiers.shift();
+                    match (key_code, shift_modifer) {
+                        (keyboard::KeyCode::Enter, _) => {
                             if let Some(index) = &menu.hovered_option {
                                 if let Some(option) =
                                     state.filtered_options.options.get(*index)
@@ -483,9 +485,19 @@ where
 
                             event_status = event::Status::Captured;
                         }
-                        keyboard::KeyCode::Up => {
+
+                        (keyboard::KeyCode::Up, _)
+                        | (keyboard::KeyCode::Tab, true) => {
                             if let Some(index) = &mut menu.hovered_option {
-                                *index = index.saturating_sub(1);
+                                if *index == 0 {
+                                    *index = state
+                                        .filtered_options
+                                        .options
+                                        .len()
+                                        .saturating_sub(1);
+                                } else {
+                                    *index = index.saturating_sub(1);
+                                }
                             } else {
                                 menu.hovered_option = Some(0);
                             }
@@ -511,15 +523,28 @@ where
 
                             event_status = event::Status::Captured;
                         }
-                        keyboard::KeyCode::Down => {
+                        (keyboard::KeyCode::Down, _)
+                        | (keyboard::KeyCode::Tab, false)
+                            if !modifiers.shift() =>
+                        {
                             if let Some(index) = &mut menu.hovered_option {
-                                *index = index.saturating_add(1).min(
-                                    state
+                                if *index
+                                    >= state
                                         .filtered_options
                                         .options
                                         .len()
-                                        .saturating_sub(1),
-                                );
+                                        .saturating_sub(1)
+                                {
+                                    *index = 0;
+                                } else {
+                                    *index = index.saturating_add(1).min(
+                                        state
+                                            .filtered_options
+                                            .options
+                                            .len()
+                                            .saturating_sub(1),
+                                    );
+                                }
                             } else {
                                 menu.hovered_option = Some(0);
                             }
