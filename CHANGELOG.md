@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Loading spinners example. [#1902](https://github.com/iced-rs/iced/pull/1902)
 - Workflow that verifies `CHANGELOG` is always up-to-date. [#1970](https://github.com/iced-rs/iced/pull/1970)
 - Keybinds to cycle `ComboBox` options. [#1991](https://github.com/iced-rs/iced/pull/1991)
+- Outdated mentions of `iced_native` in `README`. [#1979](https://github.com/iced-rs/iced/pull/1979)
 
 ### Changed
 - Updated `wgpu` to `0.16`. [#1807](https://github.com/iced-rs/iced/pull/1807)
@@ -102,6 +103,7 @@ Many thanks to...
 - @nicoburns
 - @Redhawk18
 - @RGBCube
+- @rs017991
 - @tarkah
 - @thunderstorm010
 - @wash2
