@@ -236,7 +236,7 @@ impl Backend {
             let bounds = (layer.bounds * scale_factor).snap();
 
             if bounds.width < 1 || bounds.height < 1 {
-                return;
+                continue;
             }
 
             if !layer.quads.is_empty() {
