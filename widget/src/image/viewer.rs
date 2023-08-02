@@ -154,7 +154,8 @@ where
 
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                let Some(cursor_position) = cursor.position() else {
+                // Ensure the cursor is within the bounds of the widget
+                let Some(cursor_position) = cursor.position_over(bounds) else {
                     return event::Status::Ignored;
                 };
 
