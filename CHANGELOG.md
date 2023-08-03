@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BorderRadius` not exposed in root crate. [#1972](https://github.com/iced-rs/iced/pull/1972)
 - Outdated `ROADMAP`. [#1958](https://github.com/iced-rs/iced/pull/1958)
 - `iced_wgpu` freezing on empty layers. [#1996](https://github.com/iced-rs/iced/pull/1996)
+- `image::Viewer` reacting to any scroll event. [#1998](https://github.com/iced-rs/iced/pull/1998)
 
 Many thanks to...
 
@@ -99,6 +100,7 @@ Many thanks to...
 - @JonathanLindsey
 - @kr105
 - @marienz
+- @malramsay64
 - @nicksenger
 - @nicoburns
 - @Redhawk18
