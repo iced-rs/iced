@@ -40,9 +40,9 @@ impl<T> Command<T> {
 
     /// Creates a [`Command`] that performs the action of the given future.
     pub fn perform<A>(
-        future: impl Future<Output = T> + 'static + MaybeSend,
-        f: impl FnOnce(T) -> A + 'static + MaybeSend,
-    ) -> Command<A> {
+        future: impl Future<Output = A> + 'static + MaybeSend,
+        f: impl FnOnce(A) -> T + 'static + MaybeSend,
+    ) -> Command<T> {
         use iced_futures::futures::FutureExt;
 
         Command::single(Action::Future(Box::pin(future.map(f))))
