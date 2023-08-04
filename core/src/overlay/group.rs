@@ -86,20 +86,23 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.children
-            .iter_mut()
-            .zip(layout.children())
-            .map(|(child, layout)| {
-                child.on_event(
-                    event.clone(),
-                    layout,
-                    cursor,
-                    renderer,
-                    clipboard,
-                    shell,
-                )
-            })
-            .fold(event::Status::Ignored, event::Status::merge)
+        self.children.iter_mut().zip(layout.children()).rev().fold(
+            event::Status::Ignored,
+            |current, (child, layout)| {
+                if matches!(current, event::Status::Captured) {
+                    event::Status::Captured
+                } else {
+                    child.on_event(
+                        event.clone(),
+                        layout,
+                        cursor,
+                        renderer,
+                        clipboard,
+                        shell,
+                    )
+                }
+            },
+        )
     }
 
     fn draw(
