@@ -11,7 +11,7 @@ pub enum FilterMethod {
     /// Bilinear interpolation
     #[default]
     Linear,
-    /// Nearest Neighbor 
+    /// Nearest Neighbor
     Nearest,
 }
 

@@ -13,7 +13,7 @@ use crate::core::{
 
 use std::hash::Hash;
 
-pub use image::{Handle, TextureFilter, FilterMethod};
+pub use image::{FilterMethod, Handle, TextureFilter};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
 pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
