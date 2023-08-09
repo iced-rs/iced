@@ -1,4 +1,6 @@
 //! Configure your application.
+use std::borrow::Cow;
+
 use crate::window;
 use crate::Font;
 
@@ -49,6 +51,13 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub exit_on_close_request: bool,
+
+    /// Custom fonts to be loaded when iced initiates.
+    /// uses the Bytes of loaded fonts.
+    /// This will be slower than using commands to batch load.
+    ///
+    /// By default, it is `Vec::new()`.
+    pub custom_fonts: Vec<Cow<'static, [u8]>>,
 }
 
 impl<Flags> Settings<Flags> {
@@ -66,7 +75,24 @@ impl<Flags> Settings<Flags> {
             default_text_size: default_settings.default_text_size,
             antialiasing: default_settings.antialiasing,
             exit_on_close_request: default_settings.exit_on_close_request,
+            custom_fonts: default_settings.custom_fonts,
         }
+    }
+
+    /// Adds Font bytes to the custom_fonts Vec to be loaded on
+    /// [`Application`] initiation.
+    ///
+    /// [`Application`]: crate::Application
+    pub fn add_custom_fonts(
+        mut self,
+        fonts: impl IntoIterator<Item = impl Into<Cow<'static, [u8]>>>,
+    ) -> Self {
+        let mut fonts = fonts
+            .into_iter()
+            .map(|f| f.into())
+            .collect::<Vec<Cow<'static, [u8]>>>();
+        self.custom_fonts.append(&mut fonts);
+        self
     }
 }
 
@@ -83,6 +109,7 @@ where
             default_text_size: 16.0,
             antialiasing: false,
             exit_on_close_request: true,
+            custom_fonts: Vec::new(),
         }
     }
 }

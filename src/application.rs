@@ -205,11 +205,13 @@ pub trait Application: Sized {
             ..crate::renderer::Settings::default()
         };
 
+        let custom_fonts = settings.custom_fonts.clone();
+
         Ok(crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
             crate::renderer::Compositor<Self::Theme>,
-        >(settings.into(), renderer_settings)?)
+        >(settings.into(), renderer_settings, custom_fonts)?)
     }
 }
 

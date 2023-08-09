@@ -25,6 +25,7 @@ use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
 
+use std::borrow::Cow;
 use std::mem::ManuallyDrop;
 
 #[cfg(feature = "trace")]
@@ -108,6 +109,7 @@ where
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
     compositor_settings: C::Settings,
+    custom_fonts: Vec<Cow<'static, [u8]>>,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -212,6 +214,7 @@ where
             window,
             should_be_visible,
             settings.exit_on_close_request,
+            custom_fonts,
         );
 
         #[cfg(feature = "trace")]
@@ -279,6 +282,7 @@ async fn run_instance<A, E, C>(
     window: winit::window::Window,
     should_be_visible: bool,
     exit_on_close_request: bool,
+    custom_fonts: Vec<Cow<'static, [u8]>>,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -306,6 +310,7 @@ async fn run_instance<A, E, C>(
         window.set_visible(true);
     }
 
+    load_fonts(&application, &mut renderer, custom_fonts);
     run_command(
         &application,
         &mut compositor,
@@ -697,6 +702,24 @@ pub fn update<A: Application, C, E: Executor>(
 
     let subscription = application.subscription();
     runtime.track(subscription.into_recipes());
+}
+
+/// load fonts on init.
+///
+pub fn load_fonts<A>(
+    _application: &A,
+    renderer: &mut A::Renderer,
+    custom_fonts: Vec<Cow<'static, [u8]>>,
+) where
+    A: Application,
+    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+{
+    use crate::core::text::Renderer;
+
+    for font in custom_fonts {
+        // TODO: Error handling (?)
+        renderer.load_font(font);
+    }
 }
 
 /// Runs the actions of a [`Command`].
