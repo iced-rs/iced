@@ -425,6 +425,12 @@ impl Cache {
             );
 
             let bounds = measure(&buffer);
+            buffer.set_size(
+                font_system,
+                bounds.width.ceil(),
+                bounds.height.ceil(),
+            );
+
             let _ = entry.insert(Entry { buffer, bounds });
 
             for bounds in [
