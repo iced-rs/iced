@@ -72,6 +72,8 @@ where
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
+    on_focus: Option<Message>,
+    on_unfocus: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
@@ -104,6 +106,8 @@ where
             on_input: None,
             on_paste: None,
             on_submit: None,
+            on_focus: None,
+            on_unfocus: None,
             icon: None,
             style: Default::default(),
         }
@@ -147,6 +151,20 @@ where
         on_paste: impl Fn(String) -> Message + 'a,
     ) -> Self {
         self.on_paste = Some(Box::new(on_paste));
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused.
+    pub fn on_focus(mut self, message: Message) -> Self {
+        self.on_focus = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// unfocused.
+    pub fn on_unfocus(mut self, message: Message) -> Self {
+        self.on_unfocus = Some(message);
         self
     }
 
@@ -322,6 +340,8 @@ where
             self.on_input.as_deref(),
             self.on_paste.as_deref(),
             &self.on_submit,
+            &self.on_focus,
+            &self.on_unfocus,
             || tree.state.downcast_mut::<State>(),
         )
     }
@@ -544,6 +564,8 @@ pub fn update<'a, Message, Renderer>(
     on_input: Option<&dyn Fn(String) -> Message>,
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
+    on_focus: &Option<Message>,
+    on_unfocus: &Option<Message>,
     state: impl FnOnce() -> &'a mut State,
 ) -> event::Status
 where
@@ -561,7 +583,7 @@ where
                 None
             };
 
-            state.is_focused = if click_position.is_some() {
+            let new_focus = if click_position.is_some() {
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
 
@@ -574,6 +596,17 @@ where
             } else {
                 None
             };
+            if new_focus.is_none() && state.is_focused.is_some() {
+                state.is_focused = new_focus;
+                if let Some(on_unfocus) = on_unfocus.as_ref() {
+                    shell.publish(on_unfocus.clone());
+                }
+            } else if new_focus.is_some() && state.is_focused.is_none() {
+                state.is_focused = new_focus;
+                if let Some(on_focus) = on_focus.as_ref() {
+                    shell.publish(on_focus.clone());
+                }
+            }
 
             if let Some(cursor_position) = click_position {
                 let text_layout = layout.children().next().unwrap();
