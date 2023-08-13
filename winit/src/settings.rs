@@ -27,7 +27,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
-use crate::core::window::{Icon, Level};
+use crate::core::window::{Icon, Level,WindowTheme};
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
@@ -83,6 +83,20 @@ pub struct Window {
     /// Whether the window should have a border, a title bar, etc.
     pub decorations: bool,
 
+    /// Sets a specific theme for the window.
+    ///
+    /// If `None` is provided, the window will use the system theme.
+    ///
+    /// The default is `None`.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **macOS:** This is an app-wide setting.
+    /// - **Wayland:** This control only CSD. You can also use `WINIT_WAYLAND_CSD_THEME` env variable to set the theme.
+    ///   Possible values for env variable are: "dark" and light".
+    /// - **x11:** Build window with `_GTK_THEME_VARIANT` hint set to `dark` or `light`.
+    /// - **iOS / Android / Web / x11 / Orbital:** Ignored.
+    pub window_theme: Option<WindowTheme>,
     /// Whether the window should be transparent.
     pub transparent: bool,
 
@@ -106,6 +120,7 @@ impl fmt::Debug for Window {
             .field("visible", &self.visible)
             .field("resizable", &self.resizable)
             .field("decorations", &self.decorations)
+            .field("window_theme",&self.window_theme)
             .field("transparent", &self.transparent)
             .field("level", &self.level)
             .field("icon", &self.icon.is_some())
@@ -125,7 +140,13 @@ impl Window {
         let mut window_builder = WindowBuilder::new();
 
         let (width, height) = self.size;
-
+        let window_theme=match self.window_theme {
+            Some(theme)=> match theme {
+                WindowTheme::Light=>Some(winit::window::Theme::Light),
+                WindowTheme::Dark=>Some(winit::window::Theme::Dark)
+            },
+            None=>None
+        };
         window_builder = window_builder
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
@@ -134,7 +155,8 @@ impl Window {
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
             .with_window_level(conversion::window_level(self.level))
-            .with_visible(self.visible);
+            .with_visible(self.visible)
+            .with_theme(window_theme);
 
         if let Some(position) = conversion::position(
             primary_monitor.as_ref(),
@@ -232,6 +254,7 @@ impl Default for Window {
             visible: true,
             resizable: true,
             decorations: true,
+            window_theme: None,
             transparent: false,
             level: Level::default(),
             icon: None,

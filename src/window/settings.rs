@@ -1,4 +1,4 @@
-use crate::window::{Icon, Level, Position};
+use crate::window::{Icon, Level, Position,WindowTheme};
 
 pub use iced_winit::settings::PlatformSpecific;
 
@@ -25,7 +25,20 @@ pub struct Settings {
 
     /// Whether the window should have a border, a title bar, etc. or not.
     pub decorations: bool,
-
+    /// Sets a specific theme for the window.
+    ///
+    /// If `None` is provided, the window will use the system theme.
+    ///
+    /// The default is `None`.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **macOS:** This is an app-wide setting.
+    /// - **Wayland:** This control only CSD. You can also use `WINIT_WAYLAND_CSD_THEME` env variable to set the theme.
+    ///   Possible values for env variable are: "dark" and light".
+    /// - **x11:** Build window with `_GTK_THEME_VARIANT` hint set to `dark` or `light`.
+    /// - **iOS / Android / Web / x11 / Orbital:** Ignored.
+    pub window_theme: Option<WindowTheme>,
     /// Whether the window should be transparent.
     pub transparent: bool,
 
@@ -49,6 +62,7 @@ impl Default for Settings {
             visible: true,
             resizable: true,
             decorations: true,
+            window_theme: None,
             transparent: false,
             level: Level::default(),
             icon: None,
@@ -67,6 +81,7 @@ impl From<Settings> for iced_winit::settings::Window {
             visible: settings.visible,
             resizable: settings.resizable,
             decorations: settings.decorations,
+            window_theme: settings.window_theme,
             transparent: settings.transparent,
             level: settings.level,
             icon: settings.icon.map(Icon::into),

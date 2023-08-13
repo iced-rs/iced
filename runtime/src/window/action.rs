@@ -1,4 +1,4 @@
-use crate::core::window::{Icon, Level, Mode, UserAttention};
+use crate::core::window::{Icon, Level, Mode, UserAttention,WindowTheme};
 use crate::core::Size;
 use crate::futures::MaybeSend;
 use crate::window::Screenshot;
@@ -44,6 +44,21 @@ pub enum Action<T> {
     /// - **X11:** Not implemented.
     /// - **Web:** Unsupported.
     ToggleDecorations,
+
+    /// Sets a specific theme for the window.
+    ///
+    /// If `None` is provided, the window will use the system theme.
+    ///
+    /// The default is `None`.
+    ///
+    /// ## Platform-specific
+    ///
+    /// - **macOS:** This is an app-wide setting.
+    /// - **Wayland:** This control only CSD. You can also use `WINIT_WAYLAND_CSD_THEME` env variable to set the theme.
+    ///   Possible values for env variable are: "dark" and light".
+    /// - **x11:** Build window with `_GTK_THEME_VARIANT` hint set to `dark` or `light`.
+    /// - **iOS / Android / Web / x11 / Orbital:** Ignored.
+    ChangeWindowTheme(Option<WindowTheme>),
     /// Request user attention to the window, this has no effect if the application
     /// is already focused. How requesting for user attention manifests is platform dependent,
     /// see [`UserAttention`] for details.
@@ -113,6 +128,7 @@ impl<T> Action<T> {
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
             Self::ToggleDecorations => Action::ToggleDecorations,
+            Self::ChangeWindowTheme(window_theme) => Action::ChangeWindowTheme(window_theme),
             Self::RequestUserAttention(attention_type) => {
                 Action::RequestUserAttention(attention_type)
             }
@@ -149,6 +165,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
             Self::ToggleMaximize => write!(f, "Action::ToggleMaximize"),
             Self::ToggleDecorations => write!(f, "Action::ToggleDecorations"),
+            Self::ChangeWindowTheme(_) => write!(f, "Action::ChangeWindowTheme"),
             Self::RequestUserAttention(_) => {
                 write!(f, "Action::RequestUserAttention")
             }

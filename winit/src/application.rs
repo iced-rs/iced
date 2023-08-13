@@ -12,6 +12,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
+use crate::core::window::WindowTheme;
 use crate::core::{Event, Size};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
@@ -802,6 +803,19 @@ pub fn run_command<A, C, E>(
                 }
                 window::Action::ToggleDecorations => {
                     window.set_decorations(!window.is_decorated());
+                }
+                window::Action::ChangeWindowTheme(window_theme) => {
+                    let theme=match window_theme {
+                        Some(theme)=> match theme {
+                            WindowTheme::Light=>Some(winit::window::Theme::Light),
+                            WindowTheme::Dark=>Some(winit::window::Theme::Dark)
+                        },
+                        None=>None
+                    };
+                    window.set_theme(theme);
+                    //Window theme changes do not take effect immediately and require window changes
+                    window.set_decorations(false);
+                    window.set_decorations(true);
                 }
                 window::Action::RequestUserAttention(user_attention) => {
                     window.request_user_attention(

@@ -4,13 +4,21 @@ use iced::widget::{
     row, scrollable, slider, text, text_input, toggler, vertical_rule,
     vertical_space,
 };
-use iced::{Alignment, Color, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Application, Color, Command, Element, executor, Length, Settings, window};
+use iced::window::WindowTheme;
 
 pub fn main() -> iced::Result {
-    Styling::run(Settings::default())
+    Styling::run(Settings {
+        window: window::Settings{
+            window_theme:Some(WindowTheme::Dark),
+            ..Default::default()
+        },
+        ..Default::default()
+    })
 }
 
-#[derive(Default)]
+
+#[derive(Debug)]
 struct Styling {
     theme: Theme,
     input_value: String,
@@ -19,6 +27,17 @@ struct Styling {
     toggler_value: bool,
 }
 
+impl Default for Styling {
+    fn default() -> Self {
+       Self{
+           theme: Theme::Dark,
+           input_value: "".to_string(),
+           slider_value: 0.0,
+           checkbox_value: false,
+           toggler_value: false,
+       }
+    }
+}
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 enum ThemeType {
     Light,
@@ -36,30 +55,43 @@ enum Message {
     TogglerToggled(bool),
 }
 
-impl Sandbox for Styling {
+impl Application for Styling {
+    type Executor = executor::Default;
     type Message = Message;
+    type Theme = Theme;
+    type Flags = ();
 
-    fn new() -> Self {
-        Styling::default()
+    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
+        (Styling::default(),Command::none())
     }
+
 
     fn title(&self) -> String {
         String::from("Styling - Iced")
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) ->Command<Self::Message>{
         match message {
             Message::ThemeChanged(theme) => {
-                self.theme = match theme {
-                    ThemeType::Light => Theme::Light,
-                    ThemeType::Dark => Theme::Dark,
-                    ThemeType::Custom => Theme::custom(theme::Palette {
-                        background: Color::from_rgb(1.0, 0.9, 1.0),
-                        text: Color::BLACK,
-                        primary: Color::from_rgb(0.5, 0.5, 0.0),
-                        success: Color::from_rgb(0.0, 1.0, 0.0),
-                        danger: Color::from_rgb(1.0, 0.0, 0.0),
-                    }),
+               return  match theme {
+                    ThemeType::Light => {
+                        self.theme =Theme::Light;
+                        window::change_window_theme(Some(WindowTheme::Light))
+                    }
+                    ThemeType::Dark => {
+                        self.theme =Theme::Dark;
+                        window::change_window_theme(Some(WindowTheme::Dark))
+                    }
+                    ThemeType::Custom => {
+                        self.theme = Theme::custom(theme::Palette {
+                            background: Color::from_rgb(1.0, 0.9, 1.0),
+                            text: Color::BLACK,
+                            primary: Color::from_rgb(0.5, 0.5, 0.0),
+                            success: Color::from_rgb(0.0, 1.0, 0.0),
+                            danger: Color::from_rgb(1.0, 0.0, 0.0),
+                        });
+                        window::change_window_theme(Some(WindowTheme::Dark))
+                    }
                 }
             }
             Message::InputChanged(value) => self.input_value = value,
@@ -67,7 +99,9 @@ impl Sandbox for Styling {
             Message::SliderChanged(value) => self.slider_value = value,
             Message::CheckboxToggled(value) => self.checkbox_value = value,
             Message::TogglerToggled(value) => self.toggler_value = value,
-        }
+        };
+        Command::none()
+
     }
 
     fn view(&self) -> Element<Message> {

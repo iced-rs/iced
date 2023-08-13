@@ -8,7 +8,7 @@ pub use screenshot::Screenshot;
 
 use crate::command::{self, Command};
 use crate::core::time::Instant;
-use crate::core::window::{Event, Icon, Level, Mode, UserAttention};
+use crate::core::window::{Event, Icon, Level, Mode, UserAttention,WindowTheme};
 use crate::core::Size;
 use crate::futures::subscription::{self, Subscription};
 
@@ -84,6 +84,10 @@ pub fn toggle_maximize<Message>() -> Command<Message> {
 /// Toggles the window decorations.
 pub fn toggle_decorations<Message>() -> Command<Message> {
     Command::single(command::Action::Window(Action::ToggleDecorations))
+}
+/// Change the window decorations theme.
+pub fn change_window_theme<Message>(window_theme:Option<WindowTheme>) -> Command<Message> {
+    Command::single(command::Action::Window(Action::ChangeWindowTheme(window_theme)))
 }
 
 /// Request user attention to the window, this has no effect if the application
