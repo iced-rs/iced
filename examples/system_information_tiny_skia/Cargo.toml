@@ -1,5 +1,5 @@
 [package]
-name = "system_information"
+name = "system_information_tiny_skia"
 version = "0.1.0"
 authors = ["Richard <richardsoncusto@gmail.com>"]
 edition = "2021"

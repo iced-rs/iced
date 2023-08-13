@@ -17,7 +17,7 @@ geometry = ["iced_graphics/geometry"]
 
 [dependencies]
 raw-window-handle = "0.5"
-softbuffer = "0.2"
+softbuffer = "0.3"
 tiny-skia = "0.10"
 cosmic-text = "0.9"
 bytemuck = "1"

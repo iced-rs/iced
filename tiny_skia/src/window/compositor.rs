@@ -12,7 +12,9 @@ pub struct Compositor<Theme> {
 }
 
 pub struct Surface {
-    window: softbuffer::GraphicsContext,
+    #[allow(unused)]
+    context: softbuffer::Context,
+    surface: softbuffer::Surface,
     buffer: Vec<u32>,
     clip_mask: tiny_skia::Mask,
     primitives: Option<Vec<Primitive>>,
@@ -39,12 +41,14 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) -> Surface {
-        let window =
-            unsafe { softbuffer::GraphicsContext::new(window, window) }
-                .expect("Create softbuffer for window");
+        let context = unsafe { softbuffer::Context::new(window) }
+            .expect("Create softbuffer context");
+        let surface = unsafe { softbuffer::Surface::new(&context, window) }
+            .expect("Create softbuffer surface");
 
         Surface {
-            window,
+            context,
+            surface,
             buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
@@ -168,11 +172,10 @@ pub fn present<T: AsRef<str>>(
         overlay,
     );
 
-    surface.window.set_buffer(
-        &surface.buffer,
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
+    surface.surface.resize(physical_size.width.try_into().unwrap(), physical_size.height.try_into().unwrap()).expect("resize surface buffer");
+    let mut buffer = surface.surface.buffer_mut().expect("access surface buffer");
+    buffer.copy_from_slice(&surface.buffer);
+    buffer.present().expect("present buffer");
 
     Ok(())
 }
