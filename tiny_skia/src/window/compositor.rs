@@ -15,7 +15,6 @@ pub struct Surface {
     #[allow(unused)]
     context: softbuffer::Context,
     surface: softbuffer::Surface,
-    buffer: Vec<u32>,
     clip_mask: tiny_skia::Mask,
     primitives: Option<Vec<Primitive>>,
     background_color: Color,
@@ -43,13 +42,15 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     ) -> Surface {
         let context = unsafe { softbuffer::Context::new(window) }
             .expect("Create softbuffer context");
-        let surface = unsafe { softbuffer::Surface::new(&context, window) }
+        let mut surface = unsafe { softbuffer::Surface::new(&context, window) }
             .expect("Create softbuffer surface");
+        surface
+            .resize(width.try_into().unwrap(), height.try_into().unwrap())
+            .unwrap();
 
         Surface {
             context,
             surface,
-            buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
             primitives: None,
@@ -63,9 +64,14 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
-        surface.buffer.resize((width * height) as usize, 0);
-        surface.clip_mask =
-            tiny_skia::Mask::new(width, height).expect("Create clip mask");
+        let width = width.try_into().expect("width > 0");
+        let height = height.try_into().expect("height > 0");
+        surface
+            .surface
+            .resize(width, height)
+            .expect("resize on configure surface");
+        surface.clip_mask = tiny_skia::Mask::new(width.get(), height.get())
+            .expect("Create clip mask");
         surface.primitives = None;
     }
 
@@ -137,10 +143,20 @@ pub fn present<T: AsRef<str>>(
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
 
+    let width = physical_size.width.try_into().expect("width > 0");
+    let height = physical_size.height.try_into().expect("height > 0");
+
+    surface
+        .surface
+        .resize(width, height)
+        .expect("resize surface buffer");
+    let mut buffer =
+        surface.surface.buffer_mut().expect("access surface buffer");
+
     let mut pixels = tiny_skia::PixmapMut::from_bytes(
-        bytemuck::cast_slice_mut(&mut surface.buffer),
-        physical_size.width,
-        physical_size.height,
+        bytemuck::cast_slice_mut(&mut buffer),
+        width.get(),
+        height.get(),
     )
     .expect("Create pixel map");
 
@@ -172,9 +188,6 @@ pub fn present<T: AsRef<str>>(
         overlay,
     );
 
-    surface.surface.resize(physical_size.width.try_into().unwrap(), physical_size.height.try_into().unwrap()).expect("resize surface buffer");
-    let mut buffer = surface.surface.buffer_mut().expect("access surface buffer");
-    buffer.copy_from_slice(&surface.buffer);
     buffer.present().expect("present buffer");
 
     Ok(())
