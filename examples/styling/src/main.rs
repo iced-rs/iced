@@ -8,13 +8,7 @@ use iced::{Alignment, Application, Color, Command, Element, executor, Length, Se
 use iced::window::WindowTheme;
 
 pub fn main() -> iced::Result {
-    Styling::run(Settings {
-        window: window::Settings{
-            window_theme:Some(WindowTheme::Dark),
-            ..Default::default()
-        },
-        ..Default::default()
-    })
+    Styling::run(Settings::default())
 }
 
 
@@ -62,7 +56,19 @@ impl Application for Styling {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (Styling::default(),Command::none())
+        let styling=Styling::default();
+        let window_theme=match styling.theme {
+            Theme::Light => {
+                Some(WindowTheme::Light)
+            }
+            Theme::Dark => {
+                Some(WindowTheme::Dark)
+            }
+            Theme::Custom(_) => {
+                Some(WindowTheme::Dark)
+            }
+        };
+        (styling, window::change_window_theme(window_theme))
     }
 
 
