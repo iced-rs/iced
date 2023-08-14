@@ -269,7 +269,7 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
     mut event_receiver: mpsc::UnboundedReceiver<
         winit::event::Event<'_, A::Message>,
@@ -317,7 +317,7 @@ async fn run_instance<A, E, C>(
         &mut runtime,
         &mut clipboard,
         &mut should_exit,
-        &mut proxy,
+        &proxy,
         &mut debug,
         &window,
     );
@@ -365,9 +365,7 @@ async fn run_instance<A, E, C>(
 
                 debug.event_processing_finished();
 
-                for (event, status) in
-                    events.drain(..).zip(statuses.into_iter())
-                {
+                for (event, status) in events.drain(..).zip(statuses) {
                     runtime.broadcast(event, status);
                 }
 
@@ -391,7 +389,7 @@ async fn run_instance<A, E, C>(
                         &mut runtime,
                         &mut clipboard,
                         &mut should_exit,
-                        &mut proxy,
+                        &proxy,
                         &mut debug,
                         &mut messages,
                         &window,
@@ -657,7 +655,7 @@ pub fn update<A: Application, C, E: Executor>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
@@ -711,7 +709,7 @@ pub fn run_command<A, C, E>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
 ) where

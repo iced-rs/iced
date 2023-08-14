@@ -153,9 +153,9 @@ pub fn new<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
 pub fn present<Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<Theme>,
+    compositor: &Compositor<Theme>,
     backend: &mut Backend,
-    surface: &mut wgpu::Surface,
+    surface: &wgpu::Surface,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,

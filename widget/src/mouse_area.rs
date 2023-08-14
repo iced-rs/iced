@@ -236,7 +236,7 @@ where
 /// Processes the given [`Event`] and updates the [`State`] of an [`MouseArea`]
 /// accordingly.
 fn update<Message: Clone, Renderer>(
-    widget: &mut MouseArea<'_, Message, Renderer>,
+    widget: &MouseArea<'_, Message, Renderer>,
     event: &Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,

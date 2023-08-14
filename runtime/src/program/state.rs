@@ -27,13 +27,13 @@ where
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
     pub fn new(
-        mut program: P,
+        program: P,
         bounds: Size,
         renderer: &mut P::Renderer,
         debug: &mut Debug,
     ) -> Self {
         let user_interface = build_user_interface(
-            &mut program,
+            &program,
             user_interface::Cache::default(),
             renderer,
             bounds,
@@ -97,7 +97,7 @@ where
         debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
-            &mut self.program,
+            &self.program,
             self.cache.take().unwrap(),
             renderer,
             bounds,
@@ -155,7 +155,7 @@ where
                 }));
 
             let mut user_interface = build_user_interface(
-                &mut self.program,
+                &self.program,
                 temp_cache,
                 renderer,
                 bounds,
@@ -184,7 +184,7 @@ where
         debug: &mut Debug,
     ) {
         let mut user_interface = build_user_interface(
-            &mut self.program,
+            &self.program,
             self.cache.take().unwrap(),
             renderer,
             bounds,
@@ -214,7 +214,7 @@ where
 }
 
 fn build_user_interface<'a, P: Program>(
-    program: &'a mut P,
+    program: &'a P,
     cache: user_interface::Cache,
     renderer: &mut P::Renderer,
     size: Size,
