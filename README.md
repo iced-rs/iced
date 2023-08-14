@@ -50,7 +50,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
 [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
 [Modular ecosystem]: ECOSYSTEM.md
-[renderer-agnostic native runtime]: native/
+[renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
 [`iced_wgpu`]: wgpu/
