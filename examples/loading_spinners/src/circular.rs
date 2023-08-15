@@ -8,10 +8,10 @@ use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window::{self, RedrawRequest};
+use iced::Radians;
 use iced::{
     Background, Color, Element, Event, Length, Rectangle, Size, Vector,
 };
-use iced::Radians;
 
 use super::easing::{self, Easing};
 

@@ -1,5 +1,8 @@
 use crate::{Point, Rectangle, Vector};
-use std::{f32::consts::PI, ops::{SubAssign, AddAssign, Add, Sub, Mul, Div}};
+use std::{
+    f32::consts::PI,
+    ops::{Add, AddAssign, Div, Mul, Sub, SubAssign},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 /// Degrees
