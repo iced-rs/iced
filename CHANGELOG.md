@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `iced_wgpu` freezing on empty layers. [#1996](https://github.com/iced-rs/iced/pull/1996)
 - `image::Viewer` reacting to any scroll event. [#1998](https://github.com/iced-rs/iced/pull/1998)
 - `TextInput` pasting text when `Alt` key is pressed. [#2006](https://github.com/iced-rs/iced/pull/2006)
+- Broken link to old `iced_native` crate in `README`. [#2024](https://github.com/iced-rs/iced/pull/2024)
 
 Many thanks to...
 
@@ -106,6 +107,7 @@ Many thanks to...
 - @malramsay64
 - @nicksenger
 - @nicoburns
+- @NyxAlexandra
 - @Redhawk18
 - @RGBCube
 - @rs017991
