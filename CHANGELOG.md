@@ -6,13 +6,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- bounds contains issue where widgets 0.0 pixels next to each other would both be active.
-
-Many thanks to...
-
-- @genusistimelord
-
 ## [0.10.0] - 2023-07-28
 ### Added
 - Text shaping, font fallback, and `iced_wgpu` overhaul. [#1697](https://github.com/iced-rs/iced/pull/1697)
@@ -93,6 +86,7 @@ Many thanks to...
 - `image::Viewer` reacting to any scroll event. [#1998](https://github.com/iced-rs/iced/pull/1998)
 - `TextInput` pasting text when `Alt` key is pressed. [#2006](https://github.com/iced-rs/iced/pull/2006)
 - Broken link to old `iced_native` crate in `README`. [#2024](https://github.com/iced-rs/iced/pull/2024)
+- `Rectangle::contains` being non-exclusive. [#2017](https://github.com/iced-rs/iced/pull/2017)
 
 Many thanks to...
 
@@ -105,6 +99,7 @@ Many thanks to...
 - @clarkmoody
 - @Davidster
 - @Drakulix
+- @genusistimelord
 - @GyulyVGC
 - @ids1024
 - @jhff
