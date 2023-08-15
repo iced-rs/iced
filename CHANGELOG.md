@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable `LineHeight` support for text widgets. [#1828](https://github.com/iced-rs/iced/pull/1828)
 - `text::Shaping` strategy selection. [#1822](https://github.com/iced-rs/iced/pull/1822)
 - Subpixel glyph positioning and layout linearity. [#1921](https://github.com/iced-rs/iced/pull/1921)
+- Subpixel glyph positioning and layout linearity. [#1921](https://github.com/iced-rs/iced/pull/1921)
 - Background gradients. [#1846](https://github.com/iced-rs/iced/pull/1846)
 - Offscreen rendering and screenshots. [#1845](https://github.com/iced-rs/iced/pull/1845)
 - Nested overlays. [#1719](https://github.com/iced-rs/iced/pull/1719)
@@ -55,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed `Copy` requirement for text `StyleSheet::Style`. [#1814](https://github.com/iced-rs/iced/pull/1814)
 - Removed `min_width` of 1 from scrollbar & scroller for `Scrollable`. [#1844](https://github.com/iced-rs/iced/pull/1844)
 - Used `Widget::overlay` for `Tooltip`. [#1692](https://github.com/iced-rs/iced/pull/1692)
+- Changed `Arc` and `arc::Elliptical` to take `Radians` type for angle fields [#2027](https://github.com/iced-rs/iced/pull/2027)
 
 ### Fixed
 - `Responsive` layout not invalidated when shell layout is invalidated. [#1799](https://github.com/iced-rs/iced/pull/1799)
