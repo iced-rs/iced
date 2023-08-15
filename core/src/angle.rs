@@ -1,7 +1,7 @@
 use crate::{Point, Rectangle, Vector};
 
 use std::f32::consts::{FRAC_PI_2, PI};
-use std::ops::RangeInclusive;
+use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Sub, SubAssign};
 
 /// Degrees
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -69,5 +69,49 @@ impl Radians {
         let end = bounds.center() + r * distance_to_rect;
 
         (start, end)
+    }
+}
+
+impl SubAssign<Radians> for Radians {
+    fn sub_assign(&mut self, rhs: Radians) {
+        self.0 = self.0 - rhs.0;
+    }
+}
+
+impl AddAssign<Radians> for Radians {
+    fn add_assign(&mut self, rhs: Radians) {
+        self.0 = self.0 + rhs.0;
+    }
+}
+
+impl Add<Radians> for Radians {
+    type Output = Radians;
+
+    fn add(self, rhs: Radians) -> Self::Output {
+        Radians(self.0 + rhs.0)
+    }
+}
+
+impl Sub<Radians> for Radians {
+    type Output = Radians;
+
+    fn sub(self, rhs: Radians) -> Self::Output {
+        Radians(self.0 - rhs.0)
+    }
+}
+
+impl Mul<f32> for Radians {
+    type Output = Radians;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Radians(self.0 * rhs)
+    }
+}
+
+impl Div<f32> for Radians {
+    type Output = Radians;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Radians(self.0 / rhs)
     }
 }
