@@ -4,6 +4,8 @@ bitflags! {
     /// The current state of the keyboard modifiers.
     #[derive(Default)]
     pub struct Modifiers: u32{
+        /// Flag for no modifiers key pressed, to help with pattern matching
+        const NONE = 0b000;
         /// The "shift" key.
         const SHIFT = 0b100;
         // const LSHIFT = 0b010 << 0;
