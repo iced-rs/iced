@@ -87,6 +87,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TextInput` pasting text when `Alt` key is pressed. [#2006](https://github.com/iced-rs/iced/pull/2006)
 - Broken link to old `iced_native` crate in `README`. [#2024](https://github.com/iced-rs/iced/pull/2024)
 - `Rectangle::contains` being non-exclusive. [#2017](https://github.com/iced-rs/iced/pull/2017)
+- Documentation for `Arc` and `arc::Elliptical`. [#2008](https://github.com/iced-rs/iced/pull/2008)
 
 Many thanks to...
 
@@ -115,6 +116,7 @@ Many thanks to...
 - @rs017991
 - @tarkah
 - @thunderstorm010
+- @ua-kxie
 - @wash2
 - @wiiznokes
 
