@@ -333,7 +333,7 @@ where
                         start_angle: start,
                         end_angle: start
                             + MIN_ANGLE
-                            + Radians(WRAP_ANGLE.0 * (self.easing.y_at_x(progress))),
+                            + WRAP_ANGLE * (self.easing.y_at_x(progress)),
                     });
                 }
                 Animation::Contracting { progress, .. } => {
@@ -341,7 +341,7 @@ where
                         center: frame.center(),
                         radius: track_radius,
                         start_angle: start
-                            + Radians(WRAP_ANGLE.0 * (self.easing.y_at_x(progress))),
+                            + WRAP_ANGLE * (self.easing.y_at_x(progress)),
                         end_angle: start + MIN_ANGLE + WRAP_ANGLE,
                     });
                 }

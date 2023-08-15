@@ -1,5 +1,5 @@
 use crate::{Point, Rectangle, Vector};
-use std::{f32::consts::PI, ops::{SubAssign, AddAssign, Add, Sub}};
+use std::{f32::consts::PI, ops::{SubAssign, AddAssign, Add, Sub, Mul, Div}};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 /// Degrees
@@ -57,5 +57,21 @@ impl Sub<Radians> for Radians {
 
     fn sub(self, rhs: Radians) -> Self::Output {
         Radians(self.0 - rhs.0)
+    }
+}
+
+impl Mul<f32> for Radians {
+    type Output = Radians;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Radians(self.0 * rhs)
+    }
+}
+
+impl Div<f32> for Radians {
+    type Output = Radians;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Radians(self.0 / rhs)
     }
 }
