@@ -1,5 +1,5 @@
 use crate::{Point, Rectangle, Vector};
-use std::f32::consts::PI;
+use std::{f32::consts::PI, ops::{SubAssign, AddAssign, Add, Sub}};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 /// Degrees
@@ -29,5 +29,33 @@ impl Radians {
         let end = bounds.center() - v1 * distance_to_rect;
 
         (start, end)
+    }
+}
+
+impl SubAssign<Radians> for Radians {
+    fn sub_assign(&mut self, rhs: Radians) {
+        self.0 = self.0 - rhs.0;
+    }
+}
+
+impl AddAssign<Radians> for Radians {
+    fn add_assign(&mut self, rhs: Radians) {
+        self.0 = self.0 + rhs.0;
+    }
+}
+
+impl Add<Radians> for Radians {
+    type Output = Radians;
+
+    fn add(self, rhs: Radians) -> Self::Output {
+        Radians(self.0 + rhs.0)
+    }
+}
+
+impl Sub<Radians> for Radians {
+    type Output = Radians;
+
+    fn sub(self, rhs: Radians) -> Self::Output {
+        Radians(self.0 - rhs.0)
     }
 }
