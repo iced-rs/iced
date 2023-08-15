@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Configurable `LineHeight` support for text widgets. [#1828](https://github.com/iced-rs/iced/pull/1828)
 - `text::Shaping` strategy selection. [#1822](https://github.com/iced-rs/iced/pull/1822)
 - Subpixel glyph positioning and layout linearity. [#1921](https://github.com/iced-rs/iced/pull/1921)
+- Subpixel glyph positioning and layout linearity. [#1921](https://github.com/iced-rs/iced/pull/1921)
 - Background gradients. [#1846](https://github.com/iced-rs/iced/pull/1846)
 - Offscreen rendering and screenshots. [#1845](https://github.com/iced-rs/iced/pull/1845)
 - Nested overlays. [#1719](https://github.com/iced-rs/iced/pull/1719)
