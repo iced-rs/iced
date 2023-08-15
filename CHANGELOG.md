@@ -41,7 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nix instructions to `DEPENDENCIES.md`. [#1859](https://github.com/iced-rs/iced/pull/1859)
 - Loading spinners example. [#1902](https://github.com/iced-rs/iced/pull/1902)
 - Workflow that verifies `CHANGELOG` is always up-to-date. [#1970](https://github.com/iced-rs/iced/pull/1970)
-- Keybinds to cycle `ComboBox` options. [#1991](https://github.com/iced-rs/iced/pull/1991)
 - Outdated mentions of `iced_native` in `README`. [#1979](https://github.com/iced-rs/iced/pull/1979)
 
 ### Changed
@@ -77,11 +76,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Quad rendering including border only inside of the bounds. [#1843](https://github.com/iced-rs/iced/pull/1843)
 - Redraw requests not being forwarded for `Component` overlays. [#1949](https://github.com/iced-rs/iced/pull/1949)
 - Blinking input cursor when window loses focus. [#1955](https://github.com/iced-rs/iced/pull/1955)
-- `Tooltip` overlay position inside `Scrollable`. [#1978](https://github.com/iced-rs/iced/pull/1978)
 - `BorderRadius` not exposed in root crate. [#1972](https://github.com/iced-rs/iced/pull/1972)
 - Outdated `ROADMAP`. [#1958](https://github.com/iced-rs/iced/pull/1958)
+
+### Patched
+- Keybinds to cycle `ComboBox` options. [#1991](https://github.com/iced-rs/iced/pull/1991)
+- `Tooltip` overlay position inside `Scrollable`. [#1978](https://github.com/iced-rs/iced/pull/1978)
 - `iced_wgpu` freezing on empty layers. [#1996](https://github.com/iced-rs/iced/pull/1996)
 - `image::Viewer` reacting to any scroll event. [#1998](https://github.com/iced-rs/iced/pull/1998)
+- `TextInput` pasting text when `Alt` key is pressed. [#2006](https://github.com/iced-rs/iced/pull/2006)
 
 Many thanks to...
 

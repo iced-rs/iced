@@ -842,7 +842,9 @@ where
                         shell.publish(message);
                     }
                     keyboard::KeyCode::V => {
-                        if state.keyboard_modifiers.command() {
+                        if state.keyboard_modifiers.command()
+                            && !state.keyboard_modifiers.alt()
+                        {
                             let content = match state.is_pasting.take() {
                                 Some(content) => content,
                                 None => {
