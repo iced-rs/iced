@@ -153,6 +153,30 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
+/// Converts a [`window::WindowButtons`] to a [`winit`] window buttons
+///
+/// [`winit`]: https://github.com/rust-windowing/winit
+pub fn window_buttons(
+    buttons: window::WindowButtons,
+) -> winit::window::WindowButtons {
+    let mut result = winit::window::WindowButtons::empty();
+
+    result.set(
+        winit::window::WindowButtons::CLOSE,
+        buttons.intersects(window::WindowButtons::CLOSE),
+    );
+    result.set(
+        winit::window::WindowButtons::MINIMIZE,
+        buttons.intersects(window::WindowButtons::MINIMIZE),
+    );
+    result.set(
+        winit::window::WindowButtons::MAXIMIZE,
+        buttons.intersects(window::WindowButtons::MAXIMIZE),
+    );
+
+    result
+}
+
 /// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit

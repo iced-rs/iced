@@ -27,7 +27,7 @@ mod platform;
 pub use platform::PlatformSpecific;
 
 use crate::conversion;
-use crate::core::window::{Icon, Level};
+use crate::core::window::{Icon, Level, WindowButtons};
 use crate::Position;
 
 use winit::monitor::MonitorHandle;
@@ -92,6 +92,9 @@ pub struct Window {
     /// The window icon, which is also usually used in the taskbar
     pub icon: Option<Icon>,
 
+    /// Set of buttons enabled on window
+    pub enabled_buttons: WindowButtons,
+
     /// Platform specific settings.
     pub platform_specific: platform::PlatformSpecific,
 }
@@ -130,6 +133,9 @@ impl Window {
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
+            .with_enabled_buttons(conversion::window_buttons(
+                self.enabled_buttons,
+            ))
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
@@ -235,6 +241,7 @@ impl Default for Window {
             transparent: false,
             level: Level::default(),
             icon: None,
+            enabled_buttons: WindowButtons::all(),
             platform_specific: Default::default(),
         }
     }

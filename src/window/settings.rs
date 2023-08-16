@@ -1,4 +1,4 @@
-use crate::window::{Icon, Level, Position};
+use crate::window::{Icon, Level, Position, WindowButtons};
 
 pub use iced_winit::settings::PlatformSpecific;
 
@@ -35,6 +35,9 @@ pub struct Settings {
     /// The icon of the window.
     pub icon: Option<Icon>,
 
+    /// Set of buttons enabled on window
+    pub enabled_buttons: WindowButtons,
+
     /// Platform specific settings.
     pub platform_specific: PlatformSpecific,
 }
@@ -52,6 +55,7 @@ impl Default for Settings {
             transparent: false,
             level: Level::default(),
             icon: None,
+            enabled_buttons: WindowButtons::all(),
             platform_specific: Default::default(),
         }
     }
@@ -70,6 +74,7 @@ impl From<Settings> for iced_winit::settings::Window {
             transparent: settings.transparent,
             level: settings.level,
             icon: settings.icon.map(Icon::into),
+            enabled_buttons: settings.enabled_buttons,
             platform_specific: settings.platform_specific,
         }
     }
