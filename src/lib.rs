@@ -86,7 +86,7 @@
 //! use iced::widget::{button, column, text, Column};
 //!
 //! impl Counter {
-//!     pub fn view(&mut self) -> Column<Message> {
+//!     pub fn view(&self) -> Column<Message> {
 //!         // We use a column: a simple vertical layout
 //!         column![
 //!             // The increment button. We tell it to produce an
