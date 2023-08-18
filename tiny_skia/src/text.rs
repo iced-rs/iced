@@ -233,6 +233,14 @@ fn to_stretch(stretch: font::Stretch) -> cosmic_text::Stretch {
     }
 }
 
+fn to_style(style: font::Style) -> cosmic_text::Style {
+    match style {
+        font::Style::Normal => cosmic_text::Style::Normal,
+        font::Style::Italic => cosmic_text::Style::Italic,
+        font::Style::Oblique => cosmic_text::Style::Oblique,
+    }
+}
+
 fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
     match shaping {
         Shaping::Basic => cosmic_text::Shaping::Basic,
@@ -411,7 +419,8 @@ impl Cache {
                 cosmic_text::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
-                    .stretch(to_stretch(key.font.stretch)),
+                    .stretch(to_stretch(key.font.stretch))
+                    .style(to_style(key.font.style)),
                 to_shaping(key.shaping),
             );
 
