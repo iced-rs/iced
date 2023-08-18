@@ -48,7 +48,6 @@ Many thanks to...
 - Nix instructions to `DEPENDENCIES.md`. [#1859](https://github.com/iced-rs/iced/pull/1859)
 - Loading spinners example. [#1902](https://github.com/iced-rs/iced/pull/1902)
 - Workflow that verifies `CHANGELOG` is always up-to-date. [#1970](https://github.com/iced-rs/iced/pull/1970)
-- Keybinds to cycle `ComboBox` options. [#1991](https://github.com/iced-rs/iced/pull/1991)
 - Outdated mentions of `iced_native` in `README`. [#1979](https://github.com/iced-rs/iced/pull/1979)
 
 ### Changed
@@ -84,11 +83,18 @@ Many thanks to...
 - Quad rendering including border only inside of the bounds. [#1843](https://github.com/iced-rs/iced/pull/1843)
 - Redraw requests not being forwarded for `Component` overlays. [#1949](https://github.com/iced-rs/iced/pull/1949)
 - Blinking input cursor when window loses focus. [#1955](https://github.com/iced-rs/iced/pull/1955)
-- `Tooltip` overlay position inside `Scrollable`. [#1978](https://github.com/iced-rs/iced/pull/1978)
 - `BorderRadius` not exposed in root crate. [#1972](https://github.com/iced-rs/iced/pull/1972)
 - Outdated `ROADMAP`. [#1958](https://github.com/iced-rs/iced/pull/1958)
+
+### Patched
+- Keybinds to cycle `ComboBox` options. [#1991](https://github.com/iced-rs/iced/pull/1991)
+- `Tooltip` overlay position inside `Scrollable`. [#1978](https://github.com/iced-rs/iced/pull/1978)
 - `iced_wgpu` freezing on empty layers. [#1996](https://github.com/iced-rs/iced/pull/1996)
 - `image::Viewer` reacting to any scroll event. [#1998](https://github.com/iced-rs/iced/pull/1998)
+- `TextInput` pasting text when `Alt` key is pressed. [#2006](https://github.com/iced-rs/iced/pull/2006)
+- Broken link to old `iced_native` crate in `README`. [#2024](https://github.com/iced-rs/iced/pull/2024)
+- `Rectangle::contains` being non-exclusive. [#2017](https://github.com/iced-rs/iced/pull/2017)
+- Documentation for `Arc` and `arc::Elliptical`. [#2008](https://github.com/iced-rs/iced/pull/2008)
 
 Many thanks to...
 
@@ -101,6 +107,7 @@ Many thanks to...
 - @clarkmoody
 - @Davidster
 - @Drakulix
+- @genusistimelord
 - @GyulyVGC
 - @ids1024
 - @jhff
@@ -110,11 +117,13 @@ Many thanks to...
 - @malramsay64
 - @nicksenger
 - @nicoburns
+- @NyxAlexandra
 - @Redhawk18
 - @RGBCube
 - @rs017991
 - @tarkah
 - @thunderstorm010
+- @ua-kxie
 - @wash2
 - @wiiznokes
 
