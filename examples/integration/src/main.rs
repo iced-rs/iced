@@ -1,9 +1,12 @@
 mod controls;
 mod scene;
 
+use std::borrow::Cow;
+
 use controls::Controls;
 use scene::Scene;
 
+use iced_renderer::core::text::Renderer as _;
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
 use iced_winit::core::mouse;
@@ -25,6 +28,8 @@ use wasm_bindgen::JsCast;
 use web_sys::HtmlCanvasElement;
 #[cfg(target_arch = "wasm32")]
 use winit::platform::web::WindowBuilderExtWebSys;
+
+pub const ARIAL_FONT_BYTES: &[u8] = include_bytes!("../arial.ttf");
 
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
@@ -150,6 +155,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         format,
     ));
 
+    renderer.load_font(Cow::from(ARIAL_FONT_BYTES));
     let mut state = program::State::new(
         controls,
         viewport.logical_size(),
