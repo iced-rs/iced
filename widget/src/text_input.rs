@@ -10,6 +10,8 @@ pub use cursor::Cursor;
 pub use value::Value;
 
 use editor::Editor;
+use num_traits::clamp;
+use std::cell::RefCell;
 
 use crate::core::alignment;
 use crate::core::event::{self, Event};
@@ -562,13 +564,14 @@ where
             };
 
             state.is_focused = if click_position.is_some() {
-                state.is_focused.or_else(|| {
+                state.is_focused.take().or_else(|| {
                     let now = Instant::now();
 
                     Some(Focus {
                         updated_at: now,
                         now,
                         is_window_focused: true,
+                        horizontal_scroll_offset: RefCell::default(),
                     })
                 })
             } else {
@@ -1056,8 +1059,10 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         position,
+                        *focus.horizontal_scroll_offset.borrow(),
                         font,
                     );
+                *focus.horizontal_scroll_offset.borrow_mut() = offset;
 
                 let is_cursor_visible = ((focus.now - focus.updated_at)
                     .as_millis()
@@ -1097,6 +1102,7 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         left,
+                        *focus.horizontal_scroll_offset.borrow(),
                         font,
                     );
 
@@ -1107,8 +1113,16 @@ pub fn draw<Renderer>(
                         value,
                         size,
                         right,
+                        *focus.horizontal_scroll_offset.borrow(),
                         font,
                     );
+
+                let offset = if end == right {
+                    right_offset
+                } else {
+                    left_offset
+                };
+                *focus.horizontal_scroll_offset.borrow_mut() = offset;
 
                 let width = right_position - left_position;
 
@@ -1127,11 +1141,7 @@ pub fn draw<Renderer>(
                         },
                         theme.selection_color(style),
                     )),
-                    if end == right {
-                        right_offset
-                    } else {
-                        left_offset
-                    },
+                    offset,
                 )
             }
         }
@@ -1211,14 +1221,14 @@ pub struct State {
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
-    // TODO: Add stateful horizontal scrolling offset
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct Focus {
     updated_at: Instant,
     now: Instant,
     is_window_focused: bool,
+    horizontal_scroll_offset: RefCell<f32>,
 }
 
 impl State {
@@ -1257,6 +1267,7 @@ impl State {
             updated_at: now,
             now,
             is_window_focused: true,
+            horizontal_scroll_offset: RefCell::default(),
         });
 
         self.move_cursor_to_end();
@@ -1343,7 +1354,7 @@ fn offset<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    if state.is_focused() {
+    if let Some(focus) = state.is_focused.as_ref() {
         let cursor = state.cursor();
 
         let focus_position = match cursor.state(value) {
@@ -1357,6 +1368,7 @@ where
             value,
             size,
             focus_position,
+            *focus.horizontal_scroll_offset.borrow(),
             font,
         );
 
@@ -1372,6 +1384,7 @@ fn measure_cursor_and_scroll_offset<Renderer>(
     value: &Value,
     size: f32,
     cursor_index: usize,
+    horizontal_scroll_offset: f32,
     font: Renderer::Font,
 ) -> (f32, f32)
 where
@@ -1379,16 +1392,33 @@ where
 {
     let text_before_cursor = value.until(cursor_index).to_string();
 
-    let text_value_width = renderer.measure_width(
+    let width_before_cursor = renderer.measure_width(
         &text_before_cursor,
         size,
         font,
         text::Shaping::Advanced,
     );
 
-    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
+    let width_all = renderer.measure_width(
+        &value.to_string(),
+        size,
+        font,
+        text::Shaping::Advanced,
+    );
 
-    (text_value_width, offset)
+    let max = clamp(
+        width_before_cursor,
+        0.0,
+        (width_all - text_bounds.width + CURSOR_RIGHT_SCROLL_PADDING).max(0.0),
+    );
+
+    let min = (width_before_cursor - text_bounds.width
+        + CURSOR_RIGHT_SCROLL_PADDING)
+        .max(0.0);
+
+    let offset = clamp(horizontal_scroll_offset, min, max);
+
+    (width_before_cursor, offset)
 }
 
 /// Computes the position of the text cursor at the given X coordinate of
@@ -1435,3 +1465,4 @@ where
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;
+const CURSOR_RIGHT_SCROLL_PADDING: f32 = 5.0;
