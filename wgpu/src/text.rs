@@ -339,6 +339,14 @@ fn to_stretch(stretch: font::Stretch) -> glyphon::Stretch {
     }
 }
 
+fn to_style(style: font::Style) -> glyphon::Style {
+    match style {
+        font::Style::Normal => glyphon::Style::Normal,
+        font::Style::Italic => glyphon::Style::Italic,
+        font::Style::Oblique => glyphon::Style::Oblique,
+    }
+}
+
 fn to_shaping(shaping: Shaping) -> glyphon::Shaping {
     match shaping {
         Shaping::Basic => glyphon::Shaping::Basic,
@@ -420,7 +428,8 @@ impl Cache {
                 glyphon::Attrs::new()
                     .family(to_family(key.font.family))
                     .weight(to_weight(key.font.weight))
-                    .stretch(to_stretch(key.font.stretch)),
+                    .stretch(to_stretch(key.font.stretch))
+                    .style(to_style(key.font.style)),
                 to_shaping(key.shaping),
             );
 
