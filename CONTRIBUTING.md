@@ -2,7 +2,7 @@
 
 Thank you for considering contributing to Iced! Feel free to read [the ecosystem overview] and [the roadmap] to get an idea of the current state of the library.
 
-The core team is busy and does not have time to mentor nor babysit new contributors. If a member of the core team thinks that reviewing and understanding your work will take more time and effort than writing it from scratch by themselves, your contribution will be dismissed. It is your responsibility to communicate and figure out how to help us!
+The core team is busy and does not have time to mentor nor babysit new contributors. If a member of the core team thinks that reviewing and understanding your work will take more time and effort than writing it from scratch by themselves, your contribution will be dismissed. It is your responsibility to communicate and figure out how to reduce the likelihood of this!
 
 The general advice for new contributors is to share your ideas with the community. Introduce yourself over our [Discord server] or [start a discussion](https://github.com/iced-rs/iced/discussions) explaining what you have in mind. This is a very important step. It helps to coordinate work, get on the same page, and start building trust. Remember that [Code is the Easy Part] and also [The Hard Parts of Open Source]!
 
