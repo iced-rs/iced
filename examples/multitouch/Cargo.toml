@@ -8,5 +8,5 @@ publish = false
 [dependencies]
 iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
 tokio = { version = "1.0", features = ["sync"] }
-env_logger = "0.9"
+env_logger = "0.10"
 voronator = "0.2"
