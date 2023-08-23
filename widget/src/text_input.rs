@@ -563,19 +563,23 @@ where
                 None
             };
 
-            state.is_focused = if click_position.is_some() {
-                state.is_focused.take().or_else(|| {
-                    let now = Instant::now();
+            if click_position.is_some() {
+                if !state.is_focused() {
+                    state.cursor.move_to(0);
 
-                    Some(Focus {
-                        updated_at: now,
-                        now,
-                        is_window_focused: true,
-                        horizontal_scroll_offset: RefCell::default(),
-                    })
-                })
+                    state.is_focused = {
+                        let now = Instant::now();
+
+                        Some(Focus {
+                            updated_at: now,
+                            now,
+                            is_window_focused: true,
+                            horizontal_scroll_offset: RefCell::default(),
+                        })
+                    };
+                }
             } else {
-                None
+                state.is_focused = None;
             };
 
             if let Some(cursor_position) = click_position {
