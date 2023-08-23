@@ -134,4 +134,8 @@ impl Application for Stopwatch {
             .center_y()
             .into()
     }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
+    }
 }
