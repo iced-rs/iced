@@ -693,7 +693,9 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
+                let Some(on_input) = on_input else {
+                    return event::Status::Ignored;
+                };
 
                 if state.is_pasting.is_none()
                     && !state.keyboard_modifiers.command()
@@ -716,7 +718,9 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
+                let Some(on_input) = on_input else {
+                    return event::Status::Ignored;
+                };
 
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();

@@ -39,7 +39,9 @@ impl Frame {
     }
 
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Some(path) = convert_path(path) else { return };
+        let Some(path) = convert_path(path) else {
+            return;
+        };
         let fill = fill.into();
 
         self.primitives
@@ -57,7 +59,9 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else { return };
+        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else {
+            return;
+        };
         let fill = fill.into();
 
         self.primitives
@@ -73,7 +77,9 @@ impl Frame {
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let Some(path) = convert_path(path) else { return };
+        let Some(path) = convert_path(path) else {
+            return;
+        };
 
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
