@@ -735,7 +735,7 @@ where
 
     options
         .into_iter()
-        .zip(option_matchers.into_iter())
+        .zip(option_matchers)
         // Make sure each part of the query is found in the option
         .filter_map(move |(option, matcher)| {
             if query.iter().all(|part| matcher.as_ref().contains(part)) {

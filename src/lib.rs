@@ -268,6 +268,7 @@ pub mod touch {
     pub use crate::core::touch::{Event, Finger};
 }
 
+#[allow(hidden_glob_reexports)]
 pub mod widget {
     //! Use the built-in widgets or create your own.
     pub use iced_widget::*;

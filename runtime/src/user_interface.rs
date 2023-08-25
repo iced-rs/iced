@@ -291,7 +291,7 @@ where
         let event_statuses = events
             .iter()
             .cloned()
-            .zip(overlay_statuses.into_iter())
+            .zip(overlay_statuses)
             .map(|(event, overlay_status)| {
                 if matches!(overlay_status, event::Status::Captured) {
                     return overlay_status;
