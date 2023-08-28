@@ -230,6 +230,18 @@ fn gradient(
     let unit = normalize(v1);
     let coord_offset = dot(unit, v2) / length(v1);
 
+    let to_lms: mat3x4<f32> = mat3x4<f32>(
+        vec4<f32>(0.4121656120,  0.2118591070,  0.0883097947, 0.0),
+        vec4<f32>(0.5362752080,  0.6807189584,  0.2818474174, 0.0),
+        vec4<f32>(0.0514575653,  0.1074065790,  0.6302613616, 0.0),
+    );
+
+    let to_rgb: mat3x4<f32> = mat3x4<f32>(
+        vec4<f32>( 4.0767245293, -3.3072168827,  0.2307590544, 0.0),
+        vec4<f32>(-1.2681437731,  2.6093323231, -0.3411344290, 0.0),
+        vec4<f32>(-0.0041119885, -0.7034763098,  1.7068625689, 0.0),
+    );
+
     //need to store these as a var to use dynamic indexing in a loop
     //this is already added to wgsl spec but not in wgpu yet
     var colors_arr = colors;
@@ -248,11 +260,15 @@ fn gradient(
         }
 
         if (curr_offset <= coord_offset && coord_offset <= next_offset) {
-            color = mix(colors_arr[i], colors_arr[i+1], smoothstep(
-                curr_offset,
-                next_offset,
-                coord_offset,
-            ));
+            // blend in OKLab
+            let factor = smoothstep(curr_offset, next_offset, coord_offset);
+            let lms_a = pow(colors_arr[i] * to_lms, vec3<f32>(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0));
+            let lms_b = pow(colors_arr[i+1] * to_lms, vec3<f32>(1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0));
+            let mixed = mix(lms_a, lms_b, factor);
+
+            // back to sRGB
+            color = to_rgb * (mixed * mixed * mixed);
+            color.a = mix(colors_arr[i].a, colors_arr[i+1].a, factor);
         }
 
         if (coord_offset >= offsets_arr[last_index]) {
