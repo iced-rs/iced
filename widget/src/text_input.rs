@@ -497,26 +497,18 @@ where
         shaping: text::Shaping::Advanced,
     };
 
-    renderer
-        .update_paragraph(&mut state.placeholder_paragraph, placeholder_text);
+    renderer.update_paragraph(&mut state.placeholder, placeholder_text);
 
-    if is_secure {
-        renderer.update_paragraph(
-            &mut state.paragraph,
-            Text {
-                content: &value.secure().to_string(),
-                ..placeholder_text
-            },
-        );
-    } else {
-        renderer.update_paragraph(
-            &mut state.paragraph,
-            Text {
-                content: &value.to_string(),
-                ..placeholder_text
-            },
-        );
-    }
+    let secure_value = is_secure.then(|| value.secure());
+    let value = secure_value.as_ref().unwrap_or(value);
+
+    renderer.update_paragraph(
+        &mut state.value,
+        Text {
+            content: &value.to_string(),
+            ..placeholder_text
+        },
+    );
 
     if let Some(icon) = icon {
         let icon_width = 0.0; // TODO
@@ -1078,7 +1070,7 @@ pub fn draw<Renderer>(
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
-                        &state.paragraph,
+                        &state.value,
                         text_bounds,
                         position,
                     );
@@ -1116,14 +1108,14 @@ pub fn draw<Renderer>(
 
                 let (left_position, left_offset) =
                     measure_cursor_and_scroll_offset(
-                        &state.paragraph,
+                        &state.value,
                         text_bounds,
                         left,
                     );
 
                 let (right_position, right_offset) =
                     measure_cursor_and_scroll_offset(
-                        &state.paragraph,
+                        &state.value,
                         text_bounds,
                         right,
                     );
@@ -1157,7 +1149,7 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = state.paragraph.min_width();
+    let text_width = state.value.min_width();
 
     let render = |renderer: &mut Renderer| {
         if let Some((cursor, color)) = cursor {
@@ -1168,9 +1160,9 @@ pub fn draw<Renderer>(
 
         renderer.fill_paragraph(
             if text.is_empty() {
-                &state.placeholder_paragraph
+                &state.placeholder
             } else {
-                &state.paragraph
+                &state.value
             },
             Point::new(text_bounds.x, text_bounds.center_y()),
             if text.is_empty() {
@@ -1212,8 +1204,8 @@ pub fn mouse_interaction(
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
-    paragraph: P,
-    placeholder_paragraph: P,
+    value: P,
+    placeholder: P,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1239,8 +1231,8 @@ impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
-            paragraph: P::default(),
-            placeholder_paragraph: P::default(),
+            value: P::default(),
+            placeholder: P::default(),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
@@ -1357,7 +1349,7 @@ fn offset<P: text::Paragraph>(
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            &state.paragraph,
+            &state.value,
             text_bounds,
             focus_position,
         );
@@ -1394,7 +1386,7 @@ fn find_cursor_position<P: text::Paragraph>(
     let value = value.to_string();
 
     let char_offset = state
-        .paragraph
+        .value
         .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
@@ -1424,7 +1416,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    state.paragraph = renderer.create_paragraph(Text {
+    state.value = renderer.create_paragraph(Text {
         font,
         line_height,
         content: &value.to_string(),
