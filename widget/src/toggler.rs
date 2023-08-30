@@ -178,7 +178,7 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -192,7 +192,7 @@ where
                 if let Some(label) = self.label.as_deref() {
                     let state = tree
                     .state
-                    .downcast_ref::<widget::text::State<Renderer::Paragraph>>();
+                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
 
                     widget::text::layout(
                         state,

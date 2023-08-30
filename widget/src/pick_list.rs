@@ -18,7 +18,6 @@ use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
 
 use std::borrow::Cow;
-use std::cell::RefCell;
 
 pub use crate::style::pick_list::{Appearance, StyleSheet};
 
@@ -175,12 +174,12 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
-            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             renderer,
             limits,
             self.width,
@@ -305,8 +304,8 @@ pub struct State<P: text::Paragraph> {
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
-    option_paragraphs: RefCell<Vec<P>>,
-    placeholder_paragraph: RefCell<P>,
+    options: Vec<P>,
+    placeholder: P,
 }
 
 impl<P: text::Paragraph> State<P> {
@@ -317,8 +316,8 @@ impl<P: text::Paragraph> State<P> {
             keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
-            option_paragraphs: RefCell::new(Vec::new()),
-            placeholder_paragraph: RefCell::new(Default::default()),
+            options: Vec::new(),
+            placeholder: P::default(),
         }
     }
 }
@@ -375,7 +374,7 @@ pub struct Icon<Font> {
 
 /// Computes the layout of a [`PickList`].
 pub fn layout<Renderer, T>(
-    state: &State<Renderer::Paragraph>,
+    state: &mut State<Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
     width: Length,
@@ -397,9 +396,7 @@ where
     let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
-    let mut paragraphs = state.option_paragraphs.borrow_mut();
-
-    paragraphs.resize_with(options.len(), Default::default);
+    state.options.resize_with(options.len(), Default::default);
 
     let option_text = Text {
         content: "",
@@ -415,7 +412,7 @@ where
         shaping: text_shaping,
     };
 
-    for (option, paragraph) in options.iter().zip(paragraphs.iter_mut()) {
+    for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
         let label = option.to_string();
 
         renderer.update_paragraph(
@@ -428,9 +425,8 @@ where
     }
 
     if let Some(placeholder) = placeholder {
-        let mut paragraph = state.placeholder_paragraph.borrow_mut();
         renderer.update_paragraph(
-            &mut paragraph,
+            &mut state.placeholder,
             Text {
                 content: placeholder,
                 ..option_text
@@ -441,13 +437,13 @@ where
     let max_width = match width {
         Length::Shrink => {
             let labels_width =
-                paragraphs.iter().fold(0.0, |width, paragraph| {
+                state.options.iter().fold(0.0, |width, paragraph| {
                     f32::max(width, paragraph.min_width())
                 });
 
             labels_width.max(
                 placeholder
-                    .map(|_| state.placeholder_paragraph.borrow().min_width())
+                    .map(|_| state.placeholder.min_width())
                     .unwrap_or(0.0),
             )
         }

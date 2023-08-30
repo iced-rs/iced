@@ -122,7 +122,7 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -139,7 +139,7 @@ where
             self.spacing,
             self.align_items,
             &self.children,
-            &tree.children,
+            &mut tree.children,
         )
     }
 

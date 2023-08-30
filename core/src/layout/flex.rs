@@ -67,7 +67,7 @@ pub fn resolve<Message, Renderer>(
     spacing: f32,
     align_items: Alignment,
     items: &[Element<'_, Message, Renderer>],
-    trees: &[widget::Tree],
+    trees: &mut [widget::Tree],
 ) -> Node
 where
     Renderer: crate::Renderer,
@@ -83,7 +83,7 @@ where
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
-    for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
+    for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.as_widget().width(),
             Axis::Vertical => child.as_widget().height(),

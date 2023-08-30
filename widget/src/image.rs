@@ -167,7 +167,7 @@ where
 
     fn layout(
         &self,
-        _tree: &Tree,
+        _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {

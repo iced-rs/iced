@@ -159,14 +159,16 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(limits, self.width, self.height, self.padding, |limits| {
-            self.content
-                .as_widget()
-                .layout(&tree.children[0], renderer, limits)
+            self.content.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         })
     }
 

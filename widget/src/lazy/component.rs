@@ -254,7 +254,7 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -567,7 +567,7 @@ where
     S: 'static + Default,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

@@ -230,7 +230,7 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -242,7 +242,7 @@ where
             &self.direction,
             |renderer, limits| {
                 self.content.as_widget().layout(
-                    &tree.children[0],
+                    &mut tree.children[0],
                     renderer,
                     limits,
                 )

@@ -26,7 +26,7 @@ mod rainbow {
 
         fn layout(
             &self,
-            _tree: &widget::Tree,
+            _tree: &mut widget::Tree,
             _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {

@@ -135,7 +135,7 @@ where
 
     fn layout(
         &self,
-        tree: &widget::Tree,
+        tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -302,7 +302,7 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     tooltip: &'b Text<'a, Renderer>,
-    state: &'b widget::Tree,
+    state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
@@ -319,7 +319,7 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

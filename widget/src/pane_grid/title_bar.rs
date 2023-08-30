@@ -213,7 +213,7 @@ where
 
     pub(crate) fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -221,7 +221,7 @@ where
         let max_size = limits.max();
 
         let title_layout = self.content.as_widget().layout(
-            &tree.children[0],
+            &mut tree.children[0],
             renderer,
             &layout::Limits::new(Size::ZERO, max_size),
         );
@@ -230,7 +230,7 @@ where
 
         let mut node = if let Some(controls) = &self.controls {
             let mut controls_layout = controls.as_widget().layout(
-                &tree.children[1],
+                &mut tree.children[1],
                 renderer,
                 &layout::Limits::new(Size::ZERO, max_size),
             );

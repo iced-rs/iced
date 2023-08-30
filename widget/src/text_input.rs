@@ -30,8 +30,6 @@ use crate::core::{
 };
 use crate::runtime::Command;
 
-use std::cell::RefCell;
-
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
 /// A field that can be filled with text.
@@ -267,7 +265,7 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -280,7 +278,7 @@ where
             self.font,
             self.line_height,
             self.icon.as_ref(),
-            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             &self.value,
             &self.placeholder,
             self.is_secure,
@@ -469,7 +467,7 @@ pub fn layout<Renderer>(
     font: Option<Renderer::Font>,
     line_height: text::LineHeight,
     icon: Option<&Icon<Renderer::Font>>,
-    state: &State<Renderer::Paragraph>,
+    state: &mut State<Renderer::Paragraph>,
     value: &Value,
     placeholder: &str,
     is_secure: bool,
@@ -499,14 +497,12 @@ where
         shaping: text::Shaping::Advanced,
     };
 
-    renderer.update_paragraph(
-        &mut state.placeholder_paragraph.borrow_mut(),
-        placeholder_text,
-    );
+    renderer
+        .update_paragraph(&mut state.placeholder_paragraph, placeholder_text);
 
     if is_secure {
         renderer.update_paragraph(
-            &mut state.paragraph.borrow_mut(),
+            &mut state.paragraph,
             Text {
                 content: &value.secure().to_string(),
                 ..placeholder_text
@@ -514,7 +510,7 @@ where
         );
     } else {
         renderer.update_paragraph(
-            &mut state.paragraph.borrow_mut(),
+            &mut state.paragraph,
             Text {
                 content: &value.to_string(),
                 ..placeholder_text
@@ -1072,7 +1068,6 @@ pub fn draw<Renderer>(
     }
 
     let text = value.to_string();
-    let paragraph = &state.paragraph.borrow() as &Renderer::Paragraph;
 
     let (cursor, offset) = if let Some(focus) = state
         .is_focused
@@ -1083,7 +1078,7 @@ pub fn draw<Renderer>(
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
-                        paragraph,
+                        &state.paragraph,
                         text_bounds,
                         position,
                     );
@@ -1121,14 +1116,14 @@ pub fn draw<Renderer>(
 
                 let (left_position, left_offset) =
                     measure_cursor_and_scroll_offset(
-                        paragraph,
+                        &state.paragraph,
                         text_bounds,
                         left,
                     );
 
                 let (right_position, right_offset) =
                     measure_cursor_and_scroll_offset(
-                        paragraph,
+                        &state.paragraph,
                         text_bounds,
                         right,
                     );
@@ -1162,7 +1157,7 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = paragraph.min_width();
+    let text_width = state.paragraph.min_width();
 
     let render = |renderer: &mut Renderer| {
         if let Some((cursor, color)) = cursor {
@@ -1171,13 +1166,11 @@ pub fn draw<Renderer>(
             renderer.with_translation(Vector::ZERO, |_| {});
         }
 
-        let placeholder_paragraph = state.placeholder_paragraph.borrow();
-
         renderer.fill_paragraph(
             if text.is_empty() {
-                &placeholder_paragraph
+                &state.placeholder_paragraph
             } else {
-                paragraph
+                &state.paragraph
             },
             Point::new(text_bounds.x, text_bounds.center_y()),
             if text.is_empty() {
@@ -1219,8 +1212,8 @@ pub fn mouse_interaction(
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
 pub struct State<P: text::Paragraph> {
-    paragraph: RefCell<P>,
-    placeholder_paragraph: RefCell<P>,
+    paragraph: P,
+    placeholder_paragraph: P,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1246,8 +1239,8 @@ impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
-            paragraph: RefCell::new(P::default()),
-            placeholder_paragraph: RefCell::new(P::default()),
+            paragraph: P::default(),
+            placeholder_paragraph: P::default(),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
@@ -1364,7 +1357,7 @@ fn offset<P: text::Paragraph>(
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            &state.paragraph.borrow() as &P,
+            &state.paragraph,
             text_bounds,
             focus_position,
         );
@@ -1402,7 +1395,6 @@ fn find_cursor_position<P: text::Paragraph>(
 
     let char_offset = state
         .paragraph
-        .borrow()
         .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
@@ -1432,7 +1424,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    *state.paragraph.get_mut() = renderer.create_paragraph(Text {
+    state.paragraph = renderer.create_paragraph(Text {
         font,
         line_height,
         content: &value.to_string(),

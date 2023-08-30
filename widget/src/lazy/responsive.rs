@@ -60,7 +60,7 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, tree: &Tree, renderer: &Renderer) {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer) {
         if self.layout.is_none() {
             self.layout = Some(self.element.as_widget().layout(
                 tree,
@@ -144,7 +144,7 @@ where
 
     fn layout(
         &self,
-        _tree: &Tree,
+        _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -363,7 +363,7 @@ where
     Renderer: core::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

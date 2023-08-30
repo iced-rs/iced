@@ -305,7 +305,7 @@ where
 
     fn layout(
         &self,
-        tree: &widget::Tree,
+        tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {

@@ -285,13 +285,15 @@ mod modal {
 
         fn layout(
             &self,
-            tree: &widget::Tree,
+            tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.base
-                .as_widget()
-                .layout(&tree.children[0], renderer, limits)
+            self.base.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         }
 
         fn on_event(
@@ -402,7 +404,7 @@ mod modal {
         Message: Clone,
     {
         fn layout(
-            &self,
+            &mut self,
             renderer: &Renderer,
             _bounds: Size,
             position: Point,

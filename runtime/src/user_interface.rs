@@ -96,7 +96,7 @@ where
         state.diff(root.as_widget());
 
         let base = root.as_widget().layout(
-            &state,
+            &mut state,
             renderer,
             &layout::Limits::new(Size::ZERO, bounds),
         );
@@ -230,7 +230,7 @@ where
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
                     self.base = self.root.as_widget().layout(
-                        &self.state,
+                        &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
@@ -330,7 +330,7 @@ where
 
                 shell.revalidate_layout(|| {
                     self.base = self.root.as_widget().layout(
-                        &self.state,
+                        &mut self.state,
                         renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );

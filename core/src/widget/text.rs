@@ -3,12 +3,11 @@ use crate::alignment;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text::{self, Paragraph as _};
+use crate::text::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{Color, Element, Layout, Length, Pixels, Point, Rectangle, Widget};
 
 use std::borrow::Cow;
-use std::cell::RefCell;
 
 pub use text::{LineHeight, Shaping};
 
@@ -120,7 +119,7 @@ where
 
 /// The internal state of a [`Text`] widget.
 #[derive(Debug, Default)]
-pub struct State<T>(RefCell<T>);
+pub struct State<P: Paragraph>(P);
 
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Text<'a, Renderer>
 where
@@ -132,7 +131,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State(RefCell::new(Renderer::Paragraph::default())))
+        tree::State::new(State(Renderer::Paragraph::default()))
     }
 
     fn width(&self) -> Length {
@@ -145,12 +144,12 @@ where
 
     fn layout(
         &self,
-        tree: &Tree,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
-            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             renderer,
             limits,
             self.width,
@@ -189,7 +188,7 @@ where
 
 /// Produces the [`layout::Node`] of a [`Text`] widget.
 pub fn layout<Renderer>(
-    state: &State<Renderer::Paragraph>,
+    state: &mut State<Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
     width: Length,
@@ -211,10 +210,10 @@ where
     let size = size.unwrap_or_else(|| renderer.default_size());
     let font = font.unwrap_or_else(|| renderer.default_font());
 
-    let mut paragraph = state.0.borrow_mut();
+    let State(ref mut paragraph) = state;
 
     renderer.update_paragraph(
-        &mut paragraph,
+        paragraph,
         text::Text {
             content,
             bounds,
@@ -251,7 +250,7 @@ pub fn draw<Renderer>(
 ) where
     Renderer: text::Renderer,
 {
-    let paragraph = state.0.borrow();
+    let State(ref paragraph) = state;
     let bounds = layout.bounds();
 
     let x = match paragraph.horizontal_alignment() {
