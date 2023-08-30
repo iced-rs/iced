@@ -8,7 +8,7 @@ use std::hash::{BuildHasher, Hash, Hasher};
 #[allow(missing_debug_implementations)]
 #[derive(Default)]
 pub struct Cache {
-    entries: FxHashMap<KeyHash, cosmic_text::Buffer>,
+    entries: FxHashMap<KeyHash, Entry>,
     aliases: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
     hasher: HashBuilder,
@@ -25,7 +25,7 @@ impl Cache {
         Self::default()
     }
 
-    pub fn get(&self, key: &KeyHash) -> Option<&cosmic_text::Buffer> {
+    pub fn get(&self, key: &KeyHash) -> Option<&Entry> {
         self.entries.get(key)
     }
 
@@ -33,7 +33,7 @@ impl Cache {
         &mut self,
         font_system: &mut cosmic_text::FontSystem,
         key: Key<'_>,
-    ) -> (KeyHash, &mut cosmic_text::Buffer) {
+    ) -> (KeyHash, &mut Entry) {
         let hash = key.hash(self.hasher.build_hasher());
 
         if let Some(hash) = self.aliases.get(&hash) {
@@ -59,7 +59,10 @@ impl Cache {
             );
 
             let bounds = text::measure(&buffer);
-            let _ = entry.insert(buffer);
+            let _ = entry.insert(Entry {
+                buffer,
+                min_bounds: bounds,
+            });
 
             for bounds in [
                 bounds,
@@ -118,3 +121,9 @@ impl Key<'_> {
 }
 
 pub type KeyHash = u64;
+
+#[allow(missing_debug_implementations)]
+pub struct Entry {
+    pub buffer: cosmic_text::Buffer,
+    pub min_bounds: Size,
+}

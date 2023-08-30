@@ -77,10 +77,10 @@ impl Pipeline {
             shaping,
         };
 
-        let (_, buffer) = self.cache.get_mut().allocate(font_system, key);
+        let (_, entry) = self.cache.get_mut().allocate(font_system, key);
 
-        let max_width = bounds.width * scale_factor;
-        let total_height = bounds.height * scale_factor;
+        let max_width = entry.min_bounds.width * scale_factor;
+        let total_height = entry.min_bounds.height * scale_factor;
 
         let bounds = bounds * scale_factor;
 
@@ -98,7 +98,7 @@ impl Pipeline {
 
         let mut swash = cosmic_text::SwashCache::new();
 
-        for run in buffer.layout_runs() {
+        for run in entry.buffer.layout_runs() {
             for glyph in run.glyphs {
                 let physical_glyph = glyph.physical((x, y), scale_factor);
 

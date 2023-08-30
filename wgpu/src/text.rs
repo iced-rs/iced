@@ -59,7 +59,7 @@ impl Pipeline {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         sections: &[Text<'_>],
-        bounds: Rectangle,
+        layer_bounds: Rectangle,
         scale_factor: f32,
         target_size: Size<u32>,
     ) {
@@ -98,8 +98,8 @@ impl Pipeline {
                             ),
                             font: text.font,
                             bounds: Size {
-                                width: bounds.width,
-                                height: bounds.height,
+                                width: text.bounds.width,
+                                height: text.bounds.height,
                             },
                             shaping: text.shaping,
                         },
@@ -110,7 +110,7 @@ impl Pipeline {
             })
             .collect();
 
-        let layer_bounds = bounds * scale_factor;
+        let layer_bounds = layer_bounds * scale_factor;
 
         let text_areas = sections.iter().zip(allocations.iter()).filter_map(
             |(section, allocation)| {
@@ -144,11 +144,14 @@ impl Pipeline {
                             return None;
                         };
 
-                        let buffer = cache.get(key).expect("Get cached buffer");
+                        let entry = cache.get(key).expect("Get cached buffer");
 
                         (
-                            buffer,
-                            text.bounds,
+                            &entry.buffer,
+                            Rectangle::new(
+                                text.bounds.position(),
+                                entry.min_bounds,
+                            ),
                             text.horizontal_alignment,
                             text.vertical_alignment,
                             text.color,
