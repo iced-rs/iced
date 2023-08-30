@@ -266,7 +266,7 @@ pub fn draw<Renderer>(
     };
 
     renderer.fill_paragraph(
-        &paragraph,
+        paragraph,
         Point::new(x, y),
         appearance.color.unwrap_or(style.text_color),
     );
