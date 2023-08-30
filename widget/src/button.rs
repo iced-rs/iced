@@ -159,19 +159,15 @@ where
 
     fn layout(
         &self,
+        tree: &Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.height,
-            self.padding,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
-        )
+        layout(limits, self.width, self.height, self.padding, |limits| {
+            self.content
+                .as_widget()
+                .layout(&tree.children[0], renderer, limits)
+        })
     }
 
     fn operate(
@@ -426,17 +422,16 @@ where
 }
 
 /// Computes the layout of a [`Button`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
+pub fn layout(
     limits: &layout::Limits,
     width: Length,
     height: Length,
     padding: Padding,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding));
+    let mut content = layout_content(&limits.pad(padding));
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size()).pad(padding);
 

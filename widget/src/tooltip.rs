@@ -107,11 +107,14 @@ where
     Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
     fn children(&self) -> Vec<widget::Tree> {
-        vec![widget::Tree::new(&self.content)]
+        vec![
+            widget::Tree::new(&self.content),
+            widget::Tree::new(&self.tooltip as &dyn Widget<Message, _>),
+        ]
     }
 
     fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(&[self.content.as_widget(), &self.tooltip])
     }
 
     fn state(&self) -> widget::tree::State {
@@ -132,10 +135,11 @@ where
 
     fn layout(
         &self,
+        tree: &widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits)
+        self.content.as_widget().layout(tree, renderer, limits)
     }
 
     fn on_event(
@@ -214,8 +218,10 @@ where
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
+        let mut children = tree.children.iter_mut();
+
         let content = self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
+            children.next().unwrap(),
             layout,
             renderer,
         );
@@ -225,6 +231,7 @@ where
                 layout.position(),
                 Box::new(Overlay {
                     tooltip: &self.tooltip,
+                    state: children.next().unwrap(),
                     cursor_position,
                     content_bounds: layout.bounds(),
                     snap_within_viewport: self.snap_within_viewport,
@@ -295,6 +302,7 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     tooltip: &'b Text<'a, Renderer>,
+    state: &'b widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
@@ -320,6 +328,7 @@ where
 
         let text_layout = Widget::<(), Renderer>::layout(
             self.tooltip,
+            self.state,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,

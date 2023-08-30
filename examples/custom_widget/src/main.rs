@@ -43,6 +43,7 @@ mod circle {
 
         fn layout(
             &self,
+            _tree: &widget::Tree,
             _renderer: &Renderer,
             _limits: &layout::Limits,
         ) -> layout::Node {

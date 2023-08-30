@@ -5,7 +5,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     env_logger::init();
@@ -571,7 +571,7 @@ impl<'a> Step {
             text_input = text_input.icon(text_input::Icon {
                 font: Font::default(),
                 code_point: '🚀',
-                size: Some(28.0),
+                size: Some(Pixels(28.0)),
                 spacing: 10.0,
                 side: text_input::Side::Right,
             });

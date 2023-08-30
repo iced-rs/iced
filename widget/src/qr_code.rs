@@ -60,6 +60,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
 
     fn layout(
         &self,
+        _tree: &Tree,
         _renderer: &Renderer<Theme>,
         _limits: &layout::Limits,
     ) -> layout::Node {

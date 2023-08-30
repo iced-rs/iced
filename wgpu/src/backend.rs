@@ -1,5 +1,5 @@
-use crate::core;
-use crate::core::{Color, Font, Point, Size};
+use crate::core::{Color, Size};
+use crate::graphics;
 use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::{Transformation, Viewport};
@@ -29,9 +29,6 @@ pub struct Backend {
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
-
-    default_font: Font,
-    default_text_size: f32,
 }
 
 impl Backend {
@@ -57,9 +54,6 @@ impl Backend {
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
-
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
         }
     }
 
@@ -313,65 +307,11 @@ impl Backend {
 
 impl crate::graphics::Backend for Backend {
     type Primitive = primitive::Custom;
-
-    fn trim_measurements(&mut self) {
-        self.text_pipeline.trim_measurements();
-    }
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
-    const CHECKMARK_ICON: char = '\u{f00c}';
-    const ARROW_DOWN_ICON: char = '\u{e800}';
-
-    fn default_font(&self) -> Font {
-        self.default_font
-    }
-
-    fn default_size(&self) -> f32 {
-        self.default_text_size
-    }
-
-    fn measure(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: core::text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: core::text::Shaping,
-    ) -> Size {
-        self.text_pipeline.measure(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-        )
-    }
-
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: core::text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: core::text::Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<core::text::Hit> {
-        self.text_pipeline.hit_test(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-            point,
-            nearest_only,
-        )
+    fn font_system(&self) -> &graphics::text::FontSystem {
+        self.text_pipeline.font_system()
     }
 
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
@@ -381,14 +321,17 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &core::image::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)
     }
 }
 
 #[cfg(feature = "svg")]
 impl backend::Svg for Backend {
-    fn viewport_dimensions(&self, handle: &core::svg::Handle) -> Size<u32> {
+    fn viewport_dimensions(
+        &self,
+        handle: &crate::core::svg::Handle,
+    ) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

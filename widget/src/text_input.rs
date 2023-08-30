@@ -17,7 +17,7 @@ use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
-use crate::core::text::{self, Text};
+use crate::core::text::{self, Paragraph as _, Text};
 use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
@@ -29,6 +29,8 @@ use crate::core::{
     Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
+
+use std::cell::RefCell;
 
 pub use iced_style::text_input::{Appearance, StyleSheet};
 
@@ -67,7 +69,7 @@ where
     font: Option<Renderer::Font>,
     width: Length,
     padding: Padding,
-    size: Option<f32>,
+    size: Option<Pixels>,
     line_height: text::LineHeight,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -178,7 +180,7 @@ where
 
     /// Sets the text size of the [`TextInput`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.size = Some(size.into().0);
+        self.size = Some(size.into());
         self
     }
 
@@ -218,12 +220,8 @@ where
             theme,
             layout,
             cursor,
-            tree.state.downcast_ref::<State>(),
+            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
             value.unwrap_or(&self.value),
-            &self.placeholder,
-            self.size,
-            self.line_height,
-            self.font,
             self.on_input.is_none(),
             self.is_secure,
             self.icon.as_ref(),
@@ -240,15 +238,15 @@ where
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
+        tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         // Unfocus text input if it becomes disabled
         if self.on_input.is_none() {
@@ -269,6 +267,7 @@ where
 
     fn layout(
         &self,
+        tree: &Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -278,8 +277,13 @@ where
             self.width,
             self.padding,
             self.size,
+            self.font,
             self.line_height,
             self.icon.as_ref(),
+            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+            &self.value,
+            &self.placeholder,
+            self.is_secure,
         )
     }
 
@@ -290,7 +294,7 @@ where
         _renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         operation.focusable(state, self.id.as_ref().map(|id| &id.0));
         operation.text_input(state, self.id.as_ref().map(|id| &id.0));
@@ -322,7 +326,7 @@ where
             self.on_input.as_deref(),
             self.on_paste.as_deref(),
             &self.on_submit,
-            || tree.state.downcast_mut::<State>(),
+            || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
         )
     }
 
@@ -341,12 +345,8 @@ where
             theme,
             layout,
             cursor,
-            tree.state.downcast_ref::<State>(),
+            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
             &self.value,
-            &self.placeholder,
-            self.size,
-            self.line_height,
-            self.font,
             self.on_input.is_none(),
             self.is_secure,
             self.icon.as_ref(),
@@ -388,7 +388,7 @@ pub struct Icon<Font> {
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// The font size of the content.
-    pub size: Option<f32>,
+    pub size: Option<Pixels>,
     /// The spacing between the [`Icon`] and the text in a [`TextInput`].
     pub spacing: f32,
     /// The side of a [`TextInput`] where to display the [`Icon`].
@@ -465,29 +465,65 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    size: Option<f32>,
+    size: Option<Pixels>,
+    font: Option<Renderer::Font>,
     line_height: text::LineHeight,
     icon: Option<&Icon<Renderer::Font>>,
+    state: &State<Renderer::Paragraph>,
+    value: &Value,
+    placeholder: &str,
+    is_secure: bool,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
 {
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = size.unwrap_or_else(|| renderer.default_size());
+
     let padding = padding.fit(Size::ZERO, limits.max());
     let limits = limits
         .width(width)
         .pad(padding)
-        .height(line_height.to_absolute(Pixels(text_size)));
+        .height(line_height.to_absolute(text_size));
 
     let text_bounds = limits.resolve(Size::ZERO);
 
-    if let Some(icon) = icon {
-        let icon_width = renderer.measure_width(
-            &icon.code_point.to_string(),
-            icon.size.unwrap_or_else(|| renderer.default_size()),
-            icon.font,
-            text::Shaping::Advanced,
+    let placeholder_text = Text {
+        font,
+        line_height,
+        content: placeholder,
+        bounds: Size::new(f32::INFINITY, text_bounds.height),
+        size: text_size,
+        horizontal_alignment: alignment::Horizontal::Left,
+        vertical_alignment: alignment::Vertical::Center,
+        shaping: text::Shaping::Advanced,
+    };
+
+    renderer.update_paragraph(
+        &mut state.placeholder_paragraph.borrow_mut(),
+        placeholder_text,
+    );
+
+    if is_secure {
+        renderer.update_paragraph(
+            &mut state.paragraph.borrow_mut(),
+            Text {
+                content: &value.secure().to_string(),
+                ..placeholder_text
+            },
         );
+    } else {
+        renderer.update_paragraph(
+            &mut state.paragraph.borrow_mut(),
+            Text {
+                content: &value.to_string(),
+                ..placeholder_text
+            },
+        );
+    }
+
+    if let Some(icon) = icon {
+        let icon_width = 0.0; // TODO
 
         let mut text_node = layout::Node::new(
             text_bounds - Size::new(icon_width + icon.spacing, 0.0),
@@ -537,19 +573,31 @@ pub fn update<'a, Message, Renderer>(
     clipboard: &mut dyn Clipboard,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
-    size: Option<f32>,
+    size: Option<Pixels>,
     line_height: text::LineHeight,
     font: Option<Renderer::Font>,
     is_secure: bool,
     on_input: Option<&dyn Fn(String) -> Message>,
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
-    state: impl FnOnce() -> &'a mut State,
+    state: impl FnOnce() -> &'a mut State<Renderer::Paragraph>,
 ) -> event::Status
 where
     Message: Clone,
     Renderer: text::Renderer,
 {
+    let update_cache = |state, value| {
+        replace_paragraph(
+            renderer,
+            state,
+            layout,
+            value,
+            font,
+            size,
+            line_height,
+        )
+    };
+
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -592,11 +640,7 @@ where
                             };
 
                             find_cursor_position(
-                                renderer,
                                 text_layout.bounds(),
-                                font,
-                                size,
-                                line_height,
                                 &value,
                                 state,
                                 target,
@@ -621,11 +665,7 @@ where
                             state.cursor.select_all(value);
                         } else {
                             let position = find_cursor_position(
-                                renderer,
                                 text_layout.bounds(),
-                                font,
-                                size,
-                                line_height,
                                 value,
                                 state,
                                 target,
@@ -671,11 +711,7 @@ where
                 };
 
                 let position = find_cursor_position(
-                    renderer,
                     text_layout.bounds(),
-                    font,
-                    size,
-                    line_height,
                     &value,
                     state,
                     target,
@@ -709,6 +745,8 @@ where
                     shell.publish(message);
 
                     focus.updated_at = Instant::now();
+
+                    update_cache(state, value);
 
                     return event::Status::Captured;
                 }
@@ -749,6 +787,8 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::Delete => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -769,6 +809,8 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::Left => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -844,6 +886,8 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::V => {
                         if state.keyboard_modifiers.command()
@@ -876,6 +920,8 @@ where
                             shell.publish(message);
 
                             state.is_pasting = Some(content);
+
+                            update_cache(state, value);
                         } else {
                             state.is_pasting = None;
                         }
@@ -979,12 +1025,8 @@ pub fn draw<Renderer>(
     theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
-    state: &State,
+    state: &State<Renderer::Paragraph>,
     value: &Value,
-    placeholder: &str,
-    size: Option<f32>,
-    line_height: text::LineHeight,
-    font: Option<Renderer::Font>,
     is_disabled: bool,
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
@@ -1023,28 +1065,14 @@ pub fn draw<Renderer>(
         appearance.background,
     );
 
-    if let Some(icon) = icon {
-        let icon_layout = children_layout.next().unwrap();
+    if let Some(_icon) = icon {
+        let _icon_layout = children_layout.next().unwrap();
 
-        renderer.fill_text(Text {
-            content: &icon.code_point.to_string(),
-            size: icon.size.unwrap_or_else(|| renderer.default_size()),
-            line_height: text::LineHeight::default(),
-            font: icon.font,
-            color: appearance.icon_color,
-            bounds: Rectangle {
-                y: text_bounds.center_y(),
-                ..icon_layout.bounds()
-            },
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-            shaping: text::Shaping::Advanced,
-        });
+        // TODO
     }
 
     let text = value.to_string();
-    let font = font.unwrap_or_else(|| renderer.default_font());
-    let size = size.unwrap_or_else(|| renderer.default_size());
+    let paragraph = &state.paragraph.borrow() as &Renderer::Paragraph;
 
     let (cursor, offset) = if let Some(focus) = state
         .is_focused
@@ -1055,12 +1083,9 @@ pub fn draw<Renderer>(
             cursor::State::Index(position) => {
                 let (text_value_width, offset) =
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        paragraph,
                         text_bounds,
-                        value,
-                        size,
                         position,
-                        font,
                     );
 
                 let is_cursor_visible = ((focus.now - focus.updated_at)
@@ -1096,22 +1121,16 @@ pub fn draw<Renderer>(
 
                 let (left_position, left_offset) =
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        paragraph,
                         text_bounds,
-                        value,
-                        size,
                         left,
-                        font,
                     );
 
                 let (right_position, right_offset) =
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        paragraph,
                         text_bounds,
-                        value,
-                        size,
                         right,
-                        font,
                     );
 
                 let width = right_position - left_position;
@@ -1143,12 +1162,7 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = renderer.measure_width(
-        if text.is_empty() { placeholder } else { &text },
-        size,
-        font,
-        text::Shaping::Advanced,
-    );
+    let text_width = paragraph.min_width();
 
     let render = |renderer: &mut Renderer| {
         if let Some((cursor, color)) = cursor {
@@ -1157,27 +1171,23 @@ pub fn draw<Renderer>(
             renderer.with_translation(Vector::ZERO, |_| {});
         }
 
-        renderer.fill_text(Text {
-            content: if text.is_empty() { placeholder } else { &text },
-            color: if text.is_empty() {
+        let placeholder_paragraph = state.placeholder_paragraph.borrow();
+
+        renderer.fill_paragraph(
+            if text.is_empty() {
+                &placeholder_paragraph
+            } else {
+                paragraph
+            },
+            Point::new(text_bounds.x, text_bounds.center_y()),
+            if text.is_empty() {
                 theme.placeholder_color(style)
             } else if is_disabled {
                 theme.disabled_color(style)
             } else {
                 theme.value_color(style)
             },
-            font,
-            bounds: Rectangle {
-                y: text_bounds.center_y(),
-                width: f32::INFINITY,
-                ..text_bounds
-            },
-            size,
-            line_height,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-            shaping: text::Shaping::Advanced,
-        });
+        );
     };
 
     if text_width > text_bounds.width {
@@ -1208,7 +1218,9 @@ pub fn mouse_interaction(
 
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
-pub struct State {
+pub struct State<P: text::Paragraph> {
+    paragraph: RefCell<P>,
+    placeholder_paragraph: RefCell<P>,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1225,7 +1237,7 @@ struct Focus {
     is_window_focused: bool,
 }
 
-impl State {
+impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     pub fn new() -> Self {
         Self::default()
@@ -1234,6 +1246,8 @@ impl State {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
+            paragraph: RefCell::new(P::default()),
+            placeholder_paragraph: RefCell::new(P::default()),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
@@ -1292,7 +1306,7 @@ impl State {
     }
 }
 
-impl operation::Focusable for State {
+impl<P: text::Paragraph> operation::Focusable for State<P> {
     fn is_focused(&self) -> bool {
         State::is_focused(self)
     }
@@ -1306,7 +1320,7 @@ impl operation::Focusable for State {
     }
 }
 
-impl operation::TextInput for State {
+impl<P: text::Paragraph> operation::TextInput for State<P> {
     fn move_cursor_to_front(&mut self) {
         State::move_cursor_to_front(self)
     }
@@ -1336,17 +1350,11 @@ mod platform {
     }
 }
 
-fn offset<Renderer>(
-    renderer: &Renderer,
+fn offset<P: text::Paragraph>(
     text_bounds: Rectangle,
-    font: Renderer::Font,
-    size: f32,
     value: &Value,
-    state: &State,
-) -> f32
-where
-    Renderer: text::Renderer,
-{
+    state: &State<P>,
+) -> f32 {
     if state.is_focused() {
         let cursor = state.cursor();
 
@@ -1356,12 +1364,9 @@ where
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            renderer,
+            &state.paragraph.borrow() as &P,
             text_bounds,
-            value,
-            size,
             focus_position,
-            font,
         );
 
         offset
@@ -1370,63 +1375,35 @@ where
     }
 }
 
-fn measure_cursor_and_scroll_offset<Renderer>(
-    renderer: &Renderer,
+fn measure_cursor_and_scroll_offset(
+    paragraph: &impl text::Paragraph,
     text_bounds: Rectangle,
-    value: &Value,
-    size: f32,
     cursor_index: usize,
-    font: Renderer::Font,
-) -> (f32, f32)
-where
-    Renderer: text::Renderer,
-{
-    let text_before_cursor = value.until(cursor_index).to_string();
+) -> (f32, f32) {
+    let grapheme_position = paragraph
+        .grapheme_position(0, cursor_index)
+        .unwrap_or(Point::ORIGIN);
 
-    let text_value_width = renderer.measure_width(
-        &text_before_cursor,
-        size,
-        font,
-        text::Shaping::Advanced,
-    );
+    let offset = ((grapheme_position.x + 5.0) - text_bounds.width).max(0.0);
 
-    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
-
-    (text_value_width, offset)
+    (grapheme_position.x, offset)
 }
 
 /// Computes the position of the text cursor at the given X coordinate of
 /// a [`TextInput`].
-fn find_cursor_position<Renderer>(
-    renderer: &Renderer,
+fn find_cursor_position<P: text::Paragraph>(
     text_bounds: Rectangle,
-    font: Option<Renderer::Font>,
-    size: Option<f32>,
-    line_height: text::LineHeight,
     value: &Value,
-    state: &State,
+    state: &State<P>,
     x: f32,
-) -> Option<usize>
-where
-    Renderer: text::Renderer,
-{
-    let font = font.unwrap_or_else(|| renderer.default_font());
-    let size = size.unwrap_or_else(|| renderer.default_size());
-
-    let offset = offset(renderer, text_bounds, font, size, value, state);
+) -> Option<usize> {
+    let offset = offset(text_bounds, value, state);
     let value = value.to_string();
 
-    let char_offset = renderer
-        .hit_test(
-            &value,
-            size,
-            line_height,
-            font,
-            Size::INFINITY,
-            text::Shaping::Advanced,
-            Point::new(x + offset, text_bounds.height / 2.0),
-            true,
-        )
+    let char_offset = state
+        .paragraph
+        .borrow()
+        .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
     Some(
@@ -1436,6 +1413,35 @@ where
         )
         .count(),
     )
+}
+
+fn replace_paragraph<Renderer>(
+    renderer: &Renderer,
+    state: &mut State<Renderer::Paragraph>,
+    layout: Layout<'_>,
+    value: &Value,
+    font: Option<Renderer::Font>,
+    text_size: Option<Pixels>,
+    line_height: text::LineHeight,
+) where
+    Renderer: text::Renderer,
+{
+    let font = font.unwrap_or_else(|| renderer.default_font());
+    let text_size = text_size.unwrap_or_else(|| renderer.default_size());
+
+    let mut children_layout = layout.children();
+    let text_bounds = children_layout.next().unwrap().bounds();
+
+    *state.paragraph.get_mut() = renderer.create_paragraph(Text {
+        font,
+        line_height,
+        content: &value.to_string(),
+        bounds: Size::new(f32::INFINITY, text_bounds.height),
+        size: text_size,
+        horizontal_alignment: alignment::Horizontal::Left,
+        vertical_alignment: alignment::Vertical::Top,
+        shaping: text::Shaping::Advanced,
+    });
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;

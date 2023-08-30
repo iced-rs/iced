@@ -1,10 +1,21 @@
 use crate::core::alignment;
 use crate::core::text;
-use crate::core::{Color, Font, Rectangle};
+use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::graphics::text::paragraph;
 
 /// A paragraph of text.
-#[derive(Debug, Clone, Copy)]
-pub struct Text<'a> {
+#[derive(Debug, Clone)]
+pub enum Text<'a> {
+    Managed {
+        paragraph: paragraph::Weak,
+        position: Point,
+        color: Color,
+    },
+    Cached(Cached<'a>),
+}
+
+#[derive(Debug, Clone)]
+pub struct Cached<'a> {
     /// The content of the [`Text`].
     pub content: &'a str,
 
@@ -15,7 +26,7 @@ pub struct Text<'a> {
     pub color: Color,
 
     /// The size of the [`Text`] in logical pixels.
-    pub size: f32,
+    pub size: Pixels,
 
     /// The line height of the [`Text`].
     pub line_height: text::LineHeight,

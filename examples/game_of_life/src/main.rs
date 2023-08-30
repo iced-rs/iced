@@ -591,7 +591,7 @@ mod grid {
 
                 let text = Text {
                     color: Color::WHITE,
-                    size: 14.0,
+                    size: 14.0.into(),
                     position: Point::new(frame.width(), frame.height()),
                     horizontal_alignment: alignment::Horizontal::Right,
                     vertical_alignment: alignment::Vertical::Bottom,

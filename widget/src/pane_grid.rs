@@ -275,10 +275,12 @@ where
 
     fn layout(
         &self,
+        tree: &Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
+            tree,
             renderer,
             limits,
             self.contents.layout(),
@@ -286,7 +288,9 @@ where
             self.height,
             self.spacing,
             self.contents.iter(),
-            |content, renderer, limits| content.layout(renderer, limits),
+            |content, tree, renderer, limits| {
+                content.layout(tree, renderer, limits)
+            },
         )
     }
 
@@ -471,6 +475,7 @@ where
 
 /// Calculates the [`Layout`] of a [`PaneGrid`].
 pub fn layout<Renderer, T>(
+    tree: &Tree,
     renderer: &Renderer,
     limits: &layout::Limits,
     node: &Node,
@@ -478,19 +483,21 @@ pub fn layout<Renderer, T>(
     height: Length,
     spacing: f32,
     contents: impl Iterator<Item = (Pane, T)>,
-    layout_content: impl Fn(T, &Renderer, &layout::Limits) -> layout::Node,
+    layout_content: impl Fn(T, &Tree, &Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
     let size = limits.resolve(Size::ZERO);
 
     let regions = node.pane_regions(spacing, size);
     let children = contents
-        .filter_map(|(pane, content)| {
+        .zip(tree.children.iter())
+        .filter_map(|((pane, content), tree)| {
             let region = regions.get(&pane)?;
             let size = Size::new(region.width, region.height);
 
             let mut node = layout_content(
                 content,
+                tree,
                 renderer,
                 &layout::Limits::new(size, size),
             );

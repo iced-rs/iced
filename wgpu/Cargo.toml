@@ -21,19 +21,10 @@ guillotiere = "0.6"
 futures = "0.3"
 bitflags = "1.2"
 once_cell = "1.0"
-rustc-hash = "1.1"
 log = "0.4"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wgpu = { version = "0.16", features = ["webgl"] }
-
-[dependencies.twox-hash]
-version = "1.6"
-default-features = false
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
-version = "1.6.1"
-features = ["std"]
 
 [dependencies.bytemuck]
 version = "1.9"

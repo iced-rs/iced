@@ -23,6 +23,9 @@ log = "0.4"
 raw-window-handle = "0.5"
 thiserror = "1.0"
 bitflags = "1.2"
+cosmic-text = "0.9"
+rustc-hash = "1.1"
+unicode-segmentation = "1.6"
 
 [dependencies.bytemuck]
 version = "1.4"
@@ -31,6 +34,14 @@ features = ["derive"]
 [dependencies.iced_core]
 version = "0.10"
 path = "../core"
+
+[dependencies.twox-hash]
+version = "1.6"
+default-features = false
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
+version = "1.6.1"
+features = ["std"]
 
 [dependencies.image]
 version = "0.24"

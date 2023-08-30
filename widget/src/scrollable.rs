@@ -230,6 +230,7 @@ where
 
     fn layout(
         &self,
+        tree: &Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -240,7 +241,11 @@ where
             self.height,
             &self.direction,
             |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
+                self.content.as_widget().layout(
+                    &tree.children[0],
+                    renderer,
+                    limits,
+                )
             },
         )
     }

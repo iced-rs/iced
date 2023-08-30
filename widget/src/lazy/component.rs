@@ -254,11 +254,12 @@ where
 
     fn layout(
         &self,
+        tree: &Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         self.with_element(|element| {
-            element.as_widget().layout(renderer, limits)
+            element.as_widget().layout(tree, renderer, limits)
         })
     }
 

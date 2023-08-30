@@ -10,7 +10,7 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{Color, Font, Point, Rectangle, Size, Vector};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Size, Vector};
 use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::Viewport;
@@ -56,14 +56,14 @@ impl<'a> Layer<'a> {
             Layer::new(Rectangle::with_size(viewport.logical_size()));
 
         for (i, line) in lines.iter().enumerate() {
-            let text = Text {
+            let text = text::Cached {
                 content: line.as_ref(),
                 bounds: Rectangle::new(
                     Point::new(11.0, 11.0 + 25.0 * i as f32),
                     Size::INFINITY,
                 ),
                 color: Color::new(0.9, 0.9, 0.9, 1.0),
-                size: 20.0,
+                size: Pixels(20.0),
                 line_height: core::text::LineHeight::default(),
                 font: Font::MONOSPACE,
                 horizontal_alignment: alignment::Horizontal::Left,
@@ -71,13 +71,13 @@ impl<'a> Layer<'a> {
                 shaping: core::text::Shaping::Basic,
             };
 
-            overlay.text.push(text);
+            overlay.text.push(Text::Cached(text.clone()));
 
-            overlay.text.push(Text {
+            overlay.text.push(Text::Cached(text::Cached {
                 bounds: text.bounds + Vector::new(-1.0, -1.0),
                 color: Color::BLACK,
                 ..text
-            });
+            }));
         }
 
         overlay
@@ -113,6 +113,19 @@ impl<'a> Layer<'a> {
         current_layer: usize,
     ) {
         match primitive {
+            Primitive::Paragraph {
+                paragraph,
+                position,
+                color,
+            } => {
+                let layer = &mut layers[current_layer];
+
+                layer.text.push(Text::Managed {
+                    paragraph: paragraph.clone(),
+                    position: *position + translation,
+                    color: *color,
+                });
+            }
             Primitive::Text {
                 content,
                 bounds,
@@ -126,7 +139,7 @@ impl<'a> Layer<'a> {
             } => {
                 let layer = &mut layers[current_layer];
 
-                layer.text.push(Text {
+                layer.text.push(Text::Cached(text::Cached {
                     content,
                     bounds: *bounds + translation,
                     size: *size,
@@ -136,7 +149,7 @@ impl<'a> Layer<'a> {
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
                     shaping: *shaping,
-                });
+                }));
             }
             Primitive::Quad {
                 bounds,

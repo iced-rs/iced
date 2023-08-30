@@ -285,10 +285,13 @@ mod modal {
 
         fn layout(
             &self,
+            tree: &widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.base.as_widget().layout(renderer, limits)
+            self.base
+                .as_widget()
+                .layout(&tree.children[0], renderer, limits)
         }
 
         fn on_event(
@@ -408,7 +411,11 @@ mod modal {
                 .width(Length::Fill)
                 .height(Length::Fill);
 
-            let mut child = self.content.as_widget().layout(renderer, &limits);
+            let mut child = self
+                .content
+                .as_widget()
+                .layout(self.tree, renderer, &limits);
+
             child.align(Alignment::Center, Alignment::Center, limits.max());
 
             let mut node = layout::Node::with_children(self.size, vec![child]);

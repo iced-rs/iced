@@ -144,11 +144,6 @@ where
         self
     }
 
-    /// Returns whether the [`ComboBox`] is currently focused or not.
-    pub fn is_focused(&self) -> bool {
-        self.state.is_focused()
-    }
-
     /// Sets the text sixe of the [`ComboBox`].
     pub fn size(mut self, size: f32) -> Self {
         self.text_input = self.text_input.size(size);
@@ -179,7 +174,6 @@ pub struct State<T>(RefCell<Inner<T>>);
 
 #[derive(Debug, Clone)]
 struct Inner<T> {
-    text_input: text_input::State,
     value: String,
     options: Vec<T>,
     option_matchers: Vec<String>,
@@ -216,7 +210,6 @@ where
         );
 
         Self(RefCell::new(Inner {
-            text_input: text_input::State::new(),
             value,
             options,
             option_matchers,
@@ -224,49 +217,10 @@ where
         }))
     }
 
-    /// Focuses the [`ComboBox`].
-    pub fn focused(self) -> Self {
-        self.focus();
-        self
-    }
-
-    /// Focuses the [`ComboBox`].
-    pub fn focus(&self) {
-        let mut inner = self.0.borrow_mut();
-
-        inner.text_input.focus();
-    }
-
-    /// Unfocuses the [`ComboBox`].
-    pub fn unfocus(&self) {
-        let mut inner = self.0.borrow_mut();
-
-        inner.text_input.unfocus();
-    }
-
-    /// Returns whether the [`ComboBox`] is currently focused or not.
-    pub fn is_focused(&self) -> bool {
-        let inner = self.0.borrow();
-
-        inner.text_input.is_focused()
-    }
-
     fn value(&self) -> String {
         let inner = self.0.borrow();
 
         inner.value.clone()
-    }
-
-    fn text_input_tree(&self) -> widget::Tree {
-        let inner = self.0.borrow();
-
-        inner.text_input_tree()
-    }
-
-    fn update_text_input(&self, tree: widget::Tree) {
-        let mut inner = self.0.borrow_mut();
-
-        inner.update_text_input(tree)
     }
 
     fn with_inner<O>(&self, f: impl FnOnce(&Inner<T>) -> O) -> O {
@@ -285,21 +239,6 @@ where
         let inner = self.0.borrow();
 
         inner.filtered_options.sync(options);
-    }
-}
-
-impl<T> Inner<T> {
-    fn text_input_tree(&self) -> widget::Tree {
-        widget::Tree {
-            tag: widget::tree::Tag::of::<text_input::State>(),
-            state: widget::tree::State::new(self.text_input.clone()),
-            children: vec![],
-        }
-    }
-
-    fn update_text_input(&mut self, tree: widget::Tree) {
-        self.text_input =
-            tree.state.downcast_ref::<text_input::State>().clone();
     }
 }
 
@@ -366,10 +305,11 @@ where
 
     fn layout(
         &self,
+        tree: &widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.text_input.layout(renderer, limits)
+        self.text_input.layout(tree, renderer, limits)
     }
 
     fn tag(&self) -> widget::tree::Tag {
@@ -385,6 +325,10 @@ where
         })
     }
 
+    fn children(&self) -> Vec<widget::Tree> {
+        vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _>)]
+    }
+
     fn on_event(
         &mut self,
         tree: &mut widget::Tree,
@@ -398,7 +342,13 @@ where
     ) -> event::Status {
         let menu = tree.state.downcast_mut::<Menu<T>>();
 
-        let started_focused = self.state.is_focused();
+        let started_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
+
+            text_input_state.is_focused()
+        };
         // This is intended to check whether or not the message buffer was empty,
         // since `Shell` does not expose such functionality.
         let mut published_message_to_shell = false;
@@ -408,9 +358,8 @@ where
         let mut local_shell = Shell::new(&mut local_messages);
 
         // Provide it to the widget
-        let mut tree = self.state.text_input_tree();
         let mut event_status = self.text_input.on_event(
-            &mut tree,
+            &mut tree.children[0],
             event.clone(),
             layout,
             cursor,
@@ -419,7 +368,6 @@ where
             &mut local_shell,
             viewport,
         );
-        self.state.update_text_input(tree);
 
         // Then finally react to them here
         for message in local_messages {
@@ -450,7 +398,15 @@ where
             shell.invalidate_layout();
         }
 
-        if self.state.is_focused() {
+        let is_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
+
+            text_input_state.is_focused()
+        };
+
+        if is_focused {
             self.state.with_inner(|state| {
                 if !started_focused {
                     if let Some(on_option_hovered) = &mut self.on_option_hovered
@@ -589,9 +545,8 @@ where
                 published_message_to_shell = true;
 
                 // Unfocus the input
-                let mut tree = state.text_input_tree();
                 let _ = self.text_input.on_event(
-                    &mut tree,
+                    &mut tree.children[0],
                     Event::Mouse(mouse::Event::ButtonPressed(
                         mouse::Button::Left,
                     )),
@@ -602,21 +557,25 @@ where
                     &mut Shell::new(&mut vec![]),
                     viewport,
                 );
-                state.update_text_input(tree);
             }
         });
 
-        if started_focused
-            && !self.state.is_focused()
-            && !published_message_to_shell
-        {
+        let is_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
+
+            text_input_state.is_focused()
+        };
+
+        if started_focused && !is_focused && !published_message_to_shell {
             if let Some(message) = self.on_close.take() {
                 shell.publish(message);
             }
         }
 
         // Focus changed, invalidate widget tree to force a fresh `view`
-        if started_focused != self.state.is_focused() {
+        if started_focused != is_focused {
             shell.invalidate_widgets();
         }
 
@@ -625,20 +584,24 @@ where
 
     fn mouse_interaction(
         &self,
-        _tree: &widget::Tree,
+        tree: &widget::Tree,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        let tree = self.state.text_input_tree();
-        self.text_input
-            .mouse_interaction(&tree, layout, cursor, viewport, renderer)
+        self.text_input.mouse_interaction(
+            &tree.children[0],
+            layout,
+            cursor,
+            viewport,
+            renderer,
+        )
     }
 
     fn draw(
         &self,
-        _tree: &widget::Tree,
+        tree: &widget::Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         _style: &renderer::Style,
@@ -646,16 +609,28 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let selection = if self.state.is_focused() || self.selection.is_empty()
-        {
+        let is_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
+
+            text_input_state.is_focused()
+        };
+
+        let selection = if is_focused || self.selection.is_empty() {
             None
         } else {
             Some(&self.selection)
         };
 
-        let tree = self.state.text_input_tree();
-        self.text_input
-            .draw(&tree, renderer, theme, layout, cursor, selection);
+        self.text_input.draw(
+            &tree.children[0],
+            renderer,
+            theme,
+            layout,
+            cursor,
+            selection,
+        );
     }
 
     fn overlay<'b>(
@@ -664,14 +639,22 @@ where
         layout: Layout<'_>,
         _renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let Menu {
-            menu,
-            filtered_options,
-            hovered_option,
-            ..
-        } = tree.state.downcast_mut::<Menu<T>>();
+        let is_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
 
-        if self.state.is_focused() {
+            text_input_state.is_focused()
+        };
+
+        if is_focused {
+            let Menu {
+                menu,
+                filtered_options,
+                hovered_option,
+                ..
+            } = tree.state.downcast_mut::<Menu<T>>();
+
             let bounds = layout.bounds();
 
             self.state.sync_filtered_options(filtered_options);
