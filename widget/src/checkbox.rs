@@ -61,7 +61,7 @@ where
     const DEFAULT_SIZE: f32 = 20.0;
 
     /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: f32 = 15.0;
+    const DEFAULT_SPACING: f32 = 10.0;
 
     /// Creates a new [`Checkbox`].
     ///
