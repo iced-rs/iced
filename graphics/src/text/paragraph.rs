@@ -7,7 +7,7 @@ use crate::text::{self, FontSystem};
 use std::fmt;
 use std::sync::{self, Arc};
 
-#[derive(Clone, PartialEq, Default)]
+#[derive(Clone, PartialEq)]
 pub struct Paragraph(Option<Arc<Internal>>);
 
 struct Internal {
@@ -195,6 +195,28 @@ impl core::text::Paragraph for Paragraph {
     }
 }
 
+impl Default for Paragraph {
+    fn default() -> Self {
+        Self(Some(Arc::new(Internal::default())))
+    }
+}
+
+impl fmt::Debug for Paragraph {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let paragraph = self.internal();
+
+        f.debug_struct("Paragraph")
+            .field("content", &paragraph.content)
+            .field("font", &paragraph.font)
+            .field("shaping", &paragraph.shaping)
+            .field("horizontal_alignment", &paragraph.horizontal_alignment)
+            .field("vertical_alignment", &paragraph.vertical_alignment)
+            .field("bounds", &paragraph.bounds)
+            .field("min_bounds", &paragraph.min_bounds)
+            .finish()
+    }
+}
+
 impl PartialEq for Internal {
     fn eq(&self, other: &Self) -> bool {
         self.content == other.content
@@ -223,22 +245,6 @@ impl Default for Internal {
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
         }
-    }
-}
-
-impl fmt::Debug for Paragraph {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let paragraph = self.internal();
-
-        f.debug_struct("Paragraph")
-            .field("content", &paragraph.content)
-            .field("font", &paragraph.font)
-            .field("shaping", &paragraph.shaping)
-            .field("horizontal_alignment", &paragraph.horizontal_alignment)
-            .field("vertical_alignment", &paragraph.vertical_alignment)
-            .field("bounds", &paragraph.bounds)
-            .field("min_bounds", &paragraph.min_bounds)
-            .finish()
     }
 }
 
