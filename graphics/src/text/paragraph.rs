@@ -7,7 +7,7 @@ use crate::text::{self, FontSystem};
 use std::fmt;
 use std::sync::{self, Arc};
 
-#[derive(Clone, PartialEq, Default)]
+#[derive(PartialEq, Default)]
 pub struct Paragraph(Arc<Internal>);
 
 struct Internal {
