@@ -5,10 +5,10 @@ use crate::core::{Font, Pixels, Point, Size};
 use crate::text::{self, FontSystem};
 
 use std::fmt;
-use std::mem::MaybeUninit;
 use std::sync::{self, Arc};
 
-pub struct Paragraph(MaybeUninit<Arc<Internal>>);
+#[derive(Clone, PartialEq, Default)]
+pub struct Paragraph(Option<Arc<Internal>>);
 
 struct Internal {
     buffer: cosmic_text::Buffer,
@@ -19,12 +19,6 @@ struct Internal {
     vertical_alignment: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
-}
-
-impl Default for Paragraph {
-    fn default() -> Self {
-        Self(MaybeUninit::new(Arc::new(Internal::default())))
-    }
 }
 
 impl Paragraph {
@@ -58,7 +52,7 @@ impl Paragraph {
 
         let min_bounds = text::measure(&buffer);
 
-        Self(MaybeUninit::new(Arc::new(Internal {
+        Self(Some(Arc::new(Internal {
             buffer,
             content: text.content.to_owned(),
             font: text.font,
@@ -71,13 +65,11 @@ impl Paragraph {
     }
 
     pub fn buffer(&self) -> &cosmic_text::Buffer {
-        #[allow(unsafe_code)]
-        &unsafe { self.0.assume_init_ref() }.buffer
+        &self.internal().buffer
     }
 
     pub fn downgrade(&self) -> Weak {
-        #[allow(unsafe_code)]
-        let paragraph = unsafe { self.0.assume_init_ref() };
+        let paragraph = self.internal();
 
         Weak {
             raw: Arc::downgrade(paragraph),
@@ -88,13 +80,10 @@ impl Paragraph {
     }
 
     pub fn resize(&mut self, new_bounds: Size, font_system: &FontSystem) {
-        // Place uninit for now, we always write to `self.0` in the end
-        let paragraph = std::mem::replace(&mut self.0, MaybeUninit::uninit());
-
-        // Mutable self guarantees unique access and `uninit` call only happens
-        // in this method.
-        #[allow(unsafe_code)]
-        let paragraph = unsafe { paragraph.assume_init() };
+        let paragraph = self
+            .0
+            .take()
+            .expect("paragraph should always be initialized");
 
         match Arc::try_unwrap(paragraph) {
             Ok(mut internal) => {
@@ -107,14 +96,14 @@ impl Paragraph {
                 internal.bounds = new_bounds;
                 internal.min_bounds = text::measure(&internal.buffer);
 
-                let _ = self.0.write(Arc::new(internal));
+                self.0 = Some(Arc::new(internal));
             }
             Err(internal) => {
                 let metrics = internal.buffer.metrics();
 
                 // If there is a strong reference somewhere, we recompute the
                 // buffer from scratch
-                let new_paragraph = Self::with_text(
+                *self = Self::with_text(
                     Text {
                         content: &internal.content,
                         bounds: internal.bounds,
@@ -129,19 +118,14 @@ impl Paragraph {
                     },
                     font_system,
                 );
-
-                // New paragraph should always be initialized
-                #[allow(unsafe_code)]
-                let _ = self.0.write(unsafe { new_paragraph.0.assume_init() });
             }
         }
     }
 
-    fn internal_ref(&self) -> &Internal {
-        #[allow(unsafe_code)]
-        unsafe {
-            self.0.assume_init_ref()
-        }
+    fn internal(&self) -> &Arc<Internal> {
+        self.0
+            .as_ref()
+            .expect("paragraph should always be initialized")
     }
 }
 
@@ -149,51 +133,51 @@ impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
     fn content(&self) -> &str {
-        &self.internal_ref().content
+        &self.internal().content
     }
 
     fn text_size(&self) -> Pixels {
-        Pixels(self.internal_ref().buffer.metrics().font_size)
+        Pixels(self.internal().buffer.metrics().font_size)
     }
 
     fn line_height(&self) -> LineHeight {
         LineHeight::Absolute(Pixels(
-            self.internal_ref().buffer.metrics().line_height,
+            self.internal().buffer.metrics().line_height,
         ))
     }
 
     fn font(&self) -> Font {
-        self.internal_ref().font
+        self.internal().font
     }
 
     fn shaping(&self) -> Shaping {
-        self.internal_ref().shaping
+        self.internal().shaping
     }
 
     fn horizontal_alignment(&self) -> alignment::Horizontal {
-        self.internal_ref().horizontal_alignment
+        self.internal().horizontal_alignment
     }
 
     fn vertical_alignment(&self) -> alignment::Vertical {
-        self.internal_ref().vertical_alignment
+        self.internal().vertical_alignment
     }
 
     fn bounds(&self) -> Size {
-        self.internal_ref().bounds
+        self.internal().bounds
     }
 
     fn min_bounds(&self) -> Size {
-        self.internal_ref().min_bounds
+        self.internal().min_bounds
     }
 
     fn hit_test(&self, point: Point) -> Option<Hit> {
-        let cursor = self.internal_ref().buffer.hit(point.x, point.y)?;
+        let cursor = self.internal().buffer.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
     }
 
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
-        let run = self.internal_ref().buffer.layout_runs().nth(line)?;
+        let run = self.internal().buffer.layout_runs().nth(line)?;
 
         // TODO: Index represents a grapheme, not a glyph
         let glyph = run.glyphs.get(index).or_else(|| run.glyphs.last())?;
@@ -244,7 +228,7 @@ impl Default for Internal {
 
 impl fmt::Debug for Paragraph {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let paragraph = self.internal_ref();
+        let paragraph = self.internal();
 
         f.debug_struct("Paragraph")
             .field("content", &paragraph.content)
@@ -268,7 +252,7 @@ pub struct Weak {
 
 impl Weak {
     pub fn upgrade(&self) -> Option<Paragraph> {
-        self.raw.upgrade().map(MaybeUninit::new).map(Paragraph)
+        self.raw.upgrade().map(Some).map(Paragraph)
     }
 }
 
