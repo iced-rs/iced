@@ -157,7 +157,9 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         self.with_element(|element| {
-            element.as_widget().layout(tree, renderer, limits)
+            element
+                .as_widget()
+                .layout(&mut tree.children[0], renderer, limits)
         })
     }
 
