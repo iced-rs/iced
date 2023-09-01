@@ -5,10 +5,10 @@ use crate::core::{Font, Pixels, Point, Size};
 use crate::text::{self, FontSystem};
 
 use std::fmt;
+use std::mem::MaybeUninit;
 use std::sync::{self, Arc};
 
-#[derive(PartialEq, Default)]
-pub struct Paragraph(Arc<Internal>);
+pub struct Paragraph(MaybeUninit<Arc<Internal>>);
 
 struct Internal {
     buffer: cosmic_text::Buffer,
@@ -19,6 +19,12 @@ struct Internal {
     vertical_alignment: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
+}
+
+impl Default for Paragraph {
+    fn default() -> Self {
+        Self(MaybeUninit::new(Arc::new(Internal::default())))
+    }
 }
 
 impl Paragraph {
@@ -52,7 +58,7 @@ impl Paragraph {
 
         let min_bounds = text::measure(&buffer);
 
-        Self(Arc::new(Internal {
+        Self(MaybeUninit::new(Arc::new(Internal {
             buffer,
             content: text.content.to_owned(),
             font: text.font,
@@ -61,54 +67,80 @@ impl Paragraph {
             shaping: text.shaping,
             bounds: text.bounds,
             min_bounds,
-        }))
+        })))
     }
 
     pub fn buffer(&self) -> &cosmic_text::Buffer {
-        &self.0.buffer
+        #[allow(unsafe_code)]
+        &unsafe { self.0.assume_init_ref() }.buffer
     }
 
     pub fn downgrade(&self) -> Weak {
+        #[allow(unsafe_code)]
+        let paragraph = unsafe { self.0.assume_init_ref() };
+
         Weak {
-            raw: Arc::downgrade(&self.0),
-            min_bounds: self.0.min_bounds,
-            horizontal_alignment: self.0.horizontal_alignment,
-            vertical_alignment: self.0.vertical_alignment,
+            raw: Arc::downgrade(paragraph),
+            min_bounds: paragraph.min_bounds,
+            horizontal_alignment: paragraph.horizontal_alignment,
+            vertical_alignment: paragraph.vertical_alignment,
         }
     }
 
     pub fn resize(&mut self, new_bounds: Size, font_system: &FontSystem) {
-        if let Some(internal) = Arc::get_mut(&mut self.0) {
-            // If there is no strong reference holding on to the paragraph, we
-            // resize the buffer in-place
-            internal.buffer.set_size(
-                &mut font_system.write(),
-                new_bounds.width,
-                new_bounds.height,
-            );
+        // Place uninit for now, we always write to `self.0` in the end
+        let paragraph = std::mem::replace(&mut self.0, MaybeUninit::uninit());
 
-            internal.bounds = new_bounds;
-            internal.min_bounds = text::measure(&internal.buffer);
-        } else {
-            let metrics = self.0.buffer.metrics();
+        // Mutable self guarantees unique access and `uninit` call only happens
+        // in this method.
+        #[allow(unsafe_code)]
+        let paragraph = unsafe { paragraph.assume_init() };
 
-            // If there is a strong reference somewhere, we recompute the buffer
-            // from scratch
-            *self = Self::with_text(
-                Text {
-                    content: &self.0.content,
-                    bounds: self.0.bounds,
-                    size: Pixels(metrics.font_size),
-                    line_height: LineHeight::Absolute(Pixels(
-                        metrics.line_height,
-                    )),
-                    font: self.0.font,
-                    horizontal_alignment: self.0.horizontal_alignment,
-                    vertical_alignment: self.0.vertical_alignment,
-                    shaping: self.0.shaping,
-                },
-                font_system,
-            );
+        match Arc::try_unwrap(paragraph) {
+            Ok(mut internal) => {
+                internal.buffer.set_size(
+                    &mut font_system.write(),
+                    new_bounds.width,
+                    new_bounds.height,
+                );
+
+                internal.bounds = new_bounds;
+                internal.min_bounds = text::measure(&internal.buffer);
+
+                let _ = self.0.write(Arc::new(internal));
+            }
+            Err(internal) => {
+                let metrics = internal.buffer.metrics();
+
+                // If there is a strong reference somewhere, we recompute the
+                // buffer from scratch
+                let new_paragraph = Self::with_text(
+                    Text {
+                        content: &internal.content,
+                        bounds: internal.bounds,
+                        size: Pixels(metrics.font_size),
+                        line_height: LineHeight::Absolute(Pixels(
+                            metrics.line_height,
+                        )),
+                        font: internal.font,
+                        horizontal_alignment: internal.horizontal_alignment,
+                        vertical_alignment: internal.vertical_alignment,
+                        shaping: internal.shaping,
+                    },
+                    font_system,
+                );
+
+                // New paragraph should always be initialized
+                #[allow(unsafe_code)]
+                let _ = self.0.write(unsafe { new_paragraph.0.assume_init() });
+            }
+        }
+    }
+
+    fn internal_ref(&self) -> &Internal {
+        #[allow(unsafe_code)]
+        unsafe {
+            self.0.assume_init_ref()
         }
     }
 }
@@ -117,49 +149,51 @@ impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
     fn content(&self) -> &str {
-        &self.0.content
+        &self.internal_ref().content
     }
 
     fn text_size(&self) -> Pixels {
-        Pixels(self.0.buffer.metrics().font_size)
+        Pixels(self.internal_ref().buffer.metrics().font_size)
     }
 
     fn line_height(&self) -> LineHeight {
-        LineHeight::Absolute(Pixels(self.0.buffer.metrics().line_height))
+        LineHeight::Absolute(Pixels(
+            self.internal_ref().buffer.metrics().line_height,
+        ))
     }
 
     fn font(&self) -> Font {
-        self.0.font
+        self.internal_ref().font
     }
 
     fn shaping(&self) -> Shaping {
-        self.0.shaping
+        self.internal_ref().shaping
     }
 
     fn horizontal_alignment(&self) -> alignment::Horizontal {
-        self.0.horizontal_alignment
+        self.internal_ref().horizontal_alignment
     }
 
     fn vertical_alignment(&self) -> alignment::Vertical {
-        self.0.vertical_alignment
+        self.internal_ref().vertical_alignment
     }
 
     fn bounds(&self) -> Size {
-        self.0.bounds
+        self.internal_ref().bounds
     }
 
     fn min_bounds(&self) -> Size {
-        self.0.min_bounds
+        self.internal_ref().min_bounds
     }
 
     fn hit_test(&self, point: Point) -> Option<Hit> {
-        let cursor = self.0.buffer.hit(point.x, point.y)?;
+        let cursor = self.internal_ref().buffer.hit(point.x, point.y)?;
 
         Some(Hit::CharOffset(cursor.index))
     }
 
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
-        let run = self.0.buffer.layout_runs().nth(line)?;
+        let run = self.internal_ref().buffer.layout_runs().nth(line)?;
 
         // TODO: Index represents a grapheme, not a glyph
         let glyph = run.glyphs.get(index).or_else(|| run.glyphs.last())?;
@@ -210,14 +244,16 @@ impl Default for Internal {
 
 impl fmt::Debug for Paragraph {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let paragraph = self.internal_ref();
+
         f.debug_struct("Paragraph")
-            .field("content", &self.0.content)
-            .field("font", &self.0.font)
-            .field("shaping", &self.0.shaping)
-            .field("horizontal_alignment", &self.0.horizontal_alignment)
-            .field("vertical_alignment", &self.0.vertical_alignment)
-            .field("bounds", &self.0.bounds)
-            .field("min_bounds", &self.0.min_bounds)
+            .field("content", &paragraph.content)
+            .field("font", &paragraph.font)
+            .field("shaping", &paragraph.shaping)
+            .field("horizontal_alignment", &paragraph.horizontal_alignment)
+            .field("vertical_alignment", &paragraph.vertical_alignment)
+            .field("bounds", &paragraph.bounds)
+            .field("min_bounds", &paragraph.min_bounds)
             .finish()
     }
 }
@@ -232,7 +268,7 @@ pub struct Weak {
 
 impl Weak {
     pub fn upgrade(&self) -> Option<Paragraph> {
-        self.raw.upgrade().map(Paragraph)
+        self.raw.upgrade().map(MaybeUninit::new).map(Paragraph)
     }
 }
 
