@@ -1,4 +1,4 @@
-use iced_wgpu::Renderer;
+use iced_renderer::Renderer;
 use iced_widget::{slider, text_input, Column, Row, Text};
 use iced_winit::core::{Alignment, Color, Element, Length};
 use iced_winit::runtime::{Command, Program};

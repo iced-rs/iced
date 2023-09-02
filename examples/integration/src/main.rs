@@ -5,7 +5,7 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
-use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_wgpu::{wgpu, Backend, Settings};
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::{Color, Size};
@@ -143,12 +143,14 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize iced
     let mut debug = Debug::new();
-    let mut renderer = Renderer::new(Backend::new(
+    let wgpu_renderer = iced_wgpu::Renderer::new(Backend::new(
         &device,
         &queue,
         Settings::default(),
         format,
     ));
+
+    let mut renderer = iced_renderer::Renderer::Wgpu(wgpu_renderer);
 
     let mut state = program::State::new(
         controls,
@@ -267,18 +269,22 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
 
                         // And then iced on top
-                        renderer.with_primitives(|backend, primitive| {
-                            backend.present(
-                                &device,
-                                &queue,
-                                &mut encoder,
-                                None,
-                                &view,
-                                primitive,
-                                &viewport,
-                                &debug.overlay(),
-                            );
-                        });
+                        if let iced_renderer::Renderer::Wgpu(renderer) =
+                            &mut renderer
+                        {
+                            renderer.with_primitives(|backend, primitive| {
+                                backend.present(
+                                    &device,
+                                    &queue,
+                                    &mut encoder,
+                                    None,
+                                    &view,
+                                    primitive,
+                                    &viewport,
+                                    &debug.overlay(),
+                                );
+                            });
+                        }
 
                         // Then we submit the work
                         queue.submit(Some(encoder.finish()));
