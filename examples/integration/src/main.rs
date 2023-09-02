@@ -82,7 +82,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         futures::futures::executor::block_on(async {
             let adapter = wgpu::util::initialize_adapter_from_env_or_default(
                 &instance,
-                backend,
                 Some(&surface),
             )
             .await
