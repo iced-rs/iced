@@ -98,8 +98,9 @@ impl<Theme> Compositor<Theme> {
             ..limits
         });
 
-        let (device, queue) = loop {
-            if let Some(limits) = limits.next() {
+        let (device, queue) =
+            loop {
+                let limits = limits.next()?;
                 let device = adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(
@@ -114,10 +115,7 @@ impl<Theme> Compositor<Theme> {
                 if let Some(device) = device {
                     break Some(device);
                 }
-            }
-
-            break None;
-        }?;
+            }?;
 
         Some(Compositor {
             instance,
