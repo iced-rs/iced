@@ -14,8 +14,8 @@ svg = ["resvg"]
 web-colors = ["iced_graphics/web-colors"]
 
 [dependencies]
-wgpu = "0.16"
-glyphon = "0.3"
+wgpu = "0.17"
+glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
 raw-window-handle = "0.5"
 guillotiere = "0.6"
 futures = "0.3"
