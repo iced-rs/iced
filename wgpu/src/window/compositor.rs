@@ -93,13 +93,10 @@ impl<Theme> Compositor<Theme> {
         let limits =
             [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let mut limits = limits
-            .into_iter()
-            .map(|limits| wgpu::Limits {
-                max_bind_groups: 2,
-                ..limits
-            })
-            .into_iter();
+        let mut limits = limits.into_iter().map(|limits| wgpu::Limits {
+            max_bind_groups: 2,
+            ..limits
+        });
 
         let (device, queue) = loop {
             if let Some(limits) = limits.next() {
