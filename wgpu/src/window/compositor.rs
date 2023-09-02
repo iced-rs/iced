@@ -6,8 +6,6 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use futures::stream::{self, StreamExt};
-
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::marker::PhantomData;
@@ -95,14 +93,17 @@ impl<Theme> Compositor<Theme> {
         let limits =
             [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let limits = limits.into_iter().map(|limits| wgpu::Limits {
-            max_bind_groups: 2,
-            ..limits
-        });
+        let mut limits = limits
+            .into_iter()
+            .map(|limits| wgpu::Limits {
+                max_bind_groups: 2,
+                ..limits
+            })
+            .into_iter();
 
-        let (device, queue) = stream::iter(limits)
-            .filter_map(|limits| async {
-                adapter.request_device(
+        let (device, queue) = loop {
+            if let Some(limits) = limits.next() {
+                let device = adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(
                             "iced_wgpu::window::compositor device descriptor",
@@ -111,11 +112,15 @@ impl<Theme> Compositor<Theme> {
                         limits,
                     },
                     None,
-                ).await.ok()
-            })
-            .boxed()
-            .next()
-            .await?;
+                ).await.ok();
+
+                if let Some(device) = device {
+                    break Some(device);
+                }
+            }
+
+            break None;
+        }?;
 
         Some(Compositor {
             instance,
