@@ -108,7 +108,7 @@ impl Sandbox for Styling {
             column!["Scroll me!", vertical_space(800), "You did it!"]
                 .width(Length::Fill),
         )
-        .width(300)    
+        .width(Length::Fill)
         .height(100);
 
         let checkbox = checkbox(
