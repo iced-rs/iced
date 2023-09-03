@@ -12,8 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `wgpu` to `0.17`. [#2065](https://github.com/iced-rs/iced/pull/2065)
 - Changed `Button::style` to take an `impl Into<...>` for consistency. [#2046](https://github.com/iced-rs/iced/pull/2046)
 
+### Fixed
+- Missing `width` attribute in `styling` example. [#2062](https://github.com/iced-rs/iced/pull/2062)
+
 Many thanks to...
 
+- @akshayr-mecha
 - @dtzxporter
 
 ## [0.10.0] - 2023-07-28
