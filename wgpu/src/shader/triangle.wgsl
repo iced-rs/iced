@@ -38,22 +38,22 @@ fn solid_fs_main(input: SolidVertexOutput) -> @location(0) vec4<f32> {
 
 struct GradientVertexInput {
     @location(0) v_pos: vec2<f32>,
-    @location(1) colors_1: vec4<u32>,
-    @location(2) colors_2: vec4<u32>,
-    @location(3) colors_3: vec4<u32>,
-    @location(4) colors_4: vec4<u32>,
-    @location(5) offsets: vec4<u32>,
+    @location(1) @interpolate(flat) colors_1: vec4<u32>,
+    @location(2) @interpolate(flat) colors_2: vec4<u32>,
+    @location(3) @interpolate(flat) colors_3: vec4<u32>,
+    @location(4) @interpolate(flat) colors_4: vec4<u32>,
+    @location(5) @interpolate(flat) offsets: vec4<u32>,
     @location(6) direction: vec4<f32>,
 }
 
 struct GradientVertexOutput {
     @builtin(position) position: vec4<f32>,
     @location(0) raw_position: vec2<f32>,
-    @location(1) colors_1: vec4<u32>,
-    @location(2) colors_2: vec4<u32>,
-    @location(3) colors_3: vec4<u32>,
-    @location(4) colors_4: vec4<u32>,
-    @location(5) offsets: vec4<u32>,
+    @location(1) @interpolate(flat) colors_1: vec4<u32>,
+    @location(2) @interpolate(flat) colors_2: vec4<u32>,
+    @location(3) @interpolate(flat) colors_3: vec4<u32>,
+    @location(4) @interpolate(flat) colors_4: vec4<u32>,
+    @location(5) @interpolate(flat) offsets: vec4<u32>,
     @location(6) direction: vec4<f32>,
 }
 
