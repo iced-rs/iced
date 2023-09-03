@@ -159,29 +159,28 @@ impl Pipeline {
                     }
                 };
 
-                let x = bounds.x * scale_factor;
-                let y = bounds.y * scale_factor;
-
-                let max_width = bounds.width * scale_factor;
-                let total_height = bounds.height * scale_factor;
+                let bounds = bounds * scale_factor;
 
                 let left = match horizontal_alignment {
-                    alignment::Horizontal::Left => x,
-                    alignment::Horizontal::Center => x - max_width / 2.0,
-                    alignment::Horizontal::Right => x - max_width,
+                    alignment::Horizontal::Left => bounds.x,
+                    alignment::Horizontal::Center => {
+                        bounds.x - bounds.width / 2.0
+                    }
+                    alignment::Horizontal::Right => bounds.x - bounds.width,
                 };
 
                 let top = match vertical_alignment {
-                    alignment::Vertical::Top => y,
-                    alignment::Vertical::Center => y - total_height / 2.0,
-                    alignment::Vertical::Bottom => y - total_height,
+                    alignment::Vertical::Top => bounds.y,
+                    alignment::Vertical::Center => {
+                        bounds.y - bounds.height / 2.0
+                    }
+                    alignment::Vertical::Bottom => bounds.y - bounds.height,
                 };
 
                 let section_bounds = Rectangle {
                     x: left,
                     y: top,
-                    width: max_width,
-                    height: total_height,
+                    ..bounds
                 };
 
                 let clip_bounds = layer_bounds.intersection(&section_bounds)?;

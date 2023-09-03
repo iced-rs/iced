@@ -41,16 +41,34 @@ impl Pipeline {
 
     pub fn draw_paragraph(
         &mut self,
-        _paragraph: &paragraph::Weak,
-        _position: Point,
-        _color: Color,
-        _scale_factor: f32,
-        _pixels: &mut tiny_skia::PixmapMut<'_>,
-        _clip_mask: Option<&tiny_skia::Mask>,
+        paragraph: &paragraph::Weak,
+        position: Point,
+        color: Color,
+        scale_factor: f32,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::Mask>,
     ) {
+        use crate::core::text::Paragraph as _;
+
+        let Some(paragraph) = paragraph.upgrade() else {
+            return;
+        };
+
+        draw(
+            &mut self.font_system.get_mut(),
+            &mut self.glyph_cache,
+            paragraph.buffer(),
+            Rectangle::new(position, paragraph.min_bounds()),
+            color,
+            paragraph.horizontal_alignment(),
+            paragraph.vertical_alignment(),
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
     }
 
-    pub fn draw(
+    pub fn draw_cached(
         &mut self,
         content: &str,
         bounds: Rectangle,
@@ -79,59 +97,89 @@ impl Pipeline {
 
         let (_, entry) = self.cache.get_mut().allocate(font_system, key);
 
-        let max_width = entry.min_bounds.width * scale_factor;
-        let total_height = entry.min_bounds.height * scale_factor;
+        let width = entry.min_bounds.width;
+        let height = entry.min_bounds.height;
 
-        let bounds = bounds * scale_factor;
-
-        let x = match horizontal_alignment {
-            alignment::Horizontal::Left => bounds.x,
-            alignment::Horizontal::Center => bounds.x - max_width / 2.0,
-            alignment::Horizontal::Right => bounds.x - max_width,
-        };
-
-        let y = match vertical_alignment {
-            alignment::Vertical::Top => bounds.y,
-            alignment::Vertical::Center => bounds.y - total_height / 2.0,
-            alignment::Vertical::Bottom => bounds.y - total_height,
-        };
-
-        let mut swash = cosmic_text::SwashCache::new();
-
-        for run in entry.buffer.layout_runs() {
-            for glyph in run.glyphs {
-                let physical_glyph = glyph.physical((x, y), scale_factor);
-
-                if let Some((buffer, placement)) = self.glyph_cache.allocate(
-                    physical_glyph.cache_key,
-                    color,
-                    font_system,
-                    &mut swash,
-                ) {
-                    let pixmap = tiny_skia::PixmapRef::from_bytes(
-                        buffer,
-                        placement.width,
-                        placement.height,
-                    )
-                    .expect("Create glyph pixel map");
-
-                    pixels.draw_pixmap(
-                        physical_glyph.x + placement.left,
-                        physical_glyph.y - placement.top
-                            + (run.line_y * scale_factor).round() as i32,
-                        pixmap,
-                        &tiny_skia::PixmapPaint::default(),
-                        tiny_skia::Transform::identity(),
-                        clip_mask,
-                    );
-                }
-            }
-        }
+        draw(
+            font_system,
+            &mut self.glyph_cache,
+            &entry.buffer,
+            Rectangle {
+                width,
+                height,
+                ..bounds
+            },
+            color,
+            horizontal_alignment,
+            vertical_alignment,
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
     }
 
     pub fn trim_cache(&mut self) {
         self.cache.get_mut().trim();
         self.glyph_cache.trim();
+    }
+}
+
+fn draw(
+    font_system: &mut cosmic_text::FontSystem,
+    glyph_cache: &mut GlyphCache,
+    buffer: &cosmic_text::Buffer,
+    bounds: Rectangle,
+    color: Color,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+    scale_factor: f32,
+    pixels: &mut tiny_skia::PixmapMut<'_>,
+    clip_mask: Option<&tiny_skia::Mask>,
+) {
+    let bounds = bounds * scale_factor;
+
+    let x = match horizontal_alignment {
+        alignment::Horizontal::Left => bounds.x,
+        alignment::Horizontal::Center => bounds.x - bounds.width / 2.0,
+        alignment::Horizontal::Right => bounds.x - bounds.width,
+    };
+
+    let y = match vertical_alignment {
+        alignment::Vertical::Top => bounds.y,
+        alignment::Vertical::Center => bounds.y - bounds.height / 2.0,
+        alignment::Vertical::Bottom => bounds.y - bounds.height,
+    };
+
+    let mut swash = cosmic_text::SwashCache::new();
+
+    for run in buffer.layout_runs() {
+        for glyph in run.glyphs {
+            let physical_glyph = glyph.physical((x, y), scale_factor);
+
+            if let Some((buffer, placement)) = glyph_cache.allocate(
+                physical_glyph.cache_key,
+                color,
+                font_system,
+                &mut swash,
+            ) {
+                let pixmap = tiny_skia::PixmapRef::from_bytes(
+                    buffer,
+                    placement.width,
+                    placement.height,
+                )
+                .expect("Create glyph pixel map");
+
+                pixels.draw_pixmap(
+                    physical_glyph.x + placement.left,
+                    physical_glyph.y - placement.top
+                        + (run.line_y * scale_factor).round() as i32,
+                    pixmap,
+                    &tiny_skia::PixmapPaint::default(),
+                    tiny_skia::Transform::identity(),
+                    clip_mask,
+                );
+            }
+        }
     }
 }
 

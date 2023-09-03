@@ -405,7 +405,7 @@ impl Backend {
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
                     .then_some(clip_mask as &_);
 
-                self.text_pipeline.draw(
+                self.text_pipeline.draw_cached(
                     content,
                     *bounds + translation,
                     *color,
