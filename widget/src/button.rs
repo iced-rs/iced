@@ -119,9 +119,9 @@ where
     /// Sets the style variant of this [`Button`].
     pub fn style(
         mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
