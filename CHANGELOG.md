@@ -10,10 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated `wgpu` to `0.17`. [#2065](https://github.com/iced-rs/iced/pull/2065)
+- Changed `Button::style` to take an `impl Into<...>` for consistency. [#2046](https://github.com/iced-rs/iced/pull/2046)
 
 Many thanks to...
 
-- Add your <name> here
+- @dtzxporter
 
 ## [0.10.0] - 2023-07-28
 ### Added
