@@ -55,7 +55,7 @@ impl Pipeline {
         };
 
         draw(
-            &mut self.font_system.get_mut(),
+            self.font_system.get_mut(),
             &mut self.glyph_cache,
             paragraph.buffer(),
             Rectangle::new(position, paragraph.min_bounds()),
