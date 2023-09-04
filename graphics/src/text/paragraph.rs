@@ -27,6 +27,8 @@ impl Paragraph {
     }
 
     pub fn with_text(text: Text<'_, Font>, font_system: &FontSystem) -> Self {
+        log::trace!("\nAllocating paragraph: {}", text.content);
+
         let mut font_system = font_system.write();
 
         let mut buffer = cosmic_text::Buffer::new(
