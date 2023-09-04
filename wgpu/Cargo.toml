@@ -12,6 +12,7 @@ geometry = ["iced_graphics/geometry", "lyon"]
 image = ["iced_graphics/image"]
 svg = ["resvg"]
 web-colors = ["iced_graphics/web-colors"]
+webgl = ["wgpu/webgl"]
 
 [dependencies]
 wgpu = "0.17"
@@ -23,9 +24,6 @@ bitflags = "1.2"
 once_cell = "1.0"
 rustc-hash = "1.1"
 log = "0.4"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-wgpu = { version = "0.17", features = ["webgl"] }
 
 [dependencies.twox-hash]
 version = "1.6"
