@@ -6,6 +6,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
-env_logger = "0.10.0"
+iced.workspace = true
+iced.features = ["debug", "canvas", "tokio"]
+
 rand = "0.8.3"
+tracing-subscriber = "0.3"

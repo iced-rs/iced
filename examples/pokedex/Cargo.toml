@@ -6,7 +6,9 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["image", "debug", "tokio"] }
+iced.workspace = true
+iced.features = ["image", "debug", "tokio"]
+
 serde_json = "1.0"
 
 [dependencies.serde]

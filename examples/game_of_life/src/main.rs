@@ -18,7 +18,7 @@ use iced::{
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
-    env_logger::builder().format_timestamp(None).init();
+    tracing_subscriber::fmt::init();
 
     GameOfLife::run(Settings {
         antialiasing: true,
