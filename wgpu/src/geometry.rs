@@ -444,11 +444,19 @@ impl Frame {
         self.transforms.current.is_identity = false;
     }
 
-    /// Applies a scaling to the current transform of the [`Frame`].
+    /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
     pub fn scale(&mut self, scale: f32) {
         self.transforms.current.raw =
             self.transforms.current.raw.pre_scale(scale, scale);
+        self.transforms.current.is_identity = false;
+    }
+
+    /// Applies a non-uniform scaling to the current transform of the [`Frame`].
+    #[inline]
+    pub fn scale_nonuniform(&mut self, scale: Vector) {
+        self.transforms.current.raw =
+            self.transforms.current.raw.pre_scale(scale.x, scale.y);
         self.transforms.current.is_identity = false;
     }
 

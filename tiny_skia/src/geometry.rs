@@ -158,6 +158,10 @@ impl Frame {
         self.transform = self.transform.pre_scale(scale, scale);
     }
 
+    pub fn scale_nonuniform(&mut self, scale: Vector) {
+        self.transform = self.transform.pre_scale(scale.x, scale.y);
+    }
+
     pub fn into_primitive(self) -> Primitive {
         Primitive::Clip {
             bounds: Rectangle::new(Point::ORIGIN, self.size),

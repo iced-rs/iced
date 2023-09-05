@@ -168,10 +168,16 @@ impl Frame {
         delegate!(self, frame, frame.rotate(angle));
     }
 
-    /// Applies a scaling to the current transform of the [`Frame`].
+    /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
     pub fn scale(&mut self, scale: f32) {
         delegate!(self, frame, frame.scale(scale));
+    }
+
+    /// Applies a non-uniform scaling to the current transform of the [`Frame`].
+    #[inline]
+    pub fn scale_nonuniform(&mut self, scale: Vector) {
+        delegate!(self, frame, frame.scale_nonuniform(scale));
     }
 
     pub fn into_geometry(self) -> Geometry {
