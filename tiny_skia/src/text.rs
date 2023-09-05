@@ -54,8 +54,7 @@ impl Pipeline {
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
     ) {
-        let line_height = f32::from(line_height.to_absolute(Pixels(size)))
-            .max(f32::MIN_POSITIVE);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let font_system = self.font_system.get_mut();
         let key = Key {
@@ -135,8 +134,7 @@ impl Pipeline {
     ) -> Size {
         let mut measurement_cache = self.cache.borrow_mut();
 
-        let line_height = f32::from(line_height.to_absolute(Pixels(size)))
-            .max(f32::MIN_POSITIVE);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
@@ -166,8 +164,7 @@ impl Pipeline {
     ) -> Option<Hit> {
         let mut measurement_cache = self.cache.borrow_mut();
 
-        let line_height = f32::from(line_height.to_absolute(Pixels(size)))
-            .max(f32::MIN_POSITIVE);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, entry) = measurement_cache.allocate(
             &mut self.font_system.borrow_mut(),
@@ -409,8 +406,8 @@ impl Cache {
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
             let metrics = cosmic_text::Metrics::new(
-                key.size,
-                (key.size * 1.2).max(f32::MIN_POSITIVE),
+                key.line_height,
+                (key.line_height * 1.2).max(f32::MIN_POSITIVE),
             );
             let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
 

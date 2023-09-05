@@ -96,8 +96,7 @@ impl Pipeline {
                             section
                                 .line_height
                                 .to_absolute(Pixels(section.size)),
-                        )
-                        .max(f32::MIN_POSITIVE),
+                        ),
                         font: section.font,
                         bounds: Size {
                             width: section.bounds.width,
@@ -239,8 +238,7 @@ impl Pipeline {
     ) -> Size {
         let mut cache = self.cache.borrow_mut();
 
-        let line_height = f32::from(line_height.to_absolute(Pixels(size)))
-            .max(f32::MIN_POSITIVE);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
@@ -271,8 +269,7 @@ impl Pipeline {
     ) -> Option<Hit> {
         let mut cache = self.cache.borrow_mut();
 
-        let line_height = f32::from(line_height.to_absolute(Pixels(size)))
-            .max(f32::MIN_POSITIVE);
+        let line_height = f32::from(line_height.to_absolute(Pixels(size)));
 
         let (_, entry) = cache.allocate(
             &mut self.font_system.borrow_mut(),
@@ -417,7 +414,10 @@ impl Cache {
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = glyphon::Metrics::new(key.size, key.line_height);
+            let metrics = glyphon::Metrics::new(
+                key.size,
+                key.line_height.max(f32::MIN_POSITIVE),
+            );
             let mut buffer = glyphon::Buffer::new(font_system, metrics);
 
             buffer.set_size(
