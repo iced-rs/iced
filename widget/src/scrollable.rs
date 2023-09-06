@@ -1137,6 +1137,16 @@ impl Viewport {
         }
     }
 
+    /// Returns the bounds of the current [`Viewport`].
+    pub fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
+    /// Returns the content bounds of the current [`Viewport`].
+    pub fn content_bounds(&self) -> Rectangle {
+        self.content_bounds
+    }
+
     /// Returns the [`RelativeOffset`] of the current [`Viewport`].
     pub fn relative_offset(&self) -> RelativeOffset {
         let AbsoluteOffset { x, y } = self.absolute_offset();
