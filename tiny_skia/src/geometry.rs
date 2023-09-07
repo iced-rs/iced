@@ -155,7 +155,7 @@ impl Frame {
     }
 
     pub fn scale(&mut self, scale: f32) {
-        self.transform = self.transform.pre_scale(scale, scale);
+        self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 
     pub fn scale_nonuniform(&mut self, scale: Vector) {
