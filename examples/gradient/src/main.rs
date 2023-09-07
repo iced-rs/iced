@@ -1,5 +1,5 @@
 use iced::gradient;
-use iced::widget::{column, container, row, slider, text};
+use iced::widget::{column, container, horizontal_space, row, slider, text};
 use iced::{
     Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
 };
@@ -48,7 +48,7 @@ impl Sandbox for Gradient {
     fn view(&self) -> Element<Message> {
         let Self { start, end, angle } = *self;
 
-        let gradient_box = container(text(""))
+        let gradient_box = container(horizontal_space(Length::Fill))
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
