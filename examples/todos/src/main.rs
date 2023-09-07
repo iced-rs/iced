@@ -1,8 +1,6 @@
 use iced::alignment::{self, Alignment};
-use iced::event::{self, Event};
 use iced::font::{self, Font};
-use iced::keyboard::{self, KeyCode, Modifiers};
-use iced::subscription;
+use iced::keyboard;
 use iced::theme::{self, Theme};
 use iced::widget::{
     self, button, checkbox, column, container, row, scrollable, text,
@@ -52,7 +50,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
-    ToggleFullscreen(window::Mode),
+    ChangeWindowMode(window::Mode),
 }
 
 impl Application for Todos {
@@ -163,7 +161,7 @@ impl Application for Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => {
+                    Message::ChangeWindowMode(mode) => {
                         window::change_mode(mode)
                     }
                     _ => Command::none(),
@@ -262,33 +260,19 @@ impl Application for Todos {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, status| match (event, status) {
-            (
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Tab,
-                    modifiers,
-                    ..
+        keyboard::on_key_press(|key_code, modifiers| {
+            match (key_code, modifiers) {
+                (keyboard::KeyCode::Tab, _) => Some(Message::TabPressed {
+                    shift: modifiers.shift(),
                 }),
-                event::Status::Ignored,
-            ) => Some(Message::TabPressed {
-                shift: modifiers.shift(),
-            }),
-            (
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code,
-                    modifiers: Modifiers::SHIFT,
-                }),
-                event::Status::Ignored,
-            ) => match key_code {
-                KeyCode::Up => {
-                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
+                (keyboard::KeyCode::Up, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ChangeWindowMode(window::Mode::Fullscreen))
                 }
-                KeyCode::Down => {
-                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
+                (keyboard::KeyCode::Down, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ChangeWindowMode(window::Mode::Windowed))
                 }
                 _ => None,
-            },
-            _ => None,
+            }
         })
     }
 }
