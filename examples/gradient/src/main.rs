@@ -1,7 +1,7 @@
+use iced::gradient;
 use iced::widget::{column, container, row, slider, text};
 use iced::{
-    gradient, Alignment, Background, BorderRadius, Color, Element, Length,
-    Radians, Sandbox, Settings,
+    Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
 };
 
 pub fn main() -> iced::Result {
@@ -62,11 +62,8 @@ impl Sandbox for Gradient {
                 .into();
 
                 container::Appearance {
-                    text_color: None,
                     background: Some(Background::Gradient(gradient)),
-                    border_radius: BorderRadius::default(),
-                    border_width: 0.0,
-                    border_color: Color::new(0.0, 0.0, 0.0, 0.0),
+                    ..Default::default()
                 }
             });
 
