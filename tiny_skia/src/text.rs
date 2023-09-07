@@ -405,7 +405,10 @@ impl Cache {
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = cosmic_text::Metrics::new(key.size, key.size * 1.2);
+            let metrics = cosmic_text::Metrics::new(
+                key.size,
+                key.line_height.max(f32::MIN_POSITIVE),
+            );
             let mut buffer = cosmic_text::Buffer::new(font_system, metrics);
 
             buffer.set_size(

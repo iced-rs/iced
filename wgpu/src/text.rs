@@ -414,7 +414,10 @@ impl Cache {
         }
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(hash) {
-            let metrics = glyphon::Metrics::new(key.size, key.line_height);
+            let metrics = glyphon::Metrics::new(
+                key.size,
+                key.line_height.max(f32::MIN_POSITIVE),
+            );
             let mut buffer = glyphon::Buffer::new(font_system, metrics);
 
             buffer.set_size(
