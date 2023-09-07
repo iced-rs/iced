@@ -21,5 +21,8 @@ default-features = false
 features = ["json", "rustls-tls"]
 
 [dependencies.rand]
-version = "0.7"
-features = ["wasm-bindgen"]
+version = "0.8"
+
+[dependencies.getrandom]
+version = "0.2"
+features = ["js"]
