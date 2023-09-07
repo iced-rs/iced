@@ -51,8 +51,6 @@ impl Sandbox for Gradient {
         let gradient_box = container(horizontal_space(Length::Fill))
             .width(Length::Fill)
             .height(Length::Fill)
-            .center_x()
-            .center_y()
             .style(move |_: &_| {
                 let gradient = gradient::Linear::new(Radians(
                     angle + std::f32::consts::PI,
