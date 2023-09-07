@@ -550,7 +550,7 @@ mod grid {
                     frame.translate(center);
                     frame.scale(self.scaling);
                     frame.translate(self.translation);
-                    frame.scale(Cell::SIZE as f32);
+                    frame.scale(Cell::SIZE);
 
                     let region = self.visible_region(frame.size());
 
@@ -576,7 +576,7 @@ mod grid {
                         frame.translate(center);
                         frame.scale(self.scaling);
                         frame.translate(self.translation);
-                        frame.scale(Cell::SIZE as f32);
+                        frame.scale(Cell::SIZE);
 
                         frame.fill_rectangle(
                             Point::new(cell.j as f32, cell.i as f32),
@@ -630,7 +630,7 @@ mod grid {
                         frame.translate(center);
                         frame.scale(self.scaling);
                         frame.translate(self.translation);
-                        frame.scale(Cell::SIZE as f32);
+                        frame.scale(Cell::SIZE);
 
                         let region = self.visible_region(frame.size());
                         let rows = region.rows();
@@ -834,7 +834,7 @@ mod grid {
     }
 
     impl Cell {
-        const SIZE: usize = 20;
+        const SIZE: u16 = 20;
 
         fn at(position: Point) -> Cell {
             let i = (position.y / Cell::SIZE as f32).ceil() as isize;

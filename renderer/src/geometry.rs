@@ -170,13 +170,13 @@ impl Frame {
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
-    pub fn scale(&mut self, scale: f32) {
+    pub fn scale(&mut self, scale: impl Into<f32>) {
         delegate!(self, frame, frame.scale(scale));
     }
 
     /// Applies a non-uniform scaling to the current transform of the [`Frame`].
     #[inline]
-    pub fn scale_nonuniform(&mut self, scale: Vector) {
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
         delegate!(self, frame, frame.scale_nonuniform(scale));
     }
 

@@ -446,13 +446,17 @@ impl Frame {
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
-    pub fn scale(&mut self, scale: f32) {
+    pub fn scale(&mut self, scale: impl Into<f32>) {
+        let scale = scale.into();
+
         self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 
     /// Applies a non-uniform scaling to the current transform of the [`Frame`].
     #[inline]
-    pub fn scale_nonuniform(&mut self, scale: Vector) {
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+        let scale = scale.into();
+
         self.transforms.current.raw =
             self.transforms.current.raw.pre_scale(scale.x, scale.y);
         self.transforms.current.is_identity = false;
