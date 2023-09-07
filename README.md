@@ -15,11 +15,11 @@
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-<a href="https://gfycat.com/littlesanehalicore">
-  <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" width="275px">
+<a href="https://iced.rs/examples/todos.mp4">
+  <img src="https://iced.rs/examples/todos.gif" width="275px">
 </a>
-<a href="https://gfycat.com/politeadorableiberianmole">
-  <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" width="273px">
+<a href="https://iced.rs/examples/tour.mp4">
+  <img src="https://iced.rs/examples/tour.gif" width="273px">
 </a>
 
 </div>
@@ -47,9 +47,9 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [the Web]: https://github.com/iced-rs/iced_web
-[text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
-[scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
-[Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
+[text inputs]: https://iced.rs/examples/text_input.mp4
+[scrollables]: https://iced.rs/examples/scrollable.mp4
+[Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
 [Modular ecosystem]: ECOSYSTEM.md
 [renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu

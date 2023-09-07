@@ -5,8 +5,8 @@ A todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, 
 All the example code is located in the __[`main`]__ file.
 
 <div align="center">
-  <a href="https://gfycat.com/littlesanehalicore">
-    <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" height="400px">
+  <a href="https://iced.rs/examples/todos.mp4">
+    <img src="https://iced.rs/examples/todos.gif">
   </a>
 </div>
 

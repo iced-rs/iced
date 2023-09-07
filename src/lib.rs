@@ -20,9 +20,9 @@
 //! Check out the [repository] and the [examples] for more details!
 //!
 //! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
-//! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
-//! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
-//! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
+//! [text inputs]: https://iced.rs/examples/text_input.mp4
+//! [scrollables]: https://iced.rs/examples/scrollable.mp4
+//! [Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
 //! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
 //! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.10/runtime
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
