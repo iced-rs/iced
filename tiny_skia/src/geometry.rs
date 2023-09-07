@@ -154,8 +154,16 @@ impl Frame {
             .pre_concat(tiny_skia::Transform::from_rotate(angle.to_degrees()));
     }
 
-    pub fn scale(&mut self, scale: f32) {
-        self.transform = self.transform.pre_scale(scale, scale);
+    pub fn scale(&mut self, scale: impl Into<f32>) {
+        let scale = scale.into();
+
+        self.scale_nonuniform(Vector { x: scale, y: scale });
+    }
+
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+        let scale = scale.into();
+
+        self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
 
     pub fn into_primitive(self) -> Primitive {
