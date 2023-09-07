@@ -12,14 +12,14 @@ pub fn main() -> iced::Result {
 struct Gradient {
     start: Color,
     end: Color,
-    angle: f32,
+    angle: Radians,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
     StartChanged(Color),
     EndChanged(Color),
-    AngleChanged(f32),
+    AngleChanged(Radians),
 }
 
 impl Sandbox for Gradient {
@@ -29,7 +29,7 @@ impl Sandbox for Gradient {
         Self {
             start: Color::WHITE,
             end: Color::new(0.0, 0.0, 1.0, 1.0),
-            angle: 0.0,
+            angle: Radians(0.0),
         }
     }
 
@@ -52,12 +52,10 @@ impl Sandbox for Gradient {
             .width(Length::Fill)
             .height(Length::Fill)
             .style(move |_: &_| {
-                let gradient = gradient::Linear::new(Radians(
-                    angle + std::f32::consts::PI,
-                ))
-                .add_stop(0.0, start)
-                .add_stop(1.0, end)
-                .into();
+                let gradient = gradient::Linear::new(angle)
+                    .add_stop(0.0, start)
+                    .add_stop(1.0, end)
+                    .into();
 
                 container::Appearance {
                     background: Some(Background::Gradient(gradient)),
@@ -67,10 +65,8 @@ impl Sandbox for Gradient {
 
         let angle_picker = row![
             text("Angle").width(64),
-            slider(0.0..=std::f32::consts::PI * 2.0, self.angle, move |v| {
-                Message::AngleChanged(v)
-            })
-            .step(0.01)
+            slider(Radians::RANGE, self.angle, Message::AngleChanged)
+                .step(0.01)
         ]
         .spacing(8)
         .padding(8)
