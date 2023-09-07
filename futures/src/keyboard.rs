@@ -44,9 +44,9 @@ where
     Message: MaybeSend + 'static,
 {
     #[derive(Hash)]
-    struct OnKeyPress;
+    struct OnKeyRelease;
 
-    subscription::filter_map((OnKeyPress, f), move |event, status| {
+    subscription::filter_map((OnKeyRelease, f), move |event, status| {
         match (event, status) {
             (
                 core::Event::Keyboard(Event::KeyReleased {
