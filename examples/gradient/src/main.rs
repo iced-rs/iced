@@ -26,12 +26,9 @@ impl Sandbox for Gradient {
     type Message = Message;
 
     fn new() -> Self {
-        let start = Color::new(1.0, 1.0, 1.0, 1.0);
-        let end = Color::new(0.0, 0.0, 1.0, 1.0);
-
         Self {
-            start,
-            end,
+            start: Color::WHITE,
+            end: Color::new(0.0, 0.0, 1.0, 1.0),
             angle: 0.0,
         }
     }
