@@ -187,7 +187,6 @@ pub mod advanced;
 pub use style::theme;
 
 pub use crate::core::alignment;
-pub use crate::core::event;
 pub use crate::core::gradient;
 pub use crate::core::{
     color, Alignment, Background, BorderRadius, Color, ContentFit, Degrees,
@@ -223,9 +222,16 @@ pub mod font {
     pub use crate::runtime::font::*;
 }
 
+pub mod event {
+    //! Handle events of a user interface.
+    pub use crate::core::event::{Event, MacOS, PlatformSpecific, Status};
+    pub use iced_futures::event::{listen, listen_raw, listen_with};
+}
+
 pub mod keyboard {
     //! Listen and react to keyboard events.
     pub use crate::core::keyboard::{Event, KeyCode, Modifiers};
+    pub use iced_futures::keyboard::{on_key_press, on_key_release};
 }
 
 pub mod mouse {
@@ -238,7 +244,7 @@ pub mod mouse {
 pub mod subscription {
     //! Listen to external events in your application.
     pub use iced_futures::subscription::{
-        channel, events, events_with, run, run_with_id, unfold, Subscription,
+        channel, run, run_with_id, unfold, Subscription,
     };
 }
 

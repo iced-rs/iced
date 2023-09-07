@@ -1,10 +1,12 @@
+use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription::{self, Subscription};
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
+use iced::{
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+};
 
 use toast::{Status, Toast};
 
@@ -57,7 +59,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events().map(Message::Event)
+        event::listen().map(Message::Event)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

@@ -1,14 +1,14 @@
+use iced::event::{self, Event};
 use iced::executor;
 use iced::mouse;
-use iced::subscription::{self, Subscription};
 use iced::theme::{self, Theme};
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
 };
 use iced::window;
 use iced::{
-    Alignment, Application, Color, Command, Element, Event, Font, Length,
-    Point, Rectangle, Settings,
+    Alignment, Application, Color, Command, Element, Font, Length, Point,
+    Rectangle, Settings, Subscription,
 };
 
 pub fn main() -> iced::Result {
@@ -163,7 +163,7 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, _| match event {
+        event::listen_with(|event, _| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }

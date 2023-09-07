@@ -1,8 +1,6 @@
 use iced::alignment::{self, Alignment};
-use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
@@ -146,18 +144,12 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, status| {
-            if let event::Status::Captured = status {
+        keyboard::on_key_press(|key_code, modifiers| {
+            if !modifiers.command() {
                 return None;
             }
 
-            match event {
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    modifiers,
-                    key_code,
-                }) if modifiers.command() => handle_hotkey(key_code),
-                _ => None,
-            }
+            handle_hotkey(key_code)
         })
     }
 
