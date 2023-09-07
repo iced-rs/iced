@@ -152,7 +152,7 @@ struct GradientVertexInput {
     @location(3) @interpolate(flat) colors_3: vec4<u32>,
     @location(4) @interpolate(flat) colors_4: vec4<u32>,
     @location(5) @interpolate(flat) offsets: vec4<u32>,
-    @location(6) @interpolate(flat) direction: vec4<f32>,
+    @location(6) direction: vec4<f32>,
     @location(7) position_and_scale: vec4<f32>,
     @location(8) border_color: vec4<f32>,
     @location(9) border_radius: vec4<f32>,
