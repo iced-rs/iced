@@ -8,7 +8,7 @@ use iced::widget::{Button, Column, Container, Slider};
 use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     Tour::run(Settings::default())
 }

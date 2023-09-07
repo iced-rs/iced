@@ -1,19 +1,17 @@
 [package]
 name = "iced_winit"
-version = "0.10.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "A winit runtime for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_winit"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+description = "A runtime for iced on top of winit"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
-trace = ["tracing", "tracing-core", "tracing-subscriber"]
-chrome-trace = ["trace", "tracing-chrome"]
 debug = ["iced_runtime/debug"]
 system = ["sysinfo"]
 application = []
@@ -23,54 +21,23 @@ wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
 
 [dependencies]
-window_clipboard = "0.3"
-log = "0.4"
-thiserror = "1.0"
-raw-window-handle = "0.5"
+iced_graphics.workspace = true
+iced_runtime.workspace = true
+iced_style.workspace = true
 
-[dependencies.winit]
-version = "0.28"
-git = "https://github.com/iced-rs/winit.git"
-rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e"
-default-features = false
+log.workspace = true
+raw-window-handle.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+window_clipboard.workspace = true
+winit.workspace = true
 
-[dependencies.iced_runtime]
-version = "0.1"
-path = "../runtime"
+sysinfo.workspace = true
+sysinfo.optional = true
 
-[dependencies.iced_graphics]
-version = "0.9"
-path = "../graphics"
+[target.'cfg(target_os = "windows")'.dependencies]
+winapi.workspace = true
 
-[dependencies.iced_style]
-version = "0.9"
-path = "../style"
-
-[dependencies.tracing]
-version = "0.1.37"
-optional = true
-features = ["std"]
-
-[dependencies.tracing-core]
-version = "0.1.30"
-optional = true
-
-[dependencies.tracing-subscriber]
-version = "0.3.16"
-optional = true
-features = ["registry"]
-
-[dependencies.tracing-chrome]
-version = "0.7.0"
-optional = true
-
-[target.'cfg(target_os = "windows")'.dependencies.winapi]
-version = "0.3.6"
-
-[target.'cfg(target_arch = "wasm32")'.dependencies.web-sys]
-version = "0.3"
-features = ["Document", "Window"]
-
-[dependencies.sysinfo]
-version = "0.28"
-optional = true
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys.workspace = true
+web-sys.features = ["Document", "Window"]

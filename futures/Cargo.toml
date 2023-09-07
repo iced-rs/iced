@@ -1,47 +1,40 @@
 [package]
 name = "iced_futures"
-version = "0.7.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "Commands, subscriptions, and runtimes for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_futures"
-keywords = ["gui", "ui", "graphics", "interface", "futures"]
-categories = ["gui"]
+description = "Commands, subscriptions, and future executors for iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [features]
 thread-pool = ["futures/thread-pool"]
 
 [dependencies]
-log = "0.4"
+iced_core.workspace = true
 
-[dependencies.iced_core]
-version = "0.10"
-path = "../core"
+futures.workspace = true
+log.workspace = true
 
-[dependencies.futures]
-version = "0.3"
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+async-std.workspace = true
+async-std.optional = true
+async-std.features = ["unstable"]
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.tokio]
-package = "tokio"
-version = "1.0"
-optional = true
-features = ["rt", "rt-multi-thread", "time"]
+smol.workspace = true
+smol.optional = true
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.async-std]
-version = "1.0"
-optional = true
-features = ["unstable"]
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.smol]
-version = "1.2"
-optional = true
+tokio.workspace = true
+tokio.optional = true
+tokio.features = ["rt", "rt-multi-thread", "time"]
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-wasm-bindgen-futures = "0.4"
-wasm-timer = "0.2"
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-all-features = true
+wasm-bindgen-futures.workspace = true
+wasm-timer.workspace = true

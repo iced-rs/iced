@@ -1,14 +1,14 @@
 [package]
 name = "iced_tiny_skia"
-version = "0.1.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "A software renderer for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_tiny_skia"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+description = "A software renderer for iced on top of tiny-skia"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [features]
 image = ["iced_graphics/image"]
@@ -16,27 +16,21 @@ svg = ["resvg"]
 geometry = ["iced_graphics/geometry"]
 
 [dependencies]
-raw-window-handle = "0.5"
-softbuffer = "0.2"
-tiny-skia = "0.10"
-cosmic-text = "0.9"
-bytemuck = "1"
-rustc-hash = "1.1"
-kurbo = "0.9"
-log = "0.4"
+iced_graphics.workspace = true
 
-[dependencies.iced_graphics]
-version = "0.9"
-path = "../graphics"
+bytemuck.workspace = true
+cosmic-text.workspace = true
+kurbo.workspace = true
+log.workspace = true
+raw-window-handle.workspace = true
+rustc-hash.workspace = true
+softbuffer.workspace = true
+tiny-skia.workspace = true
+twox-hash.workspace = true
 
-[dependencies.twox-hash]
-version = "1.6"
-default-features = false
+resvg.workspace = true
+resvg.optional = true
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
-version = "1.6.1"
-features = ["std"]
-
-[dependencies.resvg]
-version = "0.35"
-optional = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+twox-hash.workspace = true
+twox-hash.features = ["std"]

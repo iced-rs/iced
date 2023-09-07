@@ -12,7 +12,7 @@ use ::image as img;
 use ::image::ColorType;
 
 fn main() -> iced::Result {
-    env_logger::builder().format_timestamp(None).init();
+    tracing_subscriber::fmt::init();
 
     Example::run(iced::Settings::default())
 }

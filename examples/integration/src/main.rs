@@ -41,7 +41,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     #[cfg(not(target_arch = "wasm32"))]
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     // Initialize winit
     let event_loop = EventLoop::new();
