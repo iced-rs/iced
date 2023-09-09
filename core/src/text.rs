@@ -172,18 +172,14 @@ pub trait Renderer: crate::Renderer {
         paragraph: &mut Self::Paragraph,
         text: Text<'_, Self::Font>,
     ) {
-        if paragraph.content() != text.content
-            || paragraph.text_size() != text.size
-            || paragraph.line_height().to_absolute(text.size)
-                != text.line_height.to_absolute(text.size)
-            || paragraph.font() != text.font
-            || paragraph.shaping() != text.shaping
-            || paragraph.horizontal_alignment() != text.horizontal_alignment
-            || paragraph.vertical_alignment() != text.vertical_alignment
-        {
-            *paragraph = self.create_paragraph(text);
-        } else if paragraph.bounds() != text.bounds {
-            self.resize_paragraph(paragraph, text.bounds);
+        match compare(paragraph, text) {
+            Difference::None => {}
+            Difference::Bounds => {
+                self.resize_paragraph(paragraph, text.bounds);
+            }
+            Difference::Shape => {
+                *paragraph = self.create_paragraph(text);
+            }
         }
     }
 
@@ -253,5 +249,53 @@ pub trait Paragraph: Default {
     /// Returns the minimum height that can fit the contents of the [`Paragraph`].
     fn min_height(&self) -> f32 {
         self.min_bounds().height
+    }
+}
+
+/// The difference detected in some text.
+///
+/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
+/// [`Text`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Difference {
+    /// No difference.
+    ///
+    /// The text can be reused as it is!
+    None,
+
+    /// A bounds difference.
+    ///
+    /// This normally means a relayout is necessary, but the shape of the text can
+    /// be reused.
+    Bounds,
+
+    /// A shape difference.
+    ///
+    /// The contents, alignment, sizes, fonts, or any other essential attributes
+    /// of the shape of the text have changed. A complete reshape and relayout of
+    /// the text is necessary.
+    Shape,
+}
+
+/// Compares a [`Paragraph`] with some desired [`Text`] and returns the
+/// [`Difference`].
+pub fn compare<Font: PartialEq>(
+    paragraph: &impl Paragraph<Font = Font>,
+    text: Text<'_, Font>,
+) -> Difference {
+    if paragraph.content() != text.content
+        || paragraph.text_size() != text.size
+        || paragraph.line_height().to_absolute(text.size)
+            != text.line_height.to_absolute(text.size)
+        || paragraph.font() != text.font
+        || paragraph.shaping() != text.shaping
+        || paragraph.horizontal_alignment() != text.horizontal_alignment
+        || paragraph.vertical_alignment() != text.vertical_alignment
+    {
+        Difference::Shape
+    } else if paragraph.bounds() != text.bounds {
+        Difference::Bounds
+    } else {
+        Difference::None
     }
 }

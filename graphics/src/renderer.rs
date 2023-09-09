@@ -162,6 +162,29 @@ where
         text::Paragraph::with_text(text, self.backend.font_system())
     }
 
+    fn update_paragraph(
+        &self,
+        paragraph: &mut Self::Paragraph,
+        text: Text<'_, Self::Font>,
+    ) {
+        let font_system = self.backend.font_system();
+
+        if paragraph.version() != font_system.version() {
+            // The font system has changed, paragraph fonts may be outdated
+            *paragraph = self.create_paragraph(text);
+        } else {
+            match core::text::compare(paragraph, text) {
+                core::text::Difference::None => {}
+                core::text::Difference::Bounds => {
+                    self.resize_paragraph(paragraph, text.bounds);
+                }
+                core::text::Difference::Shape => {
+                    *paragraph = self.create_paragraph(text);
+                }
+            }
+        }
+    }
+
     fn resize_paragraph(
         &self,
         paragraph: &mut Self::Paragraph,

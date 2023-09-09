@@ -9,7 +9,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map;
-use std::sync::Arc;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
@@ -32,9 +31,7 @@ impl Pipeline {
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.get_mut().db_mut().load_font_source(
-            cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
-        );
+        self.font_system.load_font(bytes);
 
         self.cache = RefCell::new(Cache::new());
     }

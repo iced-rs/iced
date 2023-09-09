@@ -10,29 +10,53 @@ use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
 use crate::core::Size;
 
+use std::borrow::Cow;
 use std::sync::{self, Arc, RwLock};
 
 #[allow(missing_debug_implementations)]
-pub struct FontSystem(RwLock<cosmic_text::FontSystem>);
+pub struct FontSystem {
+    raw: RwLock<cosmic_text::FontSystem>,
+    version: Version,
+}
 
 impl FontSystem {
     pub fn new() -> Self {
-        FontSystem(RwLock::new(cosmic_text::FontSystem::new_with_fonts(
-            [cosmic_text::fontdb::Source::Binary(Arc::new(
-                include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
-            ))]
-            .into_iter(),
-        )))
+        FontSystem {
+            raw: RwLock::new(cosmic_text::FontSystem::new_with_fonts(
+                [cosmic_text::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                ))]
+                .into_iter(),
+            )),
+            version: Version::default(),
+        }
     }
 
     pub fn get_mut(&mut self) -> &mut cosmic_text::FontSystem {
-        self.0.get_mut().expect("Lock font system")
+        self.raw.get_mut().expect("Lock font system")
     }
 
-    pub fn write(&self) -> sync::RwLockWriteGuard<'_, cosmic_text::FontSystem> {
-        self.0.write().expect("Write font system")
+    pub fn write(
+        &self,
+    ) -> (sync::RwLockWriteGuard<'_, cosmic_text::FontSystem>, Version) {
+        (self.raw.write().expect("Write font system"), self.version)
+    }
+
+    pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
+        let _ = self.get_mut().db_mut().load_font_source(
+            cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
+        );
+
+        self.version = Version(self.version.0 + 1);
+    }
+
+    pub fn version(&self) -> Version {
+        self.version
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Version(u32);
 
 impl Default for FontSystem {
     fn default() -> Self {

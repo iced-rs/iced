@@ -19,6 +19,7 @@ struct Internal {
     vertical_alignment: alignment::Vertical,
     bounds: Size,
     min_bounds: Size,
+    version: text::Version,
 }
 
 impl Paragraph {
@@ -27,9 +28,9 @@ impl Paragraph {
     }
 
     pub fn with_text(text: Text<'_, Font>, font_system: &FontSystem) -> Self {
-        log::trace!("\nAllocating paragraph: {}", text.content);
+        log::trace!("Allocating paragraph: {}", text.content);
 
-        let mut font_system = font_system.write();
+        let (mut font_system, version) = font_system.write();
 
         let mut buffer = cosmic_text::Buffer::new(
             &mut font_system,
@@ -63,11 +64,16 @@ impl Paragraph {
             shaping: text.shaping,
             bounds: text.bounds,
             min_bounds,
+            version,
         })))
     }
 
     pub fn buffer(&self) -> &cosmic_text::Buffer {
         &self.internal().buffer
+    }
+
+    pub fn version(&self) -> text::Version {
+        self.internal().version
     }
 
     pub fn downgrade(&self) -> Weak {
@@ -89,8 +95,10 @@ impl Paragraph {
 
         match Arc::try_unwrap(paragraph) {
             Ok(mut internal) => {
+                let (mut font_system, _) = font_system.write();
+
                 internal.buffer.set_size(
-                    &mut font_system.write(),
+                    &mut font_system,
                     new_bounds.width,
                     new_bounds.height,
                 );
@@ -246,6 +254,7 @@ impl Default for Internal {
             vertical_alignment: alignment::Vertical::Top,
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
+            version: text::Version::default(),
         }
     }
 }
