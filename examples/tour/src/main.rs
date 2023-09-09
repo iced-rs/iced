@@ -10,7 +10,7 @@ use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
     {
-        console_log::init_with_level(log::Level::Debug).expect("Initialize logger");
+        console_log::init().expect("Initialize logger");
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
     }
 
