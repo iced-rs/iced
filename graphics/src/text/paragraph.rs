@@ -189,8 +189,27 @@ impl core::text::Paragraph for Paragraph {
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
         let run = self.internal().buffer.layout_runs().nth(line)?;
 
-        // TODO: Index represents a grapheme, not a glyph
-        let glyph = run.glyphs.get(index).or_else(|| run.glyphs.last())?;
+        // index represents a grapheme, not a glyph
+        // Let's find the first glyph for the given grapheme cluster
+        let mut last_start = None;
+        let mut graphemes_seen = 0;
+
+        let glyph = run
+            .glyphs
+            .iter()
+            .find(|glyph| {
+                if graphemes_seen == index {
+                    return true;
+                }
+
+                if Some(glyph.start) != last_start {
+                    last_start = Some(glyph.start);
+                    graphemes_seen += 1;
+                }
+
+                false
+            })
+            .or_else(|| run.glyphs.last())?;
 
         let advance_last = if index == run.glyphs.len() {
             glyph.w
