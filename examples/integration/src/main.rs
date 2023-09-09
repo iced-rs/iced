@@ -29,7 +29,7 @@ use winit::platform::web::WindowBuilderExtWebSys;
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
     let canvas_element = {
-        console_log::init_with_level(log::Level::Debug)?;
+        console_log::init().expect("Initialize logger");
 
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 

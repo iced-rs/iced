@@ -18,6 +18,9 @@ async-std.workspace = true
 directories-next = "2.0"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["debug", "webgl"]
+
 web-sys = { workspace = true, features = ["Window", "Storage"] }
 wasm-timer.workspace = true
 
