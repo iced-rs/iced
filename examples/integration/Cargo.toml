@@ -13,6 +13,9 @@ iced_widget.workspace = true
 tracing-subscriber = "0.3"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
+iced_wgpu.workspace = true
+iced_wgpu.features = ["webgl"]
+
 console_error_panic_hook = "0.1"
 console_log = "1.0"
 log.workspace = true
