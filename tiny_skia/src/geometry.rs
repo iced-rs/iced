@@ -303,7 +303,7 @@ pub fn into_fill_rule(rule: fill::Rule) -> tiny_skia::FillRule {
     }
 }
 
-pub fn into_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
+pub fn into_stroke(stroke: &Stroke<'_>) -> tiny_skia::Stroke {
     tiny_skia::Stroke {
         width: stroke.width,
         line_cap: match stroke.line_cap {

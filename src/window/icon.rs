@@ -10,7 +10,7 @@ use std::path::Path;
 
 /// Creates an icon from an image file.
 ///
-/// This will return an error in case the file is missing at run-time. You may prefer [`Self::from_file_data`] instead.
+/// This will return an error in case the file is missing at run-time. You may prefer [`from_file_data`] instead.
 #[cfg(feature = "image")]
 pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
     let icon = image::io::Reader::open(icon_path)?.decode()?.to_rgba8();

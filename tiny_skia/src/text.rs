@@ -32,7 +32,7 @@ impl Pipeline {
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.get_mut().db_mut().load_font_source(
+        let _ = self.font_system.get_mut().db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
 
@@ -335,10 +335,10 @@ impl GlyphCache {
                 }
             }
 
-            entry.insert((buffer, image.placement));
+            let _ = entry.insert((buffer, image.placement));
         }
 
-        self.recently_used.insert(key);
+        let _ = self.recently_used.insert(key);
 
         self.entries.get(&key).map(|(buffer, placement)| {
             (bytemuck::cast_slice(buffer.as_slice()), *placement)

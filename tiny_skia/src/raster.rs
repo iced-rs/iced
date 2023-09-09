@@ -85,14 +85,14 @@ impl Cache {
                 );
             }
 
-            entry.insert(Some(Entry {
+            let _ = entry.insert(Some(Entry {
                 width: image.width(),
                 height: image.height(),
                 pixels: buffer,
             }));
         }
 
-        self.hits.insert(id);
+        let _ = self.hits.insert(id);
         self.entries.get(&id).unwrap().as_ref().map(|entry| {
             tiny_skia::PixmapRef::from_bytes(
                 bytemuck::cast_slice(&entry.pixels),

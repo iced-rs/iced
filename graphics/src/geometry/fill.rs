@@ -1,4 +1,6 @@
-//! Fill [crate::widget::canvas::Geometry] with a certain style.
+//! Fill [`Geometry`] with a certain style.
+//!
+//! [`Geometry`]: super::Renderer::Geometry
 pub use crate::geometry::Style;
 
 use crate::core::Color;

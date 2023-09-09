@@ -63,7 +63,7 @@ pub trait Compositor: Sized {
     /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
     /// the texture ordered as `RGBA` in the sRGB color space.
     ///
-    /// [`Renderer`]: Self::Renderer;
+    /// [`Renderer`]: Self::Renderer
     fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,

@@ -9,6 +9,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
+#![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
     missing_debug_implementations,
     missing_docs,
@@ -17,9 +18,9 @@
     clippy::from_over_into,
     clippy::needless_borrow,
     clippy::new_without_default,
-    clippy::useless_conversion
+    clippy::useless_conversion,
+    rustdoc::broken_intra_doc_links
 )]
-#![forbid(unsafe_code, rust_2018_idioms)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 pub mod alignment;
 pub mod clipboard;

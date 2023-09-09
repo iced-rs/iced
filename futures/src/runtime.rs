@@ -9,9 +9,9 @@ use std::marker::PhantomData;
 /// A batteries-included runtime of commands and subscriptions.
 ///
 /// If you have an [`Executor`], a [`Runtime`] can be leveraged to run any
-/// [`Command`] or [`Subscription`] and get notified of the results!
+/// `Command` or [`Subscription`] and get notified of the results!
 ///
-/// [`Command`]: crate::Command
+/// [`Subscription`]: crate::Subscription
 #[derive(Debug)]
 pub struct Runtime<Executor, Sender, Message> {
     executor: Executor,
@@ -75,6 +75,7 @@ where
     /// [`Tracker::update`] to learn more about this!
     ///
     /// [`Tracker::update`]: subscription::Tracker::update
+    /// [`Subscription`]: crate::Subscription
     pub fn track(
         &mut self,
         recipes: impl IntoIterator<

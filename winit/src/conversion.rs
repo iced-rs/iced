@@ -521,7 +521,7 @@ pub fn user_attention(
     }
 }
 
-/// Converts some [`Icon`] into it's `winit` counterpart.
+/// Converts some [`window::Icon`] into it's `winit` counterpart.
 ///
 /// Returns `None` if there is an error during the conversion.
 pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
