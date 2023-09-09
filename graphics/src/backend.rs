@@ -16,7 +16,7 @@ pub trait Backend {
 
 /// A graphics backend that supports text rendering.
 pub trait Text {
-    /// Loads a [`Font`] from its bytes.
+    /// Loads a font from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>);
 
     /// Returns the [`cosmic_text::FontSystem`] of the [`Backend`].

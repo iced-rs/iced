@@ -34,11 +34,11 @@ pub enum Primitive<T> {
     },
     /// A paragraph primitive
     Paragraph {
-        /// The [`Paragraph`].
+        /// The [`paragraph::Weak`] reference.
         paragraph: paragraph::Weak,
-        /// The position of the [`Paragraph`].
+        /// The position of the paragraph.
         position: Point,
-        /// The color of the [`Paragraph`].
+        /// The color of the paragraph.
         color: Color,
     },
     /// A quad primitive

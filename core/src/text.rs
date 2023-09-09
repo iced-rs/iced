@@ -215,7 +215,7 @@ pub trait Paragraph: Default {
     /// Returns the [`LineHeight`] of the [`Paragraph`].
     fn line_height(&self) -> LineHeight;
 
-    /// Returns the [`Font`] of the [`Paragraph`].
+    /// Returns the [`Self::Font`] of the [`Paragraph`].
     fn font(&self) -> Self::Font;
 
     /// Returns the [`Shaping`] strategy of the [`Paragraph`].
