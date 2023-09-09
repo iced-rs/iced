@@ -6,6 +6,7 @@ use crate::container::{self, Container};
 use crate::core;
 use crate::core::widget::operation;
 use crate::core::{Element, Length, Pixels};
+use crate::keyed;
 use crate::overlay;
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
@@ -63,12 +64,20 @@ where
 }
 
 /// Creates a new [`Column`] with the given children.
-///
-/// [`Column`]: crate::Column
 pub fn column<Message, Renderer>(
     children: Vec<Element<'_, Message, Renderer>>,
 ) -> Column<'_, Message, Renderer> {
     Column::with_children(children)
+}
+
+/// Creates a new [`keyed::Column`] with the given children.
+pub fn keyed_column<'a, Key, Message, Renderer>(
+    children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
+) -> keyed::Column<'a, Key, Message, Renderer>
+where
+    Key: Copy + PartialEq,
+{
+    keyed::Column::with_children(children)
 }
 
 /// Creates a new [`Row`] with the given children.

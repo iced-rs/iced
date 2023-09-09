@@ -8,7 +8,7 @@ use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
-use iced_winit::core::{Color, Size};
+use iced_winit::core::{Color, Font, Pixels, Size};
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::style::Theme;
@@ -142,12 +142,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize iced
     let mut debug = Debug::new();
-    let mut renderer = Renderer::new(Backend::new(
-        &device,
-        &queue,
-        Settings::default(),
-        format,
-    ));
+    let mut renderer = Renderer::new(
+        Backend::new(&device, &queue, Settings::default(), format),
+        Font::default(),
+        Pixels(16.0),
+    );
 
     let mut state = program::State::new(
         controls,

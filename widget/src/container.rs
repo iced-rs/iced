@@ -5,7 +5,8 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Operation, Tree};
+use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{self, Operation};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
     Point, Rectangle, Shell, Size, Vector, Widget,
@@ -135,12 +136,20 @@ where
     Renderer: crate::core::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        self.content.as_widget().tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.content.as_widget().state()
+    }
+
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
+        self.content.as_widget().children()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        self.content.as_widget().diff(tree);
     }
 
     fn width(&self) -> Length {
@@ -153,11 +162,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
-            renderer,
             limits,
             self.width,
             self.height,
@@ -166,9 +175,7 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
+            |limits| self.content.as_widget().layout(tree, renderer, limits),
         )
     }
 
@@ -184,7 +191,7 @@ where
             layout.bounds(),
             &mut |operation| {
                 self.content.as_widget().operate(
-                    &mut tree.children[0],
+                    tree,
                     layout.children().next().unwrap(),
                     renderer,
                     operation,
@@ -205,7 +212,7 @@ where
         viewport: &Rectangle,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
-            &mut tree.children[0],
+            tree,
             event,
             layout.children().next().unwrap(),
             cursor,
@@ -225,7 +232,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
-            &tree.children[0],
+            tree,
             layout.children().next().unwrap(),
             cursor,
             viewport,
@@ -248,7 +255,7 @@ where
         draw_background(renderer, &style, layout.bounds());
 
         self.content.as_widget().draw(
-            &tree.children[0],
+            tree,
             renderer,
             theme,
             &renderer::Style {
@@ -269,7 +276,7 @@ where
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
+            tree,
             layout.children().next().unwrap(),
             renderer,
         )
@@ -291,8 +298,7 @@ where
 }
 
 /// Computes the layout of a [`Container`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
+pub fn layout(
     limits: &layout::Limits,
     width: Length,
     height: Length,
@@ -301,7 +307,7 @@ pub fn layout<Renderer>(
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits
         .loose()
@@ -310,7 +316,7 @@ pub fn layout<Renderer>(
         .width(width)
         .height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let mut content = layout_content(&limits.pad(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size());
 

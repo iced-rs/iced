@@ -216,7 +216,14 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     ) -> Result<(Self, Self::Renderer), Error> {
         let (compositor, backend) = new(settings, compatible_window)?;
 
-        Ok((compositor, Renderer::new(backend)))
+        Ok((
+            compositor,
+            Renderer::new(
+                backend,
+                settings.default_font,
+                settings.default_text_size,
+            ),
+        ))
     }
 
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(

@@ -254,11 +254,18 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
+
         self.with_element(|element| {
-            element.as_widget().layout(renderer, limits)
+            element.as_widget().layout(
+                &mut t.borrow_mut().as_mut().unwrap().children[0],
+                renderer,
+                limits,
+            )
         })
     }
 
@@ -566,7 +573,7 @@ where
     S: 'static + Default,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

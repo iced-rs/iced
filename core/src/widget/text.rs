@@ -3,9 +3,9 @@ use crate::alignment;
 use crate::layout;
 use crate::mouse;
 use crate::renderer;
-use crate::text;
-use crate::widget::Tree;
-use crate::{Color, Element, Layout, Length, Pixels, Rectangle, Widget};
+use crate::text::{self, Paragraph};
+use crate::widget::tree::{self, Tree};
+use crate::{Color, Element, Layout, Length, Pixels, Point, Rectangle, Widget};
 
 use std::borrow::Cow;
 
@@ -19,7 +19,7 @@ where
     Renderer::Theme: StyleSheet,
 {
     content: Cow<'a, str>,
-    size: Option<f32>,
+    size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
     height: Length,
@@ -53,7 +53,7 @@ where
 
     /// Sets the size of the [`Text`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.size = Some(size.into().0);
+        self.size = Some(size.into());
         self
     }
 
@@ -117,11 +117,23 @@ where
     }
 }
 
+/// The internal state of a [`Text`] widget.
+#[derive(Debug, Default)]
+pub struct State<P: Paragraph>(P);
+
 impl<'a, Message, Renderer> Widget<Message, Renderer> for Text<'a, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State(Renderer::Paragraph::default()))
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -132,30 +144,29 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
-        let size = self.size.unwrap_or_else(|| renderer.default_size());
-
-        let bounds = renderer.measure(
+        layout(
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            renderer,
+            limits,
+            self.width,
+            self.height,
             &self.content,
-            size,
             self.line_height,
-            self.font.unwrap_or_else(|| renderer.default_font()),
-            limits.max(),
+            self.size,
+            self.font,
+            self.horizontal_alignment,
+            self.vertical_alignment,
             self.shaping,
-        );
-
-        let size = limits.resolve(bounds);
-
-        layout::Node::new(size)
+        )
     }
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -163,20 +174,61 @@ where
         _cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+
         draw(
             renderer,
             style,
             layout,
-            &self.content,
-            self.size,
-            self.line_height,
-            self.font,
+            state,
             theme.appearance(self.style.clone()),
-            self.horizontal_alignment,
-            self.vertical_alignment,
-            self.shaping,
         );
     }
+}
+
+/// Produces the [`layout::Node`] of a [`Text`] widget.
+pub fn layout<Renderer>(
+    state: &mut State<Renderer::Paragraph>,
+    renderer: &Renderer,
+    limits: &layout::Limits,
+    width: Length,
+    height: Length,
+    content: &str,
+    line_height: LineHeight,
+    size: Option<Pixels>,
+    font: Option<Renderer::Font>,
+    horizontal_alignment: alignment::Horizontal,
+    vertical_alignment: alignment::Vertical,
+    shaping: Shaping,
+) -> layout::Node
+where
+    Renderer: text::Renderer,
+{
+    let limits = limits.width(width).height(height);
+    let bounds = limits.max();
+
+    let size = size.unwrap_or_else(|| renderer.default_size());
+    let font = font.unwrap_or_else(|| renderer.default_font());
+
+    let State(ref mut paragraph) = state;
+
+    renderer.update_paragraph(
+        paragraph,
+        text::Text {
+            content,
+            bounds,
+            size,
+            line_height,
+            font,
+            shaping,
+            horizontal_alignment,
+            vertical_alignment,
+        },
+    );
+
+    let size = limits.resolve(paragraph.min_bounds());
+
+    layout::Node::new(size)
 }
 
 /// Draws text using the same logic as the [`Text`] widget.
@@ -193,44 +245,31 @@ pub fn draw<Renderer>(
     renderer: &mut Renderer,
     style: &renderer::Style,
     layout: Layout<'_>,
-    content: &str,
-    size: Option<f32>,
-    line_height: LineHeight,
-    font: Option<Renderer::Font>,
+    state: &State<Renderer::Paragraph>,
     appearance: Appearance,
-    horizontal_alignment: alignment::Horizontal,
-    vertical_alignment: alignment::Vertical,
-    shaping: Shaping,
 ) where
     Renderer: text::Renderer,
 {
+    let State(ref paragraph) = state;
     let bounds = layout.bounds();
 
-    let x = match horizontal_alignment {
+    let x = match paragraph.horizontal_alignment() {
         alignment::Horizontal::Left => bounds.x,
         alignment::Horizontal::Center => bounds.center_x(),
         alignment::Horizontal::Right => bounds.x + bounds.width,
     };
 
-    let y = match vertical_alignment {
+    let y = match paragraph.vertical_alignment() {
         alignment::Vertical::Top => bounds.y,
         alignment::Vertical::Center => bounds.center_y(),
         alignment::Vertical::Bottom => bounds.y + bounds.height,
     };
 
-    let size = size.unwrap_or_else(|| renderer.default_size());
-
-    renderer.fill_text(crate::Text {
-        content,
-        size,
-        line_height,
-        bounds: Rectangle { x, y, ..bounds },
-        color: appearance.color.unwrap_or(style.text_color),
-        font: font.unwrap_or_else(|| renderer.default_font()),
-        horizontal_alignment,
-        vertical_alignment,
-        shaping,
-    });
+    renderer.fill_paragraph(
+        paragraph,
+        Point::new(x, y),
+        appearance.color.unwrap_or(style.text_color),
+    );
 }
 
 impl<'a, Message, Renderer> From<Text<'a, Renderer>>

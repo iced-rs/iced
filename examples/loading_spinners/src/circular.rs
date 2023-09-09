@@ -254,6 +254,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {

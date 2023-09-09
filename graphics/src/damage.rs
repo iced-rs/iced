@@ -40,6 +40,32 @@ impl<T: Damage> Damage for Primitive<T> {
 
                 bounds.expand(1.5)
             }
+            Self::Paragraph {
+                paragraph,
+                position,
+                ..
+            } => {
+                let mut bounds =
+                    Rectangle::new(*position, paragraph.min_bounds);
+
+                bounds.x = match paragraph.horizontal_alignment {
+                    alignment::Horizontal::Left => bounds.x,
+                    alignment::Horizontal::Center => {
+                        bounds.x - bounds.width / 2.0
+                    }
+                    alignment::Horizontal::Right => bounds.x - bounds.width,
+                };
+
+                bounds.y = match paragraph.vertical_alignment {
+                    alignment::Vertical::Top => bounds.y,
+                    alignment::Vertical::Center => {
+                        bounds.y - bounds.height / 2.0
+                    }
+                    alignment::Vertical::Bottom => bounds.y - bounds.height,
+                };
+
+                bounds.expand(1.5)
+            }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
             | Self::Svg { bounds, .. } => bounds.expand(1.0),

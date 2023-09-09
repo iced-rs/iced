@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- Explicit text caching. [#2058](https://github.com/iced-rs/iced/pull/2058)
 - `Theme::Custom::with_fn` for custom extended palette generation. [#2067](https://github.com/iced-rs/iced/pull/2067)
 
 ### Changed

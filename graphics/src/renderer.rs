@@ -1,15 +1,15 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
-use crate::Primitive;
-
-use iced_core::image;
-use iced_core::layout;
-use iced_core::renderer;
-use iced_core::svg;
-use iced_core::text::{self, Text};
-use iced_core::{
-    Background, Color, Element, Font, Point, Rectangle, Size, Vector,
+use crate::core;
+use crate::core::image;
+use crate::core::renderer;
+use crate::core::svg;
+use crate::core::text::Text;
+use crate::core::{
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Vector,
 };
+use crate::text;
+use crate::Primitive;
 
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -18,15 +18,23 @@ use std::marker::PhantomData;
 #[derive(Debug)]
 pub struct Renderer<B: Backend, Theme> {
     backend: B,
+    default_font: Font,
+    default_text_size: Pixels,
     primitives: Vec<Primitive<B::Primitive>>,
     theme: PhantomData<Theme>,
 }
 
 impl<B: Backend, T> Renderer<B, T> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
-    pub fn new(backend: B) -> Self {
+    pub fn new(
+        backend: B,
+        default_font: Font,
+        default_text_size: Pixels,
+    ) -> Self {
         Self {
             backend,
+            default_font,
+            default_text_size,
             primitives: Vec::new(),
             theme: PhantomData,
         }
@@ -88,16 +96,6 @@ impl<B: Backend, T> Renderer<B, T> {
 impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
     type Theme = T;
 
-    fn layout<Message>(
-        &mut self,
-        element: &Element<'_, Message, Self>,
-        limits: &layout::Limits,
-    ) -> layout::Node {
-        self.backend.trim_measurements();
-
-        element.as_widget().layout(self, limits)
-    }
-
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         let current = self.start_layer();
 
@@ -137,77 +135,89 @@ impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
     }
 }
 
-impl<B, T> text::Renderer for Renderer<B, T>
+impl<B, T> core::text::Renderer for Renderer<B, T>
 where
     B: Backend + backend::Text,
 {
     type Font = Font;
+    type Paragraph = text::Paragraph;
 
-    const ICON_FONT: Font = B::ICON_FONT;
-    const CHECKMARK_ICON: char = B::CHECKMARK_ICON;
-    const ARROW_DOWN_ICON: char = B::ARROW_DOWN_ICON;
+    const ICON_FONT: Font = Font::with_name("Iced-Icons");
+    const CHECKMARK_ICON: char = '\u{f00c}';
+    const ARROW_DOWN_ICON: char = '\u{e800}';
 
     fn default_font(&self) -> Self::Font {
-        self.backend().default_font()
+        self.default_font
     }
 
-    fn default_size(&self) -> f32 {
-        self.backend().default_size()
-    }
-
-    fn measure(
-        &self,
-        content: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-    ) -> Size {
-        self.backend().measure(
-            content,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-        )
-    }
-
-    fn hit_test(
-        &self,
-        content: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<text::Hit> {
-        self.backend().hit_test(
-            content,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-            point,
-            nearest_only,
-        )
+    fn default_size(&self) -> Pixels {
+        self.default_text_size
     }
 
     fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
         self.backend.load_font(bytes);
     }
 
-    fn fill_text(&mut self, text: Text<'_, Self::Font>) {
+    fn create_paragraph(&self, text: Text<'_, Self::Font>) -> text::Paragraph {
+        text::Paragraph::with_text(text, self.backend.font_system())
+    }
+
+    fn update_paragraph(
+        &self,
+        paragraph: &mut Self::Paragraph,
+        text: Text<'_, Self::Font>,
+    ) {
+        let font_system = self.backend.font_system();
+
+        if paragraph.version() != font_system.version() {
+            // The font system has changed, paragraph fonts may be outdated
+            *paragraph = self.create_paragraph(text);
+        } else {
+            match core::text::compare(paragraph, text) {
+                core::text::Difference::None => {}
+                core::text::Difference::Bounds => {
+                    self.resize_paragraph(paragraph, text.bounds);
+                }
+                core::text::Difference::Shape => {
+                    *paragraph = self.create_paragraph(text);
+                }
+            }
+        }
+    }
+
+    fn resize_paragraph(
+        &self,
+        paragraph: &mut Self::Paragraph,
+        new_bounds: Size,
+    ) {
+        paragraph.resize(new_bounds, self.backend.font_system());
+    }
+
+    fn fill_paragraph(
+        &mut self,
+        paragraph: &Self::Paragraph,
+        position: Point,
+        color: Color,
+    ) {
+        self.primitives.push(Primitive::Paragraph {
+            paragraph: paragraph.downgrade(),
+            position,
+            color,
+        });
+    }
+
+    fn fill_text(
+        &mut self,
+        text: Text<'_, Self::Font>,
+        position: Point,
+        color: Color,
+    ) {
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
-            bounds: text.bounds,
+            bounds: Rectangle::new(position, text.bounds),
             size: text.size,
             line_height: text.line_height,
-            color: text.color,
+            color,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,

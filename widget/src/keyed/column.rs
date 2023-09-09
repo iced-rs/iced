@@ -1,47 +1,68 @@
-//! Distribute content horizontally.
+//! Distribute content vertically.
 use crate::core::event::{self, Event};
-use crate::core::layout::{self, Layout};
+use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{Operation, Tree};
+use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::Operation;
 use crate::core::{
-    Alignment, Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell,
-    Widget,
+    Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
+    Shell, Widget,
 };
 
-/// A container that distributes its contents horizontally.
+/// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
-pub struct Row<'a, Message, Renderer = crate::Renderer> {
+pub struct Column<'a, Key, Message, Renderer = crate::Renderer>
+where
+    Key: Copy + PartialEq,
+{
     spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
+    max_width: f32,
     align_items: Alignment,
+    keys: Vec<Key>,
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
-    /// Creates an empty [`Row`].
+impl<'a, Key, Message, Renderer> Column<'a, Key, Message, Renderer>
+where
+    Key: Copy + PartialEq,
+{
+    /// Creates an empty [`Column`].
     pub fn new() -> Self {
         Self::with_children(Vec::new())
     }
 
-    /// Creates a [`Row`] with the given elements.
+    /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: Vec<Element<'a, Message, Renderer>>,
+        children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
     ) -> Self {
-        Row {
+        let (keys, children) = children.into_iter().fold(
+            (Vec::new(), Vec::new()),
+            |(mut keys, mut children), (key, child)| {
+                keys.push(key);
+                children.push(child);
+
+                (keys, children)
+            },
+        );
+
+        Column {
             spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
+            max_width: f32::INFINITY,
             align_items: Alignment::Start,
+            keys,
             children,
         }
     }
 
-    /// Sets the horizontal spacing _between_ elements.
+    /// Sets the vertical spacing _between_ elements.
     ///
     /// Custom margins per element do not exist in iced. You should use this
     /// method instead! While less flexible, it helps you keep spacing between
@@ -51,57 +72,105 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         self
     }
 
-    /// Sets the [`Padding`] of the [`Row`].
+    /// Sets the [`Padding`] of the [`Column`].
     pub fn padding<P: Into<Padding>>(mut self, padding: P) -> Self {
         self.padding = padding.into();
         self
     }
 
-    /// Sets the width of the [`Row`].
+    /// Sets the width of the [`Column`].
     pub fn width(mut self, width: impl Into<Length>) -> Self {
         self.width = width.into();
         self
     }
 
-    /// Sets the height of the [`Row`].
+    /// Sets the height of the [`Column`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
         self
     }
 
-    /// Sets the vertical alignment of the contents of the [`Row`] .
+    /// Sets the maximum width of the [`Column`].
+    pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
+        self.max_width = max_width.into().0;
+        self
+    }
+
+    /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
         self
     }
 
-    /// Adds an [`Element`] to the [`Row`].
+    /// Adds an element to the [`Column`].
     pub fn push(
         mut self,
+        key: Key,
         child: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
+        self.keys.push(key);
         self.children.push(child.into());
         self
     }
 }
 
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>
+where
+    Key: Copy + PartialEq,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Row<'a, Message, Renderer>
+struct State<Key>
+where
+    Key: Copy + PartialEq,
+{
+    keys: Vec<Key>,
+}
+
+impl<'a, Key, Message, Renderer> Widget<Message, Renderer>
+    for Column<'a, Key, Message, Renderer>
 where
     Renderer: crate::core::Renderer,
+    Key: Copy + PartialEq + 'static,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State<Key>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State {
+            keys: self.keys.clone(),
+        })
+    }
+
     fn children(&self) -> Vec<Tree> {
         self.children.iter().map(Tree::new).collect()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children)
+        let Tree {
+            state, children, ..
+        } = tree;
+
+        let state = state.downcast_mut::<State<Key>>();
+
+        tree::diff_children_custom_with_search(
+            children,
+            &self.children,
+            |tree, child| child.as_widget().diff(tree),
+            |index| {
+                self.keys.get(index).or_else(|| self.keys.last()).copied()
+                    != Some(state.keys[index])
+            },
+            |child| Tree::new(child.as_widget()),
+        );
+
+        if state.keys != self.keys {
+            state.keys = self.keys.clone();
+        }
     }
 
     fn width(&self) -> Length {
@@ -118,10 +187,13 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
+        let limits = limits
+            .max_width(self.max_width)
+            .width(self.width)
+            .height(self.height);
 
         layout::flex::resolve(
-            layout::flex::Axis::Horizontal,
+            layout::flex::Axis::Vertical,
             renderer,
             &limits,
             self.padding,
@@ -235,13 +307,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
+impl<'a, Key, Message, Renderer> From<Column<'a, Key, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
+    Key: Copy + PartialEq + 'static,
     Message: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(row: Row<'a, Message, Renderer>) -> Self {
-        Self::new(row)
+    fn from(column: Column<'a, Key, Message, Renderer>) -> Self {
+        Self::new(column)
     }
 }

@@ -1,6 +1,6 @@
 //! Configure your application.
 use crate::window;
-use crate::Font;
+use crate::{Font, Pixels};
 
 /// The settings of an application.
 #[derive(Debug, Clone)]
@@ -29,7 +29,7 @@ pub struct Settings<Flags> {
     /// The text size that will be used by default.
     ///
     /// The default value is `16.0`.
-    pub default_text_size: f32,
+    pub default_text_size: Pixels,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -80,7 +80,7 @@ where
             window: Default::default(),
             flags: Default::default(),
             default_font: Default::default(),
-            default_text_size: 16.0,
+            default_text_size: Pixels(16.0),
             antialiasing: false,
             exit_on_close_request: true,
         }

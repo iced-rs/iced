@@ -328,10 +328,15 @@ mod toast {
 
         fn layout(
             &self,
+            tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(renderer, limits)
+            self.content.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         }
 
         fn tag(&self) -> widget::tree::Tag {
@@ -502,7 +507,7 @@ mod toast {
         for Overlay<'a, 'b, Message>
     {
         fn layout(
-            &self,
+            &mut self,
             renderer: &Renderer,
             bounds: Size,
             position: Point,
@@ -519,6 +524,7 @@ mod toast {
                 10.0,
                 Alignment::End,
                 self.toasts,
+                self.state,
             )
             .translate(Vector::new(position.x, position.y))
         }

@@ -224,16 +224,15 @@ impl Candidate {
         match self {
             Self::TinySkia => {
                 let (compositor, backend) =
-                    iced_tiny_skia::window::compositor::new(
-                        iced_tiny_skia::Settings {
-                            default_font: settings.default_font,
-                            default_text_size: settings.default_text_size,
-                        },
-                    );
+                    iced_tiny_skia::window::compositor::new();
 
                 Ok((
                     Compositor::TinySkia(compositor),
-                    Renderer::TinySkia(iced_tiny_skia::Renderer::new(backend)),
+                    Renderer::TinySkia(iced_tiny_skia::Renderer::new(
+                        backend,
+                        settings.default_font,
+                        settings.default_text_size,
+                    )),
                 ))
             }
             #[cfg(feature = "wgpu")]
@@ -250,7 +249,11 @@ impl Candidate {
 
                 Ok((
                     Compositor::Wgpu(compositor),
-                    Renderer::Wgpu(iced_wgpu::Renderer::new(backend)),
+                    Renderer::Wgpu(iced_wgpu::Renderer::new(
+                        backend,
+                        settings.default_font,
+                        settings.default_text_size,
+                    )),
                 ))
             }
             #[cfg(not(feature = "wgpu"))]

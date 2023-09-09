@@ -40,7 +40,6 @@ impl Sandbox for Example {
             Message::Selected(language) => {
                 self.selected_language = Some(language);
                 self.text = language.hello().to_string();
-                self.languages.unfocus();
             }
             Message::OptionHovered(language) => {
                 self.text = language.hello().to_string();

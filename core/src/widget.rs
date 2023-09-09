@@ -55,6 +55,7 @@ where
     /// user interface.
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node;
@@ -62,7 +63,7 @@ where
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
         &self,
-        state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,

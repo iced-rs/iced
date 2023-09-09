@@ -10,7 +10,7 @@
 #![forbid(rust_2018_idioms)]
 #![deny(
     missing_debug_implementations,
-    missing_docs,
+    //missing_docs,
     unsafe_code,
     unused_results,
     clippy::extra_unused_lifetimes,
@@ -35,6 +35,7 @@ pub mod damage;
 pub mod gradient;
 pub mod mesh;
 pub mod renderer;
+pub mod text;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;

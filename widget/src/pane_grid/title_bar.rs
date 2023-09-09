@@ -213,23 +213,27 @@ where
 
     pub(crate) fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.pad(self.padding);
         let max_size = limits.max();
 
-        let title_layout = self
-            .content
-            .as_widget()
-            .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+        let title_layout = self.content.as_widget().layout(
+            &mut tree.children[0],
+            renderer,
+            &layout::Limits::new(Size::ZERO, max_size),
+        );
 
         let title_size = title_layout.size();
 
         let mut node = if let Some(controls) = &self.controls {
-            let mut controls_layout = controls
-                .as_widget()
-                .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+            let mut controls_layout = controls.as_widget().layout(
+                &mut tree.children[1],
+                renderer,
+                &layout::Limits::new(Size::ZERO, max_size),
+            );
 
             let controls_size = controls_layout.size();
             let space_before_controls = max_size.width - controls_size.width;

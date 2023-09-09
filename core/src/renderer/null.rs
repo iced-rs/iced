@@ -1,6 +1,7 @@
+use crate::alignment;
 use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
-use crate::{Background, Font, Point, Rectangle, Size, Vector};
+use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Vector};
 
 use std::borrow::Cow;
 
@@ -41,6 +42,7 @@ impl Renderer for Null {
 
 impl text::Renderer for Null {
     type Font = Font;
+    type Paragraph = ();
 
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
@@ -50,37 +52,83 @@ impl text::Renderer for Null {
         Font::default()
     }
 
-    fn default_size(&self) -> f32 {
-        16.0
+    fn default_size(&self) -> Pixels {
+        Pixels(16.0)
     }
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn measure(
-        &self,
-        _content: &str,
-        _size: f32,
-        _line_height: text::LineHeight,
-        _font: Font,
-        _bounds: Size,
-        _shaping: text::Shaping,
-    ) -> Size {
-        Size::new(0.0, 20.0)
+    fn create_paragraph(&self, _text: Text<'_, Self::Font>) -> Self::Paragraph {
     }
 
-    fn hit_test(
+    fn resize_paragraph(
         &self,
-        _contents: &str,
-        _size: f32,
-        _line_height: text::LineHeight,
-        _font: Self::Font,
-        _bounds: Size,
-        _shaping: text::Shaping,
-        _point: Point,
-        _nearest_only: bool,
-    ) -> Option<text::Hit> {
+        _paragraph: &mut Self::Paragraph,
+        _new_bounds: Size,
+    ) {
+    }
+
+    fn fill_paragraph(
+        &mut self,
+        _paragraph: &Self::Paragraph,
+        _position: Point,
+        _color: Color,
+    ) {
+    }
+
+    fn fill_text(
+        &mut self,
+        _paragraph: Text<'_, Self::Font>,
+        _position: Point,
+        _color: Color,
+    ) {
+    }
+}
+
+impl text::Paragraph for () {
+    type Font = Font;
+
+    fn content(&self) -> &str {
+        ""
+    }
+
+    fn text_size(&self) -> Pixels {
+        Pixels(16.0)
+    }
+
+    fn font(&self) -> Self::Font {
+        Font::default()
+    }
+
+    fn line_height(&self) -> text::LineHeight {
+        text::LineHeight::default()
+    }
+
+    fn shaping(&self) -> text::Shaping {
+        text::Shaping::default()
+    }
+
+    fn horizontal_alignment(&self) -> alignment::Horizontal {
+        alignment::Horizontal::Left
+    }
+
+    fn vertical_alignment(&self) -> alignment::Vertical {
+        alignment::Vertical::Top
+    }
+
+    fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
         None
     }
 
-    fn fill_text(&mut self, _text: Text<'_, Self::Font>) {}
+    fn bounds(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn min_bounds(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn hit_test(&self, _point: Point) -> Option<text::Hit> {
+        None
+    }
 }

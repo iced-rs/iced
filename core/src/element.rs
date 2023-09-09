@@ -306,10 +306,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.widget.layout(renderer, limits)
+        self.widget.layout(tree, renderer, limits)
     }
 
     fn operate(
@@ -491,10 +492,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.element.widget.layout(renderer, limits)
+        self.element.widget.layout(tree, renderer, limits)
     }
 
     fn operate(

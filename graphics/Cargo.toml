@@ -30,6 +30,8 @@ half.workspace = true
 log.workspace = true
 raw-window-handle.workspace = true
 thiserror.workspace = true
+cosmic-text.workspace = true
+rustc-hash.workspace = true
 
 lyon_path.workspace = true
 lyon_path.optional = true
@@ -39,3 +41,9 @@ image.optional = true
 
 kamadak-exif.workspace = true
 kamadak-exif.optional = true
+
+twox-hash.workspace = true
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+twox-hash.workspace = true
+twox-hash.features = ["std"]

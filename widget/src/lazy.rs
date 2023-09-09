@@ -152,11 +152,14 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         self.with_element(|element| {
-            element.as_widget().layout(renderer, limits)
+            element
+                .as_widget()
+                .layout(&mut tree.children[0], renderer, limits)
         })
     }
 
@@ -326,7 +329,7 @@ where
     Renderer: core::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
