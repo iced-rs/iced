@@ -2,7 +2,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// The value of a [`TextInput`].
 ///
-/// [`TextInput`]: crate::widget::TextInput
+/// [`TextInput`]: super::TextInput
 // TODO: Reduce allocations, cache results (?)
 #[derive(Debug, Clone)]
 pub struct Value {

@@ -1,6 +1,6 @@
 //! The state of a [`PaneGrid`].
 //!
-//! [`PaneGrid`]: crate::widget::PaneGrid
+//! [`PaneGrid`]: super::PaneGrid
 use crate::core::{Point, Size};
 use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
@@ -18,23 +18,23 @@ use std::collections::HashMap;
 /// provided to the view function of [`PaneGrid::new`] for displaying each
 /// [`Pane`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
-/// [`PaneGrid::new`]: crate::widget::PaneGrid::new
+/// [`PaneGrid`]: super::PaneGrid
+/// [`PaneGrid::new`]: super::PaneGrid::new
 #[derive(Debug, Clone)]
 pub struct State<T> {
     /// The panes of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub panes: HashMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub internal: Internal,
 
     /// The maximized [`Pane`] of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub(super) maximized: Option<Pane>,
 }
 
@@ -236,6 +236,8 @@ impl<T> State<T> {
     }
 
     /// Move [`Pane`] to an [`Edge`] of the [`PaneGrid`].
+    ///
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn move_to_edge(&mut self, pane: &Pane, edge: Edge) {
         match edge {
             Edge::Top => {
@@ -269,8 +271,8 @@ impl<T> State<T> {
     /// If you want to swap panes on drag and drop in your [`PaneGrid`], you
     /// will need to call this method when handling a [`DragEvent`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    /// [`DragEvent`]: crate::widget::pane_grid::DragEvent
+    /// [`PaneGrid`]: super::PaneGrid
+    /// [`DragEvent`]: super::DragEvent
     pub fn swap(&mut self, a: &Pane, b: &Pane) {
         self.internal.layout.update(&|node| match node {
             Node::Split { .. } => {}
@@ -292,8 +294,8 @@ impl<T> State<T> {
     /// If you want to enable resize interactions in your [`PaneGrid`], you will
     /// need to call this method when handling a [`ResizeEvent`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    /// [`ResizeEvent`]: crate::widget::pane_grid::ResizeEvent
+    /// [`PaneGrid`]: super::PaneGrid
+    /// [`ResizeEvent`]: super::ResizeEvent
     pub fn resize(&mut self, split: &Split, ratio: f32) {
         let _ = self.internal.layout.resize(split, ratio);
     }
@@ -315,7 +317,7 @@ impl<T> State<T> {
     /// Maximize the given [`Pane`]. Only this pane will be rendered by the
     /// [`PaneGrid`] until [`Self::restore()`] is called.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn maximize(&mut self, pane: &Pane) {
         self.maximized = Some(*pane);
     }
@@ -323,14 +325,14 @@ impl<T> State<T> {
     /// Restore the currently maximized [`Pane`] to it's normal size. All panes
     /// will be rendered by the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn restore(&mut self) {
         let _ = self.maximized.take();
     }
 
     /// Returns the maximized [`Pane`] of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn maximized(&self) -> Option<Pane> {
         self.maximized
     }
@@ -338,7 +340,7 @@ impl<T> State<T> {
 
 /// The internal state of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
     layout: Node,
@@ -349,7 +351,7 @@ impl Internal {
     /// Initializes the [`Internal`] state of a [`PaneGrid`] from a
     /// [`Configuration`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn from_configuration<T>(
         panes: &mut HashMap<Pane, T>,
         content: Configuration<T>,
@@ -394,16 +396,16 @@ impl Internal {
 
 /// The current action of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Dragging {
         /// The [`Pane`] being dragged.
         pane: Pane,
@@ -412,7 +414,7 @@ pub enum Action {
     },
     /// A [`Split`] in the [`PaneGrid`] is being dragged.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Resizing {
         /// The [`Split`] being dragged.
         split: Split,

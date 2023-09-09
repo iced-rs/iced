@@ -55,7 +55,7 @@ impl num_traits::FromPrimitive for Radians {
 }
 
 impl Radians {
-    /// Calculates the line in which the [`Angle`] intercepts the `bounds`.
+    /// Calculates the line in which the angle intercepts the `bounds`.
     pub fn to_distance(&self, bounds: &Rectangle) -> (Point, Point) {
         let angle = self.0 - FRAC_PI_2;
         let r = Vector::new(f32::cos(angle), f32::sin(angle));

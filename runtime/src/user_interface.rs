@@ -356,7 +356,7 @@ where
     /// It returns the current [`mouse::Interaction`]. You should update the
     /// icon of the mouse cursor accordingly in your system.
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by
@@ -619,7 +619,7 @@ pub enum State {
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
     Updated {
-        /// The [`Instant`] when a redraw should be performed.
+        /// The [`window::RedrawRequest`] when a redraw should be performed.
         redraw_request: Option<window::RedrawRequest>,
     },
 }

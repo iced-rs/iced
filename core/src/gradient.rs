@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 ///
 /// For a gradient which can be used as a fill on a canvas, see [`iced_graphics::Gradient`].
 pub enum Gradient {
-    /// A linear gradient interpolates colors along a direction at a specific [`Angle`].
+    /// A linear gradient interpolates colors along a direction at a specific angle.
     Linear(Linear),
 }
 

@@ -19,16 +19,14 @@ pub type EventStream = BoxStream<(Event, event::Status)>;
 
 /// A request to listen to external events.
 ///
-/// Besides performing async actions on demand with [`Command`], most
+/// Besides performing async actions on demand with `Command`, most
 /// applications also need to listen to external events passively.
 ///
-/// A [`Subscription`] is normally provided to some runtime, like a [`Command`],
+/// A [`Subscription`] is normally provided to some runtime, like a `Command`,
 /// and it will generate events as long as the user keeps requesting it.
 ///
 /// For instance, you can use a [`Subscription`] to listen to a WebSocket
 /// connection, keyboard presses, mouse events, time ticks, etc.
-///
-/// [`Command`]: crate::Command
 #[must_use = "`Subscription` must be returned to runtime to take effect"]
 pub struct Subscription<Message> {
     recipes: Vec<Box<dyn Recipe<Output = Message>>>,

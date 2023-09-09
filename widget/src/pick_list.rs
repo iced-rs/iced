@@ -105,7 +105,7 @@ where
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`PickList`].
+    /// Sets the text [`text::LineHeight`] of the [`PickList`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,

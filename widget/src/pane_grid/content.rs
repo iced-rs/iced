@@ -10,7 +10,7 @@ use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
-/// [`Pane`]: crate::widget::pane_grid::Pane
+/// [`Pane`]: super::Pane
 #[allow(missing_debug_implementations)]
 pub struct Content<'a, Message, Renderer = crate::Renderer>
 where
@@ -87,7 +87,7 @@ where
 
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,

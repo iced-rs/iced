@@ -1,4 +1,4 @@
-//! A gradient that can be used as a [`Fill`] for some geometry.
+//! A gradient that can be used as a fill for some geometry.
 //!
 //! For a gradient that you can use as a background variant for a widget, see [`Gradient`].
 //!
@@ -53,7 +53,7 @@ pub struct Linear {
 }
 
 impl Linear {
-    /// Creates a new [`Builder`].
+    /// Creates a new [`Linear`] builder.
     pub fn new(start: Point, end: Point) -> Self {
         Self {
             start,

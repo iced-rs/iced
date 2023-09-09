@@ -258,11 +258,11 @@ pub mod system {
 pub mod overlay {
     //! Display interactive elements on top of other widgets.
 
-    /// A generic [`Overlay`].
+    /// A generic overlay.
     ///
-    /// This is an alias of an `iced_native` element with a default `Renderer`.
+    /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
-    /// [`Overlay`]: iced_native::Overlay
+    /// [`overlay::Element`]: crate::core::overlay::Element
     pub type Element<'a, Message, Renderer = crate::Renderer> =
         crate::core::overlay::Element<'a, Message, Renderer>;
 

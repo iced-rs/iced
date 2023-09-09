@@ -23,7 +23,7 @@ pub struct Settings<Flags> {
 
     /// The default [`Font`] to be used.
     ///
-    /// By default, it uses [`Font::SansSerif`].
+    /// By default, it uses [`Family::SansSerif`](crate::font::Family::SansSerif).
     pub default_font: Font,
 
     /// The text size that will be used by default.
