@@ -25,7 +25,6 @@ thiserror = "1.0"
 bitflags = "1.2"
 cosmic-text = "0.9"
 rustc-hash = "1.1"
-unicode-segmentation = "1.6"
 
 [dependencies.bytemuck]
 version = "1.4"
