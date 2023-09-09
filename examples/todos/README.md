@@ -14,7 +14,14 @@ You can run the native version with `cargo run`:
 ```
 cargo run --package todos
 ```
-We have not yet implemented a `LocalStorage` version of the auto-save feature. Therefore, it does not work on web _yet_!
+
+The web version can be run with [`trunk`]:
+
+```
+cd examples/todos
+trunk serve
+```
 
 [`main`]: src/main.rs
 [TodoMVC]: http://todomvc.com/
+[`trunk`]: https://trunkrs.dev/

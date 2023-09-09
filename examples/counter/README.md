@@ -13,4 +13,12 @@ You can run it with `cargo run`:
 cargo run --package counter
 ```
 
+The web version can be run with [`trunk`]:
+
+```
+cd examples/counter
+trunk serve
+```
+
 [`main`]: src/main.rs
+[`trunk`]: https://trunkrs.dev/
