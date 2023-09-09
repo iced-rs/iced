@@ -42,8 +42,6 @@ pub mod column;
 pub use column::Column;
 
 /// Creates a [`Column`] with the given children.
-///
-/// [`Column`]: widget::Column
 #[macro_export]
 macro_rules! keyed_column {
     () => (
