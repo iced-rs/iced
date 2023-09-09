@@ -29,7 +29,7 @@ use winit::platform::web::WindowBuilderExtWebSys;
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
     let canvas_element = {
-        console_log::init_with_level(log::Level::Debug)?;
+        console_log::init().expect("Initialize logger");
 
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
@@ -41,7 +41,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     #[cfg(not(target_arch = "wasm32"))]
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     // Initialize winit
     let event_loop = EventLoop::new();
@@ -82,7 +82,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         futures::futures::executor::block_on(async {
             let adapter = wgpu::util::initialize_adapter_from_env_or_default(
                 &instance,
-                backend,
                 Some(&surface),
             )
             .await

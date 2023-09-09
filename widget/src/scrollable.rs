@@ -1151,6 +1151,16 @@ impl Viewport {
 
         RelativeOffset { x, y }
     }
+
+    /// Returns the bounds of the current [`Viewport`].
+    pub fn bounds(&self) -> Rectangle {
+        self.bounds
+    }
+
+    /// Returns the content bounds of the current [`Viewport`].
+    pub fn content_bounds(&self) -> Rectangle {
+        self.content_bounds
+    }
 }
 
 impl State {

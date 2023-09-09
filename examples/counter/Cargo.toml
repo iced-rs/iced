@@ -6,4 +6,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../.." }
+iced.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["webgl"]

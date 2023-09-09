@@ -109,7 +109,7 @@ where
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Toggler`].
+    /// Sets the text [`text::LineHeight`] of the [`Toggler`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -136,9 +136,9 @@ where
         self
     }
 
-    /// Sets the [`Font`] of the text of the [`Toggler`]
+    /// Sets the [`Renderer::Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Renderer::Font`]: crate::core::text::Renderer
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
         self

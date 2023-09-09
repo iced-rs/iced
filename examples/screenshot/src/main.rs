@@ -4,16 +4,15 @@ use iced::theme::{Button, Container};
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
-    event, executor, keyboard, subscription, Alignment, Application, Command,
-    ContentFit, Element, Event, Length, Rectangle, Renderer, Subscription,
-    Theme,
+    event, executor, keyboard, Alignment, Application, Command, ContentFit,
+    Element, Event, Length, Rectangle, Renderer, Subscription, Theme,
 };
 
 use ::image as img;
 use ::image::ColorType;
 
 fn main() -> iced::Result {
-    env_logger::builder().format_timestamp(None).init();
+    tracing_subscriber::fmt::init();
 
     Example::run(iced::Settings::default())
 }
@@ -254,7 +253,7 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events_with(|event, status| {
+        event::listen_with(|event, status| {
             if let event::Status::Captured = status {
                 return None;
             }

@@ -1,24 +1,27 @@
 [package]
 name = "iced_core"
-version = "0.10.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "The essential concepts of Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
+description = "The essential ideas of iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
 
 [dependencies]
-bitflags = "1.2"
-thiserror = "1"
-log = "0.4.17"
-twox-hash = { version = "1.5", default-features = false }
+bitflags.workspace = true
+log.workspace = true
+thiserror.workspace = true
+twox-hash.workspace = true
+num-traits.workspace = true
 
-[dependencies.palette]
-version = "0.7"
-optional = true
+palette.workspace = true
+palette.optional = true
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-instant = "0.1"
+instant.workspace = true
 
 [dev-dependencies]
 approx = "0.5"

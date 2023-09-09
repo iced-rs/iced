@@ -175,7 +175,7 @@ where
         (uncaptured_events, command)
     }
 
-    /// Applies [`widget::Operation`]s to the [`State`]
+    /// Applies [`Operation`]s to the [`State`]
     pub fn operate(
         &mut self,
         renderer: &mut P::Renderer,

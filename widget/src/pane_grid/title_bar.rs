@@ -11,7 +11,7 @@ use crate::core::{
 
 /// The title bar of a [`Pane`].
 ///
-/// [`Pane`]: crate::widget::pane_grid::Pane
+/// [`Pane`]: super::Pane
 #[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer = crate::Renderer>
 where
@@ -75,7 +75,7 @@ where
     /// [`TitleBar`] is hovered.
     ///
     /// [`controls`]: Self::controls
-    /// [`Pane`]: crate::widget::pane_grid::Pane
+    /// [`Pane`]: super::Pane
     pub fn always_show_controls(mut self) -> Self {
         self.always_show_controls = true;
         self
@@ -114,7 +114,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,

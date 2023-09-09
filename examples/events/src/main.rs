@@ -1,9 +1,8 @@
 use iced::alignment;
+use iced::event::{self, Event};
 use iced::executor;
-use iced::subscription;
 use iced::widget::{button, checkbox, container, text, Column};
 use iced::window;
-use iced::Event;
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
     Theme,
@@ -71,7 +70,7 @@ impl Application for Events {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events().map(Message::EventOccurred)
+        event::listen().map(Message::EventOccurred)
     }
 
     fn view(&self) -> Element<Message> {

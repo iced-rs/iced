@@ -1,8 +1,7 @@
 //! Use the built-in theme and styles.
 pub mod palette;
 
-use self::palette::Extended;
-pub use self::palette::Palette;
+pub use palette::Palette;
 
 use crate::application;
 use crate::button;
@@ -40,7 +39,16 @@ pub enum Theme {
 impl Theme {
     /// Creates a new custom [`Theme`] from the given [`Palette`].
     pub fn custom(palette: Palette) -> Self {
-        Self::Custom(Box::new(Custom::new(palette)))
+        Self::custom_with_fn(palette, palette::Extended::generate)
+    }
+
+    /// Creates a new custom [`Theme`] from the given [`Palette`], with
+    /// a custom generator of a [`palette::Extended`].
+    pub fn custom_with_fn(
+        palette: Palette,
+        generate: impl FnOnce(Palette) -> palette::Extended,
+    ) -> Self {
+        Self::Custom(Box::new(Custom::with_fn(palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].
@@ -66,15 +74,24 @@ impl Theme {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Custom {
     palette: Palette,
-    extended: Extended,
+    extended: palette::Extended,
 }
 
 impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`].
     pub fn new(palette: Palette) -> Self {
+        Self::with_fn(palette, palette::Extended::generate)
+    }
+
+    /// Creates a [`Custom`] theme from the given [`Palette`] with
+    /// a custom generator of a [`palette::Extended`].
+    pub fn with_fn(
+        palette: Palette,
+        generate: impl FnOnce(Palette) -> palette::Extended,
+    ) -> Self {
         Self {
             palette,
-            extended: Extended::generate(palette),
+            extended: generate(palette),
         }
     }
 }

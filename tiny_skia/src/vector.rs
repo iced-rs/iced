@@ -92,10 +92,10 @@ impl Cache {
                 }
             };
 
-            entry.insert(svg);
+            let _ = entry.insert(svg);
         }
 
-        self.tree_hits.insert(id);
+        let _ = self.tree_hits.insert(id);
         self.trees.get(&id).unwrap().as_ref()
     }
 
@@ -178,10 +178,10 @@ impl Cache {
                 }
             }
 
-            self.rasters.insert(key, image);
+            let _ = self.rasters.insert(key, image);
         }
 
-        self.raster_hits.insert(key);
+        let _ = self.raster_hits.insert(key);
         self.rasters.get(&key).map(tiny_skia::Pixmap::as_ref)
     }
 

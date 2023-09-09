@@ -20,7 +20,7 @@ use std::time::Instant;
 ///
 /// This widget is composed by a [`TextInput`] that can be filled with the text
 /// to search for corresponding values from the list of options that are displayed
-/// as a [`Menu`].
+/// as a Menu.
 #[allow(missing_debug_implementations)]
 pub struct ComboBox<'a, T, Message, Renderer = crate::Renderer>
 where
@@ -131,14 +131,16 @@ where
         self
     }
 
-    /// Sets the [`Font`] of the [`ComboBox`].
+    /// Sets the [`Renderer::Font`] of the [`ComboBox`].
+    ///
+    /// [`Renderer::Font`]: text::Renderer
     pub fn font(mut self, font: Renderer::Font) -> Self {
         self.text_input = self.text_input.font(font);
         self.font = Some(font);
         self
     }
 
-    /// Sets the [`Icon`] of the [`ComboBox`].
+    /// Sets the [`text_input::Icon`] of the [`ComboBox`].
     pub fn icon(mut self, icon: text_input::Icon<Renderer::Font>) -> Self {
         self.text_input = self.text_input.icon(icon);
         self

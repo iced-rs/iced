@@ -154,8 +154,16 @@ impl Frame {
             .pre_concat(tiny_skia::Transform::from_rotate(angle.to_degrees()));
     }
 
-    pub fn scale(&mut self, scale: f32) {
-        self.transform = self.transform.pre_scale(scale, scale);
+    pub fn scale(&mut self, scale: impl Into<f32>) {
+        let scale = scale.into();
+
+        self.scale_nonuniform(Vector { x: scale, y: scale });
+    }
+
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+        let scale = scale.into();
+
+        self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
 
     pub fn into_primitive(self) -> Primitive {
@@ -295,7 +303,7 @@ pub fn into_fill_rule(rule: fill::Rule) -> tiny_skia::FillRule {
     }
 }
 
-pub fn into_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
+pub fn into_stroke(stroke: &Stroke<'_>) -> tiny_skia::Stroke {
     tiny_skia::Stroke {
         width: stroke.width,
         line_cap: match stroke.line_cap {

@@ -89,7 +89,7 @@ where
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Menu`].
+    /// Sets the text [`text::LineHeight`] of the [`Menu`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,

@@ -137,8 +137,8 @@ where
     }
 
     /// Sets the step size of the [`Slider`].
-    pub fn step(mut self, step: T) -> Self {
-        self.step = step;
+    pub fn step(mut self, step: impl Into<T>) -> Self {
+        self.step = step.into();
         self
     }
 }

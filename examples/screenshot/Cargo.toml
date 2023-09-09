@@ -6,6 +6,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["debug", "image", "advanced"] }
-image = { version = "0.24.6", features = ["png"]}
-env_logger = "0.10.0"
+iced.workspace = true
+iced.features = ["debug", "image", "advanced"]
+
+image = { workspace = true, features = ["png"]}
+tracing-subscriber = "0.3"

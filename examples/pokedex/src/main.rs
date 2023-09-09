@@ -153,7 +153,7 @@ impl Pokemon {
         let id = {
             let mut rng = rand::rngs::OsRng;
 
-            rng.gen_range(0, Pokemon::TOTAL)
+            rng.gen_range(0..Pokemon::TOTAL)
         };
 
         let fetch_entry = async {

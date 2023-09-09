@@ -1,12 +1,14 @@
+use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription::{self, Subscription};
 use iced::theme;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
     text_input,
 };
-use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
+use iced::{
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+};
 
 use modal::Modal;
 use std::fmt;
@@ -49,7 +51,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events().map(Message::Event)
+        event::listen().map(Message::Event)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

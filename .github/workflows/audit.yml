@@ -1,12 +1,26 @@
 name: Audit
-on: [push]
+on:
+  push: {}
+  pull_request: {}
+  schedule:
+    - cron: '0 0 * * *'
 jobs:
-  dependencies:
+  vulnerabilities:
     runs-on: ubuntu-latest
     steps:
     - uses: hecrj/setup-rust-action@v1
     - name: Install cargo-audit
       run: cargo install cargo-audit
     - uses: actions/checkout@master
-    - name: Audit dependencies
+    - name: Audit vulnerabilities
       run: cargo audit
+
+  artifacts:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - name: Install cargo-outdated
+      run: cargo install cargo-outdated
+    - uses: actions/checkout@master
+    - name: Find outdated dependencies
+      run: cargo outdated --workspace --exit-code 1

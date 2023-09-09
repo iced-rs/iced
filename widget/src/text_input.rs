@@ -182,7 +182,7 @@ where
         self
     }
 
-    /// Sets the [`LineHeight`] of the [`TextInput`].
+    /// Sets the [`text::LineHeight`] of the [`TextInput`].
     pub fn line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,

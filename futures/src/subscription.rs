@@ -4,7 +4,6 @@ mod tracker;
 pub use tracker::Tracker;
 
 use crate::core::event::{self, Event};
-use crate::core::window;
 use crate::core::Hasher;
 use crate::futures::{Future, Stream};
 use crate::{BoxStream, MaybeSend};
@@ -20,16 +19,14 @@ pub type EventStream = BoxStream<(Event, event::Status)>;
 
 /// A request to listen to external events.
 ///
-/// Besides performing async actions on demand with [`Command`], most
+/// Besides performing async actions on demand with `Command`, most
 /// applications also need to listen to external events passively.
 ///
-/// A [`Subscription`] is normally provided to some runtime, like a [`Command`],
+/// A [`Subscription`] is normally provided to some runtime, like a `Command`,
 /// and it will generate events as long as the user keeps requesting it.
 ///
 /// For instance, you can use a [`Subscription`] to listen to a WebSocket
 /// connection, keyboard presses, mouse events, time ticks, etc.
-///
-/// [`Command`]: crate::Command
 #[must_use = "`Subscription` must be returned to runtime to take effect"]
 pub struct Subscription<Message> {
     recipes: Vec<Box<dyn Recipe<Output = Message>>>,
@@ -215,77 +212,6 @@ where
     }
 }
 
-/// Returns a [`Subscription`] to all the ignored runtime events.
-///
-/// This subscription will notify your application of any [`Event`] that was
-/// not captured by any widget.
-pub fn events() -> Subscription<Event> {
-    events_with(|event, status| match status {
-        event::Status::Ignored => Some(event),
-        event::Status::Captured => None,
-    })
-}
-
-/// Returns a [`Subscription`] that filters all the runtime events with the
-/// provided function, producing messages accordingly.
-///
-/// This subscription will call the provided function for every [`Event`]
-/// handled by the runtime. If the function:
-///
-/// - Returns `None`, the [`Event`] will be discarded.
-/// - Returns `Some` message, the `Message` will be produced.
-pub fn events_with<Message>(
-    f: fn(Event, event::Status) -> Option<Message>,
-) -> Subscription<Message>
-where
-    Message: 'static + MaybeSend,
-{
-    #[derive(Hash)]
-    struct EventsWith;
-
-    Subscription::from_recipe(Runner {
-        id: (EventsWith, f),
-        spawn: move |events| {
-            use futures::future;
-            use futures::stream::StreamExt;
-
-            events.filter_map(move |(event, status)| {
-                future::ready(match event {
-                    Event::Window(window::Event::RedrawRequested(_)) => None,
-                    _ => f(event, status),
-                })
-            })
-        },
-    })
-}
-
-/// Returns a [`Subscription`] that produces a message for every runtime event,
-/// including the redraw request events.
-///
-/// **Warning:** This [`Subscription`], if unfiltered, may produce messages in
-/// an infinite loop.
-pub fn raw_events<Message>(
-    f: fn(Event, event::Status) -> Option<Message>,
-) -> Subscription<Message>
-where
-    Message: 'static + MaybeSend,
-{
-    #[derive(Hash)]
-    struct RawEvents;
-
-    Subscription::from_recipe(Runner {
-        id: (RawEvents, f),
-        spawn: move |events| {
-            use futures::future;
-            use futures::stream::StreamExt;
-
-            events.filter_map(move |(event, status)| {
-                future::ready(f(event, status))
-            })
-        },
-    })
-}
-
 /// Returns a [`Subscription`] that will call the given function to create and
 /// asynchronously run the given [`Stream`].
 pub fn run<S, Message>(builder: fn() -> S) -> Subscription<Message>
@@ -336,6 +262,25 @@ where
         id,
         futures::stream::unfold(initial, move |state| f(state).map(Some)),
     )
+}
+
+pub(crate) fn filter_map<I, F, Message>(id: I, f: F) -> Subscription<Message>
+where
+    I: Hash + 'static,
+    F: Fn(Event, event::Status) -> Option<Message> + MaybeSend + 'static,
+    Message: 'static + MaybeSend,
+{
+    Subscription::from_recipe(Runner {
+        id,
+        spawn: |events| {
+            use futures::future;
+            use futures::stream::StreamExt;
+
+            events.filter_map(move |(event, status)| {
+                future::ready(f(event, status))
+            })
+        },
+    })
 }
 
 /// Creates a [`Subscription`] that publishes the events sent from a [`Future`]

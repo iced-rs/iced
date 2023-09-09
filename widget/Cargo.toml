@@ -1,14 +1,18 @@
 [package]
 name = "iced_widget"
-version = "0.1.3"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "The built-in widgets for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_widget"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+description = "The built-in widgets for iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [features]
 lazy = ["ouroboros"]
@@ -18,31 +22,16 @@ canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
 
 [dependencies]
-unicode-segmentation = "1.6"
-num-traits = "0.2"
-thiserror = "1"
+iced_renderer.workspace = true
+iced_runtime.workspace = true
+iced_style.workspace = true
 
-[dependencies.iced_runtime]
-version = "0.1"
-path = "../runtime"
+num-traits.workspace = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
 
-[dependencies.iced_renderer]
-version = "0.1"
-path = "../renderer"
+ouroboros.workspace = true
+ouroboros.optional = true
 
-[dependencies.iced_style]
-version = "0.9"
-path = "../style"
-
-[dependencies.ouroboros]
-version = "0.17"
-optional = true
-
-[dependencies.qrcode]
-version = "0.12"
-optional = true
-default-features = false
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-all-features = true
+qrcode.workspace = true
+qrcode.optional = true

@@ -26,7 +26,7 @@ use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
 ///
-/// [`Column`]: widget::Column
+/// [`Column`]: crate::Column
 #[macro_export]
 macro_rules! column {
     () => (
@@ -39,7 +39,7 @@ macro_rules! column {
 
 /// Creates a [`Row`] with the given children.
 ///
-/// [`Row`]: widget::Row
+/// [`Row`]: crate::Row
 #[macro_export]
 macro_rules! row {
     () => (
@@ -52,7 +52,7 @@ macro_rules! row {
 
 /// Creates a new [`Container`] with the provided content.
 ///
-/// [`Container`]: widget::Container
+/// [`Container`]: crate::Container
 pub fn container<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> Container<'a, Message, Renderer>
@@ -82,7 +82,7 @@ where
 
 /// Creates a new [`Row`] with the given children.
 ///
-/// [`Row`]: widget::Row
+/// [`Row`]: crate::Row
 pub fn row<Message, Renderer>(
     children: Vec<Element<'_, Message, Renderer>>,
 ) -> Row<'_, Message, Renderer> {
@@ -91,7 +91,7 @@ pub fn row<Message, Renderer>(
 
 /// Creates a new [`Scrollable`] with the provided content.
 ///
-/// [`Scrollable`]: widget::Scrollable
+/// [`Scrollable`]: crate::Scrollable
 pub fn scrollable<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> Scrollable<'a, Message, Renderer>
@@ -104,7 +104,7 @@ where
 
 /// Creates a new [`Button`] with the provided content.
 ///
-/// [`Button`]: widget::Button
+/// [`Button`]: crate::Button
 pub fn button<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
 ) -> Button<'a, Message, Renderer>
@@ -118,8 +118,8 @@ where
 
 /// Creates a new [`Tooltip`] with the provided content, tooltip text, and [`tooltip::Position`].
 ///
-/// [`Tooltip`]: widget::Tooltip
-/// [`tooltip::Position`]: widget::tooltip::Position
+/// [`Tooltip`]: crate::Tooltip
+/// [`tooltip::Position`]: crate::tooltip::Position
 pub fn tooltip<'a, Message, Renderer>(
     content: impl Into<Element<'a, Message, Renderer>>,
     tooltip: impl ToString,
@@ -134,7 +134,7 @@ where
 
 /// Creates a new [`Text`] widget with the provided content.
 ///
-/// [`Text`]: widget::Text
+/// [`Text`]: core::widget::Text
 pub fn text<'a, Renderer>(text: impl ToString) -> Text<'a, Renderer>
 where
     Renderer: core::text::Renderer,
@@ -145,7 +145,7 @@ where
 
 /// Creates a new [`Checkbox`].
 ///
-/// [`Checkbox`]: widget::Checkbox
+/// [`Checkbox`]: crate::Checkbox
 pub fn checkbox<'a, Message, Renderer>(
     label: impl Into<String>,
     is_checked: bool,
@@ -160,7 +160,7 @@ where
 
 /// Creates a new [`Radio`].
 ///
-/// [`Radio`]: widget::Radio
+/// [`Radio`]: crate::Radio
 pub fn radio<Message, Renderer, V>(
     label: impl Into<String>,
     value: V,
@@ -178,7 +178,7 @@ where
 
 /// Creates a new [`Toggler`].
 ///
-/// [`Toggler`]: widget::Toggler
+/// [`Toggler`]: crate::Toggler
 pub fn toggler<'a, Message, Renderer>(
     label: impl Into<Option<String>>,
     is_checked: bool,
@@ -193,7 +193,7 @@ where
 
 /// Creates a new [`TextInput`].
 ///
-/// [`TextInput`]: widget::TextInput
+/// [`TextInput`]: crate::TextInput
 pub fn text_input<'a, Message, Renderer>(
     placeholder: &str,
     value: &str,
@@ -208,7 +208,7 @@ where
 
 /// Creates a new [`Slider`].
 ///
-/// [`Slider`]: widget::Slider
+/// [`Slider`]: crate::Slider
 pub fn slider<'a, T, Message, Renderer>(
     range: std::ops::RangeInclusive<T>,
     value: T,
@@ -225,7 +225,7 @@ where
 
 /// Creates a new [`VerticalSlider`].
 ///
-/// [`VerticalSlider`]: widget::VerticalSlider
+/// [`VerticalSlider`]: crate::VerticalSlider
 pub fn vertical_slider<'a, T, Message, Renderer>(
     range: std::ops::RangeInclusive<T>,
     value: T,
@@ -242,7 +242,7 @@ where
 
 /// Creates a new [`PickList`].
 ///
-/// [`PickList`]: widget::PickList
+/// [`PickList`]: crate::PickList
 pub fn pick_list<'a, Message, Renderer, T>(
     options: impl Into<Cow<'a, [T]>>,
     selected: Option<T>,
@@ -264,7 +264,7 @@ where
 
 /// Creates a new [`ComboBox`].
 ///
-/// [`ComboBox`]: widget::ComboBox
+/// [`ComboBox`]: crate::ComboBox
 pub fn combo_box<'a, T, Message, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
@@ -281,21 +281,21 @@ where
 
 /// Creates a new horizontal [`Space`] with the given [`Length`].
 ///
-/// [`Space`]: widget::Space
+/// [`Space`]: crate::Space
 pub fn horizontal_space(width: impl Into<Length>) -> Space {
     Space::with_width(width)
 }
 
 /// Creates a new vertical [`Space`] with the given [`Length`].
 ///
-/// [`Space`]: widget::Space
+/// [`Space`]: crate::Space
 pub fn vertical_space(height: impl Into<Length>) -> Space {
     Space::with_height(height)
 }
 
 /// Creates a horizontal [`Rule`] with the given height.
 ///
-/// [`Rule`]: widget::Rule
+/// [`Rule`]: crate::Rule
 pub fn horizontal_rule<Renderer>(height: impl Into<Pixels>) -> Rule<Renderer>
 where
     Renderer: core::Renderer,
@@ -306,7 +306,7 @@ where
 
 /// Creates a vertical [`Rule`] with the given width.
 ///
-/// [`Rule`]: widget::Rule
+/// [`Rule`]: crate::Rule
 pub fn vertical_rule<Renderer>(width: impl Into<Pixels>) -> Rule<Renderer>
 where
     Renderer: core::Renderer,
@@ -321,7 +321,7 @@ where
 ///   * an inclusive range of possible values, and
 ///   * the current value of the [`ProgressBar`].
 ///
-/// [`ProgressBar`]: widget::ProgressBar
+/// [`ProgressBar`]: crate::ProgressBar
 pub fn progress_bar<Renderer>(
     range: RangeInclusive<f32>,
     value: f32,
@@ -335,7 +335,7 @@ where
 
 /// Creates a new [`Image`].
 ///
-/// [`Image`]: widget::Image
+/// [`Image`]: crate::Image
 #[cfg(feature = "image")]
 pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
     crate::Image::new(handle.into())
@@ -343,8 +343,8 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 
 /// Creates a new [`Svg`] widget from the given [`Handle`].
 ///
-/// [`Svg`]: widget::Svg
-/// [`Handle`]: widget::svg::Handle
+/// [`Svg`]: crate::Svg
+/// [`Handle`]: crate::svg::Handle
 #[cfg(feature = "svg")]
 pub fn svg<Renderer>(
     handle: impl Into<core::svg::Handle>,
@@ -357,6 +357,8 @@ where
 }
 
 /// Creates a new [`Canvas`].
+///
+/// [`Canvas`]: crate::Canvas
 #[cfg(feature = "canvas")]
 pub fn canvas<P, Message, Renderer>(
     program: P,

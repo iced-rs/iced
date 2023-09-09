@@ -1,22 +1,28 @@
 [package]
 name = "iced"
-version = "0.10.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
 description = "A cross-platform GUI library inspired by Elm"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced"
-readme = "README.md"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
+
+[badges]
+maintenance = { status = "actively-developed" }
 
 [features]
 default = ["wgpu"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu"]
 # Enables the `Image` widget
-image = ["iced_widget/image", "image_rs"]
+image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
@@ -39,11 +45,33 @@ palette = ["iced_core/palette"]
 system = ["iced_winit/system"]
 # Enables broken "sRGB linear" blending to reproduce color management of the Web
 web-colors = ["iced_renderer/web-colors"]
+# Enables the WebGL backend, replacing WebGPU
+webgl = ["iced_renderer/webgl"]
 # Enables the advanced module
 advanced = []
 
-[badges]
-maintenance = { status = "actively-developed" }
+[dependencies]
+iced_core.workspace = true
+iced_futures.workspace = true
+iced_renderer.workspace = true
+iced_widget.workspace = true
+iced_winit.features = ["application"]
+iced_winit.workspace = true
+
+thiserror.workspace = true
+
+image.workspace = true
+image.optional = true
+
+[profile.release-opt]
+inherits = "release"
+codegen-units = 1
+debug = false
+lto = true
+incremental = false
+opt-level = 3
+overflow-checks = false
+strip = "debuginfo"
 
 [workspace]
 members = [
@@ -60,29 +88,66 @@ members = [
     "examples/*",
 ]
 
-[dependencies]
-iced_core = { version = "0.10", path = "core" }
-iced_futures = { version = "0.7", path = "futures" }
-iced_renderer = { version = "0.1", path = "renderer" }
-iced_widget = { version = "0.1", path = "widget" }
-iced_winit = { version = "0.10", path = "winit", features = ["application"] }
-thiserror = "1"
+[workspace.package]
+version = "0.12.0"
+authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/iced-rs/iced"
+homepage = "https://iced.rs"
+categories = ["gui"]
+keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 
-[dependencies.image_rs]
-version = "0.24"
-package = "image"
-optional = true
+[workspace.dependencies]
+iced = { version = "0.12", path = "." }
+iced_core = { version = "0.12", path = "core" }
+iced_futures = { version = "0.12", path = "futures" }
+iced_graphics = { version = "0.12", path = "graphics" }
+iced_renderer = { version = "0.12", path = "renderer" }
+iced_runtime = { version = "0.12", path = "runtime" }
+iced_style = { version = "0.12", path = "style" }
+iced_tiny_skia = { version = "0.12", path = "tiny_skia" }
+iced_wgpu = { version = "0.12", path = "wgpu" }
+iced_widget = { version = "0.12", path = "widget" }
+iced_winit = { version = "0.12", path = "winit" }
 
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-all-features = true
-
-[profile.release-opt]
-inherits = "release"
-codegen-units = 1
-debug = false
-lto = true
-incremental = false
-opt-level = 3
-overflow-checks = false
-strip = "debuginfo"
+async-std = "1.0"
+bitflags = "1.0"
+bytemuck = { version = "1.0", features = ["derive"] }
+cosmic-text = "0.9"
+futures = "0.3"
+glam = "0.24"
+glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
+guillotiere = "0.6"
+half = "2.2"
+image = "0.24"
+instant = "0.1"
+kamadak-exif = "0.5"
+kurbo = "0.9"
+log = "0.4"
+lyon = "1.0"
+lyon_path = "1.0"
+num-traits = "0.2"
+once_cell = "1.0"
+ouroboros = "0.17"
+palette = "0.7"
+qrcode = { version = "0.12", default-features = false }
+raw-window-handle = "0.5"
+resvg = "0.35"
+rustc-hash = "1.0"
+smol = "1.0"
+softbuffer = "0.2"
+sysinfo = "0.28"
+thiserror = "1.0"
+tiny-skia = "0.10"
+tokio = "1.0"
+tracing = "0.1"
+twox-hash = { version = "1.0", default-features = false }
+unicode-segmentation = "1.0"
+wasm-bindgen-futures = "0.4"
+wasm-timer = "0.2"
+web-sys = "0.3"
+wgpu = "0.17"
+winapi = "0.3"
+window_clipboard = "0.3"
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e", default-features = false }

@@ -1,14 +1,18 @@
 [package]
 name = "iced_graphics"
-version = "0.9.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_graphics"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [features]
 geometry = ["lyon_path"]
@@ -17,43 +21,29 @@ image = ["dep:image", "kamadak-exif"]
 web-colors = []
 
 [dependencies]
-glam = "0.24"
-half = "2.2.1"
-log = "0.4"
-raw-window-handle = "0.5"
-thiserror = "1.0"
-bitflags = "1.2"
-cosmic-text = "0.9"
-rustc-hash = "1.1"
+iced_core.workspace = true
 
-[dependencies.bytemuck]
-version = "1.4"
-features = ["derive"]
+bitflags.workspace = true
+bytemuck.workspace = true
+glam.workspace = true
+half.workspace = true
+log.workspace = true
+raw-window-handle.workspace = true
+thiserror.workspace = true
+cosmic-text.workspace = true
+rustc-hash.workspace = true
 
-[dependencies.iced_core]
-version = "0.10"
-path = "../core"
+lyon_path.workspace = true
+lyon_path.optional = true
 
-[dependencies.twox-hash]
-version = "1.6"
-default-features = false
+image.workspace = true
+image.optional = true
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies.twox-hash]
-version = "1.6.1"
-features = ["std"]
+kamadak-exif.workspace = true
+kamadak-exif.optional = true
 
-[dependencies.image]
-version = "0.24"
-optional = true
+twox-hash.workspace = true
 
-[dependencies.kamadak-exif]
-version = "0.5"
-optional = true
-
-[dependencies.lyon_path]
-version = "1"
-optional = true
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-all-features = true
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+twox-hash.workspace = true
+twox-hash.features = ["std"]

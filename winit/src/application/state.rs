@@ -184,9 +184,7 @@ where
     /// window.
     ///
     /// Normally an [`Application`] should be synchronized with its [`State`]
-    /// and window after calling [`Application::update`].
-    ///
-    /// [`Application::update`]: crate::Program::update
+    /// and window after calling [`crate::application::update`].
     pub fn synchronize(&mut self, application: &A, window: &Window) {
         // Update window title
         let new_title = application.title();

@@ -1,6 +1,6 @@
 //! Let your users split regions of your application and organize layout dynamically.
 //!
-//! [![Pane grid - Iced](https://thumbs.gfycat.com/MixedFlatJellyfish-small.gif)](https://gfycat.com/mixedflatjellyfish)
+//! ![Pane grid - Iced](https://iced.rs/examples/pane_grid.gif)
 //!
 //! # Example
 //! The [`pane_grid` example] showcases how to use a [`PaneGrid`] with resizing,
@@ -49,7 +49,7 @@ use crate::core::{
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
 ///
-/// [![Pane grid - Iced](https://thumbs.gfycat.com/FrailFreshAiredaleterrier-small.gif)](https://gfycat.com/frailfreshairedaleterrier)
+/// ![Pane grid - Iced](https://iced.rs/examples/pane_grid.gif)
 ///
 /// This distribution of space is common in tiling window managers (like
 /// [`awesome`](https://awesomewm.org/), [`i3`](https://i3wm.org/), or even

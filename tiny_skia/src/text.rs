@@ -267,10 +267,10 @@ impl GlyphCache {
                 }
             }
 
-            entry.insert((buffer, image.placement));
+            let _ = entry.insert((buffer, image.placement));
         }
 
-        self.recently_used.insert(key);
+        let _ = self.recently_used.insert(key);
 
         self.entries.get(&key).map(|(buffer, placement)| {
             (bytemuck::cast_slice(buffer.as_slice()), *placement)

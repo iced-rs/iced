@@ -156,7 +156,7 @@ where
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Radio`] button.
+    /// Sets the text [`text::LineHeight`] of the [`Radio`] button.
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,

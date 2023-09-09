@@ -46,6 +46,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) -> Surface {
+        #[allow(unsafe_code)]
         let window =
             unsafe { softbuffer::GraphicsContext::new(window, window) }
                 .expect("Create softbuffer for window");

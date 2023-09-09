@@ -13,7 +13,7 @@ use iced::{
 use std::collections::HashMap;
 
 pub fn main() -> iced::Result {
-    env_logger::builder().format_timestamp(None).init();
+    tracing_subscriber::fmt::init();
 
     Multitouch::run(Settings {
         antialiasing: true,

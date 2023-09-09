@@ -25,6 +25,8 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: --cfg=web_sys_unstable_apis
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:

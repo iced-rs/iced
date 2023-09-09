@@ -20,9 +20,9 @@
 //! Check out the [repository] and the [examples] for more details!
 //!
 //! [Cross-platform support]: https://github.com/iced-rs/iced/blob/master/docs/images/todos_desktop.jpg?raw=true
-//! [text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
-//! [scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
-//! [Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
+//! [text inputs]: https://iced.rs/examples/text_input.mp4
+//! [scrollables]: https://iced.rs/examples/scrollable.mp4
+//! [Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
 //! [Modular ecosystem]: https://github.com/iced-rs/iced/blob/master/ECOSYSTEM.md
 //! [renderer-agnostic native runtime]: https://github.com/iced-rs/iced/tree/0.10/runtime
 //! [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
@@ -151,6 +151,7 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
+#![forbid(rust_2018_idioms, unsafe_code)]
 #![deny(
     missing_debug_implementations,
     missing_docs,
@@ -159,9 +160,9 @@
     clippy::from_over_into,
     clippy::needless_borrow,
     clippy::new_without_default,
-    clippy::useless_conversion
+    clippy::useless_conversion,
+    rustdoc::broken_intra_doc_links
 )]
-#![forbid(rust_2018_idioms, unsafe_code)]
 #![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 use iced_widget::graphics;
@@ -187,7 +188,6 @@ pub mod advanced;
 pub use style::theme;
 
 pub use crate::core::alignment;
-pub use crate::core::event;
 pub use crate::core::gradient;
 pub use crate::core::{
     color, Alignment, Background, BorderRadius, Color, ContentFit, Degrees,
@@ -223,9 +223,16 @@ pub mod font {
     pub use crate::runtime::font::*;
 }
 
+pub mod event {
+    //! Handle events of a user interface.
+    pub use crate::core::event::{Event, MacOS, PlatformSpecific, Status};
+    pub use iced_futures::event::{listen, listen_raw, listen_with};
+}
+
 pub mod keyboard {
     //! Listen and react to keyboard events.
     pub use crate::core::keyboard::{Event, KeyCode, Modifiers};
+    pub use iced_futures::keyboard::{on_key_press, on_key_release};
 }
 
 pub mod mouse {
@@ -238,7 +245,7 @@ pub mod mouse {
 pub mod subscription {
     //! Listen to external events in your application.
     pub use iced_futures::subscription::{
-        channel, events, events_with, run, run_with_id, unfold, Subscription,
+        channel, run, run_with_id, unfold, Subscription,
     };
 }
 
@@ -252,11 +259,11 @@ pub mod system {
 pub mod overlay {
     //! Display interactive elements on top of other widgets.
 
-    /// A generic [`Overlay`].
+    /// A generic overlay.
     ///
-    /// This is an alias of an `iced_native` element with a default `Renderer`.
+    /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
-    /// [`Overlay`]: iced_native::Overlay
+    /// [`overlay::Element`]: crate::core::overlay::Element
     pub type Element<'a, Message, Renderer = crate::Renderer> =
         crate::core::overlay::Element<'a, Message, Renderer>;
 

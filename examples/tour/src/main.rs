@@ -8,7 +8,14 @@ use iced::widget::{Button, Column, Container, Slider};
 use iced::{Color, Element, Font, Length, Pixels, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
-    env_logger::init();
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init().expect("Initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    tracing_subscriber::fmt::init();
 
     Tour::run(Settings::default())
 }

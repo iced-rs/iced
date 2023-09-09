@@ -121,7 +121,7 @@ where
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Checkbox`].
+    /// Sets the text [`text::LineHeight`] of the [`Checkbox`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -136,9 +136,9 @@ where
         self
     }
 
-    /// Sets the [`Font`] of the text of the [`Checkbox`].
+    /// Sets the [`Renderer::Font`] of the text of the [`Checkbox`].
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Renderer::Font`]: crate::core::text::Renderer
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
         self

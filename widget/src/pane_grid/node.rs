@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 /// A layout node of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub enum Node {
     /// The region of this [`Node`] is split into two.

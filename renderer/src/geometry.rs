@@ -96,13 +96,11 @@ impl Frame {
     /// resulting glyphs will not be rotated or scaled properly.
     ///
     /// Additionally, all text will be rendered on top of all the layers of
-    /// a [`Canvas`]. Therefore, it is currently only meant to be used for
+    /// a `Canvas`. Therefore, it is currently only meant to be used for
     /// overlays, which is the most common use case.
     ///
     /// Support for vectorial text is planned, and should address all these
     /// limitations.
-    ///
-    /// [`Canvas`]: crate::widget::Canvas
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         delegate!(self, frame, frame.fill_text(text));
     }
@@ -168,10 +166,16 @@ impl Frame {
         delegate!(self, frame, frame.rotate(angle));
     }
 
-    /// Applies a scaling to the current transform of the [`Frame`].
+    /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
-    pub fn scale(&mut self, scale: f32) {
+    pub fn scale(&mut self, scale: impl Into<f32>) {
         delegate!(self, frame, frame.scale(scale));
+    }
+
+    /// Applies a non-uniform scaling to the current transform of the [`Frame`].
+    #[inline]
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+        delegate!(self, frame, frame.scale_nonuniform(scale));
     }
 
     pub fn into_geometry(self) -> Geometry {

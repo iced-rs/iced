@@ -6,5 +6,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "palette"] }
-palette = "0.7.0"
+iced.workspace = true
+iced.features = ["canvas", "palette"]
+
+palette.workspace = true
