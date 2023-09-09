@@ -1,8 +1,5 @@
 name: Document
-on:
-  push:
-    branches:
-      - master
+on: [push, pull_request]
 jobs:
   all:
     runs-on: ubuntu-20.04
@@ -31,6 +28,7 @@ jobs:
     - name: Write CNAME file
       run: echo 'docs.iced.rs' > ./target/doc/CNAME
     - name: Publish documentation
+      if: github.ref == 'refs/heads/master'
       uses: peaceiris/actions-gh-pages@v3
       with:
         deploy_key: ${{ secrets.DOCS_DEPLOY_KEY }}
