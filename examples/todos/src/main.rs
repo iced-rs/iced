@@ -17,6 +17,7 @@ use uuid::Uuid;
 static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 pub fn main() -> iced::Result {
+    #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
     Todos::run(Settings {
