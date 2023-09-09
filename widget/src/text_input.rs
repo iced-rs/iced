@@ -511,7 +511,20 @@ where
     );
 
     if let Some(icon) = icon {
-        let icon_width = 0.0; // TODO
+        let icon_text = Text {
+            line_height,
+            content: &icon.code_point.to_string(),
+            font: icon.font,
+            size: icon.size.unwrap_or_else(|| renderer.default_size()),
+            bounds: Size::new(f32::INFINITY, text_bounds.height),
+            horizontal_alignment: alignment::Horizontal::Center,
+            vertical_alignment: alignment::Vertical::Center,
+            shaping: text::Shaping::Advanced,
+        };
+
+        renderer.update_paragraph(&mut state.icon, icon_text);
+
+        let icon_width = state.icon.min_width();
 
         let mut text_node = layout::Node::new(
             text_bounds - Size::new(icon_width + icon.spacing, 0.0),
@@ -1053,10 +1066,14 @@ pub fn draw<Renderer>(
         appearance.background,
     );
 
-    if let Some(_icon) = icon {
-        let _icon_layout = children_layout.next().unwrap();
+    if icon.is_some() {
+        let icon_layout = children_layout.next().unwrap();
 
-        // TODO
+        renderer.fill_paragraph(
+            &state.icon,
+            icon_layout.bounds().center(),
+            appearance.icon_color,
+        );
     }
 
     let text = value.to_string();
@@ -1206,6 +1223,7 @@ pub fn mouse_interaction(
 pub struct State<P: text::Paragraph> {
     value: P,
     placeholder: P,
+    icon: P,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
@@ -1233,6 +1251,7 @@ impl<P: text::Paragraph> State<P> {
         Self {
             value: P::default(),
             placeholder: P::default(),
+            icon: P::default(),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
