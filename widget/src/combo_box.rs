@@ -6,6 +6,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{Clipboard, Element, Length, Padding, Rectangle, Shell};
 use crate::overlay::menu;
@@ -14,7 +15,6 @@ use crate::{container, scrollable, text_input, TextInput};
 
 use std::cell::RefCell;
 use std::fmt::Display;
-use std::time::Instant;
 
 /// A widget for searching and selecting a single value from a list of options.
 ///
