@@ -17,7 +17,6 @@ Besides directly writing code, there are many other different ways you can contr
 
 [the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
-[our Discourse fourm]: https://discourse.iced.rs/
-[our Discord server]: https://discord.gg/3xZJ65GAhd
+[our Discourse forum]: https://discourse.iced.rs/
 [Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138
 [The Hard Parts of Open Source]: https://www.youtube.com/watch?v=o_4EX4dPppA
