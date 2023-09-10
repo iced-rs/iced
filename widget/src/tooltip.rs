@@ -436,7 +436,7 @@ where
 
         Widget::<(), Renderer>::draw(
             self.tooltip,
-            &self.state,
+            self.state,
             renderer,
             theme,
             &defaults,
