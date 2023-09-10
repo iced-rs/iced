@@ -139,7 +139,9 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(tree, renderer, limits)
+        self.content
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn on_event(
@@ -434,7 +436,7 @@ where
 
         Widget::<(), Renderer>::draw(
             self.tooltip,
-            &widget::Tree::empty(),
+            &self.state,
             renderer,
             theme,
             &defaults,
