@@ -311,7 +311,20 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.text_input.layout(tree, renderer, limits)
+        let is_focused = {
+            let text_input_state = tree.children[0]
+                .state
+                .downcast_ref::<text_input::State<Renderer::Paragraph>>();
+
+            text_input_state.is_focused()
+        };
+
+        self.text_input.layout(
+            &mut tree.children[0],
+            renderer,
+            limits,
+            (!is_focused).then_some(&self.selection),
+        )
     }
 
     fn tag(&self) -> widget::tree::Tag {
@@ -665,7 +678,15 @@ where
                 menu,
                 &filtered_options.options,
                 hovered_option,
-                |x| (self.on_selected)(x),
+                |x| {
+                    tree.children[0]
+                        .state
+                        .downcast_mut::<text_input::State<Renderer::Paragraph>>(
+                        )
+                        .unfocus();
+
+                    (self.on_selected)(x)
+                },
                 self.on_option_hovered.as_deref(),
             )
             .width(bounds.width)

@@ -200,6 +200,32 @@ where
         self
     }
 
+    /// Lays out the [`TextInput`], overriding its [`Value`] if provided.
+    ///
+    /// [`Renderer`]: text::Renderer
+    pub fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        value: Option<&Value>,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.size,
+            self.font,
+            self.line_height,
+            self.icon.as_ref(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            value.unwrap_or(&self.value),
+            &self.placeholder,
+            self.is_secure,
+        )
+    }
+
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
     /// [`Value`] if provided.
     ///
@@ -1411,7 +1437,7 @@ fn find_cursor_position<P: text::Paragraph>(
 
     Some(
         unicode_segmentation::UnicodeSegmentation::graphemes(
-            &value[..char_offset],
+            &value[..char_offset.min(value.len())],
             true,
         )
         .count(),
