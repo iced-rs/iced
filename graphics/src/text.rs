@@ -10,40 +10,39 @@ use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
 use crate::core::Size;
 
+use once_cell::sync::OnceCell;
 use std::borrow::Cow;
-use std::sync::{self, Arc, RwLock};
+use std::sync::{Arc, RwLock};
 
-#[allow(missing_debug_implementations)]
-pub struct FontSystem {
-    raw: RwLock<cosmic_text::FontSystem>,
-    version: Version,
-}
+pub fn font_system() -> &'static RwLock<FontSystem> {
+    static FONT_SYSTEM: OnceCell<RwLock<FontSystem>> = OnceCell::new();
 
-impl FontSystem {
-    pub fn new() -> Self {
-        FontSystem {
-            raw: RwLock::new(cosmic_text::FontSystem::new_with_fonts(
+    FONT_SYSTEM.get_or_init(|| {
+        RwLock::new(FontSystem {
+            raw: cosmic_text::FontSystem::new_with_fonts(
                 [cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
                 ))]
                 .into_iter(),
-            )),
+            ),
             version: Version::default(),
-        }
-    }
+        })
+    })
+}
 
-    pub fn get_mut(&mut self) -> &mut cosmic_text::FontSystem {
-        self.raw.get_mut().expect("Lock font system")
-    }
+#[allow(missing_debug_implementations)]
+pub struct FontSystem {
+    raw: cosmic_text::FontSystem,
+    version: Version,
+}
 
-    pub fn write(
-        &self,
-    ) -> (sync::RwLockWriteGuard<'_, cosmic_text::FontSystem>, Version) {
-        (self.raw.write().expect("Write font system"), self.version)
+impl FontSystem {
+    pub fn raw(&mut self) -> &mut cosmic_text::FontSystem {
+        &mut self.raw
     }
 
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        let _ = self.get_mut().db_mut().load_font_source(
+        let _ = self.raw.db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
 
@@ -57,12 +56,6 @@ impl FontSystem {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Version(u32);
-
-impl Default for FontSystem {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
     let (width, total_lines) = buffer

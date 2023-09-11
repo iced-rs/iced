@@ -523,18 +523,15 @@ where
         shaping: text::Shaping::Advanced,
     };
 
-    renderer.update_paragraph(&mut state.placeholder, placeholder_text);
+    state.placeholder.update(placeholder_text);
 
     let secure_value = is_secure.then(|| value.secure());
     let value = secure_value.as_ref().unwrap_or(value);
 
-    renderer.update_paragraph(
-        &mut state.value,
-        Text {
-            content: &value.to_string(),
-            ..placeholder_text
-        },
-    );
+    state.value.update(Text {
+        content: &value.to_string(),
+        ..placeholder_text
+    });
 
     if let Some(icon) = icon {
         let icon_text = Text {
@@ -548,7 +545,7 @@ where
             shaping: text::Shaping::Advanced,
         };
 
-        renderer.update_paragraph(&mut state.icon, icon_text);
+        state.icon.update(icon_text);
 
         let icon_width = state.icon.min_width();
 
@@ -1461,7 +1458,7 @@ fn replace_paragraph<Renderer>(
     let mut children_layout = layout.children();
     let text_bounds = children_layout.next().unwrap().bounds();
 
-    state.value = renderer.create_paragraph(Text {
+    state.value = Renderer::Paragraph::with_text(Text {
         font,
         line_height,
         content: &value.to_string(),

@@ -2,7 +2,7 @@ use crate::core::alignment;
 use crate::core::{Rectangle, Size};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
-use crate::graphics::text::{FontSystem, Paragraph};
+use crate::graphics::text::{font_system, Paragraph};
 use crate::layer::Text;
 
 use std::borrow::Cow;
@@ -10,7 +10,6 @@ use std::cell::RefCell;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    font_system: FontSystem,
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     prepare_layer: usize,
@@ -24,7 +23,6 @@ impl Pipeline {
         format: wgpu::TextureFormat,
     ) -> Self {
         Pipeline {
-            font_system: FontSystem::new(),
             renderers: Vec::new(),
             atlas: glyphon::TextAtlas::with_color_mode(
                 device,
@@ -41,12 +39,11 @@ impl Pipeline {
         }
     }
 
-    pub fn font_system(&self) -> &FontSystem {
-        &self.font_system
-    }
-
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.load_font(bytes);
+        font_system()
+            .write()
+            .expect("Write font system")
+            .load_font(bytes);
 
         self.cache = RefCell::new(Cache::new());
     }
@@ -69,7 +66,9 @@ impl Pipeline {
             ));
         }
 
-        let font_system = self.font_system.get_mut();
+        let mut font_system = font_system().write().expect("Write font system");
+        let font_system = font_system.raw();
+
         let renderer = &mut self.renderers[self.prepare_layer];
         let cache = self.cache.get_mut();
 

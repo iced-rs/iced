@@ -1,6 +1,5 @@
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
-use crate::graphics::text;
 use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
 
@@ -805,10 +804,6 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    fn font_system(&self) -> &text::FontSystem {
-        self.text_pipeline.font_system()
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }

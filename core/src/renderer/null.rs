@@ -58,16 +58,6 @@ impl text::Renderer for Null {
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn create_paragraph(&self, _text: Text<'_, Self::Font>) -> Self::Paragraph {
-    }
-
-    fn resize_paragraph(
-        &self,
-        _paragraph: &mut Self::Paragraph,
-        _new_bounds: Size,
-    ) {
-    }
-
     fn fill_paragraph(
         &mut self,
         _paragraph: &Self::Paragraph,
@@ -88,24 +78,12 @@ impl text::Renderer for Null {
 impl text::Paragraph for () {
     type Font = Font;
 
-    fn content(&self) -> &str {
-        ""
-    }
+    fn with_text(_text: Text<'_, Self::Font>) -> Self {}
 
-    fn text_size(&self) -> Pixels {
-        Pixels(16.0)
-    }
+    fn resize(&mut self, _new_bounds: Size) {}
 
-    fn font(&self) -> Self::Font {
-        Font::default()
-    }
-
-    fn line_height(&self) -> text::LineHeight {
-        text::LineHeight::default()
-    }
-
-    fn shaping(&self) -> text::Shaping {
-        text::Shaping::default()
+    fn compare(&self, _text: Text<'_, Self::Font>) -> text::Difference {
+        text::Difference::None
     }
 
     fn horizontal_alignment(&self) -> alignment::Horizontal {
@@ -118,10 +96,6 @@ impl text::Paragraph for () {
 
     fn grapheme_position(&self, _line: usize, _index: usize) -> Option<Point> {
         None
-    }
-
-    fn bounds(&self) -> Size {
-        Size::ZERO
     }
 
     fn min_bounds(&self) -> Size {

@@ -173,22 +173,6 @@ impl<T> text::Renderer for Renderer<T> {
         delegate!(self, renderer, renderer.default_size())
     }
 
-    fn create_paragraph(&self, text: Text<'_, Self::Font>) -> Self::Paragraph {
-        delegate!(self, renderer, renderer.create_paragraph(text))
-    }
-
-    fn resize_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        new_bounds: Size,
-    ) {
-        delegate!(
-            self,
-            renderer,
-            renderer.resize_paragraph(paragraph, new_bounds)
-        );
-    }
-
     fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
         delegate!(self, renderer, renderer.load_font(bytes));
     }
