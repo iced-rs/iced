@@ -144,7 +144,7 @@ impl editor::Editor for Editor {
                         }
                     })
                     .unwrap_or((
-                        0,
+                        layout.len().saturating_sub(1),
                         layout.last().map(|line| line.w).unwrap_or(0.0),
                     ));
 
