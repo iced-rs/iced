@@ -72,15 +72,18 @@ impl editor::Editor for Editor {
     fn cursor(&self) -> editor::Cursor {
         let internal = self.internal();
 
+        let cursor = internal.editor.cursor();
+        let buffer = internal.editor.buffer();
+
         match internal.editor.select_opt() {
-            Some(selection) => {
+            Some(selection)
+                if cursor.line != selection.line
+                    || cursor.index != selection.index =>
+            {
                 // TODO
                 Cursor::Selection(vec![])
             }
-            None => {
-                let cursor = internal.editor.cursor();
-                let buffer = internal.editor.buffer();
-
+            _ => {
                 let lines_before_cursor: usize = buffer
                     .lines
                     .iter()
