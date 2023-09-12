@@ -143,7 +143,10 @@ impl editor::Editor for Editor {
                             None
                         }
                     })
-                    .unwrap_or((0, 0.0));
+                    .unwrap_or((
+                        0,
+                        layout.last().map(|line| line.w).unwrap_or(0.0),
+                    ));
 
                 let line_height = buffer.metrics().line_height;
 
