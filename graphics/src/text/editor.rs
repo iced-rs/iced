@@ -176,6 +176,7 @@ impl editor::Editor for Editor {
             Action::MoveUp => act(cosmic_text::Action::Up),
             Action::MoveDown => act(cosmic_text::Action::Down),
             Action::Insert(c) => act(cosmic_text::Action::Insert(c)),
+            Action::Enter => act(cosmic_text::Action::Enter),
             Action::Backspace => act(cosmic_text::Action::Backspace),
             Action::Delete => act(cosmic_text::Action::Delete),
             Action::Click(position) => act(cosmic_text::Action::Click {

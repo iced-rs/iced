@@ -51,6 +51,7 @@ pub enum Action {
     SelectWord,
     SelectLine,
     Insert(char),
+    Enter,
     Backspace,
     Delete,
     Click(Point),

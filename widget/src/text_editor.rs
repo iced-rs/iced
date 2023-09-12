@@ -425,6 +425,7 @@ impl Update {
                     keyboard::KeyCode::Down => {
                         Some(Self::Edit(Action::MoveDown))
                     }
+                    keyboard::KeyCode::Enter => Some(Self::Edit(Action::Enter)),
                     keyboard::KeyCode::Backspace => {
                         Some(Self::Edit(Action::Backspace))
                     }
