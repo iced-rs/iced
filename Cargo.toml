@@ -150,7 +150,7 @@ thiserror = "1.0"
 tiny-skia = "0.10"
 tokio = "1.0"
 tracing = "0.1"
-twox-hash = { version = "1.0", default-features = false }
+xxhash-rust = { version = "0.8.7", default-features = false, features = ["xxh3"] }
 unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
