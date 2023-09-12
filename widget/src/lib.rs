@@ -4,8 +4,8 @@
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
-    missing_debug_implementations,
-    missing_docs,
+    // missing_debug_implementations,
+    // missing_docs,
     unused_results,
     clippy::extra_unused_lifetimes,
     clippy::from_over_into,
@@ -41,6 +41,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod text;
+pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;

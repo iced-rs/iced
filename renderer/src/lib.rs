@@ -32,6 +32,7 @@ use crate::core::text::{self, Text};
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Vector,
 };
+use crate::graphics::text::Editor;
 use crate::graphics::text::Paragraph;
 use crate::graphics::Mesh;
 
@@ -159,6 +160,7 @@ impl<T> core::Renderer for Renderer<T> {
 impl<T> text::Renderer for Renderer<T> {
     type Font = Font;
     type Paragraph = Paragraph;
+    type Editor = Editor;
 
     const ICON_FONT: Font = iced_tiny_skia::Renderer::<T>::ICON_FONT;
     const CHECKMARK_ICON: char = iced_tiny_skia::Renderer::<T>::CHECKMARK_ICON;
@@ -179,14 +181,27 @@ impl<T> text::Renderer for Renderer<T> {
 
     fn fill_paragraph(
         &mut self,
-        text: &Self::Paragraph,
+        paragraph: &Self::Paragraph,
         position: Point,
         color: Color,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.fill_paragraph(text, position, color)
+            renderer.fill_paragraph(paragraph, position, color)
+        );
+    }
+
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.fill_editor(editor, position, color)
         );
     }
 

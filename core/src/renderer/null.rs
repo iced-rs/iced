@@ -43,6 +43,7 @@ impl Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
     type Paragraph = ();
+    type Editor = ();
 
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
@@ -61,6 +62,14 @@ impl text::Renderer for Null {
     fn fill_paragraph(
         &mut self,
         _paragraph: &Self::Paragraph,
+        _position: Point,
+        _color: Color,
+    ) {
+    }
+
+    fn fill_editor(
+        &mut self,
+        _editor: &Self::Editor,
         _position: Point,
         _color: Color,
     ) {
@@ -104,5 +113,34 @@ impl text::Paragraph for () {
 
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
         None
+    }
+}
+
+impl text::Editor for () {
+    type Font = Font;
+
+    fn with_text(_text: &str) -> Self {}
+
+    fn cursor(&self) -> text::editor::Cursor {
+        text::editor::Cursor::Caret(Point::ORIGIN)
+    }
+
+    fn perform(&mut self, _action: text::editor::Action) {}
+
+    fn bounds(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn min_bounds(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn update(
+        &mut self,
+        _new_bounds: Size,
+        _new_font: Self::Font,
+        _new_size: Pixels,
+        _new_line_height: text::LineHeight,
+    ) {
     }
 }

@@ -1,7 +1,9 @@
 pub mod cache;
+pub mod editor;
 pub mod paragraph;
 
 pub use cache::Cache;
+pub use editor::Editor;
 pub use paragraph::Paragraph;
 
 pub use cosmic_text;

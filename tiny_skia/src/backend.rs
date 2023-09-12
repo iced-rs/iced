@@ -383,6 +383,31 @@ impl Backend {
                     clip_mask,
                 );
             }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, editor.bounds) + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_editor(
+                    editor,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
             Primitive::Text {
                 content,
                 bounds,

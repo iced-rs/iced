@@ -4,6 +4,7 @@ use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
 use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Vector};
+use crate::text::editor;
 use crate::text::paragraph;
 
 use std::sync::Arc;
@@ -36,6 +37,15 @@ pub enum Primitive<T> {
     Paragraph {
         /// The [`paragraph::Weak`] reference.
         paragraph: paragraph::Weak,
+        /// The position of the paragraph.
+        position: Point,
+        /// The color of the paragraph.
+        color: Color,
+    },
+    /// An editor primitive
+    Editor {
+        /// The [`editor::Weak`] reference.
+        editor: editor::Weak,
         /// The position of the paragraph.
         position: Point,
         /// The color of the paragraph.

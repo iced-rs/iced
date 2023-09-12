@@ -120,8 +120,21 @@ impl<'a> Layer<'a> {
             } => {
                 let layer = &mut layers[current_layer];
 
-                layer.text.push(Text::Managed {
+                layer.text.push(Text::Paragraph {
                     paragraph: paragraph.clone(),
+                    position: *position + translation,
+                    color: *color,
+                });
+            }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+            } => {
+                let layer = &mut layers[current_layer];
+
+                layer.text.push(Text::Editor {
+                    editor: editor.clone(),
                     position: *position + translation,
                     color: *color,
                 });

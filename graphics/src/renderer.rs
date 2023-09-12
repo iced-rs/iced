@@ -141,6 +141,7 @@ where
 {
     type Font = Font;
     type Paragraph = text::Paragraph;
+    type Editor = text::Editor;
 
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
@@ -166,6 +167,19 @@ where
     ) {
         self.primitives.push(Primitive::Paragraph {
             paragraph: paragraph.downgrade(),
+            position,
+            color,
+        });
+    }
+
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    ) {
+        self.primitives.push(Primitive::Editor {
+            editor: editor.downgrade(),
             position,
             color,
         });

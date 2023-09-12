@@ -1,4 +1,11 @@
 //! Draw and interact with text.
+mod paragraph;
+
+pub mod editor;
+
+pub use editor::Editor;
+pub use paragraph::Paragraph;
+
 use crate::alignment;
 use crate::{Color, Pixels, Point, Size};
 
@@ -126,6 +133,31 @@ impl Hit {
     }
 }
 
+/// The difference detected in some text.
+///
+/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
+/// [`Text`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Difference {
+    /// No difference.
+    ///
+    /// The text can be reused as it is!
+    None,
+
+    /// A bounds difference.
+    ///
+    /// This normally means a relayout is necessary, but the shape of the text can
+    /// be reused.
+    Bounds,
+
+    /// A shape difference.
+    ///
+    /// The contents, alignment, sizes, fonts, or any other essential attributes
+    /// of the shape of the text have changed. A complete reshape and relayout of
+    /// the text is necessary.
+    Shape,
+}
+
 /// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
@@ -133,6 +165,9 @@ pub trait Renderer: crate::Renderer {
 
     /// The [`Paragraph`] of this [`Renderer`].
     type Paragraph: Paragraph<Font = Self::Font> + 'static;
+
+    /// The [`Editor`] of this [`Renderer`].
+    type Editor: Editor<Font = Self::Font> + 'static;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;
@@ -165,6 +200,13 @@ pub trait Renderer: crate::Renderer {
         color: Color,
     );
 
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    );
+
     /// Draws the given [`Text`] at the given position and with the given
     /// [`Color`].
     fn fill_text(
@@ -173,85 +215,4 @@ pub trait Renderer: crate::Renderer {
         position: Point,
         color: Color,
     );
-}
-
-/// A text paragraph.
-pub trait Paragraph: Sized + Default {
-    /// The font of this [`Paragraph`].
-    type Font: Copy + PartialEq;
-
-    /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn with_text(text: Text<'_, Self::Font>) -> Self;
-
-    /// Lays out the [`Paragraph`] with some new boundaries.
-    fn resize(&mut self, new_bounds: Size);
-
-    /// Compares the [`Paragraph`] with some desired [`Text`] and returns the
-    /// [`Difference`].
-    fn compare(&self, text: Text<'_, Self::Font>) -> Difference;
-
-    /// Returns the horizontal alignment of the [`Paragraph`].
-    fn horizontal_alignment(&self) -> alignment::Horizontal;
-
-    /// Returns the vertical alignment of the [`Paragraph`].
-    fn vertical_alignment(&self) -> alignment::Vertical;
-
-    /// Returns the minimum boundaries that can fit the contents of the
-    /// [`Paragraph`].
-    fn min_bounds(&self) -> Size;
-
-    /// Tests whether the provided point is within the boundaries of the
-    /// [`Paragraph`], returning information about the nearest character.
-    fn hit_test(&self, point: Point) -> Option<Hit>;
-
-    /// Returns the distance to the given grapheme index in the [`Paragraph`].
-    fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
-
-    /// Updates the [`Paragraph`] to match the given [`Text`], if needed.
-    fn update(&mut self, text: Text<'_, Self::Font>) {
-        match self.compare(text) {
-            Difference::None => {}
-            Difference::Bounds => {
-                self.resize(text.bounds);
-            }
-            Difference::Shape => {
-                *self = Self::with_text(text);
-            }
-        }
-    }
-
-    /// Returns the minimum width that can fit the contents of the [`Paragraph`].
-    fn min_width(&self) -> f32 {
-        self.min_bounds().width
-    }
-
-    /// Returns the minimum height that can fit the contents of the [`Paragraph`].
-    fn min_height(&self) -> f32 {
-        self.min_bounds().height
-    }
-}
-
-/// The difference detected in some text.
-///
-/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
-/// [`Text`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Difference {
-    /// No difference.
-    ///
-    /// The text can be reused as it is!
-    None,
-
-    /// A bounds difference.
-    ///
-    /// This normally means a relayout is necessary, but the shape of the text can
-    /// be reused.
-    Bounds,
-
-    /// A shape difference.
-    ///
-    /// The contents, alignment, sizes, fonts, or any other essential attributes
-    /// of the shape of the text have changed. A complete reshape and relayout of
-    /// the text is necessary.
-    Shape,
 }

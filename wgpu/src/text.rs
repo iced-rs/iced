@@ -2,7 +2,7 @@ use crate::core::alignment;
 use crate::core::{Rectangle, Size};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
-use crate::graphics::text::{font_system, Paragraph};
+use crate::graphics::text::{font_system, Editor, Paragraph};
 use crate::layer::Text;
 
 use std::borrow::Cow;
@@ -74,14 +74,18 @@ impl Pipeline {
 
         enum Allocation {
             Paragraph(Paragraph),
+            Editor(Editor),
             Cache(cache::KeyHash),
         }
 
         let allocations: Vec<_> = sections
             .iter()
             .map(|section| match section {
-                Text::Managed { paragraph, .. } => {
+                Text::Paragraph { paragraph, .. } => {
                     paragraph.upgrade().map(Allocation::Paragraph)
+                }
+                Text::Editor { editor, .. } => {
+                    editor.upgrade().map(Allocation::Editor)
                 }
                 Text::Cached(text) => {
                     let (key, _) = cache.allocate(
@@ -117,7 +121,7 @@ impl Pipeline {
                     vertical_alignment,
                     color,
                 ) = match section {
-                    Text::Managed {
+                    Text::Paragraph {
                         position, color, ..
                     } => {
                         use crate::core::text::Paragraph as _;
@@ -132,6 +136,24 @@ impl Pipeline {
                             Rectangle::new(*position, paragraph.min_bounds()),
                             paragraph.horizontal_alignment(),
                             paragraph.vertical_alignment(),
+                            *color,
+                        )
+                    }
+                    Text::Editor {
+                        position, color, ..
+                    } => {
+                        use crate::core::text::Editor as _;
+
+                        let Some(Allocation::Editor(editor)) = allocation
+                        else {
+                            return None;
+                        };
+
+                        (
+                            editor.buffer(),
+                            Rectangle::new(*position, editor.min_bounds()),
+                            alignment::Horizontal::Left,
+                            alignment::Vertical::Top,
                             *color,
                         )
                     }

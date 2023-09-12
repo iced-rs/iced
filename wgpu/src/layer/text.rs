@@ -1,13 +1,19 @@
 use crate::core::alignment;
 use crate::core::text;
 use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::graphics::text::editor;
 use crate::graphics::text::paragraph;
 
 /// A paragraph of text.
 #[derive(Debug, Clone)]
 pub enum Text<'a> {
-    Managed {
+    Paragraph {
         paragraph: paragraph::Weak,
+        position: Point,
+        color: Color,
+    },
+    Editor {
+        editor: editor::Weak,
         position: Point,
         color: Color,
     },

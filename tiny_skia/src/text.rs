@@ -2,6 +2,7 @@ use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
 use crate::core::{Color, Font, Pixels, Point, Rectangle};
 use crate::graphics::text::cache::{self, Cache};
+use crate::graphics::text::editor;
 use crate::graphics::text::font_system;
 use crate::graphics::text::paragraph;
 
@@ -58,6 +59,37 @@ impl Pipeline {
             color,
             paragraph.horizontal_alignment(),
             paragraph.vertical_alignment(),
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
+    }
+
+    pub fn draw_editor(
+        &mut self,
+        editor: &editor::Weak,
+        position: Point,
+        color: Color,
+        scale_factor: f32,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::Mask>,
+    ) {
+        use crate::core::text::Editor as _;
+
+        let Some(editor) = editor.upgrade() else {
+            return;
+        };
+
+        let mut font_system = font_system().write().expect("Write font system");
+
+        draw(
+            font_system.raw(),
+            &mut self.glyph_cache,
+            editor.buffer(),
+            Rectangle::new(position, editor.min_bounds()),
+            color,
+            alignment::Horizontal::Left,
+            alignment::Vertical::Top,
             scale_factor,
             pixels,
             clip_mask,

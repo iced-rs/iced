@@ -35,6 +35,7 @@ pub mod rule;
 pub mod scrollable;
 pub mod slider;
 pub mod svg;
+pub mod text_editor;
 pub mod text_input;
 pub mod theme;
 pub mod toggler;
