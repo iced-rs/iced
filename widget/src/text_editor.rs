@@ -189,16 +189,12 @@ where
         };
 
         match update {
-            Update::Focus { click, action } => {
-                state.is_focused = true;
-                state.last_click = Some(click);
-                shell.publish(on_edit(action));
-            }
             Update::Unfocus => {
                 state.is_focused = false;
                 state.is_dragging = false;
             }
             Update::Click { click, action } => {
+                state.is_focused = true;
                 state.last_click = Some(click);
                 state.is_dragging = true;
                 shell.publish(on_edit(action));
@@ -340,9 +336,8 @@ where
 }
 
 enum Update {
-    Focus { click: mouse::Click, action: Action },
-    Unfocus,
     Click { click: mouse::Click, action: Action },
+    Unfocus,
     StopDragging,
     Edit(Action),
     Copy,
@@ -364,31 +359,20 @@ impl Update {
                         let cursor_position = cursor_position
                             - Vector::new(padding.top, padding.left);
 
-                        if state.is_focused {
-                            let click = mouse::Click::new(
-                                cursor_position,
-                                state.last_click,
-                            );
+                        let click = mouse::Click::new(
+                            cursor_position,
+                            state.last_click,
+                        );
 
-                            let action = match click.kind() {
-                                mouse::click::Kind::Single => {
-                                    Action::Click(cursor_position)
-                                }
-                                mouse::click::Kind::Double => {
-                                    Action::SelectWord
-                                }
-                                mouse::click::Kind::Triple => {
-                                    Action::SelectLine
-                                }
-                            };
+                        let action = match click.kind() {
+                            mouse::click::Kind::Single => {
+                                Action::Click(cursor_position)
+                            }
+                            mouse::click::Kind::Double => Action::SelectWord,
+                            mouse::click::Kind::Triple => Action::SelectLine,
+                        };
 
-                            Some(Update::Click { click, action })
-                        } else {
-                            Some(Update::Focus {
-                                click: mouse::Click::new(cursor_position, None),
-                                action: Action::Click(cursor_position),
-                            })
-                        }
+                        Some(Update::Click { click, action })
                     } else if state.is_focused {
                         Some(Update::Unfocus)
                     } else {
