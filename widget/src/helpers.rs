@@ -210,9 +210,9 @@ where
 /// Creates a new [`TextEditor`].
 ///
 /// [`TextEditor`]: crate::TextEditor
-pub fn text_editor<'a, Message, Renderer>(
-    content: &'a text_editor::Content<Renderer>,
-) -> TextEditor<'a, Message, Renderer>
+pub fn text_editor<Message, Renderer>(
+    content: &text_editor::Content<Renderer>,
+) -> TextEditor<'_, Message, Renderer>
 where
     Message: Clone,
     Renderer: core::text::Renderer,

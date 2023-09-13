@@ -7,8 +7,8 @@ use crate::core::text::editor::{Cursor, Editor as _};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Color, Element, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Vector,
+    Clipboard, Color, Element, Length, Padding, Pixels, Rectangle, Shell,
+    Vector,
 };
 
 use std::cell::RefCell;
@@ -205,8 +205,12 @@ where
             Update::Edit(action) => {
                 shell.publish(on_edit(action));
             }
-            Update::Copy => {}
-            Update::Paste => if let Some(_contents) = clipboard.read() {},
+            Update::Copy => todo!(),
+            Update::Paste => {
+                if let Some(_contents) = clipboard.read() {
+                    todo!()
+                }
+            }
         }
 
         event::Status::Captured
@@ -353,7 +357,6 @@ impl Update {
         cursor: mouse::Cursor,
     ) -> Option<Self> {
         let edit = |action| Some(Update::Edit(action));
-        let move_ = |motion| Some(Update::Edit(Action::Move(motion)));
 
         match event {
             Event::Mouse(event) => match event {
@@ -399,11 +402,12 @@ impl Update {
                     modifiers,
                 } if state.is_focused => {
                     if let Some(motion) = motion(key_code) {
-                        let motion = if modifiers.control() {
-                            motion.widen()
-                        } else {
-                            motion
-                        };
+                        let motion =
+                            if platform::is_jump_modifier_pressed(modifiers) {
+                                motion.widen()
+                            } else {
+                                motion
+                            };
 
                         return edit(if modifiers.shift() {
                             Action::Select(motion)
@@ -417,6 +421,12 @@ impl Update {
                         keyboard::KeyCode::Backspace => edit(Action::Backspace),
                         keyboard::KeyCode::Delete => edit(Action::Delete),
                         keyboard::KeyCode::Escape => Some(Self::Unfocus),
+                        keyboard::KeyCode::C => Some(Self::Copy),
+                        keyboard::KeyCode::V
+                            if modifiers.command() && !modifiers.alt() =>
+                        {
+                            Some(Self::Paste)
+                        }
                         _ => None,
                     }
                 }

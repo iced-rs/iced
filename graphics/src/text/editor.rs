@@ -25,7 +25,7 @@ impl Editor {
     }
 
     pub fn buffer(&self) -> &cosmic_text::Buffer {
-        &self.internal().editor.buffer()
+        self.internal().editor.buffer()
     }
 
     pub fn downgrade(&self) -> Weak {
@@ -53,11 +53,11 @@ impl editor::Editor for Editor {
             line_height: 1.0,
         });
 
+        let mut font_system =
+            text::font_system().write().expect("Write font system");
+
         buffer.set_text(
-            text::font_system()
-                .write()
-                .expect("Write font system")
-                .raw(),
+            font_system.raw(),
             text,
             cosmic_text::Attrs::new(),
             cosmic_text::Shaping::Advanced,
@@ -65,6 +65,7 @@ impl editor::Editor for Editor {
 
         Editor(Some(Arc::new(Internal {
             editor: cosmic_text::Editor::new(buffer),
+            version: font_system.version(),
             ..Default::default()
         })))
     }
@@ -347,6 +348,14 @@ impl editor::Editor for Editor {
 
         let mut changed = false;
 
+        if font_system.version() != internal.version {
+            for line in internal.editor.buffer_mut().lines.iter_mut() {
+                line.reset();
+            }
+
+            changed = true;
+        }
+
         if new_font != internal.font {
             for line in internal.editor.buffer_mut().lines.iter_mut() {
                 let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
@@ -383,7 +392,7 @@ impl editor::Editor for Editor {
         }
 
         if changed {
-            internal.min_bounds = text::measure(&internal.editor.buffer());
+            internal.min_bounds = text::measure(internal.editor.buffer());
         }
 
         self.0 = Some(Arc::new(internal));
@@ -453,11 +462,11 @@ impl PartialEq for Weak {
     }
 }
 
-fn highlight_line<'a>(
-    line: &'a cosmic_text::BufferLine,
+fn highlight_line(
+    line: &cosmic_text::BufferLine,
     from: usize,
     to: usize,
-) -> impl Iterator<Item = (f32, f32)> + 'a {
+) -> impl Iterator<Item = (f32, f32)> + '_ {
     let layout = line
         .layout_opt()
         .as_ref()
