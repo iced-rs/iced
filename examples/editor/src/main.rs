@@ -1,5 +1,5 @@
 use iced::widget::{container, text_editor};
-use iced::{Element, Font, Sandbox, Settings};
+use iced::{Element, Font, Sandbox, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Editor::run(Settings::default())
@@ -45,5 +45,9 @@ impl Sandbox for Editor {
         )
         .padding(20)
         .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
