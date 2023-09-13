@@ -1,6 +1,6 @@
 use crate::core::text::editor::{self, Action, Cursor, Motion};
 use crate::core::text::LineHeight;
-use crate::core::{Font, Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
 use cosmic_text::Edit;
@@ -78,28 +78,17 @@ impl editor::Editor for Editor {
 
         match internal.editor.select_opt() {
             Some(selection) => {
-                let line_height = buffer.metrics().line_height;
-                let scroll_offset = buffer.scroll() as f32 * line_height;
-
                 let (start, end) = if cursor < selection {
                     (cursor, selection)
                 } else {
                     (selection, cursor)
                 };
 
-                let visual_lines_before_start: usize = buffer
-                    .lines
-                    .iter()
-                    .take(start.line)
-                    .map(|line| {
-                        line.layout_opt()
-                            .as_ref()
-                            .expect("Line layout should be cached")
-                            .len()
-                    })
-                    .sum();
-
+                let line_height = buffer.metrics().line_height;
                 let selected_lines = end.line - start.line + 1;
+
+                let visual_lines_offset =
+                    visual_lines_offset(start.line, buffer);
 
                 let regions = buffer
                     .lines
@@ -124,37 +113,24 @@ impl editor::Editor for Editor {
                             Some(Rectangle {
                                 x,
                                 width,
-                                y: visual_line as f32 * line_height,
+                                y: (visual_line as i32 + visual_lines_offset)
+                                    as f32
+                                    * line_height,
                                 height: line_height,
                             })
                         } else {
                             None
                         }
                     })
-                    .map(|region| {
-                        region
-                            + Vector::new(
-                                0.0,
-                                visual_lines_before_start as f32 * line_height
-                                    + scroll_offset,
-                            )
-                    })
                     .collect();
 
                 Cursor::Selection(regions)
             }
             _ => {
-                let lines_before_cursor: usize = buffer
-                    .lines
-                    .iter()
-                    .take(cursor.line)
-                    .map(|line| {
-                        line.layout_opt()
-                            .as_ref()
-                            .expect("Line layout should be cached")
-                            .len()
-                    })
-                    .sum();
+                let line_height = buffer.metrics().line_height;
+
+                let visual_lines_offset =
+                    visual_lines_offset(cursor.line, buffer);
 
                 let line = buffer
                     .lines
@@ -168,7 +144,7 @@ impl editor::Editor for Editor {
 
                 let mut lines = layout.iter().enumerate();
 
-                let (subline, offset) = lines
+                let (visual_line, offset) = lines
                     .find_map(|(i, line)| {
                         let start = line
                             .glyphs
@@ -208,14 +184,10 @@ impl editor::Editor for Editor {
                         layout.last().map(|line| line.w).unwrap_or(0.0),
                     ));
 
-                let line_height = buffer.metrics().line_height;
-
-                let scroll_offset = buffer.scroll() as f32 * line_height;
-
                 Cursor::Caret(Point::new(
                     offset,
-                    (lines_before_cursor + subline) as f32 * line_height
-                        - scroll_offset,
+                    (visual_lines_offset + visual_line as i32) as f32
+                        * line_height,
                 ))
             }
         }
@@ -510,4 +482,20 @@ fn highlight_line(
             (x, width)
         }
     })
+}
+
+fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
+    let visual_lines_before_start: usize = buffer
+        .lines
+        .iter()
+        .take(line)
+        .map(|line| {
+            line.layout_opt()
+                .as_ref()
+                .expect("Line layout should be cached")
+                .len()
+        })
+        .sum();
+
+    visual_lines_before_start as i32 - buffer.scroll()
 }
