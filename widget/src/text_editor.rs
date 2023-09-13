@@ -288,7 +288,11 @@ where
                     for range in ranges {
                         renderer.fill_quad(
                             renderer::Quad {
-                                bounds: range + Vector::new(bounds.x, bounds.y),
+                                bounds: range
+                                    + Vector::new(
+                                        bounds.x + self.padding.left,
+                                        bounds.y + self.padding.top,
+                                    ),
                                 border_radius: 0.0.into(),
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,

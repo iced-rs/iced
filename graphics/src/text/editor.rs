@@ -1,6 +1,6 @@
 use crate::core::text::editor::{self, Action, Cursor};
 use crate::core::text::LineHeight;
-use crate::core::{Font, Pixels, Point, Size};
+use crate::core::{Font, Pixels, Point, Rectangle, Size, Vector};
 use crate::text;
 
 use cosmic_text::Edit;
@@ -80,8 +80,70 @@ impl editor::Editor for Editor {
                 if cursor.line != selection.line
                     || cursor.index != selection.index =>
             {
-                // TODO
-                Cursor::Selection(vec![])
+                let line_height = buffer.metrics().line_height;
+                let scroll_offset = buffer.scroll() as f32 * line_height;
+
+                let (start, end) = if cursor < selection {
+                    (cursor, selection)
+                } else {
+                    (selection, cursor)
+                };
+
+                let visual_lines_before_start: usize = buffer
+                    .lines
+                    .iter()
+                    .take(start.line)
+                    .map(|line| {
+                        line.layout_opt()
+                            .as_ref()
+                            .expect("Line layout should be cached")
+                            .len()
+                    })
+                    .sum();
+
+                let selected_lines = end.line - start.line + 1;
+
+                let regions = buffer
+                    .lines
+                    .iter()
+                    .skip(start.line)
+                    .take(selected_lines)
+                    .enumerate()
+                    .flat_map(|(i, line)| {
+                        highlight_line(
+                            line,
+                            if i == 0 { start.index } else { 0 },
+                            if i == selected_lines - 1 {
+                                end.index
+                            } else {
+                                line.text().len()
+                            },
+                        )
+                    })
+                    .enumerate()
+                    .filter_map(|(visual_line, (x, width))| {
+                        if width > 0.0 {
+                            Some(Rectangle {
+                                x,
+                                width,
+                                y: visual_line as f32 * line_height,
+                                height: line_height,
+                            })
+                        } else {
+                            None
+                        }
+                    })
+                    .map(|region| {
+                        region
+                            + Vector::new(
+                                0.0,
+                                visual_lines_before_start as f32 * line_height
+                                    + scroll_offset,
+                            )
+                    })
+                    .collect();
+
+                Cursor::Selection(regions)
             }
             _ => {
                 let lines_before_cursor: usize = buffer
@@ -331,4 +393,54 @@ impl PartialEq for Weak {
             _ => false,
         }
     }
+}
+
+fn highlight_line<'a>(
+    line: &'a cosmic_text::BufferLine,
+    from: usize,
+    to: usize,
+) -> impl Iterator<Item = (f32, f32)> + 'a {
+    let layout = line
+        .layout_opt()
+        .as_ref()
+        .expect("Line layout should be cached");
+
+    layout.iter().map(move |visual_line| {
+        let start = visual_line
+            .glyphs
+            .first()
+            .map(|glyph| glyph.start)
+            .unwrap_or(0);
+        let end = visual_line
+            .glyphs
+            .last()
+            .map(|glyph| glyph.end)
+            .unwrap_or(0);
+
+        let range = start.max(from)..end.min(to);
+
+        if range.is_empty() {
+            (0.0, 0.0)
+        } else if range.start == start && range.end == end {
+            (0.0, visual_line.w)
+        } else {
+            let first_glyph = visual_line
+                .glyphs
+                .iter()
+                .position(|glyph| range.start <= glyph.start)
+                .unwrap_or(0);
+
+            let mut glyphs = visual_line.glyphs.iter();
+
+            let x =
+                glyphs.by_ref().take(first_glyph).map(|glyph| glyph.w).sum();
+
+            let width: f32 = glyphs
+                .take_while(|glyph| range.end > glyph.start)
+                .map(|glyph| glyph.w)
+                .sum();
+
+            (x, width)
+        }
+    })
 }
