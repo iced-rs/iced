@@ -40,14 +40,8 @@ pub trait Editor: Sized + Default {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
-    MoveLeft,
-    MoveRight,
-    MoveUp,
-    MoveDown,
-    MoveLeftWord,
-    MoveRightWord,
-    MoveHome,
-    MoveEnd,
+    Move(Motion),
+    Select(Motion),
     SelectWord,
     SelectLine,
     Insert(char),
@@ -56,6 +50,34 @@ pub enum Action {
     Delete,
     Click(Point),
     Drag(Point),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Motion {
+    Left,
+    Right,
+    Up,
+    Down,
+    WordLeft,
+    WordRight,
+    Home,
+    End,
+    PageUp,
+    PageDown,
+    DocumentStart,
+    DocumentEnd,
+}
+
+impl Motion {
+    pub fn widen(self) -> Self {
+        match self {
+            Self::Left => Self::WordLeft,
+            Self::Right => Self::WordRight,
+            Self::Home => Self::DocumentStart,
+            Self::End => Self::DocumentEnd,
+            _ => self,
+        }
+    }
 }
 
 /// The cursor of an [`Editor`].

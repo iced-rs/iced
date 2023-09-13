@@ -1,4 +1,4 @@
-use crate::core::text::editor::{self, Action, Cursor};
+use crate::core::text::editor::{self, Action, Cursor, Motion};
 use crate::core::text::LineHeight;
 use crate::core::{Font, Pixels, Point, Rectangle, Size, Vector};
 use crate::text;
@@ -76,10 +76,7 @@ impl editor::Editor for Editor {
         let buffer = internal.editor.buffer();
 
         match internal.editor.select_opt() {
-            Some(selection)
-                if cursor.line != selection.line
-                    || cursor.index != selection.index =>
-            {
+            Some(selection) => {
                 let line_height = buffer.metrics().line_height;
                 let scroll_offset = buffer.scroll() as f32 * line_height;
 
@@ -236,26 +233,87 @@ impl editor::Editor for Editor {
 
         let editor = &mut internal.editor;
 
-        let mut act = |action| editor.action(font_system.raw(), action);
-
         match action {
-            Action::MoveLeft => act(cosmic_text::Action::Left),
-            Action::MoveRight => act(cosmic_text::Action::Right),
-            Action::MoveUp => act(cosmic_text::Action::Up),
-            Action::MoveDown => act(cosmic_text::Action::Down),
-            Action::Insert(c) => act(cosmic_text::Action::Insert(c)),
-            Action::Enter => act(cosmic_text::Action::Enter),
-            Action::Backspace => act(cosmic_text::Action::Backspace),
-            Action::Delete => act(cosmic_text::Action::Delete),
-            Action::Click(position) => act(cosmic_text::Action::Click {
-                x: position.x as i32,
-                y: position.y as i32,
-            }),
-            Action::Drag(position) => act(cosmic_text::Action::Drag {
-                x: position.x as i32,
-                y: position.y as i32,
-            }),
-            _ => todo!(),
+            // Motion events
+            Action::Move(motion) => {
+                if let Some(_selection) = editor.select_opt() {
+                    editor.set_select_opt(None);
+                } else {
+                    editor.action(
+                        font_system.raw(),
+                        match motion {
+                            Motion::Left => cosmic_text::Action::Left,
+                            Motion::Right => cosmic_text::Action::Right,
+                            Motion::Up => cosmic_text::Action::Up,
+                            Motion::Down => cosmic_text::Action::Down,
+                            Motion::WordLeft => cosmic_text::Action::LeftWord,
+                            Motion::WordRight => cosmic_text::Action::RightWord,
+                            Motion::Home => cosmic_text::Action::Home,
+                            Motion::End => cosmic_text::Action::End,
+                            Motion::PageUp => cosmic_text::Action::PageUp,
+                            Motion::PageDown => cosmic_text::Action::PageDown,
+                            Motion::DocumentStart => {
+                                cosmic_text::Action::BufferStart
+                            }
+                            Motion::DocumentEnd => {
+                                cosmic_text::Action::BufferEnd
+                            }
+                        },
+                    );
+                }
+            }
+
+            // Selection events
+            Action::Select(_motion) => todo!(),
+            Action::SelectWord => todo!(),
+            Action::SelectLine => todo!(),
+
+            // Editing events
+            Action::Insert(c) => {
+                editor
+                    .action(font_system.raw(), cosmic_text::Action::Insert(c));
+            }
+            Action::Enter => {
+                editor.action(font_system.raw(), cosmic_text::Action::Enter);
+            }
+            Action::Backspace => {
+                editor
+                    .action(font_system.raw(), cosmic_text::Action::Backspace);
+            }
+            Action::Delete => {
+                editor.action(font_system.raw(), cosmic_text::Action::Delete);
+            }
+
+            // Mouse events
+            Action::Click(position) => {
+                editor.action(
+                    font_system.raw(),
+                    cosmic_text::Action::Click {
+                        x: position.x as i32,
+                        y: position.y as i32,
+                    },
+                );
+            }
+            Action::Drag(position) => {
+                editor.action(
+                    font_system.raw(),
+                    cosmic_text::Action::Drag {
+                        x: position.x as i32,
+                        y: position.y as i32,
+                    },
+                );
+
+                // Deselect if selection matches cursor position
+                if let Some(selection) = editor.select_opt() {
+                    let cursor = editor.cursor();
+
+                    if cursor.line == selection.line
+                        && cursor.index == selection.index
+                    {
+                        editor.set_select_opt(None);
+                    }
+                }
+            }
         }
 
         editor.shape_as_needed(font_system.raw());

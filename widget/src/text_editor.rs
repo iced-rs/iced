@@ -14,7 +14,7 @@ use crate::core::{
 use std::cell::RefCell;
 
 pub use crate::style::text_editor::{Appearance, StyleSheet};
-pub use text::editor::Action;
+pub use text::editor::{Action, Motion};
 
 pub struct TextEditor<'a, Message, Renderer = crate::Renderer>
 where
@@ -189,15 +189,15 @@ where
         };
 
         match update {
+            Update::Click { click, action } => {
+                state.is_focused = true;
+                state.is_dragging = true;
+                state.last_click = Some(click);
+                shell.publish(on_edit(action));
+            }
             Update::Unfocus => {
                 state.is_focused = false;
                 state.is_dragging = false;
-            }
-            Update::Click { click, action } => {
-                state.is_focused = true;
-                state.last_click = Some(click);
-                state.is_dragging = true;
-                shell.publish(on_edit(action));
             }
             Update::StopDragging => {
                 state.is_dragging = false;
@@ -352,6 +352,9 @@ impl Update {
         padding: Padding,
         cursor: mouse::Cursor,
     ) -> Option<Self> {
+        let edit = |action| Some(Update::Edit(action));
+        let move_ = |motion| Some(Update::Edit(Action::Move(motion)));
+
         match event {
             Event::Mouse(event) => match event {
                 mouse::Event::ButtonPressed(mouse::Button::Left) => {
@@ -386,7 +389,7 @@ impl Update {
                     let cursor_position = cursor.position_in(bounds)?
                         - Vector::new(padding.top, padding.left);
 
-                    Some(Self::Edit(Action::Drag(cursor_position)))
+                    edit(Action::Drag(cursor_position))
                 }
                 _ => None,
             },
@@ -394,42 +397,50 @@ impl Update {
                 keyboard::Event::KeyPressed {
                     key_code,
                     modifiers,
-                } if state.is_focused => match key_code {
-                    keyboard::KeyCode::Left => {
-                        if platform::is_jump_modifier_pressed(modifiers) {
-                            Some(Self::Edit(Action::MoveLeftWord))
+                } if state.is_focused => {
+                    if let Some(motion) = motion(key_code) {
+                        let motion = if modifiers.control() {
+                            motion.widen()
                         } else {
-                            Some(Self::Edit(Action::MoveLeft))
-                        }
-                    }
-                    keyboard::KeyCode::Right => {
-                        if platform::is_jump_modifier_pressed(modifiers) {
-                            Some(Self::Edit(Action::MoveRightWord))
+                            motion
+                        };
+
+                        return edit(if modifiers.shift() {
+                            Action::Select(motion)
                         } else {
-                            Some(Self::Edit(Action::MoveRight))
-                        }
+                            Action::Move(motion)
+                        });
                     }
-                    keyboard::KeyCode::Up => Some(Self::Edit(Action::MoveUp)),
-                    keyboard::KeyCode::Down => {
-                        Some(Self::Edit(Action::MoveDown))
+
+                    match key_code {
+                        keyboard::KeyCode::Enter => edit(Action::Enter),
+                        keyboard::KeyCode::Backspace => edit(Action::Backspace),
+                        keyboard::KeyCode::Delete => edit(Action::Delete),
+                        keyboard::KeyCode::Escape => Some(Self::Unfocus),
+                        _ => None,
                     }
-                    keyboard::KeyCode::Enter => Some(Self::Edit(Action::Enter)),
-                    keyboard::KeyCode::Backspace => {
-                        Some(Self::Edit(Action::Backspace))
-                    }
-                    keyboard::KeyCode::Delete => {
-                        Some(Self::Edit(Action::Delete))
-                    }
-                    keyboard::KeyCode::Escape => Some(Self::Unfocus),
-                    _ => None,
-                },
+                }
                 keyboard::Event::CharacterReceived(c) if state.is_focused => {
-                    Some(Self::Edit(Action::Insert(c)))
+                    edit(Action::Insert(c))
                 }
                 _ => None,
             },
             _ => None,
         }
+    }
+}
+
+fn motion(key_code: keyboard::KeyCode) -> Option<Motion> {
+    match key_code {
+        keyboard::KeyCode::Left => Some(Motion::Left),
+        keyboard::KeyCode::Right => Some(Motion::Right),
+        keyboard::KeyCode::Up => Some(Motion::Up),
+        keyboard::KeyCode::Down => Some(Motion::Down),
+        keyboard::KeyCode::Home => Some(Motion::Home),
+        keyboard::KeyCode::End => Some(Motion::End),
+        keyboard::KeyCode::PageUp => Some(Motion::PageUp),
+        keyboard::KeyCode::PageDown => Some(Motion::PageDown),
+        _ => None,
     }
 }
 
