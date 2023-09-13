@@ -157,7 +157,7 @@ impl editor::Editor for Editor {
                             .map(|glyph| glyph.end)
                             .unwrap_or(0);
 
-                        let is_cursor_after_start = start <= cursor.index;
+                        let is_cursor_before_start = start > cursor.index;
 
                         let is_cursor_before_end = match cursor.affinity {
                             cosmic_text::Affinity::Before => {
@@ -166,7 +166,17 @@ impl editor::Editor for Editor {
                             cosmic_text::Affinity::After => cursor.index < end,
                         };
 
-                        if is_cursor_after_start && is_cursor_before_end {
+                        if is_cursor_before_start {
+                            // Sometimes, the glyph we are looking for is right
+                            // between lines. This can happen when a line wraps
+                            // on a space.
+                            // In that case, we can assume the cursor is at the
+                            // end of the previous line.
+                            // i is guaranteed to be > 0 because `start` is always
+                            // 0 for the first line, so there is no way for the
+                            // cursor to be before it.
+                            Some((i - 1, layout[i - 1].w))
+                        } else if is_cursor_before_end {
                             let offset = line
                                 .glyphs
                                 .iter()
