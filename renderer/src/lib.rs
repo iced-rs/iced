@@ -29,9 +29,7 @@ pub use geometry::Geometry;
 
 use crate::core::renderer;
 use crate::core::text::{self, Text};
-use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Vector,
-};
+use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Vector};
 use crate::graphics::text::Editor;
 use crate::graphics::text::Paragraph;
 use crate::graphics::Mesh;
@@ -219,7 +217,10 @@ impl<T> text::Renderer for Renderer<T> {
 impl<T> crate::core::image::Renderer for Renderer<T> {
     type Handle = crate::core::image::Handle;
 
-    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
+    fn dimensions(
+        &self,
+        handle: &crate::core::image::Handle,
+    ) -> core::Size<u32> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
 
@@ -230,7 +231,7 @@ impl<T> crate::core::image::Renderer for Renderer<T> {
 
 #[cfg(feature = "svg")]
 impl<T> crate::core::svg::Renderer for Renderer<T> {
-    fn dimensions(&self, handle: &crate::core::svg::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &crate::core::svg::Handle) -> core::Size<u32> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
 
