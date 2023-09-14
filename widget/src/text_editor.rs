@@ -421,7 +421,9 @@ impl Update {
                         keyboard::KeyCode::Backspace => edit(Action::Backspace),
                         keyboard::KeyCode::Delete => edit(Action::Delete),
                         keyboard::KeyCode::Escape => Some(Self::Unfocus),
-                        keyboard::KeyCode::C => Some(Self::Copy),
+                        keyboard::KeyCode::C if modifiers.command() => {
+                            Some(Self::Copy)
+                        }
                         keyboard::KeyCode::V
                             if modifiers.command() && !modifiers.alt() =>
                         {
