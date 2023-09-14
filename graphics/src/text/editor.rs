@@ -274,7 +274,66 @@ impl editor::Editor for Editor {
                     }
                 }
             }
-            Action::SelectWord => todo!(),
+            Action::SelectWord => {
+                use unicode_segmentation::UnicodeSegmentation;
+
+                let cursor = editor.cursor();
+
+                if let Some(line) = editor.buffer().lines.get(cursor.line) {
+                    let (start, end) =
+                        UnicodeSegmentation::unicode_word_indices(line.text())
+                            // Split words with dots
+                            .flat_map(|(i, word)| {
+                                word.split('.').scan(i, |current, word| {
+                                    let start = *current;
+                                    *current += word.len() + 1;
+
+                                    Some((start, word))
+                                })
+                            })
+                            // Turn words into ranges
+                            .map(|(i, word)| (i, i + word.len()))
+                            // Find the word at cursor
+                            .find(|&(start, end)| {
+                                start <= cursor.index && cursor.index < end
+                            })
+                            // Cursor is not in a word. Let's select its punctuation cluster.
+                            .unwrap_or_else(|| {
+                                let start = line.text()[..cursor.index]
+                                    .char_indices()
+                                    .rev()
+                                    .take_while(|(_, c)| {
+                                        c.is_ascii_punctuation()
+                                    })
+                                    .map(|(i, _)| i)
+                                    .last()
+                                    .unwrap_or(cursor.index);
+
+                                let end = line.text()[cursor.index..]
+                                    .char_indices()
+                                    .skip_while(|(_, c)| {
+                                        c.is_ascii_punctuation()
+                                    })
+                                    .map(|(i, _)| i + cursor.index)
+                                    .next()
+                                    .unwrap_or(cursor.index);
+
+                                (start, end)
+                            });
+
+                    if start != end {
+                        editor.set_cursor(cosmic_text::Cursor {
+                            index: start,
+                            ..cursor
+                        });
+
+                        editor.set_select_opt(Some(cosmic_text::Cursor {
+                            index: end,
+                            ..cursor
+                        }));
+                    }
+                }
+            }
             Action::SelectLine => todo!(),
 
             // Editing events
