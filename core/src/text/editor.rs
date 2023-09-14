@@ -78,6 +78,29 @@ impl Motion {
             _ => self,
         }
     }
+
+    pub fn direction(&self) -> Direction {
+        match self {
+            Self::Left
+            | Self::Up
+            | Self::WordLeft
+            | Self::Home
+            | Self::PageUp
+            | Self::DocumentStart => Direction::Left,
+            Self::Right
+            | Self::Down
+            | Self::WordRight
+            | Self::End
+            | Self::PageDown
+            | Self::DocumentEnd => Direction::Right,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Direction {
+    Left,
+    Right,
 }
 
 /// The cursor of an [`Editor`].

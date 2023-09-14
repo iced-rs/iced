@@ -1,4 +1,4 @@
-use crate::core::text::editor::{self, Action, Cursor, Motion};
+use crate::core::text::editor::{self, Action, Cursor, Direction, Motion};
 use crate::core::text::LineHeight;
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
@@ -219,30 +219,37 @@ impl editor::Editor for Editor {
         match action {
             // Motion events
             Action::Move(motion) => {
-                if let Some(_selection) = editor.select_opt() {
+                if let Some(selection) = editor.select_opt() {
+                    let cursor = editor.cursor();
+
+                    let (left, right) = if cursor < selection {
+                        (cursor, selection)
+                    } else {
+                        (selection, cursor)
+                    };
+
                     editor.set_select_opt(None);
+
+                    match motion {
+                        // These motions are performed as-is even when a selection
+                        // is present
+                        Motion::Home
+                        | Motion::End
+                        | Motion::DocumentStart
+                        | Motion::DocumentEnd => {
+                            editor.action(
+                                font_system.raw(),
+                                motion_to_action(motion),
+                            );
+                        }
+                        // Other motions simply move the cursor to one end of the selection
+                        _ => editor.set_cursor(match motion.direction() {
+                            Direction::Left => left,
+                            Direction::Right => right,
+                        }),
+                    }
                 } else {
-                    editor.action(
-                        font_system.raw(),
-                        match motion {
-                            Motion::Left => cosmic_text::Action::Left,
-                            Motion::Right => cosmic_text::Action::Right,
-                            Motion::Up => cosmic_text::Action::Up,
-                            Motion::Down => cosmic_text::Action::Down,
-                            Motion::WordLeft => cosmic_text::Action::LeftWord,
-                            Motion::WordRight => cosmic_text::Action::RightWord,
-                            Motion::Home => cosmic_text::Action::Home,
-                            Motion::End => cosmic_text::Action::End,
-                            Motion::PageUp => cosmic_text::Action::PageUp,
-                            Motion::PageDown => cosmic_text::Action::PageDown,
-                            Motion::DocumentStart => {
-                                cosmic_text::Action::BufferStart
-                            }
-                            Motion::DocumentEnd => {
-                                cosmic_text::Action::BufferEnd
-                            }
-                        },
-                    );
+                    editor.action(font_system.raw(), motion_to_action(motion));
                 }
             }
 
@@ -508,4 +515,21 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
         .sum();
 
     visual_lines_before_start as i32 - buffer.scroll()
+}
+
+fn motion_to_action(motion: Motion) -> cosmic_text::Action {
+    match motion {
+        Motion::Left => cosmic_text::Action::Left,
+        Motion::Right => cosmic_text::Action::Right,
+        Motion::Up => cosmic_text::Action::Up,
+        Motion::Down => cosmic_text::Action::Down,
+        Motion::WordLeft => cosmic_text::Action::LeftWord,
+        Motion::WordRight => cosmic_text::Action::RightWord,
+        Motion::Home => cosmic_text::Action::Home,
+        Motion::End => cosmic_text::Action::End,
+        Motion::PageUp => cosmic_text::Action::PageUp,
+        Motion::PageDown => cosmic_text::Action::PageDown,
+        Motion::DocumentStart => cosmic_text::Action::BufferStart,
+        Motion::DocumentEnd => cosmic_text::Action::BufferEnd,
+    }
 }
