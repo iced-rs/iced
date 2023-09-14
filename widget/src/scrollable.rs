@@ -1364,15 +1364,15 @@ impl Scrollbars {
 
             let ratio = bounds.height / content_bounds.height;
             // min height for easier grabbing with super tall content
-            let scroller_height = (bounds.height * ratio).max(2.0);
-            let scroller_offset = translation.y * ratio;
+            let scroller_height = (scrollbar_bounds.height * ratio).max(2.0);
+            let scroller_offset =
+                translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
             let scroller_bounds = Rectangle {
                 x: bounds.x + bounds.width
                     - total_scrollbar_width / 2.0
                     - scroller_width / 2.0,
-                y: (scrollbar_bounds.y + scroller_offset - x_scrollbar_height)
-                    .max(0.0),
+                y: (scrollbar_bounds.y + scroller_offset).max(0.0),
                 width: scroller_width,
                 height: scroller_height,
             };
