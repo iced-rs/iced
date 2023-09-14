@@ -334,7 +334,24 @@ impl editor::Editor for Editor {
                     }
                 }
             }
-            Action::SelectLine => todo!(),
+            Action::SelectLine => {
+                let cursor = editor.cursor();
+
+                if let Some(line_length) = editor
+                    .buffer()
+                    .lines
+                    .get(cursor.line)
+                    .map(|line| line.text().len())
+                {
+                    editor
+                        .set_cursor(cosmic_text::Cursor { index: 0, ..cursor });
+
+                    editor.set_select_opt(Some(cosmic_text::Cursor {
+                        index: line_length,
+                        ..cursor
+                    }));
+                }
+            }
 
             // Editing events
             Action::Insert(c) => {
