@@ -15,7 +15,6 @@ struct Internal {
     editor: cosmic_text::Editor,
     font: Font,
     bounds: Size,
-    min_bounds: Size,
     version: text::Version,
 }
 
@@ -426,14 +425,10 @@ impl editor::Editor for Editor {
         let mut font_system =
             text::font_system().write().expect("Write font system");
 
-        let mut changed = false;
-
         if font_system.version() != internal.version {
             for line in internal.editor.buffer_mut().lines.iter_mut() {
                 line.reset();
             }
-
-            changed = true;
         }
 
         if new_font != internal.font {
@@ -442,8 +437,6 @@ impl editor::Editor for Editor {
                     text::to_attributes(new_font),
                 ));
             }
-
-            changed = true;
         }
 
         let metrics = internal.editor.buffer().metrics();
@@ -456,8 +449,6 @@ impl editor::Editor for Editor {
                 font_system.raw(),
                 cosmic_text::Metrics::new(new_size.0, new_line_height.0),
             );
-
-            changed = true;
         }
 
         if new_bounds != internal.bounds {
@@ -468,11 +459,6 @@ impl editor::Editor for Editor {
             );
 
             internal.bounds = new_bounds;
-            changed = true;
-        }
-
-        if changed {
-            internal.min_bounds = text::measure(internal.editor.buffer());
         }
 
         self.0 = Some(Arc::new(internal));
@@ -489,7 +475,6 @@ impl PartialEq for Internal {
     fn eq(&self, other: &Self) -> bool {
         self.font == other.font
             && self.bounds == other.bounds
-            && self.min_bounds == other.min_bounds
             && self.editor.buffer().metrics() == other.editor.buffer().metrics()
     }
 }
@@ -505,7 +490,6 @@ impl Default for Internal {
             )),
             font: Font::default(),
             bounds: Size::ZERO,
-            min_bounds: Size::ZERO,
             version: text::Version::default(),
         }
     }
@@ -516,7 +500,6 @@ impl fmt::Debug for Internal {
         f.debug_struct("Internal")
             .field("font", &self.font)
             .field("bounds", &self.bounds)
-            .field("min_bounds", &self.min_bounds)
             .finish()
     }
 }
