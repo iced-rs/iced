@@ -155,6 +155,15 @@ impl Backend {
                 border,
                 shadow,
             } => {
+                debug_assert!(
+                    bounds.width.is_normal(),
+                    "Quad with non-normal width!"
+                );
+                debug_assert!(
+                    bounds.height.is_normal(),
+                    "Quad with non-normal height!"
+                );
+
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
