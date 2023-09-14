@@ -254,7 +254,26 @@ impl editor::Editor for Editor {
             }
 
             // Selection events
-            Action::Select(_motion) => todo!(),
+            Action::Select(motion) => {
+                let cursor = editor.cursor();
+
+                if editor.select_opt().is_none() {
+                    editor.set_select_opt(Some(cursor));
+                }
+
+                editor.action(font_system.raw(), motion_to_action(motion));
+
+                // Deselect if selection matches cursor position
+                if let Some(selection) = editor.select_opt() {
+                    let cursor = editor.cursor();
+
+                    if cursor.line == selection.line
+                        && cursor.index == selection.index
+                    {
+                        editor.set_select_opt(None);
+                    }
+                }
+            }
             Action::SelectWord => todo!(),
             Action::SelectLine => todo!(),
 
