@@ -1364,15 +1364,15 @@ impl Scrollbars {
 
             let ratio = bounds.height / content_bounds.height;
             // min height for easier grabbing with super tall content
-            let scroller_height = (bounds.height * ratio).max(2.0);
-            let scroller_offset = translation.y * ratio;
+            let scroller_height = (scrollbar_bounds.height * ratio).max(2.0);
+            let scroller_offset =
+                translation.y * ratio * scrollbar_bounds.height / bounds.height;
 
             let scroller_bounds = Rectangle {
                 x: bounds.x + bounds.width
                     - total_scrollbar_width / 2.0
                     - scroller_width / 2.0,
-                y: (scrollbar_bounds.y + scroller_offset - x_scrollbar_height)
-                    .max(0.0),
+                y: (scrollbar_bounds.y + scroller_offset).max(0.0),
                 width: scroller_width,
                 height: scroller_height,
             };
@@ -1399,8 +1399,8 @@ impl Scrollbars {
 
             // Need to adjust the width of the horizontal scrollbar if the vertical scrollbar
             // is present
-            let scrollbar_y_width = show_scrollbar_y
-                .map_or(0.0, |v| v.width.max(v.scroller_width) + v.margin);
+            let scrollbar_y_width = y_scrollbar
+                .map_or(0.0, |scrollbar| scrollbar.total_bounds.width);
 
             let total_scrollbar_height =
                 width.max(scroller_width) + 2.0 * margin;
@@ -1425,12 +1425,12 @@ impl Scrollbars {
 
             let ratio = bounds.width / content_bounds.width;
             // min width for easier grabbing with extra wide content
-            let scroller_length = (bounds.width * ratio).max(2.0);
-            let scroller_offset = translation.x * ratio;
+            let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
+            let scroller_offset =
+                translation.x * ratio * scrollbar_bounds.width / bounds.width;
 
             let scroller_bounds = Rectangle {
-                x: (scrollbar_bounds.x + scroller_offset - scrollbar_y_width)
-                    .max(0.0),
+                x: (scrollbar_bounds.x + scroller_offset).max(0.0),
                 y: bounds.y + bounds.height
                     - total_scrollbar_height / 2.0
                     - scroller_width / 2.0,
