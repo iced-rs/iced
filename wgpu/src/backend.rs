@@ -3,9 +3,7 @@ use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::{Transformation, Viewport};
 use crate::primitive::{self, Primitive};
-use crate::quad;
-use crate::text;
-use crate::triangle;
+use crate::{custom, quad, text, triangle};
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -25,6 +23,7 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
+    pipeline_storage: custom::Storage,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
@@ -50,6 +49,7 @@ impl Backend {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
+            pipeline_storage: custom::Storage::default(),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
@@ -66,6 +66,7 @@ impl Backend {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         clear_color: Option<Color>,
+        format: wgpu::TextureFormat,
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
         viewport: &Viewport,
@@ -88,6 +89,7 @@ impl Backend {
         self.prepare(
             device,
             queue,
+            format,
             encoder,
             scale_factor,
             target_size,
@@ -117,6 +119,7 @@ impl Backend {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
         _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         target_size: Size<u32>,
@@ -178,6 +181,20 @@ impl Backend {
                     scale_factor,
                     target_size,
                 );
+            }
+
+            if !layer.shaders.is_empty() {
+                for shader in &layer.shaders {
+                    shader.primitive.prepare(
+                        format,
+                        device,
+                        queue,
+                        target_size,
+                        scale_factor,
+                        transformation,
+                        &mut self.pipeline_storage,
+                    );
+                }
             }
         }
     }
@@ -302,6 +319,47 @@ impl Backend {
 
                 text_layer += 1;
             }
+
+            // kill render pass to let custom shaders get mut access to encoder
+            let _ = ManuallyDrop::into_inner(render_pass);
+
+            if !layer.shaders.is_empty() {
+                for shader in &layer.shaders {
+                    //This extra check is needed since each custom pipeline must set it's own
+                    //scissor rect, which will panic if bounds.w/h < 1
+                    let bounds = shader.bounds * scale_factor;
+
+                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                        continue;
+                    }
+
+                    shader.primitive.render(
+                        &self.pipeline_storage,
+                        bounds.into(),
+                        target,
+                        target_size,
+                        encoder,
+                    );
+                }
+            }
+
+            // recreate and continue processing layers
+            render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                &wgpu::RenderPassDescriptor {
+                    label: Some("iced_wgpu::quad render pass"),
+                    color_attachments: &[Some(
+                        wgpu::RenderPassColorAttachment {
+                            view: target,
+                            resolve_target: None,
+                            ops: wgpu::Operations {
+                                load: wgpu::LoadOp::Load,
+                                store: true,
+                            },
+                        },
+                    )],
+                    depth_stencil_attachment: None,
+                },
+            ));
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);

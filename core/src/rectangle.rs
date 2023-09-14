@@ -183,6 +183,17 @@ impl From<Rectangle<u32>> for Rectangle<f32> {
     }
 }
 
+impl From<Rectangle<f32>> for Rectangle<u32> {
+    fn from(rectangle: Rectangle<f32>) -> Self {
+        Rectangle {
+            x: rectangle.x as u32,
+            y: rectangle.y as u32,
+            width: rectangle.width as u32,
+            height: rectangle.height as u32,
+        }
+    }
+}
+
 impl<T> std::ops::Add<Vector<T>> for Rectangle<T>
 where
     T: std::ops::Add<Output = T>,

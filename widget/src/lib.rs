@@ -97,6 +97,9 @@ pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
 
+#[cfg(feature = "wgpu")]
+pub use renderer::widget::shader::{self, Shader};
+
 #[cfg(feature = "svg")]
 pub mod svg;
 

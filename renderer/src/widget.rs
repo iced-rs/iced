@@ -9,3 +9,6 @@ pub mod qr_code;
 
 #[cfg(feature = "qr_code")]
 pub use qr_code::QRCode;
+
+#[cfg(feature = "wgpu")]
+pub mod shader;

@@ -1,7 +1,7 @@
 //! Use the built-in theme and styles.
 pub mod palette;
 
-pub use palette::Palette;
+pub use self::palette::Palette;
 
 use crate::application;
 use crate::button;

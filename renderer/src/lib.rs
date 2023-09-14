@@ -7,6 +7,7 @@ pub mod compositor;
 pub mod geometry;
 
 mod settings;
+pub mod widget;
 
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
@@ -56,6 +57,26 @@ impl<T> Renderer<T> {
                 renderer.draw_primitive(iced_wgpu::Primitive::Custom(
                     iced_wgpu::primitive::Custom::Mesh(mesh),
                 ));
+            }
+        }
+    }
+
+    pub fn draw_custom<P: widget::shader::Primitive>(
+        &mut self,
+        bounds: Rectangle,
+        primitive: P,
+    ) {
+        match self {
+            Renderer::TinySkia(_) => {
+                log::warn!(
+                    "Custom shader primitive is unavailable with tiny-skia."
+                );
+            }
+            #[cfg(feature = "wgpu")]
+            Renderer::Wgpu(renderer) => {
+                renderer.draw_primitive(iced_wgpu::Primitive::Custom(
+                    iced_wgpu::primitive::Custom::shader(bounds, primitive),
+                ))
             }
         }
     }

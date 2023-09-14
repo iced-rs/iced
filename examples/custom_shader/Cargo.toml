@@ -1,0 +1,13 @@
+[package]
+name = "custom_shader"
+version = "0.1.0"
+authors = ["Bingus <shankern@protonmail.com>"]
+edition = "2021"
+
+[dependencies]
+iced = { path = "../..", features = ["debug", "advanced"]}
+image = { version = "0.24.6"}
+wgpu = "0.17"
+bytemuck = { version = "1.13.1" }
+glam = { version = "0.24.0", features = ["bytemuck"] }
+rand = "0.8.5"

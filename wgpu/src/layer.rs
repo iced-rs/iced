@@ -34,6 +34,9 @@ pub struct Layer<'a> {
 
     /// The images of the [`Layer`].
     pub images: Vec<Image>,
+
+    /// The custom shader primitives of this [`Layer`].
+    pub shaders: Vec<primitive::Shader>,
 }
 
 impl<'a> Layer<'a> {
@@ -45,6 +48,7 @@ impl<'a> Layer<'a> {
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
+            shaders: Vec::new(),
         }
     }
 
@@ -308,6 +312,18 @@ impl<'a> Layer<'a> {
                         }
                     }
                 },
+                primitive::Custom::Shader(shader) => {
+                    let layer = &mut layers[current_layer];
+
+                    let bounds = Rectangle::new(
+                        Point::new(translation.x, translation.y),
+                        shader.bounds.size(),
+                    );
+
+                    if layer.bounds.intersection(&bounds).is_some() {
+                        layer.shaders.push(shader.clone());
+                    }
+                }
             },
         }
     }
