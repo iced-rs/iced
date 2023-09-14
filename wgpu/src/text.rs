@@ -151,7 +151,7 @@ impl Pipeline {
 
                         (
                             editor.buffer(),
-                            Rectangle::new(*position, editor.min_bounds()),
+                            Rectangle::new(*position, editor.bounds()),
                             alignment::Horizontal::Left,
                             alignment::Vertical::Top,
                             *color,

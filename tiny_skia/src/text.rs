@@ -86,7 +86,7 @@ impl Pipeline {
             font_system.raw(),
             &mut self.glyph_cache,
             editor.buffer(),
-            Rectangle::new(position, editor.min_bounds()),
+            Rectangle::new(position, editor.bounds()),
             color,
             alignment::Horizontal::Left,
             alignment::Vertical::Top,

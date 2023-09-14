@@ -14,10 +14,6 @@ pub trait Editor: Sized + Default {
     /// Returns the current boundaries of the [`Editor`].
     fn bounds(&self) -> Size;
 
-    /// Returns the minimum boundaries that can fit the contents of the
-    /// [`Editor`].
-    fn min_bounds(&self) -> Size;
-
     /// Updates the [`Editor`] with some new attributes.
     fn update(
         &mut self,
@@ -26,16 +22,6 @@ pub trait Editor: Sized + Default {
         new_size: Pixels,
         new_line_height: LineHeight,
     );
-
-    /// Returns the minimum width that can fit the contents of the [`Editor`].
-    fn min_width(&self) -> f32 {
-        self.min_bounds().width
-    }
-
-    /// Returns the minimum height that can fit the contents of the [`Editor`].
-    fn min_height(&self) -> f32 {
-        self.min_bounds().height
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

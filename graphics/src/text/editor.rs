@@ -410,10 +410,6 @@ impl editor::Editor for Editor {
         self.internal().bounds
     }
 
-    fn min_bounds(&self) -> Size {
-        self.internal().min_bounds
-    }
-
     fn update(
         &mut self,
         new_bounds: Size,
