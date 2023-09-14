@@ -93,6 +93,8 @@ pub use space::Space;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
+pub use text_editor::TextEditor;
+#[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use toggler::Toggler;

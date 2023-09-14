@@ -137,6 +137,8 @@ impl Hit {
 ///
 /// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
 /// [`Text`].
+///
+/// [`compare`]: Paragraph::compare
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Difference {
     /// No difference.
