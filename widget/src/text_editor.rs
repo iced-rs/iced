@@ -100,6 +100,54 @@ where
         internal.editor.perform(action);
         internal.is_dirty = true;
     }
+
+    pub fn line_count(&self) -> usize {
+        self.0.borrow().editor.line_count()
+    }
+
+    pub fn line(
+        &self,
+        index: usize,
+    ) -> Option<impl std::ops::Deref<Target = str> + '_> {
+        std::cell::Ref::filter_map(self.0.borrow(), |internal| {
+            internal.editor.line(index)
+        })
+        .ok()
+    }
+
+    pub fn lines(
+        &self,
+    ) -> impl Iterator<Item = impl std::ops::Deref<Target = str> + '_> {
+        struct Lines<'a, Renderer: text::Renderer> {
+            internal: std::cell::Ref<'a, Internal<Renderer>>,
+            current: usize,
+        }
+
+        impl<'a, Renderer: text::Renderer> Iterator for Lines<'a, Renderer> {
+            type Item = std::cell::Ref<'a, str>;
+
+            fn next(&mut self) -> Option<Self::Item> {
+                let line = std::cell::Ref::filter_map(
+                    std::cell::Ref::clone(&self.internal),
+                    |internal| internal.editor.line(self.current),
+                )
+                .ok()?;
+
+                self.current += 1;
+
+                Some(line)
+            }
+        }
+
+        Lines {
+            internal: self.0.borrow(),
+            current: 0,
+        }
+    }
+
+    pub fn selection(&self) -> Option<String> {
+        self.0.borrow().editor.selection()
+    }
 }
 
 impl<Renderer> Default for Content<Renderer>

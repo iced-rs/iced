@@ -69,6 +69,47 @@ impl editor::Editor for Editor {
         })))
     }
 
+    fn line(&self, index: usize) -> Option<&str> {
+        self.buffer()
+            .lines
+            .get(index)
+            .map(cosmic_text::BufferLine::text)
+    }
+
+    fn line_count(&self) -> usize {
+        self.buffer().lines.len()
+    }
+
+    fn selection(&self) -> Option<String> {
+        let internal = self.internal();
+
+        let cursor = internal.editor.cursor();
+        let selection = internal.editor.select_opt()?;
+
+        let (start, end) = if cursor < selection {
+            (cursor, selection)
+        } else {
+            (selection, cursor)
+        };
+
+        Some(
+            internal.editor.buffer().lines[start.line..=end.line]
+                .iter()
+                .enumerate()
+                .map(|(i, line)| {
+                    if i == 0 {
+                        &line.text()[start.index..]
+                    } else if i == end.line - start.line {
+                        &line.text()[..end.index]
+                    } else {
+                        line.text()
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n"),
+        )
+    }
+
     fn cursor(&self) -> editor::Cursor {
         let internal = self.internal();
 

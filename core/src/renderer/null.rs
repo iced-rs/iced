@@ -125,6 +125,18 @@ impl text::Editor for () {
         text::editor::Cursor::Caret(Point::ORIGIN)
     }
 
+    fn selection(&self) -> Option<String> {
+        None
+    }
+
+    fn line(&self, _index: usize) -> Option<&str> {
+        None
+    }
+
+    fn line_count(&self) -> usize {
+        0
+    }
+
     fn perform(&mut self, _action: text::editor::Action) {}
 
     fn bounds(&self) -> Size {

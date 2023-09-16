@@ -9,6 +9,12 @@ pub trait Editor: Sized + Default {
 
     fn cursor(&self) -> Cursor;
 
+    fn selection(&self) -> Option<String>;
+
+    fn line(&self, index: usize) -> Option<&str>;
+
+    fn line_count(&self) -> usize;
+
     fn perform(&mut self, action: Action);
 
     /// Returns the current boundaries of the [`Editor`].
