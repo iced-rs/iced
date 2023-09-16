@@ -151,3 +151,7 @@ wgpu = "0.17"
 winapi = "0.3"
 window_clipboard = "0.3"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e", default-features = false }
+
+[patch.crates-io.cosmic-text]
+git = "https://github.com/hecrj/cosmic-text.git"
+rev = "cb83458e7d0b84ef37c5beb72dda5046d7d343a6"

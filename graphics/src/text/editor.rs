@@ -81,33 +81,7 @@ impl editor::Editor for Editor {
     }
 
     fn selection(&self) -> Option<String> {
-        let internal = self.internal();
-
-        let cursor = internal.editor.cursor();
-        let selection = internal.editor.select_opt()?;
-
-        let (start, end) = if cursor < selection {
-            (cursor, selection)
-        } else {
-            (selection, cursor)
-        };
-
-        Some(
-            internal.editor.buffer().lines[start.line..=end.line]
-                .iter()
-                .enumerate()
-                .map(|(i, line)| {
-                    if i == 0 {
-                        &line.text()[start.index..]
-                    } else if i == end.line - start.line {
-                        &line.text()[..end.index]
-                    } else {
-                        line.text()
-                    }
-                })
-                .collect::<Vec<_>>()
-                .join("\n"),
-        )
+        self.internal().editor.copy_selection()
     }
 
     fn cursor(&self) -> editor::Cursor {
@@ -400,14 +374,6 @@ impl editor::Editor for Editor {
             }
             Action::Paste(text) => {
                 editor.insert_string(&text, None);
-
-                // TODO: Fix cosmic-text
-                // Cursor should be marked as moved after `insert_string`.
-                let cursor = editor.cursor();
-
-                editor
-                    .buffer_mut()
-                    .shape_until_cursor(font_system.raw(), cursor);
             }
             Action::Enter => {
                 editor.action(font_system.raw(), cosmic_text::Action::Enter);
