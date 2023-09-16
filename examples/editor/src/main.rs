@@ -9,7 +9,7 @@ struct Editor {
     content: text_editor::Content,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
 }

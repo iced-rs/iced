@@ -1,6 +1,8 @@
 use crate::text::LineHeight;
 use crate::{Pixels, Point, Rectangle, Size};
 
+use std::sync::Arc;
+
 pub trait Editor: Sized + Default {
     type Font: Copy + PartialEq + Default;
 
@@ -30,13 +32,14 @@ pub trait Editor: Sized + Default {
     );
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Action {
     Move(Motion),
     Select(Motion),
     SelectWord,
     SelectLine,
     Insert(char),
+    Paste(Arc<String>),
     Enter,
     Backspace,
     Delete,

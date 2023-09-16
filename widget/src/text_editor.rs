@@ -12,6 +12,7 @@ use crate::core::{
 };
 
 use std::cell::RefCell;
+use std::sync::Arc;
 
 pub use crate::style::text_editor::{Appearance, StyleSheet};
 pub use text::editor::{Action, Motion};
@@ -253,10 +254,14 @@ where
             Update::Edit(action) => {
                 shell.publish(on_edit(action));
             }
-            Update::Copy => todo!(),
+            Update::Copy => {
+                if let Some(selection) = self.content.selection() {
+                    clipboard.write(selection);
+                }
+            }
             Update::Paste => {
-                if let Some(_contents) = clipboard.read() {
-                    todo!()
+                if let Some(contents) = clipboard.read() {
+                    shell.publish(on_edit(Action::Paste(Arc::new(contents))));
                 }
             }
         }

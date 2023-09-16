@@ -398,6 +398,17 @@ impl editor::Editor for Editor {
                 editor
                     .action(font_system.raw(), cosmic_text::Action::Insert(c));
             }
+            Action::Paste(text) => {
+                editor.insert_string(&text, None);
+
+                // TODO: Fix cosmic-text
+                // Cursor should be marked as moved after `insert_string`.
+                let cursor = editor.cursor();
+
+                editor
+                    .buffer_mut()
+                    .shape_until_cursor(font_system.raw(), cursor);
+            }
             Action::Enter => {
                 editor.action(font_system.raw(), cosmic_text::Action::Enter);
             }
