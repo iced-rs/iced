@@ -162,8 +162,8 @@ where
 
 struct State {
     is_focused: bool,
-    is_dragging: bool,
     last_click: Option<mouse::Click>,
+    drag_click: Option<mouse::click::Kind>,
 }
 
 impl<'a, Message, Renderer> Widget<Message, Renderer>
@@ -179,8 +179,8 @@ where
     fn state(&self) -> widget::tree::State {
         widget::tree::State::new(State {
             is_focused: false,
-            is_dragging: false,
             last_click: None,
+            drag_click: None,
         })
     }
 
@@ -238,18 +238,27 @@ where
         };
 
         match update {
-            Update::Click { click, action } => {
+            Update::Click(click) => {
+                let action = match click.kind() {
+                    mouse::click::Kind::Single => {
+                        Action::Click(click.position())
+                    }
+                    mouse::click::Kind::Double => Action::SelectWord,
+                    mouse::click::Kind::Triple => Action::SelectLine,
+                };
+
                 state.is_focused = true;
-                state.is_dragging = true;
                 state.last_click = Some(click);
+                state.drag_click = Some(click.kind());
+
                 shell.publish(on_edit(action));
             }
             Update::Unfocus => {
                 state.is_focused = false;
-                state.is_dragging = false;
+                state.drag_click = None;
             }
-            Update::StopDragging => {
-                state.is_dragging = false;
+            Update::Release => {
+                state.drag_click = None;
             }
             Update::Edit(action) => {
                 shell.publish(on_edit(action));
@@ -393,9 +402,9 @@ where
 }
 
 enum Update {
-    Click { click: mouse::Click, action: Action },
+    Click(mouse::Click),
     Unfocus,
-    StopDragging,
+    Release,
     Edit(Action),
     Copy,
     Paste,
@@ -423,15 +432,7 @@ impl Update {
                             state.last_click,
                         );
 
-                        let action = match click.kind() {
-                            mouse::click::Kind::Single => {
-                                Action::Click(cursor_position)
-                            }
-                            mouse::click::Kind::Double => Action::SelectWord,
-                            mouse::click::Kind::Triple => Action::SelectLine,
-                        };
-
-                        Some(Update::Click { click, action })
+                        Some(Update::Click(click))
                     } else if state.is_focused {
                         Some(Update::Unfocus)
                     } else {
@@ -439,14 +440,17 @@ impl Update {
                     }
                 }
                 mouse::Event::ButtonReleased(mouse::Button::Left) => {
-                    Some(Update::StopDragging)
+                    Some(Update::Release)
                 }
-                mouse::Event::CursorMoved { .. } if state.is_dragging => {
-                    let cursor_position = cursor.position_in(bounds)?
-                        - Vector::new(padding.top, padding.left);
+                mouse::Event::CursorMoved { .. } => match state.drag_click {
+                    Some(mouse::click::Kind::Single) => {
+                        let cursor_position = cursor.position_in(bounds)?
+                            - Vector::new(padding.top, padding.left);
 
-                    edit(Action::Drag(cursor_position))
-                }
+                        edit(Action::Drag(cursor_position))
+                    }
+                    _ => None,
+                },
                 _ => None,
             },
             Event::Keyboard(event) => match event {

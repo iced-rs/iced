@@ -61,6 +61,10 @@ impl Click {
         self.kind
     }
 
+    pub fn position(&self) -> Point {
+        self.position
+    }
+
     fn is_consecutive(&self, new_position: Point, time: Instant) -> bool {
         let duration = if time > self.time {
             Some(time - self.time)
