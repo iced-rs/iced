@@ -212,7 +212,7 @@ where
 /// [`TextEditor`]: crate::TextEditor
 pub fn text_editor<Message, Renderer>(
     content: &text_editor::Content<Renderer>,
-) -> TextEditor<'_, Message, Renderer>
+) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Renderer>
 where
     Message: Clone,
     Renderer: core::text::Renderer,

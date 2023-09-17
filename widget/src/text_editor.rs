@@ -4,6 +4,7 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text::editor::{Cursor, Editor as _};
+use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
@@ -12,13 +13,15 @@ use crate::core::{
 };
 
 use std::cell::RefCell;
+use std::ops::DerefMut;
 use std::sync::Arc;
 
-pub use crate::style::text_editor::{Appearance, StyleSheet};
+pub use crate::style::text_editor::{Appearance, Highlight, StyleSheet};
 pub use text::editor::{Action, Motion};
 
-pub struct TextEditor<'a, Message, Renderer = crate::Renderer>
+pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
 where
+    Highlighter: text::Highlighter,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
@@ -31,9 +34,11 @@ where
     padding: Padding,
     style: <Renderer::Theme as StyleSheet>::Style,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
+    highlighter_settings: Highlighter::Settings,
 }
 
-impl<'a, Message, Renderer> TextEditor<'a, Message, Renderer>
+impl<'a, Message, Renderer>
+    TextEditor<'a, highlighter::PlainText, Message, Renderer>
 where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -49,9 +54,19 @@ where
             padding: Padding::new(5.0),
             style: Default::default(),
             on_edit: None,
+            highlighter_settings: (),
         }
     }
+}
 
+impl<'a, Highlighter, Message, Renderer>
+    TextEditor<'a, Highlighter, Message, Renderer>
+where
+    Highlighter: text::Highlighter,
+    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
+    Renderer: text::Renderer,
+    Renderer::Theme: StyleSheet,
+{
     pub fn on_edit(mut self, on_edit: impl Fn(Action) -> Message + 'a) -> Self {
         self.on_edit = Some(Box::new(on_edit));
         self
@@ -160,20 +175,23 @@ where
     }
 }
 
-struct State {
+struct State<Highlighter> {
     is_focused: bool,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
+    highlighter: RefCell<Highlighter>,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextEditor<'a, Message, Renderer>
+impl<'a, Highlighter, Message, Renderer> Widget<Message, Renderer>
+    for TextEditor<'a, Highlighter, Message, Renderer>
 where
+    Highlighter: text::Highlighter,
+    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> widget::tree::Tag {
-        widget::tree::Tag::of::<State>()
+        widget::tree::Tag::of::<State<Highlighter>>()
     }
 
     fn state(&self) -> widget::tree::State {
@@ -181,6 +199,9 @@ where
             is_focused: false,
             last_click: None,
             drag_click: None,
+            highlighter: RefCell::new(Highlighter::new(
+                &self.highlighter_settings,
+            )),
         })
     }
 
@@ -194,17 +215,19 @@ where
 
     fn layout(
         &self,
-        _tree: &mut widget::Tree,
+        tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
+        let state = tree.state.downcast_mut::<State<Highlighter>>();
 
         internal.editor.update(
             limits.pad(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
+            state.highlighter.borrow_mut().deref_mut(),
         );
 
         layout::Node::new(limits.max())
@@ -225,7 +248,7 @@ where
             return event::Status::Ignored;
         };
 
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Highlighter>>();
 
         let Some(update) = Update::from_event(
             event,
@@ -290,8 +313,14 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let internal = self.content.0.borrow();
-        let state = tree.state.downcast_ref::<State>();
+        let mut internal = self.content.0.borrow_mut();
+        let state = tree.state.downcast_ref::<State<Highlighter>>();
+
+        internal.editor.highlight(
+            self.font.unwrap_or_else(|| renderer.default_font()),
+            state.highlighter.borrow_mut().deref_mut(),
+            |highlight| highlight.format(theme),
+        );
 
         let is_disabled = self.on_edit.is_none();
         let is_mouse_over = cursor.is_over(bounds);
@@ -389,14 +418,19 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<TextEditor<'a, Message, Renderer>>
+impl<'a, Highlighter, Message, Renderer>
+    From<TextEditor<'a, Highlighter, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
+    Highlighter: text::Highlighter,
+    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
     Message: 'a,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn from(text_editor: TextEditor<'a, Message, Renderer>) -> Self {
+    fn from(
+        text_editor: TextEditor<'a, Highlighter, Message, Renderer>,
+    ) -> Self {
         Self::new(text_editor)
     }
 }
@@ -411,9 +445,9 @@ enum Update {
 }
 
 impl Update {
-    fn from_event(
+    fn from_event<H: Highlighter>(
         event: Event,
-        state: &State,
+        state: &State<H>,
         bounds: Rectangle,
         padding: Padding,
         cursor: mouse::Cursor,

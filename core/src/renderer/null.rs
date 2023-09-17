@@ -149,6 +149,17 @@ impl text::Editor for () {
         _new_font: Self::Font,
         _new_size: Pixels,
         _new_line_height: text::LineHeight,
+        _new_highlighter: &mut impl text::Highlighter,
+    ) {
+    }
+
+    fn highlight<H: text::Highlighter>(
+        &mut self,
+        _font: Self::Font,
+        _highlighter: &mut H,
+        _format_highlight: impl Fn(
+            &H::Highlight,
+        ) -> text::highlighter::Format<Self::Font>,
     ) {
     }
 }

@@ -1,4 +1,5 @@
 use crate::core::text::editor::{self, Action, Cursor, Direction, Motion};
+use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::LineHeight;
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
@@ -15,6 +16,7 @@ struct Internal {
     editor: cosmic_text::Editor,
     font: Font,
     bounds: Size,
+    topmost_line_changed: Option<usize>,
     version: text::Version,
 }
 
@@ -433,6 +435,7 @@ impl editor::Editor for Editor {
         new_font: Font,
         new_size: Pixels,
         new_line_height: LineHeight,
+        new_highlighter: &mut impl Highlighter,
     ) {
         let editor =
             self.0.take().expect("editor should always be initialized");
@@ -479,6 +482,69 @@ impl editor::Editor for Editor {
             internal.bounds = new_bounds;
         }
 
+        if let Some(topmost_line_changed) = internal.topmost_line_changed.take()
+        {
+            new_highlighter.change_line(topmost_line_changed);
+        }
+
+        self.0 = Some(Arc::new(internal));
+    }
+
+    fn highlight<H: Highlighter>(
+        &mut self,
+        font: Self::Font,
+        highlighter: &mut H,
+        format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
+    ) {
+        let internal = self.internal();
+
+        let scroll = internal.editor.buffer().scroll();
+        let visible_lines = internal.editor.buffer().visible_lines();
+        let last_visible_line = (scroll + visible_lines - 1) as usize;
+
+        let current_line = highlighter.current_line();
+
+        if current_line > last_visible_line {
+            return;
+        }
+
+        let editor =
+            self.0.take().expect("editor should always be initialized");
+
+        let mut internal = Arc::try_unwrap(editor)
+            .expect("Editor cannot have multiple strong references");
+
+        let mut font_system =
+            text::font_system().write().expect("Write font system");
+
+        let attributes = text::to_attributes(font);
+
+        for line in &mut internal.editor.buffer_mut().lines
+            [current_line..=last_visible_line]
+        {
+            let mut list = cosmic_text::AttrsList::new(attributes);
+
+            for (range, highlight) in highlighter.highlight_line(line.text()) {
+                let format = format_highlight(&highlight);
+
+                list.add_span(
+                    range,
+                    cosmic_text::Attrs {
+                        color_opt: format.color.map(text::to_color),
+                        ..if let Some(font) = format.font {
+                            text::to_attributes(font)
+                        } else {
+                            attributes
+                        }
+                    },
+                );
+            }
+
+            let _ = line.set_attrs_list(list);
+        }
+
+        internal.editor.shape_as_needed(font_system.raw());
+
         self.0 = Some(Arc::new(internal));
     }
 }
@@ -508,6 +574,7 @@ impl Default for Internal {
             )),
             font: Font::default(),
             bounds: Size::ZERO,
+            topmost_line_changed: None,
             version: text::Version::default(),
         }
     }

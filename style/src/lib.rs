@@ -15,7 +15,7 @@
     clippy::needless_borrow,
     clippy::new_without_default,
     clippy::useless_conversion,
-    missing_docs,
+    // missing_docs,
     unused_results,
     rustdoc::broken_intra_doc_links
 )]

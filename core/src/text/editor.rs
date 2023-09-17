@@ -1,3 +1,4 @@
+use crate::text::highlighter::{self, Highlighter};
 use crate::text::LineHeight;
 use crate::{Pixels, Point, Rectangle, Size};
 
@@ -29,6 +30,14 @@ pub trait Editor: Sized + Default {
         new_font: Self::Font,
         new_size: Pixels,
         new_line_height: LineHeight,
+        new_highlighter: &mut impl Highlighter,
+    );
+
+    fn highlight<H: Highlighter>(
+        &mut self,
+        font: Self::Font,
+        highlighter: &mut H,
+        format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
     );
 }
 

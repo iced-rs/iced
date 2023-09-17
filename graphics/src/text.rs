@@ -10,7 +10,7 @@ pub use cosmic_text;
 
 use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
-use crate::core::Size;
+use crate::core::{Color, Size};
 
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
@@ -128,4 +128,10 @@ pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
         Shaping::Basic => cosmic_text::Shaping::Basic,
         Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
+}
+
+pub fn to_color(color: Color) -> cosmic_text::Color {
+    let [r, g, b, a] = color.into_rgba8();
+
+    cosmic_text::Color::rgba(r, g, b, a)
 }

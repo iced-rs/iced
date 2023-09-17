@@ -2,8 +2,10 @@
 mod paragraph;
 
 pub mod editor;
+pub mod highlighter;
 
 pub use editor::Editor;
+pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;

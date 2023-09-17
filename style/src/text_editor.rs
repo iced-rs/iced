@@ -1,5 +1,6 @@
 //! Change the appearance of a text editor.
-use iced_core::{Background, BorderRadius, Color};
+use crate::core::text::highlighter;
+use crate::core::{self, Background, BorderRadius, Color};
 
 /// The appearance of a text input.
 #[derive(Debug, Clone, Copy)]
@@ -44,4 +45,17 @@ pub trait StyleSheet {
 
     /// Produces the style of a disabled text input.
     fn disabled(&self, style: &Self::Style) -> Appearance;
+}
+
+pub trait Highlight<Font = core::Font, Theme = crate::Theme> {
+    fn format(&self, theme: &Theme) -> highlighter::Format<Font>;
+}
+
+impl<Font, Theme> Highlight<Font, Theme> for () {
+    fn format(&self, _theme: &Theme) -> highlighter::Format<Font> {
+        highlighter::Format {
+            color: None,
+            font: None,
+        }
+    }
 }
