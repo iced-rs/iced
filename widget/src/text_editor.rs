@@ -81,6 +81,24 @@ where
         self.padding = padding.into();
         self
     }
+
+    pub fn highlight<H: text::Highlighter>(
+        self,
+        settings: H::Settings,
+    ) -> TextEditor<'a, H, Message, Renderer> {
+        TextEditor {
+            content: self.content,
+            font: self.font,
+            text_size: self.text_size,
+            line_height: self.line_height,
+            width: self.width,
+            height: self.height,
+            padding: self.padding,
+            style: self.style,
+            on_edit: self.on_edit,
+            highlighter_settings: settings,
+        }
+    }
 }
 
 pub struct Content<R = crate::Renderer>(RefCell<Internal<R>>)

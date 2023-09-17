@@ -447,17 +447,26 @@ impl editor::Editor for Editor {
             text::font_system().write().expect("Write font system");
 
         if font_system.version() != internal.version {
+            log::trace!("Updating `FontSystem` of `Editor`...");
+
             for line in internal.editor.buffer_mut().lines.iter_mut() {
                 line.reset();
             }
         }
 
         if new_font != internal.font {
+            log::trace!("Updating font of `Editor`...");
+
             for line in internal.editor.buffer_mut().lines.iter_mut() {
                 let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
                     text::to_attributes(new_font),
                 ));
             }
+
+            internal.font = new_font;
+            internal.topmost_line_changed = Some(0);
+
+            internal.editor.shape_as_needed(font_system.raw());
         }
 
         let metrics = internal.editor.buffer().metrics();
@@ -466,6 +475,8 @@ impl editor::Editor for Editor {
         if new_size.0 != metrics.font_size
             || new_line_height.0 != metrics.line_height
         {
+            log::trace!("Updating `Metrics` of `Editor`...");
+
             internal.editor.buffer_mut().set_metrics(
                 font_system.raw(),
                 cosmic_text::Metrics::new(new_size.0, new_line_height.0),
@@ -473,6 +484,8 @@ impl editor::Editor for Editor {
         }
 
         if new_bounds != internal.bounds {
+            log::trace!("Updating size of `Editor`...");
+
             internal.editor.buffer_mut().set_size(
                 font_system.raw(),
                 new_bounds.width,
@@ -484,6 +497,10 @@ impl editor::Editor for Editor {
 
         if let Some(topmost_line_changed) = internal.topmost_line_changed.take()
         {
+            log::trace!(
+                "Notifying highlighter of line change: {topmost_line_changed}"
+            );
+
             new_highlighter.change_line(topmost_line_changed);
         }
 
@@ -497,10 +514,12 @@ impl editor::Editor for Editor {
         format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
     ) {
         let internal = self.internal();
+        let buffer = internal.editor.buffer();
 
-        let scroll = internal.editor.buffer().scroll();
-        let visible_lines = internal.editor.buffer().visible_lines();
-        let last_visible_line = (scroll + visible_lines - 1) as usize;
+        let scroll = buffer.scroll();
+        let visible_lines = buffer.visible_lines();
+        let last_visible_line =
+            ((scroll + visible_lines) as usize).min(buffer.lines.len()) - 1;
 
         let current_line = highlighter.current_line();
 

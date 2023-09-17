@@ -3,7 +3,7 @@ use crate::Color;
 use std::hash::Hash;
 use std::ops::Range;
 
-pub trait Highlighter: Clone + 'static {
+pub trait Highlighter: 'static {
     type Settings: Hash;
     type Highlight;
 
