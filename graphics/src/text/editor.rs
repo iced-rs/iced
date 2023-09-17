@@ -518,8 +518,9 @@ impl editor::Editor for Editor {
 
         let scroll = buffer.scroll();
         let visible_lines = buffer.visible_lines();
-        let last_visible_line =
-            ((scroll + visible_lines) as usize).min(buffer.lines.len()) - 1;
+        let last_visible_line = ((scroll + visible_lines) as usize)
+            .min(buffer.lines.len())
+            .saturating_sub(1);
 
         let current_line = highlighter.current_line();
 
