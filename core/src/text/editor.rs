@@ -47,13 +47,18 @@ pub enum Action {
     Select(Motion),
     SelectWord,
     SelectLine,
+    Edit(Edit),
+    Click(Point),
+    Drag(Point),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Edit {
     Insert(char),
     Paste(Arc<String>),
     Enter,
     Backspace,
     Delete,
-    Click(Point),
-    Drag(Point),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

@@ -17,7 +17,7 @@ use std::ops::DerefMut;
 use std::sync::Arc;
 
 pub use crate::style::text_editor::{Appearance, Highlight, StyleSheet};
-pub use text::editor::{Action, Motion};
+pub use text::editor::{Action, Edit, Motion};
 
 pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
 where
@@ -301,7 +301,7 @@ where
             Update::Release => {
                 state.drag_click = None;
             }
-            Update::Edit(action) => {
+            Update::Action(action) => {
                 shell.publish(on_edit(action));
             }
             Update::Copy => {
@@ -311,7 +311,9 @@ where
             }
             Update::Paste => {
                 if let Some(contents) = clipboard.read() {
-                    shell.publish(on_edit(Action::Paste(Arc::new(contents))));
+                    shell.publish(on_edit(Action::Edit(Edit::Paste(
+                        Arc::new(contents),
+                    ))));
                 }
             }
         }
@@ -457,7 +459,7 @@ enum Update {
     Click(mouse::Click),
     Unfocus,
     Release,
-    Edit(Action),
+    Action(Action),
     Copy,
     Paste,
 }
@@ -470,7 +472,8 @@ impl Update {
         padding: Padding,
         cursor: mouse::Cursor,
     ) -> Option<Self> {
-        let edit = |action| Some(Update::Edit(action));
+        let action = |action| Some(Update::Action(action));
+        let edit = |edit| action(Action::Edit(edit));
 
         match event {
             Event::Mouse(event) => match event {
@@ -499,7 +502,7 @@ impl Update {
                         let cursor_position = cursor.position_in(bounds)?
                             - Vector::new(padding.top, padding.left);
 
-                        edit(Action::Drag(cursor_position))
+                        action(Action::Drag(cursor_position))
                     }
                     _ => None,
                 },
@@ -518,7 +521,7 @@ impl Update {
                                 motion
                             };
 
-                        return edit(if modifiers.shift() {
+                        return action(if modifiers.shift() {
                             Action::Select(motion)
                         } else {
                             Action::Move(motion)
@@ -526,9 +529,9 @@ impl Update {
                     }
 
                     match key_code {
-                        keyboard::KeyCode::Enter => edit(Action::Enter),
-                        keyboard::KeyCode::Backspace => edit(Action::Backspace),
-                        keyboard::KeyCode::Delete => edit(Action::Delete),
+                        keyboard::KeyCode::Enter => edit(Edit::Enter),
+                        keyboard::KeyCode::Backspace => edit(Edit::Backspace),
+                        keyboard::KeyCode::Delete => edit(Edit::Delete),
                         keyboard::KeyCode::Escape => Some(Self::Unfocus),
                         keyboard::KeyCode::C if modifiers.command() => {
                             Some(Self::Copy)
@@ -542,7 +545,7 @@ impl Update {
                     }
                 }
                 keyboard::Event::CharacterReceived(c) if state.is_focused => {
-                    edit(Action::Insert(c))
+                    edit(Edit::Insert(c))
                 }
                 _ => None,
             },

@@ -1,10 +1,12 @@
-use crate::core::text::editor::{self, Action, Cursor, Direction, Motion};
+use crate::core::text::editor::{
+    self, Action, Cursor, Direction, Edit, Motion,
+};
 use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::LineHeight;
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
-use cosmic_text::Edit;
+use cosmic_text::Edit as _;
 
 use std::fmt;
 use std::sync::{self, Arc};
@@ -370,22 +372,42 @@ impl editor::Editor for Editor {
             }
 
             // Editing events
-            Action::Insert(c) => {
-                editor
-                    .action(font_system.raw(), cosmic_text::Action::Insert(c));
-            }
-            Action::Paste(text) => {
-                editor.insert_string(&text, None);
-            }
-            Action::Enter => {
-                editor.action(font_system.raw(), cosmic_text::Action::Enter);
-            }
-            Action::Backspace => {
-                editor
-                    .action(font_system.raw(), cosmic_text::Action::Backspace);
-            }
-            Action::Delete => {
-                editor.action(font_system.raw(), cosmic_text::Action::Delete);
+            Action::Edit(edit) => {
+                match edit {
+                    Edit::Insert(c) => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Insert(c),
+                        );
+                    }
+                    Edit::Paste(text) => {
+                        editor.insert_string(&text, None);
+                    }
+                    Edit::Enter => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Enter,
+                        );
+                    }
+                    Edit::Backspace => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Backspace,
+                        );
+                    }
+                    Edit::Delete => {
+                        editor.action(
+                            font_system.raw(),
+                            cosmic_text::Action::Delete,
+                        );
+                    }
+                }
+
+                let cursor = editor.cursor();
+                let selection = editor.select_opt().unwrap_or(cursor);
+
+                internal.topmost_line_changed =
+                    Some(cursor.min(selection).line);
             }
 
             // Mouse events
