@@ -569,17 +569,19 @@ impl editor::Editor for Editor {
             for (range, highlight) in highlighter.highlight_line(line.text()) {
                 let format = format_highlight(&highlight);
 
-                list.add_span(
-                    range,
-                    cosmic_text::Attrs {
-                        color_opt: format.color.map(text::to_color),
-                        ..if let Some(font) = format.font {
-                            text::to_attributes(font)
-                        } else {
-                            attributes
-                        }
-                    },
-                );
+                if format.color.is_some() || format.font.is_some() {
+                    list.add_span(
+                        range,
+                        cosmic_text::Attrs {
+                            color_opt: format.color.map(text::to_color),
+                            ..if let Some(font) = format.font {
+                                text::to_attributes(font)
+                            } else {
+                                attributes
+                            }
+                        },
+                    );
+                }
             }
 
             let _ = line.set_attrs_list(list);
