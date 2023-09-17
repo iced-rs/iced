@@ -64,7 +64,7 @@ mod highlighter {
 
     use std::ops::Range;
     use syntect::highlighting;
-    use syntect::parsing;
+    use syntect::parsing::{self, SyntaxReference};
 
     #[derive(Debug, Clone, Hash)]
     pub struct Settings {
@@ -91,12 +91,13 @@ mod highlighter {
 
     pub struct Highlighter {
         syntaxes: parsing::SyntaxSet,
-        parser: parsing::ParseState,
-        stack: parsing::ScopeStack,
+        syntax: SyntaxReference,
+        caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
         theme: highlighting::Theme,
-        token: String,
         current_line: usize,
     }
+
+    const LINES_PER_SNAPSHOT: usize = 50;
 
     impl highlighter::Highlighter for Highlighter {
         type Settings = Settings;
@@ -121,34 +122,53 @@ mod highlighter {
                 .unwrap();
 
             Highlighter {
+                syntax: syntax.clone(),
                 syntaxes,
-                parser,
-                stack,
+                caches: vec![(parser, stack)],
                 theme,
-                token: settings.token.clone(),
                 current_line: 0,
             }
         }
 
-        fn change_line(&mut self, _line: usize) {
-            // TODO: Caching
-            let syntax = self
-                .syntaxes
-                .find_syntax_by_token(&self.token)
-                .unwrap_or_else(|| self.syntaxes.find_syntax_plain_text());
+        fn change_line(&mut self, line: usize) {
+            let snapshot = line / LINES_PER_SNAPSHOT;
 
-            self.parser = parsing::ParseState::new(&syntax);
-            self.stack = parsing::ScopeStack::new();
-            self.current_line = 0;
+            if snapshot <= self.caches.len() {
+                self.caches.truncate(snapshot);
+                self.current_line = snapshot * LINES_PER_SNAPSHOT;
+            } else {
+                self.caches.truncate(1);
+                self.current_line = 0;
+            }
+
+            let (parser, stack) =
+                self.caches.last().cloned().unwrap_or_else(|| {
+                    (
+                        parsing::ParseState::new(&self.syntax),
+                        parsing::ScopeStack::new(),
+                    )
+                });
+
+            self.caches.push((parser, stack));
         }
 
         fn highlight_line(&mut self, line: &str) -> Self::Iterator<'_> {
+            if self.current_line / LINES_PER_SNAPSHOT >= self.caches.len() {
+                let (parser, stack) =
+                    self.caches.last().expect("Caches must not be empty");
+
+                self.caches.push((parser.clone(), stack.clone()));
+            }
+
             self.current_line += 1;
 
-            let ops = self
-                .parser
-                .parse_line(line, &self.syntaxes)
-                .unwrap_or_default();
+            let (parser, stack) =
+                self.caches.last_mut().expect("Caches must not be empty");
+
+            let ops =
+                parser.parse_line(line, &self.syntaxes).unwrap_or_default();
+
+            let highlighter = highlighting::Highlighter::new(&self.theme);
 
             Box::new(
                 ScopeRangeIterator {
@@ -158,9 +178,7 @@ mod highlighter {
                     last_str_index: 0,
                 }
                 .filter_map(move |(range, scope)| {
-                    let highlighter =
-                        highlighting::Highlighter::new(&self.theme);
-                    let _ = self.stack.apply(&scope);
+                    let _ = stack.apply(&scope);
 
                     if range.is_empty() {
                         None
@@ -168,8 +186,7 @@ mod highlighter {
                         Some((
                             range,
                             Highlight(
-                                highlighter
-                                    .style_mod_for_stack(&self.stack.scopes),
+                                highlighter.style_mod_for_stack(&stack.scopes),
                             ),
                         ))
                     }
