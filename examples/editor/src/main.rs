@@ -113,7 +113,7 @@ mod highlighter {
                 .find_syntax_by_token(&settings.token)
                 .unwrap_or_else(|| syntaxes.find_syntax_plain_text());
 
-            let parser = parsing::ParseState::new(&syntax);
+            let parser = parsing::ParseState::new(syntax);
             let stack = parsing::ScopeStack::new();
 
             let theme = highlighting::ThemeSet::load_defaults()
