@@ -12,8 +12,6 @@ pub struct Font {
     pub stretch: Stretch,
     /// The [`Style`] of the [`Font`].
     pub style: Style,
-    /// Whether if the [`Font`] is monospaced or not.
-    pub monospaced: bool,
 }
 
 impl Font {
@@ -23,13 +21,11 @@ impl Font {
         weight: Weight::Normal,
         stretch: Stretch::Normal,
         style: Style::Normal,
-        monospaced: false,
     };
 
     /// A monospaced font with normal [`Weight`].
     pub const MONOSPACE: Font = Font {
         family: Family::Monospace,
-        monospaced: true,
         ..Self::DEFAULT
     };
 
