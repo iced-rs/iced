@@ -2,7 +2,7 @@ name: Lint
 on: [push, pull_request]
 jobs:
   all:
-    runs-on: ubuntu-latest
+    runs-on: macOS-latest
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:
