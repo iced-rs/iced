@@ -472,6 +472,9 @@ impl editor::Editor for Editor {
             for line in internal.editor.buffer_mut().lines.iter_mut() {
                 line.reset();
             }
+
+            internal.version = font_system.version();
+            internal.topmost_line_changed = Some(0);
         }
 
         if new_font != internal.font {
