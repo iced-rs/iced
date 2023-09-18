@@ -538,11 +538,27 @@ impl editor::Editor for Editor {
         let internal = self.internal();
         let buffer = internal.editor.buffer();
 
-        let scroll = buffer.scroll();
-        let visible_lines = buffer.visible_lines();
-        let last_visible_line = ((scroll + visible_lines) as usize)
-            .min(buffer.lines.len())
-            .saturating_sub(1);
+        let mut window = buffer.scroll() + buffer.visible_lines();
+
+        let last_visible_line = buffer
+            .lines
+            .iter()
+            .enumerate()
+            .find_map(|(i, line)| {
+                let visible_lines = line
+                    .layout_opt()
+                    .as_ref()
+                    .expect("Line layout should be cached")
+                    .len() as i32;
+
+                if window > visible_lines {
+                    window -= visible_lines;
+                    None
+                } else {
+                    Some(i)
+                }
+            })
+            .unwrap_or(buffer.lines.len());
 
         let current_line = highlighter.current_line();
 
