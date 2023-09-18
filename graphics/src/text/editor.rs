@@ -442,8 +442,6 @@ impl editor::Editor for Editor {
             }
         }
 
-        editor.shape_as_needed(font_system.raw());
-
         self.0 = Some(Arc::new(internal));
     }
 
@@ -487,8 +485,6 @@ impl editor::Editor for Editor {
 
             internal.font = new_font;
             internal.topmost_line_changed = Some(0);
-
-            internal.editor.shape_as_needed(font_system.raw());
         }
 
         let metrics = internal.editor.buffer().metrics();
@@ -525,6 +521,8 @@ impl editor::Editor for Editor {
 
             new_highlighter.change_line(topmost_line_changed);
         }
+
+        internal.editor.shape_as_needed(font_system.raw());
 
         self.0 = Some(Arc::new(internal));
     }
