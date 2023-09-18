@@ -52,6 +52,7 @@ pub enum Action {
     Edit(Edit),
     Click(Point),
     Drag(Point),
+    Scroll { lines: i32 },
 }
 
 impl Action {

@@ -521,6 +521,18 @@ impl Update {
                     }
                     _ => None,
                 },
+                mouse::Event::WheelScrolled { delta } => {
+                    action(Action::Scroll {
+                        lines: match delta {
+                            mouse::ScrollDelta::Lines { y, .. } => {
+                                -y as i32 * 4
+                            }
+                            mouse::ScrollDelta::Pixels { y, .. } => {
+                                -y.signum() as i32
+                            }
+                        },
+                    })
+                }
                 _ => None,
             },
             Event::Keyboard(event) => match event {

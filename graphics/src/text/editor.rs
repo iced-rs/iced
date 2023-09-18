@@ -446,6 +446,12 @@ impl editor::Editor for Editor {
                     }
                 }
             }
+            Action::Scroll { lines } => {
+                editor.action(
+                    font_system.raw(),
+                    cosmic_text::Action::Scroll { lines },
+                );
+            }
         }
 
         self.0 = Some(Arc::new(internal));
