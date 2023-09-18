@@ -335,7 +335,7 @@ impl Backend {
 
                     shader.primitive.render(
                         &self.pipeline_storage,
-                        bounds.into(),
+                        bounds.snap(),
                         target,
                         target_size,
                         encoder,
