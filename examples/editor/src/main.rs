@@ -16,7 +16,7 @@ use std::sync::Arc;
 pub fn main() -> iced::Result {
     Editor::run(Settings {
         fonts: vec![include_bytes!("../fonts/icons.ttf").as_slice().into()],
-        default_font: Font::with_name("Hasklug Nerd Font Mono"),
+        default_font: Font::MONOSPACE,
         ..Settings::default()
     })
 }
