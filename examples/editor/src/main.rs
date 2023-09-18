@@ -118,7 +118,7 @@ impl Application for Editor {
                         String::new(),
                         |mut contents, (i, line)| {
                             if i > 0 {
-                                contents.push_str("\n");
+                                contents.push('\n');
                             }
 
                             contents.push_str(&line);
@@ -127,8 +127,8 @@ impl Application for Editor {
                         },
                     );
 
-                    if !contents.ends_with("\n") {
-                        contents.push_str("\n");
+                    if !contents.ends_with('\n') {
+                        contents.push('\n');
                     }
 
                     Command::perform(
@@ -266,7 +266,7 @@ async fn save_file(
             .ok_or(Error::DialogClosed)?
     };
 
-    let _ = tokio::fs::write(&path, contents)
+    tokio::fs::write(&path, contents)
         .await
         .map_err(|error| Error::IoError(error.kind()))?;
 
