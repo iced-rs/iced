@@ -43,7 +43,7 @@ impl Editor {
     fn internal(&self) -> &Arc<Internal> {
         self.0
             .as_ref()
-            .expect("editor should always be initialized")
+            .expect("Editor should always be initialized")
     }
 }
 
@@ -458,7 +458,7 @@ impl editor::Editor for Editor {
         new_highlighter: &mut impl Highlighter,
     ) {
         let editor =
-            self.0.take().expect("editor should always be initialized");
+            self.0.take().expect("Editor should always be initialized");
 
         let mut internal = Arc::try_unwrap(editor)
             .expect("Editor cannot have multiple strong references");
@@ -565,7 +565,7 @@ impl editor::Editor for Editor {
         }
 
         let editor =
-            self.0.take().expect("editor should always be initialized");
+            self.0.take().expect("Editor should always be initialized");
 
         let mut internal = Arc::try_unwrap(editor)
             .expect("Editor cannot have multiple strong references");
