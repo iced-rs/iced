@@ -12,6 +12,8 @@ pub trait Editor: Sized + Default {
 
     fn cursor(&self) -> Cursor;
 
+    fn cursor_position(&self) -> (usize, usize);
+
     fn selection(&self) -> Option<String>;
 
     fn line(&self, index: usize) -> Option<&str>;
@@ -50,6 +52,12 @@ pub enum Action {
     Edit(Edit),
     Click(Point),
     Drag(Point),
+}
+
+impl Action {
+    pub fn is_edit(&self) -> bool {
+        matches!(self, Self::Edit(_))
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

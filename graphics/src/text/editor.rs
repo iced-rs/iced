@@ -221,6 +221,12 @@ impl editor::Editor for Editor {
         }
     }
 
+    fn cursor_position(&self) -> (usize, usize) {
+        let cursor = self.internal().editor.cursor();
+
+        (cursor.line, cursor.index)
+    }
+
     fn perform(&mut self, action: Action) {
         let mut font_system =
             text::font_system().write().expect("Write font system");
@@ -559,7 +565,7 @@ impl editor::Editor for Editor {
                     Some(i)
                 }
             })
-            .unwrap_or(buffer.lines.len());
+            .unwrap_or(buffer.lines.len().saturating_sub(1));
 
         let current_line = highlighter.current_line();
 

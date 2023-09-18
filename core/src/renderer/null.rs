@@ -125,6 +125,10 @@ impl text::Editor for () {
         text::editor::Cursor::Caret(Point::ORIGIN)
     }
 
+    fn cursor_position(&self) -> (usize, usize) {
+        (0, 0)
+    }
+
     fn selection(&self) -> Option<String> {
         None
     }

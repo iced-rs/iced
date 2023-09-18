@@ -182,6 +182,10 @@ where
     pub fn selection(&self) -> Option<String> {
         self.0.borrow().editor.selection()
     }
+
+    pub fn cursor_position(&self) -> (usize, usize) {
+        self.0.borrow().editor.cursor_position()
+    }
 }
 
 impl<Renderer> Default for Content<Renderer>

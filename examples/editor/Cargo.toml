@@ -7,6 +7,10 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["advanced", "debug"]
+iced.features = ["advanced", "tokio", "debug"]
+
+tokio.workspace = true
+tokio.features = ["fs"]
 
 syntect = "5.1"
+rfd = "0.12"

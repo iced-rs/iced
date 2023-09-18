@@ -33,6 +33,7 @@ use crate::Position;
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
+use std::borrow::Cow;
 use std::fmt;
 
 /// The settings of an application.
@@ -51,6 +52,9 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
+
+    /// The fonts to load on boot.
+    pub fonts: Vec<Cow<'static, [u8]>>,
 
     /// Whether the [`Application`] should exit when the user requests the
     /// window to close (e.g. the user presses the close button).
