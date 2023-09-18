@@ -193,11 +193,12 @@ where
     }
 }
 
-struct State<Highlighter> {
+struct State<Highlighter: text::Highlighter> {
     is_focused: bool,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
     highlighter: RefCell<Highlighter>,
+    highlighter_settings: Highlighter::Settings,
 }
 
 impl<'a, Highlighter, Message, Renderer> Widget<Message, Renderer>
@@ -220,6 +221,7 @@ where
             highlighter: RefCell::new(Highlighter::new(
                 &self.highlighter_settings,
             )),
+            highlighter_settings: self.highlighter_settings.clone(),
         })
     }
 
@@ -239,6 +241,15 @@ where
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Highlighter>>();
+
+        if state.highlighter_settings != self.highlighter_settings {
+            state
+                .highlighter
+                .borrow_mut()
+                .update(&self.highlighter_settings);
+
+            state.highlighter_settings = self.highlighter_settings.clone();
+        }
 
         internal.editor.update(
             limits.pad(self.padding).max(),

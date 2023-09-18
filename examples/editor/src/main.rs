@@ -1,5 +1,5 @@
-use iced::widget::{container, text_editor};
-use iced::{Element, Font, Sandbox, Settings, Theme};
+use iced::widget::{column, horizontal_space, pick_list, row, text_editor};
+use iced::{Element, Font, Length, Sandbox, Settings, Theme};
 
 use highlighter::Highlighter;
 
@@ -9,11 +9,13 @@ pub fn main() -> iced::Result {
 
 struct Editor {
     content: text_editor::Content,
+    theme: highlighter::Theme,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     Edit(text_editor::Action),
+    ThemeSelected(highlighter::Theme),
 }
 
 impl Sandbox for Editor {
@@ -21,9 +23,8 @@ impl Sandbox for Editor {
 
     fn new() -> Self {
         Self {
-            content: text_editor::Content::with(include_str!(
-                "../../../README.md"
-            )),
+            content: text_editor::Content::with(include_str!("main.rs")),
+            theme: highlighter::Theme::SolarizedDark,
         }
     }
 
@@ -36,18 +37,33 @@ impl Sandbox for Editor {
             Message::Edit(action) => {
                 self.content.edit(action);
             }
+            Message::ThemeSelected(theme) => {
+                self.theme = theme;
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        container(
+        column![
+            row![
+                horizontal_space(Length::Fill),
+                pick_list(
+                    highlighter::Theme::ALL,
+                    Some(self.theme),
+                    Message::ThemeSelected
+                )
+                .padding([5, 10])
+            ]
+            .spacing(10),
             text_editor(&self.content)
                 .on_edit(Message::Edit)
                 .font(Font::with_name("Hasklug Nerd Font Mono"))
                 .highlight::<Highlighter>(highlighter::Settings {
-                    token: String::from("md"),
+                    theme: self.theme,
+                    extension: String::from("rs"),
                 }),
-        )
+        ]
+        .spacing(10)
         .padding(20)
         .into()
     }
@@ -60,21 +76,52 @@ impl Sandbox for Editor {
 mod highlighter {
     use iced::advanced::text::highlighter;
     use iced::widget::text_editor;
-    use iced::{Color, Font, Theme};
+    use iced::{Color, Font};
 
     use std::ops::Range;
     use syntect::highlighting;
     use syntect::parsing::{self, SyntaxReference};
 
-    #[derive(Debug, Clone, Hash)]
+    #[derive(Debug, Clone, PartialEq)]
     pub struct Settings {
-        pub token: String,
+        pub theme: Theme,
+        pub extension: String,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum Theme {
+        SolarizedDark,
+        InspiredGitHub,
+        Base16Mocha,
+    }
+
+    impl Theme {
+        pub const ALL: &[Self] =
+            &[Self::SolarizedDark, Self::InspiredGitHub, Self::Base16Mocha];
+
+        fn key(&self) -> &'static str {
+            match self {
+                Theme::InspiredGitHub => "InspiredGitHub",
+                Theme::Base16Mocha => "base16-mocha.dark",
+                Theme::SolarizedDark => "Solarized (dark)",
+            }
+        }
+    }
+
+    impl std::fmt::Display for Theme {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Theme::InspiredGitHub => write!(f, "Inspired GitHub"),
+                Theme::Base16Mocha => write!(f, "Mocha"),
+                Theme::SolarizedDark => write!(f, "Solarized Dark"),
+            }
+        }
     }
 
     pub struct Highlight(highlighting::StyleModifier);
 
     impl text_editor::Highlight for Highlight {
-        fn format(&self, _theme: &Theme) -> highlighter::Format<Font> {
+        fn format(&self, _theme: &iced::Theme) -> highlighter::Format<Font> {
             highlighter::Format {
                 color: self.0.foreground.map(|color| {
                     Color::from_rgba8(
@@ -92,8 +139,8 @@ mod highlighter {
     pub struct Highlighter {
         syntaxes: parsing::SyntaxSet,
         syntax: SyntaxReference,
-        caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
         theme: highlighting::Theme,
+        caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
         current_line: usize,
     }
 
@@ -110,24 +157,40 @@ mod highlighter {
             let syntaxes = parsing::SyntaxSet::load_defaults_nonewlines();
 
             let syntax = syntaxes
-                .find_syntax_by_token(&settings.token)
+                .find_syntax_by_token(&settings.extension)
                 .unwrap_or_else(|| syntaxes.find_syntax_plain_text());
+
+            let theme = highlighting::ThemeSet::load_defaults()
+                .themes
+                .remove(settings.theme.key())
+                .unwrap();
 
             let parser = parsing::ParseState::new(syntax);
             let stack = parsing::ScopeStack::new();
 
-            let theme = highlighting::ThemeSet::load_defaults()
-                .themes
-                .remove("base16-mocha.dark")
-                .unwrap();
-
             Highlighter {
                 syntax: syntax.clone(),
                 syntaxes,
-                caches: vec![(parser, stack)],
                 theme,
+                caches: vec![(parser, stack)],
                 current_line: 0,
             }
+        }
+
+        fn update(&mut self, new_settings: &Self::Settings) {
+            self.syntax = self
+                .syntaxes
+                .find_syntax_by_token(&new_settings.extension)
+                .unwrap_or_else(|| self.syntaxes.find_syntax_plain_text())
+                .clone();
+
+            self.theme = highlighting::ThemeSet::load_defaults()
+                .themes
+                .remove(new_settings.theme.key())
+                .unwrap();
+
+            // Restart the highlighter
+            self.change_line(0);
         }
 
         fn change_line(&mut self, line: usize) {

@@ -1,10 +1,9 @@
 use crate::Color;
 
-use std::hash::Hash;
 use std::ops::Range;
 
 pub trait Highlighter: 'static {
-    type Settings: Hash;
+    type Settings: PartialEq + Clone;
     type Highlight;
 
     type Iterator<'a>: Iterator<Item = (Range<usize>, Self::Highlight)>
@@ -12,6 +11,8 @@ pub trait Highlighter: 'static {
         Self: 'a;
 
     fn new(settings: &Self::Settings) -> Self;
+
+    fn update(&mut self, new_settings: &Self::Settings);
 
     fn change_line(&mut self, line: usize);
 
@@ -37,6 +38,8 @@ impl Highlighter for PlainText {
     fn new(_settings: &Self::Settings) -> Self {
         Self
     }
+
+    fn update(&mut self, _new_settings: &Self::Settings) {}
 
     fn change_line(&mut self, _line: usize) {}
 
