@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 /// Data of a screenshot, captured with `window::screenshot()`.
 ///
-/// The `bytes` of this screenshot will always be ordered as `RGBA` in the sRGB color space.
+/// The `bytes` of this screenshot will always be ordered as `RGBA` in the `sRGB` color space.
 #[derive(Clone)]
 pub struct Screenshot {
     /// The bytes of the [`Screenshot`].
