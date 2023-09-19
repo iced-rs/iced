@@ -157,7 +157,7 @@ where
         )
         .with_visible(false);
 
-    log::debug!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {builder:#?}");
 
     let window = builder
         .build(&event_loop)
@@ -174,7 +174,7 @@ where
         let body = document.body().unwrap();
 
         let target = target.and_then(|target| {
-            body.query_selector(&format!("#{}", target))
+            body.query_selector(&format!("#{target}"))
                 .ok()
                 .unwrap_or(None)
         });

@@ -105,8 +105,8 @@ impl Application for Example {
                     ByteSize::kb(information.memory_total).to_string();
 
                 let memory_total = text(format!(
-                    "Memory (total): {} kb ({})",
-                    information.memory_total, memory_readable
+                    "Memory (total): {} kb ({memory_readable})",
+                    information.memory_total,
                 ));
 
                 let memory_text = if let Some(memory_used) =

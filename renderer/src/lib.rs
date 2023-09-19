@@ -60,7 +60,7 @@ impl<T> Renderer<T> {
     pub fn draw_mesh(&mut self, mesh: Mesh) {
         match self {
             Self::TinySkia(_) => {
-                log::warn!("Unsupported mesh primitive: {:?}", mesh)
+                log::warn!("Unsupported mesh primitive: {mesh:?}")
             }
             #[cfg(feature = "wgpu")]
             Self::Wgpu(renderer) => {
