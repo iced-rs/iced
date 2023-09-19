@@ -69,8 +69,6 @@ impl Click {
         };
 
         self.position == new_position
-            && duration
-                .map(|duration| duration.as_millis() <= 300)
-                .unwrap_or(false)
+            && duration.is_some_and(|duration| duration.as_millis() <= 300)
     }
 }
