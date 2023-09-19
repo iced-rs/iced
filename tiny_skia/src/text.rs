@@ -188,7 +188,7 @@ fn draw(
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
-                color,
+                glyph.color_opt.map(from_color).unwrap_or(color),
                 font_system,
                 &mut swash,
             ) {
@@ -211,6 +211,12 @@ fn draw(
             }
         }
     }
+}
+
+fn from_color(color: cosmic_text::Color) -> Color {
+    let [r, g, b, a] = color.as_rgba();
+
+    Color::from_rgba8(r, g, b, a as f32 / 255.0)
 }
 
 #[derive(Debug, Clone, Default)]
