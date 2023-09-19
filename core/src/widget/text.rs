@@ -220,9 +220,9 @@ where
             size,
             line_height,
             font,
-            shaping,
             horizontal_alignment,
             vertical_alignment,
+            shaping,
         },
     );
 

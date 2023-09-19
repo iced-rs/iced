@@ -182,7 +182,7 @@ fn convert_path(path: &Path) -> Option<tiny_skia::Path> {
     let mut builder = tiny_skia::PathBuilder::new();
     let mut last_point = Default::default();
 
-    for event in path.raw().iter() {
+    for event in path.raw() {
         match event {
             lyon_path::Event::Begin { at } => {
                 builder.move_to(at.x, at.y);

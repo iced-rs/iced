@@ -482,7 +482,7 @@ impl<'a> Step {
             column(
                 Language::all()
                     .iter()
-                    .cloned()
+                    .copied()
                     .map(|language| {
                         radio(
                             language,

@@ -94,7 +94,7 @@ impl Linear {
         mut self,
         stops: impl IntoIterator<Item = ColorStop>,
     ) -> Self {
-        for stop in stops.into_iter() {
+        for stop in stops {
             self = self.add_stop(stop.offset, stop.color)
         }
 
