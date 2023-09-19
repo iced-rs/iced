@@ -2,7 +2,7 @@ use crate::core::alignment;
 use crate::core::{Rectangle, Size};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
-use crate::graphics::text::{font_system, Editor, Paragraph};
+use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
 use crate::layer::Text;
 
 use std::borrow::Cow;
@@ -214,16 +214,7 @@ impl Pipeline {
                         right: (clip_bounds.x + clip_bounds.width) as i32,
                         bottom: (clip_bounds.y + clip_bounds.height) as i32,
                     },
-                    default_color: {
-                        let [r, g, b, a] = color::pack(color).components();
-
-                        glyphon::Color::rgba(
-                            (r * 255.0) as u8,
-                            (g * 255.0) as u8,
-                            (b * 255.0) as u8,
-                            (a * 255.0) as u8,
-                        )
-                    },
+                    default_color: to_color(color),
                 })
             },
         );
