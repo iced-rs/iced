@@ -4,7 +4,7 @@ use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Application, Command, Element, Font, Length, Settings};
+use iced::{Alignment, Application, Command, Element, Font, Length, Settings};
 
 use highlighter::Highlighter;
 
@@ -169,7 +169,8 @@ impl Application for Editor {
             .text_size(14)
             .padding([5, 10])
         ]
-        .spacing(10);
+        .spacing(10)
+        .align_items(Alignment::Center);
 
         let status = row![
             text(if let Some(path) = &self.file {
@@ -275,8 +276,7 @@ fn action<'a, Message: Clone + 'a>(
     label: &'a str,
     on_press: Option<Message>,
 ) -> Element<'a, Message> {
-    let action =
-        button(container(content).width(Length::Fill).center_x()).width(40);
+    let action = button(container(content).width(30).center_x());
 
     if let Some(on_press) = on_press {
         tooltip(
@@ -316,7 +316,7 @@ mod highlighter {
 
     use std::ops::Range;
     use syntect::highlighting;
-    use syntect::parsing::{self, SyntaxReference};
+    use syntect::parsing;
 
     #[derive(Debug, Clone, PartialEq)]
     pub struct Settings {
@@ -374,7 +374,7 @@ mod highlighter {
 
     pub struct Highlighter {
         syntaxes: parsing::SyntaxSet,
-        syntax: SyntaxReference,
+        syntax: parsing::SyntaxReference,
         theme: highlighting::Theme,
         caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
         current_line: usize,
