@@ -1,6 +1,6 @@
 [package]
 name = "iced_highlighter"
-description = "A syntax higlighter for iced"
+description = "A syntax highlighter for iced"
 version.workspace = true
 authors.workspace = true
 edition.workspace = true
