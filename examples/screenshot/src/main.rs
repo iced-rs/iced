@@ -293,10 +293,7 @@ fn numeric_input(
 ) -> Element<'_, Option<u32>> {
     text_input(
         placeholder,
-        &value
-            .as_ref()
-            .map(ToString::to_string)
-            .unwrap_or_else(String::new),
+        &value.as_ref().map_or_else(String::new, ToString::to_string),
     )
     .on_input(move |text| {
         if text.is_empty() {

@@ -56,7 +56,7 @@ impl Cache {
                         .ok()
                 });
 
-                tree.map(Svg::Loaded).unwrap_or(Svg::NotFound)
+                tree.map_or(Svg::NotFound, Svg::Loaded)
             }
             svg::Data::Bytes(bytes) => {
                 match usvg::Tree::from_data(bytes, &usvg::Options::default()) {

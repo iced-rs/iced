@@ -97,8 +97,7 @@ where
                     self.viewport.scale_factor(),
                 )
             })
-            .map(mouse::Cursor::Available)
-            .unwrap_or(mouse::Cursor::Unavailable)
+            .map_or(mouse::Cursor::Unavailable, mouse::Cursor::Available)
     }
 
     /// Returns the current keyboard modifiers of the [`State`].
