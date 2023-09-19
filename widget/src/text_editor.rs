@@ -539,7 +539,9 @@ impl Update {
                     }
                     _ => None,
                 },
-                mouse::Event::WheelScrolled { delta } => {
+                mouse::Event::WheelScrolled { delta }
+                    if cursor.is_over(bounds) =>
+                {
                     action(Action::Scroll {
                         lines: match delta {
                             mouse::ScrollDelta::Lines { y, .. } => {
