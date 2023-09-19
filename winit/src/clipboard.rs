@@ -45,7 +45,7 @@ impl Clipboard {
             State::Connected(clipboard) => match clipboard.write(contents) {
                 Ok(()) => {}
                 Err(error) => {
-                    log::warn!("error writing to clipboard: {}", error)
+                    log::warn!("error writing to clipboard: {error}")
                 }
             },
             State::Unavailable => {}

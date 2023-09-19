@@ -147,8 +147,7 @@ impl Tracker {
             .for_each(|listener| {
                 if let Err(error) = listener.try_send((event.clone(), status)) {
                     log::warn!(
-                        "Error sending event to subscription: {:?}",
-                        error
+                        "Error sending event to subscription: {error:?}"
                     );
                 }
             });

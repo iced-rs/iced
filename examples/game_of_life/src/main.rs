@@ -610,8 +610,7 @@ mod grid {
 
                 frame.fill_text(Text {
                     content: format!(
-                        "{} cell{} @ {:?} ({})",
-                        cell_count,
+                        "{cell_count} cell{} @ {:?} ({})",
                         if cell_count == 1 { "" } else { "s" },
                         self.last_tick_duration,
                         self.last_queued_ticks

@@ -184,8 +184,8 @@ impl Application for Example {
                 .align_items(Alignment::Center);
 
         if let Some(crop_error) = &self.crop_error {
-            crop_controls = crop_controls
-                .push(text(format!("Crop error! \n{}", crop_error)));
+            crop_controls =
+                crop_controls.push(text(format!("Crop error! \n{crop_error}")));
         }
 
         let mut controls = column![
@@ -221,9 +221,9 @@ impl Application for Example {
 
         if let Some(png_result) = &self.saved_png_path {
             let msg = match png_result {
-                Ok(path) => format!("Png saved as: {:?}!", path),
+                Ok(path) => format!("Png saved as: {path:?}!"),
                 Err(msg) => {
-                    format!("Png could not be saved due to:\n{:?}", msg)
+                    format!("Png could not be saved due to:\n{msg:?}")
                 }
             };
 
@@ -281,7 +281,7 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
         ColorType::Rgba8,
     )
     .map(|_| path)
-    .map_err(|err| PngError(format!("{:?}", err)))
+    .map_err(|err| PngError(format!("{err:?}")))
 }
 
 #[derive(Clone, Debug)]
