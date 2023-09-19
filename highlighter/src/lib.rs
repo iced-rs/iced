@@ -9,10 +9,10 @@ use syntect::highlighting;
 use syntect::parsing;
 
 static SYNTAXES: Lazy<parsing::SyntaxSet> =
-    Lazy::new(|| parsing::SyntaxSet::load_defaults_nonewlines());
+    Lazy::new(parsing::SyntaxSet::load_defaults_nonewlines);
 
 static THEMES: Lazy<highlighting::ThemeSet> =
-    Lazy::new(|| highlighting::ThemeSet::load_defaults());
+    Lazy::new(highlighting::ThemeSet::load_defaults);
 
 const LINES_PER_SNAPSHOT: usize = 50;
 
@@ -77,7 +77,7 @@ impl highlighter::Highlighter for Highlighter {
         let (parser, stack) =
             self.caches.last().cloned().unwrap_or_else(|| {
                 (
-                    parsing::ParseState::new(&self.syntax),
+                    parsing::ParseState::new(self.syntax),
                     parsing::ScopeStack::new(),
                 )
             });
