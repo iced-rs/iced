@@ -25,7 +25,7 @@ pub type EventStream = BoxStream<(Event, event::Status)>;
 /// A [`Subscription`] is normally provided to some runtime, like a `Command`,
 /// and it will generate events as long as the user keeps requesting it.
 ///
-/// For instance, you can use a [`Subscription`] to listen to a WebSocket
+/// For instance, you can use a [`Subscription`] to listen to a `WebSocket`
 /// connection, keyboard presses, mouse events, time ticks, etc.
 #[must_use = "`Subscription` must be returned to runtime to take effect"]
 pub struct Subscription<Message> {
@@ -355,7 +355,7 @@ where
 /// }
 /// ```
 ///
-/// Check out the [`websocket`] example, which showcases this pattern to maintain a WebSocket
+/// Check out the [`websocket`] example, which showcases this pattern to maintain a `WebSocket`
 /// connection open.
 ///
 /// [`websocket`]: https://github.com/iced-rs/iced/tree/0.10/examples/websocket

@@ -3,7 +3,7 @@ use crate::Size;
 
 use std::mem;
 
-/// Builds an  [`Icon`] from its RGBA pixels in the sRGB color space.
+/// Builds an  [`Icon`] from its RGBA pixels in the `sRGB` color space.
 pub fn from_rgba(
     rgba: Vec<u8>,
     width: u32,
