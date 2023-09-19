@@ -1,10 +1,14 @@
 use iced::executor;
+use iced::keyboard;
 use iced::theme::{self, Theme};
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
-use iced::{Alignment, Application, Command, Element, Font, Length, Settings};
+use iced::{
+    Alignment, Application, Command, Element, Font, Length, Settings,
+    Subscription,
+};
 
 use highlighter::Highlighter;
 
@@ -145,6 +149,15 @@ impl Application for Editor {
                 Command::none()
             }
         }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        keyboard::on_key_press(|key_code, modifiers| match key_code {
+            keyboard::KeyCode::S if modifiers.command() => {
+                Some(Message::SaveFile)
+            }
+            _ => None,
+        })
     }
 
     fn view(&self) -> Element<Message> {
