@@ -161,19 +161,38 @@ impl Highlight {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Theme {
     SolarizedDark,
-    InspiredGitHub,
     Base16Mocha,
+    Base16Ocean,
+    Base16Eighties,
+    InspiredGitHub,
 }
 
 impl Theme {
-    pub const ALL: &[Self] =
-        &[Self::SolarizedDark, Self::InspiredGitHub, Self::Base16Mocha];
+    pub const ALL: &[Self] = &[
+        Self::SolarizedDark,
+        Self::Base16Mocha,
+        Self::Base16Ocean,
+        Self::Base16Eighties,
+        Self::InspiredGitHub,
+    ];
+
+    pub fn is_dark(self) -> bool {
+        match self {
+            Self::SolarizedDark
+            | Self::Base16Mocha
+            | Self::Base16Ocean
+            | Self::Base16Eighties => true,
+            Self::InspiredGitHub => false,
+        }
+    }
 
     fn key(&self) -> &'static str {
         match self {
-            Theme::InspiredGitHub => "InspiredGitHub",
-            Theme::Base16Mocha => "base16-mocha.dark",
             Theme::SolarizedDark => "Solarized (dark)",
+            Theme::Base16Mocha => "base16-mocha.dark",
+            Theme::Base16Ocean => "base16-ocean.dark",
+            Theme::Base16Eighties => "base16-eighties.dark",
+            Theme::InspiredGitHub => "InspiredGitHub",
         }
     }
 }
@@ -181,9 +200,11 @@ impl Theme {
 impl std::fmt::Display for Theme {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Theme::InspiredGitHub => write!(f, "Inspired GitHub"),
-            Theme::Base16Mocha => write!(f, "Mocha"),
             Theme::SolarizedDark => write!(f, "Solarized Dark"),
+            Theme::Base16Mocha => write!(f, "Mocha"),
+            Theme::Base16Ocean => write!(f, "Ocean"),
+            Theme::Base16Eighties => write!(f, "Eighties"),
+            Theme::InspiredGitHub => write!(f, "Inspired GitHub"),
         }
     }
 }
