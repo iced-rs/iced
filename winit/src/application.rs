@@ -544,18 +544,17 @@ async fn run_instance<A, E, C>(
                         // TODO: Handle animations!
                         // Maybe we can use `ControlFlow::WaitUntil` for this.
                     }
-                    Err(error) => match error {
-                        // This is an unrecoverable error.
-                        compositor::SurfaceError::OutOfMemory => {
+                    Err(error) => {
+                        if error == compositor::SurfaceError::OutOfMemory {
+                            // This is an unrecoverable error.
                             panic!("{error:?}");
-                        }
-                        _ => {
+                        } else {
                             debug.render_finished();
 
                             // Try rendering again next frame.
                             window.request_redraw();
                         }
-                    },
+                    }
                 }
             }
             event::Event::WindowEvent {

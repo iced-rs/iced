@@ -46,7 +46,7 @@ where
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction: Default::default(),
+            direction: Direction::default(),
             content: content.into(),
             on_scroll: None,
             style: Default::default(),
@@ -117,7 +117,7 @@ impl Direction {
         match self {
             Self::Horizontal(properties) => Some(properties),
             Self::Both { horizontal, .. } => Some(horizontal),
-            _ => None,
+            Self::Vertical(_) => None,
         }
     }
 
@@ -126,7 +126,7 @@ impl Direction {
         match self {
             Self::Vertical(properties) => Some(properties),
             Self::Both { vertical, .. } => Some(vertical),
-            _ => None,
+            Self::Horizontal(_) => None,
         }
     }
 }
@@ -643,8 +643,10 @@ pub fn update<Message>(
     if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
         match event {
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
+            | Event::Touch(
+                touch::Event::FingerLifted { .. }
+                | touch::Event::FingerLost { .. },
+            ) => {
                 state.y_scroller_grabbed_at = None;
 
                 return event::Status::Captured;
@@ -718,8 +720,10 @@ pub fn update<Message>(
     if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at {
         match event {
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-            | Event::Touch(touch::Event::FingerLifted { .. })
-            | Event::Touch(touch::Event::FingerLost { .. }) => {
+            | Event::Touch(
+                touch::Event::FingerLifted { .. }
+                | touch::Event::FingerLost { .. },
+            ) => {
                 state.x_scroller_grabbed_at = None;
 
                 return event::Status::Captured;

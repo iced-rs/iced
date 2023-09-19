@@ -226,8 +226,8 @@ mod modal {
     use iced::advanced::widget::{self, Widget};
     use iced::advanced::{self, Clipboard, Shell};
     use iced::alignment::Alignment;
-    use iced::event;
     use iced::mouse;
+    use iced::{event, BorderRadius};
     use iced::{Color, Element, Event, Length, Point, Rectangle, Size};
 
     /// A widget that centers a modal element over some base element
@@ -474,7 +474,7 @@ mod modal {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: Default::default(),
+                    border_radius: BorderRadius::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

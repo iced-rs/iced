@@ -194,12 +194,12 @@ impl Application for Example {
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill)
                     .on_press(Message::Screenshot),
-                if !self.png_saving {
+                if self.png_saving {
+                    button(centered_text("Saving...")).style(Button::Secondary)
+                } else {
                     button(centered_text("Save as png")).on_press_maybe(
                         self.screenshot.is_some().then(|| Message::Png),
                     )
-                } else {
-                    button(centered_text("Saving...")).style(Button::Secondary)
                 }
                 .style(Button::Secondary)
                 .padding([10, 20, 10, 20])

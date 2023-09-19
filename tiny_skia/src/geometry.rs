@@ -4,6 +4,7 @@ use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
 use crate::graphics::Gradient;
 use crate::primitive::{self, Primitive};
+use iced_graphics::geometry::path::lyon_path::geom::euclid::Point2D;
 
 pub struct Frame {
     size: Size,
@@ -180,7 +181,7 @@ fn convert_path(path: &Path) -> Option<tiny_skia::Path> {
     use iced_graphics::geometry::path::lyon_path;
 
     let mut builder = tiny_skia::PathBuilder::new();
-    let mut last_point = Default::default();
+    let mut last_point = Point2D::default();
 
     for event in path.raw() {
         match event {

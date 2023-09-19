@@ -29,8 +29,7 @@ impl Memory {
                 Size::new(width, height)
             }
             Memory::Device(entry) => entry.size(),
-            Memory::NotFound => Size::new(1, 1),
-            Memory::Invalid => Size::new(1, 1),
+            Memory::NotFound | Memory::Invalid => Size::new(1, 1),
         }
     }
 }

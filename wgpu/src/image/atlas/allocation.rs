@@ -29,8 +29,9 @@ impl Allocation {
 
     pub fn layer(&self) -> usize {
         match self {
-            Allocation::Partial { layer, .. } => *layer,
-            Allocation::Full { layer } => *layer,
+            Allocation::Partial { layer, .. } | Allocation::Full { layer } => {
+                *layer
+            }
         }
     }
 }

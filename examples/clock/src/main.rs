@@ -35,7 +35,7 @@ impl Application for Clock {
             Clock {
                 now: time::OffsetDateTime::now_local()
                     .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-                clock: Default::default(),
+                clock: Cache::default(),
             },
             Command::none(),
         )

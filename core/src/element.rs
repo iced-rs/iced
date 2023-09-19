@@ -402,7 +402,7 @@ where
             viewport,
         );
 
-        shell.merge(local_shell, &self.mapper);
+        shell.merge(&mut local_shell, &self.mapper);
 
         status
     }

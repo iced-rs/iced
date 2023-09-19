@@ -24,11 +24,10 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn next(&self) -> Kind {
+    fn next(self) -> Kind {
         match self {
-            Kind::Single => Kind::Double,
+            Kind::Single | Kind::Triple => Kind::Double,
             Kind::Double => Kind::Triple,
-            Kind::Triple => Kind::Double,
         }
     }
 }

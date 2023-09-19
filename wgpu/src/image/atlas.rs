@@ -237,7 +237,7 @@ impl Atlas {
                         }));
                     }
                 }
-                _ => {}
+                Layer::Full => {}
             }
         }
 

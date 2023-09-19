@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use wgpu::MultisampleState;
 
 pub fn convert(
     device: &wgpu::Device,
@@ -105,7 +106,7 @@ pub fn convert(
                 ..Default::default()
             },
             depth_stencil: None,
-            multisample: Default::default(),
+            multisample: MultisampleState::default(),
             multiview: None,
         });
 

@@ -169,11 +169,8 @@ where
     ) {
         let font_system = self.backend.font_system();
 
-        if paragraph.version() != font_system.version() {
-            // The font system has changed, paragraph fonts may be outdated
-            *paragraph = self.create_paragraph(text);
-        } else {
-            match core::text::compare(paragraph, text) {
+        if paragraph.version() == font_system.version() {
+            match core::text::compare(paragraph, &text) {
                 core::text::Difference::None => {}
                 core::text::Difference::Bounds => {
                     self.resize_paragraph(paragraph, text.bounds);
@@ -182,6 +179,9 @@ where
                     *paragraph = self.create_paragraph(text);
                 }
             }
+        } else {
+            // The font system has changed, paragraph fonts may be outdated
+            *paragraph = self.create_paragraph(text);
         }
     }
 

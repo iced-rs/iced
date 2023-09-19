@@ -595,7 +595,7 @@ mod toast {
                         instant.take();
                     }
 
-                    shell.merge(local_shell, std::convert::identity);
+                    shell.merge(&mut local_shell, std::convert::identity);
 
                     status
                 })

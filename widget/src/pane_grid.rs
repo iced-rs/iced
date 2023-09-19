@@ -591,8 +591,9 @@ pub fn update<'a, Message, T: Draggable>(
             }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. })
-        | Event::Touch(touch::Event::FingerLost { .. }) => {
+        | Event::Touch(
+            touch::Event::FingerLifted { .. } | touch::Event::FingerLost { .. },
+        ) => {
             if let Some((pane, _)) = action.picked_pane() {
                 if let Some(on_drag) = on_drag {
                     if let Some(cursor_position) = cursor.position() {
@@ -606,11 +607,10 @@ pub fn update<'a, Message, T: Draggable>(
                         } else {
                             let dropped_region = contents
                                 .zip(layout.children())
-                                .filter_map(|(target, layout)| {
+                                .find_map(|(target, layout)| {
                                     layout_region(layout, cursor_position)
                                         .map(|region| (target, region))
-                                })
-                                .next();
+                                });
 
                             match dropped_region {
                                 Some(((target, _), region))
@@ -1151,21 +1151,19 @@ pub struct ResizeEvent {
  * Helpers
  */
 fn hovered_split<'a>(
-    splits: impl Iterator<Item = (&'a Split, &'a (Axis, Rectangle, f32))>,
+    mut splits: impl Iterator<Item = (&'a Split, &'a (Axis, Rectangle, f32))>,
     spacing: f32,
     cursor_position: Point,
 ) -> Option<(Split, Axis, Rectangle)> {
-    splits
-        .filter_map(|(split, (axis, region, ratio))| {
-            let bounds = axis.split_line_bounds(*region, *ratio, spacing);
+    splits.find_map(|(split, (axis, region, ratio))| {
+        let bounds = axis.split_line_bounds(*region, *ratio, spacing);
 
-            if bounds.contains(cursor_position) {
-                Some((*split, *axis, bounds))
-            } else {
-                None
-            }
-        })
-        .next()
+        if bounds.contains(cursor_position) {
+            Some((*split, *axis, bounds))
+        } else {
+            None
+        }
+    })
 }
 
 /// The visible contents of the [`PaneGrid`]

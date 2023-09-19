@@ -172,7 +172,7 @@ pub trait Renderer: crate::Renderer {
         paragraph: &mut Self::Paragraph,
         text: Text<'_, Self::Font>,
     ) {
-        match compare(paragraph, text) {
+        match compare(paragraph, &text) {
             Difference::None => {}
             Difference::Bounds => {
                 self.resize_paragraph(paragraph, text.bounds);
@@ -281,7 +281,7 @@ pub enum Difference {
 /// [`Difference`].
 pub fn compare<Font: PartialEq>(
     paragraph: &impl Paragraph<Font = Font>,
-    text: Text<'_, Font>,
+    text: &Text<'_, Font>,
 ) -> Difference {
     if paragraph.content() != text.content
         || paragraph.text_size() != text.size

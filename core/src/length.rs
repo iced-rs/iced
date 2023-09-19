@@ -32,8 +32,7 @@ impl Length {
         match self {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
-            Length::Shrink => 0,
-            Length::Fixed(_) => 0,
+            Length::Shrink | Length::Fixed(_) => 0,
         }
     }
 }

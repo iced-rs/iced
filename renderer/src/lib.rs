@@ -254,10 +254,10 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
             Self::TinySkia(renderer) => {
                 for layer in layers {
                     match layer {
-                        crate::Geometry::TinySkia(primitive) => {
+                        Geometry::TinySkia(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        Geometry::Wgpu(_) => unreachable!(),
                     }
                 }
             }
@@ -265,10 +265,10 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
             Self::Wgpu(renderer) => {
                 for layer in layers {
                     match layer {
-                        crate::Geometry::Wgpu(primitive) => {
+                        Geometry::Wgpu(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        Geometry::TinySkia(_) => unreachable!(),
                     }
                 }
             }

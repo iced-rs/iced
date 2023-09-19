@@ -406,12 +406,9 @@ mod grid {
                 *interaction = Interaction::None;
             }
 
-            let cursor_position =
-                if let Some(position) = cursor.position_in(bounds) {
-                    position
-                } else {
-                    return (event::Status::Ignored, None);
-                };
+            let Some(cursor_position) = cursor.position_in(bounds) else {
+                return (event::Status::Ignored, None);
+            };
 
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
@@ -472,7 +469,7 @@ mod grid {
                                             * (1.0 / self.scaling),
                                 ))
                             }
-                            _ => None,
+                            Interaction::None => None,
                         };
 
                         let event_status = match interaction {
@@ -670,13 +667,14 @@ mod grid {
             cursor: mouse::Cursor,
         ) -> mouse::Interaction {
             match interaction {
-                Interaction::Drawing => mouse::Interaction::Crosshair,
-                Interaction::Erasing => mouse::Interaction::Crosshair,
+                Interaction::Drawing | Interaction::Erasing => {
+                    mouse::Interaction::Crosshair
+                }
                 Interaction::Panning { .. } => mouse::Interaction::Grabbing,
                 Interaction::None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
-                _ => mouse::Interaction::default(),
+                Interaction::None => mouse::Interaction::default(),
             }
         }
     }

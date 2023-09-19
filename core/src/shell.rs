@@ -92,7 +92,11 @@ impl<'a, Message> Shell<'a, Message> {
     /// function to the messages of the latter.
     ///
     /// This method is useful for composition.
-    pub fn merge<B>(&mut self, other: Shell<'_, B>, f: impl Fn(B) -> Message) {
+    pub fn merge<B>(
+        &mut self,
+        other: &mut Shell<'_, B>,
+        f: impl Fn(B) -> Message,
+    ) {
         self.messages.extend(other.messages.drain(..).map(f));
 
         if let Some(at) = other.redraw_request {

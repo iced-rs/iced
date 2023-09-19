@@ -238,7 +238,7 @@ where
             &mut local_shell,
         );
 
-        shell.merge(local_shell, self.mapper);
+        shell.merge(&mut local_shell, self.mapper);
 
         event_status
     }

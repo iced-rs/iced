@@ -46,7 +46,7 @@ impl Tree {
         }
     }
 
-    /// Reconciliates the current tree with the provided [`Widget`].
+    /// Reconciles the current tree with the provided [`Widget`].
     ///
     /// If the tag of the [`Widget`] matches the tag of the [`Tree`], then the
     /// [`Widget`] proceeds with the reconciliation (i.e. [`Widget::diff`] is called).

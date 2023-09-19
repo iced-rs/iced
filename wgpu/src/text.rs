@@ -7,6 +7,7 @@ use crate::layer::Text;
 
 use std::borrow::Cow;
 use std::cell::RefCell;
+use wgpu::MultisampleState;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
@@ -64,7 +65,7 @@ impl Pipeline {
             self.renderers.push(glyphon::TextRenderer::new(
                 &mut self.atlas,
                 device,
-                Default::default(),
+                MultisampleState::default(),
                 None,
             ));
         }

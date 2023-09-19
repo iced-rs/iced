@@ -68,8 +68,8 @@ impl<T: Damage> Damage for Primitive<T> {
             }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
-            | Self::Svg { bounds, .. } => bounds.expand(1.0),
-            Self::Clip { bounds, .. } => bounds.expand(1.0),
+            | Self::Svg { bounds, .. }
+            | Self::Clip { bounds, .. } => bounds.expand(1.0),
             Self::Group { primitives } => primitives
                 .iter()
                 .map(Self::bounds)
@@ -108,13 +108,13 @@ fn regions<T: Damage>(a: &Primitive<T>, b: &Primitive<T>) -> Vec<Rectangle> {
                 ..
             },
         ) => {
-            if bounds_a == bounds_b {
-                return regions(content_a, content_b)
+            return if bounds_a == bounds_b {
+                regions(content_a, content_b)
                     .into_iter()
                     .filter_map(|r| r.intersection(&bounds_a.expand(1.0)))
-                    .collect();
+                    .collect()
             } else {
-                return vec![bounds_a.expand(1.0), bounds_b.expand(1.0)];
+                vec![bounds_a.expand(1.0), bounds_b.expand(1.0)]
             }
         }
         (

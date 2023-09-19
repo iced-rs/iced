@@ -56,14 +56,15 @@ impl Application for Pokedex {
 
                 Command::none()
             }
-            Message::Search => match self {
-                Pokedex::Loading => Command::none(),
-                _ => {
+            Message::Search => {
+                if let Pokedex::Loading = self {
+                    Command::none()
+                } else {
                     *self = Pokedex::Loading;
 
                     Command::perform(Pokemon::search(), Message::PokemonFound)
                 }
-            },
+            }
         }
     }
 
