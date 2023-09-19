@@ -75,7 +75,7 @@ impl Debug {
     }
 
     pub fn startup_finished(&mut self) {
-        self.startup_duration = time::Instant::now() - self.startup_start;
+        self.startup_duration = self.startup_start.elapsed();
     }
 
     pub fn update_started(&mut self) {
@@ -83,8 +83,7 @@ impl Debug {
     }
 
     pub fn update_finished(&mut self) {
-        self.update_durations
-            .push(time::Instant::now() - self.update_start);
+        self.update_durations.push(self.update_start.elapsed());
     }
 
     pub fn view_started(&mut self) {
@@ -92,8 +91,7 @@ impl Debug {
     }
 
     pub fn view_finished(&mut self) {
-        self.view_durations
-            .push(time::Instant::now() - self.view_start);
+        self.view_durations.push(self.view_start.elapsed());
     }
 
     pub fn layout_started(&mut self) {
@@ -101,8 +99,7 @@ impl Debug {
     }
 
     pub fn layout_finished(&mut self) {
-        self.layout_durations
-            .push(time::Instant::now() - self.layout_start);
+        self.layout_durations.push(self.layout_start.elapsed());
     }
 
     pub fn event_processing_started(&mut self) {
@@ -110,8 +107,7 @@ impl Debug {
     }
 
     pub fn event_processing_finished(&mut self) {
-        self.event_durations
-            .push(time::Instant::now() - self.event_start);
+        self.event_durations.push(self.event_start.elapsed());
     }
 
     pub fn draw_started(&mut self) {
@@ -119,8 +115,7 @@ impl Debug {
     }
 
     pub fn draw_finished(&mut self) {
-        self.draw_durations
-            .push(time::Instant::now() - self.draw_start);
+        self.draw_durations.push(self.draw_start.elapsed());
     }
 
     pub fn render_started(&mut self) {
@@ -128,8 +123,7 @@ impl Debug {
     }
 
     pub fn render_finished(&mut self) {
-        self.render_durations
-            .push(time::Instant::now() - self.render_start);
+        self.render_durations.push(self.render_start.elapsed());
     }
 
     pub fn log_message<Message: std::fmt::Debug>(&mut self, message: &Message) {

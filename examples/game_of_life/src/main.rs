@@ -792,7 +792,7 @@ mod grid {
                 }
             }
 
-            for (cell, amount) in adjacent_life.iter() {
+            for (cell, amount) in &adjacent_life {
                 match amount {
                     2 => {}
                     3 => {
