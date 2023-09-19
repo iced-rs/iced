@@ -16,7 +16,7 @@ use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
-pub use crate::style::text_editor::{Appearance, Highlight, StyleSheet};
+pub use crate::style::text_editor::{Appearance, StyleSheet};
 pub use text::editor::{Action, Edit, Motion};
 
 pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
@@ -35,6 +35,10 @@ where
     style: <Renderer::Theme as StyleSheet>::Style,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
+    highlighter_format: fn(
+        &Highlighter::Highlight,
+        &Renderer::Theme,
+    ) -> highlighter::Format<Renderer::Font>,
 }
 
 impl<'a, Message, Renderer>
@@ -55,6 +59,9 @@ where
             style: Default::default(),
             on_edit: None,
             highlighter_settings: (),
+            highlighter_format: |_highlight, _theme| {
+                highlighter::Format::default()
+            },
         }
     }
 }
@@ -63,7 +70,6 @@ impl<'a, Highlighter, Message, Renderer>
     TextEditor<'a, Highlighter, Message, Renderer>
 where
     Highlighter: text::Highlighter,
-    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
@@ -85,6 +91,10 @@ where
     pub fn highlight<H: text::Highlighter>(
         self,
         settings: H::Settings,
+        to_format: fn(
+            &H::Highlight,
+            &Renderer::Theme,
+        ) -> highlighter::Format<Renderer::Font>,
     ) -> TextEditor<'a, H, Message, Renderer> {
         TextEditor {
             content: self.content,
@@ -97,6 +107,7 @@ where
             style: self.style,
             on_edit: self.on_edit,
             highlighter_settings: settings,
+            highlighter_format: to_format,
         }
     }
 }
@@ -203,13 +214,13 @@ struct State<Highlighter: text::Highlighter> {
     drag_click: Option<mouse::click::Kind>,
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
+    highlighter_format_address: usize,
 }
 
 impl<'a, Highlighter, Message, Renderer> Widget<Message, Renderer>
     for TextEditor<'a, Highlighter, Message, Renderer>
 where
     Highlighter: text::Highlighter,
-    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
@@ -226,6 +237,7 @@ where
                 &self.highlighter_settings,
             )),
             highlighter_settings: self.highlighter_settings.clone(),
+            highlighter_format_address: self.highlighter_format as usize,
         })
     }
 
@@ -245,6 +257,13 @@ where
     ) -> iced_renderer::core::layout::Node {
         let mut internal = self.content.0.borrow_mut();
         let state = tree.state.downcast_mut::<State<Highlighter>>();
+
+        if state.highlighter_format_address != self.highlighter_format as usize
+        {
+            state.highlighter.borrow_mut().change_line(0);
+
+            state.highlighter_format_address = self.highlighter_format as usize;
+        }
 
         if state.highlighter_settings != self.highlighter_settings {
             state
@@ -354,7 +373,7 @@ where
         internal.editor.highlight(
             self.font.unwrap_or_else(|| renderer.default_font()),
             state.highlighter.borrow_mut().deref_mut(),
-            |highlight| highlight.format(theme),
+            |highlight| (self.highlighter_format)(highlight, theme),
         );
 
         let is_disabled = self.on_edit.is_none();
@@ -458,7 +477,6 @@ impl<'a, Highlighter, Message, Renderer>
     for Element<'a, Message, Renderer>
 where
     Highlighter: text::Highlighter,
-    Highlighter::Highlight: Highlight<Renderer::Font, Renderer::Theme>,
     Message: 'a,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,

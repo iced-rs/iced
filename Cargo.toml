@@ -47,6 +47,8 @@ system = ["iced_winit/system"]
 web-colors = ["iced_renderer/web-colors"]
 # Enables the WebGL backend, replacing WebGPU
 webgl = ["iced_renderer/webgl"]
+# Enables the syntax `highlighter` module
+highlighter = ["iced_highlighter"]
 # Enables the advanced module
 advanced = []
 
@@ -57,6 +59,9 @@ iced_renderer.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["application"]
 iced_winit.workspace = true
+
+iced_highlighter.workspace = true
+iced_highlighter.optional = true
 
 thiserror.workspace = true
 
@@ -78,8 +83,9 @@ members = [
     "core",
     "futures",
     "graphics",
-    "runtime",
+    "highlighter",
     "renderer",
+    "runtime",
     "style",
     "tiny_skia",
     "wgpu",
@@ -103,6 +109,7 @@ iced = { version = "0.12", path = "." }
 iced_core = { version = "0.12", path = "core" }
 iced_futures = { version = "0.12", path = "futures" }
 iced_graphics = { version = "0.12", path = "graphics" }
+iced_highlighter = { version = "0.12", path = "highlighter" }
 iced_renderer = { version = "0.12", path = "renderer" }
 iced_runtime = { version = "0.12", path = "runtime" }
 iced_style = { version = "0.12", path = "style" }
@@ -137,6 +144,7 @@ resvg = "0.35"
 rustc-hash = "1.0"
 smol = "1.0"
 softbuffer = "0.2"
+syntect = "5.1"
 sysinfo = "0.28"
 thiserror = "1.0"
 tiny-skia = "0.10"

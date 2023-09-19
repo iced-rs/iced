@@ -52,8 +52,17 @@ impl Highlighter for PlainText {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Format<Font> {
     pub color: Option<Color>,
     pub font: Option<Font>,
+}
+
+impl<Font> Default for Format<Font> {
+    fn default() -> Self {
+        Self {
+            color: None,
+            font: None,
+        }
+    }
 }
