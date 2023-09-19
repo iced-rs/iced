@@ -3,19 +3,25 @@ use iced_core as core;
 use crate::core::text::highlighter::{self, Format};
 use crate::core::{Color, Font};
 
+use once_cell::sync::Lazy;
 use std::ops::Range;
 use syntect::highlighting;
 use syntect::parsing;
 
+static SYNTAXES: Lazy<parsing::SyntaxSet> =
+    Lazy::new(|| parsing::SyntaxSet::load_defaults_nonewlines());
+
+static THEMES: Lazy<highlighting::ThemeSet> =
+    Lazy::new(|| highlighting::ThemeSet::load_defaults());
+
+const LINES_PER_SNAPSHOT: usize = 50;
+
 pub struct Highlighter {
-    syntaxes: parsing::SyntaxSet,
-    syntax: parsing::SyntaxReference,
-    theme: highlighting::Theme,
+    syntax: &'static parsing::SyntaxReference,
+    highlighter: highlighting::Highlighter<'static>,
     caches: Vec<(parsing::ParseState, parsing::ScopeStack)>,
     current_line: usize,
 }
-
-const LINES_PER_SNAPSHOT: usize = 50;
 
 impl highlighter::Highlighter for Highlighter {
     type Settings = Settings;
@@ -25,40 +31,33 @@ impl highlighter::Highlighter for Highlighter {
         Box<dyn Iterator<Item = (Range<usize>, Self::Highlight)> + 'a>;
 
     fn new(settings: &Self::Settings) -> Self {
-        let syntaxes = parsing::SyntaxSet::load_defaults_nonewlines();
-
-        let syntax = syntaxes
+        let syntax = SYNTAXES
             .find_syntax_by_token(&settings.extension)
-            .unwrap_or_else(|| syntaxes.find_syntax_plain_text());
+            .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        let theme = highlighting::ThemeSet::load_defaults()
-            .themes
-            .remove(settings.theme.key())
-            .unwrap();
+        let highlighter = highlighting::Highlighter::new(
+            &THEMES.themes[settings.theme.key()],
+        );
 
         let parser = parsing::ParseState::new(syntax);
         let stack = parsing::ScopeStack::new();
 
         Highlighter {
-            syntax: syntax.clone(),
-            syntaxes,
-            theme,
+            syntax,
+            highlighter,
             caches: vec![(parser, stack)],
             current_line: 0,
         }
     }
 
     fn update(&mut self, new_settings: &Self::Settings) {
-        self.syntax = self
-            .syntaxes
+        self.syntax = SYNTAXES
             .find_syntax_by_token(&new_settings.extension)
-            .unwrap_or_else(|| self.syntaxes.find_syntax_plain_text())
-            .clone();
+            .unwrap_or_else(|| SYNTAXES.find_syntax_plain_text());
 
-        self.theme = highlighting::ThemeSet::load_defaults()
-            .themes
-            .remove(new_settings.theme.key())
-            .unwrap();
+        self.highlighter = highlighting::Highlighter::new(
+            &THEMES.themes[new_settings.theme.key()],
+        );
 
         // Restart the highlighter
         self.change_line(0);
@@ -99,9 +98,9 @@ impl highlighter::Highlighter for Highlighter {
         let (parser, stack) =
             self.caches.last_mut().expect("Caches must not be empty");
 
-        let ops = parser.parse_line(line, &self.syntaxes).unwrap_or_default();
+        let ops = parser.parse_line(line, &SYNTAXES).unwrap_or_default();
 
-        let highlighter = highlighting::Highlighter::new(&self.theme);
+        let highlighter = &self.highlighter;
 
         Box::new(
             ScopeRangeIterator {
