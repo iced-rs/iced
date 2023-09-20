@@ -56,7 +56,7 @@ impl Cursor {
             State::Selection { start, end } => {
                 Some((start.min(end), start.max(end)))
             }
-            _ => None,
+            State::Index(_) => None,
         }
     }
 
@@ -89,7 +89,7 @@ impl Cursor {
         match self.state(value) {
             State::Index(index) if index > 0 => self.move_to(index - 1),
             State::Selection { start, end } => self.move_to(start.min(end)),
-            _ => self.move_to(0),
+            State::Index(_) => self.move_to(0),
         }
     }
 

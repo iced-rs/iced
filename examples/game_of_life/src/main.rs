@@ -472,7 +472,7 @@ mod grid {
                                             * (1.0 / self.scaling),
                                 ))
                             }
-                            _ => None,
+                            Interaction::None => None,
                         };
 
                         let event_status = match interaction {
@@ -676,7 +676,7 @@ mod grid {
                 Interaction::None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
-                _ => mouse::Interaction::default(),
+                Interaction::None => mouse::Interaction::default(),
             }
         }
     }

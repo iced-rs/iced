@@ -257,7 +257,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::TinySkia(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        crate::Geometry::Wgpu(_) => unreachable!(),
                     }
                 }
             }
@@ -268,7 +268,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::Wgpu(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        crate::Geometry::TinySkia(_) => unreachable!(),
                     }
                 }
             }

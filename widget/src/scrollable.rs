@@ -117,7 +117,7 @@ impl Direction {
         match self {
             Self::Horizontal(properties) => Some(properties),
             Self::Both { horizontal, .. } => Some(horizontal),
-            _ => None,
+            Self::Vertical(_) => None,
         }
     }
 
@@ -126,7 +126,7 @@ impl Direction {
         match self {
             Self::Vertical(properties) => Some(properties),
             Self::Both { vertical, .. } => Some(vertical),
-            _ => None,
+            Self::Horizontal(_) => None,
         }
     }
 }
