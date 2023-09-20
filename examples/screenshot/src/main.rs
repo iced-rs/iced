@@ -273,15 +273,20 @@ impl Application for Example {
 
 async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
     let path = "screenshot.png".to_string();
-    img::save_buffer(
-        &path,
-        &screenshot.bytes,
-        screenshot.size.width,
-        screenshot.size.height,
-        ColorType::Rgba8,
-    )
-    .map(|_| path)
-    .map_err(|err| PngError(format!("{err:?}")))
+
+    tokio::task::spawn_blocking(move || {
+        img::save_buffer(
+            &path,
+            &screenshot.bytes,
+            screenshot.size.width,
+            screenshot.size.height,
+            ColorType::Rgba8,
+        )
+        .map(|_| path)
+        .map_err(|err| PngError(format!("{err:?}")))
+    })
+    .await
+    .expect("Blocking task to finish")
 }
 
 #[derive(Clone, Debug)]

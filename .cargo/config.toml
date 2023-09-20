@@ -8,7 +8,8 @@ clippy --workspace --no-deps -- \
   -D clippy::match-wildcard-for-single-variants \
   -D clippy::redundant-closure-for-method-calls \
   -D clippy::filter_map_next \
-  -D clippy::manual_let_else
+  -D clippy::manual_let_else \
+  -D clippy::unused_async
 """
 
 nitpick = """
