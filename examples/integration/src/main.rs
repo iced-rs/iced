@@ -200,10 +200,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                                     viewport.scale_factor(),
                                 )
                             })
-                            .map_or(
-                                mouse::Cursor::Unavailable,
-                                mouse::Cursor::Available,
-                            ),
+                            .map(mouse::Cursor::Available)
+                            .unwrap_or(mouse::Cursor::Unavailable),
                         &mut renderer,
                         &Theme::Dark,
                         &renderer::Style {

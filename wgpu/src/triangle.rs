@@ -349,7 +349,7 @@ fn multisample_state(
     antialiasing: Option<Antialiasing>,
 ) -> wgpu::MultisampleState {
     wgpu::MultisampleState {
-        count: antialiasing.map_or(1, Antialiasing::sample_count),
+        count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
         mask: !0,
         alpha_to_coverage_enabled: false,
     }

@@ -17,7 +17,8 @@ impl Clipboard {
     pub fn connect(window: &winit::window::Window) -> Clipboard {
         let state = window_clipboard::Clipboard::connect(window)
             .ok()
-            .map_or(State::Unavailable, State::Connected);
+            .map(State::Connected)
+            .unwrap_or(State::Unavailable);
 
         Clipboard { state }
     }
