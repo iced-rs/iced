@@ -7,8 +7,11 @@ pub use crate::style::slider::{Appearance, Handle, HandleShape, StyleSheet};
 
 use crate::core;
 use crate::core::event::{self, Event};
+use crate::core::keyboard;
+use crate::core::keyboard::key::{self, Key};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
+use crate::core::mouse::click;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
@@ -46,7 +49,9 @@ where
 {
     range: RangeInclusive<T>,
     step: T,
+    step_fine: Option<T>,
     value: T,
+    default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
     width: f32,
@@ -89,14 +94,23 @@ where
 
         VerticalSlider {
             value,
+            default: None,
             range,
             step: T::from(1),
+            step_fine: None,
             on_change: Box::new(on_change),
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
             style: Default::default(),
         }
+    }
+
+    /// Sets the optional default value for the [`VerticalSlider`].
+    /// If set, [`VerticalSlider`] will reset to this value when doubled-clicked, ctrl-clicked, or command-clicked.
+    pub fn default(mut self, default: impl Into<T>) -> Self {
+        self.default = Some(default.into());
+        self
     }
 
     /// Sets the release message of the [`VerticalSlider`].
@@ -131,6 +145,13 @@ where
     /// Sets the step size of the [`VerticalSlider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
+        self
+    }
+
+    /// Sets the optional fine-grained step size for the [`VerticalSlider`].
+    /// If set, this value is used as the step size while shift is pressed.
+    pub fn step_fine(mut self, step_fine: impl Into<T>) -> Self {
+        self.step_fine = Some(step_fine.into());
         self
     }
 }
@@ -185,8 +206,10 @@ where
             shell,
             tree.state.downcast_mut::<State>(),
             &mut self.value,
+            self.default,
             &self.range,
             self.step,
+            self.step_fine,
             self.on_change.as_ref(),
             &self.on_release,
         )
@@ -251,8 +274,10 @@ pub fn update<Message, T>(
     shell: &mut Shell<'_, Message>,
     state: &mut State,
     value: &mut T,
+    default: Option<T>,
     range: &RangeInclusive<T>,
     step: T,
+    step_fine: Option<T>,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
 ) -> event::Status
@@ -262,15 +287,20 @@ where
 {
     let is_dragging = state.is_dragging;
 
-    let mut change = |cursor_position: Point| {
+    let change_cursor_position = |cursor_position: Point| -> Option<T> {
         let bounds = layout.bounds();
 
         let new_value = if cursor_position.y >= bounds.y + bounds.height {
-            *range.start()
+            Some(*range.start())
         } else if cursor_position.y <= bounds.y {
-            *range.end()
+            Some(*range.end())
         } else {
-            let step = step.into();
+            let step = match step_fine {
+                Some(step_fine) if state.keyboard_modifiers.shift() => {
+                    step_fine.into()
+                }
+                _ => step.into(),
+            };
             let start = (*range.start()).into();
             let end = (*range.end()).into();
 
@@ -281,17 +311,67 @@ where
             let steps = (percent * (end - start) / step).round();
             let value = steps * step + start;
 
-            if let Some(value) = T::from_f64(value) {
-                value
-            } else {
-                return;
-            }
+            T::from_f64(value)
         };
 
-        if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
-            shell.publish((on_change)(new_value));
+        new_value
+    };
 
-            *value = new_value;
+    let increment = |value: T| -> Option<T> {
+        let step = match step_fine {
+            Some(step_fine) if state.keyboard_modifiers.shift() => {
+                step_fine.into()
+            }
+            _ => step.into(),
+        };
+
+        let steps = (value.into() / step).round();
+        let new_value = step * (steps + f64::from(1));
+
+        if new_value > (*range.end()).into() {
+            return Some(*range.end());
+        }
+
+        T::from_f64(new_value)
+    };
+
+    let decrement = |value: T| -> Option<T> {
+        let step = match step_fine {
+            Some(step_fine) if state.keyboard_modifiers.shift() => {
+                step_fine.into()
+            }
+            _ => step.into(),
+        };
+
+        let steps = (value.into() / step).round();
+        let new_value = step * (steps - f64::from(1));
+
+        if new_value < (*range.start()).into() {
+            return Some(*range.start());
+        }
+
+        T::from_f64(new_value)
+    };
+
+    enum Change {
+        Default,
+        CursorPosition(Point),
+        Increment,
+        Decrement,
+    }
+
+    let mut change = |change: Change| {
+        if let Some(new_value) = match change {
+            Change::Default => default,
+            Change::CursorPosition(point) => change_cursor_position(point),
+            Change::Increment => increment(*value),
+            Change::Decrement => decrement(*value),
+        } {
+            if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
+                shell.publish((on_change)(new_value));
+
+                *value = new_value;
+            }
         }
     };
 
@@ -300,8 +380,31 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             if let Some(cursor_position) = cursor.position_over(layout.bounds())
             {
-                change(cursor_position);
-                state.is_dragging = true;
+                let click =
+                    mouse::Click::new(cursor_position, state.last_click);
+
+                match click.kind() {
+                    click::Kind::Single => {
+                        if state.keyboard_modifiers.control()
+                            || state.keyboard_modifiers.command()
+                        {
+                            change(Change::Default);
+                            state.is_dragging = false;
+                        } else {
+                            change(Change::CursorPosition(cursor_position));
+                            state.is_dragging = true;
+                        }
+                    }
+                    click::Kind::Double => {
+                        change(Change::Default);
+                        state.is_dragging = false;
+                    }
+                    mouse::click::Kind::Triple => {
+                        state.is_dragging = false;
+                    }
+                }
+
+                state.last_click = Some(click);
 
                 return event::Status::Captured;
             }
@@ -321,10 +424,30 @@ where
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
             if is_dragging {
-                let _ = cursor.position().map(change);
+                let _ = cursor
+                    .position()
+                    .map(|point| change(Change::CursorPosition(point)));
 
                 return event::Status::Captured;
             }
+        }
+        Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
+            if cursor.position_over(layout.bounds()).is_some() {
+                match key {
+                    Key::Named(key::Named::ArrowUp) => {
+                        change(Change::Increment);
+                    }
+                    Key::Named(key::Named::ArrowDown) => {
+                        change(Change::Decrement);
+                    }
+                    _ => (),
+                }
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            state.keyboard_modifiers = modifiers;
         }
         _ => {}
     }
@@ -451,9 +574,11 @@ pub fn mouse_interaction(
 }
 
 /// The local state of a [`VerticalSlider`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct State {
     is_dragging: bool,
+    last_click: Option<mouse::Click>,
+    keyboard_modifiers: keyboard::Modifiers,
 }
 
 impl State {
@@ -462,3 +587,11 @@ impl State {
         State::default()
     }
 }
+
+impl PartialEq for State {
+    fn eq(&self, other: &Self) -> bool {
+        self.is_dragging == other.is_dragging
+    }
+}
+
+impl Eq for State {}
