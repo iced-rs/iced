@@ -285,7 +285,7 @@ impl<'a> Step {
                     is_showing_icon, ..
                 } = self
                 {
-                    *is_showing_icon = toggle
+                    *is_showing_icon = toggle;
                 }
             }
         };

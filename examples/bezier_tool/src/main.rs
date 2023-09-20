@@ -81,7 +81,7 @@ mod bezier {
         }
 
         pub fn request_redraw(&mut self) {
-            self.cache.clear()
+            self.cache.clear();
         }
     }
 

@@ -143,7 +143,7 @@ where
                 |(child, layout)| {
                     child.operate(layout, renderer, operation);
                 },
-            )
+            );
         });
     }
 

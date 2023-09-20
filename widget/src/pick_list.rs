@@ -253,7 +253,7 @@ where
             &self.handle,
             &self.style,
             || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
-        )
+        );
     }
 
     fn overlay<'b>(

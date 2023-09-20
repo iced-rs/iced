@@ -38,7 +38,7 @@ pub fn move_cursor_to_front<T>(target: Id) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -68,7 +68,7 @@ pub fn move_cursor_to_end<T>(target: Id) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -99,7 +99,7 @@ pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -128,7 +128,7 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 

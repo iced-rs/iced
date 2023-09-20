@@ -308,7 +308,7 @@ where
                 .zip(layout.children())
                 .for_each(|(((_pane, content), state), layout)| {
                     content.operate(state, layout, renderer, operation);
-                })
+                });
         });
     }
 
@@ -436,7 +436,7 @@ where
                     tree, renderer, theme, style, layout, cursor, rectangle,
                 );
             },
-        )
+        );
     }
 
     fn overlay<'b>(

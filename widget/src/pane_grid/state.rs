@@ -156,16 +156,16 @@ impl<T> State<T> {
             Region::Center => self.swap(pane, target),
             Region::Edge(edge) => match edge {
                 Edge::Top => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, true)
+                    self.split_and_swap(Axis::Horizontal, target, pane, true);
                 }
                 Edge::Bottom => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, false)
+                    self.split_and_swap(Axis::Horizontal, target, pane, false);
                 }
                 Edge::Left => {
-                    self.split_and_swap(Axis::Vertical, target, pane, true)
+                    self.split_and_swap(Axis::Vertical, target, pane, true);
                 }
                 Edge::Right => {
-                    self.split_and_swap(Axis::Vertical, target, pane, false)
+                    self.split_and_swap(Axis::Vertical, target, pane, false);
                 }
             },
         }
@@ -176,7 +176,7 @@ impl<T> State<T> {
         match target {
             Target::Edge(edge) => self.move_to_edge(pane, edge),
             Target::Pane(target, region) => {
-                self.split_with(&target, pane, region)
+                self.split_with(&target, pane, region);
             }
         }
     }
@@ -241,16 +241,16 @@ impl<T> State<T> {
     pub fn move_to_edge(&mut self, pane: &Pane, edge: Edge) {
         match edge {
             Edge::Top => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, true)
+                self.split_major_node_and_swap(Axis::Horizontal, pane, true);
             }
             Edge::Bottom => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, false)
+                self.split_major_node_and_swap(Axis::Horizontal, pane, false);
             }
             Edge::Left => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, true)
+                self.split_major_node_and_swap(Axis::Vertical, pane, true);
             }
             Edge::Right => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, false)
+                self.split_major_node_and_swap(Axis::Vertical, pane, false);
             }
         }
     }

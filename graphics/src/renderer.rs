@@ -237,7 +237,7 @@ where
     }
 
     fn draw(&mut self, handle: image::Handle, bounds: Rectangle) {
-        self.primitives.push(Primitive::Image { handle, bounds })
+        self.primitives.push(Primitive::Image { handle, bounds });
     }
 }
 
@@ -259,6 +259,6 @@ where
             handle,
             color,
             bounds,
-        })
+        });
     }
 }

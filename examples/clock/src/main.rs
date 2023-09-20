@@ -141,7 +141,7 @@ impl<Message> canvas::Program<Message, Renderer> for Clock {
             frame.with_save(|frame| {
                 frame.rotate(hand_rotation(self.now.second(), 60));
                 frame.stroke(&long_hand, thin_stroke());
-            })
+            });
         });
 
         vec![clock]

@@ -217,7 +217,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(std::slice::from_ref(&self.content));
     }
 
     fn width(&self) -> Length {
@@ -348,9 +348,9 @@ where
                     layout,
                     cursor,
                     viewport,
-                )
+                );
             },
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -1069,7 +1069,7 @@ impl operation::Scrollable for State {
     }
 
     fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        State::scroll_to(self, offset)
+        State::scroll_to(self, offset);
     }
 }
 
@@ -1203,7 +1203,7 @@ impl State {
                 (self.offset_y.absolute(bounds.height, content_bounds.height)
                     - delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
-            )
+            );
         }
 
         if bounds.width < content_bounds.width {

@@ -174,7 +174,7 @@ impl Builder {
     /// the starting point.
     #[inline]
     pub fn close(&mut self) {
-        self.raw.close()
+        self.raw.close();
     }
 
     /// Builds the [`Path`] of this [`Builder`].

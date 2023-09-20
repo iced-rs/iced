@@ -240,9 +240,9 @@ where
             |tree, renderer, layout, element| {
                 element.as_widget().draw(
                     tree, renderer, theme, style, layout, cursor, viewport,
-                )
+                );
             },
-        )
+        );
     }
 
     fn mouse_interaction(
