@@ -40,7 +40,6 @@ jobs:
     - uses: actions/checkout@master
     - name: Enable static CRT linkage
       run: |
-        mkdir .cargo
         echo '[target.x86_64-pc-windows-msvc]' >> .cargo/config
         echo 'rustflags = ["-Ctarget-feature=+crt-static"]' >> .cargo/config
     - name: Run the application without starting the shell
