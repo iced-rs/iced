@@ -16,7 +16,6 @@ impl Scene {
     }
 
     pub fn clear<'a>(
-        &self,
         target: &'a wgpu::TextureView,
         encoder: &'a mut wgpu::CommandEncoder,
         background_color: Color,

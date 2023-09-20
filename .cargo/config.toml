@@ -7,7 +7,8 @@ clippy --workspace --no-deps -- \
   -D clippy::default_trait_access \
   -D clippy::match-wildcard-for-single-variants \
   -D clippy::redundant-closure-for-method-calls \
-  -D clippy::filter_map_next
+  -D clippy::filter_map_next \
+  -D clippy::manual_let_else
 """
 
 nitpick = """
@@ -38,5 +39,8 @@ clippy --workspace --no-deps -- \
   -A clippy::single_match_else \
   -A clippy::unreadable_literal \
   -A clippy::explicit_deref_methods \
-  -A clippy::map_unwrap_or
+  -A clippy::map_unwrap_or \
+  -A clippy::unnested_or_patterns \
+  -A clippy::similar_names \
+  -A clippy::unused_self
 """

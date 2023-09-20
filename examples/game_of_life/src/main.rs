@@ -406,12 +406,9 @@ mod grid {
                 *interaction = Interaction::None;
             }
 
-            let cursor_position =
-                if let Some(position) = cursor.position_in(bounds) {
-                    position
-                } else {
-                    return (event::Status::Ignored, None);
-                };
+            let Some(cursor_position) = cursor.position_in(bounds) else {
+                return (event::Status::Ignored, None);
+            };
 
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
