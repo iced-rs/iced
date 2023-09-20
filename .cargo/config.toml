@@ -1,0 +1,2 @@
+[alias]
+lint = "clippy --workspace --no-deps -- -D warnings -D clippy::semicolon_if_nothing_returned"
