@@ -6,7 +6,7 @@ clippy --workspace --no-deps -- \
   -D clippy::trivially-copy-pass-by-ref \
   -D clippy::default_trait_access \
   -D clippy::match-wildcard-for-single-variants \
-  -D clippy::redundant-closure-for-method-calls
+  -D clippy::redundant-closure-for-method-calls \
 """
 
 nitpick = """
@@ -30,5 +30,10 @@ clippy --workspace --no-deps -- \
   -A clippy::if_not_else \
   -A clippy::redundant_else \
   -A clippy::used_underscore_binding \
-  -A clippy::cast_possible_wrap
+  -A clippy::cast_possible_wrap \
+  -A clippy::unnecessary_wraps \
+  -A clippy::struct-excessive-bools \
+  -A clippy::float-cmp \
+  -A clippy::single_match_else \
+  -A clippy::unreadable_literal
 """

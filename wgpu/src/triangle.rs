@@ -329,12 +329,12 @@ impl Pipeline {
 
 fn fragment_target(
     texture_format: wgpu::TextureFormat,
-) -> Option<wgpu::ColorTargetState> {
-    Some(wgpu::ColorTargetState {
+) -> wgpu::ColorTargetState {
+    wgpu::ColorTargetState {
         format: texture_format,
         blend: Some(wgpu::BlendState::ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
-    })
+    }
 }
 
 fn primitive_state() -> wgpu::PrimitiveState {
@@ -521,7 +521,7 @@ mod solid {
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
                             entry_point: "solid_fs_main",
-                            targets: &[triangle::fragment_target(format)],
+                            targets: &[Some(triangle::fragment_target(format))],
                         }),
                         primitive: triangle::primitive_state(),
                         depth_stencil: None,
@@ -698,7 +698,7 @@ mod gradient {
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
-                        targets: &[triangle::fragment_target(format)],
+                        targets: &[Some(triangle::fragment_target(format))],
                     }),
                     primitive: triangle::primitive_state(),
                     depth_stencil: None,
