@@ -443,7 +443,7 @@ pub enum Filter {
 }
 
 impl Filter {
-    fn matches(&self, task: &Task) -> bool {
+    fn matches(self, task: &Task) -> bool {
         match self {
             Filter::All => true,
             Filter::Active => !task.completed,

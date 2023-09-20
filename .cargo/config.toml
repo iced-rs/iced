@@ -1,2 +1,2 @@
 [alias]
-lint = "clippy --workspace --no-deps -- -D warnings -D clippy::semicolon_if_nothing_returned"
+lint = "clippy --workspace --no-deps -- -D warnings -D clippy::semicolon_if_nothing_returned -D clippy::trivially-copy-pass-by-ref"
