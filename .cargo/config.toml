@@ -5,7 +5,8 @@ clippy --workspace --no-deps -- \
   -D clippy::semicolon_if_nothing_returned \
   -D clippy::trivially-copy-pass-by-ref \
   -D clippy::default_trait_access \
-  -D clippy::match-wildcard-for-single-variants
+  -D clippy::match-wildcard-for-single-variants \
+  -D clippy::redundant-closure-for-method-calls
 """
 
 nitpick = """
@@ -28,5 +29,6 @@ clippy --workspace --no-deps -- \
   -A clippy::module_name_repetitions \
   -A clippy::if_not_else \
   -A clippy::redundant_else \
-  -A clippy::used_underscore_binding
+  -A clippy::used_underscore_binding \
+  -A clippy::cast_possible_wrap
 """
