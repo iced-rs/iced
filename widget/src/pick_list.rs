@@ -76,7 +76,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            handle: Default::default(),
+            handle: Handle::default(),
             style: Default::default(),
         }
     }

@@ -12,7 +12,7 @@ pub fn convert(
 
     let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
         label: Some("iced_wgpu.offscreen.sampler"),
-        ..Default::default()
+        ..wgpu::SamplerDescriptor::default()
     });
 
     //sampler in 0
@@ -102,10 +102,10 @@ pub fn convert(
             primitive: wgpu::PrimitiveState {
                 topology: wgpu::PrimitiveTopology::TriangleList,
                 front_face: wgpu::FrontFace::Cw,
-                ..Default::default()
+                ..wgpu::PrimitiveState::default()
             },
             depth_stencil: None,
-            multisample: Default::default(),
+            multisample: wgpu::MultisampleState::default(),
             multiview: None,
         });
 

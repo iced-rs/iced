@@ -46,7 +46,7 @@ where
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction: Default::default(),
+            direction: Direction::default(),
             content: content.into(),
             on_scroll: None,
             style: Default::default(),

@@ -235,7 +235,7 @@ impl Default for Window {
             transparent: false,
             level: Level::default(),
             icon: None,
-            platform_specific: Default::default(),
+            platform_specific: PlatformSpecific::default(),
         }
     }
 }
