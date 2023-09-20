@@ -114,7 +114,7 @@ where
     }
 
     fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&[self.content.as_widget(), &self.tooltip])
+        tree.diff_children(&[self.content.as_widget(), &self.tooltip]);
     }
 
     fn state(&self) -> widget::tree::State {

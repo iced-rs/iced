@@ -61,7 +61,7 @@ impl Tree {
         Renderer: crate::Renderer,
     {
         if self.tag == new.borrow().tag() {
-            new.borrow().diff(self)
+            new.borrow().diff(self);
         } else {
             *self = Self::new(new);
         }
@@ -78,7 +78,7 @@ impl Tree {
             new_children,
             |tree, widget| tree.diff(widget.borrow()),
             |widget| Self::new(widget.borrow()),
-        )
+        );
     }
 
     /// Reconciliates the children of the tree with the provided list of widgets using custom

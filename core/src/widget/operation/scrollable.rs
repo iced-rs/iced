@@ -26,7 +26,7 @@ pub fn snap_to<T>(target: Id, offset: RelativeOffset) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
 
         fn scrollable(
@@ -60,7 +60,7 @@ pub fn scroll_to<T>(target: Id, offset: AbsoluteOffset) -> impl Operation<T> {
             _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
 
         fn scrollable(

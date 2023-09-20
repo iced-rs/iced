@@ -480,7 +480,7 @@ impl Frame {
                                 },
                                 size: self.size,
                             }),
-                        ))
+                        ));
                     }
                 }
                 Buffer::Gradient(buffer) => {
@@ -493,7 +493,7 @@ impl Frame {
                                 },
                                 size: self.size,
                             }),
-                        ))
+                        ));
                     }
                 }
             }

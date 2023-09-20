@@ -46,7 +46,7 @@ where
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction: Default::default(),
+            direction: Direction::default(),
             content: content.into(),
             on_scroll: None,
             style: Default::default(),
@@ -117,7 +117,7 @@ impl Direction {
         match self {
             Self::Horizontal(properties) => Some(properties),
             Self::Both { horizontal, .. } => Some(horizontal),
-            _ => None,
+            Self::Vertical(_) => None,
         }
     }
 
@@ -126,7 +126,7 @@ impl Direction {
         match self {
             Self::Vertical(properties) => Some(properties),
             Self::Both { vertical, .. } => Some(vertical),
-            _ => None,
+            Self::Horizontal(_) => None,
         }
     }
 }
@@ -217,7 +217,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(std::slice::from_ref(&self.content));
     }
 
     fn width(&self) -> Length {
@@ -348,9 +348,9 @@ where
                     layout,
                     cursor,
                     viewport,
-                )
+                );
             },
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -1069,7 +1069,7 @@ impl operation::Scrollable for State {
     }
 
     fn scroll_to(&mut self, offset: AbsoluteOffset) {
-        State::scroll_to(self, offset)
+        State::scroll_to(self, offset);
     }
 }
 
@@ -1203,7 +1203,7 @@ impl State {
                 (self.offset_y.absolute(bounds.height, content_bounds.height)
                     - delta.y)
                     .clamp(0.0, content_bounds.height - bounds.height),
-            )
+            );
         }
 
         if bounds.width < content_bounds.width {

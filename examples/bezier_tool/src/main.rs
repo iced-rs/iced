@@ -81,7 +81,7 @@ mod bezier {
         }
 
         pub fn request_redraw(&mut self) {
-            self.cache.clear()
+            self.cache.clear();
         }
     }
 
@@ -100,12 +100,9 @@ mod bezier {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> (event::Status, Option<Curve>) {
-            let cursor_position =
-                if let Some(position) = cursor.position_in(bounds) {
-                    position
-                } else {
-                    return (event::Status::Ignored, None);
-                };
+            let Some(cursor_position) = cursor.position_in(bounds) else {
+                return (event::Status::Ignored, None);
+            };
 
             match event {
                 Event::Mouse(mouse_event) => {

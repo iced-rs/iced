@@ -639,7 +639,7 @@ mod toast {
                         child
                             .as_widget()
                             .operate(state, layout, renderer, operation);
-                    })
+                    });
             });
         }
 

@@ -286,7 +286,7 @@ where
                 controls_layout,
                 renderer,
                 operation,
-            )
+            );
         };
 
         if show_title {
@@ -295,7 +295,7 @@ where
                 title_layout,
                 renderer,
                 operation,
-            )
+            );
         }
     }
 

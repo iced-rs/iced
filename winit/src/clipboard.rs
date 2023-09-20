@@ -44,7 +44,7 @@ impl Clipboard {
             State::Connected(clipboard) => match clipboard.write(contents) {
                 Ok(()) => {}
                 Err(error) => {
-                    log::warn!("error writing to clipboard: {error}")
+                    log::warn!("error writing to clipboard: {error}");
                 }
             },
             State::Unavailable => {}
@@ -58,6 +58,6 @@ impl crate::core::Clipboard for Clipboard {
     }
 
     fn write(&mut self, contents: String) {
-        self.write(contents)
+        self.write(contents);
     }
 }

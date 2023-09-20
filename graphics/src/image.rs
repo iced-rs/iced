@@ -79,7 +79,7 @@ impl Operation {
         use image::imageops;
 
         if self.contains(Self::FLIP_DIAGONALLY) {
-            imageops::flip_vertical_in_place(&mut image)
+            imageops::flip_vertical_in_place(&mut image);
         }
 
         if self.contains(Self::ROTATE_180) {

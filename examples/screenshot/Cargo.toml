@@ -7,7 +7,11 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "image", "advanced"]
+iced.features = ["debug", "image", "advanced", "tokio"]
 
-image = { workspace = true, features = ["png"]}
+image.workspace = true
+image.features = ["png"]
+
+tokio.workspace = true
+
 tracing-subscriber = "0.3"

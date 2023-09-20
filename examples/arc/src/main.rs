@@ -37,7 +37,7 @@ impl Application for Arc {
         (
             Arc {
                 start: Instant::now(),
-                cache: Default::default(),
+                cache: Cache::default(),
             },
             Command::none(),
         )

@@ -104,7 +104,7 @@ impl Atlas {
 
             padded_data[offset..offset + 4 * width as usize].copy_from_slice(
                 &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
-            )
+            );
         }
 
         match &entry {
@@ -237,7 +237,7 @@ impl Atlas {
                         }));
                     }
                 }
-                _ => {}
+                Layer::Full => {}
             }
         }
 

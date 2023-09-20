@@ -250,7 +250,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+        );
     }
 }
 
@@ -375,7 +375,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -622,7 +622,7 @@ where
             font,
             size,
             line_height,
-        )
+        );
     };
 
     match event {
@@ -849,7 +849,7 @@ where
                                 state.cursor.move_left_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_left(value)
+                            state.cursor.select_left(value);
                         } else {
                             state.cursor.move_left(value);
                         }
@@ -864,7 +864,7 @@ where
                                 state.cursor.move_right_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_right(value)
+                            state.cursor.select_right(value);
                         } else {
                             state.cursor.move_right(value);
                         }
@@ -1220,7 +1220,7 @@ pub fn draw<Renderer>(
 
     if text_width > text_bounds.width {
         renderer.with_layer(text_bounds, |renderer| {
-            renderer.with_translation(Vector::new(-offset, 0.0), render)
+            renderer.with_translation(Vector::new(-offset, 0.0), render);
         });
     } else {
         render(renderer);
@@ -1342,29 +1342,29 @@ impl<P: text::Paragraph> operation::Focusable for State<P> {
     }
 
     fn focus(&mut self) {
-        State::focus(self)
+        State::focus(self);
     }
 
     fn unfocus(&mut self) {
-        State::unfocus(self)
+        State::unfocus(self);
     }
 }
 
 impl<P: text::Paragraph> operation::TextInput for State<P> {
     fn move_cursor_to_front(&mut self) {
-        State::move_cursor_to_front(self)
+        State::move_cursor_to_front(self);
     }
 
     fn move_cursor_to_end(&mut self) {
-        State::move_cursor_to_end(self)
+        State::move_cursor_to_end(self);
     }
 
     fn move_cursor_to(&mut self, position: usize) {
-        State::move_cursor_to(self, position)
+        State::move_cursor_to(self, position);
     }
 
     fn select_all(&mut self) {
-        State::select_all(self)
+        State::select_all(self);
     }
 }
 

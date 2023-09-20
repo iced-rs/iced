@@ -35,7 +35,7 @@ impl Application for Clock {
             Clock {
                 now: time::OffsetDateTime::now_local()
                     .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-                clock: Default::default(),
+                clock: Cache::default(),
             },
             Command::none(),
         )
@@ -141,7 +141,7 @@ impl<Message> canvas::Program<Message, Renderer> for Clock {
             frame.with_save(|frame| {
                 frame.rotate(hand_rotation(self.now.second(), 60));
                 frame.stroke(&long_hand, thin_stroke());
-            })
+            });
         });
 
         vec![clock]

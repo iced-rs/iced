@@ -308,7 +308,7 @@ where
                 .zip(layout.children())
                 .for_each(|(((_pane, content), state), layout)| {
                     content.operate(state, layout, renderer, operation);
-                })
+                });
         });
     }
 
@@ -436,7 +436,7 @@ where
                     tree, renderer, theme, style, layout, cursor, rectangle,
                 );
             },
-        )
+        );
     }
 
     fn overlay<'b>(
@@ -606,11 +606,10 @@ pub fn update<'a, Message, T: Draggable>(
                         } else {
                             let dropped_region = contents
                                 .zip(layout.children())
-                                .filter_map(|(target, layout)| {
+                                .find_map(|(target, layout)| {
                                     layout_region(layout, cursor_position)
                                         .map(|region| (target, region))
-                                })
-                                .next();
+                                });
 
                             match dropped_region {
                                 Some(((target, _), region))
@@ -1151,21 +1150,19 @@ pub struct ResizeEvent {
  * Helpers
  */
 fn hovered_split<'a>(
-    splits: impl Iterator<Item = (&'a Split, &'a (Axis, Rectangle, f32))>,
+    mut splits: impl Iterator<Item = (&'a Split, &'a (Axis, Rectangle, f32))>,
     spacing: f32,
     cursor_position: Point,
 ) -> Option<(Split, Axis, Rectangle)> {
-    splits
-        .filter_map(|(split, (axis, region, ratio))| {
-            let bounds = axis.split_line_bounds(*region, *ratio, spacing);
+    splits.find_map(|(split, (axis, region, ratio))| {
+        let bounds = axis.split_line_bounds(*region, *ratio, spacing);
 
-            if bounds.contains(cursor_position) {
-                Some((*split, *axis, bounds))
-            } else {
-                None
-            }
-        })
-        .next()
+        if bounds.contains(cursor_position) {
+            Some((*split, *axis, bounds))
+        } else {
+            None
+        }
+    })
 }
 
 /// The visible contents of the [`PaneGrid`]

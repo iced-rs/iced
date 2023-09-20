@@ -77,9 +77,9 @@ where
     fn default() -> Self {
         Self {
             id: None,
-            window: Default::default(),
+            window: window::Settings::default(),
             flags: Default::default(),
-            default_font: Default::default(),
+            default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: false,
             exit_on_close_request: true,

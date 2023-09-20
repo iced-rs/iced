@@ -101,7 +101,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children)
+        tree.diff_children(&self.children);
     }
 
     fn width(&self) -> Length {
@@ -148,7 +148,7 @@ where
                     child
                         .as_widget()
                         .operate(state, layout, renderer, operation);
-                })
+                });
         });
     }
 

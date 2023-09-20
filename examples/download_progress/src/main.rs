@@ -123,7 +123,7 @@ impl Download {
             | State::Errored { .. } => {
                 self.state = State::Downloading { progress: 0.0 };
             }
-            _ => {}
+            State::Downloading { .. } => {}
         }
     }
 

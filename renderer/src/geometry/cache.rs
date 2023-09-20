@@ -35,7 +35,7 @@ impl Cache {
     /// Creates a new empty [`Cache`].
     pub fn new() -> Self {
         Cache {
-            state: Default::default(),
+            state: RefCell::default(),
         }
     }
 

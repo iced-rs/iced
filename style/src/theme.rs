@@ -393,7 +393,7 @@ impl container::StyleSheet for Theme {
 
     fn appearance(&self, style: &Self::Style) -> container::Appearance {
         match style {
-            Container::Transparent => Default::default(),
+            Container::Transparent => container::Appearance::default(),
             Container::Box => {
                 let palette = self.extended_palette();
 
@@ -904,7 +904,7 @@ impl svg::StyleSheet for Theme {
 
     fn appearance(&self, style: &Self::Style) -> svg::Appearance {
         match style {
-            Svg::Default => Default::default(),
+            Svg::Default => svg::Appearance::default(),
             Svg::Custom(custom) => custom.appearance(self),
         }
     }
@@ -1053,7 +1053,7 @@ impl text::StyleSheet for Theme {
 
     fn appearance(&self, style: Self::Style) -> text::Appearance {
         match style {
-            Text::Default => Default::default(),
+            Text::Default => text::Appearance::default(),
             Text::Color(c) => text::Appearance { color: Some(c) },
         }
     }
