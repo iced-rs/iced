@@ -22,15 +22,9 @@
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
     unsafe_code,
     rustdoc::broken_intra_doc_links
 )]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_graphics as graphics;
 pub use iced_runtime as runtime;

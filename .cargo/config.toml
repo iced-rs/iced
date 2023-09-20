@@ -2,6 +2,7 @@
 lint = """
 clippy --workspace --no-deps -- \
   -D warnings \
+  -A clippy::type_complexity \
   -D clippy::semicolon_if_nothing_returned \
   -D clippy::trivially-copy-pass-by-ref \
   -D clippy::default_trait_access \
@@ -9,8 +10,14 @@ clippy --workspace --no-deps -- \
   -D clippy::redundant-closure-for-method-calls \
   -D clippy::filter_map_next \
   -D clippy::manual_let_else \
-  -D clippy::unused_async
+  -D clippy::unused_async \
+  -D clippy::from_over_into \
+  -D clippy::needless_borrow \
+  -D clippy::new_without_default \
+  -D clippy::useless_conversion
 """
+
+#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 
 nitpick = """
 clippy --workspace --no-deps -- \
