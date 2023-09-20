@@ -23,6 +23,7 @@ nitpick = """
 clippy --workspace --no-deps -- \
   -D warnings \
   -D clippy::pedantic \
+  -A clippy::type_complexity \
   -A clippy::must_use_candidate \
   -A clippy::return_self_not_must_use \
   -A clippy::needless_pass_by_value \
