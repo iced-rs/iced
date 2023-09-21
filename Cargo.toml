@@ -163,7 +163,3 @@ winit = { git = "https://github.com/iced-rs/winit.git", rev = "c52db2045d0a2f1b8
 [patch.crates-io.cosmic-text]
 git = "https://github.com/hecrj/cosmic-text.git"
 branch = "respect-fontconfig-aliases"
-
-[patch.crates-io.rangemap]
-git = "https://github.com/hecrj/rangemap.git"
-branch = "fix/partial-eq"
