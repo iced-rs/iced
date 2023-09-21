@@ -545,7 +545,11 @@ impl Update {
                     action(Action::Scroll {
                         lines: match delta {
                             mouse::ScrollDelta::Lines { y, .. } => {
-                                -y.round() as i32 * 4
+                                if y > 0.0 {
+                                    -(y * 4.0).min(1.0) as i32
+                                } else {
+                                    0
+                                }
                             }
                             mouse::ScrollDelta::Pixels { y, .. } => {
                                 -y.signum() as i32
