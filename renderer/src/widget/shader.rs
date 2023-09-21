@@ -18,6 +18,7 @@ pub use event::Event;
 pub use iced_wgpu::custom::Primitive;
 pub use iced_wgpu::custom::Storage;
 pub use program::Program;
+pub use iced_graphics::Transformation;
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.
 ///
