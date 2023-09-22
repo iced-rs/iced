@@ -121,10 +121,10 @@ iced_winit = { version = "0.12", path = "winit" }
 async-std = "1.0"
 bitflags = "1.0"
 bytemuck = { version = "1.0", features = ["derive"] }
-cosmic-text = "0.9"
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text.git", rev = "30398c2f0cb79267d440870bc47967579e31a2ae" }
 futures = "0.3"
 glam = "0.24"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0a8366be5ec6d48c3e10c996ba840936992d878f" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -159,7 +159,3 @@ wgpu = "0.17"
 winapi = "0.3"
 window_clipboard = "0.3"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e", default-features = false }
-
-[patch.crates-io.cosmic-text]
-git = "https://github.com/hecrj/cosmic-text.git"
-branch = "respect-fontconfig-aliases"
