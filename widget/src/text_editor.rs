@@ -190,6 +190,27 @@ where
         }
     }
 
+    pub fn text(&self) -> String {
+        let mut text = self.lines().enumerate().fold(
+            String::new(),
+            |mut contents, (i, line)| {
+                if i > 0 {
+                    contents.push('\n');
+                }
+
+                contents.push_str(&line);
+
+                contents
+            },
+        );
+
+        if !text.ends_with('\n') {
+            text.push('\n');
+        }
+
+        text
+    }
+
     pub fn selection(&self) -> Option<String> {
         self.0.borrow().editor.selection()
     }

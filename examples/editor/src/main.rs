@@ -114,25 +114,8 @@ impl Application for Editor {
                 } else {
                     self.is_loading = true;
 
-                    let mut contents = self.content.lines().enumerate().fold(
-                        String::new(),
-                        |mut contents, (i, line)| {
-                            if i > 0 {
-                                contents.push('\n');
-                            }
-
-                            contents.push_str(&line);
-
-                            contents
-                        },
-                    );
-
-                    if !contents.ends_with('\n') {
-                        contents.push('\n');
-                    }
-
                     Command::perform(
-                        save_file(self.file.clone(), contents),
+                        save_file(self.file.clone(), self.content.text()),
                         Message::FileSaved,
                     )
                 }
