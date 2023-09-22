@@ -406,38 +406,47 @@ where
             style.text_color,
         );
 
+        let translation = Vector::new(
+            bounds.x + self.padding.left,
+            bounds.y + self.padding.top,
+        );
+
         if state.is_focused {
             match internal.editor.cursor() {
                 Cursor::Caret(position) => {
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: Rectangle {
-                                x: position.x + bounds.x + self.padding.left,
-                                y: position.y + bounds.y + self.padding.top,
-                                width: 1.0,
-                                height: self
-                                    .line_height
-                                    .to_absolute(self.text_size.unwrap_or_else(
-                                        || renderer.default_size(),
-                                    ))
-                                    .into(),
-                            },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
-                        },
-                        theme.value_color(&self.style),
-                    );
-                }
-                Cursor::Selection(ranges) => {
-                    for range in ranges {
+                    let position = position + translation;
+
+                    if bounds.contains(position) {
                         renderer.fill_quad(
                             renderer::Quad {
-                                bounds: range
-                                    + Vector::new(
-                                        bounds.x + self.padding.left,
-                                        bounds.y + self.padding.top,
-                                    ),
+                                bounds: Rectangle {
+                                    x: position.x,
+                                    y: position.y,
+                                    width: 1.0,
+                                    height: self
+                                        .line_height
+                                        .to_absolute(
+                                            self.text_size.unwrap_or_else(
+                                                || renderer.default_size(),
+                                            ),
+                                        )
+                                        .into(),
+                                },
+                                border_radius: 0.0.into(),
+                                border_width: 0.0,
+                                border_color: Color::TRANSPARENT,
+                            },
+                            theme.value_color(&self.style),
+                        );
+                    }
+                }
+                Cursor::Selection(ranges) => {
+                    for range in ranges.into_iter().filter_map(|range| {
+                        bounds.intersection(&(range + translation))
+                    }) {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: range,
                                 border_radius: 0.0.into(),
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
