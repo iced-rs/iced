@@ -111,25 +111,25 @@ impl Pipeline {
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &wgpu::vertex_attr_array!(
                             // Colors 1-2
-                            1 => Uint32x4,
+                            0 => Uint32x4,
                             // Colors 3-4
-                            2 => Uint32x4,
+                            1 => Uint32x4,
                             // Colors 5-6
-                            3 => Uint32x4,
+                            2 => Uint32x4,
                             // Colors 7-8
-                            4 => Uint32x4,
+                            3 => Uint32x4,
                             // Offsets 1-8
-                            5 => Uint32x4,
+                            4 => Uint32x4,
                             // Direction
-                            6 => Float32x4,
+                            5 => Float32x4,
                             // Position & Scale
-                            7 => Float32x4,
+                            6 => Float32x4,
                             // Border color
-                            8 => Float32x4,
+                            7 => Float32x4,
                             // Border radius
-                            9 => Float32x4,
+                            8 => Float32x4,
                             // Border width
-                            10 => Float32
+                            9 => Float32
                         ),
                     }],
                 },

@@ -1,11 +1,11 @@
 struct SolidVertexInput {
     @builtin(vertex_index) vertex_index: u32,
-    @location(1) color: vec4<f32>,
-    @location(2) pos: vec2<f32>,
-    @location(3) scale: vec2<f32>,
-    @location(4) border_color: vec4<f32>,
-    @location(5) border_radius: vec4<f32>,
-    @location(6) border_width: f32,
+    @location(0) color: vec4<f32>,
+    @location(1) pos: vec2<f32>,
+    @location(2) scale: vec2<f32>,
+    @location(3) border_color: vec4<f32>,
+    @location(4) border_radius: vec4<f32>,
+    @location(5) border_width: f32,
 }
 
 struct SolidVertexOutput {
