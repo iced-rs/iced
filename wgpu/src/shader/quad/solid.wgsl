@@ -1,5 +1,5 @@
 struct SolidVertexInput {
-    @location(0) v_pos: vec2<f32>,
+    @builtin(vertex_index) vertex_index: u32,
     @location(1) color: vec4<f32>,
     @location(2) pos: vec2<f32>,
     @location(3) scale: vec2<f32>,
@@ -40,7 +40,7 @@ fn solid_vs_main(input: SolidVertexInput) -> SolidVertexOutput {
         vec4<f32>(pos - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
-    out.position = globals.transform * transform * vec4<f32>(input.v_pos, 0.0, 1.0);
+    out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
     out.color = input.color;
     out.border_color = input.border_color;
     out.pos = pos;

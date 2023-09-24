@@ -37,3 +37,11 @@ fn select_border_radius(radi: vec4<f32>, position: vec2<f32>, center: vec2<f32>)
     rx = select(rx, ry, position.y > center.y);
     return rx;
 }
+
+// Compute the normalized quad coordinates based on the vertex index.
+fn vertex_position(vertex_index: u32) -> vec2<f32> {
+    // #: 0 1 2 3 4 5
+    // x: 1 1 0 0 0 1
+    // y: 1 0 0 0 1 1
+    return vec2<f32>((vec2(1u, 2u) + vertex_index) % 6u < 3u);
+}
