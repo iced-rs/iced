@@ -218,11 +218,16 @@ impl Pipeline {
                         array_stride: mem::size_of::<Instance>() as u64,
                         step_mode: wgpu::VertexStepMode::Instance,
                         attributes: &wgpu::vertex_attr_array!(
+                            // Position
+                            0 => Float32x2,
+                            // Scale
                             1 => Float32x2,
+                            // Atlas position
                             2 => Float32x2,
+                            // Atlas scale
                             3 => Float32x2,
-                            4 => Float32x2,
-                            5 => Sint32,
+                            // Layer
+                            4 => Sint32,
                         ),
                     }],
                 },

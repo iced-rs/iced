@@ -8,11 +8,11 @@ struct Globals {
 
 struct VertexInput {
     @builtin(vertex_index) vertex_index: u32,
-    @location(1) pos: vec2<f32>,
-    @location(2) scale: vec2<f32>,
-    @location(3) atlas_pos: vec2<f32>,
-    @location(4) atlas_scale: vec2<f32>,
-    @location(5) layer: i32,
+    @location(0) pos: vec2<f32>,
+    @location(1) scale: vec2<f32>,
+    @location(2) atlas_pos: vec2<f32>,
+    @location(3) atlas_scale: vec2<f32>,
+    @location(4) layer: i32,
 }
 
 struct VertexOutput {
