@@ -83,6 +83,8 @@ impl Pipeline {
                         concat!(
                             include_str!("../shader/quad.wgsl"),
                             "\n",
+                            include_str!("../shader/vertex.wgsl"),
+                            "\n",
                             include_str!("../shader/quad/gradient.wgsl"),
                             "\n",
                             include_str!("../shader/color/oklab.wgsl")
@@ -90,6 +92,8 @@ impl Pipeline {
                     } else {
                         concat!(
                             include_str!("../shader/quad.wgsl"),
+                            "\n",
+                            include_str!("../shader/vertex.wgsl"),
                             "\n",
                             include_str!("../shader/quad/gradient.wgsl"),
                             "\n",
