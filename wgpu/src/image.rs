@@ -494,9 +494,8 @@ impl Pipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer_group) = self.layers.get(layer) {
-            for (i, layer) in layer_group.iter().enumerate() {
+            for layer in layer_group.iter() {
                 if let Some(layer) = layer {
-                    println!("Render {i}");
                     render_pass.set_pipeline(&self.pipeline);
 
                     render_pass.set_scissor_rect(
