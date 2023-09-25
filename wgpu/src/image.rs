@@ -8,6 +8,7 @@ mod vector;
 
 use atlas::Atlas;
 use iced_graphics::core::image::{FilterMethod, TextureFilter};
+use wgpu::Sampler;
 
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
@@ -15,7 +16,6 @@ use crate::layer;
 use crate::Buffer;
 
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::mem;
 
 use bytemuck::{Pod, Zeroable};
@@ -29,6 +29,8 @@ use crate::core::svg;
 #[cfg(feature = "tracing")]
 use tracing::info_span;
 
+const SAMPLER_COUNT: usize = 4;
+
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
@@ -39,14 +41,14 @@ pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    sampler: HashMap<TextureFilter, wgpu::Sampler>,
+    sampler: [wgpu::Sampler; SAMPLER_COUNT],
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_atlas: Atlas,
     texture_layout: wgpu::BindGroupLayout,
     constant_layout: wgpu::BindGroupLayout,
 
-    layers: Vec<Layer>,
+    layers: Vec<[Option<Layer>; SAMPLER_COUNT]>,
     prepare_layer: usize,
 }
 
@@ -149,28 +151,32 @@ impl Pipeline {
             FilterMethod::Nearest => wgpu::FilterMode::Nearest,
         };
 
-        let mut sampler = HashMap::new();
+        let mut sampler: [Option<Sampler>; SAMPLER_COUNT] =
+            [None, None, None, None];
 
         let filter = [FilterMethod::Linear, FilterMethod::Nearest];
         for min in 0..filter.len() {
             for mag in 0..filter.len() {
-                let _ = sampler.insert(
-                    TextureFilter {
-                        min: filter[min],
-                        mag: filter[mag],
-                    },
-                    device.create_sampler(&wgpu::SamplerDescriptor {
-                        address_mode_u: wgpu::AddressMode::ClampToEdge,
-                        address_mode_v: wgpu::AddressMode::ClampToEdge,
-                        address_mode_w: wgpu::AddressMode::ClampToEdge,
-                        mag_filter: to_wgpu(filter[mag]),
-                        min_filter: to_wgpu(filter[min]),
-                        mipmap_filter: wgpu::FilterMode::Linear,
-                        ..Default::default()
-                    }),
-                );
+                sampler[to_index(&TextureFilter {
+                    min: filter[min],
+                    mag: filter[mag],
+                })] = Some(device.create_sampler(&wgpu::SamplerDescriptor {
+                    address_mode_u: wgpu::AddressMode::ClampToEdge,
+                    address_mode_v: wgpu::AddressMode::ClampToEdge,
+                    address_mode_w: wgpu::AddressMode::ClampToEdge,
+                    mag_filter: to_wgpu(filter[mag]),
+                    min_filter: to_wgpu(filter[min]),
+                    mipmap_filter: wgpu::FilterMode::Linear,
+                    ..Default::default()
+                }));
             }
         }
+        let sampler = [
+            sampler[0].take().unwrap(),
+            sampler[1].take().unwrap(),
+            sampler[2].take().unwrap(),
+            sampler[3].take().unwrap(),
+        ];
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -375,8 +381,8 @@ impl Pipeline {
         #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
-        let instances: &mut HashMap<TextureFilter, Vec<Instance>> =
-            &mut HashMap::new();
+        let mut instances: [Vec<Instance>; SAMPLER_COUNT] =
+            [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
 
         #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -398,9 +404,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             atlas_entry,
-                            instances
-                                .entry(handle.filter().clone())
-                                .or_insert(Vec::new()),
+                            &mut instances[to_index(handle.filter())],
                         );
                     }
                 }
@@ -428,9 +432,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             size,
                             atlas_entry,
-                            instances
-                                .entry(TextureFilter::default())
-                                .or_insert(Vec::new()),
+                            &mut instances[to_index(&TextureFilter::default())],
                         );
                     }
                 }
@@ -463,20 +465,26 @@ impl Pipeline {
             self.texture_version = texture_version;
         }
 
-        for (filter, instances) in instances.iter_mut() {
-            if self.layers.len() <= self.prepare_layer {
-                self.layers.push(Layer::new(
-                    device,
-                    &self.constant_layout,
-                    self.sampler.get(filter).expect("Sampler is registered"),
-                ));
+        if self.layers.len() <= self.prepare_layer {
+            self.layers.push([None, None, None, None]);
+        }
+        for (i, instances) in instances.iter_mut().enumerate() {
+            let layer = &mut self.layers[self.prepare_layer][i];
+            if !instances.is_empty() {
+                if layer.is_none() {
+                    *layer = Some(Layer::new(
+                        device,
+                        &self.constant_layout,
+                        &self.sampler[i],
+                    ))
+                }
             }
 
-            let layer = &mut self.layers[self.prepare_layer];
-            layer.prepare(device, queue, instances, transformation);
-
-            self.prepare_layer += 1;
+            if let Some(layer) = layer {
+                layer.prepare(device, queue, instances, transformation);
+            }
         }
+        self.prepare_layer += 1;
     }
 
     pub fn render<'a>(
@@ -485,24 +493,29 @@ impl Pipeline {
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
-        if let Some(layer) = self.layers.get(layer) {
-            render_pass.set_pipeline(&self.pipeline);
+        if let Some(layer_group) = self.layers.get(layer) {
+            for (i, layer) in layer_group.iter().enumerate() {
+                if let Some(layer) = layer {
+                    println!("Render {i}");
+                    render_pass.set_pipeline(&self.pipeline);
 
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
+                    render_pass.set_scissor_rect(
+                        bounds.x,
+                        bounds.y,
+                        bounds.width,
+                        bounds.height,
+                    );
 
-            render_pass.set_bind_group(1, &self.texture, &[]);
-            render_pass.set_index_buffer(
-                self.indices.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
+                    render_pass.set_bind_group(1, &self.texture, &[]);
+                    render_pass.set_index_buffer(
+                        self.indices.slice(..),
+                        wgpu::IndexFormat::Uint16,
+                    );
+                    render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
-            layer.render(render_pass);
+                    layer.render(render_pass);
+                }
+            }
         }
     }
 
@@ -515,6 +528,14 @@ impl Pipeline {
 
         self.prepare_layer = 0;
     }
+}
+
+fn to_index(filter: &TextureFilter) -> usize {
+    let to_index = |m| match m {
+        FilterMethod::Linear => 0,
+        FilterMethod::Nearest => 1,
+    };
+    return (to_index(filter.mag) << 1) | (to_index(filter.min));
 }
 
 #[repr(C)]
