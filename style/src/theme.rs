@@ -1,8 +1,6 @@
 //! Use the built-in theme and styles.
 pub mod palette;
 
-pub use palette::Palette;
-
 use crate::application;
 use crate::button;
 use crate::checkbox;
@@ -38,24 +36,24 @@ pub enum Theme {
 
 impl Theme {
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(palette: Palette) -> Self {
+    pub fn custom(palette: palette::Palette) -> Self {
         Self::custom_with_fn(palette, palette::Extended::generate)
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`], with
     /// a custom generator of a [`palette::Extended`].
     pub fn custom_with_fn(
-        palette: Palette,
-        generate: impl FnOnce(Palette) -> palette::Extended,
+        palette: palette::Palette,
+        generate: impl FnOnce(palette::Palette) -> palette::Extended,
     ) -> Self {
         Self::Custom(Box::new(Custom::with_fn(palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].
-    pub fn palette(&self) -> Palette {
+    pub fn palette(&self) -> palette::Palette {
         match self {
-            Self::Light => Palette::LIGHT,
-            Self::Dark => Palette::DARK,
+            Self::Light => palette::Palette::LIGHT,
+            Self::Dark => palette::Palette::DARK,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -73,21 +71,21 @@ impl Theme {
 /// A [`Theme`] with a customized [`Palette`].
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Custom {
-    palette: Palette,
+    palette: palette::Palette,
     extended: palette::Extended,
 }
 
 impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`].
-    pub fn new(palette: Palette) -> Self {
+    pub fn new(palette: palette::Palette) -> Self {
         Self::with_fn(palette, palette::Extended::generate)
     }
 
     /// Creates a [`Custom`] theme from the given [`Palette`] with
     /// a custom generator of a [`palette::Extended`].
     pub fn with_fn(
-        palette: Palette,
-        generate: impl FnOnce(Palette) -> palette::Extended,
+        palette: palette::Palette,
+        generate: impl FnOnce(palette::Palette) -> palette::Extended,
     ) -> Self {
         Self {
             palette,
