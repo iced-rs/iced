@@ -1,4 +1,5 @@
 //! Handle events of a custom shader widget.
+use std::time::Instant;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
@@ -18,4 +19,7 @@ pub enum Event {
 
     /// A keyboard event.
     Keyboard(keyboard::Event),
+
+    /// A window requested a redraw.
+    RedrawRequested(Instant),
 }

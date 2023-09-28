@@ -5,10 +5,7 @@ use crate::core::mouse::{Cursor, Interaction};
 use crate::core::renderer::Style;
 use crate::core::widget::tree::{State, Tag};
 use crate::core::widget::{tree, Tree};
-use crate::core::{
-    self, layout, mouse, widget, Clipboard, Element, Layout, Length, Rectangle,
-    Shell, Size, Widget,
-};
+use crate::core::{self, layout, mouse, widget, Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Widget, window};
 use std::marker::PhantomData;
 
 mod event;
@@ -109,6 +106,9 @@ where
                 Some(Event::Keyboard(keyboard_event))
             }
             core::Event::Touch(touch_event) => Some(Event::Touch(touch_event)),
+            core::Event::Window(window::Event::RedrawRequested(instant)) => {
+                Some(Event::RedrawRequested(instant))
+            }
             _ => None,
         };
 
