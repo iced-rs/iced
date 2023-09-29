@@ -269,8 +269,10 @@ pub mod touch {
     pub use crate::core::touch::{Event, Finger};
 }
 
-#[allow(hidden_glob_reexports)]
+// unknown lints has been added because `hidden_glob_reexports` is unstable
+#[allow(unknown_lints, hidden_glob_reexports)]
 pub mod widget {
+#![warn(unknown_lints)]
     //! Use the built-in widgets or create your own.
     pub use iced_widget::*;
 
