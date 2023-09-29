@@ -11,9 +11,11 @@ Once you have started a channel of communication, you must wait until someone fr
 Besides directly writing code, there are many other different ways you can contribute. To name a few:
 
 - Writing tutorials or blog posts
-- Improving the documentation
+- Improving the documentation [^1]
 - Submitting bug reports and use cases
 - Sharing, discussing, researching and exploring new ideas or crates
+
+[^1]: You can build it locally by running `cargo +nightly rustdoc --all-features --open -- --cfg docsrs`.
 
 [the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
