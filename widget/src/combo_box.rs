@@ -21,6 +21,15 @@ use std::fmt::Display;
 /// This widget is composed by a [`TextInput`] that can be filled with the text
 /// to search for corresponding values from the list of options that are displayed
 /// as a Menu.
+///
+/// # Example
+///
+/// ```
+#[doc = include_str!("../../examples/i_choose_you/src/main.rs")]
+/// ```
+///
+/// ![Example of a ComboBox](https://i.imgur.com/Fl2mBdO.png)
+#[doc(alias("Dropdown"))]
 #[allow(missing_debug_implementations)]
 pub struct ComboBox<'a, T, Message, Renderer = crate::Renderer>
 where

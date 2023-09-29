@@ -1,0 +1,14 @@
+[package]
+name = "i_choose_you"
+version = "0.1.0"
+authors = ["Demenev Dmitrii <demenev.dmitriy1@gmail.com>"]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+iced.workspace = true
+strum.workspace = true
+strum.features = ["derive"]
+strum_macros.workspace = true
