@@ -18,7 +18,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu"]
+default = ["wgpu", "tokio"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu"]
 # Enables the `Image` widget
