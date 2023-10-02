@@ -352,13 +352,10 @@ impl Task {
     fn view(&self, i: usize) -> Element<TaskMessage> {
         match &self.state {
             TaskState::Idle => {
-                let checkbox = checkbox(
-                    &self.description,
-                    self.completed,
-                    TaskMessage::Completed,
-                )
-                .width(Length::Fill)
-                .text_shaping(text::Shaping::Advanced);
+                let checkbox = checkbox(&self.description, self.completed)
+                    .on_toggle(TaskMessage::Completed)
+                    .width(Length::Fill)
+                    .text_shaping(text::Shaping::Advanced);
 
                 row![
                     checkbox,

@@ -43,7 +43,7 @@ pub struct Checkbox<
     Renderer: text::Renderer,
 {
     is_checked: bool,
-    on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
+    on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
     label: String,
     width: Length,
     size: f32,
@@ -70,18 +70,12 @@ where
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
-    ///   * a boolean describing whether the [`Checkbox`] is checked or not
     ///   * the label of the [`Checkbox`]
-    ///   * a function that will be called when the [`Checkbox`] is toggled. It
-    ///     will receive the new state of the [`Checkbox`] and must produce a
-    ///     `Message`.
-    pub fn new<F>(label: impl Into<String>, is_checked: bool, f: F) -> Self
-    where
-        F: 'a + Fn(bool) -> Message,
-    {
+    ///   * a boolean describing whether the [`Checkbox`] is checked or not
+    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
         Checkbox {
             is_checked,
-            on_toggle: Box::new(f),
+            on_toggle: None,
             label: label.into(),
             width: Length::Shrink,
             size: Self::DEFAULT_SIZE,
@@ -99,6 +93,32 @@ where
             },
             style: Default::default(),
         }
+    }
+
+    /// Sets the function that will be called when the [`Checkbox`] is toggled.
+    /// It will receive the new state of the [`Checkbox`] and must produce a
+    /// `Message`.
+    ///
+    /// Unless `on_toggle` is called, the [`Checkbox`] will be disabled.
+    pub fn on_toggle<F>(mut self, f: F) -> Self
+    where
+        F: 'a + Fn(bool) -> Message,
+    {
+        self.on_toggle = Some(Box::new(f));
+        self
+    }
+
+    /// Sets the function that will be called when the [`Checkbox`] is toggled,
+    /// if `Some`.
+    ///
+    /// If `None`, the checkbox will be disabled.
+    pub fn on_toggle_maybe<F>(mut self, f: Option<F>) -> Self
+    where
+        F: Fn(bool) -> Message + 'a,
+    {
+        self.on_toggle =
+            f.map(|f| Box::new(f) as Box<dyn Fn(bool) -> Message + 'a>);
+        self
     }
 
     /// Sets the size of the [`Checkbox`].
@@ -235,9 +255,10 @@ where
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
-                    shell.publish((self.on_toggle)(!self.is_checked));
-
-                    return event::Status::Captured;
+                    if let Some(on_toggle) = &self.on_toggle {
+                        shell.publish((on_toggle)(!self.is_checked));
+                        return event::Status::Captured;
+                    }
                 }
             }
             _ => {}
@@ -254,7 +275,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        if cursor.is_over(layout.bounds()) {
+        if cursor.is_over(layout.bounds()) && self.on_toggle.is_some() {
             mouse::Interaction::Pointer
         } else {
             mouse::Interaction::default()
@@ -272,13 +293,18 @@ where
         viewport: &Rectangle,
     ) {
         let is_mouse_over = cursor.is_over(layout.bounds());
+        let is_enabled = self.on_toggle.is_some();
 
         let mut children = layout.children();
 
-        let custom_style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_checked)
+        let custom_style = if is_enabled {
+            if is_mouse_over {
+                theme.hovered(&self.style, self.is_checked)
+            } else {
+                theme.active(&self.style, self.is_checked)
+            }
         } else {
-            theme.active(&self.style, self.is_checked)
+            theme.disabled(&self.style, self.is_checked)
         };
 
         {

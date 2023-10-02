@@ -24,4 +24,7 @@ pub trait StyleSheet {
 
     /// Produces the hovered [`Appearance`] of a checkbox.
     fn hovered(&self, style: &Self::Style, is_checked: bool) -> Appearance;
+
+    /// Produces the disabled [`Appearance`] of a checkbox.
+    fn disabled(&self, style: &Self::Style, is_checked: bool) -> Appearance;
 }

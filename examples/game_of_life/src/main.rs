@@ -185,7 +185,8 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled, Message::ToggleGrid)
+        checkbox("Grid", is_grid_enabled)
+            .on_toggle(Message::ToggleGrid)
             .size(16)
             .spacing(5)
             .text_size(16),

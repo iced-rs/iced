@@ -319,7 +319,7 @@ impl checkbox::StyleSheet for Theme {
             Checkbox::Secondary => checkbox_appearance(
                 palette.background.base.text,
                 palette.background.base,
-                palette.background.base,
+                palette.background.weak,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
@@ -355,7 +355,7 @@ impl checkbox::StyleSheet for Theme {
             Checkbox::Secondary => checkbox_appearance(
                 palette.background.base.text,
                 palette.background.weak,
-                palette.background.base,
+                palette.background.weak,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
@@ -371,6 +371,42 @@ impl checkbox::StyleSheet for Theme {
                 is_checked,
             ),
             Checkbox::Custom(custom) => custom.hovered(self, is_checked),
+        }
+    }
+
+    fn disabled(
+        &self,
+        style: &Self::Style,
+        is_checked: bool,
+    ) -> checkbox::Appearance {
+        let palette = self.extended_palette();
+
+        match style {
+            Checkbox::Primary => checkbox_appearance(
+                palette.primary.strong.text,
+                palette.background.weak,
+                palette.background.strong,
+                is_checked,
+            ),
+            Checkbox::Secondary => checkbox_appearance(
+                palette.background.strong.color,
+                palette.background.weak,
+                palette.background.weak,
+                is_checked,
+            ),
+            Checkbox::Success => checkbox_appearance(
+                palette.success.base.text,
+                palette.background.weak,
+                palette.success.weak,
+                is_checked,
+            ),
+            Checkbox::Danger => checkbox_appearance(
+                palette.danger.base.text,
+                palette.background.weak,
+                palette.danger.weak,
+                is_checked,
+            ),
+            Checkbox::Custom(custom) => custom.active(self, is_checked),
         }
     }
 }
