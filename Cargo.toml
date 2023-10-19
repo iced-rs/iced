@@ -114,10 +114,10 @@ iced_winit = { version = "0.12", path = "winit" }
 async-std = "1.0"
 bitflags = "1.0"
 bytemuck = { version = "1.0", features = ["derive"] }
-cosmic-text = "0.9"
+cosmic-text = "0.10"
 futures = "0.3"
 glam = "0.24"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
+glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "6aaaf5071eeb4510c4e894a1a9e12cf96b750a9a" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
