@@ -1,6 +1,7 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::mouse;
+use iced::subscription::events_with;
 use iced::theme::{self, Theme};
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
@@ -163,7 +164,7 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        event::listen_with(|event, _| match event {
+        events_with(|event, _| match event {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
