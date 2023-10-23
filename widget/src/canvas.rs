@@ -7,6 +7,7 @@ pub use event::Event;
 pub use program::Program;
 
 pub use crate::graphics::geometry::*;
+pub use crate::graphics::Transformation;
 pub use crate::renderer::geometry::*;
 
 use crate::core;

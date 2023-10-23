@@ -4,19 +4,8 @@ pub use cache::Cache;
 
 use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::{Fill, Path, Stroke, Text};
+use crate::graphics::Transformation;
 use crate::Renderer;
-
-pub enum Frame {
-    TinySkia(iced_tiny_skia::geometry::Frame),
-    #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::geometry::Frame),
-}
-
-pub enum Geometry {
-    TinySkia(iced_tiny_skia::Primitive),
-    #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::Primitive),
-}
 
 macro_rules! delegate {
     ($frame:expr, $name:ident, $body:expr) => {
@@ -26,6 +15,32 @@ macro_rules! delegate {
             Self::Wgpu($name) => $body,
         }
     };
+}
+
+pub enum Geometry {
+    TinySkia(iced_tiny_skia::Primitive),
+    #[cfg(feature = "wgpu")]
+    Wgpu(iced_wgpu::Primitive),
+}
+
+impl Geometry {
+    pub fn transform(self, transformation: Transformation) -> Self {
+        match self {
+            Self::TinySkia(primitive) => {
+                Self::TinySkia(primitive.transform(transformation))
+            }
+            #[cfg(feature = "wgpu")]
+            Self::Wgpu(primitive) => {
+                Self::Wgpu(primitive.transform(transformation))
+            }
+        }
+    }
+}
+
+pub enum Frame {
+    TinySkia(iced_tiny_skia::geometry::Frame),
+    #[cfg(feature = "wgpu")]
+    Wgpu(iced_wgpu::geometry::Frame),
 }
 
 impl Frame {
