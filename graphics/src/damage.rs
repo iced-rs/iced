@@ -102,10 +102,10 @@ impl<T: Damage> Damage for Primitive<T> {
                 .fold(Rectangle::with_size(Size::ZERO), |a, b| {
                     Rectangle::union(&a, &b)
                 }),
-            Self::Translate {
-                translation,
+            Self::Transform {
+                transformation,
                 content,
-            } => content.bounds() + *translation,
+            } => content.bounds() * *transformation,
             Self::Cache { content } => content.bounds(),
             Self::Custom(custom) => custom.bounds(),
         }
@@ -144,19 +144,19 @@ fn regions<T: Damage>(a: &Primitive<T>, b: &Primitive<T>) -> Vec<Rectangle> {
             }
         }
         (
-            Primitive::Translate {
-                translation: translation_a,
+            Primitive::Transform {
+                transformation: transformation_a,
                 content: content_a,
             },
-            Primitive::Translate {
-                translation: translation_b,
+            Primitive::Transform {
+                transformation: transformation_b,
                 content: content_b,
             },
         ) => {
-            if translation_a == translation_b {
+            if transformation_a == transformation_b {
                 return regions(content_a, content_b)
                     .into_iter()
-                    .map(|r| r + *translation_a)
+                    .map(|r| r * *transformation_a)
                     .collect();
             }
         }

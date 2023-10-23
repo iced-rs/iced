@@ -15,6 +15,7 @@ pub enum Text<'a> {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
+        scale: f32,
     },
     /// An editor.
     #[allow(missing_docs)]
@@ -23,6 +24,7 @@ pub enum Text<'a> {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
+        scale: f32,
     },
     /// Some cached text.
     Cached(Cached<'a>),

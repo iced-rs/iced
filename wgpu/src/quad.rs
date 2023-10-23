@@ -319,7 +319,7 @@ impl Uniforms {
 impl Default for Uniforms {
     fn default() -> Self {
         Self {
-            transform: *Transformation::identity().as_ref(),
+            transform: *Transformation::IDENTITY.as_ref(),
             scale: 1.0,
             _padding: [0.0; 3],
         }

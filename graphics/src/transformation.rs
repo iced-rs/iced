@@ -1,4 +1,6 @@
-use glam::{Mat4, Vec3};
+use crate::core::{Point, Rectangle, Size, Vector};
+
+use glam::{Mat4, Vec3, Vec4};
 use std::ops::Mul;
 
 /// A 2D transformation matrix.
@@ -6,10 +8,8 @@ use std::ops::Mul;
 pub struct Transformation(Mat4);
 
 impl Transformation {
-    /// Get the identity transformation.
-    pub fn identity() -> Transformation {
-        Transformation(Mat4::IDENTITY)
-    }
+    /// A [`Transformation`] that preserves whatever is transformed.
+    pub const IDENTITY: Self = Self(Mat4::IDENTITY);
 
     /// Creates an orthographic projection.
     #[rustfmt::skip]
@@ -30,6 +30,26 @@ impl Transformation {
     pub fn scale(x: f32, y: f32) -> Transformation {
         Transformation(Mat4::from_scale(Vec3::new(x, y, 1.0)))
     }
+
+    /// The scale factor on the X axis.
+    pub fn scale_x(&self) -> f32 {
+        self.0.x_axis.x
+    }
+
+    /// The scale factor on the Y axis.
+    pub fn scale_y(&self) -> f32 {
+        self.0.y_axis.y
+    }
+
+    /// The translation on the X axis.
+    pub fn translation_x(&self) -> f32 {
+        self.0.w_axis.x
+    }
+
+    /// The translation on the Y axis.
+    pub fn translation_y(&self) -> f32 {
+        self.0.w_axis.y
+    }
 }
 
 impl Mul for Transformation {
@@ -37,6 +57,56 @@ impl Mul for Transformation {
 
     fn mul(self, rhs: Self) -> Self {
         Transformation(self.0 * rhs.0)
+    }
+}
+
+impl Mul<Transformation> for Point {
+    type Output = Self;
+
+    fn mul(self, transformation: Transformation) -> Self {
+        let point = transformation
+            .0
+            .mul_vec4(Vec4::new(self.x, self.y, 1.0, 1.0));
+
+        Point::new(point.x, point.y)
+    }
+}
+
+impl Mul<Transformation> for Vector {
+    type Output = Self;
+
+    fn mul(self, transformation: Transformation) -> Self {
+        let new_vector = transformation
+            .0
+            .mul_vec4(Vec4::new(self.x, self.y, 1.0, 0.0));
+
+        Vector::new(new_vector.x, new_vector.y)
+    }
+}
+
+impl Mul<Transformation> for Size {
+    type Output = Self;
+
+    fn mul(self, transformation: Transformation) -> Self {
+        let new_size = transformation.0.mul_vec4(Vec4::new(
+            self.width,
+            self.height,
+            1.0,
+            0.0,
+        ));
+
+        Size::new(new_size.x, new_size.y)
+    }
+}
+
+impl Mul<Transformation> for Rectangle {
+    type Output = Self;
+
+    fn mul(self, transformation: Transformation) -> Self {
+        let position = self.position();
+        let size = self.size();
+
+        Self::new(position * transformation, size * transformation)
     }
 }
 

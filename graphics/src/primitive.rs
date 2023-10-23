@@ -8,6 +8,7 @@ use crate::core::{
 };
 use crate::text::editor;
 use crate::text::paragraph;
+use crate::Transformation;
 
 use std::sync::Arc;
 
@@ -104,12 +105,12 @@ pub enum Primitive<T> {
         /// The content of the clip
         content: Box<Primitive<T>>,
     },
-    /// A primitive that applies a translation
-    Translate {
-        /// The translation vector
-        translation: Vector,
+    /// A primitive that applies a [`Transformation`]
+    Transform {
+        /// The [`Transformation`]
+        transformation: Transformation,
 
-        /// The primitive to translate
+        /// The primitive to transform
         content: Box<Primitive<T>>,
     },
     /// A cached primitive.
@@ -125,12 +126,12 @@ pub enum Primitive<T> {
 }
 
 impl<T> Primitive<T> {
-    /// Creates a [`Primitive::Group`].
+    /// Groups the current [`Primitive`].
     pub fn group(primitives: Vec<Self>) -> Self {
         Self::Group { primitives }
     }
 
-    /// Creates a [`Primitive::Clip`].
+    /// Clips the current [`Primitive`].
     pub fn clip(self, bounds: Rectangle) -> Self {
         Self::Clip {
             bounds,
@@ -138,10 +139,21 @@ impl<T> Primitive<T> {
         }
     }
 
-    /// Creates a [`Primitive::Translate`].
+    /// Translates the current [`Primitive`].
     pub fn translate(self, translation: Vector) -> Self {
-        Self::Translate {
-            translation,
+        Self::Transform {
+            transformation: Transformation::translate(
+                translation.x,
+                translation.y,
+            ),
+            content: Box::new(self),
+        }
+    }
+
+    /// Transforms the current [`Primitive`].
+    pub fn transform(self, transformation: Transformation) -> Self {
+        Self::Transform {
+            transformation,
             content: Box::new(self),
         }
     }

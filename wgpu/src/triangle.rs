@@ -98,12 +98,10 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let origin = mesh.origin();
             let indices = mesh.indices();
 
-            let uniforms = Uniforms::new(
-                transformation * Transformation::translate(origin.x, origin.y),
-            );
+            let uniforms =
+                Uniforms::new(transformation * mesh.transformation());
 
             index_offset +=
                 self.index_buffer.write(queue, index_offset, indices);

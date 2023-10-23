@@ -8,6 +8,7 @@ use crate::graphics::geometry::{
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
+use crate::graphics::Transformation;
 use crate::primitive::{self, Primitive};
 
 use lyon::geom::euclid;
@@ -435,7 +436,7 @@ impl Frame {
     pub fn clip(&mut self, frame: Frame, at: Point) {
         let size = frame.size();
         let primitives = frame.into_primitives();
-        let translation = Vector::new(at.x, at.y);
+        let transformation = Transformation::translate(at.x, at.y);
 
         let (text, meshes) = primitives
             .into_iter()
@@ -443,12 +444,12 @@ impl Frame {
 
         self.primitives.push(Primitive::Group {
             primitives: vec![
-                Primitive::Translate {
-                    translation,
+                Primitive::Transform {
+                    transformation,
                     content: Box::new(Primitive::Group { primitives: meshes }),
                 },
-                Primitive::Translate {
-                    translation,
+                Primitive::Transform {
+                    transformation,
                     content: Box::new(Primitive::Clip {
                         bounds: Rectangle::with_size(size),
                         content: Box::new(Primitive::Group {
