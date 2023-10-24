@@ -26,3 +26,11 @@ impl From<Pixels> for f32 {
         pixels.0
     }
 }
+
+impl std::ops::Mul<f32> for Pixels {
+    type Output = Pixels;
+
+    fn mul(self, rhs: f32) -> Self {
+        Pixels(self.0 * rhs)
+    }
+}

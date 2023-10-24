@@ -169,7 +169,7 @@ impl<'a> Layer<'a> {
                 layer.text.push(Text::Cached(text::Cached {
                     content,
                     bounds: *bounds * transformation,
-                    size: *size,
+                    size: *size * transformation.scale_y(),
                     line_height: *line_height,
                     color: *color,
                     font: *font,

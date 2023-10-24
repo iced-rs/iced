@@ -124,11 +124,13 @@ impl Pipeline {
                     vertical_alignment,
                     color,
                     clip_bounds,
+                    scale,
                 ) = match section {
                     Text::Paragraph {
                         position,
                         color,
                         clip_bounds,
+                        scale,
                         ..
                     } => {
                         use crate::core::text::Paragraph as _;
@@ -145,12 +147,14 @@ impl Pipeline {
                             paragraph.vertical_alignment(),
                             *color,
                             *clip_bounds,
+                            *scale,
                         )
                     }
                     Text::Editor {
                         position,
                         color,
                         clip_bounds,
+                        scale,
                         ..
                     } => {
                         use crate::core::text::Editor as _;
@@ -167,6 +171,7 @@ impl Pipeline {
                             alignment::Vertical::Top,
                             *color,
                             *clip_bounds,
+                            *scale,
                         )
                     }
                     Text::Cached(text) => {
@@ -186,6 +191,7 @@ impl Pipeline {
                             text.vertical_alignment,
                             text.color,
                             text.clip_bounds,
+                            1.0,
                         )
                     }
                     Text::Raw(text) => {
@@ -205,6 +211,7 @@ impl Pipeline {
                             alignment::Vertical::Top,
                             text.color,
                             text.clip_bounds,
+                            1.0,
                         )
                     }
                 };
@@ -234,7 +241,7 @@ impl Pipeline {
                     buffer,
                     left,
                     top,
-                    scale: scale_factor,
+                    scale: scale * scale_factor,
                     bounds: glyphon::TextBounds {
                         left: clip_bounds.x as i32,
                         top: clip_bounds.y as i32,
