@@ -2,9 +2,8 @@ mod cache;
 
 pub use cache::Cache;
 
-use crate::core::{Point, Rectangle, Size, Vector};
+use crate::core::{Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::geometry::{Fill, Path, Stroke, Text};
-use crate::graphics::Transformation;
 use crate::Renderer;
 
 macro_rules! delegate {

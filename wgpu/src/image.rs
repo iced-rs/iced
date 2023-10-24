@@ -8,8 +8,7 @@ mod vector;
 
 use atlas::Atlas;
 
-use crate::core::{Rectangle, Size};
-use crate::graphics::Transformation;
+use crate::core::{Rectangle, Size, Transformation};
 use crate::layer;
 use crate::Buffer;
 

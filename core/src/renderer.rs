@@ -5,7 +5,9 @@ mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
-use crate::{Background, Border, Color, Rectangle, Shadow, Size, Vector};
+use crate::{
+    Background, Border, Color, Rectangle, Shadow, Size, Transformation, Vector,
+};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
@@ -14,12 +16,24 @@ pub trait Renderer: Sized {
     /// The layer will clip its contents to the provided `bounds`.
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self));
 
-    /// Applies a `translation` to the primitives recorded in the given closure.
+    /// Applies a [`Transformation`] to the primitives recorded in the given closure.
+    fn with_transformation(
+        &mut self,
+        transformation: Transformation,
+        f: impl FnOnce(&mut Self),
+    );
+
+    /// Applies a translation to the primitives recorded in the given closure.
     fn with_translation(
         &mut self,
         translation: Vector,
         f: impl FnOnce(&mut Self),
-    );
+    ) {
+        self.with_transformation(
+            Transformation::translate(translation.x, translation.y),
+            f,
+        );
+    }
 
     /// Fills a [`Quad`] with the provided [`Background`].
     fn fill_quad(&mut self, quad: Quad, background: impl Into<Background>);

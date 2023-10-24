@@ -1,6 +1,6 @@
 //! Build and draw geometry.
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -8,7 +8,6 @@ use crate::graphics::geometry::{
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::Transformation;
 use crate::primitive::{self, Primitive};
 
 use lyon::geom::euclid;

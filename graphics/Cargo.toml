@@ -26,7 +26,6 @@ iced_futures.workspace = true
 bitflags.workspace = true
 bytemuck.workspace = true
 cosmic-text.workspace = true
-glam.workspace = true
 half.workspace = true
 log.workspace = true
 once_cell.workspace = true

@@ -1,9 +1,9 @@
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
-use crate::graphics::{Gradient, Transformation};
+use crate::graphics::Gradient;
 use crate::primitive::{self, Primitive};
 
 pub struct Frame {

@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::text;
-use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Transformation};
 use crate::graphics;
 use crate::graphics::text::editor;
 use crate::graphics::text::paragraph;
@@ -15,7 +15,7 @@ pub enum Text<'a> {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
-        scale: f32,
+        transformation: Transformation,
     },
     /// An editor.
     #[allow(missing_docs)]
@@ -24,7 +24,7 @@ pub enum Text<'a> {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
-        scale: f32,
+        transformation: Transformation,
     },
     /// Some cached text.
     Cached(Cached<'a>),

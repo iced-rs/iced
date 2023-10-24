@@ -1,7 +1,9 @@
 use crate::alignment;
 use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
-use crate::{Background, Color, Font, Pixels, Point, Rectangle, Size, Vector};
+use crate::{
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+};
 
 use std::borrow::Cow;
 
@@ -21,9 +23,9 @@ impl Null {
 impl Renderer for Null {
     fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
-    fn with_translation(
+    fn with_transformation(
         &mut self,
-        _translation: Vector,
+        _transformation: Transformation,
         _f: impl FnOnce(&mut Self),
     ) {
     }

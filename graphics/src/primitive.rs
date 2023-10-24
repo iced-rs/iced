@@ -4,11 +4,11 @@ use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
 use crate::core::{
-    Background, Border, Color, Font, Pixels, Point, Rectangle, Shadow, Vector,
+    Background, Border, Color, Font, Pixels, Point, Rectangle, Shadow,
+    Transformation, Vector,
 };
 use crate::text::editor;
 use crate::text::paragraph;
-use crate::Transformation;
 
 use std::sync::Arc;
 

@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::{Rectangle, Size};
+use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
@@ -124,13 +124,13 @@ impl Pipeline {
                     vertical_alignment,
                     color,
                     clip_bounds,
-                    scale,
+                    transformation,
                 ) = match section {
                     Text::Paragraph {
                         position,
                         color,
                         clip_bounds,
-                        scale,
+                        transformation,
                         ..
                     } => {
                         use crate::core::text::Paragraph as _;
@@ -147,14 +147,14 @@ impl Pipeline {
                             paragraph.vertical_alignment(),
                             *color,
                             *clip_bounds,
-                            *scale,
+                            *transformation,
                         )
                     }
                     Text::Editor {
                         position,
                         color,
                         clip_bounds,
-                        scale,
+                        transformation,
                         ..
                     } => {
                         use crate::core::text::Editor as _;
@@ -171,7 +171,7 @@ impl Pipeline {
                             alignment::Vertical::Top,
                             *color,
                             *clip_bounds,
-                            *scale,
+                            *transformation,
                         )
                     }
                     Text::Cached(text) => {
@@ -191,7 +191,7 @@ impl Pipeline {
                             text.vertical_alignment,
                             text.color,
                             text.clip_bounds,
-                            1.0,
+                            Transformation::IDENTITY,
                         )
                     }
                     Text::Raw(text) => {
@@ -211,12 +211,12 @@ impl Pipeline {
                             alignment::Vertical::Top,
                             text.color,
                             text.clip_bounds,
-                            1.0,
+                            Transformation::IDENTITY,
                         )
                     }
                 };
 
-                let bounds = bounds * scale_factor;
+                let bounds = bounds * transformation * scale_factor;
 
                 let left = match horizontal_alignment {
                     alignment::Horizontal::Left => bounds.x,
@@ -241,7 +241,7 @@ impl Pipeline {
                     buffer,
                     left,
                     top,
-                    scale: scale * scale_factor,
+                    scale: scale_factor * transformation.scale_factor(),
                     bounds: glyphon::TextBounds {
                         left: clip_bounds.x as i32,
                         top: clip_bounds.y as i32,

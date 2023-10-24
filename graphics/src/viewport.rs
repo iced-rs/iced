@@ -1,6 +1,4 @@
-use crate::Transformation;
-
-use iced_core::Size;
+use crate::core::{Size, Transformation};
 
 /// A viewing region for displaying computer graphics.
 #[derive(Debug, Clone)]

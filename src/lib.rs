@@ -193,7 +193,8 @@ pub use crate::core::color;
 pub use crate::core::gradient;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size, Vector,
+    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size,
+    Transformation, Vector,
 };
 
 pub mod clipboard {

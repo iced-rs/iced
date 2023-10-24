@@ -1,4 +1,4 @@
-use crate::core::{Point, Rectangle, Size, Vector};
+use crate::{Point, Rectangle, Size, Vector};
 
 use glam::{Mat4, Vec3, Vec4};
 use std::ops::Mul;
@@ -31,19 +31,14 @@ impl Transformation {
         Transformation(Mat4::from_scale(Vec3::new(scaling, scaling, 1.0)))
     }
 
-    /// The scale factor of the [`Transformation`].
+    /// Returns the scale factor of the [`Transformation`].
     pub fn scale_factor(&self) -> f32 {
         self.0.x_axis.x
     }
 
-    /// The translation on the X axis.
-    pub fn translation_x(&self) -> f32 {
-        self.0.w_axis.x
-    }
-
-    /// The translation on the Y axis.
-    pub fn translation_y(&self) -> f32 {
-        self.0.w_axis.y
+    /// Returns the translation of the [`Transformation`].
+    pub fn translation(&self) -> Vector {
+        Vector::new(self.0.w_axis.x, self.0.w_axis.y)
     }
 }
 

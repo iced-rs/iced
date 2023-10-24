@@ -4,9 +4,9 @@ mod solid;
 use gradient::Gradient;
 use solid::Solid;
 
-use crate::core::{Background, Rectangle};
+use crate::core::{Background, Rectangle, Transformation};
+use crate::graphics;
 use crate::graphics::color;
-use crate::graphics::{self, Transformation};
 
 use bytemuck::{Pod, Zeroable};
 

@@ -1,7 +1,6 @@
 //! A collection of triangle primitives.
-use crate::core::Rectangle;
+use crate::core::{Rectangle, Transformation};
 use crate::graphics::mesh;
-use crate::graphics::Transformation;
 
 /// A mesh of triangles.
 #[derive(Debug, Clone, Copy)]

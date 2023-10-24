@@ -385,6 +385,7 @@ pub fn mouse_interaction(
         }
         Interaction::ResizingVertically => winit::window::CursorIcon::NsResize,
         Interaction::NotAllowed => winit::window::CursorIcon::NotAllowed,
+        Interaction::ZoomIn => winit::window::CursorIcon::ZoomIn,
     }
 }
 

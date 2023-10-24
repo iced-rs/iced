@@ -12,10 +12,12 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{Color, Font, Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{
+    Color, Font, Pixels, Point, Rectangle, Size, Transformation, Vector,
+};
 use crate::graphics;
 use crate::graphics::color;
-use crate::graphics::{Transformation, Viewport};
+use crate::graphics::Viewport;
 use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
 
@@ -130,10 +132,10 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Paragraph {
                     paragraph: paragraph.clone(),
-                    position: *position * transformation,
+                    position: *position,
                     color: *color,
-                    clip_bounds: *clip_bounds * transformation,
-                    scale: transformation.scale_factor(),
+                    clip_bounds: *clip_bounds,
+                    transformation,
                 });
             }
             Primitive::Editor {
@@ -146,10 +148,10 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Editor {
                     editor: editor.clone(),
-                    position: *position * transformation,
+                    position: *position,
                     color: *color,
-                    clip_bounds: *clip_bounds * transformation,
-                    scale: transformation.scale_factor(),
+                    clip_bounds: *clip_bounds,
+                    transformation,
                 });
             }
             Primitive::Text {
@@ -168,7 +170,7 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Cached(text::Cached {
                     content,
-                    bounds: *bounds * transformation,
+                    bounds: *bounds + transformation.translation(),
                     size: *size * transformation.scale_factor(),
                     line_height: *line_height,
                     color: *color,

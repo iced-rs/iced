@@ -1,8 +1,8 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::core::Size;
-use crate::graphics::{Antialiasing, Transformation};
+use crate::core::{Size, Transformation};
+use crate::graphics::Antialiasing;
 use crate::layer::mesh::{self, Mesh};
 use crate::Buffer;
 

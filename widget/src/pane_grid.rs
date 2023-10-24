@@ -43,7 +43,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Transformation, Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -962,9 +962,11 @@ pub fn draw<Theme, Renderer, T>(
         if let Some(cursor_position) = cursor.position() {
             let bounds = layout.bounds();
 
-            renderer.with_translation(
-                cursor_position
-                    - Point::new(bounds.x + origin.x, bounds.y + origin.y),
+            let translation = cursor_position
+                - Point::new(bounds.x + origin.x, bounds.y + origin.y);
+
+            renderer.with_transformation(
+                Transformation::translate(translation.x, translation.y),
                 |renderer| {
                     renderer.with_layer(bounds, |renderer| {
                         draw_pane(
