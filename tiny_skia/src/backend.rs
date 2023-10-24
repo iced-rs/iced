@@ -461,7 +461,7 @@ impl Backend {
                     paragraph,
                     *position * transformation,
                     *color,
-                    scale_factor,
+                    scale_factor * transformation.scale_factor(),
                     pixels,
                     clip_mask,
                 );
@@ -523,7 +523,7 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     *shaping,
-                    scale_factor,
+                    scale_factor * transformation.scale_factor(),
                     pixels,
                     clip_mask,
                 );
@@ -770,10 +770,10 @@ fn into_color(color: Color) -> tiny_skia::Color {
 
 fn into_transform(transformation: Transformation) -> tiny_skia::Transform {
     tiny_skia::Transform {
-        sx: transformation.scale_x(),
+        sx: transformation.scale_factor(),
         kx: 0.0,
         ky: 0.0,
-        sy: transformation.scale_y(),
+        sy: transformation.scale_factor(),
         tx: transformation.translation_x(),
         ty: transformation.translation_y(),
     }

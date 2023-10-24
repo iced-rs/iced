@@ -133,7 +133,7 @@ impl<'a> Layer<'a> {
                     position: *position * transformation,
                     color: *color,
                     clip_bounds: *clip_bounds * transformation,
-                    scale: transformation.scale_y(),
+                    scale: transformation.scale_factor(),
                 });
             }
             Primitive::Editor {
@@ -149,7 +149,7 @@ impl<'a> Layer<'a> {
                     position: *position * transformation,
                     color: *color,
                     clip_bounds: *clip_bounds * transformation,
-                    scale: transformation.scale_y(),
+                    scale: transformation.scale_factor(),
                 });
             }
             Primitive::Text {
@@ -169,7 +169,7 @@ impl<'a> Layer<'a> {
                 layer.text.push(Text::Cached(text::Cached {
                     content,
                     bounds: *bounds * transformation,
-                    size: *size * transformation.scale_y(),
+                    size: *size * transformation.scale_factor(),
                     line_height: *line_height,
                     color: *color,
                     font: *font,
