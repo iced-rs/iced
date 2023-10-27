@@ -164,7 +164,7 @@ where
             }
         }
 
-        recurse(&mut self.overlay, layout, renderer, operation)
+        recurse(&mut self.overlay, layout, renderer, operation);
     }
 
     /// Processes a runtime [`Event`].

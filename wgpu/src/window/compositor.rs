@@ -35,7 +35,7 @@ impl<Theme> Compositor<Theme> {
             ..Default::default()
         });
 
-        log::info!("{:#?}", settings);
+        log::info!("{settings:#?}");
 
         #[cfg(not(target_arch = "wasm32"))]
         if log::max_level() >= log::LevelFilter::Info {
@@ -43,7 +43,7 @@ impl<Theme> Compositor<Theme> {
                 .enumerate_adapters(settings.internal_backend)
                 .map(|adapter| adapter.get_info())
                 .collect();
-            log::info!("Available adapters: {:#?}", available_adapters);
+            log::info!("Available adapters: {available_adapters:#?}");
         }
 
         #[allow(unsafe_code)]
@@ -83,7 +83,7 @@ impl<Theme> Compositor<Theme> {
             })
         })?;
 
-        log::info!("Selected format: {:?}", format);
+        log::info!("Selected format: {format:?}");
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults()

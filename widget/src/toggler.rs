@@ -286,7 +286,7 @@ where
                 style,
                 label_layout,
                 tree.state.downcast_ref(),
-                Default::default(),
+                crate::text::Appearance::default(),
             );
         }
 

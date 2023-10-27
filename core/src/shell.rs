@@ -71,7 +71,7 @@ impl<'a, Message> Shell<'a, Message> {
         if self.is_layout_invalid {
             self.is_layout_invalid = false;
 
-            f()
+            f();
         }
     }
 

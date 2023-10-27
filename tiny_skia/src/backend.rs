@@ -467,8 +467,7 @@ impl Backend {
             #[cfg(not(feature = "image"))]
             Primitive::Image { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             #[cfg(feature = "svg")]
@@ -497,8 +496,7 @@ impl Backend {
             #[cfg(not(feature = "svg"))]
             Primitive::Svg { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             Primitive::Custom(primitive::Custom::Fill {

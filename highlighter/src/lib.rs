@@ -186,7 +186,7 @@ impl Theme {
         }
     }
 
-    fn key(&self) -> &'static str {
+    fn key(self) -> &'static str {
         match self {
             Theme::SolarizedDark => "Solarized (dark)",
             Theme::Base16Mocha => "base16-mocha.dark",

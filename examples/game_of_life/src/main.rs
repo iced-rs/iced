@@ -406,12 +406,9 @@ mod grid {
                 *interaction = Interaction::None;
             }
 
-            let cursor_position =
-                if let Some(position) = cursor.position_in(bounds) {
-                    position
-                } else {
-                    return (event::Status::Ignored, None);
-                };
+            let Some(cursor_position) = cursor.position_in(bounds) else {
+                return (event::Status::Ignored, None);
+            };
 
             let cell = Cell::at(self.project(cursor_position, bounds.size()));
             let is_populated = self.state.contains(&cell);
@@ -472,7 +469,7 @@ mod grid {
                                             * (1.0 / self.scaling),
                                 ))
                             }
-                            _ => None,
+                            Interaction::None => None,
                         };
 
                         let event_status = match interaction {
@@ -610,8 +607,7 @@ mod grid {
 
                 frame.fill_text(Text {
                     content: format!(
-                        "{} cell{} @ {:?} ({})",
-                        cell_count,
+                        "{cell_count} cell{} @ {:?} ({})",
                         if cell_count == 1 { "" } else { "s" },
                         self.last_tick_duration,
                         self.last_queued_ticks
@@ -677,7 +673,7 @@ mod grid {
                 Interaction::None if cursor.is_over(bounds) => {
                     mouse::Interaction::Crosshair
                 }
-                _ => mouse::Interaction::default(),
+                Interaction::None => mouse::Interaction::default(),
             }
         }
     }
@@ -793,7 +789,7 @@ mod grid {
                 }
             }
 
-            for (cell, amount) in adjacent_life.iter() {
+            for (cell, amount) in &adjacent_life {
                 match amount {
                     2 => {}
                     3 => {

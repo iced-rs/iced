@@ -40,7 +40,7 @@ impl Sandbox for Example {
                     Position::Right => Position::FollowCursor,
                 };
 
-                self.position = position
+                self.position = position;
             }
         }
     }

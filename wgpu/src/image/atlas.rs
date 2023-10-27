@@ -86,7 +86,7 @@ impl Atlas {
             entry
         };
 
-        log::info!("Allocated atlas entry: {:?}", entry);
+        log::info!("Allocated atlas entry: {entry:?}");
 
         // It is a webgpu requirement that:
         //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
@@ -104,7 +104,7 @@ impl Atlas {
 
             padded_data[offset..offset + 4 * width as usize].copy_from_slice(
                 &data[row * 4 * width as usize..(row + 1) * 4 * width as usize],
-            )
+            );
         }
 
         match &entry {
@@ -139,13 +139,13 @@ impl Atlas {
             }
         }
 
-        log::info!("Current atlas: {:?}", self);
+        log::info!("Current atlas: {self:?}");
 
         Some(entry)
     }
 
     pub fn remove(&mut self, entry: &Entry) {
-        log::info!("Removing atlas entry: {:?}", entry);
+        log::info!("Removing atlas entry: {entry:?}");
 
         match entry {
             Entry::Contiguous(allocation) => {
@@ -237,7 +237,7 @@ impl Atlas {
                         }));
                     }
                 }
-                _ => {}
+                Layer::Full => {}
             }
         }
 
@@ -258,7 +258,7 @@ impl Atlas {
     }
 
     fn deallocate(&mut self, allocation: &Allocation) {
-        log::info!("Deallocating atlas: {:?}", allocation);
+        log::info!("Deallocating atlas: {allocation:?}");
 
         match allocation {
             Allocation::Full { layer } => {

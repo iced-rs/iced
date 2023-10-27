@@ -1,0 +1,55 @@
+[alias]
+lint = """
+clippy --workspace --no-deps -- \
+  -D warnings \
+  -A clippy::type_complexity \
+  -D clippy::semicolon_if_nothing_returned \
+  -D clippy::trivially-copy-pass-by-ref \
+  -D clippy::default_trait_access \
+  -D clippy::match-wildcard-for-single-variants \
+  -D clippy::redundant-closure-for-method-calls \
+  -D clippy::filter_map_next \
+  -D clippy::manual_let_else \
+  -D clippy::unused_async \
+  -D clippy::from_over_into \
+  -D clippy::needless_borrow \
+  -D clippy::new_without_default \
+  -D clippy::useless_conversion
+"""
+
+#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+
+nitpick = """
+clippy --workspace --no-deps -- \
+  -D warnings \
+  -D clippy::pedantic \
+  -A clippy::type_complexity \
+  -A clippy::must_use_candidate \
+  -A clippy::return_self_not_must_use \
+  -A clippy::needless_pass_by_value \
+  -A clippy::cast_precision_loss \
+  -A clippy::cast_sign_loss \
+  -A clippy::cast_possible_truncation \
+  -A clippy::match_same_arms \
+  -A clippy::missing-errors-doc \
+  -A clippy::missing-panics-doc \
+  -A clippy::cast_lossless \
+  -A clippy::doc_markdown \
+  -A clippy::items_after_statements \
+  -A clippy::too_many_lines \
+  -A clippy::module_name_repetitions \
+  -A clippy::if_not_else \
+  -A clippy::redundant_else \
+  -A clippy::used_underscore_binding \
+  -A clippy::cast_possible_wrap \
+  -A clippy::unnecessary_wraps \
+  -A clippy::struct-excessive-bools \
+  -A clippy::float-cmp \
+  -A clippy::single_match_else \
+  -A clippy::unreadable_literal \
+  -A clippy::explicit_deref_methods \
+  -A clippy::map_unwrap_or \
+  -A clippy::unnested_or_patterns \
+  -A clippy::similar_names \
+  -A clippy::unused_self
+"""

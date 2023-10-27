@@ -415,8 +415,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
 
     row![
         text(format!(
-            "{} {} left",
-            tasks_left,
+            "{tasks_left} {} left",
             if tasks_left == 1 { "task" } else { "tasks" }
         ))
         .width(Length::Fill),
@@ -444,7 +443,7 @@ pub enum Filter {
 }
 
 impl Filter {
-    fn matches(&self, task: &Task) -> bool {
+    fn matches(self, task: &Task) -> bool {
         match self {
             Filter::All => true,
             Filter::Active => !task.completed,

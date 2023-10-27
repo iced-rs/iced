@@ -135,7 +135,7 @@ where
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
             self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()))
+                tree.diff_children(std::slice::from_ref(&element.as_widget()));
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
@@ -243,8 +243,8 @@ where
                 layout,
                 cursor,
                 viewport,
-            )
-        })
+            );
+        });
     }
 
     fn overlay<'b>(

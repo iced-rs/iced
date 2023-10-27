@@ -285,7 +285,7 @@ impl<'a> Step {
                     is_showing_icon, ..
                 } = self
                 {
-                    *is_showing_icon = toggle
+                    *is_showing_icon = toggle;
                 }
             }
         };
@@ -482,7 +482,7 @@ impl<'a> Step {
             column(
                 Language::all()
                     .iter()
-                    .cloned()
+                    .copied()
                     .map(|language| {
                         radio(
                             language,

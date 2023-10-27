@@ -157,7 +157,7 @@ where
         )
         .with_visible(false);
 
-    log::debug!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {builder:#?}");
 
     let window = builder
         .build(&event_loop)
@@ -174,7 +174,7 @@ where
         let body = document.body().unwrap();
 
         let target = target.and_then(|target| {
-            body.query_selector(&format!("#{}", target))
+            body.query_selector(&format!("#{target}"))
                 .ok()
                 .unwrap_or(None)
         });
@@ -769,7 +769,7 @@ pub fn run_command<A, C, E>(
                             size.width,
                             size.height,
                         )))
-                        .expect("Send message to event loop")
+                        .expect("Send message to event loop");
                 }
                 window::Action::Maximize(maximized) => {
                     window.set_maximized(maximized);
@@ -791,7 +791,7 @@ pub fn run_command<A, C, E>(
                     ));
                 }
                 window::Action::ChangeIcon(icon) => {
-                    window.set_window_icon(conversion::icon(icon))
+                    window.set_window_icon(conversion::icon(icon));
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
@@ -805,7 +805,7 @@ pub fn run_command<A, C, E>(
                         .expect("Send message to event loop");
                 }
                 window::Action::ToggleMaximize => {
-                    window.set_maximized(!window.is_maximized())
+                    window.set_maximized(!window.is_maximized());
                 }
                 window::Action::ToggleDecorations => {
                     window.set_decorations(!window.is_decorated());
@@ -840,7 +840,7 @@ pub fn run_command<A, C, E>(
                             bytes,
                             state.physical_size(),
                         )))
-                        .expect("Send message to event loop.")
+                        .expect("Send message to event loop.");
                 }
             },
             command::Action::System(action) => match action {
@@ -858,7 +858,7 @@ pub fn run_command<A, C, E>(
 
                             proxy
                                 .send_event(message)
-                                .expect("Send message to event loop")
+                                .expect("Send message to event loop");
                         });
                     }
                 }

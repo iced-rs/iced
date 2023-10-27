@@ -94,7 +94,7 @@ impl Application for Example {
             data_row(
                 label,
                 match bounds {
-                    Some(bounds) => format!("{:?}", bounds),
+                    Some(bounds) => format!("{bounds:?}"),
                     None => "not visible".to_string(),
                 },
                 if bounds

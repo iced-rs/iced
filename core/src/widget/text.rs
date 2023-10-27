@@ -218,9 +218,9 @@ where
         size,
         line_height,
         font,
-        shaping,
         horizontal_alignment,
         vertical_alignment,
+        shaping,
     });
 
     let size = limits.resolve(paragraph.min_bounds());

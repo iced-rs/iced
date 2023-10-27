@@ -254,7 +254,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         {
                             // We clear the frame
-                            let mut render_pass = scene.clear(
+                            let mut render_pass = Scene::clear(
                                 &view,
                                 &mut encoder,
                                 program.background_color(),

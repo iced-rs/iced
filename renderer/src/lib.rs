@@ -1,15 +1,5 @@
 #![forbid(rust_2018_idioms)]
-#![deny(
-    unsafe_code,
-    unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion,
-    rustdoc::broken_intra_doc_links
-)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
+#![deny(unsafe_code, unused_results, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod compositor;
 
@@ -59,7 +49,7 @@ impl<T> Renderer<T> {
     pub fn draw_mesh(&mut self, mesh: Mesh) {
         match self {
             Self::TinySkia(_) => {
-                log::warn!("Unsupported mesh primitive: {:?}", mesh)
+                log::warn!("Unsupported mesh primitive: {mesh:?}");
             }
             #[cfg(feature = "wgpu")]
             Self::Wgpu(renderer) => {
@@ -241,7 +231,7 @@ impl<T> crate::core::svg::Renderer for Renderer<T> {
         color: Option<crate::core::Color>,
         bounds: Rectangle,
     ) {
-        delegate!(self, renderer, renderer.draw(handle, color, bounds))
+        delegate!(self, renderer, renderer.draw(handle, color, bounds));
     }
 }
 
@@ -257,7 +247,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::TinySkia(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        crate::Geometry::Wgpu(_) => unreachable!(),
                     }
                 }
             }
@@ -268,7 +258,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::Wgpu(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
-                        _ => unreachable!(),
+                        crate::Geometry::TinySkia(_) => unreachable!(),
                     }
                 }
             }

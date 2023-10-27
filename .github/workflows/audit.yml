@@ -12,6 +12,8 @@ jobs:
     - name: Install cargo-audit
       run: cargo install cargo-audit
     - uses: actions/checkout@master
+    - name: Resolve dependencies
+      run: cargo update
     - name: Audit vulnerabilities
       run: cargo audit
 

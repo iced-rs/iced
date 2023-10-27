@@ -215,7 +215,7 @@ impl<'a> Layer<'a> {
                         translation,
                         primitive,
                         current_layer,
-                    )
+                    );
                 }
             }
             Primitive::Clip { bounds, content } => {

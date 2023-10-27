@@ -61,7 +61,7 @@ impl Pipeline {
             self.renderers.push(glyphon::TextRenderer::new(
                 &mut self.atlas,
                 device,
-                Default::default(),
+                wgpu::MultisampleState::default(),
                 None,
             ));
         }

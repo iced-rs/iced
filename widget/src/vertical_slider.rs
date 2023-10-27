@@ -220,7 +220,7 @@ where
             &self.range,
             theme,
             &self.style,
-        )
+        );
     }
 
     fn mouse_interaction(

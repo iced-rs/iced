@@ -152,7 +152,7 @@ impl Cache {
                 let allocation =
                     atlas.upload(device, encoder, width, height, &rgba)?;
 
-                log::debug!("allocating {} {}x{}", id, width, height);
+                log::debug!("allocating {id} {width}x{height}");
 
                 let _ = self.svg_hits.insert(id);
                 let _ = self.rasterized_hits.insert(key);

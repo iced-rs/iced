@@ -117,8 +117,8 @@ impl State {
         let (width, height) = window::Settings::default().size;
 
         State {
-            space_cache: Default::default(),
-            system_cache: Default::default(),
+            space_cache: canvas::Cache::default(),
+            system_cache: canvas::Cache::default(),
             start: now,
             now,
             stars: Self::generate_stars(width, height),

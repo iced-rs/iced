@@ -1,7 +1,7 @@
 #[cfg(feature = "palette")]
 use palette::rgb::{Srgb, Srgba};
 
-/// A color in the sRGB color space.
+/// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
