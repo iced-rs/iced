@@ -628,7 +628,7 @@ impl Update {
                                 }
                             }
                             mouse::ScrollDelta::Pixels { y, .. } => {
-                                -y.signum() as i32
+                                (-y / 4.0) as i32
                             }
                         },
                     })
