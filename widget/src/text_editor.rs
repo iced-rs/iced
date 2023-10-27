@@ -1,3 +1,4 @@
+//! Display a multi-line text input for text editing.
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout::{self, Layout};
@@ -19,6 +20,7 @@ use std::sync::Arc;
 pub use crate::style::text_editor::{Appearance, StyleSheet};
 pub use text::editor::{Action, Edit, Motion};
 
+/// A multi-line text input.
 pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
 where
     Highlighter: text::Highlighter,
@@ -47,6 +49,7 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self {
         Self {
             content,
@@ -73,21 +76,34 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    pub fn on_edit(mut self, on_edit: impl Fn(Action) -> Message + 'a) -> Self {
+    /// Sets the message that should be produced when some action is performed in
+    /// the [`TextEditor`].
+    ///
+    /// If this method is not called, the [`TextEditor`] will be disabled.
+    pub fn on_action(
+        mut self,
+        on_edit: impl Fn(Action) -> Message + 'a,
+    ) -> Self {
         self.on_edit = Some(Box::new(on_edit));
         self
     }
 
+    /// Sets the [`Font`] of the [`TextEditor`].
+    ///
+    /// [`Font`]: text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
         self
     }
 
+    /// Sets the [`Padding`] of the [`TextEditor`].
     pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
         self.padding = padding.into();
         self
     }
 
+    /// Highlights the [`TextEditor`] with the given [`Highlighter`] and
+    /// a strategy to turn its highlights into some text format.
     pub fn highlight<H: text::Highlighter>(
         self,
         settings: H::Settings,
@@ -112,6 +128,7 @@ where
     }
 }
 
+/// The content of a [`TextEditor`].
 pub struct Content<R = crate::Renderer>(RefCell<Internal<R>>)
 where
     R: text::Renderer;
@@ -128,28 +145,33 @@ impl<R> Content<R>
 where
     R: text::Renderer,
 {
+    /// Creates an empty [`Content`].
     pub fn new() -> Self {
-        Self::with("")
+        Self::with_text("")
     }
 
-    pub fn with(text: &str) -> Self {
+    /// Creates a [`Content`] with the given text.
+    pub fn with_text(text: &str) -> Self {
         Self(RefCell::new(Internal {
             editor: R::Editor::with_text(text),
             is_dirty: true,
         }))
     }
 
-    pub fn edit(&mut self, action: Action) {
+    /// Performs an [`Action`] on the [`Content`].
+    pub fn perform(&mut self, action: Action) {
         let internal = self.0.get_mut();
 
         internal.editor.perform(action);
         internal.is_dirty = true;
     }
 
+    /// Returns the amount of lines of the [`Content`].
     pub fn line_count(&self) -> usize {
         self.0.borrow().editor.line_count()
     }
 
+    /// Returns the text of the line at the given index, if it exists.
     pub fn line(
         &self,
         index: usize,
@@ -160,6 +182,7 @@ where
         .ok()
     }
 
+    /// Returns an iterator of the text of the lines in the [`Content`].
     pub fn lines(
         &self,
     ) -> impl Iterator<Item = impl std::ops::Deref<Target = str> + '_> {
@@ -190,6 +213,9 @@ where
         }
     }
 
+    /// Returns the text of the [`Content`].
+    ///
+    /// Lines are joined with `'\n'`.
     pub fn text(&self) -> String {
         let mut text = self.lines().enumerate().fold(
             String::new(),
@@ -211,10 +237,12 @@ where
         text
     }
 
+    /// Returns the selected text of the [`Content`].
     pub fn selection(&self) -> Option<String> {
         self.0.borrow().editor.selection()
     }
 
+    /// Returns the current cursor position of the [`Content`].
     pub fn cursor_position(&self) -> (usize, usize) {
         self.0.borrow().editor.cursor_position()
     }

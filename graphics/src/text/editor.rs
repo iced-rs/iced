@@ -1,3 +1,4 @@
+//! Draw and edit text.
 use crate::core::text::editor::{
     self, Action, Cursor, Direction, Edit, Motion,
 };
@@ -11,6 +12,7 @@ use cosmic_text::Edit as _;
 use std::fmt;
 use std::sync::{self, Arc};
 
+/// A multi-line text editor.
 #[derive(Debug, PartialEq)]
 pub struct Editor(Option<Arc<Internal>>);
 
@@ -23,14 +25,21 @@ struct Internal {
 }
 
 impl Editor {
+    /// Creates a new empty [`Editor`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Returns the buffer of the [`Editor`].
     pub fn buffer(&self) -> &cosmic_text::Buffer {
         self.internal().editor.buffer()
     }
 
+    /// Creates a [`Weak`] reference to the [`Editor`].
+    ///
+    /// This is useful to avoid cloning the [`Editor`] when
+    /// referential guarantees are unnecessary. For instance,
+    /// when creating a rendering tree.
     pub fn downgrade(&self) -> Weak {
         let editor = self.internal();
 
@@ -662,13 +671,16 @@ impl fmt::Debug for Internal {
     }
 }
 
+/// A weak reference to an [`Editor`].
 #[derive(Debug, Clone)]
 pub struct Weak {
     raw: sync::Weak<Internal>,
+    /// The bounds of the [`Editor`].
     pub bounds: Size,
 }
 
 impl Weak {
+    /// Tries to update the reference into an [`Editor`].
     pub fn upgrade(&self) -> Option<Editor> {
         self.raw.upgrade().map(Some).map(Editor)
     }

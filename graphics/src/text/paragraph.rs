@@ -1,3 +1,4 @@
+//! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
 use crate::core::text::{Hit, LineHeight, Shaping, Text};
@@ -7,6 +8,7 @@ use crate::text;
 use std::fmt;
 use std::sync::{self, Arc};
 
+/// A bunch of text.
 #[derive(Clone, PartialEq)]
 pub struct Paragraph(Option<Arc<Internal>>);
 
@@ -23,14 +25,21 @@ struct Internal {
 }
 
 impl Paragraph {
+    /// Creates a new empty [`Paragraph`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Returns the buffer of the [`Paragraph`].
     pub fn buffer(&self) -> &cosmic_text::Buffer {
         &self.internal().buffer
     }
 
+    /// Creates a [`Weak`] reference to the [`Paragraph`].
+    ///
+    /// This is useful to avoid cloning the [`Editor`] when
+    /// referential guarantees are unnecessary. For instance,
+    /// when creating a rendering tree.
     pub fn downgrade(&self) -> Weak {
         let paragraph = self.internal();
 
@@ -269,15 +278,20 @@ impl Default for Internal {
     }
 }
 
+/// A weak reference to a [`Paragraph`].
 #[derive(Debug, Clone)]
 pub struct Weak {
     raw: sync::Weak<Internal>,
+    /// The minimum bounds of the [`Paragraph`].
     pub min_bounds: Size,
+    /// The horizontal alignment of the [`Paragraph`].
     pub horizontal_alignment: alignment::Horizontal,
+    /// The vertical alignment of the [`Paragraph`].
     pub vertical_alignment: alignment::Vertical,
 }
 
 impl Weak {
+    /// Tries to update the reference into a [`Paragraph`].
     pub fn upgrade(&self) -> Option<Paragraph> {
         self.raw.upgrade().map(Some).map(Paragraph)
     }

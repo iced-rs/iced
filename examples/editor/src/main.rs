@@ -34,7 +34,7 @@ struct Editor {
 
 #[derive(Debug, Clone)]
 enum Message {
-    Edit(text_editor::Action),
+    ActionPerformed(text_editor::Action),
     ThemeSelected(highlighter::Theme),
     NewFile,
     OpenFile,
@@ -68,10 +68,10 @@ impl Application for Editor {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::Edit(action) => {
+            Message::ActionPerformed(action) => {
                 self.is_dirty = self.is_dirty || action.is_edit();
 
-                self.content.edit(action);
+                self.content.perform(action);
 
                 Command::none()
             }
@@ -103,7 +103,7 @@ impl Application for Editor {
 
                 if let Ok((path, contents)) = result {
                     self.file = Some(path);
-                    self.content = text_editor::Content::with(&contents);
+                    self.content = text_editor::Content::with_text(&contents);
                 }
 
                 Command::none()
@@ -191,7 +191,7 @@ impl Application for Editor {
         column![
             controls,
             text_editor(&self.content)
-                .on_edit(Message::Edit)
+                .on_action(Message::ActionPerformed)
                 .highlight::<Highlighter>(
                     highlighter::Settings {
                         theme: self.theme,

@@ -204,6 +204,8 @@ pub trait Renderer: crate::Renderer {
         color: Color,
     );
 
+    /// Draws the given [`Editor`] at the given position and with the given
+    /// [`Color`].
     fn fill_editor(
         &mut self,
         editor: &Self::Editor,
