@@ -19,9 +19,8 @@ pub use geometry::Geometry;
 
 use crate::core::renderer;
 use crate::core::text::{self, Text};
-use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Vector,
-};
+use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Vector};
+use crate::graphics::text::Editor;
 use crate::graphics::text::Paragraph;
 use crate::graphics::Mesh;
 
@@ -149,6 +148,7 @@ impl<T> core::Renderer for Renderer<T> {
 impl<T> text::Renderer for Renderer<T> {
     type Font = Font;
     type Paragraph = Paragraph;
+    type Editor = Editor;
 
     const ICON_FONT: Font = iced_tiny_skia::Renderer::<T>::ICON_FONT;
     const CHECKMARK_ICON: char = iced_tiny_skia::Renderer::<T>::CHECKMARK_ICON;
@@ -163,36 +163,33 @@ impl<T> text::Renderer for Renderer<T> {
         delegate!(self, renderer, renderer.default_size())
     }
 
-    fn create_paragraph(&self, text: Text<'_, Self::Font>) -> Self::Paragraph {
-        delegate!(self, renderer, renderer.create_paragraph(text))
-    }
-
-    fn resize_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        new_bounds: Size,
-    ) {
-        delegate!(
-            self,
-            renderer,
-            renderer.resize_paragraph(paragraph, new_bounds)
-        );
-    }
-
     fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
         delegate!(self, renderer, renderer.load_font(bytes));
     }
 
     fn fill_paragraph(
         &mut self,
-        text: &Self::Paragraph,
+        paragraph: &Self::Paragraph,
         position: Point,
         color: Color,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.fill_paragraph(text, position, color)
+            renderer.fill_paragraph(paragraph, position, color)
+        );
+    }
+
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    ) {
+        delegate!(
+            self,
+            renderer,
+            renderer.fill_editor(editor, position, color)
         );
     }
 
@@ -210,7 +207,10 @@ impl<T> text::Renderer for Renderer<T> {
 impl<T> crate::core::image::Renderer for Renderer<T> {
     type Handle = crate::core::image::Handle;
 
-    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
+    fn dimensions(
+        &self,
+        handle: &crate::core::image::Handle,
+    ) -> core::Size<u32> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
 
@@ -221,7 +221,7 @@ impl<T> crate::core::image::Renderer for Renderer<T> {
 
 #[cfg(feature = "svg")]
 impl<T> crate::core::svg::Renderer for Renderer<T> {
-    fn dimensions(&self, handle: &crate::core::svg::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &crate::core::svg::Handle) -> core::Size<u32> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
 

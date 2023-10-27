@@ -168,6 +168,9 @@ use iced_winit::runtime;
 
 pub use iced_futures::futures;
 
+#[cfg(feature = "highlighter")]
+pub use iced_highlighter as highlighter;
+
 mod error;
 mod sandbox;
 

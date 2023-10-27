@@ -2,7 +2,7 @@ use crate::core::alignment;
 use crate::core::{Rectangle, Size};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
-use crate::graphics::text::{FontSystem, Paragraph};
+use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
 use crate::layer::Text;
 
 use std::borrow::Cow;
@@ -10,7 +10,6 @@ use std::cell::RefCell;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    font_system: FontSystem,
     renderers: Vec<glyphon::TextRenderer>,
     atlas: glyphon::TextAtlas,
     prepare_layer: usize,
@@ -24,7 +23,6 @@ impl Pipeline {
         format: wgpu::TextureFormat,
     ) -> Self {
         Pipeline {
-            font_system: FontSystem::new(),
             renderers: Vec::new(),
             atlas: glyphon::TextAtlas::with_color_mode(
                 device,
@@ -41,12 +39,11 @@ impl Pipeline {
         }
     }
 
-    pub fn font_system(&self) -> &FontSystem {
-        &self.font_system
-    }
-
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.load_font(bytes);
+        font_system()
+            .write()
+            .expect("Write font system")
+            .load_font(bytes);
 
         self.cache = RefCell::new(Cache::new());
     }
@@ -69,20 +66,26 @@ impl Pipeline {
             ));
         }
 
-        let font_system = self.font_system.get_mut();
+        let mut font_system = font_system().write().expect("Write font system");
+        let font_system = font_system.raw();
+
         let renderer = &mut self.renderers[self.prepare_layer];
         let cache = self.cache.get_mut();
 
         enum Allocation {
             Paragraph(Paragraph),
+            Editor(Editor),
             Cache(cache::KeyHash),
         }
 
         let allocations: Vec<_> = sections
             .iter()
             .map(|section| match section {
-                Text::Managed { paragraph, .. } => {
+                Text::Paragraph { paragraph, .. } => {
                     paragraph.upgrade().map(Allocation::Paragraph)
+                }
+                Text::Editor { editor, .. } => {
+                    editor.upgrade().map(Allocation::Editor)
                 }
                 Text::Cached(text) => {
                     let (key, _) = cache.allocate(
@@ -118,7 +121,7 @@ impl Pipeline {
                     vertical_alignment,
                     color,
                 ) = match section {
-                    Text::Managed {
+                    Text::Paragraph {
                         position, color, ..
                     } => {
                         use crate::core::text::Paragraph as _;
@@ -133,6 +136,24 @@ impl Pipeline {
                             Rectangle::new(*position, paragraph.min_bounds()),
                             paragraph.horizontal_alignment(),
                             paragraph.vertical_alignment(),
+                            *color,
+                        )
+                    }
+                    Text::Editor {
+                        position, color, ..
+                    } => {
+                        use crate::core::text::Editor as _;
+
+                        let Some(Allocation::Editor(editor)) = allocation
+                        else {
+                            return None;
+                        };
+
+                        (
+                            editor.buffer(),
+                            Rectangle::new(*position, editor.bounds()),
+                            alignment::Horizontal::Left,
+                            alignment::Vertical::Top,
                             *color,
                         )
                     }
@@ -193,16 +214,7 @@ impl Pipeline {
                         right: (clip_bounds.x + clip_bounds.width) as i32,
                         bottom: (clip_bounds.y + clip_bounds.height) as i32,
                     },
-                    default_color: {
-                        let [r, g, b, a] = color::pack(color).components();
-
-                        glyphon::Color::rgba(
-                            (r * 255.0) as u8,
-                            (g * 255.0) as u8,
-                            (b * 255.0) as u8,
-                            (a * 255.0) as u8,
-                        )
-                    },
+                    default_color: to_color(color),
                 })
             },
         );

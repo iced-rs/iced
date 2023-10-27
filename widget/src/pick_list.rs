@@ -415,23 +415,17 @@ where
     for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
         let label = option.to_string();
 
-        renderer.update_paragraph(
-            paragraph,
-            Text {
-                content: &label,
-                ..option_text
-            },
-        );
+        paragraph.update(Text {
+            content: &label,
+            ..option_text
+        });
     }
 
     if let Some(placeholder) = placeholder {
-        renderer.update_paragraph(
-            &mut state.placeholder,
-            Text {
-                content: placeholder,
-                ..option_text
-            },
-        );
+        state.placeholder.update(Text {
+            content: placeholder,
+            ..option_text
+        });
     }
 
     let max_width = match width {

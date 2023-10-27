@@ -212,19 +212,16 @@ where
 
     let State(ref mut paragraph) = state;
 
-    renderer.update_paragraph(
-        paragraph,
-        text::Text {
-            content,
-            bounds,
-            size,
-            line_height,
-            font,
-            horizontal_alignment,
-            vertical_alignment,
-            shaping,
-        },
-    );
+    paragraph.update(text::Text {
+        content,
+        bounds,
+        size,
+        line_height,
+        font,
+        horizontal_alignment,
+        vertical_alignment,
+        shaping,
+    });
 
     let size = limits.resolve(paragraph.min_bounds());
 

@@ -141,6 +141,7 @@ where
 {
     type Font = Font;
     type Paragraph = text::Paragraph;
+    type Editor = text::Editor;
 
     const ICON_FONT: Font = Font::with_name("Iced-Icons");
     const CHECKMARK_ICON: char = '\u{f00c}';
@@ -158,41 +159,6 @@ where
         self.backend.load_font(bytes);
     }
 
-    fn create_paragraph(&self, text: Text<'_, Self::Font>) -> text::Paragraph {
-        text::Paragraph::with_text(text, self.backend.font_system())
-    }
-
-    fn update_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        text: Text<'_, Self::Font>,
-    ) {
-        let font_system = self.backend.font_system();
-
-        if paragraph.version() != font_system.version() {
-            // The font system has changed, paragraph fonts may be outdated
-            *paragraph = self.create_paragraph(text);
-        } else {
-            match core::text::compare(paragraph, text) {
-                core::text::Difference::None => {}
-                core::text::Difference::Bounds => {
-                    self.resize_paragraph(paragraph, text.bounds);
-                }
-                core::text::Difference::Shape => {
-                    *paragraph = self.create_paragraph(text);
-                }
-            }
-        }
-    }
-
-    fn resize_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        new_bounds: Size,
-    ) {
-        paragraph.resize(new_bounds, self.backend.font_system());
-    }
-
     fn fill_paragraph(
         &mut self,
         paragraph: &Self::Paragraph,
@@ -201,6 +167,19 @@ where
     ) {
         self.primitives.push(Primitive::Paragraph {
             paragraph: paragraph.downgrade(),
+            position,
+            color,
+        });
+    }
+
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    ) {
+        self.primitives.push(Primitive::Editor {
+            editor: editor.downgrade(),
             position,
             color,
         });

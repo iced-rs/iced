@@ -2,7 +2,6 @@
 use crate::core::image;
 use crate::core::svg;
 use crate::core::Size;
-use crate::text;
 
 use std::borrow::Cow;
 
@@ -18,9 +17,6 @@ pub trait Backend {
 pub trait Text {
     /// Loads a font from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>);
-
-    /// Returns the [`cosmic_text::FontSystem`] of the [`Backend`].
-    fn font_system(&self) -> &text::FontSystem;
 }
 
 /// A graphics backend that supports image rendering.

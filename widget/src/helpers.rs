@@ -16,6 +16,7 @@ use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
+use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
@@ -204,6 +205,20 @@ where
     Renderer::Theme: text_input::StyleSheet,
 {
     TextInput::new(placeholder, value)
+}
+
+/// Creates a new [`TextEditor`].
+///
+/// [`TextEditor`]: crate::TextEditor
+pub fn text_editor<Message, Renderer>(
+    content: &text_editor::Content<Renderer>,
+) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: core::text::Renderer,
+    Renderer::Theme: text_editor::StyleSheet,
+{
+    TextEditor::new(content)
 }
 
 /// Creates a new [`Slider`].

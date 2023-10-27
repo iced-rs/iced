@@ -1,68 +1,74 @@
+//! Draw text.
 pub mod cache;
+pub mod editor;
 pub mod paragraph;
 
 pub use cache::Cache;
+pub use editor::Editor;
 pub use paragraph::Paragraph;
 
 pub use cosmic_text;
 
+use crate::color;
 use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
-use crate::core::Size;
+use crate::core::{Color, Size};
 
+use once_cell::sync::OnceCell;
 use std::borrow::Cow;
-use std::sync::{self, Arc, RwLock};
+use std::sync::{Arc, RwLock};
 
+/// Returns the global [`FontSystem`].
+pub fn font_system() -> &'static RwLock<FontSystem> {
+    static FONT_SYSTEM: OnceCell<RwLock<FontSystem>> = OnceCell::new();
+
+    FONT_SYSTEM.get_or_init(|| {
+        RwLock::new(FontSystem {
+            raw: cosmic_text::FontSystem::new_with_fonts([
+                cosmic_text::fontdb::Source::Binary(Arc::new(
+                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
+                )),
+            ]),
+            version: Version::default(),
+        })
+    })
+}
+
+/// A set of system fonts.
 #[allow(missing_debug_implementations)]
 pub struct FontSystem {
-    raw: RwLock<cosmic_text::FontSystem>,
+    raw: cosmic_text::FontSystem,
     version: Version,
 }
 
 impl FontSystem {
-    pub fn new() -> Self {
-        FontSystem {
-            raw: RwLock::new(cosmic_text::FontSystem::new_with_fonts([
-                cosmic_text::fontdb::Source::Binary(Arc::new(
-                    include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
-                )),
-            ])),
-            version: Version::default(),
-        }
+    /// Returns the raw [`cosmic_text::FontSystem`].
+    pub fn raw(&mut self) -> &mut cosmic_text::FontSystem {
+        &mut self.raw
     }
 
-    pub fn get_mut(&mut self) -> &mut cosmic_text::FontSystem {
-        self.raw.get_mut().expect("Lock font system")
-    }
-
-    pub fn write(
-        &self,
-    ) -> (sync::RwLockWriteGuard<'_, cosmic_text::FontSystem>, Version) {
-        (self.raw.write().expect("Write font system"), self.version)
-    }
-
+    /// Loads a font from its bytes.
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        let _ = self.get_mut().db_mut().load_font_source(
+        let _ = self.raw.db_mut().load_font_source(
             cosmic_text::fontdb::Source::Binary(Arc::new(bytes.into_owned())),
         );
 
         self.version = Version(self.version.0 + 1);
     }
 
+    /// Returns the current [`Version`] of the [`FontSystem`].
+    ///
+    /// Loading a font will increase the version of a [`FontSystem`].
     pub fn version(&self) -> Version {
         self.version
     }
 }
 
+/// A version number.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Version(u32);
 
-impl Default for FontSystem {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
+/// Measures the dimensions of the given [`cosmic_text::Buffer`].
 pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
     let (width, total_lines) = buffer
         .layout_runs()
@@ -73,6 +79,7 @@ pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
     Size::new(width, total_lines as f32 * buffer.metrics().line_height)
 }
 
+/// Returns the attributes of the given [`Font`].
 pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
     cosmic_text::Attrs::new()
         .family(to_family(font.family))
@@ -128,9 +135,22 @@ fn to_style(style: font::Style) -> cosmic_text::Style {
     }
 }
 
+/// Converts some [`Shaping`] strategy to a [`cosmic_text::Shaping`] strategy.
 pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
     match shaping {
         Shaping::Basic => cosmic_text::Shaping::Basic,
         Shaping::Advanced => cosmic_text::Shaping::Advanced,
     }
+}
+
+/// Converts some [`Color`] to a [`cosmic_text::Color`].
+pub fn to_color(color: Color) -> cosmic_text::Color {
+    let [r, g, b, a] = color::pack(color).components();
+
+    cosmic_text::Color::rgba(
+        (r * 255.0) as u8,
+        (g * 255.0) as u8,
+        (b * 255.0) as u8,
+        (a * 255.0) as u8,
+    )
 }

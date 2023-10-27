@@ -1,6 +1,5 @@
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
-use crate::graphics::text;
 use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
 
@@ -377,6 +376,31 @@ impl Backend {
 
                 self.text_pipeline.draw_paragraph(
                     paragraph,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, editor.bounds) + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_editor(
+                    editor,
                     *position + translation,
                     *color,
                     scale_factor,
@@ -803,10 +827,6 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    fn font_system(&self) -> &text::FontSystem {
-        self.text_pipeline.font_system()
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }

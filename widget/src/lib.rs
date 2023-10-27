@@ -35,6 +35,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod text;
+pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
@@ -85,6 +86,8 @@ pub use slider::Slider;
 pub use space::Space;
 #[doc(no_inline)]
 pub use text::Text;
+#[doc(no_inline)]
+pub use text_editor::TextEditor;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]

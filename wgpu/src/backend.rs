@@ -1,5 +1,4 @@
 use crate::core::{Color, Size};
-use crate::graphics;
 use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::{Transformation, Viewport};
@@ -314,10 +313,6 @@ impl crate::graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    fn font_system(&self) -> &graphics::text::FontSystem {
-        self.text_pipeline.font_system()
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }

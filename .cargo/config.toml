@@ -17,8 +17,6 @@ clippy --workspace --no-deps -- \
   -D clippy::useless_conversion
 """
 
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
-
 nitpick = """
 clippy --workspace --no-deps -- \
   -D warnings \
