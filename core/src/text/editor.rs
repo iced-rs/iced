@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 /// A component that can be used by widgets to edit multi-line text.
 pub trait Editor: Sized + Default {
-    /// The [`Font`] of the [`Editor`].
+    /// The font of the [`Editor`].
     type Font: Copy + PartialEq + Default;
 
     /// Creates a new [`Editor`] laid out with the given text.

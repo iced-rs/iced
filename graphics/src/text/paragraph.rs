@@ -37,7 +37,7 @@ impl Paragraph {
 
     /// Creates a [`Weak`] reference to the [`Paragraph`].
     ///
-    /// This is useful to avoid cloning the [`Editor`] when
+    /// This is useful to avoid cloning the [`Paragraph`] when
     /// referential guarantees are unnecessary. For instance,
     /// when creating a rendering tree.
     pub fn downgrade(&self) -> Weak {
