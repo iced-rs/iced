@@ -4,7 +4,7 @@
 )]
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
-    //missing_debug_implementations,
+    missing_debug_implementations,
     missing_docs,
     unused_results,
     rustdoc::broken_intra_doc_links

@@ -14,6 +14,7 @@ use crate::core::{
 };
 
 use std::cell::RefCell;
+use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
@@ -21,6 +22,7 @@ pub use crate::style::text_editor::{Appearance, StyleSheet};
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
+#[allow(missing_debug_implementations)]
 pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
 where
     Highlighter: text::Highlighter,
@@ -254,6 +256,21 @@ where
 {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl<Renderer> fmt::Debug for Content<Renderer>
+where
+    Renderer: text::Renderer,
+    Renderer::Editor: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let internal = self.0.borrow();
+
+        f.debug_struct("Content")
+            .field("editor", &internal.editor)
+            .field("is_dirty", &internal.is_dirty)
+            .finish()
     }
 }
 
