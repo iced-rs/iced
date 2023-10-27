@@ -134,6 +134,12 @@ impl Window {
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
+            .with_enabled_buttons(if self.resizable {
+                winit::window::WindowButtons::all()
+            } else {
+                winit::window::WindowButtons::CLOSE
+                    | winit::window::WindowButtons::MINIMIZE
+            })
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
