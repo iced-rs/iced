@@ -22,12 +22,11 @@ pub struct FontSystem {
 impl FontSystem {
     pub fn new() -> Self {
         FontSystem {
-            raw: RwLock::new(cosmic_text::FontSystem::new_with_fonts(
-                [cosmic_text::fontdb::Source::Binary(Arc::new(
+            raw: RwLock::new(cosmic_text::FontSystem::new_with_fonts([
+                cosmic_text::fontdb::Source::Binary(Arc::new(
                     include_bytes!("../fonts/Iced-Icons.ttf").as_slice(),
-                ))]
-                .into_iter(),
-            )),
+                )),
+            ])),
             version: Version::default(),
         }
     }
