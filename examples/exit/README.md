@@ -10,3 +10,7 @@ cargo run --package exit
 ```
 
 [`main`]: src/main.rs
+
+
+https://github.com/Tahinli/iced/assets/96421894/4fa92685-98f4-4e2d-b4e3-602dcf4a57b8
+
