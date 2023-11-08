@@ -12,3 +12,7 @@ You can run with cargo:
 ```
 cargo run --package sierpinski_triangle
 ```
+
+
+https://github.com/Tahinli/iced/assets/96421894/e4422aeb-0db0-40ac-b4c1-22243aa5bcb7
+
