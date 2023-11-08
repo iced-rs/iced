@@ -10,3 +10,7 @@ cargo run --package checkbox
 ```
 
 [`main`]: src/main.rs
+
+
+https://github.com/Tahinli/iced/assets/96421894/6c4a3e2b-f792-48a3-9204-89759e084c15
+
