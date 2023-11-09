@@ -309,6 +309,7 @@ where
                 border_color: appearance.border_color,
                 border_width: appearance.border_width,
                 border_radius: appearance.border_radius,
+                shadow: Default::default(),
             },
             appearance.background,
         );
@@ -519,6 +520,7 @@ where
                         border_color: Color::TRANSPARENT,
                         border_width: 0.0,
                         border_radius: appearance.border_radius,
+                        shadow: Default::default(),
                     },
                     appearance.selected_background,
                 );

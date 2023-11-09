@@ -315,6 +315,7 @@ where
                     border_radius: (size / 2.0).into(),
                     border_width: custom_style.border_width,
                     border_color: custom_style.border_color,
+                    shadow: Default::default(),
                 },
                 custom_style.background,
             );
@@ -331,6 +332,7 @@ where
                         border_radius: (dot_size / 2.0).into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
+                        shadow: Default::default(),
                     },
                     custom_style.dot_color,
                 );

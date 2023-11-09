@@ -344,6 +344,7 @@ pub fn draw_background<Renderer>(
                 border_radius: appearance.border_radius,
                 border_width: appearance.border_width,
                 border_color: appearance.border_color,
+                shadow: Default::default(),
             },
             appearance
                 .background

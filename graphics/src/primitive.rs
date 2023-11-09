@@ -71,6 +71,12 @@ pub enum Primitive<T> {
         border_width: f32,
         /// The border color of the quad
         border_color: Color,
+        /// The shadow color of the quad
+        shadow_color: Color,
+        /// The shadow offset of the quad
+        shadow_offset: Vector,
+        /// The shadow blur radius of the quad
+        shadow_blur_radius: f32,
     },
     /// An image primitive
     Image {

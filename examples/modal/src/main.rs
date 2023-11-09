@@ -477,6 +477,7 @@ mod modal {
                     border_radius: BorderRadius::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
+                    shadow: Default::default(),
                 },
                 Color {
                     a: 0.80,

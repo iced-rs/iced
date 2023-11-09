@@ -921,6 +921,7 @@ pub fn draw<Renderer, T>(
                                     .border_radius,
                                 border_width: hovered_region_style.border_width,
                                 border_color: hovered_region_style.border_color,
+                                shadow: Default::default(),
                             },
                             theme.hovered_region(style).background,
                         );
@@ -950,6 +951,7 @@ pub fn draw<Renderer, T>(
                 border_radius: hovered_region_style.border_radius,
                 border_width: hovered_region_style.border_width,
                 border_color: hovered_region_style.border_color,
+                shadow: Default::default(),
             },
             theme.hovered_region(style).background,
         );
@@ -1013,6 +1015,7 @@ pub fn draw<Renderer, T>(
                         border_radius: 0.0.into(),
                         border_width: 0.0,
                         border_color: Color::TRANSPARENT,
+                        shadow: Default::default(),
                     },
                     highlight.color,
                 );

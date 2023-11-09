@@ -228,6 +228,7 @@ where
                 border_radius: 0.0.into(),
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
+                shadow: Default::default(),
             },
             Background::Color(custom_style.track_color),
         );
@@ -244,6 +245,7 @@ where
                     border_radius: 0.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
+                    shadow: Default::default(),
                 },
                 Background::Color(custom_style.bar_color),
             ),
@@ -261,6 +263,7 @@ where
                     border_radius: 0.0.into(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
+                    shadow: Default::default(),
                 },
                 Background::Color(custom_style.bar_color),
             ),

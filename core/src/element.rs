@@ -540,6 +540,7 @@ where
                     border_color: color,
                     border_width: 1.0,
                     border_radius: 0.0.into(),
+                    shadow: Default::default()
                 },
                 Color::TRANSPARENT,
             );

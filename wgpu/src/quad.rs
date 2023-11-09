@@ -201,6 +201,15 @@ pub struct Quad {
 
     /// The border width of the [`Quad`].
     pub border_width: f32,
+
+    /// The shadow color of the [`Quad`].
+    pub shadow_color: [f32; 4],
+
+    /// The shadow offset of the [`Quad`].
+    pub shadow_offset: [f32; 2],
+
+    /// The shadow blur radius of the [`Quad`].
+    pub shadow_blur_radius: f32,
 }
 
 /// A group of [`Quad`]s rendered together.

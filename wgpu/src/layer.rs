@@ -198,6 +198,9 @@ impl<'a> Layer<'a> {
                 border_radius,
                 border_width,
                 border_color,
+                shadow_color,
+                shadow_offset,
+                shadow_blur_radius,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -210,6 +213,9 @@ impl<'a> Layer<'a> {
                     border_color: color::pack(*border_color),
                     border_radius: *border_radius,
                     border_width: *border_width,
+                    shadow_color: shadow_color.into_linear(),
+                    shadow_offset: (*shadow_offset).into(),
+                    shadow_blur_radius: *shadow_blur_radius,
                 };
 
                 layer.quads.add(quad, background);

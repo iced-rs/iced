@@ -401,6 +401,7 @@ pub fn draw<T, R>(
             border_radius: style.rail.border_radius,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
+            shadow: Default::default(),
         },
         style.rail.colors.0,
     );
@@ -416,6 +417,7 @@ pub fn draw<T, R>(
             border_radius: style.rail.border_radius,
             border_width: 0.0,
             border_color: Color::TRANSPARENT,
+            shadow: Default::default(),
         },
         style.rail.colors.1,
     );
@@ -431,6 +433,7 @@ pub fn draw<T, R>(
             border_radius: handle_border_radius,
             border_width: style.handle.border_width,
             border_color: style.handle.border_color,
+            shadow: Default::default(),
         },
         style.handle.color,
     );

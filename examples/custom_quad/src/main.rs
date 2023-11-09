@@ -3,21 +3,28 @@ mod quad {
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
-    use iced::mouse;
+    use iced::{mouse, Shadow};
     use iced::{Color, Element, Length, Rectangle, Size};
 
     pub struct CustomQuad {
         size: f32,
         radius: [f32; 4],
         border_width: f32,
+        shadow: Shadow,
     }
 
     impl CustomQuad {
-        pub fn new(size: f32, radius: [f32; 4], border_width: f32) -> Self {
+        pub fn new(
+            size: f32,
+            radius: [f32; 4],
+            border_width: f32,
+            shadow: Shadow,
+        ) -> Self {
             Self {
                 size,
                 radius,
                 border_width,
+                shadow,
             }
         }
     }
@@ -58,6 +65,7 @@ mod quad {
                     border_radius: self.radius.into(),
                     border_width: self.border_width,
                     border_color: Color::from_rgb(1.0, 0.0, 0.0),
+                    shadow: self.shadow,
                 },
                 Color::BLACK,
             );
@@ -75,7 +83,9 @@ mod quad {
 }
 
 use iced::widget::{column, container, slider, text};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{
+    Alignment, Color, Element, Length, Sandbox, Settings, Shadow, Vector,
+};
 
 pub fn main() -> iced::Result {
     Example::run(Settings::default())
@@ -84,6 +94,7 @@ pub fn main() -> iced::Result {
 struct Example {
     radius: [f32; 4],
     border_width: f32,
+    shadow: Shadow,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -94,6 +105,9 @@ enum Message {
     RadiusBottomRightChanged(f32),
     RadiusBottomLeftChanged(f32),
     BorderWidthChanged(f32),
+    ShadowXOffsetChanged(f32),
+    ShadowYOffsetChanged(f32),
+    ShadowBlurRadiusChanged(f32),
 }
 
 impl Sandbox for Example {
@@ -103,6 +117,11 @@ impl Sandbox for Example {
         Self {
             radius: [50.0; 4],
             border_width: 0.0,
+            shadow: Shadow {
+                color: Color::from_rgba(0.0, 0.0, 0.0, 0.8),
+                offset: Vector::new(0.0, 8.0),
+                blur_radius: 16.0,
+            },
         }
     }
 
@@ -128,14 +147,33 @@ impl Sandbox for Example {
             Message::BorderWidthChanged(width) => {
                 self.border_width = width;
             }
+            Message::ShadowXOffsetChanged(x) => {
+                self.shadow.offset.x = x;
+            }
+            Message::ShadowYOffsetChanged(y) => {
+                self.shadow.offset.y = y;
+            }
+            Message::ShadowBlurRadiusChanged(s) => {
+                self.shadow.blur_radius = s;
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
         let [tl, tr, br, bl] = self.radius;
+        let Shadow {
+            offset: Vector { x: sx, y: sy },
+            blur_radius: sr,
+            ..
+        } = self.shadow;
 
         let content = column![
-            quad::CustomQuad::new(200.0, self.radius, self.border_width),
+            quad::CustomQuad::new(
+                200.0,
+                self.radius,
+                self.border_width,
+                self.shadow
+            ),
             text(format!("Radius: {tl:.2}/{tr:.2}/{br:.2}/{bl:.2}")),
             slider(1.0..=100.0, tl, Message::RadiusTopLeftChanged).step(0.01),
             slider(1.0..=100.0, tr, Message::RadiusTopRightChanged).step(0.01),
@@ -144,6 +182,13 @@ impl Sandbox for Example {
             slider(1.0..=100.0, bl, Message::RadiusBottomLeftChanged)
                 .step(0.01),
             slider(1.0..=10.0, self.border_width, Message::BorderWidthChanged)
+                .step(0.01),
+            text(format!("Shadow: {sx:.2}x{sy:.2}, {sr:.2}")),
+            slider(-100.0..=100.0, sx, Message::ShadowXOffsetChanged)
+                .step(0.01),
+            slider(-100.0..=100.0, sy, Message::ShadowYOffsetChanged)
+                .step(0.01),
+            slider(0.0..=100.0, sr, Message::ShadowBlurRadiusChanged)
                 .step(0.01),
         ]
         .padding(20)

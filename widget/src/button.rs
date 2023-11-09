@@ -404,6 +404,7 @@ where
                     border_radius: styling.border_radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
+                    shadow: Default::default(),
                 },
                 Background::Color([0.0, 0.0, 0.0, 0.5].into()),
             );
@@ -415,6 +416,7 @@ where
                 border_radius: styling.border_radius,
                 border_width: styling.border_width,
                 border_color: styling.border_color,
+                shadow: Default::default(),
             },
             styling
                 .background

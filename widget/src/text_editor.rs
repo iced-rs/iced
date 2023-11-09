@@ -470,6 +470,7 @@ where
                 border_radius: appearance.border_radius,
                 border_width: appearance.border_width,
                 border_color: appearance.border_color,
+                shadow: Default::default(),
             },
             appearance.background,
         );
@@ -511,6 +512,7 @@ where
                                 border_radius: 0.0.into(),
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
+                                shadow: Default::default(),
                             },
                             theme.value_color(&self.style),
                         );
@@ -526,6 +528,7 @@ where
                                 border_radius: 0.0.into(),
                                 border_width: 0.0,
                                 border_color: Color::TRANSPARENT,
+                                shadow: Default::default(),
                             },
                             theme.selection_color(&self.style),
                         );

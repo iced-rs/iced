@@ -133,6 +133,7 @@ where
                 border_radius: style.border_radius,
                 border_width: 0.0,
                 border_color: Color::TRANSPARENT,
+                shadow: Default::default(),
             },
             style.background,
         );
@@ -147,6 +148,7 @@ where
                     border_radius: style.border_radius,
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
+                    shadow: Default::default(),
                 },
                 style.bar,
             );

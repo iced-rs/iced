@@ -1,3 +1,5 @@
+use tiny_skia::Size;
+
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
 use crate::graphics::text;
@@ -153,6 +155,9 @@ impl Backend {
                 border_radius,
                 border_width,
                 border_color,
+                shadow_color,
+                shadow_offset,
+                shadow_blur_radius,
             } => {
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
@@ -181,6 +186,107 @@ impl Backend {
                         .min(bounds.height / 2.0);
                 }
                 let path = rounded_rectangle(*bounds, fill_border_radius);
+
+                if shadow_color.a > 0.0 {
+                    fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
+                        let x = ((x - a) / (b - a)).clamp(0.0, 1.0);
+
+                        x * x * (3.0 - 2.0 * x)
+                    }
+
+                    fn rounded_box_sdf(
+                        to_center: Vector,
+                        size: Size,
+                        radii: &[f32],
+                    ) -> f32 {
+                        let radius =
+                            match (to_center.x > 0.0, to_center.y > 0.0) {
+                                (true, true) => radii[2],
+                                (true, false) => radii[1],
+                                (false, true) => radii[3],
+                                (false, false) => radii[0],
+                            };
+
+                        let x = (to_center.x.abs() - size.width() + radius)
+                            .max(0.0);
+                        let y = (to_center.y.abs() - size.height() + radius)
+                            .max(0.0);
+
+                        (x.powf(2.0) + y.powf(2.0)).sqrt() - radius
+                    }
+
+                    let shadow_bounds = (Rectangle {
+                        x: bounds.x + shadow_offset.x - shadow_blur_radius,
+                        y: bounds.y + shadow_offset.y - shadow_blur_radius,
+                        width: bounds.width + shadow_blur_radius * 2.0,
+                        height: bounds.height + shadow_blur_radius * 2.0,
+                    } + translation)
+                        * scale_factor;
+
+                    let radii = fill_border_radius
+                        .into_iter()
+                        .map(|radius| radius * scale_factor)
+                        .collect::<Vec<_>>();
+                    let (x, y, width, height) = (
+                        shadow_bounds.x as u32,
+                        shadow_bounds.y as u32,
+                        shadow_bounds.width as u32,
+                        shadow_bounds.height as u32,
+                    );
+                    let half_width = physical_bounds.width / 2.0;
+                    let half_height = physical_bounds.height / 2.0;
+
+                    let colors = (y..y + height)
+                        .flat_map(|y| {
+                            (x..x + width).map(move |x| (x as f32, y as f32))
+                        })
+                        .filter_map(|(x, y)| {
+                            Size::from_wh(half_width, half_height).map(|size| {
+                                let shadow_distance = rounded_box_sdf(
+                                    Vector::new(
+                                        x - physical_bounds.position().x
+                                            - (shadow_offset.x * scale_factor)
+                                            - half_width,
+                                        y - physical_bounds.position().y
+                                            - (shadow_offset.y * scale_factor)
+                                            - half_height,
+                                    ),
+                                    size,
+                                    &radii,
+                                );
+                                let shadow_alpha = 1.0
+                                    - smoothstep(
+                                        -shadow_blur_radius * scale_factor,
+                                        *shadow_blur_radius * scale_factor,
+                                        shadow_distance,
+                                    );
+
+                                let mut color = into_color(*shadow_color);
+                                color.apply_opacity(shadow_alpha);
+
+                                color.to_color_u8().premultiply()
+                            })
+                        })
+                        .collect();
+
+                    if let Some(p) = tiny_skia::IntSize::from_wh(width, height)
+                        .and_then(|size| {
+                            tiny_skia::Pixmap::from_vec(
+                                bytemuck::cast_vec(colors),
+                                size,
+                            )
+                        })
+                    {
+                        pixels.draw_pixmap(
+                            x as i32,
+                            y as i32,
+                            p.as_ref(),
+                            &Default::default(),
+                            Default::default(),
+                            None,
+                        )
+                    }
+                }
 
                 pixels.fill_path(
                     &path,
