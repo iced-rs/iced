@@ -16,11 +16,7 @@ pub struct Cache {
     hasher: HashBuilder,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-type HashBuilder = twox_hash::RandomXxHashBuilder64;
-
-#[cfg(target_arch = "wasm32")]
-type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
+type HashBuilder = xxhash_rust::xxh3::Xxh3Builder;
 
 impl Cache {
     /// Creates a new empty [`Cache`].
