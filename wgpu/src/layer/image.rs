@@ -10,6 +10,9 @@ pub enum Image {
         /// The handle of a raster image.
         handle: image::Handle,
 
+        /// The filter method of a raster image.
+        filter_method: image::FilterMethod,
+
         /// The bounds of the image.
         bounds: Rectangle,
     },

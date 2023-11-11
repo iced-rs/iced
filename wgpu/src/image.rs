@@ -7,8 +7,6 @@ mod raster;
 mod vector;
 
 use atlas::Atlas;
-use iced_graphics::core::image::{FilterMethod, TextureFilter};
-use wgpu::Sampler;
 
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
@@ -29,8 +27,6 @@ use crate::core::svg;
 #[cfg(feature = "tracing")]
 use tracing::info_span;
 
-const SAMPLER_COUNT: usize = 4;
-
 #[derive(Debug)]
 pub struct Pipeline {
     #[cfg(feature = "image")]
@@ -41,30 +37,31 @@ pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
     vertices: wgpu::Buffer,
     indices: wgpu::Buffer,
-    sampler: [wgpu::Sampler; SAMPLER_COUNT],
+    nearest_sampler: wgpu::Sampler,
+    linear_sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_atlas: Atlas,
     texture_layout: wgpu::BindGroupLayout,
     constant_layout: wgpu::BindGroupLayout,
 
-    layers: Vec<[Option<Layer>; SAMPLER_COUNT]>,
+    layers: Vec<Layer>,
     prepare_layer: usize,
 }
 
 #[derive(Debug)]
 struct Layer {
     uniforms: wgpu::Buffer,
-    constants: wgpu::BindGroup,
-    instances: Buffer<Instance>,
-    instance_count: usize,
+    nearest: Data,
+    linear: Data,
 }
 
 impl Layer {
     fn new(
         device: &wgpu::Device,
         constant_layout: &wgpu::BindGroupLayout,
-        sampler: &wgpu::Sampler,
+        nearest_sampler: &wgpu::Sampler,
+        linear_sampler: &wgpu::Sampler,
     ) -> Self {
         let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::image uniforms buffer"),
@@ -73,6 +70,59 @@ impl Layer {
             mapped_at_creation: false,
         });
 
+        let nearest =
+            Data::new(device, constant_layout, nearest_sampler, &uniforms);
+
+        let linear =
+            Data::new(device, constant_layout, linear_sampler, &uniforms);
+
+        Self {
+            uniforms,
+            nearest,
+            linear,
+        }
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        nearest_instances: &[Instance],
+        linear_instances: &[Instance],
+        transformation: Transformation,
+    ) {
+        queue.write_buffer(
+            &self.uniforms,
+            0,
+            bytemuck::bytes_of(&Uniforms {
+                transform: transformation.into(),
+            }),
+        );
+
+        self.nearest.upload(device, queue, nearest_instances);
+        self.linear.upload(device, queue, linear_instances);
+    }
+
+    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        self.nearest.render(render_pass);
+        self.linear.render(render_pass);
+    }
+}
+
+#[derive(Debug)]
+struct Data {
+    constants: wgpu::BindGroup,
+    instances: Buffer<Instance>,
+    instance_count: usize,
+}
+
+impl Data {
+    pub fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        uniforms: &wgpu::Buffer,
+    ) -> Self {
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::image constants bind group"),
             layout: constant_layout,
@@ -102,28 +152,18 @@ impl Layer {
         );
 
         Self {
-            uniforms,
             constants,
             instances,
             instance_count: 0,
         }
     }
 
-    fn prepare(
+    fn upload(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         instances: &[Instance],
-        transformation: Transformation,
     ) {
-        queue.write_buffer(
-            &self.uniforms,
-            0,
-            bytemuck::bytes_of(&Uniforms {
-                transform: transformation.into(),
-            }),
-        );
-
         let _ = self.instances.resize(device, instances.len());
         let _ = self.instances.write(queue, 0, instances);
 
@@ -146,37 +186,25 @@ impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         use wgpu::util::DeviceExt;
 
-        let to_wgpu = |method: FilterMethod| match method {
-            FilterMethod::Linear => wgpu::FilterMode::Linear,
-            FilterMethod::Nearest => wgpu::FilterMode::Nearest,
-        };
+        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
 
-        let mut sampler: [Option<Sampler>; SAMPLER_COUNT] =
-            [None, None, None, None];
-
-        let filter = [FilterMethod::Linear, FilterMethod::Nearest];
-        for min in 0..filter.len() {
-            for mag in 0..filter.len() {
-                sampler[to_index(&TextureFilter {
-                    min: filter[min],
-                    mag: filter[mag],
-                })] = Some(device.create_sampler(&wgpu::SamplerDescriptor {
-                    address_mode_u: wgpu::AddressMode::ClampToEdge,
-                    address_mode_v: wgpu::AddressMode::ClampToEdge,
-                    address_mode_w: wgpu::AddressMode::ClampToEdge,
-                    mag_filter: to_wgpu(filter[mag]),
-                    min_filter: to_wgpu(filter[min]),
-                    mipmap_filter: wgpu::FilterMode::Linear,
-                    ..Default::default()
-                }));
-            }
-        }
-        let sampler = [
-            sampler[0].take().unwrap(),
-            sampler[1].take().unwrap(),
-            sampler[2].take().unwrap(),
-            sampler[3].take().unwrap(),
-        ];
+        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
 
         let constant_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
@@ -338,7 +366,8 @@ impl Pipeline {
             pipeline,
             vertices,
             indices,
-            sampler,
+            nearest_sampler,
+            linear_sampler,
             texture,
             texture_version: texture_atlas.layer_count(),
             texture_atlas,
@@ -381,8 +410,8 @@ impl Pipeline {
         #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
-        let mut instances: [Vec<Instance>; SAMPLER_COUNT] =
-            [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+        let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
+        let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
         #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -393,7 +422,11 @@ impl Pipeline {
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                layer::Image::Raster { handle, bounds } => {
+                layer::Image::Raster {
+                    handle,
+                    filter_method,
+                    bounds,
+                } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         device,
                         encoder,
@@ -404,7 +437,12 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             atlas_entry,
-                            &mut instances[to_index(handle.filter())],
+                            match filter_method {
+                                image::FilterMethod::Nearest => {
+                                    nearest_instances
+                                }
+                                image::FilterMethod::Linear => linear_instances,
+                            },
                         );
                     }
                 }
@@ -432,7 +470,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             size,
                             atlas_entry,
-                            &mut instances[to_index(&TextureFilter::default())],
+                            nearest_instances,
                         );
                     }
                 }
@@ -441,7 +479,7 @@ impl Pipeline {
             }
         }
 
-        if instances.is_empty() {
+        if nearest_instances.is_empty() && linear_instances.is_empty() {
             return;
         }
 
@@ -466,24 +504,24 @@ impl Pipeline {
         }
 
         if self.layers.len() <= self.prepare_layer {
-            self.layers.push([None, None, None, None]);
+            self.layers.push(Layer::new(
+                device,
+                &self.constant_layout,
+                &self.nearest_sampler,
+                &self.linear_sampler,
+            ));
         }
-        for (i, instances) in instances.iter_mut().enumerate() {
-            let layer = &mut self.layers[self.prepare_layer][i];
-            if !instances.is_empty() {
-                if layer.is_none() {
-                    *layer = Some(Layer::new(
-                        device,
-                        &self.constant_layout,
-                        &self.sampler[i],
-                    ))
-                }
-            }
 
-            if let Some(layer) = layer {
-                layer.prepare(device, queue, instances, transformation);
-            }
-        }
+        let layer = &mut self.layers[self.prepare_layer];
+
+        layer.prepare(
+            device,
+            queue,
+            &nearest_instances,
+            &linear_instances,
+            transformation,
+        );
+
         self.prepare_layer += 1;
     }
 
@@ -493,28 +531,24 @@ impl Pipeline {
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
-        if let Some(layer_group) = self.layers.get(layer) {
-            for layer in layer_group.iter() {
-                if let Some(layer) = layer {
-                    render_pass.set_pipeline(&self.pipeline);
+        if let Some(layer) = self.layers.get(layer) {
+            render_pass.set_pipeline(&self.pipeline);
 
-                    render_pass.set_scissor_rect(
-                        bounds.x,
-                        bounds.y,
-                        bounds.width,
-                        bounds.height,
-                    );
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
 
-                    render_pass.set_bind_group(1, &self.texture, &[]);
-                    render_pass.set_index_buffer(
-                        self.indices.slice(..),
-                        wgpu::IndexFormat::Uint16,
-                    );
-                    render_pass.set_vertex_buffer(0, self.vertices.slice(..));
+            render_pass.set_bind_group(1, &self.texture, &[]);
+            render_pass.set_index_buffer(
+                self.indices.slice(..),
+                wgpu::IndexFormat::Uint16,
+            );
+            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
-                    layer.render(render_pass);
-                }
-            }
+            layer.render(render_pass);
         }
     }
 
@@ -527,14 +561,6 @@ impl Pipeline {
 
         self.prepare_layer = 0;
     }
-}
-
-fn to_index(filter: &TextureFilter) -> usize {
-    let to_index = |m| match m {
-        FilterMethod::Linear => 0,
-        FilterMethod::Nearest => 1,
-    };
-    return (to_index(filter.mag) << 1) | (to_index(filter.min));
 }
 
 #[repr(C)]
@@ -571,7 +597,7 @@ struct Instance {
 }
 
 impl Instance {
-    pub const INITIAL: usize = 1_000;
+    pub const INITIAL: usize = 20;
 }
 
 #[repr(C)]

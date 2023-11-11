@@ -68,6 +68,8 @@ pub enum Primitive<T> {
     Image {
         /// The handle of the image
         handle: image::Handle,
+        /// The filter method of the image
+        filter_method: image::FilterMethod,
         /// The bounds of the image
         bounds: Rectangle,
     },

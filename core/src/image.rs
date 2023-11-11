@@ -5,31 +5,11 @@ use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// Image filter method
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum FilterMethod {
-    /// Bilinear interpolation
-    #[default]
-    Linear,
-    /// Nearest Neighbor
-    Nearest,
-}
-
-/// Texture filter settings
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TextureFilter {
-    /// Filter for scaling the image down.
-    pub min: FilterMethod,
-    /// Filter for scaling the image up.
-    pub mag: FilterMethod,
-}
-
 /// A handle of some image data.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Handle {
     id: u64,
     data: Data,
-    filter: TextureFilter,
 }
 
 impl Handle {
@@ -76,7 +56,6 @@ impl Handle {
         Handle {
             id: hasher.finish(),
             data,
-            filter: TextureFilter::default(),
         }
     }
 
@@ -88,17 +67,6 @@ impl Handle {
     /// Returns a reference to the image [`Data`].
     pub fn data(&self) -> &Data {
         &self.data
-    }
-
-    /// Returns a reference to the [`TextureFilter`].
-    pub fn filter(&self) -> &TextureFilter {
-        &self.filter
-    }
-
-    /// Sets the texture filtering methods.
-    pub fn set_filter(mut self, filter: TextureFilter) -> Self {
-        self.filter = filter;
-        self
     }
 }
 
@@ -196,6 +164,16 @@ impl std::fmt::Debug for Data {
     }
 }
 
+/// Image filtering strategy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum FilterMethod {
+    /// Bilinear interpolation.
+    #[default]
+    Linear,
+    /// Nearest neighbor.
+    Nearest,
+}
+
 /// A [`Renderer`] that can render raster graphics.
 ///
 /// [renderer]: crate::renderer
@@ -210,5 +188,10 @@ pub trait Renderer: crate::Renderer {
 
     /// Draws an image with the given [`Handle`] and inside the provided
     /// `bounds`.
-    fn draw(&mut self, handle: Self::Handle, bounds: Rectangle);
+    fn draw(
+        &mut self,
+        handle: Self::Handle,
+        filter_method: FilterMethod,
+        bounds: Rectangle,
+    );
 }
