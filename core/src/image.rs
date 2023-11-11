@@ -164,6 +164,16 @@ impl std::fmt::Debug for Data {
     }
 }
 
+/// Image filtering strategy.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum FilterMethod {
+    /// Bilinear interpolation.
+    #[default]
+    Linear,
+    /// Nearest neighbor.
+    Nearest,
+}
+
 /// A [`Renderer`] that can render raster graphics.
 ///
 /// [renderer]: crate::renderer
@@ -178,5 +188,10 @@ pub trait Renderer: crate::Renderer {
 
     /// Draws an image with the given [`Handle`] and inside the provided
     /// `bounds`.
-    fn draw(&mut self, handle: Self::Handle, bounds: Rectangle);
+    fn draw(
+        &mut self,
+        handle: Self::Handle,
+        filter_method: FilterMethod,
+        bounds: Rectangle,
+    );
 }
