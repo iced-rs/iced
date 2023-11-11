@@ -131,7 +131,7 @@ impl Data {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer(
                         wgpu::BufferBinding {
-                            buffer: &uniforms,
+                            buffer: uniforms,
                             offset: 0,
                             size: None,
                         },
@@ -517,8 +517,8 @@ impl Pipeline {
         layer.prepare(
             device,
             queue,
-            &nearest_instances,
-            &linear_instances,
+            nearest_instances,
+            linear_instances,
             transformation,
         );
 
