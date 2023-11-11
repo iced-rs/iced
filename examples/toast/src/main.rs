@@ -185,7 +185,7 @@ mod toast {
     use iced::advanced::overlay;
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Operation, Tree};
-    use iced::advanced::{Clipboard, Shell, Widget};
+    use iced::advanced::{Clipboard, Shell, Widget, IME};
     use iced::event::{self, Event};
     use iced::mouse;
     use iced::theme;
@@ -406,6 +406,7 @@ mod toast {
             cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
             viewport: &Rectangle,
         ) -> event::Status {
@@ -416,6 +417,7 @@ mod toast {
                 cursor,
                 renderer,
                 clipboard,
+                ime,
                 shell,
                 viewport,
             )
@@ -536,6 +538,7 @@ mod toast {
             cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
             if let Event::Window(window::Event::RedrawRequested(now)) = &event {
@@ -587,6 +590,7 @@ mod toast {
                         cursor,
                         renderer,
                         clipboard,
+                        ime,
                         &mut local_shell,
                         &viewport,
                     );

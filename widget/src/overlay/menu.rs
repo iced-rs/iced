@@ -11,6 +11,7 @@ use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
     Clipboard, Color, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    IME,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -271,12 +272,13 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let bounds = layout.bounds();
 
         self.container.on_event(
-            self.state, event, layout, cursor, renderer, clipboard, shell,
+            self.state, event, layout, cursor, renderer, clipboard, ime, shell,
             &bounds,
         )
     }
@@ -385,6 +387,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

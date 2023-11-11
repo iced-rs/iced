@@ -10,7 +10,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Color, Element, Layout, Length, Pixels, Rectangle, Shell, Size,
-    Widget,
+    Widget, IME,
 };
 
 pub use iced_style::radio::{Appearance, StyleSheet};
@@ -250,6 +250,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

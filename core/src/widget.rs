@@ -12,9 +12,9 @@ pub use tree::Tree;
 
 use crate::event::{self, Event};
 use crate::layout::{self, Layout};
-use crate::mouse;
 use crate::overlay;
 use crate::renderer;
+use crate::{mouse, IME};
 use crate::{Clipboard, Length, Rectangle, Shell};
 
 /// A component that displays information and allows interaction.
@@ -115,6 +115,7 @@ where
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

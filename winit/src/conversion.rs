@@ -136,6 +136,23 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved { x, y }))
         }
+        WindowEvent::Ime(ime) => match ime {
+            winit::event::Ime::Enabled => {
+                Some(Event::Keyboard(keyboard::Event::IMEEnabled))
+            }
+            winit::event::Ime::Preedit(text, range) => {
+                // range parameter is used to mark converting position.
+
+                Some(Event::Keyboard(keyboard::Event::IMEPreedit(
+                    text.clone(),
+                    *range,
+                )))
+            }
+            winit::event::Ime::Commit(text) => {
+                Some(Event::Keyboard(keyboard::Event::IMECommit(text.clone())))
+            }
+            winit::event::Ime::Disabled => None,
+        },
         _ => None,
     }
 }

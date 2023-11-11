@@ -1,4 +1,6 @@
 //! Implement your own event loop to drive a user interface.
+use iced_core::IME;
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -131,10 +133,9 @@ where
     /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
-    /// use iced_runtime::core::clipboard;
-    /// use iced_runtime::core::mouse;
-    /// use iced_runtime::core::Size;
+    /// use iced_runtime::core::{clipboard,ime, Size, Point};
     /// use iced_runtime::user_interface::{self, UserInterface};
+    /// use iced_core::mouse;
     /// use iced_wgpu::Renderer;
     ///
     /// let mut counter = Counter::new();
@@ -143,7 +144,7 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut clipboard = clipboard::Null;
-    ///
+    /// let ime = ime::Null;
     /// // Initialize our event storage
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
@@ -164,6 +165,7 @@ where
     ///         cursor,
     ///         &mut renderer,
     ///         &mut clipboard,
+    ///         &ime,
     ///         &mut messages
     ///     );
     ///
@@ -181,6 +183,7 @@ where
         cursor: mouse::Cursor,
         renderer: &mut Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         messages: &mut Vec<Message>,
     ) -> (State, Vec<event::Status>) {
         use std::mem::ManuallyDrop;
@@ -211,6 +214,7 @@ where
                     cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                 );
 
@@ -310,6 +314,7 @@ where
                     base_cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut shell,
                     &viewport,
                 );
@@ -381,6 +386,7 @@ where
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
+    /// use iced_runtime::core::ime;
     /// use iced_runtime::core::mouse;
     /// use iced_runtime::core::renderer;
     /// use iced_runtime::core::{Element, Size};
@@ -393,6 +399,7 @@ where
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut clipboard = clipboard::Null;
+    /// let ime = ime::Null;
     /// let mut events = Vec::new();
     /// let mut messages = Vec::new();
     /// let mut theme = Theme::default();
@@ -413,6 +420,7 @@ where
     ///         cursor,
     ///         &mut renderer,
     ///         &mut clipboard,
+    ///         &ime,
     ///         &mut messages
     ///     );
     ///
