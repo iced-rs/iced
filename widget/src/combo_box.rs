@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::{Clipboard, Element, Length, Padding, Rectangle, Shell};
+use crate::core::{Clipboard, Element, Length, Padding, Rectangle, Shell, IME};
 use crate::overlay::menu;
 use crate::text::LineHeight;
 use crate::{container, scrollable, text_input, TextInput};
@@ -352,6 +352,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -380,6 +381,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             &mut local_shell,
             viewport,
         );
@@ -569,6 +571,7 @@ where
                     mouse::Cursor::Unavailable,
                     renderer,
                     clipboard,
+                    ime,
                     &mut Shell::new(&mut vec![]),
                     viewport,
                 );

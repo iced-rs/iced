@@ -2,7 +2,7 @@ use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
-use crate::core::{Clipboard, Size};
+use crate::core::{Clipboard, Size, IME};
 use crate::user_interface::{self, UserInterface};
 use crate::{Command, Debug, Program};
 

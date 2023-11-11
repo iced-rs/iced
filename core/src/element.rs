@@ -1,10 +1,10 @@
 use crate::event::{self, Event};
-use crate::mouse;
-use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::IME;
+use crate::{layout, mouse};
+use crate::{overlay, Vector};
 use crate::{Clipboard, Color, Layout, Length, Rectangle, Shell, Widget};
 
 use std::any::Any;
@@ -525,6 +525,7 @@ where
     ) -> event::Status {
         self.element.widget.on_event(
             state, event, layout, cursor, renderer, clipboard, ime, shell,
+            viewport,
         )
     }
 
