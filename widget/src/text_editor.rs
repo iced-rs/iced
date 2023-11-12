@@ -359,7 +359,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
-        ime: &dyn IME,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

@@ -122,7 +122,7 @@ impl<P: Paragraph> IMEState<P> {
     pub fn measure_underlines<F: Fn(&str) -> f32>(&mut self, measure_fn: F) {
         let pieces = self.split_to_pieces();
         let mut width_iter = pieces.iter().map(|chunk| match chunk {
-            Some(chunk) => (measure_fn)(&chunk),
+            Some(chunk) => (measure_fn)(chunk),
             None => 0.0,
         });
 
