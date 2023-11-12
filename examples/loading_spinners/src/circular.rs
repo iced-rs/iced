@@ -2,6 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::renderer;
 use iced::advanced::widget::tree::{self, Tree};
+use iced::advanced::IME;
 use iced::advanced::{Clipboard, Layout, Renderer, Shell, Widget};
 use iced::event;
 use iced::mouse;
@@ -272,6 +273,7 @@ where
         _cursor: mouse::Cursor,
         _renderer: &iced::Renderer<Theme>,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
