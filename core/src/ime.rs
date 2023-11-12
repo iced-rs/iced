@@ -26,7 +26,7 @@ pub trait IME {
     /// force ime enabled or disabled.
     ///
     /// this will block request until unlock_set_ime_allowed.
-    fn force_set_ime_allowed(&self, allowed: bool);
+    fn force_set_ime_allowed(&self, _allowed: bool);
     /// remove request of force_set_ime_allowed
     ///
     fn unlock_set_ime_allowed(&self);
@@ -61,5 +61,5 @@ impl IME for Null {
 
     fn unlock_set_ime_allowed(&self) {}
     #[cfg(target_os = "macos")]
-    fn set_ime_position_with_reenable(&self, x: i32, y: i32) {}
+    fn set_ime_position_with_reenable(&self, _x: i32, _y: i32) {}
 }
