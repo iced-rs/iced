@@ -144,7 +144,7 @@ impl crate::core::ime::IME for IME {
     #[cfg(target_os = "macos")]
     fn set_ime_position_with_reenable(&self, x: i32, y: i32) {
         if let Ok(mut guard) = self.requests.write() {
-            guard.push(RequestKind::SetPositionWithReenable(x, y))
+            guard.push(RequestKind::SetPositionWithReenable(x, y));
         }
     }
 }

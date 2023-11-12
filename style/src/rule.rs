@@ -47,7 +47,7 @@ impl FillMode {
     ///
     /// # Returns
     ///
-    /// * (starting_offset, length)
+    /// * (`starting_offset`, `length`)
     pub fn fill(&self, space: f32) -> (f32, f32) {
         match *self {
             FillMode::Full => (0.0, space),

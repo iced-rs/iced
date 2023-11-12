@@ -105,6 +105,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -149,12 +150,13 @@ where
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         let bounds = layout.bounds();
 
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                let Some(cursor_position) = cursor.position() else {
+                let Some(cursor_position) = cursor.position_over(bounds) else {
                     return event::Status::Ignored;
                 };
 
@@ -333,7 +335,7 @@ where
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
-                )
+                );
             });
         });
     }

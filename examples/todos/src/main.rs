@@ -1,12 +1,10 @@
 use iced::alignment::{self, Alignment};
-use iced::event::{self, Event};
 use iced::font::{self, Font};
-use iced::keyboard::{self, KeyCode, Modifiers};
-use iced::subscription;
+use iced::keyboard;
 use iced::theme::{self, Theme};
 use iced::widget::{
-    self, button, checkbox, column, container, row, scrollable, text,
-    text_input, Text,
+    self, button, checkbox, column, container, keyed_column, row, scrollable,
+    text, text_input, Text,
 };
 use iced::window;
 use iced::{Application, Element};
@@ -14,10 +12,14 @@ use iced::{Color, Command, Length, Settings, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 static INPUT_ID: Lazy<text_input::Id> = Lazy::new(text_input::Id::unique);
 
 pub fn main() -> iced::Result {
+    #[cfg(not(target_arch = "wasm32"))]
+    tracing_subscriber::fmt::init();
+
     Todos::run(Settings {
         window: window::Settings {
             size: (500, 800),
@@ -52,7 +54,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
-    ToggleFullscreen(window::Mode),
+    ChangeWindowMode(window::Mode),
 }
 
 impl Application for Todos {
@@ -163,7 +165,7 @@ impl Application for Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ToggleFullscreen(mode) => {
+                    Message::ChangeWindowMode(mode) => {
                         window::change_mode(mode)
                     }
                     _ => Command::none(),
@@ -222,17 +224,19 @@ impl Application for Todos {
                     tasks.iter().filter(|task| filter.matches(task));
 
                 let tasks: Element<_> = if filtered_tasks.count() > 0 {
-                    column(
+                    keyed_column(
                         tasks
                             .iter()
                             .enumerate()
                             .filter(|(_, task)| filter.matches(task))
                             .map(|(i, task)| {
-                                task.view(i).map(move |message| {
-                                    Message::TaskMessage(i, message)
-                                })
-                            })
-                            .collect(),
+                                (
+                                    task.id,
+                                    task.view(i).map(move |message| {
+                                        Message::TaskMessage(i, message)
+                                    }),
+                                )
+                            }),
                     )
                     .spacing(10)
                     .into()
@@ -262,39 +266,27 @@ impl Application for Todos {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, status| match (event, status) {
-            (
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Tab,
-                    modifiers,
-                    ..
+        keyboard::on_key_press(|key_code, modifiers| {
+            match (key_code, modifiers) {
+                (keyboard::KeyCode::Tab, _) => Some(Message::TabPressed {
+                    shift: modifiers.shift(),
                 }),
-                event::Status::Ignored,
-            ) => Some(Message::TabPressed {
-                shift: modifiers.shift(),
-            }),
-            (
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code,
-                    modifiers: Modifiers::SHIFT,
-                }),
-                event::Status::Ignored,
-            ) => match key_code {
-                KeyCode::Up => {
-                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
+                (keyboard::KeyCode::Up, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ChangeWindowMode(window::Mode::Fullscreen))
                 }
-                KeyCode::Down => {
-                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
+                (keyboard::KeyCode::Down, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ChangeWindowMode(window::Mode::Windowed))
                 }
                 _ => None,
-            },
-            _ => None,
+            }
         })
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Task {
+    #[serde(default = "Uuid::new_v4")]
+    id: Uuid,
     description: String,
     completed: bool,
 
@@ -330,6 +322,7 @@ impl Task {
 
     fn new(description: String) -> Self {
         Task {
+            id: Uuid::new_v4(),
             description,
             completed: false,
             state: TaskState::Idle,
@@ -422,8 +415,7 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
 
     row![
         text(format!(
-            "{} {} left",
-            tasks_left,
+            "{tasks_left} {} left",
             if tasks_left == 1 { "task" } else { "tasks" }
         ))
         .width(Length::Fill),
@@ -451,7 +443,7 @@ pub enum Filter {
 }
 
 impl Filter {
-    fn matches(&self, task: &Task) -> bool {
+    fn matches(self, task: &Task) -> bool {
         match self {
             Filter::All => true,
             Filter::Active => !task.completed,

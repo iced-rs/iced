@@ -17,7 +17,7 @@ jobs:
       run: |
         export DEBIAN_FRONTED=noninteractive
         sudo apt-get -qq update
-        sudo apt-get install -y libxkbcommon-dev
+        sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
     - name: Run tests
       run: |
         cargo test --verbose --workspace
@@ -25,6 +25,8 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: --cfg=web_sys_unstable_apis
     steps:
     - uses: hecrj/setup-rust-action@v1
       with:

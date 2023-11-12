@@ -21,7 +21,7 @@ use crate::overlay;
 /// The [`integration`] example uses a [`UserInterface`] to integrate Iced in an
 /// existing graphical application.
 ///
-/// [`integration`]: https://github.com/iced-rs/iced/tree/0.9/examples/integration
+/// [`integration`]: https://github.com/iced-rs/iced/tree/0.10/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -97,8 +97,11 @@ where
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
+        let base = root.as_widget().layout(
+            &mut state,
+            renderer,
+            &layout::Limits::new(Size::ZERO, bounds),
+        );
 
         UserInterface {
             root,
@@ -230,8 +233,9 @@ where
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        &mut self.state,
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -288,12 +292,14 @@ where
             (cursor, vec![event::Status::Ignored; events.len()])
         };
 
+        let viewport = Rectangle::with_size(self.bounds);
+
         let _ = ManuallyDrop::into_inner(manual_overlay);
 
         let event_statuses = events
             .iter()
             .cloned()
-            .zip(overlay_statuses.into_iter())
+            .zip(overlay_statuses)
             .map(|(event, overlay_status)| {
                 if matches!(overlay_status, event::Status::Captured) {
                     return overlay_status;
@@ -310,6 +316,7 @@ where
                     clipboard,
                     ime,
                     &mut shell,
+                    &viewport,
                 );
 
                 if matches!(event_status, event::Status::Captured) {
@@ -327,8 +334,9 @@ where
                 }
 
                 shell.revalidate_layout(|| {
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        &mut self.state,
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -358,7 +366,7 @@ where
     /// It returns the current [`mouse::Interaction`]. You should update the
     /// icon of the mouse cursor accordingly in your system.
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by
@@ -518,17 +526,13 @@ where
                             renderer,
                         );
 
-                        let overlay_bounds = layout.bounds();
-
-                        renderer.with_layer(overlay_bounds, |renderer| {
-                            overlay.draw(
-                                renderer,
-                                theme,
-                                style,
-                                Layout::new(layout),
-                                cursor,
-                            );
-                        });
+                        overlay.draw(
+                            renderer,
+                            theme,
+                            style,
+                            Layout::new(layout),
+                            cursor,
+                        );
 
                         if cursor
                             .position()
@@ -628,7 +632,7 @@ pub enum State {
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
     Updated {
-        /// The [`Instant`] when a redraw should be performed.
+        /// The [`window::RedrawRequest`] when a redraw should be performed.
         redraw_request: Option<window::RedrawRequest>,
     },
 }

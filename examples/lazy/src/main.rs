@@ -27,7 +27,7 @@ impl Default for App {
                 .into_iter()
                 .map(From::from)
                 .collect(),
-            input: Default::default(),
+            input: String::default(),
             order: Order::Ascending,
         }
     }
@@ -107,7 +107,7 @@ impl From<&str> for Item {
     fn from(s: &str) -> Self {
         Self {
             name: s.to_owned(),
-            color: Default::default(),
+            color: Color::default(),
         }
     }
 }

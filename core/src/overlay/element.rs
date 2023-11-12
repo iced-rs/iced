@@ -54,7 +54,7 @@ where
 
     /// Computes the layout of the [`Element`] in the given bounds.
     pub fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         translation: Vector,
@@ -99,7 +99,7 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.overlay.draw(renderer, theme, style, layout, cursor)
+        self.overlay.draw(renderer, theme, style, layout, cursor);
     }
 
     /// Applies a [`widget::Operation`] to the [`Element`].
@@ -151,7 +151,7 @@ where
     Renderer: crate::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
@@ -173,11 +173,12 @@ where
             fn container(
                 &mut self,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
                 operate_on_children: &mut dyn FnMut(
                     &mut dyn widget::Operation<T>,
                 ),
             ) {
-                self.operation.container(id, &mut |operation| {
+                self.operation.container(id, bounds, &mut |operation| {
                     operate_on_children(&mut MapOperation { operation });
                 });
             }
@@ -194,8 +195,10 @@ where
                 &mut self,
                 state: &mut dyn widget::operation::Scrollable,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
+                translation: Vector,
             ) {
-                self.operation.scrollable(state, id);
+                self.operation.scrollable(state, id, bounds, translation);
             }
 
             fn text_input(
@@ -203,7 +206,7 @@ where
                 state: &mut dyn widget::operation::TextInput,
                 id: Option<&widget::Id>,
             ) {
-                self.operation.text_input(state, id)
+                self.operation.text_input(state, id);
             }
 
             fn custom(&mut self, state: &mut dyn Any, id: Option<&widget::Id>) {
@@ -262,7 +265,7 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        self.content.draw(renderer, theme, style, layout, cursor)
+        self.content.draw(renderer, theme, style, layout, cursor);
     }
 
     fn is_over(

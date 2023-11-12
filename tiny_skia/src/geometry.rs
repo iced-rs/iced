@@ -3,7 +3,7 @@ use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
 use crate::graphics::Gradient;
-use crate::graphics::Primitive;
+use crate::primitive::{self, Primitive};
 
 pub struct Frame {
     size: Size,
@@ -39,15 +39,18 @@ impl Frame {
     }
 
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Some(path) = convert_path(path) else { return };
+        let Some(path) = convert_path(path) else {
+            return;
+        };
         let fill = fill.into();
 
-        self.primitives.push(Primitive::Fill {
-            path,
-            paint: into_paint(fill.style),
-            rule: into_fill_rule(fill.rule),
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Fill {
+                path,
+                paint: into_paint(fill.style),
+                rule: into_fill_rule(fill.rule),
+                transform: self.transform,
+            }));
     }
 
     pub fn fill_rectangle(
@@ -56,32 +59,38 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else { return };
+        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else {
+            return;
+        };
         let fill = fill.into();
 
-        self.primitives.push(Primitive::Fill {
-            path,
-            paint: tiny_skia::Paint {
-                anti_alias: false,
-                ..into_paint(fill.style)
-            },
-            rule: into_fill_rule(fill.rule),
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Fill {
+                path,
+                paint: tiny_skia::Paint {
+                    anti_alias: false,
+                    ..into_paint(fill.style)
+                },
+                rule: into_fill_rule(fill.rule),
+                transform: self.transform,
+            }));
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let Some(path) = convert_path(path) else { return };
+        let Some(path) = convert_path(path) else {
+            return;
+        };
 
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
 
-        self.primitives.push(Primitive::Stroke {
-            path,
-            paint: into_paint(stroke.style),
-            stroke: skia_stroke,
-            transform: self.transform,
-        });
+        self.primitives
+            .push(Primitive::Custom(primitive::Custom::Stroke {
+                path,
+                paint: into_paint(stroke.style),
+                stroke: skia_stroke,
+                transform: self.transform,
+            }));
     }
 
     pub fn fill_text(&mut self, text: impl Into<Text>) {
@@ -145,8 +154,16 @@ impl Frame {
             .pre_concat(tiny_skia::Transform::from_rotate(angle.to_degrees()));
     }
 
-    pub fn scale(&mut self, scale: f32) {
-        self.transform = self.transform.pre_scale(scale, scale);
+    pub fn scale(&mut self, scale: impl Into<f32>) {
+        let scale = scale.into();
+
+        self.scale_nonuniform(Vector { x: scale, y: scale });
+    }
+
+    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+        let scale = scale.into();
+
+        self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
 
     pub fn into_primitive(self) -> Primitive {
@@ -163,9 +180,9 @@ fn convert_path(path: &Path) -> Option<tiny_skia::Path> {
     use iced_graphics::geometry::path::lyon_path;
 
     let mut builder = tiny_skia::PathBuilder::new();
-    let mut last_point = Default::default();
+    let mut last_point = lyon_path::math::Point::default();
 
-    for event in path.raw().iter() {
+    for event in path.raw() {
         match event {
             lyon_path::Event::Begin { at } => {
                 builder.move_to(at.x, at.y);
@@ -286,7 +303,7 @@ pub fn into_fill_rule(rule: fill::Rule) -> tiny_skia::FillRule {
     }
 }
 
-pub fn into_stroke(stroke: &Stroke) -> tiny_skia::Stroke {
+pub fn into_stroke(stroke: &Stroke<'_>) -> tiny_skia::Stroke {
     tiny_skia::Stroke {
         width: stroke.width,
         line_cap: match stroke.line_cap {

@@ -19,6 +19,7 @@
 use crate::Element;
 
 use crate::layout::{Limits, Node};
+use crate::widget;
 use crate::{Alignment, Padding, Point, Size};
 
 /// The main axis of a flex layout.
@@ -66,6 +67,7 @@ pub fn resolve<Message, Renderer>(
     spacing: f32,
     align_items: Alignment,
     items: &[Element<'_, Message, Renderer>],
+    trees: &mut [widget::Tree],
 ) -> Node
 where
     Renderer: crate::Renderer,
@@ -81,7 +83,7 @@ where
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
-    for (i, child) in items.iter().enumerate() {
+    for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.as_widget().width(),
             Axis::Vertical => child.as_widget().height(),
@@ -94,7 +96,8 @@ where
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout =
+                child.as_widget().layout(tree, renderer, &child_limits);
             let size = layout.size();
 
             available -= axis.main(size);
@@ -108,7 +111,7 @@ where
 
     let remaining = available.max(0.0);
 
-    for (i, child) in items.iter().enumerate() {
+    for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
         let fill_factor = match axis {
             Axis::Horizontal => child.as_widget().width(),
             Axis::Vertical => child.as_widget().height(),
@@ -133,7 +136,8 @@ where
                 Size::new(max_width, max_height),
             );
 
-            let layout = child.as_widget().layout(renderer, &child_limits);
+            let layout =
+                child.as_widget().layout(tree, renderer, &child_limits);
             cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;

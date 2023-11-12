@@ -47,10 +47,7 @@ async fn user_connected(ws: WebSocket) {
     });
 
     while let Some(result) = user_ws_rx.next().await {
-        let msg = match result {
-            Ok(msg) => msg,
-            Err(_) => break,
-        };
+        let Ok(msg) = result else { break };
 
         let _ = tx.send(msg).await;
     }

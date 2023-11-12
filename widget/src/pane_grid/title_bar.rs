@@ -11,7 +11,7 @@ use crate::core::{
 
 /// The title bar of a [`Pane`].
 ///
-/// [`Pane`]: crate::widget::pane_grid::Pane
+/// [`Pane`]: super::Pane
 #[allow(missing_debug_implementations)]
 pub struct TitleBar<'a, Message, Renderer = crate::Renderer>
 where
@@ -75,7 +75,7 @@ where
     /// [`TitleBar`] is hovered.
     ///
     /// [`controls`]: Self::controls
-    /// [`Pane`]: crate::widget::pane_grid::Pane
+    /// [`Pane`]: super::Pane
     pub fn always_show_controls(mut self) -> Self {
         self.always_show_controls = true;
         self
@@ -114,7 +114,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -213,23 +213,27 @@ where
 
     pub(crate) fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let limits = limits.pad(self.padding);
         let max_size = limits.max();
 
-        let title_layout = self
-            .content
-            .as_widget()
-            .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+        let title_layout = self.content.as_widget().layout(
+            &mut tree.children[0],
+            renderer,
+            &layout::Limits::new(Size::ZERO, max_size),
+        );
 
         let title_size = title_layout.size();
 
         let mut node = if let Some(controls) = &self.controls {
-            let mut controls_layout = controls
-                .as_widget()
-                .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+            let mut controls_layout = controls.as_widget().layout(
+                &mut tree.children[1],
+                renderer,
+                &layout::Limits::new(Size::ZERO, max_size),
+            );
 
             let controls_size = controls_layout.size();
             let space_before_controls = max_size.width - controls_size.width;
@@ -282,7 +286,7 @@ where
                 controls_layout,
                 renderer,
                 operation,
-            )
+            );
         };
 
         if show_title {
@@ -291,7 +295,7 @@ where
                 title_layout,
                 renderer,
                 operation,
-            )
+            );
         }
     }
 
@@ -305,6 +309,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let mut children = layout.children();
         let padded = children.next().unwrap();
@@ -330,6 +335,7 @@ where
                 clipboard,
                 ime,
                 shell,
+                viewport,
             )
         } else {
             event::Status::Ignored
@@ -345,6 +351,7 @@ where
                 clipboard,
                 ime,
                 shell,
+                viewport,
             )
         } else {
             event::Status::Ignored

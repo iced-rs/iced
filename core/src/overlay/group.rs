@@ -62,7 +62,7 @@ where
     Renderer: crate::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
@@ -72,7 +72,7 @@ where
         layout::Node::with_children(
             bounds,
             self.children
-                .iter()
+                .iter_mut()
                 .map(|child| child.layout(renderer, bounds, translation))
                 .collect(),
         )
@@ -141,12 +141,12 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
                 |(child, layout)| {
                     child.operate(layout, renderer, operation);
                 },
-            )
+            );
         });
     }
 

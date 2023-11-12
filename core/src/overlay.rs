@@ -25,7 +25,7 @@ where
     ///
     /// [`Node`]: layout::Node
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,

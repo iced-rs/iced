@@ -5,9 +5,7 @@ A custom widget showcasing how to draw geometry with the `Mesh2D` primitive in [
 The __[`main`]__ file contains all the code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/activeunfitkangaroo">
-    <img src="https://thumbs.gfycat.com/ActiveUnfitKangaroo-small.gif">
-  </a>
+  <img src="https://iced.rs/examples/geometry.gif">
 </div>
 
 You can run it with `cargo run`:

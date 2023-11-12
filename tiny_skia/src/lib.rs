@@ -1,6 +1,10 @@
+#![forbid(rust_2018_idioms)]
+#![deny(unsafe_code, unused_results, rustdoc::broken_intra_doc_links)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod window;
 
 mod backend;
+mod primitive;
 mod settings;
 mod text;
 
@@ -17,6 +21,7 @@ pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
 pub use backend::Backend;
+pub use primitive::Primitive;
 pub use settings::Settings;
 
 /// A [`tiny-skia`] graphics renderer for [`iced`].

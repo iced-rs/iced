@@ -1,12 +1,14 @@
+use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription::{self, Subscription};
 use iced::theme;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
     text_input,
 };
-use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
+use iced::{
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+};
 
 use modal::Modal;
 use std::fmt;
@@ -49,7 +51,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events().map(Message::Event)
+        event::listen().map(Message::Event)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -226,7 +228,9 @@ mod modal {
     use iced::alignment::Alignment;
     use iced::event;
     use iced::mouse;
-    use iced::{Color, Element, Event, Length, Point, Rectangle, Size};
+    use iced::{
+        BorderRadius, Color, Element, Event, Length, Point, Rectangle, Size,
+    };
 
     /// A widget that centers a modal element over some base element
     pub struct Modal<'a, Message, Renderer> {
@@ -285,10 +289,15 @@ mod modal {
 
         fn layout(
             &self,
+            tree: &mut widget::Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.base.as_widget().layout(renderer, limits)
+            self.base.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         }
 
         fn on_event(
@@ -301,6 +310,7 @@ mod modal {
             clipboard: &mut dyn Clipboard,
             ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
+            viewport: &Rectangle,
         ) -> event::Status {
             self.base.as_widget_mut().on_event(
                 &mut state.children[0],
@@ -311,6 +321,7 @@ mod modal {
                 clipboard,
                 ime,
                 shell,
+                viewport,
             )
         }
 
@@ -399,7 +410,7 @@ mod modal {
         Message: Clone,
     {
         fn layout(
-            &self,
+            &mut self,
             renderer: &Renderer,
             _bounds: Size,
             position: Point,
@@ -408,7 +419,11 @@ mod modal {
                 .width(Length::Fill)
                 .height(Length::Fill);
 
-            let mut child = self.content.as_widget().layout(renderer, &limits);
+            let mut child = self
+                .content
+                .as_widget()
+                .layout(self.tree, renderer, &limits);
+
             child.align(Alignment::Center, Alignment::Center, limits.max());
 
             let mut node = layout::Node::with_children(self.size, vec![child]);
@@ -450,6 +465,7 @@ mod modal {
                 clipboard,
                 ime,
                 shell,
+                &layout.bounds(),
             )
         }
 
@@ -464,7 +480,7 @@ mod modal {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: Default::default(),
+                    border_radius: BorderRadius::default(),
                     border_width: 0.0,
                     border_color: Color::TRANSPARENT,
                 },

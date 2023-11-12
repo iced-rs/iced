@@ -120,10 +120,13 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits)
+        self.content
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn operate(
@@ -151,6 +154,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -161,6 +165,7 @@ where
             clipboard,
             ime,
             shell,
+            viewport,
         ) {
             return event::Status::Captured;
         }

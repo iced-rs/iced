@@ -29,9 +29,10 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
+    on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     width: f32,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
@@ -53,12 +54,14 @@ where
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
+        on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     ) -> Self {
         Menu {
             state,
             options,
             hovered_option,
             on_selected: Box::new(on_selected),
+            on_option_hovered,
             width: 0.0,
             padding: Padding::ZERO,
             text_size: None,
@@ -83,11 +86,11 @@ where
 
     /// Sets the text size of the [`Menu`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
-        self.text_size = Some(text_size.into().0);
+        self.text_size = Some(text_size.into());
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Menu`].
+    /// Sets the text [`text::LineHeight`] of the [`Menu`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -188,6 +191,7 @@ where
             options,
             hovered_option,
             on_selected,
+            on_option_hovered,
             width,
             padding,
             font,
@@ -201,6 +205,7 @@ where
             options,
             hovered_option,
             on_selected,
+            on_option_hovered,
             font,
             text_size,
             text_line_height,
@@ -228,7 +233,7 @@ where
     Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
@@ -249,7 +254,7 @@ where
         )
         .width(self.width);
 
-        let mut node = self.container.layout(renderer, &limits);
+        let mut node = self.container.layout(self.state, renderer, &limits);
 
         node.move_to(if space_below > space_above {
             position + Vector::new(0.0, self.target_height)
@@ -270,8 +275,11 @@ where
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
+        let bounds = layout.bounds();
+
         self.container.on_event(
             self.state, event, layout, cursor, renderer, clipboard, ime, shell,
+            &bounds,
         )
     }
 
@@ -320,8 +328,9 @@ where
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
     on_selected: Box<dyn FnMut(T) -> Message + 'a>,
+    on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
@@ -345,6 +354,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -354,8 +364,7 @@ where
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
 
-        let text_line_height =
-            self.text_line_height.to_absolute(Pixels(text_size));
+        let text_line_height = self.text_line_height.to_absolute(text_size);
 
         let size = {
             let intrinsic = Size::new(
@@ -380,6 +389,7 @@ where
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
@@ -400,12 +410,25 @@ where
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
 
-                    let option_height = f32::from(
-                        self.text_line_height.to_absolute(Pixels(text_size)),
-                    ) + self.padding.vertical();
+                    let option_height =
+                        f32::from(self.text_line_height.to_absolute(text_size))
+                            + self.padding.vertical();
 
-                    *self.hovered_option =
-                        Some((cursor_position.y / option_height) as usize);
+                    let new_hovered_option =
+                        (cursor_position.y / option_height) as usize;
+
+                    if let Some(on_option_hovered) = self.on_option_hovered {
+                        if *self.hovered_option != Some(new_hovered_option) {
+                            if let Some(option) =
+                                self.options.get(new_hovered_option)
+                            {
+                                shell
+                                    .publish(on_option_hovered(option.clone()));
+                            }
+                        }
+                    }
+
+                    *self.hovered_option = Some(new_hovered_option);
                 }
             }
             Event::Touch(touch::Event::FingerPressed { .. }) => {
@@ -416,9 +439,9 @@ where
                         .text_size
                         .unwrap_or_else(|| renderer.default_size());
 
-                    let option_height = f32::from(
-                        self.text_line_height.to_absolute(Pixels(text_size)),
-                    ) + self.padding.vertical();
+                    let option_height =
+                        f32::from(self.text_line_height.to_absolute(text_size))
+                            + self.padding.vertical();
 
                     *self.hovered_option =
                         Some((cursor_position.y / option_height) as usize);
@@ -470,7 +493,7 @@ where
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
         let option_height =
-            f32::from(self.text_line_height.to_absolute(Pixels(text_size)))
+            f32::from(self.text_line_height.to_absolute(text_size))
                 + self.padding.vertical();
 
         let offset = viewport.y - bounds.y;
@@ -506,26 +529,24 @@ where
                 );
             }
 
-            renderer.fill_text(Text {
-                content: &option.to_string(),
-                bounds: Rectangle {
-                    x: bounds.x + self.padding.left,
-                    y: bounds.center_y(),
-                    width: f32::INFINITY,
-                    ..bounds
+            renderer.fill_text(
+                Text {
+                    content: &option.to_string(),
+                    bounds: Size::new(f32::INFINITY, bounds.height),
+                    size: text_size,
+                    line_height: self.text_line_height,
+                    font: self.font.unwrap_or_else(|| renderer.default_font()),
+                    horizontal_alignment: alignment::Horizontal::Left,
+                    vertical_alignment: alignment::Vertical::Center,
+                    shaping: self.text_shaping,
                 },
-                size: text_size,
-                line_height: self.text_line_height,
-                font: self.font.unwrap_or_else(|| renderer.default_font()),
-                color: if is_selected {
+                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                if is_selected {
                     appearance.selected_text_color
                 } else {
                     appearance.text_color
                 },
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-                shaping: self.text_shaping,
-            });
+            );
         }
     }
 }

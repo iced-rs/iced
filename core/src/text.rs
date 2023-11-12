@@ -1,6 +1,15 @@
 //! Draw and interact with text.
+mod paragraph;
+
+pub mod editor;
+pub mod highlighter;
+
+pub use editor::Editor;
+pub use highlighter::Highlighter;
+pub use paragraph::Paragraph;
+
 use crate::alignment;
-use crate::{Color, Pixels, Point, Rectangle, Size};
+use crate::{Color, Pixels, Point, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -12,16 +21,13 @@ pub struct Text<'a, Font> {
     pub content: &'a str,
 
     /// The bounds of the paragraph.
-    pub bounds: Rectangle,
+    pub bounds: Size,
 
     /// The size of the [`Text`] in logical pixels.
-    pub size: f32,
+    pub size: Pixels,
 
     /// The line height of the [`Text`].
     pub line_height: LineHeight,
-
-    /// The color of the [`Text`].
-    pub color: Color,
 
     /// The font of the [`Text`].
     pub font: Font,
@@ -129,10 +135,43 @@ impl Hit {
     }
 }
 
+/// The difference detected in some text.
+///
+/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
+/// [`Text`].
+///
+/// [`compare`]: Paragraph::compare
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Difference {
+    /// No difference.
+    ///
+    /// The text can be reused as it is!
+    None,
+
+    /// A bounds difference.
+    ///
+    /// This normally means a relayout is necessary, but the shape of the text can
+    /// be reused.
+    Bounds,
+
+    /// A shape difference.
+    ///
+    /// The contents, alignment, sizes, fonts, or any other essential attributes
+    /// of the shape of the text have changed. A complete reshape and relayout of
+    /// the text is necessary.
+    Shape,
+}
+
 /// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
-    type Font: Copy;
+    type Font: Copy + PartialEq;
+
+    /// The [`Paragraph`] of this [`Renderer`].
+    type Paragraph: Paragraph<Font = Self::Font> + 'static;
+
+    /// The [`Editor`] of this [`Renderer`].
+    type Editor: Editor<Font = Self::Font> + 'static;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;
@@ -151,62 +190,35 @@ pub trait Renderer: crate::Renderer {
     fn default_font(&self) -> Self::Font;
 
     /// Returns the default size of [`Text`].
-    fn default_size(&self) -> f32;
-
-    /// Measures the text in the given bounds and returns the minimum boundaries
-    /// that can fit the contents.
-    fn measure(
-        &self,
-        content: &str,
-        size: f32,
-        line_height: LineHeight,
-        font: Self::Font,
-        bounds: Size,
-        shaping: Shaping,
-    ) -> (f32, f32);
-
-    /// Measures the width of the text as if it were laid out in a single line.
-    fn measure_width(
-        &self,
-        content: &str,
-        size: f32,
-        font: Self::Font,
-        shaping: Shaping,
-    ) -> f32 {
-        let (width, _) = self.measure(
-            content,
-            size,
-            LineHeight::Absolute(Pixels(size)),
-            font,
-            Size::INFINITY,
-            shaping,
-        );
-
-        width
-    }
-
-    /// Tests whether the provided point is within the boundaries of text
-    /// laid out with the given parameters, returning information about
-    /// the nearest character.
-    ///
-    /// If `nearest_only` is true, the hit test does not consider whether the
-    /// the point is interior to any glyph bounds, returning only the character
-    /// with the nearest centeroid.
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: LineHeight,
-        font: Self::Font,
-        bounds: Size,
-        shaping: Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<Hit>;
+    fn default_size(&self) -> Pixels;
 
     /// Loads a [`Self::Font`] from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>);
 
-    /// Draws the given [`Text`].
-    fn fill_text(&mut self, text: Text<'_, Self::Font>);
+    /// Draws the given [`Paragraph`] at the given position and with the given
+    /// [`Color`].
+    fn fill_paragraph(
+        &mut self,
+        text: &Self::Paragraph,
+        position: Point,
+        color: Color,
+    );
+
+    /// Draws the given [`Editor`] at the given position and with the given
+    /// [`Color`].
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+    );
+
+    /// Draws the given [`Text`] at the given position and with the given
+    /// [`Color`].
+    fn fill_text(
+        &mut self,
+        text: Text<'_, Self::Font>,
+        position: Point,
+        color: Color,
+    );
 }

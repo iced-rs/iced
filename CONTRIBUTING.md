@@ -2,32 +2,21 @@
 
 Thank you for considering contributing to Iced! Feel free to read [the ecosystem overview] and [the roadmap] to get an idea of the current state of the library.
 
-The main advice for new contributors is to share your ideas with the community. Introduce yourself over our [Discord server] or [start a discussion in an issue](https://github.com/iced-rs/iced/issues) explaining what you have in mind (do not be afraid of duplicated issues!). If you want to talk directly to me (@hecrj), you can also find me on Discord (`lone_scientist#9554`).
+The core team is busy and does not have time to mentor nor babysit new contributors. If a member of the core team thinks that reviewing and understanding your work will take more time and effort than writing it from scratch by themselves, your contribution will be dismissed. It is your responsibility to communicate and figure out how to reduce the likelihood of this!
 
-This is a very important step. It helps to coordinate work, get on the same page, and start building trust. Please, do not skip it! Remember that [Code is the Easy Part] and also [The Hard Parts of Open Source]!
+The general advice for new contributors is to share your ideas with the community. You can share your ideas and gather feedback in [our Discourse forum]. This is a very important step. It helps to coordinate work, get on the same page, and start building trust. Remember that [Code is the Easy Part] and also [The Hard Parts of Open Source]!
 
-Provided you get in touch first, all kinds of contributions are welcome! Here are a few interesting ideas:
-
-- New widgets: toggle, table, grid, color picker, video...
-- New renderers: `iced_piet` (already in the works!), `iced_skia`, `iced_raqote`, `iced_pathfinder`...
-- New shells: `iced_sdl` could be useful for gamedev!
-- Better style generation for `iced_web`
-- Optimizations for `iced_wgpu`: tiling, incremental rendering...
-- Alternative to [`wgpu_glyph`] for proper (shaped), efficient text rendering
-- Time travelling debugger built on top of Iced itself
-- Testing library
-- Cool website to serve on https://iced.rs
+Once you have started a channel of communication, you must wait until someone from the core team chimes in. If the core team is busy, this can take a long time (maybe months!). Your idea may need a bunch of iteration, or it may turn into something completely different, or it may be completely discarded! You will have to be patient and humble. Remember that open-source is a gift.
 
 Besides directly writing code, there are many other different ways you can contribute. To name a few:
 
 - Writing tutorials or blog posts
 - Improving the documentation
 - Submitting bug reports and use cases
-- Sharing, discussing, researching and exploring new ideas
+- Sharing, discussing, researching and exploring new ideas or crates
 
 [the ecosystem overview]: ECOSYSTEM.md
 [the roadmap]: ROADMAP.md
-[Discord server]: https://discord.gg/3xZJ65GAhd
+[our Discourse forum]: https://discourse.iced.rs/
 [Code is the Easy Part]: https://youtu.be/DSjbTC-hvqQ?t=1138
 [The Hard Parts of Open Source]: https://www.youtube.com/watch?v=o_4EX4dPppA
-[`wgpu_glyph`]: https://github.com/hecrj/wgpu_glyph

@@ -1,8 +1,8 @@
-use crate::core;
-use crate::core::{Color, Font, Point, Size};
+use crate::core::{Color, Size};
 use crate::graphics::backend;
 use crate::graphics::color;
-use crate::graphics::{Primitive, Transformation, Viewport};
+use crate::graphics::{Transformation, Viewport};
+use crate::primitive::{self, Primitive};
 use crate::quad;
 use crate::text;
 use crate::triangle;
@@ -28,9 +28,6 @@ pub struct Backend {
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
-
-    default_font: Font,
-    default_text_size: f32,
 }
 
 impl Backend {
@@ -56,9 +53,6 @@ impl Backend {
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
-
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
         }
     }
 
@@ -86,24 +80,20 @@ impl Backend {
         let transformation = viewport.projection();
 
         let mut layers = Layer::generate(primitives, viewport);
-        layers.push(Layer::overlay(overlay_text, viewport));
+
+        if !overlay_text.is_empty() {
+            layers.push(Layer::overlay(overlay_text, viewport));
+        }
 
         self.prepare(
             device,
             queue,
             encoder,
             scale_factor,
+            target_size,
             transformation,
             &layers,
         );
-
-        while !self.prepare_text(
-            device,
-            queue,
-            scale_factor,
-            target_size,
-            &layers,
-        ) {}
 
         self.render(
             device,
@@ -123,44 +113,13 @@ impl Backend {
         self.image_pipeline.end_frame();
     }
 
-    fn prepare_text(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        scale_factor: f32,
-        target_size: Size<u32>,
-        layers: &[Layer<'_>],
-    ) -> bool {
-        for layer in layers {
-            let bounds = (layer.bounds * scale_factor).snap();
-
-            if bounds.width < 1 || bounds.height < 1 {
-                continue;
-            }
-
-            if !layer.text.is_empty()
-                && !self.text_pipeline.prepare(
-                    device,
-                    queue,
-                    &layer.text,
-                    layer.bounds,
-                    scale_factor,
-                    target_size,
-                )
-            {
-                return false;
-            }
-        }
-
-        true
-    }
-
     fn prepare(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
+        target_size: Size<u32>,
         transformation: Transformation,
         layers: &[Layer<'_>],
     ) {
@@ -209,6 +168,17 @@ impl Backend {
                     );
                 }
             }
+
+            if !layer.text.is_empty() {
+                self.text_pipeline.prepare(
+                    device,
+                    queue,
+                    &layer.text,
+                    layer.bounds,
+                    scale_factor,
+                    target_size,
+                );
+            }
         }
     }
 
@@ -251,10 +221,12 @@ impl Backend {
                             }),
                             None => wgpu::LoadOp::Load,
                         },
-                        store: true,
+                        store: wgpu::StoreOp::Store,
                     },
                 })],
                 depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
             },
         ));
 
@@ -262,7 +234,7 @@ impl Backend {
             let bounds = (layer.bounds * scale_factor).snap();
 
             if bounds.width < 1 || bounds.height < 1 {
-                return;
+                continue;
             }
 
             if !layer.quads.is_empty() {
@@ -300,11 +272,13 @@ impl Backend {
                                 resolve_target: None,
                                 ops: wgpu::Operations {
                                     load: wgpu::LoadOp::Load,
-                                    store: true,
+                                    store: wgpu::StoreOp::Store,
                                 },
                             },
                         )],
                         depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
                     },
                 ));
             }
@@ -334,67 +308,11 @@ impl Backend {
     }
 }
 
-impl iced_graphics::Backend for Backend {
-    fn trim_measurements(&mut self) {
-        self.text_pipeline.trim_measurement_cache()
-    }
+impl crate::graphics::Backend for Backend {
+    type Primitive = primitive::Custom;
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
-    const CHECKMARK_ICON: char = '\u{f00c}';
-    const ARROW_DOWN_ICON: char = '\u{e800}';
-
-    fn default_font(&self) -> Font {
-        self.default_font
-    }
-
-    fn default_size(&self) -> f32 {
-        self.default_text_size
-    }
-
-    fn measure(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: core::text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: core::text::Shaping,
-    ) -> (f32, f32) {
-        self.text_pipeline.measure(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-        )
-    }
-
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: core::text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: core::text::Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<core::text::Hit> {
-        self.text_pipeline.hit_test(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-            point,
-            nearest_only,
-        )
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }
@@ -402,14 +320,17 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &core::image::Handle) -> Size<u32> {
+    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)
     }
 }
 
 #[cfg(feature = "svg")]
 impl backend::Svg for Backend {
-    fn viewport_dimensions(&self, handle: &core::svg::Handle) -> Size<u32> {
+    fn viewport_dimensions(
+        &self,
+        handle: &crate::core::svg::Handle,
+    ) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
     }
 }

@@ -5,10 +5,17 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
-    env_logger::init();
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init().expect("Initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    tracing_subscriber::fmt::init();
 
     Tour::run(Settings::default())
 }
@@ -278,7 +285,7 @@ impl<'a> Step {
                     is_showing_icon, ..
                 } = self
                 {
-                    *is_showing_icon = toggle
+                    *is_showing_icon = toggle;
                 }
             }
         };
@@ -475,7 +482,7 @@ impl<'a> Step {
             column(
                 Language::all()
                     .iter()
-                    .cloned()
+                    .copied()
                     .map(|language| {
                         radio(
                             language,
@@ -571,7 +578,7 @@ impl<'a> Step {
             text_input = text_input.icon(text_input::Icon {
                 font: Font::default(),
                 code_point: '🚀',
-                size: Some(28.0),
+                size: Some(Pixels(28.0)),
                 spacing: 10.0,
                 side: text_input::Side::Right,
             });

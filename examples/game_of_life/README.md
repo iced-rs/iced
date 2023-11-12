@@ -7,9 +7,7 @@ It runs a simulation in a background thread while allowing interaction with a `C
 The __[`main`]__ file contains the relevant code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/WhichPaltryChick">
-    <img src="https://thumbs.gfycat.com/WhichPaltryChick-size_restricted.gif">
-  </a>
+  <img src="https://iced.rs/examples/game_of_life.gif">
 </div>
 
 You can run it with `cargo run`:

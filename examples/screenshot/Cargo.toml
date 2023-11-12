@@ -1,0 +1,17 @@
+[package]
+name = "screenshot"
+version = "0.1.0"
+authors = ["Bingus <shankern@protonmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["debug", "image", "advanced", "tokio"]
+
+image.workspace = true
+image.features = ["png"]
+
+tokio.workspace = true
+
+tracing-subscriber = "0.3"

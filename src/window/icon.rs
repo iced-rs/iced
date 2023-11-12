@@ -10,10 +10,10 @@ use std::path::Path;
 
 /// Creates an icon from an image file.
 ///
-/// This will return an error in case the file is missing at run-time. You may prefer [`Self::from_file_data`] instead.
+/// This will return an error in case the file is missing at run-time. You may prefer [`from_file_data`] instead.
 #[cfg(feature = "image")]
 pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
-    let icon = image_rs::io::Reader::open(icon_path)?.decode()?.to_rgba8();
+    let icon = image::io::Reader::open(icon_path)?.decode()?.to_rgba8();
 
     Ok(icon::from_rgba(icon.to_vec(), icon.width(), icon.height())?)
 }
@@ -25,9 +25,10 @@ pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
 #[cfg(feature = "image")]
 pub fn from_file_data(
     data: &[u8],
-    explicit_format: Option<image_rs::ImageFormat>,
+    explicit_format: Option<image::ImageFormat>,
 ) -> Result<Icon, Error> {
-    let mut icon = image_rs::io::Reader::new(std::io::Cursor::new(data));
+    let mut icon = image::io::Reader::new(std::io::Cursor::new(data));
+
     let icon_with_format = match explicit_format {
         Some(format) => {
             icon.set_format(format);
@@ -59,5 +60,5 @@ pub enum Error {
     /// The `image` crate reported an error.
     #[cfg(feature = "image")]
     #[error("Unable to create icon from a file: {0}")]
-    ImageError(#[from] image_rs::error::ImageError),
+    ImageError(#[from] image::error::ImageError),
 }

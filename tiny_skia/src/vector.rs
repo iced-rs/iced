@@ -1,7 +1,8 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
+use crate::graphics::text;
 
-use resvg::usvg;
+use resvg::usvg::{self, TreeTextToPath};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::cell::RefCell;
@@ -77,7 +78,7 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let svg = match handle.data() {
+            let mut svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
                         usvg::Tree::from_str(
@@ -92,10 +93,19 @@ impl Cache {
                 }
             };
 
-            entry.insert(svg);
+            if let Some(svg) = &mut svg {
+                if svg.has_text_nodes() {
+                    let mut font_system =
+                        text::font_system().write().expect("Read font system");
+
+                    svg.convert_text(font_system.raw().db_mut());
+                }
+            }
+
+            let _ = entry.insert(svg);
         }
 
-        self.tree_hits.insert(id);
+        let _ = self.tree_hits.insert(id);
         self.trees.get(&id).unwrap().as_ref()
     }
 
@@ -130,46 +140,58 @@ impl Cache {
 
             let mut image = tiny_skia::Pixmap::new(size.width, size.height)?;
 
-            resvg::render(
-                tree,
-                if size.width > size.height {
-                    resvg::FitTo::Width(size.width)
-                } else {
-                    resvg::FitTo::Height(size.height)
-                },
-                tiny_skia::Transform::default(),
-                image.as_mut(),
-            )?;
+            let tree_size = tree.size.to_int_size();
+
+            let target_size = if size.width > size.height {
+                tree_size.scale_to_width(size.width)
+            } else {
+                tree_size.scale_to_height(size.height)
+            };
+
+            let transform = if let Some(target_size) = target_size {
+                let tree_size = tree_size.to_size();
+                let target_size = target_size.to_size();
+
+                tiny_skia::Transform::from_scale(
+                    target_size.width() / tree_size.width(),
+                    target_size.height() / tree_size.height(),
+                )
+            } else {
+                tiny_skia::Transform::default()
+            };
+
+            resvg::Tree::from_usvg(tree).render(transform, &mut image.as_mut());
 
             if let Some([r, g, b, _]) = key.color {
                 // Apply color filter
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = tiny_skia::ColorU8::from_rgba(
-                        b,
-                        g,
-                        r,
-                        (*pixel >> 24) as u8,
-                    )
-                    .premultiply()
-                    .get();
+                    *pixel = bytemuck::cast(
+                        tiny_skia::ColorU8::from_rgba(
+                            b,
+                            g,
+                            r,
+                            (*pixel >> 24) as u8,
+                        )
+                        .premultiply(),
+                    );
                 }
             } else {
                 // Swap R and B channels for `softbuffer` presentation
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = *pixel & 0xFF00FF00
-                        | ((0x000000FF & *pixel) << 16)
-                        | ((0x00FF0000 & *pixel) >> 16);
+                    *pixel = *pixel & 0xFF00_FF00
+                        | ((0x0000_00FF & *pixel) << 16)
+                        | ((0x00FF_0000 & *pixel) >> 16);
                 }
             }
 
-            self.rasters.insert(key, image);
+            let _ = self.rasters.insert(key, image);
         }
 
-        self.raster_hits.insert(key);
+        let _ = self.raster_hits.insert(key);
         self.rasters.get(&key).map(tiny_skia::Pixmap::as_ref)
     }
 

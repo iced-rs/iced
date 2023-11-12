@@ -1,7 +1,7 @@
 #[cfg(feature = "palette")]
 use palette::rgb::{Srgb, Srgba};
 
-/// A color in the sRGB color space.
+/// A color in the `sRGB` color space.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub struct Color {
     /// Red component, 0.0 - 1.0
@@ -85,6 +85,26 @@ impl Color {
             r: f32::from(r) / 255.0,
             g: f32::from(g) / 255.0,
             b: f32::from(b) / 255.0,
+            a,
+        }
+    }
+
+    /// Creates a [`Color`] from its linear RGBA components.
+    pub fn from_linear_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        // As described in:
+        // https://en.wikipedia.org/wiki/SRGB
+        fn gamma_component(u: f32) -> f32 {
+            if u < 0.0031308 {
+                12.92 * u
+            } else {
+                1.055 * u.powf(1.0 / 2.4) - 0.055
+            }
+        }
+
+        Self {
+            r: gamma_component(r),
+            g: gamma_component(g),
+            b: gamma_component(b),
             a,
         }
     }

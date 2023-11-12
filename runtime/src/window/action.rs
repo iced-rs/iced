@@ -1,5 +1,7 @@
 use crate::core::window::{Icon, Level, Mode, UserAttention};
+use crate::core::Size;
 use crate::futures::MaybeSend;
+use crate::window::Screenshot;
 
 use std::fmt;
 
@@ -14,12 +16,9 @@ pub enum Action<T> {
     /// button was pressed immediately before this function is called.
     Drag,
     /// Resize the window.
-    Resize {
-        /// The new logical width of the window
-        width: u32,
-        /// The new logical height of the window
-        height: u32,
-    },
+    Resize(Size<u32>),
+    /// Fetch the current size of the window.
+    FetchSize(Box<dyn FnOnce(Size<u32>) -> T + 'static>),
     /// Set the window to maximized or back
     Maximize(bool),
     /// Set the window to minimized or back
@@ -89,6 +88,8 @@ pub enum Action<T> {
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Icon),
+    /// Screenshot the viewport of the window.
+    Screenshot(Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }
 
 impl<T> Action<T> {
@@ -103,7 +104,8 @@ impl<T> Action<T> {
         match self {
             Self::Close => Action::Close,
             Self::Drag => Action::Drag,
-            Self::Resize { width, height } => Action::Resize { width, height },
+            Self::Resize(size) => Action::Resize(size),
+            Self::FetchSize(o) => Action::FetchSize(Box::new(move |s| f(o(s)))),
             Self::Maximize(maximized) => Action::Maximize(maximized),
             Self::Minimize(minimized) => Action::Minimize(minimized),
             Self::Move { x, y } => Action::Move { x, y },
@@ -118,6 +120,11 @@ impl<T> Action<T> {
             Self::ChangeLevel(level) => Action::ChangeLevel(level),
             Self::FetchId(o) => Action::FetchId(Box::new(move |s| f(o(s)))),
             Self::ChangeIcon(icon) => Action::ChangeIcon(icon),
+            Self::Screenshot(tag) => {
+                Action::Screenshot(Box::new(move |screenshot| {
+                    f(tag(screenshot))
+                }))
+            }
         }
     }
 }
@@ -127,10 +134,8 @@ impl<T> fmt::Debug for Action<T> {
         match self {
             Self::Close => write!(f, "Action::Close"),
             Self::Drag => write!(f, "Action::Drag"),
-            Self::Resize { width, height } => write!(
-                f,
-                "Action::Resize {{ widget: {width}, height: {height} }}"
-            ),
+            Self::Resize(size) => write!(f, "Action::Resize({size:?})"),
+            Self::FetchSize(_) => write!(f, "Action::FetchSize"),
             Self::Maximize(maximized) => {
                 write!(f, "Action::Maximize({maximized})")
             }
@@ -155,6 +160,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeIcon(_icon) => {
                 write!(f, "Action::ChangeIcon(icon)")
             }
+            Self::Screenshot(_) => write!(f, "Action::Screenshot"),
         }
     }
 }

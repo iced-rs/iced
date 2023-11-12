@@ -1,5 +1,6 @@
 use iced::alignment;
 use iced::executor;
+use iced::keyboard;
 use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
@@ -77,12 +78,25 @@ impl Application for Stopwatch {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        match self.state {
+        let tick = match self.state {
             State::Idle => Subscription::none(),
             State::Ticking { .. } => {
                 time::every(Duration::from_millis(10)).map(Message::Tick)
             }
+        };
+
+        fn handle_hotkey(
+            key_code: keyboard::KeyCode,
+            _modifiers: keyboard::Modifiers,
+        ) -> Option<Message> {
+            match key_code {
+                keyboard::KeyCode::Space => Some(Message::Toggle),
+                keyboard::KeyCode::R => Some(Message::Reset),
+                _ => None,
+            }
         }
+
+        Subscription::batch(vec![tick, keyboard::on_key_press(handle_hotkey)])
     }
 
     fn view(&self) -> Element<Message> {
@@ -133,5 +147,9 @@ impl Application for Stopwatch {
             .center_x()
             .center_y()
             .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }

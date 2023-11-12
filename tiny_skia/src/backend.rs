@@ -1,15 +1,11 @@
-use crate::core::text;
-use crate::core::Gradient;
-use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
-use crate::graphics::{Primitive, Viewport};
-use crate::Settings;
+use crate::graphics::{Damage, Viewport};
+use crate::primitive::{self, Primitive};
 
 use std::borrow::Cow;
 
 pub struct Backend {
-    default_font: Font,
-    default_text_size: f32,
     text_pipeline: crate::text::Pipeline,
 
     #[cfg(feature = "image")]
@@ -20,10 +16,8 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new() -> Self {
         Self {
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
             text_pipeline: crate::text::Pipeline::new(),
 
             #[cfg(feature = "image")]
@@ -174,7 +168,18 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                let path = rounded_rectangle(*bounds, *border_radius);
+                // Make sure the border radius is not larger than the bounds
+                let border_width = border_width
+                    .min(bounds.width / 2.0)
+                    .min(bounds.height / 2.0);
+
+                let mut fill_border_radius = *border_radius;
+                for radius in &mut fill_border_radius {
+                    *radius = (*radius)
+                        .min(bounds.width / 2.0)
+                        .min(bounds.height / 2.0);
+                }
+                let path = rounded_rectangle(*bounds, fill_border_radius);
 
                 pixels.fill_path(
                     &path,
@@ -236,24 +241,172 @@ impl Backend {
                     clip_mask,
                 );
 
-                if *border_width > 0.0 {
-                    pixels.stroke_path(
-                        &path,
-                        &tiny_skia::Paint {
-                            shader: tiny_skia::Shader::SolidColor(into_color(
-                                *border_color,
-                            )),
-                            anti_alias: true,
-                            ..tiny_skia::Paint::default()
-                        },
-                        &tiny_skia::Stroke {
-                            width: *border_width,
-                            ..tiny_skia::Stroke::default()
-                        },
-                        transform,
-                        clip_mask,
-                    );
+                if border_width > 0.0 {
+                    // Border path is offset by half the border width
+                    let border_bounds = Rectangle {
+                        x: bounds.x + border_width / 2.0,
+                        y: bounds.y + border_width / 2.0,
+                        width: bounds.width - border_width,
+                        height: bounds.height - border_width,
+                    };
+
+                    // Make sure the border radius is correct
+                    let mut border_radius = *border_radius;
+                    let mut is_simple_border = true;
+
+                    for radius in &mut border_radius {
+                        *radius = if *radius == 0.0 {
+                            // Path should handle this fine
+                            0.0
+                        } else if *radius > border_width / 2.0 {
+                            *radius - border_width / 2.0
+                        } else {
+                            is_simple_border = false;
+                            0.0
+                        }
+                        .min(border_bounds.width / 2.0)
+                        .min(border_bounds.height / 2.0);
+                    }
+
+                    // Stroking a path works well in this case
+                    if is_simple_border {
+                        let border_path =
+                            rounded_rectangle(border_bounds, border_radius);
+
+                        pixels.stroke_path(
+                            &border_path,
+                            &tiny_skia::Paint {
+                                shader: tiny_skia::Shader::SolidColor(
+                                    into_color(*border_color),
+                                ),
+                                anti_alias: true,
+                                ..tiny_skia::Paint::default()
+                            },
+                            &tiny_skia::Stroke {
+                                width: border_width,
+                                ..tiny_skia::Stroke::default()
+                            },
+                            transform,
+                            clip_mask,
+                        );
+                    } else {
+                        // Draw corners that have too small border radii as having no border radius,
+                        // but mask them with the rounded rectangle with the correct border radius.
+                        let mut temp_pixmap = tiny_skia::Pixmap::new(
+                            bounds.width as u32,
+                            bounds.height as u32,
+                        )
+                        .unwrap();
+
+                        let mut quad_mask = tiny_skia::Mask::new(
+                            bounds.width as u32,
+                            bounds.height as u32,
+                        )
+                        .unwrap();
+
+                        let zero_bounds = Rectangle {
+                            x: 0.0,
+                            y: 0.0,
+                            width: bounds.width,
+                            height: bounds.height,
+                        };
+                        let path =
+                            rounded_rectangle(zero_bounds, fill_border_radius);
+
+                        quad_mask.fill_path(
+                            &path,
+                            tiny_skia::FillRule::EvenOdd,
+                            true,
+                            transform,
+                        );
+                        let path_bounds = Rectangle {
+                            x: border_width / 2.0,
+                            y: border_width / 2.0,
+                            width: bounds.width - border_width,
+                            height: bounds.height - border_width,
+                        };
+
+                        let border_radius_path =
+                            rounded_rectangle(path_bounds, border_radius);
+
+                        temp_pixmap.stroke_path(
+                            &border_radius_path,
+                            &tiny_skia::Paint {
+                                shader: tiny_skia::Shader::SolidColor(
+                                    into_color(*border_color),
+                                ),
+                                anti_alias: true,
+                                ..tiny_skia::Paint::default()
+                            },
+                            &tiny_skia::Stroke {
+                                width: border_width,
+                                ..tiny_skia::Stroke::default()
+                            },
+                            transform,
+                            Some(&quad_mask),
+                        );
+
+                        pixels.draw_pixmap(
+                            bounds.x as i32,
+                            bounds.y as i32,
+                            temp_pixmap.as_ref(),
+                            &tiny_skia::PixmapPaint::default(),
+                            transform,
+                            clip_mask,
+                        );
+                    }
                 }
+            }
+            Primitive::Paragraph {
+                paragraph,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, paragraph.min_bounds)
+                        + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_paragraph(
+                    paragraph,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, editor.bounds) + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_editor(
+                    editor,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
             }
             Primitive::Text {
                 content,
@@ -276,7 +429,7 @@ impl Backend {
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
                     .then_some(clip_mask as &_);
 
-                self.text_pipeline.draw(
+                self.text_pipeline.draw_cached(
                     content,
                     *bounds + translation,
                     *color,
@@ -311,6 +464,12 @@ impl Backend {
                 self.raster_pipeline
                     .draw(handle, *bounds, pixels, transform, clip_mask);
             }
+            #[cfg(not(feature = "image"))]
+            Primitive::Image { .. } => {
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
+                );
+            }
             #[cfg(feature = "svg")]
             Primitive::Svg {
                 handle,
@@ -334,12 +493,18 @@ impl Backend {
                     clip_mask,
                 );
             }
-            Primitive::Fill {
+            #[cfg(not(feature = "svg"))]
+            Primitive::Svg { .. } => {
+                log::warn!(
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
+                );
+            }
+            Primitive::Custom(primitive::Custom::Fill {
                 path,
                 paint,
                 rule,
                 transform,
-            } => {
+            }) => {
                 let bounds = path.bounds();
 
                 let physical_bounds = (Rectangle {
@@ -367,12 +532,12 @@ impl Backend {
                     clip_mask,
                 );
             }
-            Primitive::Stroke {
+            Primitive::Custom(primitive::Custom::Stroke {
                 path,
                 paint,
                 stroke,
                 transform,
-            } => {
+            }) => {
                 let bounds = path.bounds();
 
                 let physical_bounds = (Rectangle {
@@ -472,22 +637,13 @@ impl Backend {
                     translation,
                 );
             }
-            Primitive::SolidMesh { .. } | Primitive::GradientMesh { .. } => {
-                // Not supported!
-                // TODO: Draw a placeholder (?)
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
-                );
-            }
-            _ => {
-                // Not supported!
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
-                );
-            }
         }
+    }
+}
+
+impl Default for Backend {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -645,7 +801,15 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
 
     let path = {
         let mut builder = tiny_skia::PathBuilder::new();
-        builder.push_rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        builder.push_rect(
+            tiny_skia::Rect::from_xywh(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            )
+            .unwrap(),
+        );
 
         builder.finish().unwrap()
     };
@@ -659,66 +823,10 @@ fn adjust_clip_mask(clip_mask: &mut tiny_skia::Mask, bounds: Rectangle) {
 }
 
 impl iced_graphics::Backend for Backend {
-    fn trim_measurements(&mut self) {
-        self.text_pipeline.trim_measurement_cache();
-    }
+    type Primitive = primitive::Custom;
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
-    const CHECKMARK_ICON: char = '\u{f00c}';
-    const ARROW_DOWN_ICON: char = '\u{e800}';
-
-    fn default_font(&self) -> Font {
-        self.default_font
-    }
-
-    fn default_size(&self) -> f32 {
-        self.default_text_size
-    }
-
-    fn measure(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-    ) -> (f32, f32) {
-        self.text_pipeline.measure(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-        )
-    }
-
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<text::Hit> {
-        self.text_pipeline.hit_test(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-            point,
-            nearest_only,
-        )
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }
@@ -726,7 +834,10 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
+    fn dimensions(
+        &self,
+        handle: &crate::core::image::Handle,
+    ) -> crate::core::Size<u32> {
         self.raster_pipeline.dimensions(handle)
     }
 }
@@ -736,7 +847,7 @@ impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
         handle: &crate::core::svg::Handle,
-    ) -> Size<u32> {
+    ) -> crate::core::Size<u32> {
         self.vector_pipeline.viewport_dimensions(handle)
     }
 }

@@ -6,10 +6,8 @@ use std::cmp::Ordering;
 #[derive(Debug, Clone, Copy, PartialEq)]
 /// A fill which transitions colors progressively along a direction, either linearly, radially (TBD),
 /// or conically (TBD).
-///
-/// For a gradient which can be used as a fill on a canvas, see [`iced_graphics::Gradient`].
 pub enum Gradient {
-    /// A linear gradient interpolates colors along a direction at a specific [`Angle`].
+    /// A linear gradient interpolates colors along a direction at a specific angle.
     Linear(Linear),
 }
 
@@ -96,8 +94,8 @@ impl Linear {
         mut self,
         stops: impl IntoIterator<Item = ColorStop>,
     ) -> Self {
-        for stop in stops.into_iter() {
-            self = self.add_stop(stop.offset, stop.color)
+        for stop in stops {
+            self = self.add_stop(stop.offset, stop.color);
         }
 
         self

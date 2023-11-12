@@ -108,6 +108,7 @@ impl Sandbox for Styling {
             column!["Scroll me!", vertical_space(800), "You did it!"]
                 .width(Length::Fill),
         )
+        .width(Length::Fill)
         .height(100);
 
         let checkbox = checkbox(
@@ -127,7 +128,9 @@ impl Sandbox for Styling {
         let content = column![
             choose_theme,
             horizontal_rule(38),
-            row![text_input, button].spacing(10),
+            row![text_input, button]
+                .spacing(10)
+                .align_items(Alignment::Center),
             slider,
             progress_bar,
             row![

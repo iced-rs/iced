@@ -1,19 +1,20 @@
 //! Display fields that can be filled with text.
 //!
 //! A [`TextInput`] has some local [`State`].
+pub mod cursor;
 mod editor;
 mod ime_state;
 mod value;
 
-pub mod cursor;
-
 pub use cursor::Cursor;
+use iced_renderer::core::text::Paragraph;
 pub use value::Value;
 
 use editor::Editor;
 
 use crate::core::alignment;
 use crate::core::event::{self, Event};
+use crate::core::ime;
 use crate::core::keyboard;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
@@ -70,7 +71,7 @@ where
     font: Option<Renderer::Font>,
     width: Length,
     padding: Padding,
-    size: Option<f32>,
+    size: Option<Pixels>,
     line_height: text::LineHeight,
     on_input: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
@@ -78,6 +79,9 @@ where
     icon: Option<Icon<Renderer::Font>>,
     style: <Renderer::Theme as StyleSheet>::Style,
 }
+
+/// The default [`Padding`] of a [`TextInput`].
+pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
 impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
 where
@@ -98,7 +102,7 @@ where
             is_secure: false,
             font: None,
             width: Length::Fill,
-            padding: Padding::new(5.0),
+            padding: DEFAULT_PADDING,
             size: None,
             line_height: text::LineHeight::default(),
             on_input: None,
@@ -178,11 +182,11 @@ where
 
     /// Sets the text size of the [`TextInput`].
     pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.size = Some(size.into().0);
+        self.size = Some(size.into());
         self
     }
 
-    /// Sets the [`LineHeight`] of the [`TextInput`].
+    /// Sets the [`text::LineHeight`] of the [`TextInput`].
     pub fn line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -198,6 +202,32 @@ where
     ) -> Self {
         self.style = style.into();
         self
+    }
+
+    /// Lays out the [`TextInput`], overriding its [`Value`] if provided.
+    ///
+    /// [`Renderer`]: text::Renderer
+    pub fn layout(
+        &self,
+        tree: &mut Tree,
+        renderer: &Renderer,
+        limits: &layout::Limits,
+        value: Option<&Value>,
+    ) -> layout::Node {
+        layout(
+            renderer,
+            limits,
+            self.width,
+            self.padding,
+            self.size,
+            self.font,
+            self.line_height,
+            self.icon.as_ref(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            value.unwrap_or(&self.value),
+            &self.placeholder,
+            self.is_secure,
+        )
     }
 
     /// Draws the [`TextInput`] with the given [`Renderer`], overriding its
@@ -218,17 +248,13 @@ where
             theme,
             layout,
             cursor,
-            tree.state.downcast_ref::<State>(),
+            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
             value.unwrap_or(&self.value),
-            &self.placeholder,
-            self.size,
-            self.line_height,
-            self.font,
             self.on_input.is_none(),
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+        );
     }
 }
 
@@ -240,15 +266,15 @@ where
     Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
+        tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         // Unfocus text input if it becomes disabled
         if self.on_input.is_none() {
@@ -269,6 +295,7 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -278,8 +305,13 @@ where
             self.width,
             self.padding,
             self.size,
+            self.font,
             self.line_height,
             self.icon.as_ref(),
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
+            &self.value,
+            &self.placeholder,
+            self.is_secure,
         )
     }
 
@@ -290,7 +322,7 @@ where
         _renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         operation.focusable(state, self.id.as_ref().map(|id| &id.0));
         operation.text_input(state, self.id.as_ref().map(|id| &id.0));
@@ -306,6 +338,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         update(
             event,
@@ -323,7 +356,7 @@ where
             self.on_input.as_deref(),
             self.on_paste.as_deref(),
             &self.on_submit,
-            || tree.state.downcast_mut::<State>(),
+            || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
         )
     }
 
@@ -342,17 +375,13 @@ where
             theme,
             layout,
             cursor,
-            tree.state.downcast_ref::<State>(),
+            tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
             &self.value,
-            &self.placeholder,
-            self.size,
-            self.line_height,
-            self.font,
             self.on_input.is_none(),
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -389,7 +418,7 @@ pub struct Icon<Font> {
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// The font size of the content.
-    pub size: Option<f32>,
+    pub size: Option<Pixels>,
     /// The spacing between the [`Icon`] and the text in a [`TextInput`].
     pub spacing: f32,
     /// The side of a [`TextInput`] where to display the [`Icon`].
@@ -466,29 +495,65 @@ pub fn layout<Renderer>(
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    size: Option<f32>,
+    size: Option<Pixels>,
+    font: Option<Renderer::Font>,
     line_height: text::LineHeight,
     icon: Option<&Icon<Renderer::Font>>,
+    state: &mut State<Renderer::Paragraph>,
+    value: &Value,
+    placeholder: &str,
+    is_secure: bool,
 ) -> layout::Node
 where
     Renderer: text::Renderer,
 {
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = size.unwrap_or_else(|| renderer.default_size());
+
     let padding = padding.fit(Size::ZERO, limits.max());
     let limits = limits
         .width(width)
         .pad(padding)
-        .height(line_height.to_absolute(Pixels(text_size)));
+        .height(line_height.to_absolute(text_size));
 
     let text_bounds = limits.resolve(Size::ZERO);
 
+    let placeholder_text = Text {
+        font,
+        line_height,
+        content: placeholder,
+        bounds: Size::new(f32::INFINITY, text_bounds.height),
+        size: text_size,
+        horizontal_alignment: alignment::Horizontal::Left,
+        vertical_alignment: alignment::Vertical::Center,
+        shaping: text::Shaping::Advanced,
+    };
+
+    state.placeholder.update(placeholder_text);
+
+    let secure_value = is_secure.then(|| value.secure());
+    let value = secure_value.as_ref().unwrap_or(value);
+
+    state.value.update(Text {
+        content: &value.to_string(),
+        ..placeholder_text
+    });
+
     if let Some(icon) = icon {
-        let icon_width = renderer.measure_width(
-            &icon.code_point.to_string(),
-            icon.size.unwrap_or_else(|| renderer.default_size()),
-            icon.font,
-            text::Shaping::Advanced,
-        );
+        let icon_text = Text {
+            line_height,
+            content: &icon.code_point.to_string(),
+            font: icon.font,
+            size: icon.size.unwrap_or_else(|| renderer.default_size()),
+            bounds: Size::new(f32::INFINITY, text_bounds.height),
+            horizontal_alignment: alignment::Horizontal::Center,
+            vertical_alignment: alignment::Vertical::Center,
+            shaping: text::Shaping::Advanced,
+        };
+
+        state.icon.update(icon_text);
+
+        let icon_width = state.icon.min_width();
 
         let mut text_node = layout::Node::new(
             text_bounds - Size::new(icon_width + icon.spacing, 0.0),
@@ -539,42 +604,51 @@ pub fn update<'a, Message, Renderer>(
     ime: &dyn IME,
     shell: &mut Shell<'_, Message>,
     value: &mut Value,
-    size: Option<f32>,
+    size: Option<Pixels>,
     line_height: text::LineHeight,
     font: Option<Renderer::Font>,
     is_secure: bool,
     on_input: Option<&dyn Fn(String) -> Message>,
     on_paste: Option<&dyn Fn(String) -> Message>,
     on_submit: &Option<Message>,
-    state: impl FnOnce() -> &'a mut State,
+    state: impl FnOnce() -> &'a mut State<Renderer::Paragraph>,
 ) -> event::Status
 where
     Message: Clone,
     Renderer: text::Renderer,
 {
-    let state = state();
-    if state.is_focused.is_some() {
-        if is_secure {
-            ime.password_mode()
-        } else {
-            ime.inside()
-        }
-    }
+    let update_cache = |state, value| {
+        replace_paragraph(
+            renderer,
+            state,
+            layout,
+            value,
+            font,
+            size,
+            line_height,
+        );
+    };
+
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            let is_clicked = cursor.position_over(layout.bounds()).is_some()
-                && on_input.is_some();
-            // if gain focus enable ime
-            let focus_gained = state.is_focused.is_none() && is_clicked;
-            let focus_lost = state.is_focused.is_some() && !is_clicked;
-
+            let state = state();
+            if state.is_focused.is_some() {
+                if is_secure {
+                    ime.password_mode();
+                } else {
+                    ime.inside();
+                }
+            }
             let click_position = if on_input.is_some() {
                 cursor.position_over(layout.bounds())
             } else {
                 None
             };
-
+            let focus_gained =
+                state.is_focused.is_none() && click_position.is_some();
+            let focus_lost =
+                state.is_focused.is_some() && click_position.is_none();
             state.is_focused = if click_position.is_some() {
                 state.is_focused.or_else(|| {
                     let now = Instant::now();
@@ -582,6 +656,7 @@ where
                     Some(Focus {
                         updated_at: now,
                         now,
+                        is_window_focused: true,
                     })
                 })
             } else {
@@ -605,11 +680,7 @@ where
                             };
 
                             find_cursor_position(
-                                renderer,
                                 text_layout.bounds(),
-                                font,
-                                size,
-                                line_height,
                                 &value,
                                 state,
                                 target,
@@ -634,11 +705,7 @@ where
                             state.cursor.select_all(value);
                         } else {
                             let position = find_cursor_position(
-                                renderer,
                                 text_layout.bounds(),
-                                font,
-                                size,
-                                line_height,
                                 value,
                                 state,
                                 target,
@@ -660,52 +727,48 @@ where
                 }
 
                 state.last_click = Some(click);
+
                 if !is_secure && focus_gained {
-                    let position = state.cursor.start(value);
-
-                    // calcurate where we need to place candidate window.
-                    let size = size.unwrap_or_else(|| renderer.default_size());
-
-                    let position = measure_cursor_and_scroll_offset(
-                        renderer,
-                        text_layout.bounds(),
-                        value,
-                        size,
-                        position,
-                        font.unwrap_or_else(|| {
-                            Renderer::default_font(renderer)
-                        }),
+                    let bounds = text_layout.bounds();
+                    let cursor_index =
+                        find_cursor_position(bounds, value, state, target)
+                            .unwrap_or(0);
+                    let (offset, _) = measure_cursor_and_scroll_offset(
+                        &state.value,
+                        bounds,
+                        cursor_index,
                     );
-                    let position = (
-                        (text_layout.bounds().x + position.0) as i32,
-                        (text_layout.bounds().y) as i32 + size as i32,
+                    ime.set_ime_position(
+                        (bounds.x + offset) as i32,
+                        bounds.y as i32,
                     );
-
-                    ime.set_ime_position(position.0, position.1);
+                } else if focus_lost {
+                    let mut editor = Editor::new(value, &mut state.cursor);
+                    ime.outside();
+                    if let Some((old_ime_state, on_input)) =
+                        state.ime_state.take().zip(on_input)
+                    {
+                        old_ime_state
+                            .before_preedit_text()
+                            .chars()
+                            .for_each(|ch| editor.insert(ch));
+                        let message = (on_input)(editor.contents());
+                        shell.publish(message);
+                    }
                 }
+
                 return event::Status::Captured;
-            } else if focus_lost {
-                let mut editor = Editor::new(value, &mut state.cursor);
-                ime.outside();
-                if let Some((old_ime_state, on_input)) =
-                    state.ime_state.take().zip(on_input)
-                {
-                    old_ime_state
-                        .preedit_text()
-                        .chars()
-                        .for_each(|ch| editor.insert(ch));
-                    let message = (on_input)(editor.contents());
-                    shell.publish(message);
-                }
             }
         }
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. })
         | Event::Touch(touch::Event::FingerLost { .. }) => {
-            state.is_dragging = false;
+            state().is_dragging = false;
         }
         Event::Mouse(mouse::Event::CursorMoved { position })
         | Event::Touch(touch::Event::FingerMoved { position, .. }) => {
+            let state = state();
+
             if state.is_dragging {
                 let text_layout = layout.children().next().unwrap();
                 let target = position.x - text_layout.bounds().x;
@@ -717,11 +780,7 @@ where
                 };
 
                 let position = find_cursor_position(
-                    renderer,
                     text_layout.bounds(),
-                    font,
-                    size,
-                    line_height,
                     &value,
                     state,
                     target,
@@ -736,8 +795,12 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
+            let state = state();
+
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
+                let Some(on_input) = on_input else {
+                    return event::Status::Ignored;
+                };
 
                 if state.is_pasting.is_none()
                     && !state.keyboard_modifiers.command()
@@ -752,13 +815,19 @@ where
 
                     focus.updated_at = Instant::now();
 
+                    update_cache(state, value);
+
                     return event::Status::Captured;
                 }
             }
         }
         Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+            let state = state();
+
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else { return event::Status::Ignored };
+                let Some(on_input) = on_input else {
+                    return event::Status::Ignored;
+                };
 
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
@@ -787,6 +856,8 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::Delete => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -807,6 +878,8 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::Left => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -818,7 +891,7 @@ where
                                 state.cursor.move_left_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_left(value)
+                            state.cursor.select_left(value);
                         } else {
                             state.cursor.move_left(value);
                         }
@@ -833,7 +906,7 @@ where
                                 state.cursor.move_right_by_words(value);
                             }
                         } else if modifiers.shift() {
-                            state.cursor.select_right(value)
+                            state.cursor.select_right(value);
                         } else {
                             state.cursor.move_right(value);
                         }
@@ -882,9 +955,13 @@ where
 
                         let message = (on_input)(editor.contents());
                         shell.publish(message);
+
+                        update_cache(state, value);
                     }
                     keyboard::KeyCode::V => {
-                        if state.keyboard_modifiers.command() {
+                        if state.keyboard_modifiers.command()
+                            && !state.keyboard_modifiers.alt()
+                        {
                             let content = match state.is_pasting.take() {
                                 Some(content) => content,
                                 None => {
@@ -912,6 +989,8 @@ where
                             shell.publish(message);
 
                             state.is_pasting = Some(content);
+
+                            update_cache(state, value);
                         } else {
                             state.is_pasting = None;
                         }
@@ -941,6 +1020,8 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+            let state = state();
+
             if state.is_focused.is_some() {
                 match key_code {
                     keyboard::KeyCode::V => {
@@ -960,110 +1041,177 @@ where
             }
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            let state = state();
+
             state.keyboard_modifiers = modifiers;
         }
-        Event::Window(window::Event::RedrawRequested(now)) => {
+        Event::Window(window::Event::Unfocused) => {
+            let state = state();
+
             if let Some(focus) = &mut state.is_focused {
-                focus.now = now;
-
-                let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
-                    - (now - focus.updated_at).as_millis()
-                        % CURSOR_BLINK_INTERVAL_MILLIS;
-
-                shell.request_redraw(window::RedrawRequest::At(
-                    now + Duration::from_millis(millis_until_redraw as u64),
-                ));
+                focus.is_window_focused = false;
             }
         }
-        Event::Keyboard(keyboard::Event::IMECommit(text)) => {
-            if let Some(on_input) = (state.is_pasting.is_none()
-                && !state.keyboard_modifiers.command()
-                && !is_secure
-                && state.is_focused.is_some()
-                && state.ime_state.is_some())
-            .then_some(on_input)
-            .flatten()
-            {
-                let mut editor = Editor::new(value, &mut state.cursor);
+        Event::Window(window::Event::Focused) => {
+            let state = state();
 
-                for ch in text.chars() {
-                    editor.insert(ch);
-                }
+            if let Some(focus) = &mut state.is_focused {
+                focus.is_window_focused = true;
+                focus.updated_at = Instant::now();
 
-                let message = (on_input)(editor.contents());
-                shell.publish(message);
-                #[cfg(target_os = "macos")]
-                {
-                    let text_bounds =
-                        layout.children().next().unwrap().bounds();
-                    let size = size.unwrap_or_else(|| renderer.default_size());
-
-                    let width = renderer.measure_width(
-                        &editor.contents(),
-                        size,
-                        font.unwrap_or_else(|| {
-                            Renderer::default_font(renderer)
-                        }),
-                        text::Shaping::Advanced,
-                    );
-                    let (x, y) = (
-                        (text_bounds.x + width) as i32,
-                        (text_bounds.y) as i32 + size as i32,
-                    );
-                    ime.set_ime_position_with_reenable(x, y);
-                }
-                state.ime_state = None;
-                return event::Status::Captured;
+                shell.request_redraw(window::RedrawRequest::NextFrame);
             }
         }
+        Event::Window(window::Event::RedrawRequested(now)) => {
+            let state = state();
 
-        Event::Keyboard(keyboard::Event::IMEEnabled) => {
+            if let Some(focus) = &mut state.is_focused {
+                if focus.is_window_focused {
+                    focus.now = now;
+
+                    let millis_until_redraw = CURSOR_BLINK_INTERVAL_MILLIS
+                        - (now - focus.updated_at).as_millis()
+                            % CURSOR_BLINK_INTERVAL_MILLIS;
+
+                    shell.request_redraw(window::RedrawRequest::At(
+                        now + Duration::from_millis(millis_until_redraw as u64),
+                    ));
+                }
+            }
+        }
+        Event::IME(ime::Event::IMEEnabled) => {
+            let state = state();
             if state.is_focused.is_some() {
                 let _ = state.ime_state.replace(IMEState::default());
                 return event::Status::Captured;
             }
         }
-        Event::Keyboard(keyboard::Event::IMEPreedit(text, range)) => {
+        Event::IME(ime::Event::IMEPreedit(preedit_text, range)) => {
+            let state = state();
             if state.is_focused.is_none() || is_secure {
                 return event::Status::Ignored;
             }
-            // calcurate where we need to place candidate window.
-            let text_bounds = layout.children().next().unwrap().bounds();
-            let size = size.unwrap_or_else(|| renderer.default_size());
+            if let Some(focus) = &mut state.is_focused {
+                // calcurate where we need to place candidate window.
+                let text_bounds = layout.children().next().unwrap().bounds();
+                let before_preedit_cursor = state.cursor.start(value);
+                // "A|BC"
+                // if cursor is between A and B then we have preedit text あいうえお, we have to display
+                // "A|あいうえおBC"
+                // so we split value to 2 pieces .
+                // 1 before preedit cursor.
+                // 2 after preedit text.
+                let inputted_text = value.to_string();
+                let before_preedit_text: String =
+                    inputted_text.chars().take(before_preedit_cursor).collect();
+                let before_preedit_paragraph = Text {
+                    content: &before_preedit_text.clone(),
+                    bounds: Size {
+                        width: f32::INFINITY,
+                        height: text_bounds.height,
+                    },
+                    size: size.unwrap_or_else(|| renderer.default_size()),
+                    line_height,
+                    font: font.unwrap_or_else(|| renderer.default_font()),
+                    horizontal_alignment: alignment::Horizontal::Left,
+                    vertical_alignment: alignment::Vertical::Center,
+                    shaping: text::Shaping::Advanced,
+                };
 
-            let chars_from_left = state.cursor.start(value);
+                let after_preedit_text: String =
+                    inputted_text.chars().skip(before_preedit_cursor).collect();
 
-            let before_preedit_text = value
-                .to_string()
-                .chars()
-                .take(chars_from_left)
-                .fold(String::new(), |mut buffer, ch| {
-                    buffer.push(ch);
-                    buffer
-                });
+                let whole_text = before_preedit_text.clone()
+                    + &preedit_text
+                    + &after_preedit_text;
 
-            let position = renderer.measure_width(
-                &(before_preedit_text + &text),
-                size,
-                font.unwrap_or_else(|| Renderer::default_font(renderer)),
-                text::Shaping::Advanced,
-            );
+                let whole_text = Text {
+                    content: &whole_text,
+                    ..before_preedit_paragraph
+                };
+                let mut paragraph = Renderer::Paragraph::default();
+                paragraph.update(whole_text);
 
-            if let Some(ime_state) = state.ime_state.as_mut() {
-                ime_state.set_event(text, range);
-            } else {
-                let mut new_state = IMEState::default();
-                new_state.set_event(text, range);
-                let _ = state.ime_state.replace(new_state);
+                {
+                    let (width, _) = measure_cursor_and_scroll_offset(
+                        &paragraph,
+                        text_bounds,
+                        before_preedit_cursor + preedit_text.chars().count(),
+                    );
+                    let position = (
+                        (text_bounds.x + width) as i32,
+                        (text_bounds.y + text_bounds.height) as i32,
+                    );
+                    ime.set_ime_position(position.0, position.1);
+                }
+                // set current state to ime_state.
+                if let Some(ime_state) = state.ime_state.as_mut() {
+                    ime_state
+                        .before_preedit_paragraph_mut()
+                        .update(before_preedit_paragraph);
+                    ime_state.whole_paragraph_mut().update(whole_text);
+                    ime_state.set_event(preedit_text, range);
+                    ime_state.set_before_preedit_text(before_preedit_text);
+                } else {
+                    let mut new_state =
+                        IMEState::<Renderer::Paragraph>::default();
+                    new_state
+                        .before_preedit_paragraph_mut()
+                        .update(before_preedit_paragraph);
+                    new_state.whole_paragraph_mut().update(whole_text);
+                    new_state.set_event(preedit_text, range);
+                    new_state.set_before_preedit_text(before_preedit_text);
+                    let _ = state.ime_state.replace(new_state);
+                }
+                // measure underline width for drawing.
+                if let Some(ime_state) = &mut state.ime_state {
+                    let measure_width = move |chunk: &str| {
+                        let text = Text {
+                            content: chunk,
+                            ..whole_text
+                        };
+                        let cursor_index = chunk.chars().count();
+                        let mut paragraph = Renderer::Paragraph::default();
+                        paragraph.update(text);
+                        measure_cursor_and_scroll_offset(
+                            &paragraph,
+                            text_bounds,
+                            cursor_index,
+                        )
+                        .0
+                    };
+                    ime_state.measure_underlines(measure_width);
+                }
+                focus.updated_at = Instant::now();
             }
 
-            let position = (
-                (text_bounds.x + position) as i32,
-                (text_bounds.y) as i32 + size as i32,
-            );
-            ime.set_ime_position(position.0, position.1);
-
             return event::Status::Captured;
+        }
+        // Insert text characters to value.
+        // and delete current IME state.
+        Event::IME(ime::Event::IMECommit(text)) => {
+            let state = state();
+            if let Some(focus) = &mut state.is_focused {
+                let Some(on_input) = on_input else {
+                    return event::Status::Ignored;
+                };
+                if state.is_pasting.is_none()
+                    && !state.keyboard_modifiers.command()
+                {
+                    let mut editor = Editor::new(value, &mut state.cursor);
+
+                    text.chars().for_each(|ch| editor.insert(ch));
+
+                    let message = (on_input)(editor.contents());
+                    shell.publish(message);
+
+                    focus.updated_at = Instant::now();
+
+                    update_cache(state, value);
+                    state.ime_state = None;
+                    return event::Status::Captured;
+                }
+            }
         }
         _ => {}
     }
@@ -1080,12 +1228,8 @@ pub fn draw<Renderer>(
     theme: &Renderer::Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
-    state: &State,
+    state: &State<Renderer::Paragraph>,
     value: &Value,
-    placeholder: &str,
-    size: Option<f32>,
-    line_height: text::LineHeight,
-    font: Option<Renderer::Font>,
     is_disabled: bool,
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
@@ -1124,102 +1268,58 @@ pub fn draw<Renderer>(
         appearance.background,
     );
 
-    if let Some(icon) = icon {
+    if icon.is_some() {
         let icon_layout = children_layout.next().unwrap();
 
-        renderer.fill_text(Text {
-            content: &icon.code_point.to_string(),
-            size: icon.size.unwrap_or_else(|| renderer.default_size()),
-            line_height: text::LineHeight::default(),
-            font: icon.font,
-            color: appearance.icon_color,
-            bounds: Rectangle {
-                y: text_bounds.center_y(),
-                ..icon_layout.bounds()
-            },
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-            shaping: text::Shaping::Advanced,
-        });
+        renderer.fill_paragraph(
+            &state.icon,
+            icon_layout.bounds().center(),
+            appearance.icon_color,
+        );
     }
+    let preedit_text = state.ime_state.as_ref().map(|ime_state| {
+        (
+            ime_state.before_preedit_text(),
+            ime_state.underlines(),
+            ime_state.before_preedit_paragraph(),
+            ime_state.before_cursor_text().chars().count(),
+            ime_state.whole_paragraph(),
+        )
+    });
 
     let text = value.to_string();
-    let font = font.unwrap_or_else(|| renderer.default_font());
-    let size = size.unwrap_or_else(|| renderer.default_size());
 
-    let color = if text.is_empty()
-        && state
-            .ime_state
-            .as_ref()
-            .map_or(true, |state| state.preedit_text().is_empty())
+    let (cursor, offset) = if let Some(focus) = state
+        .is_focused
+        .as_ref()
+        .filter(|focus| focus.is_window_focused)
     {
-        theme.placeholder_color(style)
-    } else if is_disabled {
-        theme.disabled_color(style)
-    } else {
-        theme.value_color(style)
-    };
-
-    let (render_text, before_preedit_text_range) =
-        if let Some(ime_state) = state.ime_state.as_ref() {
-            let mut text = text;
-            let chars_from_left =
-                if state.cursor.start(value) < state.cursor.end(value) {
-                    state.cursor.start(value) + 1
-                } else {
-                    state.cursor.start(value)
-                };
-            let last_index = text
-                .char_indices()
-                .take(chars_from_left)
-                .last()
-                .map(|(idx, _)| idx)
-                .unwrap_or_default();
-
-            text.insert_str(last_index, ime_state.preedit_text());
-
-            (text, (0, last_index))
-        } else if text.is_empty() {
-            (placeholder.to_owned(), (0, 0))
-        } else {
-            (text, (0, 0))
-        };
-    let before_preedit_text =
-        &render_text[before_preedit_text_range.0..before_preedit_text_range.1];
-
-    let (preedit_cursor_index, preedit_value) =
-        if let Some(ime_state) = state.ime_state.as_ref() {
-            (
-                ime_state.before_cursor_text().chars().count(),
-                Value::new(ime_state.preedit_text()),
-            )
-        } else {
-            (0, Value::new(""))
-        };
-
-    let mut value = value.clone();
-
-    value.insert_many(state.cursor.start(&value), preedit_value);
-
-    let text_width = renderer.measure_width(
-        &render_text,
-        size,
-        font,
-        text::Shaping::Advanced,
-    );
-
-    let (cursor, offset) = if let Some(focus) = &state.is_focused {
-        match state.cursor.state(&value) {
+        match state.cursor.state(value) {
             cursor::State::Index(position) => {
-                let (text_value_width, offset) =
+                // in ime mode A|BC
+                // あいうえお inserted between A and B will be A|あいうえおBC
+                // so we need A 's width to display underline and cursors.
+                let (text_value_width, offset) = if let Some((
+                    before_preedit_text,
+                    _underlines,
+                    _before_preedit_pragraph,
+                    before_cursor_text_char_count,
+                    whole_paragraph,
+                )) = preedit_text
+                {
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        whole_paragraph,
                         text_bounds,
-                        &value,
-                        size,
-                        position + preedit_cursor_index,
-                        font,
-                    );
+                        before_preedit_text.chars().count()
+                            + before_cursor_text_char_count,
+                    )
+                } else {
+                    measure_cursor_and_scroll_offset(
+                        &state.value,
+                        text_bounds,
+                        position,
+                    )
+                };
 
                 let is_cursor_visible = ((focus.now - focus.updated_at)
                     .as_millis()
@@ -1251,25 +1351,18 @@ pub fn draw<Renderer>(
             cursor::State::Selection { start, end } => {
                 let left = start.min(end);
                 let right = end.max(start);
-
                 let (left_position, left_offset) =
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        &state.value,
                         text_bounds,
-                        &value,
-                        size,
-                        left + preedit_cursor_index,
-                        font,
+                        left,
                     );
 
                 let (right_position, right_offset) =
                     measure_cursor_and_scroll_offset(
-                        renderer,
+                        &state.value,
                         text_bounds,
-                        &value,
-                        size,
-                        right + preedit_cursor_index,
-                        font,
+                        right,
                     );
 
                 let width = right_position - left_position;
@@ -1300,78 +1393,84 @@ pub fn draw<Renderer>(
     } else {
         (None, 0.0)
     };
+    // in ime mode we need to use whole_paragraph for determine offsetting text.
+    let text_width = if let Some(preedit_text) = preedit_text {
+        preedit_text.4.min_width()
+    } else {
+        state.value.min_width()
+    };
 
     let render = |renderer: &mut Renderer| {
-        // ime mod should not paint selection
-        let fill_text = Text {
-            content: &render_text,
-            color,
-            font,
-            bounds: Rectangle {
-                y: text_bounds.center_y(),
-                width: f32::INFINITY,
-                ..text_bounds
-            },
-            size,
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-            line_height,
-            shaping: text::Shaping::Advanced,
-        };
-        if let Some(ime_state) = state.ime_state.as_ref() {
-            // draw under line.
-
-            let before_preedit_text_width = renderer.measure_width(
-                before_preedit_text,
-                size,
-                font,
-                text::Shaping::Advanced,
-            );
-
-            let splits = ime_state.split_to_pieces();
-
-            let _ = splits.iter().enumerate().fold(
-                text_bounds.x + before_preedit_text_width,
-                |offset, (idx, t)| {
-                    if let Some(t) = t {
-                        let width = renderer.measure_width(
-                            t,
-                            size,
-                            font,
-                            text::Shaping::Advanced,
-                        );
-                        let quad = renderer::Quad {
-                            bounds: Rectangle {
-                                x: offset,
-                                y: text_bounds.y + size,
-                                width,
-                                height: if idx == 1 { 3.0 } else { 1.0 },
-                            },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::default(),
-                        };
-                        renderer.fill_quad(quad, theme.value_color(style));
-                        width + offset
-                    } else {
-                        offset
-                    }
-                },
-            );
-        }
-
         if let Some((cursor, color)) = cursor {
             renderer.fill_quad(cursor, color);
+            // render underlines for ime mode.
+            if let Some((
+                before_preedit_text,
+                Some(underlines),
+                before_preedit_paragraph,
+                _,
+                _,
+            )) = preedit_text
+            {
+                let (left, _) = measure_cursor_and_scroll_offset(
+                    before_preedit_paragraph,
+                    text_bounds,
+                    0,
+                );
+                let (right, _) = measure_cursor_and_scroll_offset(
+                    before_preedit_paragraph,
+                    text_bounds,
+                    before_preedit_text.chars().count(),
+                );
+                let before_preedit_width = right - left;
+                underlines
+                    .iter()
+                    .enumerate()
+                    .for_each(|(index, underline)| {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: underline.0
+                                        + text_bounds.x
+                                        + before_preedit_width,
+                                    y: text_bounds.y + text_bounds.height,
+                                    width: underline.1,
+                                    height: if index == 1 { 2.0 } else { 1.0 },
+                                },
+                                border_radius: cursor.border_radius,
+                                border_width: 0.0,
+                                border_color: cursor.border_color,
+                            },
+                            theme.value_color(style),
+                        );
+                    });
+            }
         } else {
             renderer.with_translation(Vector::ZERO, |_| {});
         }
 
-        renderer.fill_text(fill_text);
+        renderer.fill_paragraph(
+            if let Some((_, _, _, _, whole_paragraph)) = preedit_text {
+                whole_paragraph
+            } else if text.is_empty() && preedit_text.is_none() {
+                &state.placeholder
+            } else {
+                &state.value
+            },
+            Point::new(text_bounds.x, text_bounds.center_y()),
+            if text.is_empty() && preedit_text.is_none() {
+                theme.placeholder_color(style)
+            } else if is_disabled {
+                theme.disabled_color(style)
+            } else {
+                theme.value_color(style)
+            },
+        );
     };
 
     if text_width > text_bounds.width {
         renderer.with_layer(text_bounds, |renderer| {
-            renderer.with_translation(Vector::new(-offset, 0.0), render)
+            renderer.with_translation(Vector::new(-offset, 0.0), render);
         });
     } else {
         render(renderer);
@@ -1397,11 +1496,14 @@ pub fn mouse_interaction(
 
 /// The state of a [`TextInput`].
 #[derive(Debug, Default, Clone)]
-pub struct State {
+pub struct State<P: text::Paragraph> {
+    value: P,
+    placeholder: P,
+    icon: P,
     is_focused: Option<Focus>,
     is_dragging: bool,
     is_pasting: Option<Value>,
-    ime_state: Option<IMEState>,
+    ime_state: Option<ime_state::IMEState<P>>,
     last_click: Option<mouse::Click>,
     cursor: Cursor,
     keyboard_modifiers: keyboard::Modifiers,
@@ -1412,9 +1514,10 @@ pub struct State {
 struct Focus {
     updated_at: Instant,
     now: Instant,
+    is_window_focused: bool,
 }
 
-impl State {
+impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`], representing an unfocused [`TextInput`].
     pub fn new() -> Self {
         Self::default()
@@ -1423,6 +1526,9 @@ impl State {
     /// Creates a new [`State`], representing a focused [`TextInput`].
     pub fn focused() -> Self {
         Self {
+            value: P::default(),
+            placeholder: P::default(),
+            icon: P::default(),
             is_focused: None,
             is_dragging: false,
             is_pasting: None,
@@ -1450,6 +1556,7 @@ impl State {
         self.is_focused = Some(Focus {
             updated_at: now,
             now,
+            is_window_focused: true,
         });
 
         self.move_cursor_to_end();
@@ -1481,35 +1588,35 @@ impl State {
     }
 }
 
-impl operation::Focusable for State {
+impl<P: text::Paragraph> operation::Focusable for State<P> {
     fn is_focused(&self) -> bool {
         State::is_focused(self)
     }
 
     fn focus(&mut self) {
-        State::focus(self)
+        State::focus(self);
     }
 
     fn unfocus(&mut self) {
-        State::unfocus(self)
+        State::unfocus(self);
     }
 }
 
-impl operation::TextInput for State {
+impl<P: text::Paragraph> operation::TextInput for State<P> {
     fn move_cursor_to_front(&mut self) {
-        State::move_cursor_to_front(self)
+        State::move_cursor_to_front(self);
     }
 
     fn move_cursor_to_end(&mut self) {
-        State::move_cursor_to_end(self)
+        State::move_cursor_to_end(self);
     }
 
     fn move_cursor_to(&mut self, position: usize) {
-        State::move_cursor_to(self, position)
+        State::move_cursor_to(self, position);
     }
 
     fn select_all(&mut self) {
-        State::select_all(self)
+        State::select_all(self);
     }
 }
 
@@ -1525,17 +1632,11 @@ mod platform {
     }
 }
 
-fn offset<Renderer>(
-    renderer: &Renderer,
+fn offset<P: text::Paragraph>(
     text_bounds: Rectangle,
-    font: Renderer::Font,
-    size: f32,
     value: &Value,
-    state: &State,
-) -> f32
-where
-    Renderer: text::Renderer,
-{
+    state: &State<P>,
+) -> f32 {
     if state.is_focused() {
         let cursor = state.cursor();
 
@@ -1545,12 +1646,9 @@ where
         };
 
         let (_, offset) = measure_cursor_and_scroll_offset(
-            renderer,
+            &state.value,
             text_bounds,
-            value,
-            size,
             focus_position,
-            font,
         );
 
         offset
@@ -1559,72 +1657,72 @@ where
     }
 }
 
-fn measure_cursor_and_scroll_offset<Renderer>(
-    renderer: &Renderer,
+fn measure_cursor_and_scroll_offset(
+    paragraph: &impl text::Paragraph,
     text_bounds: Rectangle,
-    value: &Value,
-    size: f32,
     cursor_index: usize,
-    font: Renderer::Font,
-) -> (f32, f32)
-where
-    Renderer: text::Renderer,
-{
-    let text_before_cursor = value.until(cursor_index).to_string();
+) -> (f32, f32) {
+    let grapheme_position = paragraph
+        .grapheme_position(0, cursor_index)
+        .unwrap_or(Point::ORIGIN);
 
-    let text_value_width = renderer.measure_width(
-        &text_before_cursor,
-        size,
-        font,
-        text::Shaping::Advanced,
-    );
+    let offset = ((grapheme_position.x + 5.0) - text_bounds.width).max(0.0);
 
-    let offset = ((text_value_width + 5.0) - text_bounds.width).max(0.0);
-
-    (text_value_width, offset)
+    (grapheme_position.x, offset)
 }
 
 /// Computes the position of the text cursor at the given X coordinate of
 /// a [`TextInput`].
-fn find_cursor_position<Renderer>(
-    renderer: &Renderer,
+fn find_cursor_position<P: text::Paragraph>(
     text_bounds: Rectangle,
-    font: Option<Renderer::Font>,
-    size: Option<f32>,
-    line_height: text::LineHeight,
     value: &Value,
-    state: &State,
+    state: &State<P>,
     x: f32,
-) -> Option<usize>
-where
-    Renderer: text::Renderer,
-{
-    let font = font.unwrap_or_else(|| renderer.default_font());
-    let size = size.unwrap_or_else(|| renderer.default_size());
-
-    let offset = offset(renderer, text_bounds, font, size, value, state);
+) -> Option<usize> {
+    let offset = offset(text_bounds, value, state);
     let value = value.to_string();
 
-    let char_offset = renderer
-        .hit_test(
-            &value,
-            size,
-            line_height,
-            font,
-            Size::INFINITY,
-            text::Shaping::Advanced,
-            Point::new(x + offset, text_bounds.height / 2.0),
-            true,
-        )
+    let char_offset = state
+        .value
+        .hit_test(Point::new(x + offset, text_bounds.height / 2.0))
         .map(text::Hit::cursor)?;
 
     Some(
         unicode_segmentation::UnicodeSegmentation::graphemes(
-            &value[..char_offset],
+            &value[..char_offset.min(value.len())],
             true,
         )
         .count(),
     )
+}
+
+fn replace_paragraph<Renderer>(
+    renderer: &Renderer,
+    state: &mut State<Renderer::Paragraph>,
+    layout: Layout<'_>,
+    value: &Value,
+    font: Option<Renderer::Font>,
+    text_size: Option<Pixels>,
+    line_height: text::LineHeight,
+) where
+    Renderer: text::Renderer,
+{
+    let font = font.unwrap_or_else(|| renderer.default_font());
+    let text_size = text_size.unwrap_or_else(|| renderer.default_size());
+
+    let mut children_layout = layout.children();
+    let text_bounds = children_layout.next().unwrap().bounds();
+
+    state.value = Renderer::Paragraph::with_text(Text {
+        font,
+        line_height,
+        content: &value.to_string(),
+        bounds: Size::new(f32::INFINITY, text_bounds.height),
+        size: text_size,
+        horizontal_alignment: alignment::Horizontal::Left,
+        vertical_alignment: alignment::Vertical::Top,
+        shaping: text::Shaping::Advanced,
+    });
 }
 
 const CURSOR_BLINK_INTERVAL_MILLIS: u128 = 500;

@@ -158,7 +158,7 @@ where
         )
         .with_visible(false);
 
-    log::debug!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {builder:#?}");
 
     let window = builder
         .build(&event_loop)
@@ -175,7 +175,7 @@ where
         let body = document.body().unwrap();
 
         let target = target.and_then(|target| {
-            body.query_selector(&format!("#{}", target))
+            body.query_selector(&format!("#{target}"))
                 .ok()
                 .unwrap_or(None)
         });
@@ -194,7 +194,14 @@ where
         };
     }
 
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+    let (compositor, mut renderer) =
+        C::new(compositor_settings, Some(&window))?;
+
+    for font in settings.fonts {
+        use crate::core::text::Renderer;
+
+        renderer.load_font(font);
+    }
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
@@ -310,6 +317,8 @@ async fn run_instance<A, E, C>(
 
     run_command(
         &application,
+        &mut compositor,
+        &mut surface,
         &mut cache,
         &state,
         &mut renderer,
@@ -321,7 +330,6 @@ async fn run_instance<A, E, C>(
         &mut proxy,
         &mut debug,
         &window,
-        || compositor.fetch_information(),
     );
     runtime.track(application.subscription().into_recipes());
 
@@ -386,6 +394,8 @@ async fn run_instance<A, E, C>(
                     // Update application
                     update(
                         &mut application,
+                        &mut compositor,
+                        &mut surface,
                         &mut cache,
                         &state,
                         &mut renderer,
@@ -397,7 +407,6 @@ async fn run_instance<A, E, C>(
                         &mut debug,
                         &mut messages,
                         &window,
-                        || compositor.fetch_information(),
                     );
 
                     // Update window
@@ -651,8 +660,10 @@ where
 
 /// Updates an [`Application`] by feeding it the provided messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
-pub fn update<A: Application, E: Executor>(
+pub fn update<A: Application, C, E: Executor>(
     application: &mut A,
+    compositor: &mut C,
+    surface: &mut C::Surface,
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
@@ -664,8 +675,8 @@ pub fn update<A: Application, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
-    graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
@@ -683,6 +694,8 @@ pub fn update<A: Application, E: Executor>(
 
         run_command(
             application,
+            compositor,
+            surface,
             cache,
             state,
             renderer,
@@ -694,7 +707,6 @@ pub fn update<A: Application, E: Executor>(
             proxy,
             debug,
             window,
-            graphics_info,
         );
     }
 
@@ -703,8 +715,10 @@ pub fn update<A: Application, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<A, E>(
+pub fn run_command<A, C, E>(
     application: &A,
+    compositor: &mut C,
+    surface: &mut C::Surface,
     cache: &mut user_interface::Cache,
     state: &State<A>,
     renderer: &mut A::Renderer,
@@ -716,10 +730,10 @@ pub fn run_command<A, E>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
-    _graphics_info: impl FnOnce() -> compositor::Information + Copy,
 ) where
     A: Application,
     E: Executor,
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use crate::runtime::command;
@@ -761,11 +775,21 @@ pub fn run_command<A, E>(
                 window::Action::Drag => {
                     let _res = window.drag_window();
                 }
-                window::Action::Resize { width, height } => {
+                window::Action::Resize(size) => {
                     window.set_inner_size(winit::dpi::LogicalSize {
-                        width,
-                        height,
+                        width: size.width,
+                        height: size.height,
                     });
+                }
+                window::Action::FetchSize(callback) => {
+                    let size = window.inner_size();
+
+                    proxy
+                        .send_event(callback(Size::new(
+                            size.width,
+                            size.height,
+                        )))
+                        .expect("Send message to event loop");
                 }
                 window::Action::Maximize(maximized) => {
                     window.set_maximized(maximized);
@@ -787,7 +811,7 @@ pub fn run_command<A, E>(
                     ));
                 }
                 window::Action::ChangeIcon(icon) => {
-                    window.set_window_icon(conversion::icon(icon))
+                    window.set_window_icon(conversion::icon(icon));
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
@@ -801,7 +825,7 @@ pub fn run_command<A, E>(
                         .expect("Send message to event loop");
                 }
                 window::Action::ToggleMaximize => {
-                    window.set_maximized(!window.is_maximized())
+                    window.set_maximized(!window.is_maximized());
                 }
                 window::Action::ToggleDecorations => {
                     window.set_decorations(!window.is_decorated());
@@ -822,12 +846,28 @@ pub fn run_command<A, E>(
                         .send_event(tag(window.id().into()))
                         .expect("Send message to event loop");
                 }
+                window::Action::Screenshot(tag) => {
+                    let bytes = compositor.screenshot(
+                        renderer,
+                        surface,
+                        state.viewport(),
+                        state.background_color(),
+                        &debug.overlay(),
+                    );
+
+                    proxy
+                        .send_event(tag(window::Screenshot::new(
+                            bytes,
+                            state.physical_size(),
+                        )))
+                        .expect("Send message to event loop.");
+                }
             },
             command::Action::System(action) => match action {
                 system::Action::QueryInformation(_tag) => {
                     #[cfg(feature = "system")]
                     {
-                        let graphics_info = _graphics_info();
+                        let graphics_info = compositor.fetch_information();
                         let proxy = proxy.clone();
 
                         let _ = std::thread::spawn(move || {
@@ -838,7 +878,7 @@ pub fn run_command<A, E>(
 
                             proxy
                                 .send_event(message)
-                                .expect("Send message to event loop")
+                                .expect("Send message to event loop");
                         });
                     }
                 }

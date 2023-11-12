@@ -74,9 +74,9 @@ impl Rectangle<f32> {
     /// Returns true if the given [`Point`] is contained in the [`Rectangle`].
     pub fn contains(&self, point: Point) -> bool {
         self.x <= point.x
-            && point.x <= self.x + self.width
+            && point.x < self.x + self.width
             && self.y <= point.y
-            && point.y <= self.y + self.height
+            && point.y < self.y + self.height
     }
 
     /// Returns true if the current [`Rectangle`] is completely within the given
@@ -193,6 +193,21 @@ where
         Rectangle {
             x: self.x + translation.x,
             y: self.y + translation.y,
+            ..self
+        }
+    }
+}
+
+impl<T> std::ops::Sub<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Rectangle<T>;
+
+    fn sub(self, translation: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x - translation.x,
+            y: self.y - translation.y,
             ..self
         }
     }

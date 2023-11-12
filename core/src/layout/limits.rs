@@ -2,7 +2,7 @@
 use crate::{Length, Padding, Size};
 
 /// A set of size constraints for layouting.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Limits {
     min: Size,
     max: Size,

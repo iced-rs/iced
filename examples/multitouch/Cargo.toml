@@ -6,7 +6,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
-tokio = { version = "1.0", features = ["sync"] }
-env_logger = "0.9"
+iced.workspace = true
+iced.features = ["debug", "canvas", "tokio"]
+
+tracing-subscriber = "0.3"
 voronator = "0.2"

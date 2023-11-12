@@ -5,9 +5,7 @@ An animated solar system drawn using the `Canvas` widget and showcasing how to c
 The __[`main`]__ file contains all the code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/selfassuredaromaticdunnart">
-    <img src="https://thumbs.gfycat.com/SelfassuredAromaticDunnart-small.gif">
-  </a>
+  <img src="https://iced.rs/examples/solar_system.gif">
 </div>
 
 You can run it with `cargo run`:

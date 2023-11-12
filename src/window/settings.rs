@@ -52,7 +52,7 @@ impl Default for Settings {
             transparent: false,
             level: Level::default(),
             icon: None,
-            platform_specific: Default::default(),
+            platform_specific: PlatformSpecific::default(),
         }
     }
 }

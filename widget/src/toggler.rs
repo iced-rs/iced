@@ -7,12 +7,13 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
-use crate::core::widget::Tree;
+use crate::core::touch;
+use crate::core::widget;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle,
-    Shell, Widget,
+    Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
+    Widget,
 };
-use crate::{Row, Text};
 
 pub use crate::style::toggler::{Appearance, StyleSheet};
 
@@ -43,7 +44,7 @@ where
     label: Option<String>,
     width: Length,
     size: f32,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_alignment: alignment::Horizontal,
     text_shaping: text::Shaping,
@@ -86,7 +87,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_alignment: alignment::Horizontal::Left,
             text_shaping: text::Shaping::Basic,
-            spacing: 0.0,
+            spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
             style: Default::default(),
         }
@@ -106,11 +107,11 @@ where
 
     /// Sets the text size o the [`Toggler`].
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
-        self.text_size = Some(text_size.into().0);
+        self.text_size = Some(text_size.into());
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Toggler`].
+    /// Sets the text [`text::LineHeight`] of the [`Toggler`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -137,9 +138,9 @@ where
         self
     }
 
-    /// Sets the [`Font`] of the text of the [`Toggler`]
+    /// Sets the [`Renderer::Font`] of the text of the [`Toggler`]
     ///
-    /// [`Font`]: crate::text::Renderer::Font
+    /// [`Renderer::Font`]: crate::core::text::Renderer
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
         self
@@ -161,6 +162,14 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -171,32 +180,41 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let mut row = Row::<(), Renderer>::new()
-            .width(self.width)
-            .spacing(self.spacing)
-            .align_items(Alignment::Center);
+        let limits = limits.width(self.width);
 
-        if let Some(label) = &self.label {
-            row = row.push(
-                Text::new(label)
-                    .horizontal_alignment(self.text_alignment)
-                    .font(self.font.unwrap_or_else(|| renderer.default_font()))
-                    .width(self.width)
-                    .size(
-                        self.text_size
-                            .unwrap_or_else(|| renderer.default_size()),
+        layout::next_to_each_other(
+            &limits,
+            self.spacing,
+            |_| layout::Node::new(Size::new(2.0 * self.size, self.size)),
+            |limits| {
+                if let Some(label) = self.label.as_deref() {
+                    let state = tree
+                    .state
+                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+
+                    widget::text::layout(
+                        state,
+                        renderer,
+                        limits,
+                        self.width,
+                        Length::Shrink,
+                        label,
+                        self.text_line_height,
+                        self.text_size,
+                        self.font,
+                        self.text_alignment,
+                        alignment::Vertical::Top,
+                        self.text_shaping,
                     )
-                    .line_height(self.text_line_height)
-                    .shaping(self.text_shaping),
-            );
-        }
-
-        row = row.push(Row::new().width(2.0 * self.size).height(self.size));
-
-        row.layout(renderer, limits)
+                } else {
+                    layout::Node::new(Size::ZERO)
+                }
+            },
+        )
     }
 
     fn on_event(
@@ -209,9 +227,11 @@ where
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         match event {
-            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
                 let mouse_over = cursor.is_over(layout.bounds());
 
                 if mouse_over {
@@ -243,7 +263,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -259,28 +279,21 @@ where
         const SPACE_RATIO: f32 = 0.05;
 
         let mut children = layout.children();
+        let toggler_layout = children.next().unwrap();
 
-        if let Some(label) = &self.label {
+        if self.label.is_some() {
             let label_layout = children.next().unwrap();
 
             crate::text::draw(
                 renderer,
                 style,
                 label_layout,
-                label,
-                self.text_size,
-                self.text_line_height,
-                self.font,
-                Default::default(),
-                self.text_alignment,
-                alignment::Vertical::Center,
-                self.text_shaping,
+                tree.state.downcast_ref(),
+                crate::text::Appearance::default(),
             );
         }
 
-        let toggler_layout = children.next().unwrap();
         let bounds = toggler_layout.bounds();
-
         let is_mouse_over = cursor.is_over(layout.bounds());
 
         let style = if is_mouse_over {

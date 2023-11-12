@@ -1,14 +1,18 @@
 [package]
 name = "iced_graphics"
-version = "0.8.0"
-authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
-edition = "2021"
-description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for Iced"
-license = "MIT"
-repository = "https://github.com/iced-rs/iced"
-documentation = "https://docs.rs/iced_graphics"
-keywords = ["gui", "ui", "graphics", "interface", "widgets"]
-categories = ["gui"]
+description = "A bunch of backend-agnostic types that can be leveraged to build a renderer for iced"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [features]
 geometry = ["lyon_path"]
@@ -17,36 +21,26 @@ image = ["dep:image", "kamadak-exif"]
 web-colors = []
 
 [dependencies]
-glam = "0.24"
-log = "0.4"
-raw-window-handle = "0.5"
-thiserror = "1.0"
-bitflags = "1.2"
+iced_core.workspace = true
 
-[dependencies.bytemuck]
-version = "1.4"
-features = ["derive"]
+bitflags.workspace = true
+bytemuck.workspace = true
+cosmic-text.workspace = true
+glam.workspace = true
+half.workspace = true
+log.workspace = true
+once_cell.workspace = true
+raw-window-handle.workspace = true
+rustc-hash.workspace = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+xxhash-rust.workspace = true
 
-[dependencies.iced_core]
-version = "0.9"
-path = "../core"
+image.workspace = true
+image.optional = true
 
-[dependencies.tiny-skia]
-version = "0.9"
-optional = true
+kamadak-exif.workspace = true
+kamadak-exif.optional = true
 
-[dependencies.image]
-version = "0.24"
-optional = true
-
-[dependencies.kamadak-exif]
-version = "0.5"
-optional = true
-
-[dependencies.lyon_path]
-version = "1"
-optional = true
-
-[package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs"]
-all-features = true
+lyon_path.workspace = true
+lyon_path.optional = true

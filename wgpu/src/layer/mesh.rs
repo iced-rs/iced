@@ -1,6 +1,6 @@
 //! A collection of triangle primitives.
 use crate::core::{Point, Rectangle};
-use crate::graphics::primitive;
+use crate::graphics::mesh;
 
 /// A mesh of triangles.
 #[derive(Debug, Clone, Copy)]
@@ -11,7 +11,7 @@ pub enum Mesh<'a> {
         origin: Point,
 
         /// The vertex and index buffers of the [`Mesh`].
-        buffers: &'a primitive::Mesh2D<primitive::ColoredVertex2D>,
+        buffers: &'a mesh::Indexed<mesh::SolidVertex2D>,
 
         /// The clipping bounds of the [`Mesh`].
         clip_bounds: Rectangle<f32>,
@@ -22,7 +22,7 @@ pub enum Mesh<'a> {
         origin: Point,
 
         /// The vertex and index buffers of the [`Mesh`].
-        buffers: &'a primitive::Mesh2D<primitive::GradientVertex2D>,
+        buffers: &'a mesh::Indexed<mesh::GradientVertex2D>,
 
         /// The clipping bounds of the [`Mesh`].
         clip_bounds: Rectangle<f32>,

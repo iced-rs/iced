@@ -80,19 +80,19 @@ impl Cache {
             for (i, pixel) in image.pixels().enumerate() {
                 let [r, g, b, a] = pixel.0;
 
-                buffer[i] = tiny_skia::ColorU8::from_rgba(b, g, r, a)
-                    .premultiply()
-                    .get();
+                buffer[i] = bytemuck::cast(
+                    tiny_skia::ColorU8::from_rgba(b, g, r, a).premultiply(),
+                );
             }
 
-            entry.insert(Some(Entry {
+            let _ = entry.insert(Some(Entry {
                 width: image.width(),
                 height: image.height(),
                 pixels: buffer,
             }));
         }
 
-        self.hits.insert(id);
+        let _ = self.hits.insert(id);
         self.entries.get(&id).unwrap().as_ref().map(|entry| {
             tiny_skia::PixmapRef::from_bytes(
                 bytemuck::cast_slice(&entry.pixels),

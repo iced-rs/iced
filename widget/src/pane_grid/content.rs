@@ -12,7 +12,7 @@ use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
 ///
-/// [`Pane`]: crate::widget::pane_grid::Pane
+/// [`Pane`]: super::Pane
 #[allow(missing_debug_implementations)]
 pub struct Content<'a, Message, Renderer = crate::Renderer>
 where
@@ -89,7 +89,7 @@ where
 
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -152,18 +152,23 @@ where
 
     pub(crate) fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         if let Some(title_bar) = &self.title_bar {
             let max_size = limits.max();
 
-            let title_bar_layout = title_bar
-                .layout(renderer, &layout::Limits::new(Size::ZERO, max_size));
+            let title_bar_layout = title_bar.layout(
+                &mut tree.children[1],
+                renderer,
+                &layout::Limits::new(Size::ZERO, max_size),
+            );
 
             let title_bar_size = title_bar_layout.size();
 
             let mut body_layout = self.body.as_widget().layout(
+                &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
                     Size::ZERO,
@@ -181,7 +186,11 @@ where
                 vec![title_bar_layout, body_layout],
             )
         } else {
-            self.body.as_widget().layout(renderer, limits)
+            self.body.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         }
     }
 
@@ -225,6 +234,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
         is_picked: bool,
     ) -> event::Status {
         let mut event_status = event::Status::Ignored;
@@ -241,6 +251,7 @@ where
                 clipboard,
                 ime,
                 shell,
+                viewport,
             );
 
             children.next().unwrap()
@@ -260,6 +271,7 @@ where
                 clipboard,
                 ime,
                 shell,
+                viewport,
             )
         };
 

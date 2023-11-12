@@ -102,17 +102,26 @@ where
     /// Sets the message that will be produced when the [`Button`] is pressed.
     ///
     /// Unless `on_press` is called, the [`Button`] will be disabled.
-    pub fn on_press(mut self, msg: Message) -> Self {
-        self.on_press = Some(msg);
+    pub fn on_press(mut self, on_press: Message) -> Self {
+        self.on_press = Some(on_press);
+        self
+    }
+
+    /// Sets the message that will be produced when the [`Button`] is pressed,
+    /// if `Some`.
+    ///
+    /// If `None`, the [`Button`] will be disabled.
+    pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
+        self.on_press = on_press;
         self
     }
 
     /// Sets the style variant of this [`Button`].
     pub fn style(
         mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
     ) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -137,7 +146,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(std::slice::from_ref(&self.content));
     }
 
     fn width(&self) -> Length {
@@ -150,19 +159,17 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            renderer,
-            limits,
-            self.width,
-            self.height,
-            self.padding,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
-        )
+        layout(limits, self.width, self.height, self.padding, |limits| {
+            self.content.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
+        })
     }
 
     fn operate(
@@ -172,7 +179,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
                 layout.children().next().unwrap(),
@@ -192,6 +199,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         if let event::Status::Captured = self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -202,6 +210,7 @@ where
             clipboard,
             ime,
             shell,
+            viewport,
         ) {
             return event::Status::Captured;
         }
@@ -417,17 +426,16 @@ where
 }
 
 /// Computes the layout of a [`Button`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
+pub fn layout(
     limits: &layout::Limits,
     width: Length,
     height: Length,
     padding: Padding,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits.width(width).height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding));
+    let mut content = layout_content(&limits.pad(padding));
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size()).pad(padding);
 

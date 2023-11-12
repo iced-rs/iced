@@ -101,7 +101,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(&self.children)
+        tree.diff_children(&self.children);
     }
 
     fn width(&self) -> Length {
@@ -114,6 +114,7 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -127,6 +128,7 @@ where
             self.spacing,
             self.align_items,
             &self.children,
+            &mut tree.children,
         )
     }
 
@@ -137,7 +139,7 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.children
                 .iter()
                 .zip(&mut tree.children)
@@ -146,7 +148,7 @@ where
                     child
                         .as_widget()
                         .operate(state, layout, renderer, operation);
-                })
+                });
         });
     }
 
@@ -160,6 +162,7 @@ where
         clipboard: &mut dyn Clipboard,
         ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.children
             .iter_mut()
@@ -175,6 +178,7 @@ where
                     clipboard,
                     ime,
                     shell,
+                    viewport,
                 )
             })
             .fold(event::Status::Ignored, event::Status::merge)

@@ -168,6 +168,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -187,6 +188,7 @@ where
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         update(
             event,
@@ -221,7 +223,7 @@ where
             &self.range,
             theme,
             &self.style,
-        )
+        );
     }
 
     fn mouse_interaction(

@@ -1,6 +1,7 @@
 //! Operate on widgets that have text input.
 use crate::widget::operation::Operation;
 use crate::widget::Id;
+use crate::Rectangle;
 
 /// The internal state of a widget that has text input.
 pub trait TextInput {
@@ -34,9 +35,10 @@ pub fn move_cursor_to_front<T>(target: Id) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -63,9 +65,10 @@ pub fn move_cursor_to_end<T>(target: Id) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -93,9 +96,10 @@ pub fn move_cursor_to<T>(target: Id, position: usize) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 
@@ -121,9 +125,10 @@ pub fn select_all<T>(target: Id) -> impl Operation<T> {
         fn container(
             &mut self,
             _id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
         ) {
-            operate_on_children(self)
+            operate_on_children(self);
         }
     }
 

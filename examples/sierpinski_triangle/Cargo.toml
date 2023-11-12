@@ -6,5 +6,7 @@ edition = "2018"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "debug"] }
-rand = "0.8.4"
+iced.workspace = true
+iced.features = ["debug", "canvas"]
+
+rand = "0.8"

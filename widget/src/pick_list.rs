@@ -7,12 +7,12 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::text::{self, Text};
+use crate::core::text::{self, Paragraph as _, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle, Shell,
-    Size, Widget, IME,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Widget, IME,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
@@ -35,7 +35,7 @@ where
     selected: Option<T>,
     width: Length,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
@@ -76,7 +76,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            handle: Default::default(),
+            handle: Handle::default(),
             style: Default::default(),
         }
     }
@@ -101,11 +101,11 @@ where
 
     /// Sets the text size of the [`PickList`].
     pub fn text_size(mut self, size: impl Into<Pixels>) -> Self {
-        self.text_size = Some(size.into().0);
+        self.text_size = Some(size.into());
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`PickList`].
+    /// Sets the text [`text::LineHeight`] of the [`PickList`].
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -157,11 +157,11 @@ where
         From<<Renderer::Theme as StyleSheet>::Style>,
 {
     fn tag(&self) -> tree::Tag {
-        tree::Tag::of::<State>()
+        tree::Tag::of::<State<Renderer::Paragraph>>()
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
     fn width(&self) -> Length {
@@ -174,10 +174,12 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
+            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
             renderer,
             limits,
             self.width,
@@ -201,6 +203,7 @@ where
         _clipboard: &mut dyn Clipboard,
         _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         update(
             event,
@@ -210,7 +213,7 @@ where
             self.on_selected.as_ref(),
             self.selected.as_ref(),
             &self.options,
-            || tree.state.downcast_mut::<State>(),
+            || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
         )
     }
 
@@ -250,8 +253,8 @@ where
             self.selected.as_ref(),
             &self.handle,
             &self.style,
-            || tree.state.downcast_ref::<State>(),
-        )
+            || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+        );
     }
 
     fn overlay<'b>(
@@ -260,7 +263,7 @@ where
         layout: Layout<'_>,
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
-        let state = tree.state.downcast_mut::<State>();
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         overlay(
             layout,
@@ -295,28 +298,32 @@ where
     }
 }
 
-/// The local state of a [`PickList`].
+/// The state of a [`PickList`].
 #[derive(Debug)]
-pub struct State {
+pub struct State<P: text::Paragraph> {
     menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
     hovered_option: Option<usize>,
+    options: Vec<P>,
+    placeholder: P,
 }
 
-impl State {
+impl<P: text::Paragraph> State<P> {
     /// Creates a new [`State`] for a [`PickList`].
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             menu: menu::State::default(),
             keyboard_modifiers: keyboard::Modifiers::default(),
             is_open: bool::default(),
             hovered_option: Option::default(),
+            options: Vec::new(),
+            placeholder: P::default(),
         }
     }
 }
 
-impl Default for State {
+impl<P: text::Paragraph> Default for State<P> {
     fn default() -> Self {
         Self::new()
     }
@@ -330,7 +337,7 @@ pub enum Handle<Font> {
     /// This is the default.
     Arrow {
         /// Font size of the content.
-        size: Option<f32>,
+        size: Option<Pixels>,
     },
     /// A custom static handle.
     Static(Icon<Font>),
@@ -359,7 +366,7 @@ pub struct Icon<Font> {
     /// The unicode code point that will be used as the icon.
     pub code_point: char,
     /// Font size of the content.
-    pub size: Option<f32>,
+    pub size: Option<Pixels>,
     /// Line height of the content.
     pub line_height: text::LineHeight,
     /// The shaping strategy of the icon.
@@ -368,11 +375,12 @@ pub struct Icon<Font> {
 
 /// Computes the layout of a [`PickList`].
 pub fn layout<Renderer, T>(
+    state: &mut State<Renderer::Paragraph>,
     renderer: &Renderer,
     limits: &layout::Limits,
     width: Length,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
@@ -386,38 +394,61 @@ where
     use std::f32;
 
     let limits = limits.width(width).height(Length::Shrink).pad(padding);
+    let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
+
+    state.options.resize_with(options.len(), Default::default);
+
+    let option_text = Text {
+        content: "",
+        bounds: Size::new(
+            f32::INFINITY,
+            text_line_height.to_absolute(text_size).into(),
+        ),
+        size: text_size,
+        line_height: text_line_height,
+        font,
+        horizontal_alignment: alignment::Horizontal::Left,
+        vertical_alignment: alignment::Vertical::Center,
+        shaping: text_shaping,
+    };
+
+    for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
+        let label = option.to_string();
+
+        paragraph.update(Text {
+            content: &label,
+            ..option_text
+        });
+    }
+
+    if let Some(placeholder) = placeholder {
+        state.placeholder.update(Text {
+            content: placeholder,
+            ..option_text
+        });
+    }
 
     let max_width = match width {
         Length::Shrink => {
-            let measure = |label: &str| -> f32 {
-                let width = renderer.measure_width(
-                    label,
-                    text_size,
-                    font.unwrap_or_else(|| renderer.default_font()),
-                    text_shaping,
-                );
+            let labels_width =
+                state.options.iter().fold(0.0, |width, paragraph| {
+                    f32::max(width, paragraph.min_width())
+                });
 
-                width.round()
-            };
-
-            let labels = options.iter().map(ToString::to_string);
-
-            let labels_width = labels
-                .map(|label| measure(&label))
-                .fold(100.0, |candidate, current| current.max(candidate));
-
-            let placeholder_width = placeholder.map(measure).unwrap_or(100.0);
-
-            labels_width.max(placeholder_width)
+            labels_width.max(
+                placeholder
+                    .map(|_| state.placeholder.min_width())
+                    .unwrap_or(0.0),
+            )
         }
         _ => 0.0,
     };
 
     let size = {
         let intrinsic = Size::new(
-            max_width + text_size + padding.left,
-            f32::from(text_line_height.to_absolute(Pixels(text_size))),
+            max_width + text_size.0 + padding.left,
+            f32::from(text_line_height.to_absolute(text_size)),
         );
 
         limits.resolve(intrinsic).pad(padding)
@@ -428,7 +459,7 @@ where
 
 /// Processes an [`Event`] and updates the [`State`] of a [`PickList`]
 /// accordingly.
-pub fn update<'a, T, Message>(
+pub fn update<'a, T, P, Message>(
     event: Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
@@ -436,10 +467,11 @@ pub fn update<'a, T, Message>(
     on_selected: &dyn Fn(T) -> Message,
     selected: Option<&T>,
     options: &[T],
-    state: impl FnOnce() -> &'a mut State,
+    state: impl FnOnce() -> &'a mut State<P>,
 ) -> event::Status
 where
     T: PartialEq + Clone + 'a,
+    P: text::Paragraph + 'a,
 {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -534,9 +566,9 @@ pub fn mouse_interaction(
 /// Returns the current overlay of a [`PickList`].
 pub fn overlay<'a, T, Message, Renderer>(
     layout: Layout<'_>,
-    state: &'a mut State,
+    state: &'a mut State<Renderer::Paragraph>,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_shaping: text::Shaping,
     font: Renderer::Font,
     options: &'a [T],
@@ -566,6 +598,7 @@ where
 
                 (on_selected)(option)
             },
+            None,
         )
         .width(bounds.width)
         .padding(padding)
@@ -590,7 +623,7 @@ pub fn draw<'a, T, Renderer>(
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     padding: Padding,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Renderer::Font,
@@ -598,7 +631,7 @@ pub fn draw<'a, T, Renderer>(
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
-    state: impl FnOnce() -> &'a State,
+    state: impl FnOnce() -> &'a State<Renderer::Paragraph>,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -664,22 +697,26 @@ pub fn draw<'a, T, Renderer>(
     if let Some((font, code_point, size, line_height, shaping)) = handle {
         let size = size.unwrap_or_else(|| renderer.default_size());
 
-        renderer.fill_text(Text {
-            content: &code_point.to_string(),
-            size,
-            line_height,
-            font,
-            color: style.handle_color,
-            bounds: Rectangle {
-                x: bounds.x + bounds.width - padding.horizontal(),
-                y: bounds.center_y(),
-                height: f32::from(line_height.to_absolute(Pixels(size))),
-                ..bounds
+        renderer.fill_text(
+            Text {
+                content: &code_point.to_string(),
+                size,
+                line_height,
+                font,
+                bounds: Size::new(
+                    bounds.width,
+                    f32::from(line_height.to_absolute(size)),
+                ),
+                horizontal_alignment: alignment::Horizontal::Right,
+                vertical_alignment: alignment::Vertical::Center,
+                shaping,
             },
-            horizontal_alignment: alignment::Horizontal::Right,
-            vertical_alignment: alignment::Vertical::Center,
-            shaping,
-        });
+            Point::new(
+                bounds.x + bounds.width - padding.horizontal(),
+                bounds.center_y(),
+            ),
+            style.handle_color,
+        );
     }
 
     let label = selected.map(ToString::to_string);
@@ -687,27 +724,26 @@ pub fn draw<'a, T, Renderer>(
     if let Some(label) = label.as_deref().or(placeholder) {
         let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
-        renderer.fill_text(Text {
-            content: label,
-            size: text_size,
-            line_height: text_line_height,
-            font,
-            color: if is_selected {
+        renderer.fill_text(
+            Text {
+                content: label,
+                size: text_size,
+                line_height: text_line_height,
+                font,
+                bounds: Size::new(
+                    bounds.width - padding.horizontal(),
+                    f32::from(text_line_height.to_absolute(text_size)),
+                ),
+                horizontal_alignment: alignment::Horizontal::Left,
+                vertical_alignment: alignment::Vertical::Center,
+                shaping: text_shaping,
+            },
+            Point::new(bounds.x + padding.left, bounds.center_y()),
+            if is_selected {
                 style.text_color
             } else {
                 style.placeholder_color
             },
-            bounds: Rectangle {
-                x: bounds.x + padding.left,
-                y: bounds.center_y(),
-                width: bounds.width - padding.horizontal(),
-                height: f32::from(
-                    text_line_height.to_absolute(Pixels(text_size)),
-                ),
-            },
-            horizontal_alignment: alignment::Horizontal::Left,
-            vertical_alignment: alignment::Vertical::Center,
-            shaping: text_shaping,
-        });
+        );
     }
 }

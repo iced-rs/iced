@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
 
-/// An [`Overlay`] container that displays nested overlays
+/// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
 pub struct Nested<'a, Message, Renderer> {
     overlay: overlay::Element<'a, Message, Renderer>,
@@ -29,6 +29,8 @@ where
     }
 
     /// Returns the layout [`Node`] of the [`Nested`] overlay.
+    ///
+    /// [`Node`]: layout::Node
     pub fn layout(
         &mut self,
         renderer: &Renderer,
@@ -164,7 +166,7 @@ where
             }
         }
 
-        recurse(&mut self.overlay, layout, renderer, operation)
+        recurse(&mut self.overlay, layout, renderer, operation);
     }
 
     /// Processes a runtime [`Event`].

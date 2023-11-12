@@ -2,7 +2,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 /// The value of a [`TextInput`].
 ///
-/// [`TextInput`]: crate::widget::TextInput
+/// [`TextInput`]: super::TextInput
 // TODO: Reduce allocations, cache results (?)
 #[derive(Debug, Clone)]
 pub struct Value {
@@ -89,11 +89,6 @@ impl Value {
         Self { graphemes }
     }
 
-    /// Converts the [`Value`] into a `String`.
-    pub fn to_string(&self) -> String {
-        self.graphemes.concat()
-    }
-
     /// Inserts a new `char` at the given grapheme `index`.
     pub fn insert(&mut self, index: usize, c: char) {
         self.graphemes.insert(index, c.to_string());
@@ -129,5 +124,11 @@ impl Value {
                 .take(self.graphemes.len())
                 .collect(),
         }
+    }
+}
+
+impl std::fmt::Display for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.graphemes.concat())
     }
 }

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 /// A layout node of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub enum Node {
     /// The region of this [`Node`] is split into two.
@@ -95,13 +95,13 @@ impl Node {
         splits
     }
 
-    pub(crate) fn find(&mut self, pane: &Pane) -> Option<&mut Node> {
+    pub(crate) fn find(&mut self, pane: Pane) -> Option<&mut Node> {
         match self {
             Node::Split { a, b, .. } => {
                 a.find(pane).or_else(move || b.find(pane))
             }
             Node::Pane(p) => {
-                if p == pane {
+                if *p == pane {
                     Some(self)
                 } else {
                     None
@@ -120,6 +120,16 @@ impl Node {
         };
     }
 
+    pub(crate) fn split_inverse(&mut self, id: Split, axis: Axis, pane: Pane) {
+        *self = Node::Split {
+            id,
+            axis,
+            ratio: 0.5,
+            a: Box::new(Node::Pane(pane)),
+            b: Box::new(self.clone()),
+        };
+    }
+
     pub(crate) fn update(&mut self, f: &impl Fn(&mut Node)) {
         if let Node::Split { a, b, .. } = self {
             a.update(f);
@@ -129,12 +139,12 @@ impl Node {
         f(self);
     }
 
-    pub(crate) fn resize(&mut self, split: &Split, percentage: f32) -> bool {
+    pub(crate) fn resize(&mut self, split: Split, percentage: f32) -> bool {
         match self {
             Node::Split {
                 id, ratio, a, b, ..
             } => {
-                if id == split {
+                if *id == split {
                     *ratio = percentage;
 
                     true
@@ -148,13 +158,13 @@ impl Node {
         }
     }
 
-    pub(crate) fn remove(&mut self, pane: &Pane) -> Option<Pane> {
+    pub(crate) fn remove(&mut self, pane: Pane) -> Option<Pane> {
         match self {
             Node::Split { a, b, .. } => {
-                if a.pane() == Some(*pane) {
+                if a.pane() == Some(pane) {
                     *self = *b.clone();
                     Some(self.first_pane())
-                } else if b.pane() == Some(*pane) {
+                } else if b.pane() == Some(pane) {
                     *self = *a.clone();
                     Some(self.first_pane())
                 } else {

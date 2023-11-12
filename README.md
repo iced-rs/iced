@@ -9,16 +9,17 @@
 [![License](https://img.shields.io/crates/l/iced.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Downloads](https://img.shields.io/crates/d/iced.svg)](https://crates.io/crates/iced)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/iced-rs/iced/test.yml?branch=master&event=push&label=test)](https://github.com/iced-rs/iced/actions)
+[![Discourse](https://img.shields.io/discourse/users?server=https%3A%2F%2Fdiscourse.iced.rs&color=5e7ce2)](https://discourse.iced.rs/)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
 A cross-platform GUI library for Rust focused on simplicity and type-safety.
 Inspired by [Elm].
 
-<a href="https://gfycat.com/littlesanehalicore">
-  <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" width="275px">
+<a href="https://iced.rs/examples/todos.mp4">
+  <img src="https://iced.rs/examples/todos.gif" width="275px">
 </a>
-<a href="https://gfycat.com/politeadorableiberianmole">
-  <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif" width="273px">
+<a href="https://iced.rs/examples/tour.mp4">
+  <img src="https://iced.rs/examples/tour.gif" width="273px">
 </a>
 
 </div>
@@ -46,11 +47,11 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
 [the Web]: https://github.com/iced-rs/iced_web
-[text inputs]: https://gfycat.com/alertcalmcrow-rust-gui
-[scrollables]: https://gfycat.com/perkybaggybaboon-rust-gui
-[Debug overlay with performance metrics]: https://gfycat.com/incredibledarlingbee
+[text inputs]: https://iced.rs/examples/text_input.mp4
+[scrollables]: https://iced.rs/examples/scrollable.mp4
+[Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
 [Modular ecosystem]: ECOSYSTEM.md
-[renderer-agnostic native runtime]: native/
+[renderer-agnostic native runtime]: runtime/
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
 [`iced_wgpu`]: wgpu/
@@ -68,7 +69,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.9"
+iced = "0.10"
 ```
 
 If your project is using a Rust edition older than 2021, then you will need to
@@ -201,10 +202,8 @@ end-user-oriented GUI library, while keeping [the ecosystem] modular:
 Contributions are greatly appreciated! If you want to contribute, please
 read our [contributing guidelines] for more details.
 
-Feedback is also welcome! You can open an issue or, if you want to talk,
-come chat to our [Discord server]. Moreover, you can find me (and a bunch of
-awesome folks) over the `#games-and-graphics` and `#gui-and-ui` channels in
-the [Rust Community Discord]. I go by `lone_scientist#9554` there.
+Feedback is also welcome! You can create a new topic in [our Discourse forum] or
+come chat to [our Discord server].
 
 ## Sponsors
 
@@ -217,7 +216,7 @@ The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/
 [the current issues]: https://github.com/iced-rs/iced/issues
 [contributing guidelines]: https://github.com/iced-rs/iced/blob/master/CONTRIBUTING.md
-[Discord server]: https://discord.gg/3xZJ65GAhd
-[Rust Community Discord]: https://bit.ly/rust-community
+[our Discourse forum]: https://discourse.iced.rs/
+[our Discord server]: https://discord.gg/3xZJ65GAhd
 [Cryptowatch]: https://cryptowat.ch/charts
 [Kraken.com]: https://kraken.com/

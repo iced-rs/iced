@@ -141,14 +141,14 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), drawing_bounds + offset)
+        renderer.draw(handle.clone(), drawing_bounds + offset);
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
     {
         renderer.with_layer(bounds, render);
     } else {
-        render(renderer)
+        render(renderer);
     }
 }
 
@@ -167,6 +167,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -190,7 +191,7 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        draw(renderer, layout, &self.handle, self.content_fit)
+        draw(renderer, layout, &self.handle, self.content_fit);
     }
 }
 

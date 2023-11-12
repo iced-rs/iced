@@ -1,14 +1,14 @@
 use crate::canvas::event::{self, Event};
 use crate::canvas::mouse;
 use crate::core::Rectangle;
-use crate::graphics::geometry::{self, Geometry};
+use crate::graphics::geometry;
 
 /// The state and logic of a [`Canvas`].
 ///
 /// A [`Program`] can mutate internal state and produce messages for an
 /// application.
 ///
-/// [`Canvas`]: crate::widget::Canvas
+/// [`Canvas`]: crate::Canvas
 pub trait Program<Message, Renderer = crate::Renderer>
 where
     Renderer: geometry::Renderer,
@@ -26,7 +26,7 @@ where
     ///
     /// By default, this method does and returns nothing.
     ///
-    /// [`Canvas`]: crate::widget::Canvas
+    /// [`Canvas`]: crate::Canvas
     fn update(
         &self,
         _state: &mut Self::State,
@@ -42,8 +42,9 @@ where
     /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
     /// [`Cache`].
     ///
-    /// [`Frame`]: crate::widget::canvas::Frame
-    /// [`Cache`]: crate::widget::canvas::Cache
+    /// [`Geometry`]: crate::canvas::Geometry
+    /// [`Frame`]: crate::canvas::Frame
+    /// [`Cache`]: crate::canvas::Cache
     fn draw(
         &self,
         state: &Self::State,
@@ -51,14 +52,14 @@ where
         theme: &Renderer::Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Geometry>;
+    ) -> Vec<Renderer::Geometry>;
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
     /// The interaction returned will be in effect even if the cursor position
     /// is out of bounds of the program's [`Canvas`].
     ///
-    /// [`Canvas`]: crate::widget::Canvas
+    /// [`Canvas`]: crate::Canvas
     fn mouse_interaction(
         &self,
         _state: &Self::State,
@@ -93,7 +94,7 @@ where
         theme: &Renderer::Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
+    ) -> Vec<Renderer::Geometry> {
         T::draw(self, state, renderer, theme, bounds, cursor)
     }
 

@@ -7,6 +7,10 @@ mod platform;
 #[path = "settings/macos.rs"]
 mod platform;
 
+#[cfg(target_os = "linux")]
+#[path = "settings/linux.rs"]
+mod platform;
+
 #[cfg(target_arch = "wasm32")]
 #[path = "settings/wasm.rs"]
 mod platform;
@@ -14,6 +18,7 @@ mod platform;
 #[cfg(not(any(
     target_os = "windows",
     target_os = "macos",
+    target_os = "linux",
     target_arch = "wasm32"
 )))]
 #[path = "settings/other.rs"]
@@ -28,6 +33,7 @@ use crate::Position;
 use winit::monitor::MonitorHandle;
 use winit::window::WindowBuilder;
 
+use std::borrow::Cow;
 use std::fmt;
 
 /// The settings of an application.
@@ -46,6 +52,9 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
+
+    /// The fonts to load on boot.
+    pub fonts: Vec<Cow<'static, [u8]>>,
 
     /// Whether the [`Application`] should exit when the user requests the
     /// window to close (e.g. the user presses the close button).
@@ -125,6 +134,12 @@ impl Window {
             .with_title(title)
             .with_inner_size(winit::dpi::LogicalSize { width, height })
             .with_resizable(self.resizable)
+            .with_enabled_buttons(if self.resizable {
+                winit::window::WindowButtons::all()
+            } else {
+                winit::window::WindowButtons::CLOSE
+                    | winit::window::WindowButtons::MINIMIZE
+            })
             .with_decorations(self.decorations)
             .with_transparent(self.transparent)
             .with_window_icon(self.icon.and_then(conversion::icon))
@@ -150,7 +165,6 @@ impl Window {
         }
 
         #[cfg(any(
-            target_os = "linux",
             target_os = "dragonfly",
             target_os = "freebsd",
             target_os = "netbsd",
@@ -192,6 +206,28 @@ impl Window {
                 );
         }
 
+        #[cfg(target_os = "linux")]
+        {
+            #[cfg(feature = "x11")]
+            {
+                use winit::platform::x11::WindowBuilderExtX11;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
+            #[cfg(feature = "wayland")]
+            {
+                use winit::platform::wayland::WindowBuilderExtWayland;
+
+                window_builder = window_builder.with_name(
+                    &self.platform_specific.application_id,
+                    &self.platform_specific.application_id,
+                );
+            }
+        }
+
         window_builder
     }
 }
@@ -209,7 +245,7 @@ impl Default for Window {
             transparent: false,
             level: Level::default(),
             icon: None,
-            platform_specific: Default::default(),
+            platform_specific: PlatformSpecific::default(),
         }
     }
 }

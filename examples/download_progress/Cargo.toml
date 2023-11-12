@@ -6,7 +6,8 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["tokio"] }
+iced.workspace = true
+iced.features = ["tokio"]
 
 [dependencies.reqwest]
 version = "0.11"

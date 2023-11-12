@@ -1,7 +1,8 @@
-//! Convert [`winit`] types into [`iced_native`] types, and viceversa.
+//! Convert [`winit`] types into [`iced_runtime`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+//! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
+use crate::core::ime;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
@@ -138,18 +139,15 @@ pub fn window_event(
         }
         WindowEvent::Ime(ime) => match ime {
             winit::event::Ime::Enabled => {
-                Some(Event::Keyboard(keyboard::Event::IMEEnabled))
+                Some(Event::IME(ime::Event::IMEEnabled))
             }
             winit::event::Ime::Preedit(text, range) => {
                 // range parameter is used to mark converting position.
 
-                Some(Event::Keyboard(keyboard::Event::IMEPreedit(
-                    text.clone(),
-                    *range,
-                )))
+                Some(Event::IME(ime::Event::IMEPreedit(text.clone(), *range)))
             }
             winit::event::Ime::Commit(text) => {
-                Some(Event::Keyboard(keyboard::Event::IMECommit(text.clone())))
+                Some(Event::IME(ime::Event::IMECommit(text.clone())))
             }
             winit::event::Ime::Disabled => None,
         },
@@ -246,10 +244,9 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+/// Converts a [`mouse::Interaction`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
 ) -> winit::window::CursorIcon {
@@ -271,10 +268,10 @@ pub fn mouse_interaction(
     }
 }
 
-/// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+/// Converts a `MouseButton` from [`winit`] to an [`iced`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
@@ -284,11 +281,11 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     }
 }
 
-/// Converts some `ModifiersState` from [`winit`] to an [`iced_native`]
-/// modifiers state.
+/// Converts some `ModifiersState` from [`winit`] to an [`iced`] modifiers
+/// state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
@@ -312,10 +309,10 @@ pub fn cursor_position(
     Point::new(logical_position.x, logical_position.y)
 }
 
-/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+/// Converts a `Touch` from [`winit`] to an [`iced`] touch event.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn touch_event(
     touch: winit::event::Touch,
     scale_factor: f64,
@@ -343,10 +340,10 @@ pub fn touch_event(
     }
 }
 
-/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn key_code(
     virtual_keycode: winit::event::VirtualKeyCode,
 ) -> keyboard::KeyCode {
@@ -539,7 +536,7 @@ pub fn user_attention(
     }
 }
 
-/// Converts some [`Icon`] into it's `winit` counterpart.
+/// Converts some [`window::Icon`] into it's `winit` counterpart.
 ///
 /// Returns `None` if there is an error during the conversion.
 pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
