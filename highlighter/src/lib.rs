@@ -168,7 +168,7 @@ pub enum Theme {
 }
 
 impl Theme {
-    pub const ALL: &[Self] = &[
+    pub const ALL: &'static [Self] = &[
         Self::SolarizedDark,
         Self::Base16Mocha,
         Self::Base16Ocean,

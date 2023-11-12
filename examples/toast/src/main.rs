@@ -210,7 +210,7 @@ mod toast {
     }
 
     impl Status {
-        pub const ALL: &[Self] =
+        pub const ALL: &'static [Self] =
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
     }
 

@@ -46,7 +46,7 @@ enum Color {
 }
 
 impl Color {
-    const ALL: &[Color] = &[
+    const ALL: &'static [Color] = &[
         Color::Black,
         Color::Red,
         Color::Orange,
