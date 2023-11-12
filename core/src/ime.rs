@@ -1,6 +1,10 @@
 //! Access the IME.
 
-///
+mod event;
+
+pub use event::Event;
+
+/// IME Access interface.
 pub trait IME {
     ///
     fn set_ime_position(&self, x: i32, y: i32);

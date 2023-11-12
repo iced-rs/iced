@@ -1,10 +1,19 @@
+use std::{fmt::Debug, sync::Arc};
+
+use iced_renderer::core::text::Paragraph;
+
 ///
 ///
 #[derive(Debug, Default, Clone)]
-pub struct IMEState {
+pub struct IMEState<P: Paragraph> {
+    before_preedit_text: String,
+    before_preedit_paragraph: P,
     preedit_text: String,
+    whole_paragraph: P,
+    underlines: Option<[(f32, f32); 3]>,
     candidate_indicator: Option<CandidateIndicator>,
 }
+
 #[derive(Debug, Clone, Copy)]
 enum CandidateIndicator {
     // indicate like Windows
@@ -13,9 +22,24 @@ enum CandidateIndicator {
     Cursor(usize),
 }
 
-impl IMEState {
-    pub fn preedit_text(&self) -> &str {
-        &self.preedit_text
+impl<P: Paragraph> IMEState<P> {
+    pub fn before_preedit_text(&self) -> &str {
+        &self.before_preedit_text
+    }
+    pub fn set_before_preedit_text(&mut self, text: String) {
+        self.before_preedit_text = text;
+    }
+    pub fn before_preedit_paragraph_mut(&mut self) -> &mut P {
+        &mut self.before_preedit_paragraph
+    }
+    pub fn before_preedit_paragraph(&self) -> &P {
+        &self.before_preedit_paragraph
+    }
+    pub fn whole_paragraph_mut(&mut self) -> &mut P {
+        &mut self.whole_paragraph
+    }
+    pub fn whole_paragraph(&self) -> &P {
+        &self.whole_paragraph
     }
     pub fn set_event(
         &mut self,
@@ -92,5 +116,29 @@ impl IMEState {
         } else {
             text
         }
+    }
+
+    /// measure underline offset and width for each splitted pieces.
+    ///
+    /// we can retrieve result by underlines method.
+    pub fn measure_underlines<F: Fn(&str) -> f32>(&mut self, measure_fn: F) {
+        let pieces = self.split_to_pieces();
+        let mut width_iter = pieces.iter().map(|chunk| match chunk {
+            Some(chunk) => (measure_fn)(&chunk),
+            None => 0.0,
+        });
+
+        let mut widths = [0.0; 3];
+        widths.fill_with(|| width_iter.next().unwrap());
+        let _ = self.underlines.replace([
+            (0.0, widths[0]),
+            (widths[0], widths[1]),
+            (widths[0] + widths[1], widths[2]),
+        ]);
+    }
+    /// retrieve underline infos
+    ///
+    pub fn underlines(&self) -> Option<[(f32, f32); 3]> {
+        self.underlines
     }
 }
