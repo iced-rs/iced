@@ -214,8 +214,13 @@ impl<T> crate::core::image::Renderer for Renderer<T> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
 
-    fn draw(&mut self, handle: crate::core::image::Handle, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.draw(handle, bounds));
+    fn draw(
+        &mut self,
+        handle: crate::core::image::Handle,
+        filter_method: crate::core::image::FilterMethod,
+        bounds: Rectangle,
+    ) {
+        delegate!(self, renderer, renderer.draw(handle, filter_method, bounds));
     }
 }
 
@@ -247,6 +252,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::TinySkia(primitive) => {
                             renderer.draw_primitive(primitive);
                         }
+                        #[cfg(feature = "wgpu")]
                         crate::Geometry::Wgpu(_) => unreachable!(),
                     }
                 }

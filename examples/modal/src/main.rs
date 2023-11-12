@@ -205,7 +205,8 @@ enum Plan {
 }
 
 impl Plan {
-    pub const ALL: &[Self] = &[Self::Basic, Self::Pro, Self::Enterprise];
+    pub const ALL: &'static [Self] =
+        &[Self::Basic, Self::Pro, Self::Enterprise];
 }
 
 impl fmt::Display for Plan {

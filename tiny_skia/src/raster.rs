@@ -28,6 +28,7 @@ impl Pipeline {
     pub fn draw(
         &mut self,
         handle: &raster::Handle,
+        filter_method: raster::FilterMethod,
         bounds: Rectangle,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         transform: tiny_skia::Transform,
@@ -39,12 +40,21 @@ impl Pipeline {
 
             let transform = transform.pre_scale(width_scale, height_scale);
 
+            let quality = match filter_method {
+                raster::FilterMethod::Linear => {
+                    tiny_skia::FilterQuality::Bilinear
+                }
+                raster::FilterMethod::Nearest => {
+                    tiny_skia::FilterQuality::Nearest
+                }
+            };
+
             pixels.draw_pixmap(
                 (bounds.x / width_scale) as i32,
                 (bounds.y / height_scale) as i32,
                 image,
                 &tiny_skia::PixmapPaint {
-                    quality: tiny_skia::FilterQuality::Bilinear,
+                    quality,
                     ..Default::default()
                 },
                 transform,

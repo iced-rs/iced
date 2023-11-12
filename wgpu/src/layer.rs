@@ -186,11 +186,16 @@ impl<'a> Layer<'a> {
 
                 layer.quads.add(quad, background);
             }
-            Primitive::Image { handle, bounds } => {
+            Primitive::Image {
+                handle,
+                filter_method,
+                bounds,
+            } => {
                 let layer = &mut layers[current_layer];
 
                 layer.images.push(Image::Raster {
                     handle: handle.clone(),
+                    filter_method: *filter_method,
                     bounds: *bounds + translation,
                 });
             }

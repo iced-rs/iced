@@ -1,8 +1,10 @@
 name: Test
 on: [push, pull_request]
 jobs:
-  native:
+  all:
     runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: --deny warnings
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
@@ -22,22 +24,3 @@ jobs:
       run: |
         cargo test --verbose --workspace
         cargo test --verbose --workspace --all-features
-
-  web:
-    runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: --cfg=web_sys_unstable_apis
-    steps:
-    - uses: hecrj/setup-rust-action@v1
-      with:
-        rust-version: stable
-        targets: wasm32-unknown-unknown
-    - uses: actions/checkout@master
-    - name: Run checks
-      run: cargo check --package iced --target wasm32-unknown-unknown
-    - name: Check compilation of `tour` example
-      run: cargo build --package tour --target wasm32-unknown-unknown
-    - name: Check compilation of `todos` example
-      run: cargo build --package todos --target wasm32-unknown-unknown
-    - name: Check compilation of `integration` example
-      run: cargo build --package integration --target wasm32-unknown-unknown
