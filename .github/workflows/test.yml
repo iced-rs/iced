@@ -3,6 +3,8 @@ on: [push, pull_request]
 jobs:
   all:
     runs-on: ${{ matrix.os }}
+    env:
+      RUSTFLAGS: --deny warnings
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
