@@ -1,5 +1,3 @@
-use std::{fmt::Debug, sync::Arc};
-
 use iced_renderer::core::text::Paragraph;
 
 ///

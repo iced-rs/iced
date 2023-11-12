@@ -1419,6 +1419,48 @@ pub fn draw<Renderer>(
                     before_preedit_text.chars().count(),
                 );
                 let before_preedit_width = right - left;
+                underlines
+                    .iter()
+                    .enumerate()
+                    .for_each(|(index, underline)| {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: underline.0
+                                        + text_bounds.x
+                                        + before_preedit_width,
+                                    y: text_bounds.y + text_bounds.height,
+                                    width: underline.1,
+                                    height: if index == 1 { 2.0 } else { 1.0 },
+                                },
+                                border_radius: cursor.border_radius,
+                                border_width: 0.0,
+                                border_color: cursor.border_color,
+                            },
+                            theme.value_color(style),
+                        );
+                    });
+            }
+            // render underlines for ime mode.
+            if let Some((
+                before_preedit_text,
+                Some(underlines),
+                before_preedit_paragraph,
+                _,
+                _,
+            )) = preedit_text
+            {
+                let (left, _) = measure_cursor_and_scroll_offset(
+                    before_preedit_paragraph,
+                    text_bounds,
+                    0,
+                );
+                let (right, _) = measure_cursor_and_scroll_offset(
+                    before_preedit_paragraph,
+                    text_bounds,
+                    before_preedit_text.chars().count(),
+                );
+                let before_preedit_width = right - left;
                 println!("before preedit width = {}", before_preedit_width);
                 underlines
                     .iter()
