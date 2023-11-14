@@ -10,7 +10,7 @@ use crate::pipeline::Pipeline;
 use iced::executor;
 use iced::time::Instant;
 use iced::widget::{
-    checkbox, column, container, row, slider, text, vertical_space, Shader,
+    checkbox, column, container, row, shader, slider, text, vertical_space,
 };
 use iced::window;
 use iced::{
@@ -150,9 +150,8 @@ impl Application for IcedCubes {
             .spacing(10)
             .align_items(Alignment::Center);
 
-        let shader = Shader::new(&self.cubes)
-            .width(Length::Fill)
-            .height(Length::Fill);
+        let shader =
+            shader(&self.cubes).width(Length::Fill).height(Length::Fill);
 
         container(
             column![shader, controls, vertical_space(20),]

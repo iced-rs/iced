@@ -385,6 +385,17 @@ where
     crate::Canvas::new(program)
 }
 
+/// Creates a new [`Shader`].
+///
+/// [`Shader`]: crate::Shader
+#[cfg(feature = "wgpu")]
+pub fn shader<Message, P>(program: P) -> crate::Shader<Message, P>
+where
+    P: crate::shader::Program<Message>,
+{
+    crate::Shader::new(program)
+}
+
 /// Focuses the previous focusable widget.
 pub fn focus_previous<Message>() -> Command<Message>
 where
