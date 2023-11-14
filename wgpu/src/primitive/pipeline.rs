@@ -10,10 +10,10 @@ use std::sync::Arc;
 #[derive(Clone, Debug)]
 /// A custom primitive which can be used to render primitives associated with a custom pipeline.
 pub struct Pipeline {
-    /// The bounds of the [`Shader`].
+    /// The bounds of the [`Pipeline`].
     pub bounds: Rectangle,
 
-    /// The [`custom::Primitive`] to render.
+    /// The [`Primitive`] to render.
     pub primitive: Arc<dyn Primitive>,
 }
 

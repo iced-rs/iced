@@ -9,7 +9,7 @@ use crate::shader;
 /// A [`Program`] can mutate the internal state of a [`Shader`] widget
 /// and produce messages for an application.
 ///
-/// [`Shader`]: crate::widget::shader::Shader
+/// [`Shader`]: crate::Shader
 pub trait Program<Message> {
     /// The internal state of the [`Program`].
     type State: Default + 'static;
@@ -50,7 +50,7 @@ pub trait Program<Message> {
     /// The interaction returned will be in effect even if the cursor position is out of
     /// bounds of the [`Shader`]'s program.
     ///
-    /// [`Shader`]: crate::widget::shader::Shader
+    /// [`Shader`]: crate::Shader
     fn mouse_interaction(
         &self,
         _state: &Self::State,

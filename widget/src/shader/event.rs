@@ -8,7 +8,7 @@ pub use crate::core::event::Status;
 
 /// A [`Shader`] event.
 ///
-/// [`Shader`]: crate::widget::shader::Shader;
+/// [`Shader`]: crate::Shader
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Event {
     /// A mouse event.
