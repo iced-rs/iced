@@ -17,6 +17,7 @@ use crate::renderer::wgpu::primitive::pipeline;
 
 use std::marker::PhantomData;
 
+pub use crate::renderer::wgpu::wgpu;
 pub use pipeline::{Primitive, Storage};
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.

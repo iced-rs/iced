@@ -1,4 +1,6 @@
 use crate::primitive::Vertex;
+use crate::wgpu;
+
 use glam::{vec2, vec3, Vec3};
 use rand::{thread_rng, Rng};
 

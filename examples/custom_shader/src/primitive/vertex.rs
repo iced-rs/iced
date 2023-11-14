@@ -1,3 +1,5 @@
+use crate::wgpu;
+
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 pub struct Vertex {

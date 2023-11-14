@@ -9,6 +9,7 @@ pub use cube::Cube;
 pub use uniforms::Uniforms;
 pub use vertex::Vertex;
 
+use crate::wgpu;
 use crate::Camera;
 use crate::Pipeline;
 

@@ -9,6 +9,7 @@ use crate::pipeline::Pipeline;
 
 use iced::executor;
 use iced::time::Instant;
+use iced::widget::shader::wgpu;
 use iced::widget::{
     checkbox, column, container, row, shader, slider, text, vertical_space,
 };

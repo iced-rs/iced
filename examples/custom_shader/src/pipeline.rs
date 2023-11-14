@@ -1,8 +1,10 @@
 use crate::primitive;
 use crate::primitive::cube;
 use crate::primitive::{Buffer, Uniforms};
+use crate::wgpu;
+use crate::wgpu::util::DeviceExt;
+
 use iced::{Rectangle, Size};
-use wgpu::util::DeviceExt;
 
 const SKY_TEXTURE_SIZE: u32 = 128;
 
