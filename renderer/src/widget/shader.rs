@@ -5,17 +5,20 @@ use crate::core::mouse::{Cursor, Interaction};
 use crate::core::renderer::Style;
 use crate::core::widget::tree::{State, Tag};
 use crate::core::widget::{tree, Tree};
-use crate::core::{self, layout, mouse, widget, Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Widget, window};
+use crate::core::{
+    self, layout, mouse, widget, window, Clipboard, Element, Layout, Length,
+    Rectangle, Shell, Size, Widget,
+};
 use std::marker::PhantomData;
 
 mod event;
 mod program;
 
 pub use event::Event;
+pub use iced_graphics::Transformation;
 pub use iced_wgpu::custom::Primitive;
 pub use iced_wgpu::custom::Storage;
 pub use program::Program;
-pub use iced_graphics::Transformation;
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.
 ///
