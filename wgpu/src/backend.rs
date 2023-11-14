@@ -323,10 +323,9 @@ impl Backend {
                 text_layer += 1;
             }
 
-            // kill render pass to let custom shaders get mut access to encoder
-            let _ = ManuallyDrop::into_inner(render_pass);
-
             if !layer.pipelines.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
                 for pipeline in &layer.pipelines {
                     let bounds = (pipeline.bounds * scale_factor).snap();
 
@@ -342,27 +341,26 @@ impl Backend {
                         encoder,
                     );
                 }
-            }
 
-            // recreate and continue processing layers
-            render_pass = ManuallyDrop::new(encoder.begin_render_pass(
-                &wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu::quad render pass"),
-                    color_attachments: &[Some(
-                        wgpu::RenderPassColorAttachment {
-                            view: target,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Load,
-                                store: wgpu::StoreOp::Store,
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu::quad render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: target,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
                             },
-                        },
-                    )],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                },
-            ));
+                        )],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    },
+                ));
+            }
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
