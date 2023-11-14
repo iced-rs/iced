@@ -26,7 +26,6 @@ fn main() -> iced::Result {
 struct IcedCubes {
     start: Instant,
     cubes: Cubes,
-    num_cubes_slider: u32,
 }
 
 impl Default for IcedCubes {
@@ -34,7 +33,6 @@ impl Default for IcedCubes {
         Self {
             start: Instant::now(),
             cubes: Cubes::new(),
-            num_cubes_slider: cubes::MAX,
         }
     }
 }
@@ -65,7 +63,6 @@ impl Application for IcedCubes {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::CubeAmountChanged(num) => {
-                self.num_cubes_slider = num;
                 self.cubes.adjust_num_cubes(num);
             }
             Message::CubeSizeChanged(size) => {
@@ -91,7 +88,7 @@ impl Application for IcedCubes {
                 "Amount",
                 slider(
                     1..=cubes::MAX,
-                    self.num_cubes_slider,
+                    self.cubes.cubes.len() as u32,
                     Message::CubeAmountChanged
                 )
                 .width(100)
