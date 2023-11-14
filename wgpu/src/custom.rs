@@ -1,3 +1,4 @@
+//! Draw custom primitives.
 use crate::core::{Rectangle, Size};
 use crate::graphics::Transformation;
 use std::any::{Any, TypeId};
