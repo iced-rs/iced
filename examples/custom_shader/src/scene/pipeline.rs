@@ -4,7 +4,6 @@ mod buffer;
 mod uniforms;
 mod vertex;
 
-pub use cube::Cube;
 pub use uniforms::Uniforms;
 
 use buffer::Buffer;
