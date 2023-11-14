@@ -28,15 +28,6 @@ struct IcedCubes {
     scene: Scene,
 }
 
-impl Default for IcedCubes {
-    fn default() -> Self {
-        Self {
-            start: Instant::now(),
-            scene: Scene::new(),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 enum Message {
     CubeAmountChanged(u32),
@@ -53,7 +44,13 @@ impl Application for IcedCubes {
     type Flags = ();
 
     fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (IcedCubes::default(), Command::none())
+        (
+            Self {
+                start: Instant::now(),
+                scene: Scene::new(),
+            },
+            Command::none(),
+        )
     }
 
     fn title(&self) -> String {
