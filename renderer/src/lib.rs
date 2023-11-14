@@ -1,13 +1,15 @@
 #![forbid(rust_2018_idioms)]
 #![deny(unsafe_code, unused_results, rustdoc::broken_intra_doc_links)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#[cfg(feature = "wgpu")]
+pub use iced_wgpu as wgpu;
+
 pub mod compositor;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;
 
 mod settings;
-pub mod widget;
 
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
@@ -56,26 +58,6 @@ impl<T> Renderer<T> {
             Self::Wgpu(renderer) => {
                 renderer.draw_primitive(iced_wgpu::Primitive::Custom(
                     iced_wgpu::primitive::Custom::Mesh(mesh),
-                ));
-            }
-        }
-    }
-
-    pub fn draw_custom<P: widget::shader::Primitive>(
-        &mut self,
-        bounds: Rectangle,
-        primitive: P,
-    ) {
-        match self {
-            Renderer::TinySkia(_) => {
-                log::warn!(
-                    "Custom shader primitive is unavailable with tiny-skia."
-                );
-            }
-            #[cfg(feature = "wgpu")]
-            Renderer::Wgpu(renderer) => {
-                renderer.draw_primitive(iced_wgpu::Primitive::Custom(
-                    iced_wgpu::primitive::Custom::shader(bounds, primitive),
                 ));
             }
         }
@@ -288,6 +270,26 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
                         crate::Geometry::TinySkia(_) => unreachable!(),
                     }
                 }
+            }
+        }
+    }
+}
+
+#[cfg(feature = "wgpu")]
+impl<T> iced_wgpu::primitive::pipeline::Renderer for Renderer<T> {
+    fn draw_pipeline_primitive(
+        &mut self,
+        bounds: Rectangle,
+        primitive: impl wgpu::primitive::pipeline::Primitive,
+    ) {
+        match self {
+            Self::TinySkia(_renderer) => {
+                log::warn!(
+                    "Custom shader primitive is unavailable with tiny-skia."
+                );
+            }
+            Self::Wgpu(renderer) => {
+                renderer.draw_pipeline_primitive(bounds, primitive);
             }
         }
     }

@@ -1,24 +1,23 @@
 //! A custom shader widget for wgpu applications.
-use crate::core::event::Status;
-use crate::core::layout::{Limits, Node};
-use crate::core::mouse::{Cursor, Interaction};
-use crate::core::renderer::Style;
-use crate::core::widget::tree::{State, Tag};
-use crate::core::widget::{tree, Tree};
-use crate::core::{
-    self, layout, mouse, widget, window, Clipboard, Element, Layout, Length,
-    Rectangle, Shell, Size, Widget,
-};
-use std::marker::PhantomData;
-
 mod event;
 mod program;
 
 pub use event::Event;
-pub use iced_graphics::Transformation;
-pub use iced_wgpu::custom::Primitive;
-pub use iced_wgpu::custom::Storage;
 pub use program::Program;
+
+use crate::core;
+use crate::core::layout::{self, Layout};
+use crate::core::mouse;
+use crate::core::renderer;
+use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{self, Widget};
+use crate::core::window;
+use crate::core::{Clipboard, Element, Length, Rectangle, Shell, Size};
+use crate::renderer::wgpu::primitive::pipeline;
+
+use std::marker::PhantomData;
+
+pub use pipeline::{Primitive, Storage};
 
 /// A widget which can render custom shaders with Iced's `wgpu` backend.
 ///
@@ -56,17 +55,17 @@ impl<Message, P: Program<Message>> Shader<Message, P> {
     }
 }
 
-impl<P, Message, Theme> Widget<Message, crate::Renderer<Theme>>
-    for Shader<Message, P>
+impl<P, Message, Renderer> Widget<Message, Renderer> for Shader<Message, P>
 where
     P: Program<Message>,
+    Renderer: pipeline::Renderer,
 {
-    fn tag(&self) -> Tag {
+    fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);
         tree::Tag::of::<Tag<P::State>>()
     }
 
-    fn state(&self) -> State {
+    fn state(&self) -> tree::State {
         tree::State::new(P::State::default())
     }
 
@@ -81,9 +80,9 @@ where
     fn layout(
         &self,
         _tree: &mut Tree,
-        _renderer: &crate::Renderer<Theme>,
-        limits: &Limits,
-    ) -> Node {
+        _renderer: &Renderer,
+        limits: &layout::Limits,
+    ) -> layout::Node {
         let limits = limits.width(self.width).height(self.height);
         let size = limits.resolve(Size::ZERO);
 
@@ -95,12 +94,12 @@ where
         tree: &mut Tree,
         event: crate::core::Event,
         layout: Layout<'_>,
-        cursor: Cursor,
-        _renderer: &crate::Renderer<Theme>,
+        cursor: mouse::Cursor,
+        _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
-    ) -> Status {
+    ) -> event::Status {
         let bounds = layout.bounds();
 
         let custom_shader_event = match event {
@@ -140,9 +139,9 @@ where
         &self,
         tree: &Tree,
         layout: Layout<'_>,
-        cursor: Cursor,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
-        _renderer: &crate::Renderer<Theme>,
+        _renderer: &Renderer,
     ) -> mouse::Interaction {
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
@@ -153,9 +152,9 @@ where
     fn draw(
         &self,
         tree: &widget::Tree,
-        renderer: &mut crate::Renderer<Theme>,
-        _theme: &Theme,
-        _style: &Style,
+        renderer: &mut Renderer,
+        _theme: &Renderer::Theme,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
         _viewport: &Rectangle,
@@ -163,20 +162,21 @@ where
         let bounds = layout.bounds();
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.draw_custom(
+        renderer.draw_pipeline_primitive(
             bounds,
             self.program.draw(state, cursor_position, bounds),
         );
     }
 }
 
-impl<'a, M, P, Theme> From<Shader<M, P>>
-    for Element<'a, M, crate::Renderer<Theme>>
+impl<'a, Message, Renderer, P> From<Shader<Message, P>>
+    for Element<'a, Message, Renderer>
 where
-    M: 'a,
-    P: Program<M> + 'a,
+    Message: 'a,
+    Renderer: pipeline::Renderer,
+    P: Program<Message> + 'a,
 {
-    fn from(custom: Shader<M, P>) -> Element<'a, M, crate::Renderer<Theme>> {
+    fn from(custom: Shader<Message, P>) -> Element<'a, Message, Renderer> {
         Element::new(custom)
     }
 }
@@ -193,16 +193,16 @@ where
         state: &mut Self::State,
         event: Event,
         bounds: Rectangle,
-        cursor: Cursor,
+        cursor: mouse::Cursor,
         shell: &mut Shell<'_, Message>,
-    ) -> (Status, Option<Message>) {
+    ) -> (event::Status, Option<Message>) {
         T::update(self, state, event, bounds, cursor, shell)
     }
 
     fn draw(
         &self,
         state: &Self::State,
-        cursor: Cursor,
+        cursor: mouse::Cursor,
         bounds: Rectangle,
     ) -> Self::Primitive {
         T::draw(self, state, cursor, bounds)
@@ -212,8 +212,8 @@ where
         &self,
         state: &Self::State,
         bounds: Rectangle,
-        cursor: Cursor,
-    ) -> Interaction {
+        cursor: mouse::Cursor,
+    ) -> mouse::Interaction {
         T::mouse_interaction(self, state, bounds, cursor)
     }
 }

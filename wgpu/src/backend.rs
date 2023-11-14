@@ -2,8 +2,11 @@ use crate::core::{Color, Size};
 use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::{Transformation, Viewport};
+use crate::primitive::pipeline;
 use crate::primitive::{self, Primitive};
-use crate::{custom, quad, text, triangle};
+use crate::quad;
+use crate::text;
+use crate::triangle;
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -23,7 +26,7 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
-    pipeline_storage: custom::Storage,
+    pipeline_storage: pipeline::Storage,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
@@ -49,7 +52,7 @@ impl Backend {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
-            pipeline_storage: custom::Storage::default(),
+            pipeline_storage: pipeline::Storage::default(),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
@@ -183,9 +186,9 @@ impl Backend {
                 );
             }
 
-            if !layer.shaders.is_empty() {
-                for shader in &layer.shaders {
-                    shader.primitive.prepare(
+            if !layer.pipelines.is_empty() {
+                for pipeline in &layer.pipelines {
+                    pipeline.primitive.prepare(
                         format,
                         device,
                         queue,
@@ -323,19 +326,17 @@ impl Backend {
             // kill render pass to let custom shaders get mut access to encoder
             let _ = ManuallyDrop::into_inner(render_pass);
 
-            if !layer.shaders.is_empty() {
-                for shader in &layer.shaders {
-                    //This extra check is needed since each custom pipeline must set it's own
-                    //scissor rect, which will panic if bounds.w/h < 1
-                    let bounds = shader.bounds * scale_factor;
+            if !layer.pipelines.is_empty() {
+                for pipeline in &layer.pipelines {
+                    let bounds = (pipeline.bounds * scale_factor).snap();
 
-                    if bounds.width < 1.0 || bounds.height < 1.0 {
+                    if bounds.width < 1 || bounds.height < 1 {
                         continue;
                     }
 
-                    shader.primitive.render(
+                    pipeline.primitive.render(
                         &self.pipeline_storage,
-                        bounds.snap(),
+                        bounds,
                         target,
                         target_size,
                         encoder,

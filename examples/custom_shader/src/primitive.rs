@@ -4,16 +4,17 @@ pub mod vertex;
 mod buffer;
 mod uniforms;
 
-use crate::camera::Camera;
-use crate::pipeline::Pipeline;
-use crate::primitive::cube::Cube;
+pub use buffer::Buffer;
+pub use cube::Cube;
+pub use uniforms::Uniforms;
+pub use vertex::Vertex;
+
+use crate::Camera;
+use crate::Pipeline;
+
 use iced::advanced::graphics::Transformation;
 use iced::widget::shader;
 use iced::{Color, Rectangle, Size};
-
-pub use crate::primitive::vertex::Vertex;
-pub use buffer::Buffer;
-pub use uniforms::Uniforms;
 
 /// A collection of `Cube`s that can be rendered.
 #[derive(Debug)]

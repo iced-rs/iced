@@ -35,8 +35,8 @@ pub struct Layer<'a> {
     /// The images of the [`Layer`].
     pub images: Vec<Image>,
 
-    /// The custom shader primitives of this [`Layer`].
-    pub shaders: Vec<primitive::Shader>,
+    /// The custom pipelines of this [`Layer`].
+    pub pipelines: Vec<primitive::Pipeline>,
 }
 
 impl<'a> Layer<'a> {
@@ -48,7 +48,7 @@ impl<'a> Layer<'a> {
             meshes: Vec::new(),
             text: Vec::new(),
             images: Vec::new(),
-            shaders: Vec::new(),
+            pipelines: Vec::new(),
         }
     }
 
@@ -312,16 +312,21 @@ impl<'a> Layer<'a> {
                         }
                     }
                 },
-                primitive::Custom::Shader(shader) => {
+                primitive::Custom::Pipeline(pipeline) => {
                     let layer = &mut layers[current_layer];
 
                     let bounds = Rectangle::new(
                         Point::new(translation.x, translation.y),
-                        shader.bounds.size(),
+                        pipeline.bounds.size(),
                     );
 
-                    if layer.bounds.intersection(&bounds).is_some() {
-                        layer.shaders.push(shader.clone());
+                    if let Some(clip_bounds) =
+                        layer.bounds.intersection(&bounds)
+                    {
+                        layer.pipelines.push(primitive::Pipeline {
+                            bounds: clip_bounds,
+                            primitive: pipeline.primitive.clone(),
+                        });
                     }
                 }
             },

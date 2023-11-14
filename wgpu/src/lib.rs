@@ -29,7 +29,6 @@
     rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
-pub mod custom;
 pub mod layer;
 pub mod primitive;
 pub mod settings;

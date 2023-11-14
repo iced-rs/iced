@@ -3,15 +3,20 @@ mod cubes;
 mod pipeline;
 mod primitive;
 
+use crate::camera::Camera;
 use crate::cubes::Cubes;
+use crate::pipeline::Pipeline;
+
+use iced::executor;
+use iced::time::Instant;
 use iced::widget::{
     checkbox, column, container, row, slider, text, vertical_space, Shader,
 };
+use iced::window;
 use iced::{
-    executor, window, Alignment, Application, Color, Command, Element, Length,
-    Renderer, Subscription, Theme,
+    Alignment, Application, Color, Command, Element, Length, Renderer,
+    Subscription, Theme,
 };
-use std::time::Instant;
 
 fn main() -> iced::Result {
     IcedCubes::run(iced::Settings::default())
