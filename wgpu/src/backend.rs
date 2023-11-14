@@ -222,7 +222,7 @@ impl Backend {
 
         let mut render_pass = ManuallyDrop::new(encoder.begin_render_pass(
             &wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu::quad render pass"),
+                label: Some("iced_wgpu render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: target,
                     resolve_target: None,
@@ -285,7 +285,7 @@ impl Backend {
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu::quad render pass"),
+                        label: Some("iced_wgpu render pass"),
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: target,
@@ -344,7 +344,7 @@ impl Backend {
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu::quad render pass"),
+                        label: Some("iced_wgpu render pass"),
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: target,
