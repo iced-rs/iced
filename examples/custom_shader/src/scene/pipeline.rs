@@ -582,12 +582,12 @@ impl DepthPipeline {
 }
 
 fn load_skybox_data() -> Vec<u8> {
-    let pos_x: &[u8] = include_bytes!("../textures/skybox/pos_x.jpg");
-    let neg_x: &[u8] = include_bytes!("../textures/skybox/neg_x.jpg");
-    let pos_y: &[u8] = include_bytes!("../textures/skybox/pos_y.jpg");
-    let neg_y: &[u8] = include_bytes!("../textures/skybox/neg_y.jpg");
-    let pos_z: &[u8] = include_bytes!("../textures/skybox/pos_z.jpg");
-    let neg_z: &[u8] = include_bytes!("../textures/skybox/neg_z.jpg");
+    let pos_x: &[u8] = include_bytes!("../../textures/skybox/pos_x.jpg");
+    let neg_x: &[u8] = include_bytes!("../../textures/skybox/neg_x.jpg");
+    let pos_y: &[u8] = include_bytes!("../../textures/skybox/pos_y.jpg");
+    let neg_y: &[u8] = include_bytes!("../../textures/skybox/neg_y.jpg");
+    let pos_z: &[u8] = include_bytes!("../../textures/skybox/pos_z.jpg");
+    let neg_z: &[u8] = include_bytes!("../../textures/skybox/neg_z.jpg");
 
     let data: [&[u8]; 6] = [pos_x, neg_x, pos_y, neg_y, pos_z, neg_z];
 
@@ -606,7 +606,7 @@ fn load_skybox_data() -> Vec<u8> {
 }
 
 fn load_normal_map_data() -> Vec<u8> {
-    let bytes: &[u8] = include_bytes!("../textures/ice_cube_normal_map.png");
+    let bytes: &[u8] = include_bytes!("../../textures/ice_cube_normal_map.png");
 
     image::load_from_memory_with_format(bytes, image::ImageFormat::Png)
         .unwrap()
