@@ -1,11 +1,11 @@
 mod camera;
-mod cubes;
 mod pipeline;
 mod primitive;
+mod scene;
 
 use crate::camera::Camera;
-use crate::cubes::Cubes;
 use crate::pipeline::Pipeline;
+use crate::scene::Scene;
 
 use iced::executor;
 use iced::time::Instant;
@@ -25,14 +25,14 @@ fn main() -> iced::Result {
 
 struct IcedCubes {
     start: Instant,
-    cubes: Cubes,
+    scene: Scene,
 }
 
 impl Default for IcedCubes {
     fn default() -> Self {
         Self {
             start: Instant::now(),
-            cubes: Cubes::new(),
+            scene: Scene::new(),
         }
     }
 }
@@ -62,20 +62,20 @@ impl Application for IcedCubes {
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
-            Message::CubeAmountChanged(num) => {
-                self.cubes.adjust_num_cubes(num);
+            Message::CubeAmountChanged(amount) => {
+                self.scene.change_amount(amount);
             }
             Message::CubeSizeChanged(size) => {
-                self.cubes.size = size;
+                self.scene.size = size;
             }
             Message::Tick(time) => {
-                self.cubes.update(time - self.start);
+                self.scene.update(time - self.start);
             }
             Message::ShowDepthBuffer(show) => {
-                self.cubes.show_depth_buffer = show;
+                self.scene.show_depth_buffer = show;
             }
             Message::LightColorChanged(color) => {
-                self.cubes.light_color = color;
+                self.scene.light_color = color;
             }
         }
 
@@ -87,21 +87,21 @@ impl Application for IcedCubes {
             control(
                 "Amount",
                 slider(
-                    1..=cubes::MAX,
-                    self.cubes.cubes.len() as u32,
+                    1..=scene::MAX,
+                    self.scene.cubes.len() as u32,
                     Message::CubeAmountChanged
                 )
                 .width(100)
             ),
             control(
                 "Size",
-                slider(0.1..=0.25, self.cubes.size, Message::CubeSizeChanged)
+                slider(0.1..=0.25, self.scene.size, Message::CubeSizeChanged)
                     .step(0.01)
                     .width(100),
             ),
             checkbox(
                 "Show Depth Buffer",
-                self.cubes.show_depth_buffer,
+                self.scene.show_depth_buffer,
                 Message::ShowDepthBuffer
             ),
         ]
@@ -110,10 +110,10 @@ impl Application for IcedCubes {
         let bottom_controls = row![
             control(
                 "R",
-                slider(0.0..=1.0, self.cubes.light_color.r, move |r| {
+                slider(0.0..=1.0, self.scene.light_color.r, move |r| {
                     Message::LightColorChanged(Color {
                         r,
-                        ..self.cubes.light_color
+                        ..self.scene.light_color
                     })
                 })
                 .step(0.01)
@@ -121,10 +121,10 @@ impl Application for IcedCubes {
             ),
             control(
                 "G",
-                slider(0.0..=1.0, self.cubes.light_color.g, move |g| {
+                slider(0.0..=1.0, self.scene.light_color.g, move |g| {
                     Message::LightColorChanged(Color {
                         g,
-                        ..self.cubes.light_color
+                        ..self.scene.light_color
                     })
                 })
                 .step(0.01)
@@ -132,10 +132,10 @@ impl Application for IcedCubes {
             ),
             control(
                 "B",
-                slider(0.0..=1.0, self.cubes.light_color.b, move |b| {
+                slider(0.0..=1.0, self.scene.light_color.b, move |b| {
                     Message::LightColorChanged(Color {
                         b,
-                        ..self.cubes.light_color
+                        ..self.scene.light_color
                     })
                 })
                 .step(0.01)
@@ -149,7 +149,7 @@ impl Application for IcedCubes {
             .align_items(Alignment::Center);
 
         let shader =
-            shader(&self.cubes).width(Length::Fill).height(Length::Fill);
+            shader(&self.scene).width(Length::Fill).height(Length::Fill);
 
         container(
             column![shader, controls, vertical_space(20),]

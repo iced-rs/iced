@@ -12,7 +12,7 @@ use std::time::Duration;
 pub const MAX: u32 = 500;
 
 #[derive(Clone)]
-pub struct Cubes {
+pub struct Scene {
     pub size: f32,
     pub cubes: Vec<Cube>,
     pub camera: Camera,
@@ -20,9 +20,9 @@ pub struct Cubes {
     pub light_color: Color,
 }
 
-impl Cubes {
+impl Scene {
     pub fn new() -> Self {
-        let mut cubes = Self {
+        let mut scene = Self {
             size: 0.2,
             cubes: vec![],
             camera: Camera::default(),
@@ -30,9 +30,9 @@ impl Cubes {
             light_color: Color::WHITE,
         };
 
-        cubes.adjust_num_cubes(MAX);
+        scene.change_amount(MAX);
 
-        cubes
+        scene
     }
 
     pub fn update(&mut self, time: Duration) {
@@ -41,13 +41,13 @@ impl Cubes {
         }
     }
 
-    pub fn adjust_num_cubes(&mut self, num_cubes: u32) {
+    pub fn change_amount(&mut self, amount: u32) {
         let curr_cubes = self.cubes.len() as u32;
 
-        match num_cubes.cmp(&curr_cubes) {
+        match amount.cmp(&curr_cubes) {
             Ordering::Greater => {
                 // spawn
-                let cubes_2_spawn = (num_cubes - curr_cubes) as usize;
+                let cubes_2_spawn = (amount - curr_cubes) as usize;
 
                 let mut cubes = 0;
                 self.cubes.extend(iter::from_fn(|| {
@@ -61,7 +61,7 @@ impl Cubes {
             }
             Ordering::Less => {
                 // chop
-                let cubes_2_cut = curr_cubes - num_cubes;
+                let cubes_2_cut = curr_cubes - amount;
                 let new_len = self.cubes.len() - cubes_2_cut as usize;
                 self.cubes.truncate(new_len);
             }
@@ -70,7 +70,7 @@ impl Cubes {
     }
 }
 
-impl<Message> shader::Program<Message> for Cubes {
+impl<Message> shader::Program<Message> for Scene {
     type State = ();
     type Primitive = primitive::Primitive;
 
