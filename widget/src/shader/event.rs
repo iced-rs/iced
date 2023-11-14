@@ -1,9 +1,8 @@
 //! Handle events of a custom shader widget.
 use crate::core::keyboard;
 use crate::core::mouse;
+use crate::core::time::Instant;
 use crate::core::touch;
-
-use std::time::Instant;
 
 pub use crate::core::event::Status;
 
