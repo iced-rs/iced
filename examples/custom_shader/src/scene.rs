@@ -1,13 +1,21 @@
-use crate::camera::Camera;
-use crate::primitive;
-use crate::primitive::cube::Cube;
-use glam::Vec3;
+mod camera;
+mod pipeline;
+
+use camera::Camera;
+use pipeline::Pipeline;
+
+use crate::wgpu;
+use pipeline::cube::{self, Cube};
+
+use iced::mouse;
+use iced::time::Duration;
 use iced::widget::shader;
-use iced::{mouse, Color, Rectangle};
+use iced::{Color, Rectangle, Size};
+
+use glam::Vec3;
 use rand::Rng;
 use std::cmp::Ordering;
 use std::iter;
-use std::time::Duration;
 
 pub const MAX: u32 = 500;
 
@@ -72,7 +80,7 @@ impl Scene {
 
 impl<Message> shader::Program<Message> for Scene {
     type State = ();
-    type Primitive = primitive::Primitive;
+    type Primitive = Primitive;
 
     fn draw(
         &self,
@@ -80,13 +88,92 @@ impl<Message> shader::Program<Message> for Scene {
         _cursor: mouse::Cursor,
         bounds: Rectangle,
     ) -> Self::Primitive {
-        primitive::Primitive::new(
+        Primitive::new(
             &self.cubes,
             &self.camera,
             bounds,
             self.show_depth_buffer,
             self.light_color,
         )
+    }
+}
+
+/// A collection of `Cube`s that can be rendered.
+#[derive(Debug)]
+pub struct Primitive {
+    cubes: Vec<cube::Raw>,
+    uniforms: pipeline::Uniforms,
+    show_depth_buffer: bool,
+}
+
+impl Primitive {
+    pub fn new(
+        cubes: &[Cube],
+        camera: &Camera,
+        bounds: Rectangle,
+        show_depth_buffer: bool,
+        light_color: Color,
+    ) -> Self {
+        let uniforms = pipeline::Uniforms::new(camera, bounds, light_color);
+
+        Self {
+            cubes: cubes
+                .iter()
+                .map(cube::Raw::from_cube)
+                .collect::<Vec<cube::Raw>>(),
+            uniforms,
+            show_depth_buffer,
+        }
+    }
+}
+
+impl shader::Primitive for Primitive {
+    fn prepare(
+        &self,
+        format: wgpu::TextureFormat,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        target_size: Size<u32>,
+        _scale_factor: f32,
+        _transform: shader::Transformation,
+        storage: &mut shader::Storage,
+    ) {
+        if !storage.has::<Pipeline>() {
+            storage.store(Pipeline::new(device, queue, format, target_size));
+        }
+
+        let pipeline = storage.get_mut::<Pipeline>().unwrap();
+
+        //upload data to GPU
+        pipeline.update(
+            device,
+            queue,
+            target_size,
+            &self.uniforms,
+            self.cubes.len(),
+            &self.cubes,
+        );
+    }
+
+    fn render(
+        &self,
+        storage: &shader::Storage,
+        bounds: Rectangle<u32>,
+        target: &wgpu::TextureView,
+        _target_size: Size<u32>,
+        encoder: &mut wgpu::CommandEncoder,
+    ) {
+        //at this point our pipeline should always be initialized
+        let pipeline = storage.get::<Pipeline>().unwrap();
+
+        //render primitive
+        pipeline.render(
+            target,
+            encoder,
+            bounds,
+            self.cubes.len() as u32,
+            self.show_depth_buffer,
+        );
     }
 }
 

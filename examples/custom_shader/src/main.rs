@@ -1,11 +1,6 @@
-mod camera;
-mod pipeline;
-mod primitive;
 mod scene;
 
-use crate::camera::Camera;
-use crate::pipeline::Pipeline;
-use crate::scene::Scene;
+use scene::Scene;
 
 use iced::executor;
 use iced::time::Instant;

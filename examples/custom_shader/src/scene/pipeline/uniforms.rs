@@ -1,4 +1,5 @@
-use crate::camera::Camera;
+use crate::scene::Camera;
+
 use iced::{Color, Rectangle};
 
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
