@@ -65,7 +65,7 @@ impl Cubes {
                 let new_len = self.cubes.len() - cubes_2_cut as usize;
                 self.cubes.truncate(new_len);
             }
-            _ => {}
+            Ordering::Equal => {}
         }
     }
 }

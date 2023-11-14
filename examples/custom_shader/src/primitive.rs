@@ -56,7 +56,7 @@ impl shader::Primitive for Primitive {
         storage: &mut shader::Storage,
     ) {
         if !storage.has::<Pipeline>() {
-            storage.store(Pipeline::new(device, queue, format, target_size))
+            storage.store(Pipeline::new(device, queue, format, target_size));
         }
 
         let pipeline = storage.get_mut::<Pipeline>().unwrap();
@@ -90,6 +90,6 @@ impl shader::Primitive for Primitive {
             bounds,
             self.cubes.len() as u32,
             self.show_depth_buffer,
-        )
+        );
     }
 }

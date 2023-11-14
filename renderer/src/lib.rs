@@ -76,7 +76,7 @@ impl<T> Renderer<T> {
             Renderer::Wgpu(renderer) => {
                 renderer.draw_primitive(iced_wgpu::Primitive::Custom(
                     iced_wgpu::primitive::Custom::shader(bounds, primitive),
-                ))
+                ));
             }
         }
     }
