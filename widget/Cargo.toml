@@ -20,6 +20,7 @@ image = ["iced_renderer/image"]
 svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
+wgpu = ["iced_renderer/wgpu"]
 
 [dependencies]
 iced_renderer.workspace = true

@@ -2,6 +2,7 @@ use crate::core::{Color, Size};
 use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::{Transformation, Viewport};
+use crate::primitive::pipeline;
 use crate::primitive::{self, Primitive};
 use crate::quad;
 use crate::text;
@@ -25,6 +26,7 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
+    pipeline_storage: pipeline::Storage,
 
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
@@ -50,6 +52,7 @@ impl Backend {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
+            pipeline_storage: pipeline::Storage::default(),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
@@ -66,6 +69,7 @@ impl Backend {
         queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
         clear_color: Option<Color>,
+        format: wgpu::TextureFormat,
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
         viewport: &Viewport,
@@ -88,6 +92,7 @@ impl Backend {
         self.prepare(
             device,
             queue,
+            format,
             encoder,
             scale_factor,
             target_size,
@@ -117,6 +122,7 @@ impl Backend {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        format: wgpu::TextureFormat,
         _encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         target_size: Size<u32>,
@@ -179,6 +185,20 @@ impl Backend {
                     target_size,
                 );
             }
+
+            if !layer.pipelines.is_empty() {
+                for pipeline in &layer.pipelines {
+                    pipeline.primitive.prepare(
+                        format,
+                        device,
+                        queue,
+                        target_size,
+                        scale_factor,
+                        transformation,
+                        &mut self.pipeline_storage,
+                    );
+                }
+            }
         }
     }
 
@@ -202,7 +222,7 @@ impl Backend {
 
         let mut render_pass = ManuallyDrop::new(encoder.begin_render_pass(
             &wgpu::RenderPassDescriptor {
-                label: Some("iced_wgpu::quad render pass"),
+                label: Some("iced_wgpu render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: target,
                     resolve_target: None,
@@ -265,7 +285,7 @@ impl Backend {
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
-                        label: Some("iced_wgpu::quad render pass"),
+                        label: Some("iced_wgpu render pass"),
                         color_attachments: &[Some(
                             wgpu::RenderPassColorAttachment {
                                 view: target,
@@ -301,6 +321,45 @@ impl Backend {
                     .render(text_layer, bounds, &mut render_pass);
 
                 text_layer += 1;
+            }
+
+            if !layer.pipelines.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
+                for pipeline in &layer.pipelines {
+                    let bounds = (pipeline.bounds * scale_factor).snap();
+
+                    if bounds.width < 1 || bounds.height < 1 {
+                        continue;
+                    }
+
+                    pipeline.primitive.render(
+                        &self.pipeline_storage,
+                        bounds,
+                        target,
+                        target_size,
+                        encoder,
+                    );
+                }
+
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: target,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            },
+                        )],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    },
+                ));
             }
         }
 

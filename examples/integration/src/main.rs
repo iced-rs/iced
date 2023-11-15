@@ -272,6 +272,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 &queue,
                                 &mut encoder,
                                 None,
+                                frame.texture.format(),
                                 &view,
                                 primitive,
                                 &viewport,

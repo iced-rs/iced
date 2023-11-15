@@ -20,7 +20,7 @@ maintenance = { status = "actively-developed" }
 [features]
 default = ["wgpu"]
 # Enable the `wgpu` GPU-accelerated renderer backend
-wgpu = ["iced_renderer/wgpu"]
+wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
