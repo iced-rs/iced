@@ -733,14 +733,14 @@ where
                     let cursor_index =
                         find_cursor_position(bounds, value, state, target)
                             .unwrap_or(0);
-                    let (offset, _) = measure_cursor_and_scroll_offset(
+                    let (width, offset) = measure_cursor_and_scroll_offset(
                         &state.value,
                         bounds,
                         cursor_index,
                     );
                     ime.set_ime_position(
-                        (bounds.x + offset) as i32,
-                        bounds.y as i32,
+                        (bounds.x + width - offset) as i32,
+                        (bounds.y + bounds.height) as i32,
                     );
                 } else if focus_lost {
                     let mut editor = Editor::new(value, &mut state.cursor);
@@ -1133,13 +1133,13 @@ where
                 paragraph.update(whole_text);
 
                 {
-                    let (width, _) = measure_cursor_and_scroll_offset(
+                    let (width, offset) = measure_cursor_and_scroll_offset(
                         &paragraph,
                         text_bounds,
                         before_preedit_cursor + preedit_text.chars().count(),
                     );
                     let position = (
-                        (text_bounds.x + width) as i32,
+                        (text_bounds.x + width - offset) as i32,
                         (text_bounds.y + text_bounds.height) as i32,
                     );
                     ime.set_ime_position(position.0, position.1);
