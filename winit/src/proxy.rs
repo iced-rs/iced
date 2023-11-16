@@ -1,9 +1,26 @@
+use iced_runtime::{proxy::{self, Action}, Command, command};
+
 use crate::futures::futures::{
     channel::mpsc,
     task::{Context, Poll},
     Sink,
 };
 use std::pin::Pin;
+
+
+/// Query for available system information.
+pub fn fetch_proxy<Message>(
+    f: impl Fn(Box<dyn proxy::Proxy>) -> Message + Send + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Proxy(Action::QueryProxy(
+        Box::new(f),
+    )))
+}
+
+impl proxy::Proxy<Message: 'static>  for winit::event_loop::EventLoopProxy<Message> {
+    
+}
+
 
 /// An event loop proxy that implements `Sink`.
 #[derive(Debug)]

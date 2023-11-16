@@ -904,6 +904,17 @@ pub fn run_command<A, C, E>(
                     .send_event(tagger(Ok(())))
                     .expect("Send message to event loop");
             }
+            command::Action::Proxy(action) => {
+                match action {
+                    iced_runtime::proxy::Action::QueryProxy(f) => {
+                        let proxy_cloned = proxy.clone();
+
+                        proxy
+                            .send_event(f(proxy_cloned))
+                            .expect("Send message to event loop");
+                    }
+                }
+            }
         }
     }
 }
