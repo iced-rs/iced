@@ -149,7 +149,9 @@ pub fn window_event(
             winit::event::Ime::Commit(text) => {
                 Some(Event::IME(ime::Event::IMECommit(text.clone())))
             }
-            winit::event::Ime::Disabled => None,
+            winit::event::Ime::Disabled => {
+                Some(Event::IME(ime::Event::IMEDisabled))
+            }
         },
         _ => None,
     }

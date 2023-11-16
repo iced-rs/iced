@@ -14,4 +14,6 @@ pub enum Event {
 
     /// enter input.
     IMECommit(String),
+    /// Notifies when the IME was disabled.
+    IMEDisabled,
 }

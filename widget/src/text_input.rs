@@ -1088,9 +1088,15 @@ where
         }
         Event::IME(ime::Event::IMEPreedit(preedit_text, range)) => {
             let state = state();
+            if let ("", None) = (preedit_text.as_str(), range) {
+                state.ime_state = None;
+                return event::Status::Captured;
+            }
+
             if state.is_focused.is_none() || is_secure {
                 return event::Status::Ignored;
             }
+
             if let Some(focus) = &mut state.is_focused {
                 // calcurate where we need to place candidate window.
                 let text_bounds = layout.children().next().unwrap().bounds();
@@ -1212,6 +1218,11 @@ where
                     return event::Status::Captured;
                 }
             }
+        }
+        Event::IME(ime::Event::IMEDisabled) => {
+            let state = state();
+            state.ime_state = None;
+            return event::Status::Captured;
         }
         _ => {}
     }
