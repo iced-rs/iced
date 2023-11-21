@@ -231,6 +231,7 @@ mod modal {
     use iced::mouse;
     use iced::{
         BorderRadius, Color, Element, Event, Length, Point, Rectangle, Size,
+        Vector,
     };
 
     /// A widget that centers a modal element over some base element
@@ -413,6 +414,7 @@ mod modal {
             renderer: &Renderer,
             _bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, self.size)
                 .width(Length::Fill)
