@@ -325,6 +325,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        _translation: Vector,
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 

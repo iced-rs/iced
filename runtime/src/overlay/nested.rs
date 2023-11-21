@@ -4,7 +4,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Event, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 
 /// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
@@ -33,19 +35,18 @@ where
         &mut self,
         renderer: &Renderer,
         bounds: Size,
-        position: Point,
+        _position: Point,
+        translation: Vector,
     ) -> layout::Node {
         fn recurse<Message, Renderer>(
             element: &mut overlay::Element<'_, Message, Renderer>,
             renderer: &Renderer,
             bounds: Size,
-            position: Point,
+            translation: Vector,
         ) -> layout::Node
         where
             Renderer: renderer::Renderer,
         {
-            let translation = position - Point::ORIGIN;
-
             let node = element.layout(renderer, bounds, translation);
 
             if let Some(mut nested) =
@@ -55,7 +56,7 @@ where
                     node.size(),
                     vec![
                         node,
-                        recurse(&mut nested, renderer, bounds, position),
+                        recurse(&mut nested, renderer, bounds, translation),
                     ],
                 )
             } else {
@@ -63,7 +64,7 @@ where
             }
         }
 
-        recurse(&mut self.overlay, renderer, bounds, position)
+        recurse(&mut self.overlay, renderer, bounds, translation)
     }
 
     /// Draws the [`Nested`] overlay using the associated `Renderer`.

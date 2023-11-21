@@ -511,6 +511,7 @@ mod toast {
             renderer: &Renderer,
             bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds)
                 .width(Length::Fill)
