@@ -577,9 +577,10 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }
