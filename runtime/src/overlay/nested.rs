@@ -35,14 +35,13 @@ where
         &mut self,
         renderer: &Renderer,
         bounds: Size,
-        position: Point,
+        _position: Point,
         translation: Vector,
     ) -> layout::Node {
         fn recurse<Message, Renderer>(
             element: &mut overlay::Element<'_, Message, Renderer>,
             renderer: &Renderer,
             bounds: Size,
-            position: Point,
             translation: Vector,
         ) -> layout::Node
         where
@@ -57,13 +56,7 @@ where
                     node.size(),
                     vec![
                         node,
-                        recurse(
-                            &mut nested,
-                            renderer,
-                            bounds,
-                            position,
-                            translation,
-                        ),
+                        recurse(&mut nested, renderer, bounds, translation),
                     ],
                 )
             } else {
@@ -71,7 +64,7 @@ where
             }
         }
 
-        recurse(&mut self.overlay, renderer, bounds, position, translation)
+        recurse(&mut self.overlay, renderer, bounds, translation)
     }
 
     /// Draws the [`Nested`] overlay using the associated `Renderer`.
