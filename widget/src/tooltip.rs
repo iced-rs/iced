@@ -157,10 +157,18 @@ where
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
 
+        let was_idle = *state == State::Idle;
+
         *state = cursor
             .position_over(layout.bounds())
             .map(|cursor_position| State::Hovered { cursor_position })
             .unwrap_or_default();
+
+        let is_idle = *state == State::Idle;
+
+        if was_idle != is_idle {
+            shell.invalidate_layout();
+        }
 
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -289,7 +297,7 @@ pub enum Position {
     Right,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 enum State {
     #[default]
     Idle,
