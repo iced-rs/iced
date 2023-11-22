@@ -17,7 +17,9 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
-use crate::core::{self, Clipboard, Hasher, IME,Length, Point, Rectangle, Shell, Size, Vector};
+use crate::core::{
+    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size, Vector, IME,
+};
 use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;

@@ -6,9 +6,9 @@ use crate::renderer;
 use crate::widget;
 
 use crate::{
-    Clipboard, Event,IME, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
+    Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
+    IME,
 };
-
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.

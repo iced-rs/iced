@@ -5,7 +5,10 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{self, Clipboard, Element,IME, Length, Point, Rectangle, Shell, Size, Vector,Widget};
+use crate::core::{
+    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget, IME,
+};
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
 
