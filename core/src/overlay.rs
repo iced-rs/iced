@@ -10,8 +10,9 @@ use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Clipboard,IME, Layout, Point, Rectangle, Shell, Size, Vector};
-
+use crate::{
+    layout, Clipboard, Layout, Point, Rectangle, Shell, Size, Vector, IME,
+};
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Renderer>
