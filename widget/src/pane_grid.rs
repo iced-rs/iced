@@ -43,7 +43,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Size, Vector, Widget, IME,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -320,6 +320,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -361,6 +362,7 @@ where
                     cursor,
                     renderer,
                     clipboard,
+                    ime,
                     shell,
                     viewport,
                     is_picked,

@@ -17,9 +17,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
-use crate::core::{
-    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{self, Clipboard, Hasher, IME,Length, Point, Rectangle, Shell, Size, Vector};
 use crate::runtime::overlay::Nested;
 
 use ouroboros::self_referencing;
@@ -188,6 +186,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -199,6 +198,7 @@ where
                 cursor,
                 renderer,
                 clipboard,
+                ime,
                 shell,
                 viewport,
             )
@@ -374,10 +374,13 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell)
+            overlay.on_event(
+                event, layout, cursor, renderer, clipboard, ime, shell,
+            )
         })
         .unwrap_or(event::Status::Ignored)
     }

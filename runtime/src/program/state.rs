@@ -2,7 +2,7 @@ use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
-use crate::core::{Clipboard, Size};
+use crate::core::{Clipboard, Size, IME};
 use crate::user_interface::{self, UserInterface};
 use crate::{Command, Debug, Program};
 
@@ -94,6 +94,7 @@ where
         theme: &<P::Renderer as iced_core::Renderer>::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
@@ -112,6 +113,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             &mut messages,
         );
 

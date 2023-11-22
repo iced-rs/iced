@@ -12,7 +12,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::window;
-use crate::core::{Clipboard, Element, Length, Rectangle, Shell, Size};
+use crate::core::{Clipboard, Element, Length, Rectangle, Shell, Size, IME};
 use crate::renderer::wgpu::primitive::pipeline;
 
 use std::marker::PhantomData;
@@ -99,6 +99,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

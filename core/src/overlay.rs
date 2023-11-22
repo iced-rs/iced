@@ -6,12 +6,12 @@ pub use element::Element;
 pub use group::Group;
 
 use crate::event::{self, Event};
-use crate::layout;
 use crate::mouse;
 use crate::renderer;
 use crate::widget;
 use crate::widget::Tree;
-use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
+use crate::{Clipboard,IME, Layout, Point, Rectangle, Shell, Size, Vector};
+
 
 /// An interactive component that can be displayed on top of other widgets.
 pub trait Overlay<Message, Renderer>
@@ -70,6 +70,7 @@ where
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         event::Status::Ignored

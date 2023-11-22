@@ -37,6 +37,7 @@ pub use winit;
 pub mod application;
 pub mod clipboard;
 pub mod conversion;
+pub mod ime;
 pub mod settings;
 
 #[cfg(feature = "system")]
@@ -52,6 +53,7 @@ pub use application::Application;
 pub use application::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
+pub use ime::IME;
 pub use position::Position;
 pub use proxy::Proxy;
 pub use settings::Settings;

@@ -4,9 +4,11 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
+
 use crate::{
-    Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
+    Clipboard, Event,IME, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
 };
+
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -85,6 +87,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.children
@@ -97,6 +100,7 @@ where
                     cursor,
                     renderer,
                     clipboard,
+                    ime,
                     shell,
                 )
             })

@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Vector, Widget, IME,
 };
 
 use std::hash::Hash;
@@ -150,6 +150,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         _shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

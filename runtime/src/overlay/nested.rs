@@ -1,3 +1,5 @@
+use iced_core::IME;
+
 use crate::core::event;
 use crate::core::layout;
 use crate::core::mouse;
@@ -176,6 +178,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         fn recurse<Message, Renderer>(
@@ -185,6 +188,7 @@ where
             cursor: mouse::Cursor,
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
+            ime: &dyn IME,
             shell: &mut Shell<'_, Message>,
         ) -> (event::Status, bool)
         where
@@ -204,6 +208,7 @@ where
                             cursor,
                             renderer,
                             clipboard,
+                            ime,
                             shell,
                         )
                     } else {
@@ -234,6 +239,7 @@ where
                             },
                             renderer,
                             clipboard,
+                            ime,
                             shell,
                         ),
                         is_over,
@@ -253,6 +259,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             shell,
         );
 

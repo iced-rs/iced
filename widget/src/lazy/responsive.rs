@@ -5,10 +5,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
-};
+use crate::core::{self, Clipboard, Element,IME, Length, Point, Rectangle, Shell, Size, Vector,Widget};
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
 
@@ -183,6 +180,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -205,6 +203,7 @@ where
                     cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut local_shell,
                     viewport,
                 )
@@ -409,10 +408,13 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell)
+            overlay.on_event(
+                event, layout, cursor, renderer, clipboard, ime, shell,
+            )
         })
         .unwrap_or(event::Status::Ignored)
     }
