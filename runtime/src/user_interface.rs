@@ -7,7 +7,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -202,7 +204,8 @@ where
             let bounds = self.bounds;
 
             let mut overlay = manual_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds, Point::ORIGIN);
+            let mut layout =
+                overlay.layout(renderer, bounds, Point::ORIGIN, Vector::ZERO);
             let mut event_statuses = Vec::new();
 
             for event in events.iter().cloned() {
@@ -257,8 +260,12 @@ where
                     overlay = manual_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|| {
-                        layout =
-                            overlay.layout(renderer, bounds, Point::ORIGIN);
+                        layout = overlay.layout(
+                            renderer,
+                            bounds,
+                            Point::ORIGIN,
+                            Vector::ZERO,
+                        );
                     });
                 }
 
@@ -456,7 +463,12 @@ where
             .map(overlay::Nested::new)
         {
             let overlay_layout = self.overlay.take().unwrap_or_else(|| {
-                overlay.layout(renderer, self.bounds, Point::ORIGIN)
+                overlay.layout(
+                    renderer,
+                    self.bounds,
+                    Point::ORIGIN,
+                    Vector::ZERO,
+                )
             });
 
             let cursor = if cursor
@@ -574,8 +586,12 @@ where
             .map(overlay::Nested::new)
         {
             if self.overlay.is_none() {
-                self.overlay =
-                    Some(overlay.layout(renderer, self.bounds, Point::ORIGIN));
+                self.overlay = Some(overlay.layout(
+                    renderer,
+                    self.bounds,
+                    Point::ORIGIN,
+                    Vector::ZERO,
+                ));
             }
 
             overlay.operate(
