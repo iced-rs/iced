@@ -861,6 +861,7 @@ pub fn run_command<A, C, E>(
                     .send_event(tagger(Ok(())))
                     .expect("Send message to event loop");
             }
+            command::Action::PlatformSpecific(_) => unimplemented!(),
         }
     }
 }

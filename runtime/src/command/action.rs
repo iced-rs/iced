@@ -5,6 +5,7 @@ use crate::system;
 use crate::window;
 
 use iced_futures::MaybeSend;
+use std::any::Any;
 
 use std::borrow::Cow;
 use std::fmt;
@@ -43,6 +44,9 @@ pub enum Action<T> {
         /// The message to produce when the font has been loaded.
         tagger: Box<dyn Fn(Result<(), font::Error>) -> T>,
     },
+
+    /// Pass PlatformSpecific action, for some special platform
+    PlatformSpecific(Box<dyn Any>)
 }
 
 impl<T> Action<T> {
@@ -72,6 +76,7 @@ impl<T> Action<T> {
                 bytes,
                 tagger: Box::new(move |result| f(tagger(result))),
             },
+            Self::PlatformSpecific(special) => Action::PlatformSpecific(special)
         }
     }
 }
@@ -90,6 +95,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),
+            Self::PlatformSpecific(_) => write!(f, "Action::PlatformSpecific")
         }
     }
 }
