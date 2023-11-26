@@ -288,7 +288,7 @@ fn update<Message: Clone, Theme, Renderer>(
     | Event::Touch(touch::Event::FingerMoved { id: _, position }) = event
     {
         let state: &mut State = tree.state.downcast_mut();
-        handle_mouse_move(widget, state, shell, *position, layout.bounds())
+        handle_mouse_move(widget, state, shell, *position, layout.bounds());
     }
 
     if !cursor.is_over(layout.bounds()) {
@@ -376,15 +376,15 @@ fn handle_mouse_move<Message: Clone, Theme, Renderer>(
         widget.on_mouse_exit.as_mut(),
     ) {
         (Some(enter_msg), _, _) if mouse_in_area && !state.mouse_in_area => {
-            shell.publish(enter_msg.clone())
+            shell.publish(enter_msg.clone());
         }
         (_, Some(build_move_msg), _)
             if mouse_in_area && state.mouse_in_area =>
         {
-            shell.publish(build_move_msg(position))
+            shell.publish(build_move_msg(position));
         }
         (_, _, Some(exit_msg)) if !mouse_in_area && state.mouse_in_area => {
-            shell.publish(exit_msg.clone())
+            shell.publish(exit_msg.clone());
         }
         _ => {}
     }
