@@ -7,7 +7,7 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["debug", "canvas", "tokio"]
+iced.features = ["debug", "canvas", "image", "tokio"]
 
 itertools = "0.12"
 rustc-hash.workspace = true

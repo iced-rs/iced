@@ -210,6 +210,7 @@ mod grid {
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
     use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
+    use iced::widget::image;
     use iced::{
         Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -581,6 +582,27 @@ mod grid {
                             Color {
                                 a: 0.5,
                                 ..Color::BLACK
+                            },
+                        );
+
+                        let ferris_path = if cfg!(target_arch = "wasm32") {
+                            "game_of_life/images/ferris.png".to_string()
+                        } else {
+                            format!(
+                                "{}/images/ferris.png",
+                                env!("CARGO_MANIFEST_DIR")
+                            )
+                        };
+                        let handle = image::Handle::from_path(ferris_path);
+
+                        frame.draw_image(
+                            handle,
+                            image::FilterMethod::Nearest,
+                            Rectangle {
+                                x: cell.j as f32,
+                                y: cell.i as f32,
+                                width: Cell::SIZE as f32,
+                                height: Cell::SIZE as f32,
                             },
                         );
                     });
