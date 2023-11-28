@@ -5,9 +5,7 @@ use scene::Scene;
 use iced::executor;
 use iced::time::Instant;
 use iced::widget::shader::wgpu;
-use iced::widget::{
-    checkbox, column, container, row, shader, slider, text, vertical_space,
-};
+use iced::widget::{checkbox, column, container, row, shader, slider, text};
 use iced::window;
 use iced::{
     Alignment, Application, Color, Command, Element, Length, Renderer,
@@ -138,21 +136,18 @@ impl Application for IcedCubes {
 
         let controls = column![top_controls, bottom_controls,]
             .spacing(10)
+            .padding(20)
             .align_items(Alignment::Center);
 
         let shader =
             shader(&self.scene).width(Length::Fill).height(Length::Fill);
 
-        container(
-            column![shader, controls, vertical_space(20),]
-                .spacing(40)
-                .align_items(Alignment::Center),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+        container(column![shader, controls].align_items(Alignment::Center))
+            .width(Length::Fill)
+            .height(Length::Fill)
+            .center_x()
+            .center_y()
+            .into()
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

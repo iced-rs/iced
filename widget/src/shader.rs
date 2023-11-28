@@ -17,7 +17,6 @@ use crate::renderer::wgpu::primitive::pipeline;
 
 use std::marker::PhantomData;
 
-pub use crate::graphics::Transformation;
 pub use crate::renderer::wgpu::wgpu;
 pub use pipeline::{Primitive, Storage};
 

@@ -351,7 +351,7 @@ impl Pipeline {
         &self,
         target: &wgpu::TextureView,
         encoder: &mut wgpu::CommandEncoder,
-        bounds: Rectangle<u32>,
+        viewport: Rectangle<u32>,
         num_cubes: u32,
         show_depth: bool,
     ) {
@@ -384,10 +384,10 @@ impl Pipeline {
                 });
 
             pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
+                viewport.x,
+                viewport.y,
+                viewport.width,
+                viewport.height,
             );
             pass.set_pipeline(&self.pipeline);
             pass.set_bind_group(0, &self.uniform_bind_group, &[]);
@@ -397,7 +397,7 @@ impl Pipeline {
         }
 
         if show_depth {
-            self.depth_pipeline.render(encoder, target, bounds);
+            self.depth_pipeline.render(encoder, target, viewport);
         }
     }
 }
@@ -550,7 +550,7 @@ impl DepthPipeline {
         &self,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        bounds: Rectangle<u32>,
+        viewport: Rectangle<u32>,
     ) {
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("cubes.pipeline.depth_pass"),
@@ -573,7 +573,12 @@ impl DepthPipeline {
             occlusion_query_set: None,
         });
 
-        pass.set_scissor_rect(bounds.x, bounds.y, bounds.width, bounds.height);
+        pass.set_scissor_rect(
+            viewport.x,
+            viewport.y,
+            viewport.width,
+            viewport.height,
+        );
         pass.set_pipeline(&self.pipeline);
         pass.set_bind_group(0, &self.bind_group, &[]);
         pass.draw(0..6, 0..1);

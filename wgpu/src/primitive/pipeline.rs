@@ -1,6 +1,5 @@
 //! Draw primitives using custom pipelines.
 use crate::core::{Rectangle, Size};
-use crate::graphics::Transformation;
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -41,9 +40,9 @@ pub trait Primitive: Debug + Send + Sync + 'static {
         format: wgpu::TextureFormat,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        bounds: Rectangle,
         target_size: Size<u32>,
         scale_factor: f32,
-        transform: Transformation,
         storage: &mut Storage,
     );
 
@@ -51,9 +50,9 @@ pub trait Primitive: Debug + Send + Sync + 'static {
     fn render(
         &self,
         storage: &Storage,
-        bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
         target_size: Size<u32>,
+        viewport: Rectangle<u32>,
         encoder: &mut wgpu::CommandEncoder,
     );
 }
