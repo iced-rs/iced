@@ -1,6 +1,7 @@
 //! Build and draw geometry.
 use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::color;
+use crate::graphics::core::image;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
     LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
@@ -344,6 +345,21 @@ impl Frame {
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
+        });
+    }
+
+    /// Draws the contents of given [`image::Handle`] on the [`Frame`],
+    /// filling the [`Rectangle`] bounds.
+    pub fn draw_image(
+        &mut self,
+        handle: image::Handle,
+        filter_method: image::FilterMethod,
+        bounds: Rectangle,
+    ) {
+        self.primitives.push(Primitive::Image {
+            handle,
+            filter_method,
+            bounds,
         });
     }
 
