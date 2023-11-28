@@ -190,7 +190,6 @@ pub use crate::core::{
     color, Alignment, Background, BorderRadius, Color, ContentFit, Degrees,
     Gradient, Length, Padding, Pixels, Point, Radians, Rectangle, Size, Vector,
 };
-pub use crate::runtime::Command;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -237,6 +236,11 @@ pub mod mouse {
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
     };
+}
+
+pub mod command {
+    //! Run asynchronous actions.
+    pub use crate::runtime::command::{channel, Command};
 }
 
 pub mod subscription {
@@ -287,6 +291,7 @@ pub mod widget {
 }
 
 pub use application::Application;
+pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

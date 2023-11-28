@@ -7,6 +7,7 @@ use crate::core::widget;
 use crate::futures::futures;
 use crate::futures::MaybeSend;
 
+use futures::channel::mpsc;
 use futures::Stream;
 use std::fmt;
 use std::future::Future;
@@ -117,4 +118,24 @@ impl<T> fmt::Debug for Command<T> {
 
         command.fmt(f)
     }
+}
+
+/// Creates a [`Command`] that produces the `Message`s published from a [`Future`]
+/// to an [`mpsc::Sender`] with the given bounds.
+pub fn channel<Fut, Message>(
+    size: usize,
+    f: impl FnOnce(mpsc::Sender<Message>) -> Fut + MaybeSend + 'static,
+) -> Command<Message>
+where
+    Fut: Future<Output = ()> + MaybeSend + 'static,
+    Message: 'static + MaybeSend,
+{
+    use futures::future;
+    use futures::stream::{self, StreamExt};
+
+    let (sender, receiver) = mpsc::channel(size);
+
+    let runner = stream::once(f(sender)).filter_map(|_| future::ready(None));
+
+    Command::single(Action::Stream(Box::pin(stream::select(receiver, runner))))
 }
