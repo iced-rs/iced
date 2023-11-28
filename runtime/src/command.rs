@@ -4,8 +4,10 @@ mod action;
 pub use action::Action;
 
 use crate::core::widget;
+use crate::futures::futures;
 use crate::futures::MaybeSend;
 
+use futures::Stream;
 use std::fmt;
 use std::future::Future;
 
@@ -43,9 +45,19 @@ impl<T> Command<T> {
         future: impl Future<Output = A> + 'static + MaybeSend,
         f: impl FnOnce(A) -> T + 'static + MaybeSend,
     ) -> Command<T> {
-        use iced_futures::futures::FutureExt;
+        use futures::FutureExt;
 
         Command::single(Action::Future(Box::pin(future.map(f))))
+    }
+
+    /// Creates a [`Command`] that runs the given stream to completion.
+    pub fn run<A>(
+        stream: impl Stream<Item = A> + 'static + MaybeSend,
+        f: impl Fn(A) -> T + 'static + MaybeSend,
+    ) -> Command<T> {
+        use futures::StreamExt;
+
+        Command::single(Action::Stream(Box::pin(stream.map(f))))
     }
 
     /// Creates a [`Command`] that performs the actions of all the given

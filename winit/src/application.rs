@@ -736,6 +736,9 @@ pub fn run_command<A, C, E>(
             command::Action::Future(future) => {
                 runtime.spawn(future);
             }
+            command::Action::Stream(stream) => {
+                runtime.run(stream);
+            }
             command::Action::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
