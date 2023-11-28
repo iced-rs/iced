@@ -133,9 +133,9 @@ impl shader::Primitive for Primitive {
         format: wgpu::TextureFormat,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        _bounds: Rectangle,
         target_size: Size<u32>,
         _scale_factor: f32,
-        _transform: shader::Transformation,
         storage: &mut shader::Storage,
     ) {
         if !storage.has::<Pipeline>() {
@@ -158,9 +158,9 @@ impl shader::Primitive for Primitive {
     fn render(
         &self,
         storage: &shader::Storage,
-        bounds: Rectangle<u32>,
         target: &wgpu::TextureView,
         _target_size: Size<u32>,
+        viewport: Rectangle<u32>,
         encoder: &mut wgpu::CommandEncoder,
     ) {
         //at this point our pipeline should always be initialized
@@ -170,7 +170,7 @@ impl shader::Primitive for Primitive {
         pipeline.render(
             target,
             encoder,
-            bounds,
+            viewport,
             self.cubes.len() as u32,
             self.show_depth_buffer,
         );

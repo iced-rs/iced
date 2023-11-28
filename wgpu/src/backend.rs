@@ -192,9 +192,9 @@ impl Backend {
                         format,
                         device,
                         queue,
+                        pipeline.bounds,
                         target_size,
                         scale_factor,
-                        transformation,
                         &mut self.pipeline_storage,
                     );
                 }
@@ -327,17 +327,17 @@ impl Backend {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
                 for pipeline in &layer.pipelines {
-                    let bounds = (pipeline.bounds * scale_factor).snap();
+                    let viewport = (pipeline.viewport * scale_factor).snap();
 
-                    if bounds.width < 1 || bounds.height < 1 {
+                    if viewport.width < 1 || viewport.height < 1 {
                         continue;
                     }
 
                     pipeline.primitive.render(
                         &self.pipeline_storage,
-                        bounds,
                         target,
                         target_size,
+                        viewport,
                         encoder,
                     );
                 }
