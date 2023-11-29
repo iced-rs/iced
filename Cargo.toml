@@ -49,10 +49,10 @@ web-colors = ["iced_renderer/web-colors"]
 webgl = ["iced_renderer/webgl"]
 # Enables the syntax `highlighter` module
 highlighter = ["iced_highlighter"]
-# Enables the advanced module
-advanced = []
 # Enables experimental multi-window support.
 multi-window = ["iced_winit/multi-window"]
+# Enables the advanced module
+advanced = []
 
 [dependencies]
 iced_core.workspace = true
