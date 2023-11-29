@@ -62,6 +62,8 @@ pub use crate::style::application::{Appearance, StyleSheet};
 ///     }
 /// }
 /// ```
+///
+/// [`Sandbox`]: crate::Sandbox
 pub trait Application: Sized {
     /// The [`Executor`] that will run commands and subscriptions.
     ///

@@ -12,7 +12,7 @@ pub struct Settings<Flags> {
     /// communicate with it through the windowing system.
     pub id: Option<String>,
 
-    /// The [`Window`] settings.
+    /// The [`window::Settings`].
     pub window: window::Settings,
 
     /// The data needed to initialize an [`Application`].

@@ -17,7 +17,7 @@ pub enum Action<T> {
     Drag,
     /// Spawns a new window.
     Spawn {
-        /// The settings of the [`Window`].
+        /// The settings of the window.
         settings: Settings,
     },
     /// Resize the window.

@@ -200,9 +200,7 @@ where
     /// window.
     ///
     /// Normally, an [`Application`] should be synchronized with its [`State`]
-    /// and window after calling [`Application::update`].
-    ///
-    /// [`Application::update`]: crate::Program::update
+    /// and window after calling [`State::update`].
     pub fn synchronize(
         &mut self,
         application: &A,

@@ -201,7 +201,7 @@ where
         (uncaptured_events, commands)
     }
 
-    /// Applies [`widget::Operation`]s to the [`State`]
+    /// Applies widget [`Operation`]s to the [`State`].
     pub fn operate(
         &mut self,
         renderer: &mut P::Renderer,

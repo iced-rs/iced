@@ -23,34 +23,19 @@ use std::mem::ManuallyDrop;
 use std::time::Instant;
 use winit::monitor::MonitorHandle;
 
-/// This is a wrapper around the `Application::Message` associate type
-/// to allows the `shell` to create internal messages, while still having
-/// the current user-specified custom messages.
 #[derive(Debug)]
-pub enum Event<Message> {
-    /// An internal event which contains an [`Application`] generated message.
+enum Event<Message> {
     Application(Message),
-    /// An internal event which spawns a new window.
     NewWindow {
-        /// The [window::Id] of the newly spawned [`Window`].
         id: window::Id,
-        /// The [settings::Window] of the newly spawned [`Window`].
         settings: window::Settings,
-        /// The title of the newly spawned [`Window`].
         title: String,
-        /// The monitor on which to spawn the window. If `None`, will use monitor of the last window
-        /// spawned.
         monitor: Option<MonitorHandle>,
     },
-    /// An internal event for closing a window.
     CloseWindow(window::Id),
-    /// An internal event for when the window has finished being created.
     WindowCreated {
-        /// The internal ID of the window.
         id: window::Id,
-        /// The raw window.
         window: winit::window::Window,
-        /// Whether or not the window should close when a user requests it does.
         exit_on_close_request: bool,
     },
 }
@@ -771,7 +756,7 @@ async fn run_instance<A, E, C>(
 }
 
 /// Builds a window's [`UserInterface`] for the [`Application`].
-pub fn build_user_interface<'a, A: Application>(
+fn build_user_interface<'a, A: Application>(
     application: &'a A,
     cache: user_interface::Cache,
     renderer: &mut A::Renderer,
@@ -795,7 +780,7 @@ where
 
 /// Updates a multi-window [`Application`] by feeding it messages, spawning any
 /// resulting [`Command`], and tracking its [`Subscription`].
-pub fn update<A: Application, C, E: Executor>(
+fn update<A: Application, C, E: Executor>(
     application: &mut A,
     compositor: &mut C,
     runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
@@ -834,7 +819,7 @@ pub fn update<A: Application, C, E: Executor>(
 }
 
 /// Runs the actions of a [`Command`].
-pub fn run_command<A, C, E>(
+fn run_command<A, C, E>(
     application: &A,
     compositor: &mut C,
     command: Command<A::Message>,

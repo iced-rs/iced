@@ -272,7 +272,7 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
-/// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
+/// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
