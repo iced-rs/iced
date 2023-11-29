@@ -22,25 +22,6 @@ use crate::{Clipboard, Error, Proxy, Settings};
 use std::mem::ManuallyDrop;
 use std::time::Instant;
 
-enum Event<Message: 'static> {
-    WindowCreated {
-        id: window::Id,
-        window: winit::window::Window,
-        exit_on_close_request: bool,
-    },
-    EventLoopAwakened(winit::event::Event<'static, Message>),
-}
-
-enum Control {
-    ChangeFlow(winit::event_loop::ControlFlow),
-    CreateWindow {
-        id: window::Id,
-        settings: window::Settings,
-        title: String,
-        monitor: Option<winit::monitor::MonitorHandle>,
-    },
-}
-
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
 /// This trait is the main entrypoint of multi-window Iced. Once implemented, you can run
@@ -297,6 +278,25 @@ where
             }
         }
     })
+}
+
+enum Event<Message: 'static> {
+    WindowCreated {
+        id: window::Id,
+        window: winit::window::Window,
+        exit_on_close_request: bool,
+    },
+    EventLoopAwakened(winit::event::Event<'static, Message>),
+}
+
+enum Control {
+    ChangeFlow(winit::event_loop::ControlFlow),
+    CreateWindow {
+        id: window::Id,
+        settings: window::Settings,
+        title: String,
+        monitor: Option<winit::monitor::MonitorHandle>,
+    },
 }
 
 async fn run_instance<A, E, C>(
