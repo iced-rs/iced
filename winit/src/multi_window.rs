@@ -8,7 +8,7 @@ use crate::conversion;
 use crate::core::widget::operation;
 use crate::core::{self, mouse, renderer, window, Size};
 use crate::futures::futures::channel::mpsc;
-use crate::futures::futures::{task, Future, FutureExt, StreamExt};
+use crate::futures::futures::{task, Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::windows::Windows;
@@ -21,22 +21,23 @@ use crate::{Clipboard, Error, Proxy, Settings};
 
 use std::mem::ManuallyDrop;
 use std::time::Instant;
-use winit::monitor::MonitorHandle;
 
-#[derive(Debug)]
-enum Event<Message> {
-    Application(Message),
-    NewWindow {
-        id: window::Id,
-        settings: window::Settings,
-        title: String,
-        monitor: Option<MonitorHandle>,
-    },
-    CloseWindow(window::Id),
+enum Event<Message: 'static> {
     WindowCreated {
         id: window::Id,
         window: winit::window::Window,
         exit_on_close_request: bool,
+    },
+    EventLoopAwakened(winit::event::Event<'static, Message>),
+}
+
+enum Control {
+    ChangeFlow(winit::event_loop::ControlFlow),
+    CreateWindow {
+        id: window::Id,
+        settings: window::Settings,
+        title: String,
+        monitor: Option<winit::monitor::MonitorHandle>,
     },
 }
 
@@ -243,44 +244,57 @@ where
                 event: winit::event::WindowEvent::Resized(*new_inner_size),
                 window_id,
             }),
-            winit::event::Event::UserEvent(Event::NewWindow {
-                id,
-                settings,
-                title,
-                monitor,
-            }) => {
-                let exit_on_close_request = settings.exit_on_close_request;
-
-                let window = conversion::window_settings(
-                    settings, &title, monitor, None,
-                )
-                .build(window_target)
-                .expect("Failed to build window");
-
-                Some(winit::event::Event::UserEvent(Event::WindowCreated {
-                    id,
-                    window,
-                    exit_on_close_request,
-                }))
-            }
             _ => event.to_static(),
         };
 
         if let Some(event) = event {
-            event_sender.start_send(event).expect("Send event");
+            event_sender
+                .start_send(Event::EventLoopAwakened(event))
+                .expect("Send event");
 
-            let poll = instance.as_mut().poll(&mut context);
+            loop {
+                let poll = instance.as_mut().poll(&mut context);
 
-            match poll {
-                task::Poll::Pending => {
-                    if let Ok(Some(flow)) = control_receiver.try_next() {
-                        *control_flow = flow;
+                match poll {
+                    task::Poll::Pending => match control_receiver.try_next() {
+                        Ok(Some(control)) => match control {
+                            Control::ChangeFlow(flow) => {
+                                *control_flow = flow;
+                            }
+                            Control::CreateWindow {
+                                id,
+                                settings,
+                                title,
+                                monitor,
+                            } => {
+                                let exit_on_close_request =
+                                    settings.exit_on_close_request;
+
+                                let window = conversion::window_settings(
+                                    settings, &title, monitor, None,
+                                )
+                                .build(window_target)
+                                .expect("Failed to build window");
+
+                                event_sender
+                                    .start_send(Event::WindowCreated {
+                                        id,
+                                        window,
+                                        exit_on_close_request,
+                                    })
+                                    .expect("Send event");
+                            }
+                        },
+                        _ => {
+                            break;
+                        }
+                    },
+                    task::Poll::Ready(_) => {
+                        *control_flow = ControlFlow::Exit;
+                        break;
                     }
-                }
-                task::Poll::Ready(_) => {
-                    *control_flow = ControlFlow::Exit;
-                }
-            };
+                };
+            }
         }
     })
 }
@@ -288,13 +302,11 @@ where
 async fn run_instance<A, E, C>(
     mut application: A,
     mut compositor: C,
-    mut runtime: Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
-    mut proxy: winit::event_loop::EventLoopProxy<Event<A::Message>>,
+    mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
+    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
     mut debug: Debug,
-    mut event_receiver: mpsc::UnboundedReceiver<
-        winit::event::Event<'_, Event<A::Message>>,
-    >,
-    mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
+    mut event_receiver: mpsc::UnboundedReceiver<Event<A::Message>>,
+    mut control_sender: mpsc::UnboundedSender<Control>,
     init_command: Command<A::Message>,
     mut windows: Windows<A, C>,
     should_main_window_be_visible: bool,
@@ -327,18 +339,14 @@ async fn run_instance<A, E, C>(
         init_command,
         &mut runtime,
         &mut clipboard,
+        &mut control_sender,
         &mut proxy,
         &mut debug,
         &mut windows,
         &mut ui_caches,
     );
 
-    runtime.track(
-        application
-            .subscription()
-            .map(Event::Application)
-            .into_recipes(),
-    );
+    runtime.track(application.subscription().into_recipes());
 
     let mut mouse_interaction = mouse::Interaction::default();
 
@@ -361,391 +369,409 @@ async fn run_instance<A, E, C>(
 
     'main: while let Some(event) = event_receiver.next().await {
         match event {
-            event::Event::NewEvents(start_cause) => {
-                redraw_pending = matches!(
-                    start_cause,
-                    event::StartCause::Init
-                        | event::StartCause::Poll
-                        | event::StartCause::ResumeTimeReached { .. }
+            Event::WindowCreated {
+                id,
+                window,
+                exit_on_close_request,
+            } => {
+                let bounds = logical_bounds_of(&window);
+
+                let (inner_size, i) = windows.add(
+                    &application,
+                    &mut compositor,
+                    id,
+                    window,
+                    exit_on_close_request,
                 );
-            }
-            event::Event::MainEventsCleared => {
-                debug.event_processing_started();
-                let mut uis_stale = false;
 
-                for (i, id) in windows.ids.iter().enumerate() {
-                    let mut window_events = vec![];
+                user_interfaces.push(build_user_interface(
+                    &application,
+                    user_interface::Cache::default(),
+                    &mut windows.renderers[i],
+                    inner_size,
+                    &mut debug,
+                    id,
+                ));
+                ui_caches.push(user_interface::Cache::default());
 
-                    events.retain(|(window_id, event)| {
-                        if *window_id == Some(*id) || window_id.is_none() {
-                            window_events.push(event.clone());
-                            false
-                        } else {
-                            true
-                        }
-                    });
-
-                    if !redraw_pending
-                        && window_events.is_empty()
-                        && messages.is_empty()
-                    {
-                        continue;
-                    }
-
-                    let (ui_state, statuses) = user_interfaces[i].update(
-                        &window_events,
-                        windows.states[i].cursor(),
-                        &mut windows.renderers[i],
-                        &mut clipboard,
-                        &mut messages,
-                    );
-
-                    if !uis_stale {
-                        uis_stale =
-                            matches!(ui_state, user_interface::State::Outdated);
-                    }
-
-                    for (event, status) in
-                        window_events.into_iter().zip(statuses.into_iter())
-                    {
-                        runtime.broadcast(event, status);
-                    }
-                }
-
-                debug.event_processing_finished();
-
-                // TODO mw application update returns which window IDs to update
-                if !messages.is_empty() || uis_stale {
-                    let mut cached_interfaces: Vec<user_interface::Cache> =
-                        ManuallyDrop::into_inner(user_interfaces)
-                            .drain(..)
-                            .map(UserInterface::into_cache)
-                            .collect();
-
-                    // Update application
-                    update(
-                        &mut application,
-                        &mut compositor,
-                        &mut runtime,
-                        &mut clipboard,
-                        &mut proxy,
-                        &mut debug,
-                        &mut messages,
-                        &mut windows,
-                        &mut cached_interfaces,
-                    );
-
-                    // we must synchronize all window states with application state after an
-                    // application update since we don't know what changed
-                    for (state, (id, window)) in windows
-                        .states
-                        .iter_mut()
-                        .zip(windows.ids.iter().zip(windows.raw.iter()))
-                    {
-                        state.synchronize(&application, *id, window);
-                    }
-
-                    // rebuild UIs with the synchronized states
-                    user_interfaces = ManuallyDrop::new(build_user_interfaces(
-                        &application,
-                        &mut debug,
-                        &mut windows,
-                        cached_interfaces,
+                if let Some(bounds) = bounds {
+                    events.push((
+                        Some(id),
+                        core::Event::Window(
+                            id,
+                            window::Event::Created {
+                                position: bounds.0,
+                                size: bounds.1,
+                            },
+                        ),
                     ));
                 }
-
-                debug.draw_started();
-
-                for (i, id) in windows.ids.iter().enumerate() {
-                    // TODO: Avoid redrawing all the time by forcing widgets to
-                    //  request redraws on state changes
-                    //
-                    // Then, we can use the `interface_state` here to decide if a redraw
-                    // is needed right away, or simply wait until a specific time.
-                    let redraw_event = core::Event::Window(
-                        *id,
-                        window::Event::RedrawRequested(Instant::now()),
-                    );
-
-                    let cursor = windows.states[i].cursor();
-
-                    let (ui_state, _) = user_interfaces[i].update(
-                        &[redraw_event.clone()],
-                        cursor,
-                        &mut windows.renderers[i],
-                        &mut clipboard,
-                        &mut messages,
-                    );
-
-                    let new_mouse_interaction = {
-                        let state = &windows.states[i];
-
-                        user_interfaces[i].draw(
-                            &mut windows.renderers[i],
-                            state.theme(),
-                            &renderer::Style {
-                                text_color: state.text_color(),
-                            },
-                            cursor,
-                        )
-                    };
-
-                    if new_mouse_interaction != mouse_interaction {
-                        windows.raw[i].set_cursor_icon(
-                            conversion::mouse_interaction(
-                                new_mouse_interaction,
-                            ),
-                        );
-
-                        mouse_interaction = new_mouse_interaction;
-                    }
-
-                    // TODO once widgets can request to be redrawn, we can avoid always requesting a
-                    // redraw
-                    windows.raw[i].request_redraw();
-
-                    runtime.broadcast(
-                        redraw_event.clone(),
-                        core::event::Status::Ignored,
-                    );
-
-                    let _ = control_sender.start_send(match ui_state {
-                        user_interface::State::Updated {
-                            redraw_request: Some(redraw_request),
-                        } => match redraw_request {
-                            window::RedrawRequest::NextFrame => {
-                                ControlFlow::Poll
-                            }
-                            window::RedrawRequest::At(at) => {
-                                ControlFlow::WaitUntil(at)
-                            }
-                        },
-                        _ => ControlFlow::Wait,
-                    });
-                }
-
-                redraw_pending = false;
-
-                debug.draw_finished();
             }
-            event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
-                event::MacOS::ReceivedUrl(url),
-            )) => {
-                use crate::core::event;
+            Event::EventLoopAwakened(event) => {
+                match event {
+                    event::Event::NewEvents(start_cause) => {
+                        redraw_pending = matches!(
+                            start_cause,
+                            event::StartCause::Init
+                                | event::StartCause::Poll
+                                | event::StartCause::ResumeTimeReached { .. }
+                        );
+                    }
+                    event::Event::MainEventsCleared => {
+                        debug.event_processing_started();
+                        let mut uis_stale = false;
 
-                events.push((
-                    None,
+                        for (i, id) in windows.ids.iter().enumerate() {
+                            let mut window_events = vec![];
+
+                            events.retain(|(window_id, event)| {
+                                if *window_id == Some(*id)
+                                    || window_id.is_none()
+                                {
+                                    window_events.push(event.clone());
+                                    false
+                                } else {
+                                    true
+                                }
+                            });
+
+                            if !redraw_pending
+                                && window_events.is_empty()
+                                && messages.is_empty()
+                            {
+                                continue;
+                            }
+
+                            let (ui_state, statuses) = user_interfaces[i]
+                                .update(
+                                    &window_events,
+                                    windows.states[i].cursor(),
+                                    &mut windows.renderers[i],
+                                    &mut clipboard,
+                                    &mut messages,
+                                );
+
+                            if !uis_stale {
+                                uis_stale = matches!(
+                                    ui_state,
+                                    user_interface::State::Outdated
+                                );
+                            }
+
+                            for (event, status) in window_events
+                                .into_iter()
+                                .zip(statuses.into_iter())
+                            {
+                                runtime.broadcast(event, status);
+                            }
+                        }
+
+                        debug.event_processing_finished();
+
+                        // TODO mw application update returns which window IDs to update
+                        if !messages.is_empty() || uis_stale {
+                            let mut cached_interfaces: Vec<
+                                user_interface::Cache,
+                            > = ManuallyDrop::into_inner(user_interfaces)
+                                .drain(..)
+                                .map(UserInterface::into_cache)
+                                .collect();
+
+                            // Update application
+                            update(
+                                &mut application,
+                                &mut compositor,
+                                &mut runtime,
+                                &mut clipboard,
+                                &mut control_sender,
+                                &mut proxy,
+                                &mut debug,
+                                &mut messages,
+                                &mut windows,
+                                &mut cached_interfaces,
+                            );
+
+                            // we must synchronize all window states with application state after an
+                            // application update since we don't know what changed
+                            for (state, (id, window)) in windows
+                                .states
+                                .iter_mut()
+                                .zip(windows.ids.iter().zip(windows.raw.iter()))
+                            {
+                                state.synchronize(&application, *id, window);
+                            }
+
+                            // rebuild UIs with the synchronized states
+                            user_interfaces =
+                                ManuallyDrop::new(build_user_interfaces(
+                                    &application,
+                                    &mut debug,
+                                    &mut windows,
+                                    cached_interfaces,
+                                ));
+                        }
+
+                        debug.draw_started();
+
+                        for (i, id) in windows.ids.iter().enumerate() {
+                            // TODO: Avoid redrawing all the time by forcing widgets to
+                            //  request redraws on state changes
+                            //
+                            // Then, we can use the `interface_state` here to decide if a redraw
+                            // is needed right away, or simply wait until a specific time.
+                            let redraw_event = core::Event::Window(
+                                *id,
+                                window::Event::RedrawRequested(Instant::now()),
+                            );
+
+                            let cursor = windows.states[i].cursor();
+
+                            let (ui_state, _) = user_interfaces[i].update(
+                                &[redraw_event.clone()],
+                                cursor,
+                                &mut windows.renderers[i],
+                                &mut clipboard,
+                                &mut messages,
+                            );
+
+                            let new_mouse_interaction = {
+                                let state = &windows.states[i];
+
+                                user_interfaces[i].draw(
+                                    &mut windows.renderers[i],
+                                    state.theme(),
+                                    &renderer::Style {
+                                        text_color: state.text_color(),
+                                    },
+                                    cursor,
+                                )
+                            };
+
+                            if new_mouse_interaction != mouse_interaction {
+                                windows.raw[i].set_cursor_icon(
+                                    conversion::mouse_interaction(
+                                        new_mouse_interaction,
+                                    ),
+                                );
+
+                                mouse_interaction = new_mouse_interaction;
+                            }
+
+                            // TODO once widgets can request to be redrawn, we can avoid always requesting a
+                            // redraw
+                            windows.raw[i].request_redraw();
+
+                            runtime.broadcast(
+                                redraw_event.clone(),
+                                core::event::Status::Ignored,
+                            );
+
+                            let _ = control_sender.start_send(
+                                Control::ChangeFlow(match ui_state {
+                                    user_interface::State::Updated {
+                                        redraw_request: Some(redraw_request),
+                                    } => match redraw_request {
+                                        window::RedrawRequest::NextFrame => {
+                                            ControlFlow::Poll
+                                        }
+                                        window::RedrawRequest::At(at) => {
+                                            ControlFlow::WaitUntil(at)
+                                        }
+                                    },
+                                    _ => ControlFlow::Wait,
+                                }),
+                            );
+                        }
+
+                        redraw_pending = false;
+
+                        debug.draw_finished();
+                    }
                     event::Event::PlatformSpecific(
                         event::PlatformSpecific::MacOS(
                             event::MacOS::ReceivedUrl(url),
                         ),
-                    ),
-                ));
-            }
-            event::Event::UserEvent(event) => match event {
-                Event::Application(message) => {
-                    messages.push(message);
-                }
-                Event::WindowCreated {
-                    id,
-                    window,
-                    exit_on_close_request,
-                } => {
-                    let bounds = logical_bounds_of(&window);
+                    ) => {
+                        use crate::core::event;
 
-                    let (inner_size, i) = windows.add(
-                        &application,
-                        &mut compositor,
-                        id,
-                        window,
-                        exit_on_close_request,
-                    );
-
-                    user_interfaces.push(build_user_interface(
-                        &application,
-                        user_interface::Cache::default(),
-                        &mut windows.renderers[i],
-                        inner_size,
-                        &mut debug,
-                        id,
-                    ));
-                    ui_caches.push(user_interface::Cache::default());
-
-                    if let Some(bounds) = bounds {
                         events.push((
-                            Some(id),
-                            core::Event::Window(
-                                id,
-                                window::Event::Created {
-                                    position: bounds.0,
-                                    size: bounds.1,
-                                },
+                            None,
+                            event::Event::PlatformSpecific(
+                                event::PlatformSpecific::MacOS(
+                                    event::MacOS::ReceivedUrl(url),
+                                ),
                             ),
                         ));
                     }
-                }
-                Event::CloseWindow(id) => {
-                    let i = windows.delete(id);
-                    let _ = user_interfaces.remove(i);
-                    let _ = ui_caches.remove(i);
-
-                    if windows.is_empty() {
-                        break 'main;
+                    event::Event::UserEvent(message) => {
+                        messages.push(message);
                     }
-                }
-                Event::NewWindow { .. } => unreachable!(),
-            },
-            event::Event::RedrawRequested(id) => {
-                let i = windows.index_from_raw(id);
-                let state = &windows.states[i];
-                let physical_size = state.physical_size();
+                    event::Event::RedrawRequested(id) => {
+                        let i = windows.index_from_raw(id);
+                        let state = &windows.states[i];
+                        let physical_size = state.physical_size();
 
-                if physical_size.width == 0 || physical_size.height == 0 {
-                    continue;
-                }
-
-                debug.render_started();
-                let current_viewport_version = state.viewport_version();
-                let window_viewport_version = windows.viewport_versions[i];
-
-                if window_viewport_version != current_viewport_version {
-                    let logical_size = state.logical_size();
-
-                    debug.layout_started();
-
-                    let renderer = &mut windows.renderers[i];
-                    let ui = user_interfaces.remove(i);
-
-                    user_interfaces
-                        .insert(i, ui.relayout(logical_size, renderer));
-
-                    debug.layout_finished();
-
-                    debug.draw_started();
-                    let new_mouse_interaction = user_interfaces[i].draw(
-                        renderer,
-                        state.theme(),
-                        &renderer::Style {
-                            text_color: state.text_color(),
-                        },
-                        state.cursor(),
-                    );
-
-                    if new_mouse_interaction != mouse_interaction {
-                        windows.raw[i].set_cursor_icon(
-                            conversion::mouse_interaction(
-                                new_mouse_interaction,
-                            ),
-                        );
-
-                        mouse_interaction = new_mouse_interaction;
-                    }
-                    debug.draw_finished();
-
-                    compositor.configure_surface(
-                        &mut windows.surfaces[i],
-                        physical_size.width,
-                        physical_size.height,
-                    );
-
-                    windows.viewport_versions[i] = current_viewport_version;
-                }
-
-                match compositor.present(
-                    &mut windows.renderers[i],
-                    &mut windows.surfaces[i],
-                    state.viewport(),
-                    state.background_color(),
-                    &debug.overlay(),
-                ) {
-                    Ok(()) => {
-                        debug.render_finished();
-
-                        // TODO: Handle animations!
-                        // Maybe we can use `ControlFlow::WaitUntil` for this.
-                    }
-                    Err(error) => match error {
-                        // This is an unrecoverable error.
-                        compositor::SurfaceError::OutOfMemory => {
-                            panic!("{:?}", error);
+                        if physical_size.width == 0 || physical_size.height == 0
+                        {
+                            continue;
                         }
-                        _ => {
-                            debug.render_finished();
-                            log::error!(
+
+                        debug.render_started();
+                        let current_viewport_version = state.viewport_version();
+                        let window_viewport_version =
+                            windows.viewport_versions[i];
+
+                        if window_viewport_version != current_viewport_version {
+                            let logical_size = state.logical_size();
+
+                            debug.layout_started();
+
+                            let renderer = &mut windows.renderers[i];
+                            let ui = user_interfaces.remove(i);
+
+                            user_interfaces
+                                .insert(i, ui.relayout(logical_size, renderer));
+
+                            debug.layout_finished();
+
+                            debug.draw_started();
+                            let new_mouse_interaction = user_interfaces[i]
+                                .draw(
+                                    renderer,
+                                    state.theme(),
+                                    &renderer::Style {
+                                        text_color: state.text_color(),
+                                    },
+                                    state.cursor(),
+                                );
+
+                            if new_mouse_interaction != mouse_interaction {
+                                windows.raw[i].set_cursor_icon(
+                                    conversion::mouse_interaction(
+                                        new_mouse_interaction,
+                                    ),
+                                );
+
+                                mouse_interaction = new_mouse_interaction;
+                            }
+                            debug.draw_finished();
+
+                            compositor.configure_surface(
+                                &mut windows.surfaces[i],
+                                physical_size.width,
+                                physical_size.height,
+                            );
+
+                            windows.viewport_versions[i] =
+                                current_viewport_version;
+                        }
+
+                        match compositor.present(
+                            &mut windows.renderers[i],
+                            &mut windows.surfaces[i],
+                            state.viewport(),
+                            state.background_color(),
+                            &debug.overlay(),
+                        ) {
+                            Ok(()) => {
+                                debug.render_finished();
+
+                                // TODO: Handle animations!
+                                // Maybe we can use `ControlFlow::WaitUntil` for this.
+                            }
+                            Err(error) => match error {
+                                // This is an unrecoverable error.
+                                compositor::SurfaceError::OutOfMemory => {
+                                    panic!("{:?}", error);
+                                }
+                                _ => {
+                                    debug.render_finished();
+                                    log::error!(
                                 "Error {error:?} when presenting surface."
                             );
 
-                            // Try rendering all windows again next frame.
-                            for window in &windows.raw {
-                                window.request_redraw();
-                            }
+                                    // Try rendering all windows again next frame.
+                                    for window in &windows.raw {
+                                        window.request_redraw();
+                                    }
+                                }
+                            },
                         }
-                    },
-                }
-            }
-            event::Event::WindowEvent {
-                event: window_event,
-                window_id,
-            } => {
-                let window_index =
-                    windows.raw.iter().position(|w| w.id() == window_id);
+                    }
+                    event::Event::WindowEvent {
+                        event: window_event,
+                        window_id,
+                    } => {
+                        let window_index = windows
+                            .raw
+                            .iter()
+                            .position(|w| w.id() == window_id);
 
-                match window_index {
-                    Some(i) => {
-                        let id = windows.ids[i];
-                        let raw = &windows.raw[i];
-                        let exit_on_close_request =
-                            windows.exit_on_close_requested[i];
+                        match window_index {
+                            Some(i) => {
+                                let id = windows.ids[i];
+                                let raw = &windows.raw[i];
+                                let exit_on_close_request =
+                                    windows.exit_on_close_requested[i];
 
-                        if matches!(
-                            window_event,
-                            winit::event::WindowEvent::CloseRequested
-                        ) && exit_on_close_request
-                        {
-                            let i = windows.delete(id);
-                            let _ = user_interfaces.remove(i);
-                            let _ = ui_caches.remove(i);
+                                if matches!(
+                                    window_event,
+                                    winit::event::WindowEvent::CloseRequested
+                                ) && exit_on_close_request
+                                {
+                                    let i = windows.delete(id);
+                                    let _ = user_interfaces.remove(i);
+                                    let _ = ui_caches.remove(i);
 
-                            if windows.is_empty() {
-                                break 'main;
+                                    if windows.is_empty() {
+                                        break 'main;
+                                    }
+                                } else {
+                                    let state = &mut windows.states[i];
+                                    state.update(
+                                        raw,
+                                        &window_event,
+                                        &mut debug,
+                                    );
+
+                                    if let Some(event) =
+                                        conversion::window_event(
+                                            id,
+                                            &window_event,
+                                            state.scale_factor(),
+                                            state.modifiers(),
+                                        )
+                                    {
+                                        events.push((Some(id), event));
+                                    }
+                                }
                             }
-                        } else {
-                            let state = &mut windows.states[i];
-                            state.update(raw, &window_event, &mut debug);
+                            None => {
+                                // This is the only special case, since in order to trigger the Destroyed event the
+                                // window reference from winit must be dropped, but we still want to inform the
+                                // user that the window was destroyed so they can clean up any specific window
+                                // code for this window
+                                if matches!(
+                                    window_event,
+                                    winit::event::WindowEvent::Destroyed
+                                ) {
+                                    let id =
+                                        windows.get_pending_destroy(window_id);
 
-                            if let Some(event) = conversion::window_event(
-                                id,
-                                &window_event,
-                                state.scale_factor(),
-                                state.modifiers(),
-                            ) {
-                                events.push((Some(id), event));
+                                    events.push((
+                                        None,
+                                        core::Event::Window(
+                                            id,
+                                            window::Event::Destroyed,
+                                        ),
+                                    ));
+                                }
                             }
                         }
                     }
-                    None => {
-                        // This is the only special case, since in order to trigger the Destroyed event the
-                        // window reference from winit must be dropped, but we still want to inform the
-                        // user that the window was destroyed so they can clean up any specific window
-                        // code for this window
-                        if matches!(
-                            window_event,
-                            winit::event::WindowEvent::Destroyed
-                        ) {
-                            let id = windows.get_pending_destroy(window_id);
-
-                            events.push((
-                                None,
-                                core::Event::Window(
-                                    id,
-                                    window::Event::Destroyed,
-                                ),
-                            ));
-                        }
-                    }
+                    _ => {}
                 }
             }
-            _ => {}
         }
     }
 
@@ -780,9 +806,10 @@ where
 fn update<A: Application, C, E: Executor>(
     application: &mut A,
     compositor: &mut C,
-    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
+    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
+    control_sender: &mut mpsc::UnboundedSender<Control>,
+    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     windows: &mut Windows<A, C>,
@@ -804,6 +831,7 @@ fn update<A: Application, C, E: Executor>(
             command,
             runtime,
             clipboard,
+            control_sender,
             proxy,
             debug,
             windows,
@@ -811,7 +839,7 @@ fn update<A: Application, C, E: Executor>(
         );
     }
 
-    let subscription = application.subscription().map(Event::Application);
+    let subscription = application.subscription();
     runtime.track(subscription.into_recipes());
 }
 
@@ -820,9 +848,10 @@ fn run_command<A, C, E>(
     application: &A,
     compositor: &mut C,
     command: Command<A::Message>,
-    runtime: &mut Runtime<E, Proxy<Event<A::Message>>, Event<A::Message>>,
+    runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
-    proxy: &mut winit::event_loop::EventLoopProxy<Event<A::Message>>,
+    control_sender: &mut mpsc::UnboundedSender<Control>,
+    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     windows: &mut Windows<A, C>,
     ui_caches: &mut Vec<user_interface::Cache>,
@@ -839,17 +868,17 @@ fn run_command<A, C, E>(
     for action in command.actions() {
         match action {
             command::Action::Future(future) => {
-                runtime.spawn(Box::pin(future.map(Event::Application)));
+                runtime.spawn(Box::pin(future));
             }
             command::Action::Stream(stream) => {
-                runtime.run(Box::pin(stream.map(Event::Application)));
+                runtime.run(Box::pin(stream));
             }
             command::Action::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
 
                     proxy
-                        .send_event(Event::Application(message))
+                        .send_event(message)
                         .expect("Send message to event loop");
                 }
                 clipboard::Action::Write(contents) => {
@@ -860,19 +889,28 @@ fn run_command<A, C, E>(
                 window::Action::Spawn { settings } => {
                     let monitor = windows.last_monitor();
 
-                    proxy
-                        .send_event(Event::NewWindow {
+                    control_sender
+                        .start_send(Control::CreateWindow {
                             id,
                             settings,
                             title: application.title(id),
                             monitor,
                         })
-                        .expect("Send message to event loop");
+                        .expect("Send control action");
                 }
                 window::Action::Close => {
-                    proxy
-                        .send_event(Event::CloseWindow(id))
-                        .expect("Send message to event loop");
+                    use winit::event_loop::ControlFlow;
+
+                    let i = windows.delete(id);
+                    let _ = ui_caches.remove(i);
+
+                    if windows.is_empty() {
+                        control_sender
+                            .start_send(Control::ChangeFlow(
+                                ControlFlow::ExitWithCode(0),
+                            ))
+                            .expect("Send control action");
+                    }
                 }
                 window::Action::Drag => {
                     let _ = windows.with_raw(id).drag_window();
@@ -890,10 +928,10 @@ fn run_command<A, C, E>(
                     let size = window.inner_size();
 
                     proxy
-                        .send_event(Event::Application(callback(Size::new(
+                        .send_event(callback(Size::new(
                             size.width,
                             size.height,
-                        ))))
+                        )))
                         .expect("Send message to event loop");
                 }
                 window::Action::Maximize(maximized) => {
@@ -929,7 +967,7 @@ fn run_command<A, C, E>(
                     };
 
                     proxy
-                        .send_event(Event::Application(tag(mode)))
+                        .send_event(tag(mode))
                         .expect("Event loop doesn't exist.");
                 }
                 window::Action::ToggleMaximize => {
@@ -955,10 +993,7 @@ fn run_command<A, C, E>(
                 }
                 window::Action::FetchId(tag) => {
                     proxy
-                        .send_event(Event::Application(tag(windows
-                            .with_raw(id)
-                            .id()
-                            .into())))
+                        .send_event(tag(windows.with_raw(id).id().into()))
                         .expect("Event loop doesn't exist.");
                 }
                 window::Action::Screenshot(tag) => {
@@ -976,11 +1011,9 @@ fn run_command<A, C, E>(
                     );
 
                     proxy
-                        .send_event(Event::Application(tag(
-                            window::Screenshot::new(
-                                bytes,
-                                state.physical_size(),
-                            ),
+                        .send_event(tag(window::Screenshot::new(
+                            bytes,
+                            state.physical_size(),
                         )))
                         .expect("Event loop doesn't exist.");
                 }
@@ -999,7 +1032,7 @@ fn run_command<A, C, E>(
                             let message = _tag(information);
 
                             proxy
-                                .send_event(Event::Application(message))
+                                .send_event(message)
                                 .expect("Event loop doesn't exist.");
                         });
                     }
@@ -1025,7 +1058,7 @@ fn run_command<A, C, E>(
                             operation::Outcome::None => {}
                             operation::Outcome::Some(message) => {
                                 proxy
-                                    .send_event(Event::Application(message))
+                                    .send_event(message)
                                     .expect("Event loop doesn't exist.");
 
                                 // operation completed, don't need to try to operate on rest of UIs
@@ -1051,7 +1084,7 @@ fn run_command<A, C, E>(
                 }
 
                 proxy
-                    .send_event(Event::Application(tagger(Ok(()))))
+                    .send_event(tagger(Ok(())))
                     .expect("Send message to event loop");
             }
         }
