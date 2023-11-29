@@ -1,6 +1,5 @@
-use iced::event::{Event, MacOS, PlatformSpecific};
+use iced::event::{self, Event};
 use iced::executor;
-use iced::subscription;
 use iced::widget::{container, text};
 use iced::{
     Application, Command, Element, Length, Settings, Subscription, Theme,
@@ -37,9 +36,11 @@ impl Application for App {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::EventOccurred(event) => {
-                if let Event::PlatformSpecific(PlatformSpecific::MacOS(
-                    MacOS::ReceivedUrl(url),
-                )) = event
+                if let Event::PlatformSpecific(
+                    event::PlatformSpecific::MacOS(event::MacOS::ReceivedUrl(
+                        url,
+                    )),
+                ) = event
                 {
                     self.url = Some(url);
                 }
@@ -50,7 +51,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events().map(Message::EventOccurred)
+        event::listen().map(Message::EventOccurred)
     }
 
     fn view(&self) -> Element<Message> {

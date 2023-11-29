@@ -18,7 +18,6 @@ use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
-use crate::settings;
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -138,7 +137,7 @@ where
     let should_be_visible = settings.window.visible;
     let exit_on_close_request = settings.window.exit_on_close_request;
 
-    let builder = settings::window_builder(
+    let builder = conversion::window_settings(
         settings.window,
         &application.title(),
         event_loop.primary_monitor(),
@@ -146,7 +145,7 @@ where
     )
     .with_visible(false);
 
-    log::debug!("Window builder: {:#?}", builder);
+    log::debug!("Window builder: {builder:#?}");
 
     let window = builder
         .build(&event_loop)
@@ -163,7 +162,7 @@ where
         let body = document.body().unwrap();
 
         let target = target.and_then(|target| {
-            body.query_selector(&format!("#{}", target))
+            body.query_selector(&format!("#{target}"))
                 .ok()
                 .unwrap_or(None)
         });
@@ -182,7 +181,14 @@ where
         };
     }
 
-    let (compositor, renderer) = C::new(compositor_settings, Some(&window))?;
+    let (compositor, mut renderer) =
+        C::new(compositor_settings, Some(&window))?;
+
+    for font in settings.fonts {
+        use crate::core::text::Renderer;
+
+        renderer.load_font(font);
+    }
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, mut control_receiver) = mpsc::unbounded();
@@ -691,6 +697,9 @@ pub fn run_command<A, C, E>(
             command::Action::Future(future) => {
                 runtime.spawn(future);
             }
+            command::Action::Stream(stream) => {
+                runtime.run(stream);
+            }
             command::Action::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
@@ -729,7 +738,7 @@ pub fn run_command<A, C, E>(
                             size.width,
                             size.height,
                         )))
-                        .expect("Send message to event loop")
+                        .expect("Send message to event loop");
                 }
                 window::Action::Maximize(maximized) => {
                     window.set_maximized(maximized);
@@ -751,7 +760,7 @@ pub fn run_command<A, C, E>(
                     ));
                 }
                 window::Action::ChangeIcon(icon) => {
-                    window.set_window_icon(conversion::icon(icon))
+                    window.set_window_icon(conversion::icon(icon));
                 }
                 window::Action::FetchMode(tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
@@ -765,7 +774,7 @@ pub fn run_command<A, C, E>(
                         .expect("Send message to event loop");
                 }
                 window::Action::ToggleMaximize => {
-                    window.set_maximized(!window.is_maximized())
+                    window.set_maximized(!window.is_maximized());
                 }
                 window::Action::ToggleDecorations => {
                     window.set_decorations(!window.is_decorated());
@@ -800,7 +809,7 @@ pub fn run_command<A, C, E>(
                             bytes,
                             state.physical_size(),
                         )))
-                        .expect("Send message to event loop.")
+                        .expect("Send message to event loop.");
                 }
             },
             command::Action::System(action) => match action {
@@ -818,7 +827,7 @@ pub fn run_command<A, C, E>(
 
                             proxy
                                 .send_event(message)
-                                .expect("Send message to event loop")
+                                .expect("Send message to event loop");
                         });
                     }
                 }

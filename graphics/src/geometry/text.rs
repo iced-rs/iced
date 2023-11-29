@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
-use crate::core::{Color, Font, Point};
+use crate::core::{Color, Font, Pixels, Point};
 
 /// A bunch of text that can be drawn to a canvas
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub struct Text {
     /// The color of the text
     pub color: Color,
     /// The size of the text
-    pub size: f32,
+    pub size: Pixels,
     /// The line height of the text.
     pub line_height: LineHeight,
     /// The font of the text
@@ -38,7 +38,7 @@ impl Default for Text {
             content: String::new(),
             position: Point::ORIGIN,
             color: Color::BLACK,
-            size: 16.0,
+            size: Pixels(16.0),
             line_height: LineHeight::Relative(1.2),
             font: Font::default(),
             horizontal_alignment: alignment::Horizontal::Left,

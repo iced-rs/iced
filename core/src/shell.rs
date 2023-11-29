@@ -35,7 +35,7 @@ impl<'a, Message> Shell<'a, Message> {
         self.messages.push(message);
     }
 
-    /// Requests a new frame to be drawn at the given [`Instant`].
+    /// Requests a new frame to be drawn.
     pub fn request_redraw(&mut self, request: window::RedrawRequest) {
         match self.redraw_request {
             None => {
@@ -48,7 +48,7 @@ impl<'a, Message> Shell<'a, Message> {
         }
     }
 
-    /// Returns the requested [`Instant`] a redraw should happen, if any.
+    /// Returns the request a redraw should happen, if any.
     pub fn redraw_request(&self) -> Option<window::RedrawRequest> {
         self.redraw_request
     }
@@ -71,7 +71,7 @@ impl<'a, Message> Shell<'a, Message> {
         if self.is_layout_invalid {
             self.is_layout_invalid = false;
 
-            f()
+            f();
         }
     }
 

@@ -4,6 +4,7 @@ mod windows;
 
 pub use state::State;
 
+use crate::conversion;
 use crate::core::widget::operation;
 use crate::core::{self, mouse, renderer, window, Size};
 use crate::futures::futures::channel::mpsc;
@@ -15,11 +16,9 @@ use crate::runtime::command::{self, Command};
 use crate::runtime::multi_window::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::Debug;
-use crate::settings::window_builder;
 use crate::style::application::StyleSheet;
-use crate::{conversion, settings, Clipboard, Error, Proxy, Settings};
+use crate::{Clipboard, Error, Proxy, Settings};
 
-use iced_runtime::user_interface::Cache;
 use std::mem::ManuallyDrop;
 use std::time::Instant;
 use winit::monitor::MonitorHandle;
@@ -170,7 +169,7 @@ where
     let should_main_be_visible = settings.window.visible;
     let exit_on_close_request = settings.window.exit_on_close_request;
 
-    let builder = window_builder(
+    let builder = conversion::window_settings(
         settings.window,
         &application.title(window::Id::MAIN),
         event_loop.primary_monitor(),
@@ -270,10 +269,11 @@ where
             }) => {
                 let exit_on_close_request = settings.exit_on_close_request;
 
-                let window =
-                    settings::window_builder(settings, &title, monitor, None)
-                        .build(window_target)
-                        .expect("Failed to build window");
+                let window = conversion::window_settings(
+                    settings, &title, monitor, None,
+                )
+                .build(window_target)
+                .expect("Failed to build window");
 
                 Some(winit::event::Event::UserEvent(Event::WindowCreated {
                     id,
@@ -434,7 +434,7 @@ async fn run_instance<A, E, C>(
 
                 // TODO mw application update returns which window IDs to update
                 if !messages.is_empty() || uis_stale {
-                    let mut cached_interfaces: Vec<Cache> =
+                    let mut cached_interfaces: Vec<user_interface::Cache> =
                         ManuallyDrop::into_inner(user_interfaces)
                             .drain(..)
                             .map(UserInterface::into_cache)
@@ -859,6 +859,9 @@ pub fn run_command<A, C, E>(
             command::Action::Future(future) => {
                 runtime.spawn(Box::pin(future.map(Event::Application)));
             }
+            command::Action::Stream(stream) => {
+                runtime.run(Box::pin(stream.map(Event::Application)));
+            }
             command::Action::Clipboard(action) => match action {
                 clipboard::Action::Read(tag) => {
                     let message = tag(clipboard.read());
@@ -1108,11 +1111,9 @@ pub fn user_force_quit(
     event: &winit::event::WindowEvent<'_>,
     _modifiers: winit::event::ModifiersState,
 ) -> bool {
-    use winit::event::WindowEvent;
-
     match event {
         #[cfg(target_os = "macos")]
-        WindowEvent::KeyboardInput {
+        winit::event::WindowEvent::KeyboardInput {
             input:
                 winit::event::KeyboardInput {
                     virtual_keycode: Some(winit::event::VirtualKeyCode::Q),

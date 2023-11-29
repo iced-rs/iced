@@ -1,7 +1,8 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
+use crate::graphics::text;
 
-use resvg::usvg;
+use resvg::usvg::{self, TreeTextToPath};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::cell::RefCell;
@@ -77,7 +78,7 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let svg = match handle.data() {
+            let mut svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
                         usvg::Tree::from_str(
@@ -92,10 +93,19 @@ impl Cache {
                 }
             };
 
-            entry.insert(svg);
+            if let Some(svg) = &mut svg {
+                if svg.has_text_nodes() {
+                    let mut font_system =
+                        text::font_system().write().expect("Read font system");
+
+                    svg.convert_text(font_system.raw().db_mut());
+                }
+            }
+
+            let _ = entry.insert(svg);
         }
 
-        self.tree_hits.insert(id);
+        let _ = self.tree_hits.insert(id);
         self.trees.get(&id).unwrap().as_ref()
     }
 
@@ -172,16 +182,16 @@ impl Cache {
                 for pixel in
                     bytemuck::cast_slice_mut::<u8, u32>(image.data_mut())
                 {
-                    *pixel = *pixel & 0xFF00FF00
-                        | ((0x000000FF & *pixel) << 16)
-                        | ((0x00FF0000 & *pixel) >> 16);
+                    *pixel = *pixel & 0xFF00_FF00
+                        | ((0x0000_00FF & *pixel) << 16)
+                        | ((0x00FF_0000 & *pixel) >> 16);
                 }
             }
 
-            self.rasters.insert(key, image);
+            let _ = self.rasters.insert(key, image);
         }
 
-        self.raster_hits.insert(key);
+        let _ = self.raster_hits.insert(key);
         self.rasters.get(&key).map(tiny_skia::Pixmap::as_ref)
     }
 

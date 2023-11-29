@@ -6,8 +6,6 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use futures::stream::{self, StreamExt};
-
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use std::marker::PhantomData;
@@ -37,7 +35,7 @@ impl<Theme> Compositor<Theme> {
             ..Default::default()
         });
 
-        log::info!("{:#?}", settings);
+        log::info!("{settings:#?}");
 
         #[cfg(not(target_arch = "wasm32"))]
         if log::max_level() >= log::LevelFilter::Info {
@@ -45,7 +43,7 @@ impl<Theme> Compositor<Theme> {
                 .enumerate_adapters(settings.internal_backend)
                 .map(|adapter| adapter.get_info())
                 .collect();
-            log::info!("Available adapters: {:#?}", available_adapters);
+            log::info!("Available adapters: {available_adapters:#?}");
         }
 
         #[allow(unsafe_code)]
@@ -85,7 +83,7 @@ impl<Theme> Compositor<Theme> {
             })
         })?;
 
-        log::info!("Selected format: {:?}", format);
+        log::info!("Selected format: {format:?}");
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults()
@@ -95,14 +93,15 @@ impl<Theme> Compositor<Theme> {
         let limits =
             [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let limits = limits.into_iter().map(|limits| wgpu::Limits {
+        let mut limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,
             ..limits
         });
 
-        let (device, queue) = stream::iter(limits)
-            .filter_map(|limits| async {
-                adapter.request_device(
+        let (device, queue) =
+            loop {
+                let limits = limits.next()?;
+                let device = adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(
                             "iced_wgpu::window::compositor device descriptor",
@@ -111,11 +110,12 @@ impl<Theme> Compositor<Theme> {
                         limits,
                     },
                     None,
-                ).await.ok()
-            })
-            .boxed()
-            .next()
-            .await?;
+                ).await.ok();
+
+                if let Some(device) = device {
+                    break Some(device);
+                }
+            }?;
 
         Some(Compositor {
             instance,
@@ -178,6 +178,7 @@ pub fn present<Theme, T: AsRef<str>>(
                 &compositor.queue,
                 &mut encoder,
                 Some(background_color),
+                frame.texture.format(),
                 view,
                 primitives,
                 viewport,
@@ -216,11 +217,22 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     ) -> Result<(Self, Self::Renderer), Error> {
         let (compositor, backend) = new(settings, compatible_window)?;
 
-        Ok((compositor, Renderer::new(backend)))
+        Ok((
+            compositor,
+            Renderer::new(
+                backend,
+                settings.default_font,
+                settings.default_text_size,
+            ),
+        ))
     }
 
     fn renderer(&self) -> Self::Renderer {
-        Renderer::new(self.create_backend())
+        Renderer::new(
+            self.create_backend(),
+            self.settings.default_font,
+            self.settings.default_text_size,
+        )
     }
 
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
@@ -354,6 +366,7 @@ pub fn screenshot<Theme, T: AsRef<str>>(
         &compositor.queue,
         &mut encoder,
         Some(background_color),
+        texture.format(),
         &view,
         primitives,
         viewport,

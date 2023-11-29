@@ -107,11 +107,14 @@ where
     Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
     fn children(&self) -> Vec<widget::Tree> {
-        vec![widget::Tree::new(&self.content)]
+        vec![
+            widget::Tree::new(&self.content),
+            widget::Tree::new(&self.tooltip as &dyn Widget<Message, _>),
+        ]
     }
 
     fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        tree.diff_children(&[self.content.as_widget(), &self.tooltip]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -132,10 +135,13 @@ where
 
     fn layout(
         &self,
+        tree: &mut widget::Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.content.as_widget().layout(renderer, limits)
+        self.content
+            .as_widget()
+            .layout(&mut tree.children[0], renderer, limits)
     }
 
     fn on_event(
@@ -147,13 +153,22 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
+
+        let was_idle = *state == State::Idle;
 
         *state = cursor
             .position_over(layout.bounds())
             .map(|cursor_position| State::Hovered { cursor_position })
             .unwrap_or_default();
+
+        let is_idle = *state == State::Idle;
+
+        if was_idle != is_idle {
+            shell.invalidate_layout();
+        }
 
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -163,6 +178,7 @@ where
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -212,8 +228,10 @@ where
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
+        let mut children = tree.children.iter_mut();
+
         let content = self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
+            children.next().unwrap(),
             layout,
             renderer,
         );
@@ -223,6 +241,7 @@ where
                 layout.position(),
                 Box::new(Overlay {
                     tooltip: &self.tooltip,
+                    state: children.next().unwrap(),
                     cursor_position,
                     content_bounds: layout.bounds(),
                     snap_within_viewport: self.snap_within_viewport,
@@ -278,7 +297,7 @@ pub enum Position {
     Right,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 enum State {
     #[default]
     Idle,
@@ -293,6 +312,7 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     tooltip: &'b Text<'a, Renderer>,
+    state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
@@ -309,15 +329,17 @@ where
     Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
-        _position: Point,
+        position: Point,
+        _translation: Vector,
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
         let text_layout = Widget::<(), Renderer>::layout(
             self.tooltip,
+            self.state,
             renderer,
             &layout::Limits::new(
                 Size::ZERO,
@@ -329,45 +351,43 @@ where
         );
 
         let text_bounds = text_layout.bounds();
-        let x_center = self.content_bounds.x
-            + (self.content_bounds.width - text_bounds.width) / 2.0;
-        let y_center = self.content_bounds.y
+        let x_center =
+            position.x + (self.content_bounds.width - text_bounds.width) / 2.0;
+        let y_center = position.y
             + (self.content_bounds.height - text_bounds.height) / 2.0;
 
         let mut tooltip_bounds = {
             let offset = match self.position {
                 Position::Top => Vector::new(
                     x_center,
-                    self.content_bounds.y
-                        - text_bounds.height
-                        - self.gap
-                        - self.padding,
+                    position.y - text_bounds.height - self.gap - self.padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
-                    self.content_bounds.y
+                    position.y
                         + self.content_bounds.height
                         + self.gap
                         + self.padding,
                 ),
                 Position::Left => Vector::new(
-                    self.content_bounds.x
-                        - text_bounds.width
-                        - self.gap
-                        - self.padding,
+                    position.x - text_bounds.width - self.gap - self.padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
-                    self.content_bounds.x
+                    position.x
                         + self.content_bounds.width
                         + self.gap
                         + self.padding,
                     y_center,
                 ),
-                Position::FollowCursor => Vector::new(
-                    self.cursor_position.x,
-                    self.cursor_position.y - text_bounds.height,
-                ),
+                Position::FollowCursor => {
+                    let translation = position - self.content_bounds.position();
+
+                    Vector::new(
+                        self.cursor_position.x,
+                        self.cursor_position.y - text_bounds.height,
+                    ) + translation
+                }
             };
 
             Rectangle {
@@ -425,7 +445,7 @@ where
 
         Widget::<(), Renderer>::draw(
             self.tooltip,
-            &widget::Tree::empty(),
+            self.state,
             renderer,
             theme,
             &defaults,

@@ -24,7 +24,7 @@ pub enum Kind {
 }
 
 impl Kind {
-    fn next(&self) -> Kind {
+    fn next(self) -> Kind {
         match self {
             Kind::Single => Kind::Double,
             Kind::Double => Kind::Triple,
@@ -59,6 +59,11 @@ impl Click {
     /// Returns the [`Kind`] of [`Click`].
     pub fn kind(&self) -> Kind {
         self.kind
+    }
+
+    /// Returns the position of the [`Click`].
+    pub fn position(&self) -> Point {
+        self.position
     }
 
     fn is_consecutive(&self, new_position: Point, time: Instant) -> bool {

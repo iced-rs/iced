@@ -4,7 +4,9 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size};
+use crate::{
+    Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
+};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -61,17 +63,16 @@ where
     Renderer: crate::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
-        position: Point,
+        _position: Point,
+        translation: Vector,
     ) -> layout::Node {
-        let translation = position - Point::ORIGIN;
-
         layout::Node::with_children(
             bounds,
             self.children
-                .iter()
+                .iter_mut()
                 .map(|child| child.layout(renderer, bounds, translation))
                 .collect(),
         )
@@ -138,12 +139,12 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        operation.container(None, &mut |operation| {
+        operation.container(None, layout.bounds(), &mut |operation| {
             self.children.iter_mut().zip(layout.children()).for_each(
                 |(child, layout)| {
                     child.operate(layout, renderer, operation);
                 },
-            )
+            );
         });
     }
 

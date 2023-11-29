@@ -14,6 +14,8 @@ use std::hash::Hasher as _;
 /// If you have an application that continuously returns a [`Subscription`],
 /// you can use a [`Tracker`] to keep track of the different recipes and keep
 /// its executions alive.
+///
+/// [`Subscription`]: crate::Subscription
 #[derive(Debug, Default)]
 pub struct Tracker {
     subscriptions: HashMap<u64, Execution>,
@@ -51,6 +53,7 @@ impl Tracker {
     /// the [`Tracker`] changes.
     ///
     /// [`Recipe`]: crate::subscription::Recipe
+    /// [`Subscription`]: crate::Subscription
     pub fn update<Message, Receiver>(
         &mut self,
         recipes: impl Iterator<Item = Box<dyn Recipe<Output = Message>>>,
@@ -144,8 +147,7 @@ impl Tracker {
             .for_each(|listener| {
                 if let Err(error) = listener.try_send((event.clone(), status)) {
                     log::warn!(
-                        "Error sending event to subscription: {:?}",
-                        error
+                        "Error sending event to subscription: {error:?}"
                     );
                 }
             });

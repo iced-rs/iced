@@ -41,7 +41,7 @@ impl Damage for Mesh {
     }
 }
 
-/// A set of [`Vertex2D`] and indices representing a list of triangles.
+/// A set of vertices and indices representing a list of triangles.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Indexed<T> {
     /// The vertices of the mesh

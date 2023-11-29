@@ -1,11 +1,14 @@
-use crate::window::{Icon, Level, Position};
-
+//! Configure your windows.
 #[cfg(target_os = "windows")]
 #[path = "settings/windows.rs"]
 mod platform;
 
 #[cfg(target_os = "macos")]
 #[path = "settings/macos.rs"]
+mod platform;
+
+#[cfg(target_os = "linux")]
+#[path = "settings/linux.rs"]
 mod platform;
 
 #[cfg(target_arch = "wasm32")]
@@ -15,13 +18,15 @@ mod platform;
 #[cfg(not(any(
     target_os = "windows",
     target_os = "macos",
+    target_os = "linux",
     target_arch = "wasm32"
 )))]
 #[path = "settings/other.rs"]
 mod platform;
 
-pub use platform::PlatformSpecific;
+use crate::window::{Icon, Level, Position};
 
+pub use platform::PlatformSpecific;
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
@@ -70,8 +75,8 @@ pub struct Settings {
 }
 
 impl Default for Settings {
-    fn default() -> Settings {
-        Settings {
+    fn default() -> Self {
+        Self {
             size: (1024, 768),
             position: Position::default(),
             min_size: None,
@@ -82,8 +87,8 @@ impl Default for Settings {
             transparent: false,
             level: Level::default(),
             icon: None,
-            platform_specific: Default::default(),
             exit_on_close_request: true,
+            platform_specific: PlatformSpecific::default(),
         }
     }
 }

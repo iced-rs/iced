@@ -6,13 +6,17 @@ use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_winit::conversion;
+use iced_winit::core::mouse;
 use iced_winit::core::renderer;
-use iced_winit::core::{mouse, window};
-use iced_winit::core::{Color, Size};
+use iced_winit::core::window;
+use iced_winit::core::{Color, Font, Pixels, Size};
+use iced_winit::futures;
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::style::Theme;
-use iced_winit::{conversion, futures, winit, Clipboard};
+use iced_winit::winit;
+use iced_winit::Clipboard;
 
 use winit::{
     event::{Event, ModifiersState, WindowEvent},
@@ -29,7 +33,7 @@ use winit::platform::web::WindowBuilderExtWebSys;
 pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(target_arch = "wasm32")]
     let canvas_element = {
-        console_log::init_with_level(log::Level::Debug)?;
+        console_log::init().expect("Initialize logger");
 
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
 
@@ -41,7 +45,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     #[cfg(not(target_arch = "wasm32"))]
-    env_logger::init();
+    tracing_subscriber::fmt::init();
 
     // Initialize winit
     let event_loop = EventLoop::new();
@@ -82,7 +86,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         futures::futures::executor::block_on(async {
             let adapter = wgpu::util::initialize_adapter_from_env_or_default(
                 &instance,
-                backend,
                 Some(&surface),
             )
             .await
@@ -143,12 +146,11 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize iced
     let mut debug = Debug::new();
-    let mut renderer = Renderer::new(Backend::new(
-        &device,
-        &queue,
-        Settings::default(),
-        format,
-    ));
+    let mut renderer = Renderer::new(
+        Backend::new(&device, &queue, Settings::default(), format),
+        Font::default(),
+        Pixels(16.0),
+    );
 
     let mut state = program::State::new(
         controls,
@@ -257,7 +259,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                         {
                             // We clear the frame
-                            let mut render_pass = scene.clear(
+                            let mut render_pass = Scene::clear(
                                 &view,
                                 &mut encoder,
                                 program.background_color(),
@@ -274,6 +276,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 &queue,
                                 &mut encoder,
                                 None,
+                                frame.texture.format(),
                                 &view,
                                 primitive,
                                 &viewport,

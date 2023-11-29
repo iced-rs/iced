@@ -6,16 +6,16 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["tokio", "debug"] }
-once_cell = "1.15"
+iced.workspace = true
+iced.features = ["debug", "tokio"]
+
+once_cell.workspace = true
+warp = "0.3"
 
 [dependencies.async-tungstenite]
-version = "0.16"
+version = "0.23"
 features = ["tokio-rustls-webpki-roots"]
 
 [dependencies.tokio]
-version = "1"
+workspace = true
 features = ["time"]
-
-[dependencies.warp]
-version = "0.3"

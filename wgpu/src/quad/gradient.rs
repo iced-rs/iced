@@ -1,3 +1,4 @@
+use crate::graphics::color;
 use crate::graphics::gradient;
 use crate::quad::{self, Quad};
 use crate::Buffer;
@@ -78,7 +79,23 @@ impl Pipeline {
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("iced_wgpu.quad.gradient.shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    include_str!("../shader/quad.wgsl"),
+                    if color::GAMMA_CORRECTION {
+                        concat!(
+                            include_str!("../shader/quad.wgsl"),
+                            "\n",
+                            include_str!("../shader/quad/gradient.wgsl"),
+                            "\n",
+                            include_str!("../shader/color/oklab.wgsl")
+                        )
+                    } else {
+                        concat!(
+                            include_str!("../shader/quad.wgsl"),
+                            "\n",
+                            include_str!("../shader/quad/gradient.wgsl"),
+                            "\n",
+                            include_str!("../shader/color/linear_rgb.wgsl")
+                        )
+                    },
                 )),
             });
 

@@ -5,11 +5,13 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
-use crate::core::widget::{self, Operation, Tree};
+use crate::core::widget::tree::{self, Tree};
+use crate::core::widget::{self, Operation};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Widget,
+    Point, Rectangle, Shell, Size, Vector, Widget,
 };
+use crate::runtime::Command;
 
 pub use iced_style::container::{Appearance, StyleSheet};
 
@@ -134,12 +136,20 @@ where
     Renderer: crate::core::Renderer,
     Renderer::Theme: StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        self.content.as_widget().tag()
+    }
+
+    fn state(&self) -> tree::State {
+        self.content.as_widget().state()
+    }
+
     fn children(&self) -> Vec<Tree> {
-        vec![Tree::new(&self.content)]
+        self.content.as_widget().children()
     }
 
     fn diff(&self, tree: &mut Tree) {
-        tree.diff_children(std::slice::from_ref(&self.content))
+        self.content.as_widget().diff(tree);
     }
 
     fn width(&self) -> Length {
@@ -152,11 +162,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout(
-            renderer,
             limits,
             self.width,
             self.height,
@@ -165,9 +175,7 @@ where
             self.padding,
             self.horizontal_alignment,
             self.vertical_alignment,
-            |renderer, limits| {
-                self.content.as_widget().layout(renderer, limits)
-            },
+            |limits| self.content.as_widget().layout(tree, renderer, limits),
         )
     }
 
@@ -180,9 +188,10 @@ where
     ) {
         operation.container(
             self.id.as_ref().map(|id| &id.0),
+            layout.bounds(),
             &mut |operation| {
                 self.content.as_widget().operate(
-                    &mut tree.children[0],
+                    tree,
                     layout.children().next().unwrap(),
                     renderer,
                     operation,
@@ -200,15 +209,17 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.content.as_widget_mut().on_event(
-            &mut tree.children[0],
+            tree,
             event,
             layout.children().next().unwrap(),
             cursor,
             renderer,
             clipboard,
             shell,
+            viewport,
         )
     }
 
@@ -221,7 +232,7 @@ where
         renderer: &Renderer,
     ) -> mouse::Interaction {
         self.content.as_widget().mouse_interaction(
-            &tree.children[0],
+            tree,
             layout.children().next().unwrap(),
             cursor,
             viewport,
@@ -244,7 +255,7 @@ where
         draw_background(renderer, &style, layout.bounds());
 
         self.content.as_widget().draw(
-            &tree.children[0],
+            tree,
             renderer,
             theme,
             &renderer::Style {
@@ -265,7 +276,7 @@ where
         renderer: &Renderer,
     ) -> Option<overlay::Element<'b, Message, Renderer>> {
         self.content.as_widget_mut().overlay(
-            &mut tree.children[0],
+            tree,
             layout.children().next().unwrap(),
             renderer,
         )
@@ -287,8 +298,7 @@ where
 }
 
 /// Computes the layout of a [`Container`].
-pub fn layout<Renderer>(
-    renderer: &Renderer,
+pub fn layout(
     limits: &layout::Limits,
     width: Length,
     height: Length,
@@ -297,7 +307,7 @@ pub fn layout<Renderer>(
     padding: Padding,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
+    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
     let limits = limits
         .loose()
@@ -306,7 +316,7 @@ pub fn layout<Renderer>(
         .width(width)
         .height(height);
 
-    let mut content = layout_content(renderer, &limits.pad(padding).loose());
+    let mut content = layout_content(&limits.pad(padding).loose());
     let padding = padding.fit(content.size(), limits.max());
     let size = limits.pad(padding).resolve(content.size());
 
@@ -365,4 +375,93 @@ impl From<Id> for widget::Id {
     fn from(id: Id) -> Self {
         id.0
     }
+}
+
+/// Produces a [`Command`] that queries the visible screen bounds of the
+/// [`Container`] with the given [`Id`].
+pub fn visible_bounds(id: Id) -> Command<Option<Rectangle>> {
+    struct VisibleBounds {
+        target: widget::Id,
+        depth: usize,
+        scrollables: Vec<(Vector, Rectangle, usize)>,
+        bounds: Option<Rectangle>,
+    }
+
+    impl Operation<Option<Rectangle>> for VisibleBounds {
+        fn scrollable(
+            &mut self,
+            _state: &mut dyn widget::operation::Scrollable,
+            _id: Option<&widget::Id>,
+            bounds: Rectangle,
+            translation: Vector,
+        ) {
+            match self.scrollables.last() {
+                Some((last_translation, last_viewport, _depth)) => {
+                    let viewport = last_viewport
+                        .intersection(&(bounds - *last_translation))
+                        .unwrap_or(Rectangle::new(Point::ORIGIN, Size::ZERO));
+
+                    self.scrollables.push((
+                        translation + *last_translation,
+                        viewport,
+                        self.depth,
+                    ));
+                }
+                None => {
+                    self.scrollables.push((translation, bounds, self.depth));
+                }
+            }
+        }
+
+        fn container(
+            &mut self,
+            id: Option<&widget::Id>,
+            bounds: Rectangle,
+            operate_on_children: &mut dyn FnMut(
+                &mut dyn Operation<Option<Rectangle>>,
+            ),
+        ) {
+            if self.bounds.is_some() {
+                return;
+            }
+
+            if id == Some(&self.target) {
+                match self.scrollables.last() {
+                    Some((translation, viewport, _)) => {
+                        self.bounds =
+                            viewport.intersection(&(bounds - *translation));
+                    }
+                    None => {
+                        self.bounds = Some(bounds);
+                    }
+                }
+
+                return;
+            }
+
+            self.depth += 1;
+
+            operate_on_children(self);
+
+            self.depth -= 1;
+
+            match self.scrollables.last() {
+                Some((_, _, depth)) if self.depth == *depth => {
+                    let _ = self.scrollables.pop();
+                }
+                _ => {}
+            }
+        }
+
+        fn finish(&self) -> widget::operation::Outcome<Option<Rectangle>> {
+            widget::operation::Outcome::Some(self.bounds)
+        }
+    }
+
+    Command::widget(VisibleBounds {
+        target: id.into(),
+        depth: 0,
+        scrollables: Vec::new(),
+        bounds: None,
+    })
 }

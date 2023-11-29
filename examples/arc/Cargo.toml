@@ -6,4 +6,5 @@ edition = "2021"
 publish = false
 
 [dependencies]
-iced = { path = "../..", features = ["canvas", "tokio", "debug"] }
+iced.workspace = true
+iced.features = ["canvas", "tokio", "debug"]

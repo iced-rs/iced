@@ -14,11 +14,11 @@ pub use text::Text;
 
 pub use crate::gradient::{self, Gradient};
 
-/// A renderer capable of drawing some [`Geometry`].
+/// A renderer capable of drawing some [`Self::Geometry`].
 pub trait Renderer: crate::core::Renderer {
     /// The kind of geometry this renderer can draw.
     type Geometry;
 
-    /// Draws the given layers of [`Geometry`].
+    /// Draws the given layers of [`Self::Geometry`].
     fn draw(&mut self, layers: Vec<Self::Geometry>);
 }

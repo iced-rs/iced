@@ -19,7 +19,7 @@ impl Controls {
     pub fn new() -> Controls {
         Controls {
             background_color: Color::BLACK,
-            text: Default::default(),
+            text: String::default(),
         }
     }
 

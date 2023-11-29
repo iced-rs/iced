@@ -3,8 +3,8 @@ use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    Color, Element, Length, Point, Rectangle, Renderer, Sandbox, Settings,
-    Size, Vector,
+    Color, Element, Length, Pixels, Point, Rectangle, Renderer, Sandbox,
+    Settings, Size, Vector,
 };
 use palette::{
     self, convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue,
@@ -168,7 +168,7 @@ impl Theme {
         let mut text = canvas::Text {
             horizontal_alignment: alignment::Horizontal::Center,
             vertical_alignment: alignment::Vertical::Top,
-            size: 15.0,
+            size: Pixels(15.0),
             ..canvas::Text::default()
         };
 

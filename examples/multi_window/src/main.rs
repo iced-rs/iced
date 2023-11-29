@@ -1,9 +1,10 @@
+use iced::event;
+use iced::executor;
 use iced::multi_window::{self, Application};
 use iced::widget::{button, column, container, scrollable, text, text_input};
-use iced::window::{Id, Position};
+use iced::window;
 use iced::{
-    executor, subscription, window, Alignment, Command, Element, Length,
-    Settings, Subscription, Theme,
+    Alignment, Command, Element, Length, Settings, Subscription, Theme,
 };
 use std::collections::HashMap;
 
@@ -47,7 +48,7 @@ impl multi_window::Application for Example {
         (
             Example {
                 windows: HashMap::from([(window::Id::MAIN, Window::new(1))]),
-                next_window_pos: Position::Default,
+                next_window_pos: window::Position::Default,
             },
             Command::none(),
         )
@@ -129,7 +130,7 @@ impl multi_window::Application for Example {
             .into()
     }
 
-    fn theme(&self, window: Id) -> Self::Theme {
+    fn theme(&self, window: window::Id) -> Self::Theme {
         self.windows.get(&window).unwrap().theme.clone()
     }
 
@@ -141,7 +142,7 @@ impl multi_window::Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events_with(|event, _| {
+        event::listen_with(|event, _| {
             if let iced::Event::Window(id, window_event) = event {
                 match window_event {
                     window::Event::CloseRequested => {

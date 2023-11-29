@@ -1,4 +1,6 @@
-//! Create lines from a [crate::widget::canvas::Path] and assigns them various attributes/styles.
+//! Create lines from a [`Path`] and assigns them various attributes/styles.
+//!
+//! [`Path`]: super::Path
 pub use crate::geometry::Style;
 
 use iced_core::Color;

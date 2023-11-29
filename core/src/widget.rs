@@ -33,12 +33,12 @@ use crate::{Clipboard, Length, Rectangle, Shell};
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 /// `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.9/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.9/examples/bezier_tool
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.9/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.9/examples/geometry
+/// [examples]: https://github.com/iced-rs/iced/tree/0.10/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.10/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.10/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.10/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.9/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.10/wgpu
 pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
@@ -55,6 +55,7 @@ where
     /// user interface.
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node;
@@ -62,7 +63,7 @@ where
     /// Draws the [`Widget`] using the associated `Renderer`.
     fn draw(
         &self,
-        state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -115,6 +116,7 @@ where
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         event::Status::Ignored
     }

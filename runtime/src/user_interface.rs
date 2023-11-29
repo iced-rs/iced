@@ -5,7 +5,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget;
 use crate::core::window;
-use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 use crate::overlay;
 
 /// A set of interactive graphical elements with a specific [`Layout`].
@@ -19,7 +21,7 @@ use crate::overlay;
 /// The [`integration`] example uses a [`UserInterface`] to integrate Iced in an
 /// existing graphical application.
 ///
-/// [`integration`]: https://github.com/iced-rs/iced/tree/0.9/examples/integration
+/// [`integration`]: https://github.com/iced-rs/iced/tree/0.10/examples/integration
 #[allow(missing_debug_implementations)]
 pub struct UserInterface<'a, Message, Renderer> {
     root: Element<'a, Message, Renderer>,
@@ -95,8 +97,11 @@ where
         let Cache { mut state } = cache;
         state.diff(root.as_widget());
 
-        let base =
-            renderer.layout(&root, &layout::Limits::new(Size::ZERO, bounds));
+        let base = root.as_widget().layout(
+            &mut state,
+            renderer,
+            &layout::Limits::new(Size::ZERO, bounds),
+        );
 
         UserInterface {
             root,
@@ -196,7 +201,8 @@ where
             let bounds = self.bounds;
 
             let mut overlay = manual_overlay.as_mut().unwrap();
-            let mut layout = overlay.layout(renderer, bounds, Point::ORIGIN);
+            let mut layout =
+                overlay.layout(renderer, bounds, Point::ORIGIN, Vector::ZERO);
             let mut event_statuses = Vec::new();
 
             for event in events.iter().cloned() {
@@ -226,8 +232,9 @@ where
                 if shell.is_layout_invalid() {
                     let _ = ManuallyDrop::into_inner(manual_overlay);
 
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        &mut self.state,
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -249,8 +256,12 @@ where
                     overlay = manual_overlay.as_mut().unwrap();
 
                     shell.revalidate_layout(|| {
-                        layout =
-                            overlay.layout(renderer, bounds, Point::ORIGIN);
+                        layout = overlay.layout(
+                            renderer,
+                            bounds,
+                            Point::ORIGIN,
+                            Vector::ZERO,
+                        );
                     });
                 }
 
@@ -284,12 +295,14 @@ where
             (cursor, vec![event::Status::Ignored; events.len()])
         };
 
+        let viewport = Rectangle::with_size(self.bounds);
+
         let _ = ManuallyDrop::into_inner(manual_overlay);
 
         let event_statuses = events
             .iter()
             .cloned()
-            .zip(overlay_statuses.into_iter())
+            .zip(overlay_statuses)
             .map(|(event, overlay_status)| {
                 if matches!(overlay_status, event::Status::Captured) {
                     return overlay_status;
@@ -305,6 +318,7 @@ where
                     renderer,
                     clipboard,
                     &mut shell,
+                    &viewport,
                 );
 
                 if matches!(event_status, event::Status::Captured) {
@@ -322,8 +336,9 @@ where
                 }
 
                 shell.revalidate_layout(|| {
-                    self.base = renderer.layout(
-                        &self.root,
+                    self.base = self.root.as_widget().layout(
+                        &mut self.state,
+                        renderer,
                         &layout::Limits::new(Size::ZERO, self.bounds),
                     );
 
@@ -353,7 +368,7 @@ where
     /// It returns the current [`mouse::Interaction`]. You should update the
     /// icon of the mouse cursor accordingly in your system.
     ///
-    /// [`Renderer`]: crate::Renderer
+    /// [`Renderer`]: crate::core::Renderer
     ///
     /// # Example
     /// We can finally draw our [counter](index.html#usage) by
@@ -440,7 +455,12 @@ where
             .map(overlay::Nested::new)
         {
             let overlay_layout = self.overlay.take().unwrap_or_else(|| {
-                overlay.layout(renderer, self.bounds, Point::ORIGIN)
+                overlay.layout(
+                    renderer,
+                    self.bounds,
+                    Point::ORIGIN,
+                    Vector::ZERO,
+                )
             });
 
             let cursor = if cursor
@@ -510,17 +530,13 @@ where
                             renderer,
                         );
 
-                        let overlay_bounds = layout.bounds();
-
-                        renderer.with_layer(overlay_bounds, |renderer| {
-                            overlay.draw(
-                                renderer,
-                                theme,
-                                style,
-                                Layout::new(layout),
-                                cursor,
-                            );
-                        });
+                        overlay.draw(
+                            renderer,
+                            theme,
+                            style,
+                            Layout::new(layout),
+                            cursor,
+                        );
 
                         if cursor
                             .position()
@@ -562,8 +578,12 @@ where
             .map(overlay::Nested::new)
         {
             if self.overlay.is_none() {
-                self.overlay =
-                    Some(overlay.layout(renderer, self.bounds, Point::ORIGIN));
+                self.overlay = Some(overlay.layout(
+                    renderer,
+                    self.bounds,
+                    Point::ORIGIN,
+                    Vector::ZERO,
+                ));
             }
 
             overlay.operate(
@@ -620,7 +640,7 @@ pub enum State {
     /// The [`UserInterface`] is up-to-date and can be reused without
     /// rebuilding.
     Updated {
-        /// The [`Instant`] when a redraw should be performed.
+        /// The [`window::RedrawRequest`] when a redraw should be performed.
         redraw_request: Option<window::RedrawRequest>,
     },
 }

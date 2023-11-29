@@ -15,9 +15,7 @@ This example showcases the `PaneGrid` widget, which features:
 The __[`main`]__ file contains all the code of the example.
 
 <div align="center">
-  <a href="https://gfycat.com/frailfreshairedaleterrier">
-    <img src="https://thumbs.gfycat.com/FrailFreshAiredaleterrier-small.gif">
-  </a>
+  <img src="https://iced.rs/examples/pane_grid.gif">
 </div>
 
 You can run it with `cargo run`:

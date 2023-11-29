@@ -300,10 +300,15 @@ impl Pipeline {
                         wgpu::RenderPassColorAttachment {
                             view: attachment,
                             resolve_target,
-                            ops: wgpu::Operations { load, store: true },
+                            ops: wgpu::Operations {
+                                load,
+                                store: wgpu::StoreOp::Store,
+                            },
                         },
                     )],
                     depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
                 });
 
             let layer = &mut self.layers[layer];
@@ -329,12 +334,12 @@ impl Pipeline {
 
 fn fragment_target(
     texture_format: wgpu::TextureFormat,
-) -> Option<wgpu::ColorTargetState> {
-    Some(wgpu::ColorTargetState {
+) -> wgpu::ColorTargetState {
+    wgpu::ColorTargetState {
         format: texture_format,
         blend: Some(wgpu::BlendState::ALPHA_BLENDING),
         write_mask: wgpu::ColorWrites::ALL,
-    })
+    }
 }
 
 fn primitive_state() -> wgpu::PrimitiveState {
@@ -349,7 +354,7 @@ fn multisample_state(
     antialiasing: Option<Antialiasing>,
 ) -> wgpu::MultisampleState {
     wgpu::MultisampleState {
-        count: antialiasing.map(|a| a.sample_count()).unwrap_or(1),
+        count: antialiasing.map(Antialiasing::sample_count).unwrap_or(1),
         mask: !0,
         alpha_to_coverage_enabled: false,
     }
@@ -487,8 +492,10 @@ mod solid {
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("iced_wgpu.triangle.solid.shader"),
                     source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(include_str!(
-                            "shader/triangle.wgsl"
+                        std::borrow::Cow::Borrowed(concat!(
+                            include_str!("shader/triangle.wgsl"),
+                            "\n",
+                            include_str!("shader/triangle/solid.wgsl"),
                         )),
                     ),
                 });
@@ -519,7 +526,7 @@ mod solid {
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
                             entry_point: "solid_fs_main",
-                            targets: &[triangle::fragment_target(format)],
+                            targets: &[Some(triangle::fragment_target(format))],
                         }),
                         primitive: triangle::primitive_state(),
                         depth_stencil: None,
@@ -537,6 +544,7 @@ mod solid {
 }
 
 mod gradient {
+    use crate::graphics::color;
     use crate::graphics::mesh;
     use crate::graphics::Antialiasing;
     use crate::triangle;
@@ -633,9 +641,31 @@ mod gradient {
                 device.create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some("iced_wgpu.triangle.gradient.shader"),
                     source: wgpu::ShaderSource::Wgsl(
-                        std::borrow::Cow::Borrowed(include_str!(
-                            "shader/triangle.wgsl"
-                        )),
+                        std::borrow::Cow::Borrowed(
+                            if color::GAMMA_CORRECTION {
+                                concat!(
+                                    include_str!("shader/triangle.wgsl"),
+                                    "\n",
+                                    include_str!(
+                                        "shader/triangle/gradient.wgsl"
+                                    ),
+                                    "\n",
+                                    include_str!("shader/color/oklab.wgsl")
+                                )
+                            } else {
+                                concat!(
+                                    include_str!("shader/triangle.wgsl"),
+                                    "\n",
+                                    include_str!(
+                                        "shader/triangle/gradient.wgsl"
+                                    ),
+                                    "\n",
+                                    include_str!(
+                                        "shader/color/linear_rgb.wgsl"
+                                    )
+                                )
+                            },
+                        ),
                     ),
                 });
 
@@ -673,7 +703,7 @@ mod gradient {
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
-                        targets: &[triangle::fragment_target(format)],
+                        targets: &[Some(triangle::fragment_target(format))],
                     }),
                     primitive: triangle::primitive_state(),
                     depth_stencil: None,

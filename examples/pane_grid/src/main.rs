@@ -1,8 +1,6 @@
 use iced::alignment::{self, Alignment};
-use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription;
 use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
@@ -63,11 +61,8 @@ impl Application for Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Split(axis, pane) => {
-                let result = self.panes.split(
-                    axis,
-                    &pane,
-                    Pane::new(self.panes_created),
-                );
+                let result =
+                    self.panes.split(axis, pane, Pane::new(self.panes_created));
 
                 if let Some((pane, _)) = result {
                     self.focus = Some(pane);
@@ -79,7 +74,7 @@ impl Application for Example {
                 if let Some(pane) = self.focus {
                     let result = self.panes.split(
                         axis,
-                        &pane,
+                        pane,
                         Pane::new(self.panes_created),
                     );
 
@@ -92,8 +87,7 @@ impl Application for Example {
             }
             Message::FocusAdjacent(direction) => {
                 if let Some(pane) = self.focus {
-                    if let Some(adjacent) =
-                        self.panes.adjacent(&pane, direction)
+                    if let Some(adjacent) = self.panes.adjacent(pane, direction)
                     {
                         self.focus = Some(adjacent);
                     }
@@ -103,37 +97,34 @@ impl Application for Example {
                 self.focus = Some(pane);
             }
             Message::Resized(pane_grid::ResizeEvent { split, ratio }) => {
-                self.panes.resize(&split, ratio);
+                self.panes.resize(split, ratio);
             }
             Message::Dragged(pane_grid::DragEvent::Dropped {
                 pane,
                 target,
             }) => {
-                self.panes.drop(&pane, target);
+                self.panes.drop(pane, target);
             }
             Message::Dragged(_) => {}
             Message::TogglePin(pane) => {
-                if let Some(Pane { is_pinned, .. }) = self.panes.get_mut(&pane)
-                {
+                if let Some(Pane { is_pinned, .. }) = self.panes.get_mut(pane) {
                     *is_pinned = !*is_pinned;
                 }
             }
-            Message::Maximize(pane) => self.panes.maximize(&pane),
+            Message::Maximize(pane) => self.panes.maximize(pane),
             Message::Restore => {
                 self.panes.restore();
             }
             Message::Close(pane) => {
-                if let Some((_, sibling)) = self.panes.close(&pane) {
+                if let Some((_, sibling)) = self.panes.close(pane) {
                     self.focus = Some(sibling);
                 }
             }
             Message::CloseFocused => {
                 if let Some(pane) = self.focus {
-                    if let Some(Pane { is_pinned, .. }) = self.panes.get(&pane)
-                    {
+                    if let Some(Pane { is_pinned, .. }) = self.panes.get(pane) {
                         if !is_pinned {
-                            if let Some((_, sibling)) = self.panes.close(&pane)
-                            {
+                            if let Some((_, sibling)) = self.panes.close(pane) {
                                 self.focus = Some(sibling);
                             }
                         }
@@ -146,18 +137,12 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        subscription::events_with(|event, status| {
-            if let event::Status::Captured = status {
+        keyboard::on_key_press(|key_code, modifiers| {
+            if !modifiers.command() {
                 return None;
             }
 
-            match event {
-                Event::Keyboard(keyboard::Event::KeyPressed {
-                    modifiers,
-                    key_code,
-                }) if modifiers.command() => handle_hotkey(key_code),
-                _ => None,
-            }
+            handle_hotkey(key_code)
         })
     }
 

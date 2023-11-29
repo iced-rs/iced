@@ -1,0 +1,17 @@
+[package]
+name = "custom_shader"
+version = "0.1.0"
+authors = ["Bingus <shankern@protonmail.com>"]
+edition = "2021"
+
+[dependencies]
+iced.workspace = true
+iced.features = ["debug", "advanced"]
+
+image.workspace = true
+bytemuck.workspace = true
+
+glam.workspace = true
+glam.features = ["bytemuck"]
+
+rand = "0.8.5"

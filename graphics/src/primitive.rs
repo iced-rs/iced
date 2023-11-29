@@ -3,7 +3,9 @@ use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
-use crate::core::{Background, Color, Font, Rectangle, Vector};
+use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Vector};
+use crate::text::editor;
+use crate::text::paragraph;
 
 use std::sync::Arc;
 
@@ -19,7 +21,7 @@ pub enum Primitive<T> {
         /// The color of the text
         color: Color,
         /// The size of the text in logical pixels
-        size: f32,
+        size: Pixels,
         /// The line height of the text
         line_height: text::LineHeight,
         /// The font of the text
@@ -30,6 +32,24 @@ pub enum Primitive<T> {
         vertical_alignment: alignment::Vertical,
         /// The shaping strategy of the text.
         shaping: text::Shaping,
+    },
+    /// A paragraph primitive
+    Paragraph {
+        /// The [`paragraph::Weak`] reference.
+        paragraph: paragraph::Weak,
+        /// The position of the paragraph.
+        position: Point,
+        /// The color of the paragraph.
+        color: Color,
+    },
+    /// An editor primitive
+    Editor {
+        /// The [`editor::Weak`] reference.
+        editor: editor::Weak,
+        /// The position of the paragraph.
+        position: Point,
+        /// The color of the paragraph.
+        color: Color,
     },
     /// A quad primitive
     Quad {
@@ -48,6 +68,8 @@ pub enum Primitive<T> {
     Image {
         /// The handle of the image
         handle: image::Handle,
+        /// The filter method of the image
+        filter_method: image::FilterMethod,
         /// The bounds of the image
         bounds: Rectangle,
     },

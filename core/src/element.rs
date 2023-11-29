@@ -5,7 +5,9 @@ use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{Clipboard, Color, Layout, Length, Rectangle, Shell, Widget};
+use crate::{
+    Clipboard, Color, Layout, Length, Rectangle, Shell, Vector, Widget,
+};
 
 use std::any::Any;
 use std::borrow::Borrow;
@@ -291,7 +293,7 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        self.widget.diff(tree)
+        self.widget.diff(tree);
     }
 
     fn width(&self) -> Length {
@@ -304,10 +306,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.widget.layout(renderer, limits)
+        self.widget.layout(tree, renderer, limits)
     }
 
     fn operate(
@@ -325,11 +328,12 @@ where
             fn container(
                 &mut self,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
                 operate_on_children: &mut dyn FnMut(
                     &mut dyn widget::Operation<T>,
                 ),
             ) {
-                self.operation.container(id, &mut |operation| {
+                self.operation.container(id, bounds, &mut |operation| {
                     operate_on_children(&mut MapOperation { operation });
                 });
             }
@@ -346,8 +350,10 @@ where
                 &mut self,
                 state: &mut dyn widget::operation::Scrollable,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
+                translation: Vector,
             ) {
-                self.operation.scrollable(state, id);
+                self.operation.scrollable(state, id, bounds, translation);
             }
 
             fn text_input(
@@ -380,6 +386,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, B>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
@@ -392,6 +399,7 @@ where
             renderer,
             clipboard,
             &mut local_shell,
+            viewport,
         );
 
         shell.merge(local_shell, &self.mapper);
@@ -410,7 +418,7 @@ where
         viewport: &Rectangle,
     ) {
         self.widget
-            .draw(tree, renderer, theme, style, layout, cursor, viewport)
+            .draw(tree, renderer, theme, style, layout, cursor, viewport);
     }
 
     fn mouse_interaction(
@@ -484,10 +492,11 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        self.element.widget.layout(renderer, limits)
+        self.element.widget.layout(tree, renderer, limits)
     }
 
     fn operate(
@@ -499,7 +508,7 @@ where
     ) {
         self.element
             .widget
-            .operate(state, layout, renderer, operation)
+            .operate(state, layout, renderer, operation);
     }
 
     fn on_event(
@@ -511,10 +520,11 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
-        self.element
-            .widget
-            .on_event(state, event, layout, cursor, renderer, clipboard, shell)
+        self.element.widget.on_event(
+            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+        )
     }
 
     fn draw(

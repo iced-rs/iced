@@ -27,7 +27,7 @@ impl Default for App {
                 .into_iter()
                 .map(From::from)
                 .collect(),
-            input: Default::default(),
+            input: String::default(),
             order: Order::Ascending,
         }
     }
@@ -46,7 +46,7 @@ enum Color {
 }
 
 impl Color {
-    const ALL: &[Color] = &[
+    const ALL: &'static [Color] = &[
         Color::Black,
         Color::Red,
         Color::Orange,
@@ -107,7 +107,7 @@ impl From<&str> for Item {
     fn from(s: &str) -> Self {
         Self {
             name: s.to_owned(),
-            color: Default::default(),
+            color: Color::default(),
         }
     }
 }

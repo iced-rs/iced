@@ -6,12 +6,12 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
 use crate::core::touch;
-use crate::core::widget::Tree;
+use crate::core::widget;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Alignment, Clipboard, Color, Element, Layout, Length, Pixels, Rectangle,
-    Shell, Widget,
+    Clipboard, Color, Element, Layout, Length, Pixels, Rectangle, Shell, Size,
+    Widget,
 };
-use crate::{Row, Text};
 
 pub use iced_style::radio::{Appearance, StyleSheet};
 
@@ -80,7 +80,7 @@ where
     width: Length,
     size: f32,
     spacing: f32,
-    text_size: Option<f32>,
+    text_size: Option<Pixels>,
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
@@ -152,11 +152,11 @@ where
 
     /// Sets the text size of the [`Radio`] button.
     pub fn text_size(mut self, text_size: impl Into<Pixels>) -> Self {
-        self.text_size = Some(text_size.into().0);
+        self.text_size = Some(text_size.into());
         self
     }
 
-    /// Sets the text [`LineHeight`] of the [`Radio`] button.
+    /// Sets the text [`text::LineHeight`] of the [`Radio`] button.
     pub fn text_line_height(
         mut self,
         line_height: impl Into<text::LineHeight>,
@@ -193,6 +193,14 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
+    }
+
     fn width(&self) -> Length {
         self.width
     }
@@ -203,25 +211,35 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        Row::<(), Renderer>::new()
-            .width(self.width)
-            .spacing(self.spacing)
-            .align_items(Alignment::Center)
-            .push(Row::new().width(self.size).height(self.size))
-            .push(
-                Text::new(&self.label)
-                    .width(self.width)
-                    .size(
-                        self.text_size
-                            .unwrap_or_else(|| renderer.default_size()),
-                    )
-                    .line_height(self.text_line_height)
-                    .shaping(self.text_shaping),
-            )
-            .layout(renderer, limits)
+        layout::next_to_each_other(
+            &limits.width(self.width),
+            self.spacing,
+            |_| layout::Node::new(Size::new(self.size, self.size)),
+            |limits| {
+                let state = tree
+                    .state
+                    .downcast_mut::<widget::text::State<Renderer::Paragraph>>();
+
+                widget::text::layout(
+                    state,
+                    renderer,
+                    limits,
+                    self.width,
+                    Length::Shrink,
+                    &self.label,
+                    self.text_line_height,
+                    self.text_size,
+                    self.font,
+                    alignment::Horizontal::Left,
+                    alignment::Vertical::Top,
+                    self.text_shaping,
+                )
+            },
+        )
     }
 
     fn on_event(
@@ -233,6 +251,7 @@ where
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         match event {
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -266,7 +285,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Renderer::Theme,
         style: &renderer::Style,
@@ -326,16 +345,10 @@ where
                 renderer,
                 style,
                 label_layout,
-                &self.label,
-                self.text_size,
-                self.text_line_height,
-                self.font,
+                tree.state.downcast_ref(),
                 crate::text::Appearance {
                     color: custom_style.text_color,
                 },
-                alignment::Horizontal::Left,
-                alignment::Vertical::Center,
-                self.text_shaping,
             );
         }
     }

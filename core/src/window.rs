@@ -1,5 +1,6 @@
 //! Build window-based GUI applications.
 pub mod icon;
+pub mod settings;
 
 mod event;
 mod id;
@@ -7,7 +8,6 @@ mod level;
 mod mode;
 mod position;
 mod redraw_request;
-mod settings;
 mod user_attention;
 
 pub use event::Event;

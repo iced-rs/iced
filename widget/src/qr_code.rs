@@ -60,6 +60,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         _renderer: &Renderer<Theme>,
         _limits: &layout::Limits,
     ) -> layout::Node {
@@ -86,7 +87,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
         let geometry =
             self.state.cache.draw(renderer, bounds.size(), |frame| {
                 // Scale units to cell size
-                frame.scale(f32::from(self.cell_size));
+                frame.scale(self.cell_size);
 
                 // Draw background
                 frame.fill_rectangle(

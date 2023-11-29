@@ -8,9 +8,9 @@ pub struct Arc {
     pub center: Point,
     /// The radius of the arc.
     pub radius: f32,
-    /// The start of the segment's angle, clockwise rotation.
+    /// The start of the segment's angle in radians, clockwise rotation from positive x-axis.
     pub start_angle: f32,
-    /// The end of the segment's angle, clockwise rotation.
+    /// The end of the segment's angle in radians, clockwise rotation from positive x-axis.
     pub end_angle: f32,
 }
 
@@ -19,13 +19,13 @@ pub struct Arc {
 pub struct Elliptical {
     /// The center of the arc.
     pub center: Point,
-    /// The radii of the arc's ellipse, defining its axes.
+    /// The radii of the arc's ellipse. The horizontal and vertical half-dimensions of the ellipse will match the x and y values of the radii vector.
     pub radii: Vector,
-    /// The rotation of the arc's ellipse.
+    /// The clockwise rotation of the arc's ellipse.
     pub rotation: f32,
-    /// The start of the segment's angle, clockwise rotation.
+    /// The start of the segment's angle in radians, clockwise rotation from positive x-axis.
     pub start_angle: f32,
-    /// The end of the segment's angle, clockwise rotation.
+    /// The end of the segment's angle in radians, clockwise rotation from positive x-axis.
     pub end_angle: f32,
 }
 

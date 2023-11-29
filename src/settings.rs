@@ -1,6 +1,8 @@
 //! Configure your application.
 use crate::window;
-use crate::Font;
+use crate::{Font, Pixels};
+
+use std::borrow::Cow;
 
 /// The settings of an application.
 #[derive(Debug, Clone)]
@@ -21,15 +23,18 @@ pub struct Settings<Flags> {
     /// [`Application`]: crate::Application
     pub flags: Flags,
 
+    /// The fonts to load on boot.
+    pub fonts: Vec<Cow<'static, [u8]>>,
+
     /// The default [`Font`] to be used.
     ///
-    /// By default, it uses [`Font::SansSerif`].
+    /// By default, it uses [`Family::SansSerif`](crate::font::Family::SansSerif).
     pub default_font: Font,
 
     /// The text size that will be used by default.
     ///
     /// The default value is `16.0`.
-    pub default_text_size: f32,
+    pub default_text_size: Pixels,
 
     /// If set to true, the renderer will try to perform antialiasing for some
     /// primitives.
@@ -54,6 +59,7 @@ impl<Flags> Settings<Flags> {
             flags,
             id: default_settings.id,
             window: default_settings.window,
+            fonts: default_settings.fonts,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
             antialiasing: default_settings.antialiasing,
@@ -68,10 +74,11 @@ where
     fn default() -> Self {
         Self {
             id: None,
-            window: Default::default(),
+            window: window::Settings::default(),
             flags: Default::default(),
-            default_font: Default::default(),
-            default_text_size: 16.0,
+            fonts: Vec::new(),
+            default_font: Font::default(),
+            default_text_size: Pixels(16.0),
             antialiasing: false,
         }
     }
@@ -83,6 +90,7 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
             id: settings.id,
             window: settings.window,
             flags: settings.flags,
+            fonts: settings.fonts,
         }
     }
 }

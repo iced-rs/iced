@@ -1,10 +1,12 @@
+use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
-use iced::subscription::{self, Subscription};
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
-use iced::{Alignment, Application, Command, Element, Event, Length, Settings};
+use iced::{
+    Alignment, Application, Command, Element, Length, Settings, Subscription,
+};
 
 use toast::{Status, Toast};
 
@@ -57,7 +59,7 @@ impl Application for App {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        subscription::events().map(Message::Event)
+        event::listen().map(Message::Event)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -208,7 +210,7 @@ mod toast {
     }
 
     impl Status {
-        pub const ALL: &[Self] =
+        pub const ALL: &'static [Self] =
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
     }
 
@@ -326,10 +328,15 @@ mod toast {
 
         fn layout(
             &self,
+            tree: &mut Tree,
             renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            self.content.as_widget().layout(renderer, limits)
+            self.content.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            )
         }
 
         fn tag(&self) -> widget::tree::Tag {
@@ -381,7 +388,7 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn Operation<Message>,
         ) {
-            operation.container(None, &mut |operation| {
+            operation.container(None, layout.bounds(), &mut |operation| {
                 self.content.as_widget().operate(
                     &mut state.children[0],
                     layout,
@@ -400,6 +407,7 @@ mod toast {
             renderer: &Renderer,
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
+            viewport: &Rectangle,
         ) -> event::Status {
             self.content.as_widget_mut().on_event(
                 &mut state.children[0],
@@ -409,6 +417,7 @@ mod toast {
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             )
         }
 
@@ -498,10 +507,11 @@ mod toast {
         for Overlay<'a, 'b, Message>
     {
         fn layout(
-            &self,
+            &mut self,
             renderer: &Renderer,
             bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds)
                 .width(Length::Fill)
@@ -515,6 +525,7 @@ mod toast {
                 10.0,
                 Alignment::End,
                 self.toasts,
+                self.state,
             )
             .translate(Vector::new(position.x, position.y))
         }
@@ -561,6 +572,8 @@ mod toast {
                 }
             }
 
+            let viewport = layout.bounds();
+
             self.toasts
                 .iter_mut()
                 .zip(self.state.iter_mut())
@@ -578,6 +591,7 @@ mod toast {
                         renderer,
                         clipboard,
                         &mut local_shell,
+                        &viewport,
                     );
 
                     if !local_shell.is_empty() {
@@ -619,7 +633,7 @@ mod toast {
             renderer: &Renderer,
             operation: &mut dyn widget::Operation<Message>,
         ) {
-            operation.container(None, &mut |operation| {
+            operation.container(None, layout.bounds(), &mut |operation| {
                 self.toasts
                     .iter()
                     .zip(self.state.iter_mut())
@@ -628,7 +642,7 @@ mod toast {
                         child
                             .as_widget()
                             .operate(state, layout, renderer, operation);
-                    })
+                    });
             });
         }
 

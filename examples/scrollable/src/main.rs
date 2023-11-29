@@ -389,14 +389,14 @@ impl scrollable::StyleSheet for ScrollbarCustomStyle {
                 background: style
                     .active(&theme::Scrollable::default())
                     .background,
-                border_radius: 0.0.into(),
+                border_radius: 2.0.into(),
                 border_width: 0.0,
-                border_color: Default::default(),
+                border_color: Color::default(),
                 scroller: Scroller {
                     color: Color::from_rgb8(250, 85, 134),
-                    border_radius: 0.0.into(),
+                    border_radius: 2.0.into(),
                     border_width: 0.0,
-                    border_color: Default::default(),
+                    border_color: Color::default(),
                 },
             }
         } else {

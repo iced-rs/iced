@@ -10,8 +10,8 @@ pub struct Font {
     pub weight: Weight,
     /// The [`Stretch`] of the [`Font`].
     pub stretch: Stretch,
-    /// Whether if the [`Font`] is monospaced or not.
-    pub monospaced: bool,
+    /// The [`Style`] of the [`Font`].
+    pub style: Style,
 }
 
 impl Font {
@@ -20,13 +20,12 @@ impl Font {
         family: Family::SansSerif,
         weight: Weight::Normal,
         stretch: Stretch::Normal,
-        monospaced: false,
+        style: Style::Normal,
     };
 
     /// A monospaced font with normal [`Weight`].
     pub const MONOSPACE: Font = Font {
         family: Family::Monospace,
-        monospaced: true,
         ..Self::DEFAULT
     };
 
@@ -99,4 +98,14 @@ pub enum Stretch {
     Expanded,
     ExtraExpanded,
     UltraExpanded,
+}
+
+/// The style of some text.
+#[allow(missing_docs)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum Style {
+    #[default]
+    Normal,
+    Italic,
+    Oblique,
 }

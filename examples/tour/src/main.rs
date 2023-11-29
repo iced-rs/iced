@@ -1,14 +1,21 @@
-use iced::alignment;
+use iced::alignment::{self, Alignment};
 use iced::theme;
 use iced::widget::{
     checkbox, column, container, horizontal_space, image, radio, row,
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels, Renderer, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
-    env_logger::init();
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_log::init().expect("Initialize logger");
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    tracing_subscriber::fmt::init();
 
     Tour::run(Settings::default())
 }
@@ -119,7 +126,10 @@ impl Steps {
                 Step::Toggler {
                     can_continue: false,
                 },
-                Step::Image { width: 300 },
+                Step::Image {
+                    width: 300,
+                    filter_method: image::FilterMethod::Linear,
+                },
                 Step::Scrollable,
                 Step::TextInput {
                     value: String::new(),
@@ -188,6 +198,7 @@ enum Step {
     },
     Image {
         width: u16,
+        filter_method: image::FilterMethod,
     },
     Scrollable,
     TextInput {
@@ -208,6 +219,7 @@ pub enum StepMessage {
     TextColorChanged(Color),
     LanguageSelected(Language),
     ImageWidthChanged(u16),
+    ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
     ToggleTextInputIcon(bool),
@@ -258,6 +270,15 @@ impl<'a> Step {
                     *width = new_width;
                 }
             }
+            StepMessage::ImageUseNearestToggled(use_nearest) => {
+                if let Step::Image { filter_method, .. } = self {
+                    *filter_method = if use_nearest {
+                        image::FilterMethod::Nearest
+                    } else {
+                        image::FilterMethod::Linear
+                    };
+                }
+            }
             StepMessage::InputChanged(new_value) => {
                 if let Step::TextInput { value, .. } = self {
                     *value = new_value;
@@ -278,7 +299,7 @@ impl<'a> Step {
                     is_showing_icon, ..
                 } = self
                 {
-                    *is_showing_icon = toggle
+                    *is_showing_icon = toggle;
                 }
             }
         };
@@ -323,7 +344,10 @@ impl<'a> Step {
             Step::Toggler { can_continue } => Self::toggler(*can_continue),
             Step::Slider { value } => Self::slider(*value),
             Step::Text { size, color } => Self::text(*size, *color),
-            Step::Image { width } => Self::image(*width),
+            Step::Image {
+                width,
+                filter_method,
+            } => Self::image(*width, *filter_method),
             Step::RowsAndColumns { layout, spacing } => {
                 Self::rows_and_columns(*layout, *spacing)
             }
@@ -475,7 +499,7 @@ impl<'a> Step {
             column(
                 Language::all()
                     .iter()
-                    .cloned()
+                    .copied()
                     .map(|language| {
                         radio(
                             language,
@@ -518,16 +542,25 @@ impl<'a> Step {
             )
     }
 
-    fn image(width: u16) -> Column<'a, StepMessage> {
+    fn image(
+        width: u16,
+        filter_method: image::FilterMethod,
+    ) -> Column<'a, StepMessage> {
         Self::container("Image")
             .push("An image that tries to keep its aspect ratio.")
-            .push(ferris(width))
+            .push(ferris(width, filter_method))
             .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
             .push(
                 text(format!("Width: {width} px"))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
+            .push(checkbox(
+                "Use nearest interpolation",
+                filter_method == image::FilterMethod::Nearest,
+                StepMessage::ImageUseNearestToggled,
+            ))
+            .align_items(Alignment::Center)
     }
 
     fn scrollable() -> Column<'a, StepMessage> {
@@ -548,7 +581,7 @@ impl<'a> Step {
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
             .push(vertical_space(4096))
-            .push(ferris(300))
+            .push(ferris(300, image::FilterMethod::Linear))
             .push(
                 text("You made it!")
                     .width(Length::Fill)
@@ -571,7 +604,7 @@ impl<'a> Step {
             text_input = text_input.icon(text_input::Icon {
                 font: Font::default(),
                 code_point: '🚀',
-                size: Some(28.0),
+                size: Some(Pixels(28.0)),
                 spacing: 10.0,
                 side: text_input::Side::Right,
             });
@@ -639,7 +672,10 @@ impl<'a> Step {
     }
 }
 
-fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+fn ferris<'a>(
+    width: u16,
+    filter_method: image::FilterMethod,
+) -> Container<'a, StepMessage> {
     container(
         // This should go away once we unify resource loading on native
         // platforms
@@ -648,6 +684,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         } else {
             image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
         }
+        .filter_method(filter_method)
         .width(width),
     )
     .width(Length::Fill)

@@ -10,8 +10,8 @@ A simple UI tour that can run both on native platforms and the web! It showcases
 The __[`main`](tour/src/main.rs)__ file contains all the code of the example! All the cross-platform GUI is defined in terms of __state__, __messages__, __update logic__ and __view logic__.
 
 <div align="center">
-  <a href="https://gfycat.com/politeadorableiberianmole">
-    <img src="https://thumbs.gfycat.com/PoliteAdorableIberianmole-small.gif">
+  <a href="https://iced.rs/examples/tour.mp4">
+    <img src="https://iced.rs/examples/tour.gif">
   </a>
 </div>
 
@@ -33,8 +33,8 @@ A todos tracker inspired by [TodoMVC]. It showcases dynamic layout, text input, 
 The example code is located in the __[`main`](todos/src/main.rs)__ file.
 
 <div align="center">
-  <a href="https://gfycat.com/littlesanehalicore">
-    <img src="https://thumbs.gfycat.com/LittleSaneHalicore-small.gif" height="400px">
+  <a href="https://iced.rs/examples/todos.mp4">
+    <img src="https://iced.rs/examples/todos.gif" height="400px">
   </a>
 </div>
 
@@ -53,9 +53,7 @@ It runs a simulation in a background thread while allowing interaction with a `C
 The relevant code is located in the __[`main`](game_of_life/src/main.rs)__ file.
 
 <div align="center">
-  <a href="https://gfycat.com/briefaccurateaardvark">
-    <img src="https://thumbs.gfycat.com/BriefAccurateAardvark-size_restricted.gif">
-  </a>
+  <img src="https://iced.rs/examples/game_of_life.gif">
 </div>
 
 You can run it with `cargo run`:
@@ -72,9 +70,7 @@ An example showcasing custom styling with a light and dark theme.
 The example code is located in the __[`main`](styling/src/main.rs)__ file.
 
 <div align="center">
-  <a href="https://user-images.githubusercontent.com/518289/71867993-acff4300-310c-11ea-85a3-d01d8f884346.gif">
-    <img src="https://user-images.githubusercontent.com/518289/71867993-acff4300-310c-11ea-85a3-d01d8f884346.gif" height="400px">
-  </a>
+  <img src="https://iced.rs/examples/styling.gif">
 </div>
 
 You can run it with `cargo run`:
@@ -120,9 +116,7 @@ Since [Iced was born in May 2019], it has been powering the user interfaces in
 
 
 <div align="center">
-  <a href="https://gfycat.com/gloomyweakhammerheadshark">
-    <img src="https://thumbs.gfycat.com/GloomyWeakHammerheadshark-small.gif">
-  </a>
+  <img src="https://iced.rs/examples/coffee.gif">
 </div>
 
 [Iced was born in May 2019]: https://github.com/hecrj/coffee/pull/35

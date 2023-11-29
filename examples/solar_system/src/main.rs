@@ -23,7 +23,7 @@ use iced::{
 use std::time::Instant;
 
 pub fn main() -> iced::Result {
-    env_logger::builder().format_timestamp(None).init();
+    tracing_subscriber::fmt::init();
 
     SolarSystem::run(Settings {
         antialiasing: true,
@@ -117,8 +117,8 @@ impl State {
         let (width, height) = window::Settings::default().size;
 
         State {
-            space_cache: Default::default(),
-            system_cache: Default::default(),
+            space_cache: canvas::Cache::default(),
+            system_cache: canvas::Cache::default(),
             start: now,
             now,
             stars: Self::generate_stars(width, height),

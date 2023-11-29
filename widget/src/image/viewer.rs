@@ -22,19 +22,21 @@ pub struct Viewer<Handle> {
     max_scale: f32,
     scale_step: f32,
     handle: Handle,
+    filter_method: image::FilterMethod,
 }
 
 impl<Handle> Viewer<Handle> {
     /// Creates a new [`Viewer`] with the given [`State`].
     pub fn new(handle: Handle) -> Self {
         Viewer {
+            handle,
             padding: 0.0,
             width: Length::Shrink,
             height: Length::Shrink,
             min_scale: 0.25,
             max_scale: 10.0,
             scale_step: 0.10,
-            handle,
+            filter_method: image::FilterMethod::default(),
         }
     }
 
@@ -105,6 +107,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -148,12 +151,13 @@ where
         renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         _shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         let bounds = layout.bounds();
 
         match event {
             Event::Mouse(mouse::Event::WheelScrolled { delta }) => {
-                let Some(cursor_position) = cursor.position() else {
+                let Some(cursor_position) = cursor.position_over(bounds) else {
                     return event::Status::Ignored;
                 };
 
@@ -327,12 +331,13 @@ where
                 image::Renderer::draw(
                     renderer,
                     self.handle.clone(),
+                    self.filter_method,
                     Rectangle {
                         x: bounds.x,
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
-                )
+                );
             });
         });
     }

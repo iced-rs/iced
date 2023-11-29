@@ -18,7 +18,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Widget};
 use crate::core::Element;
 use crate::core::{
-    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size,
+    self, Clipboard, Hasher, Length, Point, Rectangle, Shell, Size, Vector,
 };
 use crate::runtime::overlay::Nested;
 
@@ -135,7 +135,7 @@ where
 
             (*self.element.borrow_mut()) = Some(current.element.clone());
             self.with_element(|element| {
-                tree.diff_children(std::slice::from_ref(&element.as_widget()))
+                tree.diff_children(std::slice::from_ref(&element.as_widget()));
             });
         } else {
             (*self.element.borrow_mut()) = Some(current.element.clone());
@@ -152,11 +152,14 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         self.with_element(|element| {
-            element.as_widget().layout(renderer, limits)
+            element
+                .as_widget()
+                .layout(&mut tree.children[0], renderer, limits)
         })
     }
 
@@ -186,6 +189,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         self.with_element_mut(|element| {
             element.as_widget_mut().on_event(
@@ -196,6 +200,7 @@ where
                 renderer,
                 clipboard,
                 shell,
+                viewport,
             )
         })
     }
@@ -238,8 +243,8 @@ where
                 layout,
                 cursor,
                 viewport,
-            )
-        })
+            );
+        });
     }
 
     fn overlay<'b>(
@@ -324,13 +329,14 @@ where
     Renderer: core::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

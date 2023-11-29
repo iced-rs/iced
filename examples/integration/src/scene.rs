@@ -16,7 +16,6 @@ impl Scene {
     }
 
     pub fn clear<'a>(
-        &self,
         target: &'a wgpu::TextureView,
         encoder: &'a mut wgpu::CommandEncoder,
         background_color: Color,
@@ -37,10 +36,12 @@ impl Scene {
                             a: a as f64,
                         }
                     }),
-                    store: true,
+                    store: wgpu::StoreOp::Store,
                 },
             })],
             depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
         })
     }
 

@@ -2,18 +2,13 @@
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
+#![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
     missing_debug_implementations,
     missing_docs,
     unused_results,
-    clippy::extra_unused_lifetimes,
-    clippy::from_over_into,
-    clippy::needless_borrow,
-    clippy::new_without_default,
-    clippy::useless_conversion
+    rustdoc::broken_intra_doc_links
 )]
-#![forbid(unsafe_code, rust_2018_idioms)]
-#![allow(clippy::inherent_to_string, clippy::type_complexity)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
@@ -27,7 +22,9 @@ mod row;
 
 pub mod button;
 pub mod checkbox;
+pub mod combo_box;
 pub mod container;
+pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
 pub mod pick_list;
@@ -38,6 +35,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod text;
+pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
@@ -63,6 +61,8 @@ pub use checkbox::Checkbox;
 #[doc(no_inline)]
 pub use column::Column;
 #[doc(no_inline)]
+pub use combo_box::ComboBox;
+#[doc(no_inline)]
 pub use container::Container;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
@@ -87,6 +87,8 @@ pub use space::Space;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
+pub use text_editor::TextEditor;
+#[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use toggler::Toggler;
@@ -94,6 +96,13 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
+
+#[cfg(feature = "wgpu")]
+pub mod shader;
+
+#[cfg(feature = "wgpu")]
+#[doc(no_inline)]
+pub use shader::Shader;
 
 #[cfg(feature = "svg")]
 pub mod svg;

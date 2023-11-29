@@ -254,6 +254,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -272,6 +273,7 @@ where
         _renderer: &iced::Renderer<Theme>,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        _viewport: &Rectangle,
     ) -> event::Status {
         const FRAME_RATE: u64 = 60;
 

@@ -87,7 +87,7 @@ impl<T: bytemuck::Pod> Buffer<T> {
 
     /// Clears any temporary data (i.e. offsets) from the buffer.
     pub fn clear(&mut self) {
-        self.offsets.clear()
+        self.offsets.clear();
     }
 
     /// Returns the offset at `index`, if it exists.

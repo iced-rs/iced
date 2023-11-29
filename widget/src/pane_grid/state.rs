@@ -1,6 +1,6 @@
 //! The state of a [`PaneGrid`].
 //!
-//! [`PaneGrid`]: crate::widget::PaneGrid
+//! [`PaneGrid`]: super::PaneGrid
 use crate::core::{Point, Size};
 use crate::pane_grid::{
     Axis, Configuration, Direction, Edge, Node, Pane, Region, Split, Target,
@@ -18,23 +18,23 @@ use std::collections::HashMap;
 /// provided to the view function of [`PaneGrid::new`] for displaying each
 /// [`Pane`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
-/// [`PaneGrid::new`]: crate::widget::PaneGrid::new
+/// [`PaneGrid`]: super::PaneGrid
+/// [`PaneGrid::new`]: super::PaneGrid::new
 #[derive(Debug, Clone)]
 pub struct State<T> {
     /// The panes of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub panes: HashMap<Pane, T>,
 
     /// The internal state of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub internal: Internal,
 
     /// The maximized [`Pane`] of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub(super) maximized: Option<Pane>,
 }
 
@@ -75,14 +75,14 @@ impl<T> State<T> {
     }
 
     /// Returns the internal state of the given [`Pane`], if it exists.
-    pub fn get(&self, pane: &Pane) -> Option<&T> {
-        self.panes.get(pane)
+    pub fn get(&self, pane: Pane) -> Option<&T> {
+        self.panes.get(&pane)
     }
 
     /// Returns the internal state of the given [`Pane`] with mutability, if it
     /// exists.
-    pub fn get_mut(&mut self, pane: &Pane) -> Option<&mut T> {
-        self.panes.get_mut(pane)
+    pub fn get_mut(&mut self, pane: Pane) -> Option<&mut T> {
+        self.panes.get_mut(&pane)
     }
 
     /// Returns an iterator over all the panes of the [`State`], alongside its
@@ -104,13 +104,13 @@ impl<T> State<T> {
 
     /// Returns the adjacent [`Pane`] of another [`Pane`] in the given
     /// direction, if there is one.
-    pub fn adjacent(&self, pane: &Pane, direction: Direction) -> Option<Pane> {
+    pub fn adjacent(&self, pane: Pane, direction: Direction) -> Option<Pane> {
         let regions = self
             .internal
             .layout
             .pane_regions(0.0, Size::new(4096.0, 4096.0));
 
-        let current_region = regions.get(pane)?;
+        let current_region = regions.get(&pane)?;
 
         let target = match direction {
             Direction::Left => {
@@ -142,7 +142,7 @@ impl<T> State<T> {
     pub fn split(
         &mut self,
         axis: Axis,
-        pane: &Pane,
+        pane: Pane,
         state: T,
     ) -> Option<(Pane, Split)> {
         self.split_node(axis, Some(pane), state, false)
@@ -151,32 +151,32 @@ impl<T> State<T> {
     /// Split a target [`Pane`] with a given [`Pane`] on a given [`Region`].
     ///
     /// Panes will be swapped by default for [`Region::Center`].
-    pub fn split_with(&mut self, target: &Pane, pane: &Pane, region: Region) {
+    pub fn split_with(&mut self, target: Pane, pane: Pane, region: Region) {
         match region {
             Region::Center => self.swap(pane, target),
             Region::Edge(edge) => match edge {
                 Edge::Top => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, true)
+                    self.split_and_swap(Axis::Horizontal, target, pane, true);
                 }
                 Edge::Bottom => {
-                    self.split_and_swap(Axis::Horizontal, target, pane, false)
+                    self.split_and_swap(Axis::Horizontal, target, pane, false);
                 }
                 Edge::Left => {
-                    self.split_and_swap(Axis::Vertical, target, pane, true)
+                    self.split_and_swap(Axis::Vertical, target, pane, true);
                 }
                 Edge::Right => {
-                    self.split_and_swap(Axis::Vertical, target, pane, false)
+                    self.split_and_swap(Axis::Vertical, target, pane, false);
                 }
             },
         }
     }
 
     /// Drops the given [`Pane`] into the provided [`Target`].
-    pub fn drop(&mut self, pane: &Pane, target: Target) {
+    pub fn drop(&mut self, pane: Pane, target: Target) {
         match target {
             Target::Edge(edge) => self.move_to_edge(pane, edge),
             Target::Pane(target, region) => {
-                self.split_with(&target, pane, region)
+                self.split_with(target, pane, region);
             }
         }
     }
@@ -184,7 +184,7 @@ impl<T> State<T> {
     fn split_node(
         &mut self,
         axis: Axis,
-        pane: Option<&Pane>,
+        pane: Option<Pane>,
         state: T,
         inverse: bool,
     ) -> Option<(Pane, Split)> {
@@ -222,33 +222,35 @@ impl<T> State<T> {
     fn split_and_swap(
         &mut self,
         axis: Axis,
-        target: &Pane,
-        pane: &Pane,
+        target: Pane,
+        pane: Pane,
         swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
             if let Some((new_pane, _)) = self.split(axis, target, state) {
                 if swap {
-                    self.swap(target, &new_pane);
+                    self.swap(target, new_pane);
                 }
             }
         }
     }
 
     /// Move [`Pane`] to an [`Edge`] of the [`PaneGrid`].
-    pub fn move_to_edge(&mut self, pane: &Pane, edge: Edge) {
+    ///
+    /// [`PaneGrid`]: super::PaneGrid
+    pub fn move_to_edge(&mut self, pane: Pane, edge: Edge) {
         match edge {
             Edge::Top => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, true)
+                self.split_major_node_and_swap(Axis::Horizontal, pane, true);
             }
             Edge::Bottom => {
-                self.split_major_node_and_swap(Axis::Horizontal, pane, false)
+                self.split_major_node_and_swap(Axis::Horizontal, pane, false);
             }
             Edge::Left => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, true)
+                self.split_major_node_and_swap(Axis::Vertical, pane, true);
             }
             Edge::Right => {
-                self.split_major_node_and_swap(Axis::Vertical, pane, false)
+                self.split_major_node_and_swap(Axis::Vertical, pane, false);
             }
         }
     }
@@ -256,7 +258,7 @@ impl<T> State<T> {
     fn split_major_node_and_swap(
         &mut self,
         axis: Axis,
-        pane: &Pane,
+        pane: Pane,
         swap: bool,
     ) {
         if let Some((state, _)) = self.close(pane) {
@@ -269,16 +271,16 @@ impl<T> State<T> {
     /// If you want to swap panes on drag and drop in your [`PaneGrid`], you
     /// will need to call this method when handling a [`DragEvent`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    /// [`DragEvent`]: crate::widget::pane_grid::DragEvent
-    pub fn swap(&mut self, a: &Pane, b: &Pane) {
+    /// [`PaneGrid`]: super::PaneGrid
+    /// [`DragEvent`]: super::DragEvent
+    pub fn swap(&mut self, a: Pane, b: Pane) {
         self.internal.layout.update(&|node| match node {
             Node::Split { .. } => {}
             Node::Pane(pane) => {
-                if pane == a {
-                    *node = Node::Pane(*b);
-                } else if pane == b {
-                    *node = Node::Pane(*a);
+                if *pane == a {
+                    *node = Node::Pane(b);
+                } else if *pane == b {
+                    *node = Node::Pane(a);
                 }
             }
         });
@@ -292,21 +294,21 @@ impl<T> State<T> {
     /// If you want to enable resize interactions in your [`PaneGrid`], you will
     /// need to call this method when handling a [`ResizeEvent`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    /// [`ResizeEvent`]: crate::widget::pane_grid::ResizeEvent
-    pub fn resize(&mut self, split: &Split, ratio: f32) {
+    /// [`PaneGrid`]: super::PaneGrid
+    /// [`ResizeEvent`]: super::ResizeEvent
+    pub fn resize(&mut self, split: Split, ratio: f32) {
         let _ = self.internal.layout.resize(split, ratio);
     }
 
     /// Closes the given [`Pane`] and returns its internal state and its closest
     /// sibling, if it exists.
-    pub fn close(&mut self, pane: &Pane) -> Option<(T, Pane)> {
-        if self.maximized == Some(*pane) {
+    pub fn close(&mut self, pane: Pane) -> Option<(T, Pane)> {
+        if self.maximized == Some(pane) {
             let _ = self.maximized.take();
         }
 
         if let Some(sibling) = self.internal.layout.remove(pane) {
-            self.panes.remove(pane).map(|state| (state, sibling))
+            self.panes.remove(&pane).map(|state| (state, sibling))
         } else {
             None
         }
@@ -315,22 +317,22 @@ impl<T> State<T> {
     /// Maximize the given [`Pane`]. Only this pane will be rendered by the
     /// [`PaneGrid`] until [`Self::restore()`] is called.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
-    pub fn maximize(&mut self, pane: &Pane) {
-        self.maximized = Some(*pane);
+    /// [`PaneGrid`]: super::PaneGrid
+    pub fn maximize(&mut self, pane: Pane) {
+        self.maximized = Some(pane);
     }
 
     /// Restore the currently maximized [`Pane`] to it's normal size. All panes
     /// will be rendered by the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn restore(&mut self) {
         let _ = self.maximized.take();
     }
 
     /// Returns the maximized [`Pane`] of the [`PaneGrid`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn maximized(&self) -> Option<Pane> {
         self.maximized
     }
@@ -338,7 +340,7 @@ impl<T> State<T> {
 
 /// The internal state of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone)]
 pub struct Internal {
     layout: Node,
@@ -349,7 +351,7 @@ impl Internal {
     /// Initializes the [`Internal`] state of a [`PaneGrid`] from a
     /// [`Configuration`].
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     pub fn from_configuration<T>(
         panes: &mut HashMap<Pane, T>,
         content: Configuration<T>,
@@ -394,16 +396,16 @@ impl Internal {
 
 /// The current action of a [`PaneGrid`].
 ///
-/// [`PaneGrid`]: crate::widget::PaneGrid
+/// [`PaneGrid`]: super::PaneGrid
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Action {
     /// The [`PaneGrid`] is idle.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Idle,
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Dragging {
         /// The [`Pane`] being dragged.
         pane: Pane,
@@ -412,7 +414,7 @@ pub enum Action {
     },
     /// A [`Split`] in the [`PaneGrid`] is being dragged.
     ///
-    /// [`PaneGrid`]: crate::widget::PaneGrid
+    /// [`PaneGrid`]: super::PaneGrid
     Resizing {
         /// The [`Split`] being dragged.
         split: Split,

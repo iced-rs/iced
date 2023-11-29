@@ -8,6 +8,7 @@ pub use scrollable::Scrollable;
 pub use text_input::TextInput;
 
 use crate::widget::Id;
+use crate::{Rectangle, Vector};
 
 use std::any::Any;
 use std::fmt;
@@ -23,6 +24,7 @@ pub trait Operation<T> {
     fn container(
         &mut self,
         id: Option<&Id>,
+        bounds: Rectangle,
         operate_on_children: &mut dyn FnMut(&mut dyn Operation<T>),
     );
 
@@ -30,7 +32,14 @@ pub trait Operation<T> {
     fn focusable(&mut self, _state: &mut dyn Focusable, _id: Option<&Id>) {}
 
     /// Operates on a widget that can be scrolled.
-    fn scrollable(&mut self, _state: &mut dyn Scrollable, _id: Option<&Id>) {}
+    fn scrollable(
+        &mut self,
+        _state: &mut dyn Scrollable,
+        _id: Option<&Id>,
+        _bounds: Rectangle,
+        _translation: Vector,
+    ) {
+    }
 
     /// Operates on a widget that has text input.
     fn text_input(&mut self, _state: &mut dyn TextInput, _id: Option<&Id>) {}
@@ -92,6 +101,7 @@ where
         fn container(
             &mut self,
             id: Option<&Id>,
+            bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
         ) {
             struct MapRef<'a, A> {
@@ -102,11 +112,12 @@ where
                 fn container(
                     &mut self,
                     id: Option<&Id>,
+                    bounds: Rectangle,
                     operate_on_children: &mut dyn FnMut(&mut dyn Operation<B>),
                 ) {
                     let Self { operation, .. } = self;
 
-                    operation.container(id, &mut |operation| {
+                    operation.container(id, bounds, &mut |operation| {
                         operate_on_children(&mut MapRef { operation });
                     });
                 }
@@ -115,8 +126,10 @@ where
                     &mut self,
                     state: &mut dyn Scrollable,
                     id: Option<&Id>,
+                    bounds: Rectangle,
+                    translation: Vector,
                 ) {
-                    self.operation.scrollable(state, id);
+                    self.operation.scrollable(state, id, bounds, translation);
                 }
 
                 fn focusable(
@@ -145,15 +158,21 @@ where
             MapRef {
                 operation: operation.as_mut(),
             }
-            .container(id, operate_on_children);
+            .container(id, bounds, operate_on_children);
         }
 
         fn focusable(&mut self, state: &mut dyn Focusable, id: Option<&Id>) {
             self.operation.focusable(state, id);
         }
 
-        fn scrollable(&mut self, state: &mut dyn Scrollable, id: Option<&Id>) {
-            self.operation.scrollable(state, id);
+        fn scrollable(
+            &mut self,
+            state: &mut dyn Scrollable,
+            id: Option<&Id>,
+            bounds: Rectangle,
+            translation: Vector,
+        ) {
+            self.operation.scrollable(state, id, bounds, translation);
         }
 
         fn text_input(&mut self, state: &mut dyn TextInput, id: Option<&Id>) {
@@ -197,6 +216,7 @@ pub fn scope<T: 'static>(
         fn container(
             &mut self,
             id: Option<&Id>,
+            _bounds: Rectangle,
             operate_on_children: &mut dyn FnMut(&mut dyn Operation<Message>),
         ) {
             if id == Some(&self.target) {

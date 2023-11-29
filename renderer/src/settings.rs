@@ -1,9 +1,7 @@
-use crate::core::Font;
+use crate::core::{Font, Pixels};
 use crate::graphics::Antialiasing;
 
-/// The settings of a [`Backend`].
-///
-/// [`Backend`]: crate::Backend
+/// The settings of a Backend.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The default [`Font`] to use.
@@ -12,7 +10,7 @@ pub struct Settings {
     /// The default size of text.
     ///
     /// By default, it will be set to `16.0`.
-    pub default_text_size: f32,
+    pub default_text_size: Pixels,
 
     /// The antialiasing strategy that will be used for triangle primitives.
     ///
@@ -24,7 +22,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             default_font: Font::default(),
-            default_text_size: 16.0,
+            default_text_size: Pixels(16.0),
             antialiasing: None,
         }
     }

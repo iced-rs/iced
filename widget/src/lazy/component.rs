@@ -7,7 +7,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 use crate::runtime::overlay::Nested;
 
@@ -253,11 +254,18 @@ where
 
     fn layout(
         &self,
+        tree: &mut Tree,
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let t = tree.state.downcast_mut::<Rc<RefCell<Option<Tree>>>>();
+
         self.with_element(|element| {
-            element.as_widget().layout(renderer, limits)
+            element.as_widget().layout(
+                &mut t.borrow_mut().as_mut().unwrap().children[0],
+                renderer,
+                limits,
+            )
         })
     }
 
@@ -270,6 +278,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let mut local_messages = Vec::new();
         let mut local_shell = Shell::new(&mut local_messages);
@@ -284,6 +293,7 @@ where
                 renderer,
                 clipboard,
                 &mut local_shell,
+                viewport,
             )
         });
 
@@ -338,11 +348,12 @@ where
             fn container(
                 &mut self,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
                 operate_on_children: &mut dyn FnMut(
                     &mut dyn widget::Operation<T>,
                 ),
             ) {
-                self.operation.container(id, &mut |operation| {
+                self.operation.container(id, bounds, &mut |operation| {
                     operate_on_children(&mut MapOperation { operation });
                 });
             }
@@ -367,8 +378,10 @@ where
                 &mut self,
                 state: &mut dyn widget::operation::Scrollable,
                 id: Option<&widget::Id>,
+                bounds: Rectangle,
+                translation: Vector,
             ) {
-                self.operation.scrollable(state, id);
+                self.operation.scrollable(state, id, bounds, translation);
             }
 
             fn custom(
@@ -498,7 +511,7 @@ impl<'a, 'b, Message, Renderer, Event, S> Drop
     for Overlay<'a, 'b, Message, Renderer, Event, S>
 {
     fn drop(&mut self) {
-        if let Some(heads) = self.0.take().map(|inner| inner.into_heads()) {
+        if let Some(heads) = self.0.take().map(Inner::into_heads) {
             *heads.instance.tree.borrow_mut().borrow_mut() = Some(heads.tree);
         }
     }
@@ -560,13 +573,14 @@ where
     S: 'static + Default,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

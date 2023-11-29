@@ -1,16 +1,11 @@
-use crate::core::text;
-use crate::core::Gradient;
-use crate::core::{Background, Color, Font, Point, Rectangle, Size, Vector};
+use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
 use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
-use crate::Settings;
 
 use std::borrow::Cow;
 
 pub struct Backend {
-    default_font: Font,
-    default_text_size: f32,
     text_pipeline: crate::text::Pipeline,
 
     #[cfg(feature = "image")]
@@ -21,10 +16,8 @@ pub struct Backend {
 }
 
 impl Backend {
-    pub fn new(settings: Settings) -> Self {
+    pub fn new() -> Self {
         Self {
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
             text_pipeline: crate::text::Pipeline::new(),
 
             #[cfg(feature = "image")]
@@ -364,6 +357,57 @@ impl Backend {
                     }
                 }
             }
+            Primitive::Paragraph {
+                paragraph,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, paragraph.min_bounds)
+                        + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_paragraph(
+                    paragraph,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
+            Primitive::Editor {
+                editor,
+                position,
+                color,
+            } => {
+                let physical_bounds =
+                    (Rectangle::new(*position, editor.bounds) + translation)
+                        * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_editor(
+                    editor,
+                    *position + translation,
+                    *color,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
             Primitive::Text {
                 content,
                 bounds,
@@ -385,7 +429,7 @@ impl Backend {
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
                     .then_some(clip_mask as &_);
 
-                self.text_pipeline.draw(
+                self.text_pipeline.draw_cached(
                     content,
                     *bounds + translation,
                     *color,
@@ -401,7 +445,11 @@ impl Backend {
                 );
             }
             #[cfg(feature = "image")]
-            Primitive::Image { handle, bounds } => {
+            Primitive::Image {
+                handle,
+                filter_method,
+                bounds,
+            } => {
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
@@ -417,14 +465,19 @@ impl Backend {
                 )
                 .post_scale(scale_factor, scale_factor);
 
-                self.raster_pipeline
-                    .draw(handle, *bounds, pixels, transform, clip_mask);
+                self.raster_pipeline.draw(
+                    handle,
+                    *filter_method,
+                    *bounds,
+                    pixels,
+                    transform,
+                    clip_mask,
+                );
             }
             #[cfg(not(feature = "image"))]
             Primitive::Image { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             #[cfg(feature = "svg")]
@@ -453,8 +506,7 @@ impl Backend {
             #[cfg(not(feature = "svg"))]
             Primitive::Svg { .. } => {
                 log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {:?}",
-                    primitive
+                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             Primitive::Custom(primitive::Custom::Fill {
@@ -596,6 +648,12 @@ impl Backend {
                 );
             }
         }
+    }
+}
+
+impl Default for Backend {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -779,60 +837,6 @@ impl iced_graphics::Backend for Backend {
 }
 
 impl backend::Text for Backend {
-    const ICON_FONT: Font = Font::with_name("Iced-Icons");
-    const CHECKMARK_ICON: char = '\u{f00c}';
-    const ARROW_DOWN_ICON: char = '\u{e800}';
-
-    fn default_font(&self) -> Font {
-        self.default_font
-    }
-
-    fn default_size(&self) -> f32 {
-        self.default_text_size
-    }
-
-    fn measure(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-    ) -> Size {
-        self.text_pipeline.measure(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-        )
-    }
-
-    fn hit_test(
-        &self,
-        contents: &str,
-        size: f32,
-        line_height: text::LineHeight,
-        font: Font,
-        bounds: Size,
-        shaping: text::Shaping,
-        point: Point,
-        nearest_only: bool,
-    ) -> Option<text::Hit> {
-        self.text_pipeline.hit_test(
-            contents,
-            size,
-            line_height,
-            font,
-            bounds,
-            shaping,
-            point,
-            nearest_only,
-        )
-    }
-
     fn load_font(&mut self, font: Cow<'static, [u8]>) {
         self.text_pipeline.load_font(font);
     }
@@ -840,7 +844,10 @@ impl backend::Text for Backend {
 
 #[cfg(feature = "image")]
 impl backend::Image for Backend {
-    fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
+    fn dimensions(
+        &self,
+        handle: &crate::core::image::Handle,
+    ) -> crate::core::Size<u32> {
         self.raster_pipeline.dimensions(handle)
     }
 }
@@ -850,7 +857,7 @@ impl backend::Svg for Backend {
     fn viewport_dimensions(
         &self,
         handle: &crate::core::svg::Handle,
-    ) -> Size<u32> {
+    ) -> crate::core::Size<u32> {
         self.vector_pipeline.viewport_dimensions(handle)
     }
 }

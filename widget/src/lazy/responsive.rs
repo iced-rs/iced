@@ -6,7 +6,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
@@ -60,13 +61,13 @@ impl<'a, Message, Renderer> Content<'a, Message, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn layout(&mut self, renderer: &Renderer) {
+    fn layout(&mut self, tree: &mut Tree, renderer: &Renderer) {
         if self.layout.is_none() {
-            self.layout =
-                Some(self.element.as_widget().layout(
-                    renderer,
-                    &layout::Limits::new(Size::ZERO, self.size),
-                ));
+            self.layout = Some(self.element.as_widget().layout(
+                tree,
+                renderer,
+                &layout::Limits::new(Size::ZERO, self.size),
+            ));
         }
     }
 
@@ -104,7 +105,7 @@ where
         R: Deref<Target = Renderer>,
     {
         self.update(tree, layout.bounds().size(), view);
-        self.layout(renderer.deref());
+        self.layout(tree, renderer.deref());
 
         let content_layout = Layout::with_offset(
             layout.position() - Point::ORIGIN,
@@ -144,6 +145,7 @@ where
 
     fn layout(
         &self,
+        _tree: &mut Tree,
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
@@ -182,6 +184,7 @@ where
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
         let mut content = self.content.borrow_mut();
@@ -203,6 +206,7 @@ where
                     renderer,
                     clipboard,
                     &mut local_shell,
+                    viewport,
                 )
             },
         );
@@ -237,9 +241,9 @@ where
             |tree, renderer, layout, element| {
                 element.as_widget().draw(
                     tree, renderer, theme, style, layout, cursor, viewport,
-                )
+                );
             },
-        )
+        );
     }
 
     fn mouse_interaction(
@@ -283,7 +287,7 @@ where
             overlay_builder: |content: &mut RefMut<'_, Content<'_, _, _>>,
                               tree| {
                 content.update(tree, layout.bounds().size(), &self.view);
-                content.layout(renderer);
+                content.layout(tree, renderer);
 
                 let Content {
                     element,
@@ -360,13 +364,14 @@ where
     Renderer: core::Renderer,
 {
     fn layout(
-        &self,
+        &mut self,
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

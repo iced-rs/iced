@@ -1,12 +1,122 @@
-//! Convert [`winit`] types into [`iced_native`] types, and viceversa.
+//! Convert [`winit`] types into [`iced_runtime`] types, and viceversa.
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
-//! [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+//! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
 use crate::core::{Event, Point};
+
+/// Converts some [`window::Settings`] into a `WindowBuilder` from `winit`.
+pub fn window_settings(
+    settings: window::Settings,
+    title: &str,
+    primary_monitor: Option<winit::monitor::MonitorHandle>,
+    _id: Option<String>,
+) -> winit::window::WindowBuilder {
+    let mut window_builder = winit::window::WindowBuilder::new();
+
+    let (width, height) = settings.size;
+
+    window_builder = window_builder
+        .with_title(title)
+        .with_inner_size(winit::dpi::LogicalSize { width, height })
+        .with_resizable(settings.resizable)
+        .with_enabled_buttons(if settings.resizable {
+            winit::window::WindowButtons::all()
+        } else {
+            winit::window::WindowButtons::CLOSE
+                | winit::window::WindowButtons::MINIMIZE
+        })
+        .with_decorations(settings.decorations)
+        .with_transparent(settings.transparent)
+        .with_window_icon(settings.icon.and_then(icon))
+        .with_window_level(window_level(settings.level))
+        .with_visible(settings.visible);
+
+    if let Some(position) =
+        position(primary_monitor.as_ref(), settings.size, settings.position)
+    {
+        window_builder = window_builder.with_position(position);
+    }
+
+    if let Some((width, height)) = settings.min_size {
+        window_builder = window_builder
+            .with_min_inner_size(winit::dpi::LogicalSize { width, height });
+    }
+
+    if let Some((width, height)) = settings.max_size {
+        window_builder = window_builder
+            .with_max_inner_size(winit::dpi::LogicalSize { width, height });
+    }
+
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
+        // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
+        use ::winit::platform::wayland::WindowBuilderExtWayland;
+
+        if let Some(id) = _id {
+            window_builder = window_builder.with_name(id.clone(), id);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        #[allow(unsafe_code)]
+        unsafe {
+            window_builder = window_builder
+                .with_parent_window(settings.platform_specific.parent);
+        }
+        window_builder = window_builder
+            .with_drag_and_drop(settings.platform_specific.drag_and_drop);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::WindowBuilderExtMacOS;
+
+        window_builder = window_builder
+            .with_title_hidden(settings.platform_specific.title_hidden)
+            .with_titlebar_transparent(
+                settings.platform_specific.titlebar_transparent,
+            )
+            .with_fullsize_content_view(
+                settings.platform_specific.fullsize_content_view,
+            );
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        #[cfg(feature = "x11")]
+        {
+            use winit::platform::x11::WindowBuilderExtX11;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+        #[cfg(feature = "wayland")]
+        {
+            use winit::platform::wayland::WindowBuilderExtWayland;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+    }
+
+    window_builder
+}
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
@@ -238,10 +348,9 @@ pub fn mode(mode: Option<winit::window::Fullscreen>) -> window::Mode {
     }
 }
 
-/// Converts a `MouseCursor` from [`iced_native`] to a [`winit`] cursor icon.
+/// Converts a [`mouse::Interaction`] to a [`winit`] cursor icon.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
 pub fn mouse_interaction(
     interaction: mouse::Interaction,
 ) -> winit::window::CursorIcon {
@@ -263,10 +372,10 @@ pub fn mouse_interaction(
     }
 }
 
-/// Converts a `MouseButton` from [`winit`] to an [`iced_native`] mouse button.
+/// Converts a `MouseButton` from [`winit`] to an [`iced`] mouse button.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     match mouse_button {
         winit::event::MouseButton::Left => mouse::Button::Left,
@@ -276,11 +385,11 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
     }
 }
 
-/// Converts some `ModifiersState` from [`winit`] to an [`iced_native`]
-/// modifiers state.
+/// Converts some `ModifiersState` from [`winit`] to an [`iced`] modifiers
+/// state.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn modifiers(
     modifiers: winit::event::ModifiersState,
 ) -> keyboard::Modifiers {
@@ -304,10 +413,10 @@ pub fn cursor_position(
     Point::new(logical_position.x, logical_position.y)
 }
 
-/// Converts a `Touch` from [`winit`] to an [`iced_native`] touch event.
+/// Converts a `Touch` from [`winit`] to an [`iced`] touch event.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn touch_event(
     touch: winit::event::Touch,
     scale_factor: f64,
@@ -335,10 +444,10 @@ pub fn touch_event(
     }
 }
 
-/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced_native`] key code.
+/// Converts a `VirtualKeyCode` from [`winit`] to an [`iced`] key code.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
-/// [`iced_native`]: https://github.com/iced-rs/iced/tree/0.9/native
+/// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn key_code(
     virtual_keycode: winit::event::VirtualKeyCode,
 ) -> keyboard::KeyCode {
@@ -531,7 +640,7 @@ pub fn user_attention(
     }
 }
 
-/// Converts some [`Icon`] into it's `winit` counterpart.
+/// Converts some [`window::Icon`] into it's `winit` counterpart.
 ///
 /// Returns `None` if there is an error during the conversion.
 pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {

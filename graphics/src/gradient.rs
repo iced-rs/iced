@@ -1,8 +1,6 @@
-//! A gradient that can be used as a [`Fill`] for some geometry.
+//! A gradient that can be used as a fill for some geometry.
 //!
 //! For a gradient that you can use as a background variant for a widget, see [`Gradient`].
-//!
-//! [`Gradient`]: crate::core::Gradient;
 use crate::color;
 use crate::core::gradient::ColorStop;
 use crate::core::{self, Color, Point, Rectangle};
@@ -36,10 +34,7 @@ impl Gradient {
     }
 }
 
-/// A linear gradient that can be used in the style of [`Fill`] or [`Stroke`].
-///
-/// [`Fill`]: crate::geometry::Fill;
-/// [`Stroke`]: crate::geometry::Stroke;
+/// A linear gradient.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Linear {
     /// The absolute starting position of the gradient.
@@ -53,7 +48,7 @@ pub struct Linear {
 }
 
 impl Linear {
-    /// Creates a new [`Builder`].
+    /// Creates a new [`Linear`] builder.
     pub fn new(start: Point, end: Point) -> Self {
         Self {
             start,
@@ -92,8 +87,8 @@ impl Linear {
         mut self,
         stops: impl IntoIterator<Item = ColorStop>,
     ) -> Self {
-        for stop in stops.into_iter() {
-            self = self.add_stop(stop.offset, stop.color)
+        for stop in stops {
+            self = self.add_stop(stop.offset, stop.color);
         }
 
         self
