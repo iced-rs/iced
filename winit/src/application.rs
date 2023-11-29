@@ -720,9 +720,10 @@ pub fn run_command<A, C, E>(
                     let _res = window.drag_window();
                 }
                 window::Action::Spawn { .. } => {
-                    log::info!(
-                        "Spawning a window is only available with multi-window applications."
-                    )
+                    log::warn!(
+                        "Spawning a window is only available with \
+                        multi-window applications."
+                    );
                 }
                 window::Action::Resize(size) => {
                     window.set_inner_size(winit::dpi::LogicalSize {

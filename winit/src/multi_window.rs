@@ -912,7 +912,7 @@ pub fn run_command<A, C, E>(
                             size.width,
                             size.height,
                         ))))
-                        .expect("Send message to event loop")
+                        .expect("Send message to event loop");
                 }
                 window::Action::Maximize(maximized) => {
                     windows.with_raw(id).set_maximized(maximized);
@@ -934,7 +934,9 @@ pub fn run_command<A, C, E>(
                     ));
                 }
                 window::Action::ChangeIcon(icon) => {
-                    windows.with_raw(id).set_window_icon(conversion::icon(icon))
+                    windows
+                        .with_raw(id)
+                        .set_window_icon(conversion::icon(icon));
                 }
                 window::Action::FetchMode(tag) => {
                     let window = windows.with_raw(id);
@@ -969,12 +971,14 @@ pub fn run_command<A, C, E>(
                         .with_raw(id)
                         .set_window_level(conversion::window_level(level));
                 }
-                window::Action::FetchId(tag) => proxy
-                    .send_event(Event::Application(tag(windows
-                        .with_raw(id)
-                        .id()
-                        .into())))
-                    .expect("Event loop doesn't exist."),
+                window::Action::FetchId(tag) => {
+                    proxy
+                        .send_event(Event::Application(tag(windows
+                            .with_raw(id)
+                            .id()
+                            .into())))
+                        .expect("Event loop doesn't exist.");
+                }
                 window::Action::Screenshot(tag) => {
                     let i = windows.index_from_id(id);
                     let state = &windows.states[i];
@@ -996,7 +1000,7 @@ pub fn run_command<A, C, E>(
                                 state.physical_size(),
                             ),
                         )))
-                        .expect("Event loop doesn't exist.")
+                        .expect("Event loop doesn't exist.");
                 }
             },
             command::Action::System(action) => match action {
@@ -1014,7 +1018,7 @@ pub fn run_command<A, C, E>(
 
                             proxy
                                 .send_event(Event::Application(message))
-                                .expect("Event loop doesn't exist.")
+                                .expect("Event loop doesn't exist.");
                         });
                     }
                 }

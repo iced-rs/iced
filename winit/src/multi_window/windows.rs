@@ -1,9 +1,11 @@
 use crate::core::{window, Size};
+use crate::graphics::Compositor;
 use crate::multi_window::{Application, State};
-use iced_graphics::Compositor;
-use iced_style::application::StyleSheet;
-use std::fmt::{Debug, Formatter};
+use crate::style::application::StyleSheet;
+
 use winit::monitor::MonitorHandle;
+
+use std::fmt::{Debug, Formatter};
 
 pub struct Windows<A: Application, C: Compositor>
 where
@@ -33,7 +35,7 @@ where
                 &self
                     .raw
                     .iter()
-                    .map(|raw| raw.id())
+                    .map(winit::window::Window::id)
                     .collect::<Vec<winit::window::WindowId>>(),
             )
             .field("states", &self.states)
@@ -131,7 +133,9 @@ where
     }
 
     pub fn last_monitor(&self) -> Option<MonitorHandle> {
-        self.raw.last().and_then(|w| w.current_monitor())
+        self.raw
+            .last()
+            .and_then(winit::window::Window::current_monitor)
     }
 
     pub fn last(&self) -> usize {
