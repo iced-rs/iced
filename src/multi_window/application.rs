@@ -1,7 +1,6 @@
+use crate::style::application::StyleSheet;
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
-
-pub use crate::style::application::{Appearance, StyleSheet};
 
 /// An interactive cross-platform multi-window application.
 ///
