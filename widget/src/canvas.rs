@@ -15,7 +15,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{Clipboard, Element, Shell, Widget};
-use crate::core::{Length, Rectangle, Size, Vector};
+use crate::core::{Length, Rectangle, Size, Vector, IME};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -147,6 +147,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

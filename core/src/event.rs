@@ -1,9 +1,9 @@
 //! Handle events of a user interface.
+use crate::ime;
 use crate::keyboard;
 use crate::mouse;
 use crate::touch;
 use crate::window;
-
 /// A user interface event.
 ///
 /// _**Note:** This type is largely incomplete! If you need to track
@@ -26,6 +26,9 @@ pub enum Event {
 
     /// A platform specific event
     PlatformSpecific(PlatformSpecific),
+
+    /// A ime event
+    IME(ime::Event),
 }
 
 /// A platform specific event

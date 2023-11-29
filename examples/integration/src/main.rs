@@ -12,7 +12,7 @@ use iced_winit::core::{Color, Font, Pixels, Size};
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::style::Theme;
-use iced_winit::{conversion, futures, winit, Clipboard};
+use iced_winit::{conversion, futures, winit, Clipboard, IME};
 
 use winit::{
     event::{Event, ModifiersState, WindowEvent},
@@ -62,7 +62,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut cursor_position = None;
     let mut modifiers = ModifiersState::default();
     let mut clipboard = Clipboard::connect(&window);
-
+    let ime = IME::new();
     // Initialize wgpu
     #[cfg(target_arch = "wasm32")]
     let default_backend = wgpu::Backends::GL;
@@ -208,9 +208,10 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                             text_color: Color::WHITE,
                         },
                         &mut clipboard,
+                        &ime,
                         &mut debug,
                     );
-
+                    ime.apply_request(&window);
                     // and request a redraw
                     window.request_redraw();
                 }

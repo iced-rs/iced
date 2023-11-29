@@ -19,6 +19,7 @@
 pub mod clipboard;
 pub mod command;
 pub mod font;
+pub mod ime;
 pub mod keyboard;
 pub mod overlay;
 pub mod program;

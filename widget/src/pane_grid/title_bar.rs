@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size, IME,
 };
 
 /// The title bar of a [`Pane`].
@@ -307,6 +307,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -332,6 +333,7 @@ where
                 cursor,
                 renderer,
                 clipboard,
+                ime,
                 shell,
                 viewport,
             )
@@ -347,6 +349,7 @@ where
                 cursor,
                 renderer,
                 clipboard,
+                ime,
                 shell,
                 viewport,
             )

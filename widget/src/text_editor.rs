@@ -10,7 +10,7 @@ use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
     Clipboard, Color, Element, Length, Padding, Pixels, Rectangle, Shell,
-    Vector,
+    Vector, IME,
 };
 
 use std::cell::RefCell;
@@ -359,6 +359,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

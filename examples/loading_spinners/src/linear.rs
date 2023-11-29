@@ -1,7 +1,7 @@
 //! Show a linear progress indicator.
-use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
+use iced::advanced::{layout, IME};
 use iced::advanced::{Clipboard, Layout, Shell, Widget};
 use iced::event;
 use iced::mouse;
@@ -193,6 +193,7 @@ where
         _cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

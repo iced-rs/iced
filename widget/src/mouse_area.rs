@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Widget,
+    Clipboard, Element, Layout, Length, Rectangle, Shell, Widget, IME,
 };
 
 /// Emit messages on mouse events.
@@ -152,6 +152,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -162,6 +163,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             shell,
             viewport,
         ) {

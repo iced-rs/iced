@@ -9,7 +9,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Size, Vector, Widget,
+    Point, Rectangle, Shell, Size, Vector, Widget, IME,
 };
 use crate::runtime::Command;
 
@@ -208,6 +208,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -218,6 +219,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             shell,
             viewport,
         )

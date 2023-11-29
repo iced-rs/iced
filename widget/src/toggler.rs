@@ -1,4 +1,6 @@
 //! Show toggle controls using togglers.
+use iced_renderer::core::IME;
+
 use crate::core::alignment;
 use crate::core::event;
 use crate::core::layout;
@@ -223,6 +225,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {

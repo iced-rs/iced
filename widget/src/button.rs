@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Rectangle, Shell, Vector, Widget, IME,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -197,6 +197,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -207,6 +208,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             shell,
             viewport,
         ) {

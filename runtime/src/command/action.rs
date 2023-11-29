@@ -1,6 +1,7 @@
 use crate::clipboard;
 use crate::core::widget;
 use crate::font;
+use crate::ime;
 use crate::system;
 use crate::window;
 
@@ -25,6 +26,9 @@ pub enum Action<T> {
 
     /// Run a clipboard action.
     Clipboard(clipboard::Action<T>),
+
+    /// Run a IME releated action.
+    IME(ime::Action),
 
     /// Run a window action.
     Window(window::Action<T>),
@@ -63,6 +67,7 @@ impl<T> Action<T> {
             Self::Future(future) => Action::Future(Box::pin(future.map(f))),
             Self::Stream(stream) => Action::Stream(Box::pin(stream.map(f))),
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
+            Self::IME(action) => Action::IME(action),
             Self::Window(window) => Action::Window(window.map(f)),
             Self::System(system) => Action::System(system.map(f)),
             Self::Widget(operation) => {
@@ -83,6 +88,9 @@ impl<T> fmt::Debug for Action<T> {
             Self::Stream(_) => write!(f, "Action::Stream"),
             Self::Clipboard(action) => {
                 write!(f, "Action::Clipboard({action:?})")
+            }
+            Self::IME(action) => {
+                write!(f, "Action::IME({action:?})")
             }
             Self::Window(action) => write!(f, "Action::Window({action:?})"),
             Self::System(action) => write!(f, "Action::System({action:?})"),

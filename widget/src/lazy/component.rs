@@ -8,7 +8,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Widget, IME,
 };
 use crate::runtime::overlay::Nested;
 
@@ -277,6 +277,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -292,6 +293,7 @@ where
                 cursor,
                 renderer,
                 clipboard,
+                ime,
                 &mut local_shell,
                 viewport,
             )
@@ -618,6 +620,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
         let mut local_messages = Vec::new();
@@ -631,6 +634,7 @@ where
                     cursor,
                     renderer,
                     clipboard,
+                    ime,
                     &mut local_shell,
                 )
             })

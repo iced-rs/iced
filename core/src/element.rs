@@ -1,13 +1,11 @@
 use crate::event::{self, Event};
-use crate::layout;
-use crate::mouse;
-use crate::overlay;
 use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
-use crate::{
-    Clipboard, Color, Layout, Length, Rectangle, Shell, Vector, Widget,
-};
+use crate::IME;
+use crate::{layout, mouse};
+use crate::{overlay, Vector};
+use crate::{Clipboard, Color, Layout, Length, Rectangle, Shell, Widget};
 
 use std::any::Any;
 use std::borrow::Borrow;
@@ -385,6 +383,7 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, B>,
         viewport: &Rectangle,
     ) -> event::Status {
@@ -398,6 +397,7 @@ where
             cursor,
             renderer,
             clipboard,
+            ime,
             &mut local_shell,
             viewport,
         );
@@ -519,11 +519,13 @@ where
         cursor: mouse::Cursor,
         renderer: &Renderer,
         clipboard: &mut dyn Clipboard,
+        ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         viewport: &Rectangle,
     ) -> event::Status {
         self.element.widget.on_event(
-            state, event, layout, cursor, renderer, clipboard, shell, viewport,
+            state, event, layout, cursor, renderer, clipboard, ime, shell,
+            viewport,
         )
     }
 

@@ -2,6 +2,7 @@
 //!
 //! [`winit`]: https://github.com/rust-windowing/winit
 //! [`iced_runtime`]: https://github.com/iced-rs/iced/tree/0.10/runtime
+use crate::core::ime;
 use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
@@ -136,6 +137,22 @@ pub fn window_event(
 
             Some(Event::Window(window::Event::Moved { x, y }))
         }
+        WindowEvent::Ime(ime) => match ime {
+            winit::event::Ime::Enabled => {
+                Some(Event::IME(ime::Event::IMEEnabled))
+            }
+            winit::event::Ime::Preedit(text, range) => {
+                // range parameter is used to mark converting position.
+
+                Some(Event::IME(ime::Event::IMEPreedit(text.clone(), *range)))
+            }
+            winit::event::Ime::Commit(text) => {
+                Some(Event::IME(ime::Event::IMECommit(text.clone())))
+            }
+            winit::event::Ime::Disabled => {
+                Some(Event::IME(ime::Event::IMEDisabled))
+            }
+        },
         _ => None,
     }
 }

@@ -10,6 +10,7 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
+    IME,
 };
 
 pub use iced_style::checkbox::{Appearance, StyleSheet};
@@ -223,6 +224,7 @@ where
         cursor: mouse::Cursor,
         _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
+        _ime: &dyn IME,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
