@@ -40,9 +40,6 @@ enum Event<Message> {
     },
 }
 
-#[allow(unsafe_code)]
-unsafe impl<Message> std::marker::Send for Event<Message> {}
-
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
 /// This trait is the main entrypoint of multi-window Iced. Once implemented, you can run
