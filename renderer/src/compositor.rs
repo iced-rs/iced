@@ -55,10 +55,6 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             Compositor::Wgpu(compositor) => {
                 Renderer::Wgpu(compositor.renderer())
             }
-            #[cfg(not(feature = "wgpu"))]
-            Self::Wgpu => {
-                panic!("`wgpu` feature was not enabled in `iced_renderer`")
-            }
         }
     }
 
