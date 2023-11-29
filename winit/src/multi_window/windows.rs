@@ -176,11 +176,12 @@ where
 
     /// Returns the windows that need to be requested to closed, and also the windows that can be
     /// closed immediately.
-    pub fn partition_close_requests(&self) -> (Vec<window::Id>, Vec<window::Id>) {
+    pub fn partition_close_requests(
+        &self,
+    ) -> (Vec<window::Id>, Vec<window::Id>) {
         self.exit_on_close_requested.iter().enumerate().fold(
             (vec![], vec![]),
-            |(mut close_immediately, mut needs_request_closed),
-             (i, close)| {
+            |(mut close_immediately, mut needs_request_closed), (i, close)| {
                 let id = self.ids[i];
 
                 if *close {
