@@ -4,8 +4,11 @@ mod action;
 pub use action::Action;
 
 use crate::core::widget;
+use crate::futures::futures;
 use crate::futures::MaybeSend;
 
+use futures::channel::mpsc;
+use futures::Stream;
 use std::fmt;
 use std::future::Future;
 
@@ -43,9 +46,19 @@ impl<T> Command<T> {
         future: impl Future<Output = A> + 'static + MaybeSend,
         f: impl FnOnce(A) -> T + 'static + MaybeSend,
     ) -> Command<T> {
-        use iced_futures::futures::FutureExt;
+        use futures::FutureExt;
 
         Command::single(Action::Future(Box::pin(future.map(f))))
+    }
+
+    /// Creates a [`Command`] that runs the given stream to completion.
+    pub fn run<A>(
+        stream: impl Stream<Item = A> + 'static + MaybeSend,
+        f: impl Fn(A) -> T + 'static + MaybeSend,
+    ) -> Command<T> {
+        use futures::StreamExt;
+
+        Command::single(Action::Stream(Box::pin(stream.map(f))))
     }
 
     /// Creates a [`Command`] that performs the actions of all the given
@@ -105,4 +118,24 @@ impl<T> fmt::Debug for Command<T> {
 
         command.fmt(f)
     }
+}
+
+/// Creates a [`Command`] that produces the `Message`s published from a [`Future`]
+/// to an [`mpsc::Sender`] with the given bounds.
+pub fn channel<Fut, Message>(
+    size: usize,
+    f: impl FnOnce(mpsc::Sender<Message>) -> Fut + MaybeSend + 'static,
+) -> Command<Message>
+where
+    Fut: Future<Output = ()> + MaybeSend + 'static,
+    Message: 'static + MaybeSend,
+{
+    use futures::future;
+    use futures::stream::{self, StreamExt};
+
+    let (sender, receiver) = mpsc::channel(size);
+
+    let runner = stream::once(f(sender)).filter_map(|_| future::ready(None));
+
+    Command::single(Action::Stream(Box::pin(stream::select(receiver, runner))))
 }
