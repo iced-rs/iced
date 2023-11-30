@@ -909,6 +909,10 @@ impl svg::StyleSheet for Theme {
             Svg::Custom(custom) => custom.appearance(self),
         }
     }
+
+    fn hovered(&self, style: &Self::Style) -> svg::Appearance {
+        self.appearance(style)
+    }
 }
 
 impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
@@ -916,6 +920,10 @@ impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
 
     fn appearance(&self, style: &Self::Style) -> svg::Appearance {
         (self)(style)
+    }
+
+    fn hovered(&self, style: &Self::Style) -> svg::Appearance {
+        self.appearance(style)
     }
 }
 
