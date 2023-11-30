@@ -5,8 +5,12 @@ mod windows;
 pub use state::State;
 
 use crate::conversion;
+use crate::core;
+use crate::core::mouse;
+use crate::core::renderer;
 use crate::core::widget::operation;
-use crate::core::{self, mouse, renderer, window, Size};
+use crate::core::window;
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::{task, Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
@@ -350,18 +354,18 @@ async fn run_instance<A, E, C>(
 
     let mut mouse_interaction = mouse::Interaction::default();
 
-    let mut events =
-        if let Some((position, size)) = logical_bounds_of(windows.main()) {
-            vec![(
-                Some(window::Id::MAIN),
-                core::Event::Window(
-                    window::Id::MAIN,
-                    window::Event::Created { position, size },
-                ),
-            )]
-        } else {
-            Vec::new()
-        };
+    let mut events = {
+        let (position, size) = logical_bounds_of(windows.main());
+
+        vec![(
+            Some(window::Id::MAIN),
+            core::Event::Window(
+                window::Id::MAIN,
+                window::Event::Created { position, size },
+            ),
+        )]
+    };
+
     let mut messages = Vec::new();
     let mut redraw_pending = false;
 
@@ -374,7 +378,7 @@ async fn run_instance<A, E, C>(
                 window,
                 exit_on_close_request,
             } => {
-                let bounds = logical_bounds_of(&window);
+                let (position, size) = logical_bounds_of(&window);
 
                 let (inner_size, i) = windows.add(
                     &application,
@@ -394,18 +398,13 @@ async fn run_instance<A, E, C>(
                 ));
                 ui_caches.push(user_interface::Cache::default());
 
-                if let Some(bounds) = bounds {
-                    events.push((
-                        Some(id),
-                        core::Event::Window(
-                            id,
-                            window::Event::Created {
-                                position: bounds.0,
-                                size: bounds.1,
-                            },
-                        ),
-                    ));
-                }
+                events.push((
+                    Some(id),
+                    core::Event::Window(
+                        id,
+                        window::Event::Created { position, size },
+                    ),
+                ));
             }
             Event::EventLoopAwakened(event) => {
                 match event {
@@ -925,7 +924,8 @@ fn run_command<A, C, E>(
                 }
                 window::Action::FetchSize(callback) => {
                     let window = windows.with_raw(id);
-                    let size = window.inner_size();
+                    let size =
+                        window.inner_size().to_logical(window.scale_factor());
 
                     proxy
                         .send_event(callback(Size::new(
@@ -940,9 +940,12 @@ fn run_command<A, C, E>(
                 window::Action::Minimize(minimized) => {
                     windows.with_raw(id).set_minimized(minimized);
                 }
-                window::Action::Move { x, y } => {
+                window::Action::Move(position) => {
                     windows.with_raw(id).set_outer_position(
-                        winit::dpi::LogicalPosition { x, y },
+                        winit::dpi::LogicalPosition {
+                            x: position.x,
+                            y: position.y,
+                        },
                     );
                 }
                 window::Action::ChangeMode(mode) => {
@@ -1145,25 +1148,23 @@ pub fn user_force_quit(
     }
 }
 
-fn logical_bounds_of(
-    window: &winit::window::Window,
-) -> Option<((i32, i32), Size<u32>)> {
-    let scale = window.scale_factor();
-    let pos = window
+fn logical_bounds_of(window: &winit::window::Window) -> (Option<Point>, Size) {
+    let position = window
         .inner_position()
-        .map(|pos| {
-            ((pos.x as f64 / scale) as i32, (pos.y as f64 / scale) as i32)
-        })
-        .ok()?;
+        .ok()
+        .map(|position| position.to_logical(window.scale_factor()))
+        .map(|position| Point {
+            x: position.x,
+            y: position.y,
+        });
+
     let size = {
-        let size = window.inner_size();
-        Size::new(
-            (size.width as f64 / scale) as u32,
-            (size.height as f64 / scale) as u32,
-        )
+        let size = window.inner_size().to_logical(window.scale_factor());
+
+        Size::new(size.width, size.height)
     };
 
-    Some((pos, size))
+    (position, size)
 }
 
 #[cfg(not(target_arch = "wasm32"))]

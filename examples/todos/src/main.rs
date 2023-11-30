@@ -8,7 +8,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Subscription};
+use iced::{Color, Command, Length, Settings, Size, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub fn main() -> iced::Result {
 
     Todos::run(Settings {
         window: window::Settings {
-            size: (500, 800),
+            size: Size::new(500.0, 800.0),
             ..window::Settings::default()
         },
         ..Settings::default()

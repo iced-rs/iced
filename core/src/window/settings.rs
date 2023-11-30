@@ -25,22 +25,23 @@ mod platform;
 mod platform;
 
 use crate::window::{Icon, Level, Position};
+use crate::Size;
 
 pub use platform::PlatformSpecific;
 /// The window settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings {
-    /// The initial size of the window.
-    pub size: (u32, u32),
+    /// The initial logical dimensions of the window.
+    pub size: Size,
 
     /// The initial position of the window.
     pub position: Position,
 
     /// The minimum size of the window.
-    pub min_size: Option<(u32, u32)>,
+    pub min_size: Option<Size>,
 
     /// The maximum size of the window.
-    pub max_size: Option<(u32, u32)>,
+    pub max_size: Option<Size>,
 
     /// Whether the window should be visible or not.
     pub visible: bool,
@@ -77,7 +78,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            size: (1024, 768),
+            size: Size::new(1024.0, 768.0),
             position: Position::default(),
             min_size: None,
             max_size: None,

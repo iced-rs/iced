@@ -1,10 +1,10 @@
 use crate::time::Instant;
-use crate::Size;
+use crate::{Point, Size};
 
 use std::path::PathBuf;
 
 /// A window-related event.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Event {
     /// A window was moved.
     Moved {
@@ -30,21 +30,21 @@ pub enum Event {
     /// The user has requested for the window to close.
     CloseRequested,
 
-    /// A window was destroyed by the runtime.
-    Destroyed,
-
     /// A window was created.
-    ///
-    /// **Note:** this event is not supported on Wayland.
     Created {
         /// The position of the created window. This is relative to the top-left corner of the desktop
         /// the window is on, including virtual desktops. Refers to window's "inner" position,
         /// or the client area, in logical pixels.
-        position: (i32, i32),
+        ///
+        /// **Note**: Not available in Wayland.
+        position: Option<Point>,
         /// The size of the created window. This is its "inner" size, or the size of the
         /// client area, in logical pixels.
-        size: Size<u32>,
+        size: Size,
     },
+
+    /// A window was destroyed by the runtime.
+    Destroyed,
 
     /// A window was focused.
     Focused,

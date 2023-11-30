@@ -732,7 +732,8 @@ pub fn run_command<A, C, E>(
                     });
                 }
                 window::Action::FetchSize(callback) => {
-                    let size = window.inner_size();
+                    let size =
+                        window.inner_size().to_logical(window.scale_factor());
 
                     proxy
                         .send_event(callback(Size::new(
@@ -747,10 +748,10 @@ pub fn run_command<A, C, E>(
                 window::Action::Minimize(minimized) => {
                     window.set_minimized(minimized);
                 }
-                window::Action::Move { x, y } => {
+                window::Action::Move(position) => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
-                        x,
-                        y,
+                        x: position.x,
+                        y: position.y,
                     });
                 }
                 window::Action::ChangeMode(mode) => {

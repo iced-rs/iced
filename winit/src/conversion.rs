@@ -6,7 +6,7 @@ use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
-use crate::core::{Event, Point};
+use crate::core::{Event, Point, Size};
 
 /// Converts some [`window::Settings`] into a `WindowBuilder` from `winit`.
 pub fn window_settings(
@@ -17,11 +17,12 @@ pub fn window_settings(
 ) -> winit::window::WindowBuilder {
     let mut window_builder = winit::window::WindowBuilder::new();
 
-    let (width, height) = settings.size;
-
     window_builder = window_builder
         .with_title(title)
-        .with_inner_size(winit::dpi::LogicalSize { width, height })
+        .with_inner_size(winit::dpi::LogicalSize {
+            width: settings.size.width,
+            height: settings.size.height,
+        })
         .with_resizable(settings.resizable)
         .with_enabled_buttons(if settings.resizable {
             winit::window::WindowButtons::all()
@@ -41,14 +42,20 @@ pub fn window_settings(
         window_builder = window_builder.with_position(position);
     }
 
-    if let Some((width, height)) = settings.min_size {
-        window_builder = window_builder
-            .with_min_inner_size(winit::dpi::LogicalSize { width, height });
+    if let Some(min_size) = settings.min_size {
+        window_builder =
+            window_builder.with_min_inner_size(winit::dpi::LogicalSize {
+                width: min_size.width,
+                height: min_size.height,
+            });
     }
 
-    if let Some((width, height)) = settings.max_size {
-        window_builder = window_builder
-            .with_max_inner_size(winit::dpi::LogicalSize { width, height });
+    if let Some(max_size) = settings.max_size {
+        window_builder =
+            window_builder.with_max_inner_size(winit::dpi::LogicalSize {
+                width: max_size.width,
+                height: max_size.height,
+            });
     }
 
     #[cfg(any(
@@ -277,15 +284,15 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
     monitor: Option<&winit::monitor::MonitorHandle>,
-    (width, height): (u32, u32),
+    size: Size,
     position: window::Position,
 ) -> Option<winit::dpi::Position> {
     match position {
         window::Position::Default => None,
-        window::Position::Specific(x, y) => {
+        window::Position::Specific(position) => {
             Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
-                x: f64::from(x),
-                y: f64::from(y),
+                x: f64::from(position.x),
+                y: f64::from(position.y),
             }))
         }
         window::Position::Centered => {
@@ -297,8 +304,8 @@ pub fn position(
 
                 let centered: winit::dpi::PhysicalPosition<i32> =
                     winit::dpi::LogicalPosition {
-                        x: (resolution.width - f64::from(width)) / 2.0,
-                        y: (resolution.height - f64::from(height)) / 2.0,
+                        x: (resolution.width - f64::from(size.width)) / 2.0,
+                        y: (resolution.height - f64::from(size.height)) / 2.0,
                     }
                     .to_physical(monitor.scale_factor());
 

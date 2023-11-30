@@ -10,7 +10,7 @@ pub use screenshot::Screenshot;
 use crate::command::{self, Command};
 use crate::core::time::Instant;
 use crate::core::window::{self, Event, Icon, Level, Mode, UserAttention};
-use crate::core::Size;
+use crate::core::{Point, Size};
 use crate::futures::event;
 use crate::futures::Subscription;
 
@@ -48,17 +48,14 @@ pub fn drag<Message>(id: window::Id) -> Command<Message> {
 }
 
 /// Resizes the window to the given logical dimensions.
-pub fn resize<Message>(
-    id: window::Id,
-    new_size: Size<u32>,
-) -> Command<Message> {
+pub fn resize<Message>(id: window::Id, new_size: Size) -> Command<Message> {
     Command::single(command::Action::Window(id, Action::Resize(new_size)))
 }
 
 /// Fetches the window's size in logical dimensions.
 pub fn fetch_size<Message>(
     id: window::Id,
-    f: impl FnOnce(Size<u32>) -> Message + 'static,
+    f: impl FnOnce(Size) -> Message + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::Window(id, Action::FetchSize(Box::new(f))))
 }
@@ -74,8 +71,8 @@ pub fn minimize<Message>(id: window::Id, minimized: bool) -> Command<Message> {
 }
 
 /// Moves the window to the given logical coordinates.
-pub fn move_to<Message>(id: window::Id, x: i32, y: i32) -> Command<Message> {
-    Command::single(command::Action::Window(id, Action::Move { x, y }))
+pub fn move_to<Message>(id: window::Id, position: Point) -> Command<Message> {
+    Command::single(command::Action::Window(id, Action::Move(position)))
 }
 
 /// Changes the [`Mode`] of the window.

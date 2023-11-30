@@ -4,8 +4,10 @@ use iced::multi_window::{self, Application};
 use iced::widget::{button, column, container, scrollable, text, text_input};
 use iced::window;
 use iced::{
-    Alignment, Command, Element, Length, Settings, Subscription, Theme,
+    Alignment, Command, Element, Length, Point, Settings, Subscription, Theme,
+    Vector,
 };
+
 use std::collections::HashMap;
 
 fn main() -> iced::Result {
@@ -33,8 +35,8 @@ enum Message {
     ScaleChanged(window::Id, String),
     TitleChanged(window::Id, String),
     CloseWindow(window::Id),
+    WindowCreated(window::Id, Option<Point>),
     WindowDestroyed(window::Id),
-    WindowCreated(window::Id, (i32, i32)),
     NewWindow,
 }
 
@@ -90,10 +92,11 @@ impl multi_window::Application for Example {
                 self.windows.remove(&id);
             }
             Message::WindowCreated(id, position) => {
-                self.next_window_pos = window::Position::Specific(
-                    position.0 + 20,
-                    position.1 + 20,
-                );
+                if let Some(position) = position {
+                    self.next_window_pos = window::Position::Specific(
+                        position + Vector::new(20.0, 20.0),
+                    );
+                }
 
                 if let Some(window) = self.windows.get(&id) {
                     return text_input::focus(window.input_id.clone());

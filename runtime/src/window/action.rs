@@ -1,5 +1,5 @@
 use crate::core::window::{Icon, Level, Mode, Settings, UserAttention};
-use crate::core::Size;
+use crate::core::{Point, Size};
 use crate::futures::MaybeSend;
 use crate::window::Screenshot;
 
@@ -20,23 +20,18 @@ pub enum Action<T> {
         /// The settings of the window.
         settings: Settings,
     },
-    /// Resize the window.
-    Resize(Size<u32>),
-    /// Fetch the current size of the window.
-    FetchSize(Box<dyn FnOnce(Size<u32>) -> T + 'static>),
+    /// Resize the window to the given logical dimensions.
+    Resize(Size),
+    /// Fetch the current logical dimensions of the window.
+    FetchSize(Box<dyn FnOnce(Size) -> T + 'static>),
     /// Set the window to maximized or back
     Maximize(bool),
     /// Set the window to minimized or back
     Minimize(bool),
-    /// Move the window.
+    /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
-    Move {
-        /// The new logical x location of the window
-        x: i32,
-        /// The new logical y location of the window
-        y: i32,
-    },
+    Move(Point),
     /// Change the [`Mode`] of the window.
     ChangeMode(Mode),
     /// Fetch the current [`Mode`] of the window.
@@ -114,7 +109,7 @@ impl<T> Action<T> {
             Self::FetchSize(o) => Action::FetchSize(Box::new(move |s| f(o(s)))),
             Self::Maximize(maximized) => Action::Maximize(maximized),
             Self::Minimize(minimized) => Action::Minimize(minimized),
-            Self::Move { x, y } => Action::Move { x, y },
+            Self::Move(position) => Action::Move(position),
             Self::ChangeMode(mode) => Action::ChangeMode(mode),
             Self::FetchMode(o) => Action::FetchMode(Box::new(move |s| f(o(s)))),
             Self::ToggleMaximize => Action::ToggleMaximize,
@@ -151,8 +146,8 @@ impl<T> fmt::Debug for Action<T> {
             Self::Minimize(minimized) => {
                 write!(f, "Action::Minimize({minimized}")
             }
-            Self::Move { x, y } => {
-                write!(f, "Action::Move {{ x: {x}, y: {y} }}")
+            Self::Move(position) => {
+                write!(f, "Action::Move({position})")
             }
             Self::ChangeMode(mode) => write!(f, "Action::SetMode({mode:?})"),
             Self::FetchMode(_) => write!(f, "Action::FetchMode"),
