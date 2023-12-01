@@ -35,6 +35,8 @@ pub struct PickList<
     Renderer: text::Renderer,
 {
     on_selected: Box<dyn Fn(T) -> Message + 'a>,
+    on_opened: Option<Message>,
+    on_closed: Option<Message>,
     options: Cow<'a, [T]>,
     placeholder: Option<String>,
     selected: Option<T>,
@@ -53,6 +55,7 @@ impl<'a, T: 'a, Message, Theme, Renderer>
 where
     T: ToString + PartialEq,
     [T]: ToOwned<Owned = Vec<T>>,
+    Message: Clone,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -72,6 +75,8 @@ where
     ) -> Self {
         Self {
             on_selected: Box::new(on_selected),
+            on_opened: None,
+            on_closed: None,
             options: options.into(),
             placeholder: None,
             selected,
@@ -137,6 +142,18 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the [`PickList`] Menu is openned menu.
+    pub fn on_opened(mut self, msg: Message) -> Self {
+        self.on_opened = Some(msg);
+        self
+    }
+
+    /// Sets the message that will be produced when the [`PickList`] Menu is closed menu.
+    pub fn on_closed(mut self, msg: Message) -> Self {
+        self.on_closed = Some(msg);
+        self
+    }
+
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
@@ -152,7 +169,7 @@ impl<'a, T: 'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'a,
+    Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -213,6 +230,8 @@ where
             cursor,
             shell,
             self.on_selected.as_ref(),
+            self.on_opened.as_ref(),
+            self.on_closed.as_ref(),
             self.selected.as_ref(),
             &self.options,
             || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
@@ -290,7 +309,7 @@ impl<'a, T: 'a, Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'a,
+    Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -474,6 +493,8 @@ pub fn update<'a, T, P, Message>(
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
     on_selected: &dyn Fn(T) -> Message,
+    on_opened: Option<&Message>,
+    on_closed: Option<&Message>,
     selected: Option<&T>,
     options: &[T],
     state: impl FnOnce() -> &'a mut State<P>,
@@ -481,6 +502,7 @@ pub fn update<'a, T, P, Message>(
 where
     T: PartialEq + Clone + 'a,
     P: text::Paragraph + 'a,
+    Message: Clone,
 {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -492,11 +514,19 @@ where
                 // bounds or on the drop-down, either way we close the overlay.
                 state.is_open = false;
 
+                if let Some(on_closed) = on_closed {
+                    shell.publish(on_closed.clone());
+                }
+
                 event::Status::Captured
             } else if cursor.is_over(layout.bounds()) {
                 state.is_open = true;
                 state.hovered_option =
                     options.iter().position(|option| Some(option) == selected);
+
+                if let Some(on_opened) = on_opened {
+                    shell.publish(on_opened.clone());
+                }
 
                 event::Status::Captured
             } else {

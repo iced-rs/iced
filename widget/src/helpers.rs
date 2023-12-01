@@ -271,6 +271,7 @@ pub fn pick_list<'a, Message, Theme, Renderer, T>(
 where
     T: ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
+    Message: Clone,
     Renderer: core::text::Renderer,
     Theme: pick_list::StyleSheet
         + scrollable::StyleSheet
