@@ -1196,7 +1196,7 @@ pub fn draw<Renderer>(
 
     if let Some((cursor, color)) = cursor {
         renderer.with_translation(Vector::new(-offset, 0.0), |renderer| {
-            renderer.fill_quad(cursor, color)
+            renderer.fill_quad(cursor, color);
         });
     } else {
         renderer.with_translation(Vector::ZERO, |_| {});
