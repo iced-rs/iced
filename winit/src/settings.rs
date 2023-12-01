@@ -69,6 +69,9 @@ pub struct Window {
     /// The size of the window.
     pub size: (u32, u32),
 
+    /// The border area for the drag resize handle.
+    pub resize_border: u32,
+
     /// The position of the window.
     pub position: Position,
 
@@ -104,6 +107,7 @@ impl fmt::Debug for Window {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Window")
             .field("size", &self.size)
+            .field("resize_border", &self.resize_border)
             .field("position", &self.position)
             .field("min_size", &self.min_size)
             .field("max_size", &self.max_size)
@@ -236,6 +240,7 @@ impl Default for Window {
     fn default() -> Window {
         Window {
             size: (1024, 768),
+            resize_border: 8,
             position: Position::default(),
             min_size: None,
             max_size: None,

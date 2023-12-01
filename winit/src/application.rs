@@ -1,4 +1,5 @@
 //! Create interactive, native cross-platform applications.
+mod drag_resize;
 #[cfg(feature = "trace")]
 mod profiler;
 mod state;
@@ -125,6 +126,8 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
+    let resize_border = settings.window.resize_border;
+
     #[cfg(feature = "trace")]
     let _ = info_span!("Application", "RUN").entered();
 
@@ -219,6 +222,7 @@ where
             window,
             should_be_visible,
             settings.exit_on_close_request,
+            resize_border,
         );
 
         #[cfg(feature = "trace")]
@@ -286,6 +290,7 @@ async fn run_instance<A, E, C>(
     window: winit::window::Window,
     should_be_visible: bool,
     exit_on_close_request: bool,
+    resize_border: u32,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -337,6 +342,12 @@ async fn run_instance<A, E, C>(
         state.logical_size(),
         &mut debug,
     ));
+
+    // Creates closure for handling the window drag resize state with winit.
+    let mut drag_resize_window_func = drag_resize::event_func(
+        &window,
+        resize_border as f64 * window.scale_factor(),
+    );
 
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
@@ -569,6 +580,13 @@ async fn run_instance<A, E, C>(
                 event: window_event,
                 ..
             } => {
+                // Initiates a drag resize window state when found.
+                if let Some(func) = drag_resize_window_func.as_mut() {
+                    if func(&window, &window_event) {
+                        continue;
+                    }
+                }
+
                 if requests_exit(&window_event, state.modifiers())
                     && exit_on_close_request
                 {

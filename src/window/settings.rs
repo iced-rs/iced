@@ -8,6 +8,9 @@ pub struct Settings {
     /// The initial size of the window.
     pub size: (u32, u32),
 
+    /// The border area for the drag resize handle.
+    pub resize_border: u32,
+
     /// The initial position of the window.
     pub position: Position,
 
@@ -43,6 +46,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             size: (1024, 768),
+            resize_border: 8,
             position: Position::default(),
             min_size: None,
             max_size: None,
@@ -61,6 +65,7 @@ impl From<Settings> for iced_winit::settings::Window {
     fn from(settings: Settings) -> Self {
         Self {
             size: settings.size,
+            resize_border: settings.resize_border,
             position: iced_winit::Position::from(settings.position),
             min_size: settings.min_size,
             max_size: settings.max_size,
