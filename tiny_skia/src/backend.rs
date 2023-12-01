@@ -1,6 +1,6 @@
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
-use crate::graphics::{Damage, Viewport};
+use crate::graphics::Viewport;
 use crate::primitive::{self, Primitive};
 
 use std::borrow::Cow;
@@ -361,11 +361,9 @@ impl Backend {
                 paragraph,
                 position,
                 color,
+                viewport,
             } => {
-                let physical_bounds =
-                    (Rectangle::new(*position, paragraph.min_bounds)
-                        + translation)
-                        * scale_factor;
+                let physical_bounds = (*viewport + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -387,10 +385,9 @@ impl Backend {
                 editor,
                 position,
                 color,
+                viewport,
             } => {
-                let physical_bounds =
-                    (Rectangle::new(*position, editor.bounds) + translation)
-                        * scale_factor;
+                let physical_bounds = (*viewport + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -418,9 +415,9 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
                 shaping,
+                viewport,
             } => {
-                let physical_bounds =
-                    (primitive.bounds() + translation) * scale_factor;
+                let physical_bounds = (*viewport + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;

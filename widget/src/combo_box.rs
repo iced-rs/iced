@@ -622,7 +622,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let is_focused = {
             let text_input_state = tree.children[0]
@@ -645,6 +645,7 @@ where
             layout,
             cursor,
             selection,
+            viewport,
         );
     }
 

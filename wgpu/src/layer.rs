@@ -75,6 +75,7 @@ impl<'a> Layer<'a> {
                 horizontal_alignment: alignment::Horizontal::Left,
                 vertical_alignment: alignment::Vertical::Top,
                 shaping: core::text::Shaping::Basic,
+                viewport: Rectangle::with_size(Size::INFINITY),
             };
 
             overlay.text.push(Text::Cached(text.clone()));
@@ -123,6 +124,7 @@ impl<'a> Layer<'a> {
                 paragraph,
                 position,
                 color,
+                viewport,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -130,12 +132,14 @@ impl<'a> Layer<'a> {
                     paragraph: paragraph.clone(),
                     position: *position + translation,
                     color: *color,
+                    viewport: *viewport + translation,
                 });
             }
             Primitive::Editor {
                 editor,
                 position,
                 color,
+                viewport,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -143,6 +147,7 @@ impl<'a> Layer<'a> {
                     editor: editor.clone(),
                     position: *position + translation,
                     color: *color,
+                    viewport: *viewport + translation,
                 });
             }
             Primitive::Text {
@@ -155,6 +160,7 @@ impl<'a> Layer<'a> {
                 horizontal_alignment,
                 vertical_alignment,
                 shaping,
+                viewport,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -168,6 +174,7 @@ impl<'a> Layer<'a> {
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
                     shaping: *shaping,
+                    viewport: *viewport + translation,
                 }));
             }
             Primitive::Quad {

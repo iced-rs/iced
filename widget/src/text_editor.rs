@@ -429,7 +429,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
 
@@ -470,6 +470,7 @@ where
             bounds.position()
                 + Vector::new(self.padding.left, self.padding.top),
             style.text_color,
+            *viewport,
         );
 
         let translation = Vector::new(
