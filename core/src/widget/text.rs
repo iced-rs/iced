@@ -172,7 +172,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
@@ -182,6 +182,7 @@ where
             layout,
             state,
             theme.appearance(self.style.clone()),
+            viewport,
         );
     }
 }
@@ -244,6 +245,7 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     state: &State<Renderer::Paragraph>,
     appearance: Appearance,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
 {
@@ -266,6 +268,7 @@ pub fn draw<Renderer>(
         paragraph,
         Point::new(x, y),
         appearance.color.unwrap_or(style.text_color),
+        *viewport,
     );
 }
 

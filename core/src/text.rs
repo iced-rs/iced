@@ -9,7 +9,7 @@ pub use highlighter::Highlighter;
 pub use paragraph::Paragraph;
 
 use crate::alignment;
-use crate::{Color, Pixels, Point, Size};
+use crate::{Color, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -202,6 +202,7 @@ pub trait Renderer: crate::Renderer {
         text: &Self::Paragraph,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     );
 
     /// Draws the given [`Editor`] at the given position and with the given
@@ -211,6 +212,7 @@ pub trait Renderer: crate::Renderer {
         editor: &Self::Editor,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     );
 
     /// Draws the given [`Text`] at the given position and with the given
@@ -220,5 +222,6 @@ pub trait Renderer: crate::Renderer {
         text: Text<'_, Self::Font>,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     );
 }

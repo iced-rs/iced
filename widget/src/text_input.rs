@@ -238,6 +238,7 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         value: Option<&Value>,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
@@ -250,6 +251,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            viewport,
         );
     }
 }
@@ -362,7 +364,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         draw(
             renderer,
@@ -375,6 +377,7 @@ where
             self.is_secure,
             self.icon.as_ref(),
             &self.style,
+            viewport,
         );
     }
 
@@ -1055,6 +1058,7 @@ pub fn draw<Renderer>(
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
     style: &<Renderer::Theme as StyleSheet>::Style,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -1096,6 +1100,7 @@ pub fn draw<Renderer>(
             &state.icon,
             icon_layout.bounds().center(),
             appearance.icon_color,
+            *viewport,
         );
     }
 
@@ -1189,39 +1194,31 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    let text_width = state.value.min_width();
-
-    let render = |renderer: &mut Renderer| {
-        if let Some((cursor, color)) = cursor {
+    if let Some((cursor, color)) = cursor {
+        renderer.with_translation(Vector::new(-offset, 0.0), |renderer| {
             renderer.fill_quad(cursor, color);
-        } else {
-            renderer.with_translation(Vector::ZERO, |_| {});
-        }
-
-        renderer.fill_paragraph(
-            if text.is_empty() {
-                &state.placeholder
-            } else {
-                &state.value
-            },
-            Point::new(text_bounds.x, text_bounds.center_y()),
-            if text.is_empty() {
-                theme.placeholder_color(style)
-            } else if is_disabled {
-                theme.disabled_color(style)
-            } else {
-                theme.value_color(style)
-            },
-        );
-    };
-
-    if text_width > text_bounds.width {
-        renderer.with_layer(text_bounds, |renderer| {
-            renderer.with_translation(Vector::new(-offset, 0.0), render);
         });
     } else {
-        render(renderer);
+        renderer.with_translation(Vector::ZERO, |_| {});
     }
+
+    renderer.fill_paragraph(
+        if text.is_empty() {
+            &state.placeholder
+        } else {
+            &state.value
+        },
+        Point::new(text_bounds.x, text_bounds.center_y())
+            - Vector::new(offset, 0.0),
+        if text.is_empty() {
+            theme.placeholder_color(style)
+        } else if is_disabled {
+            theme.disabled_color(style)
+        } else {
+            theme.value_color(style)
+        },
+        text_bounds,
+    );
 }
 
 /// Computes the current [`mouse::Interaction`] of the [`TextInput`].

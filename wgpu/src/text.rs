@@ -120,9 +120,13 @@ impl Pipeline {
                     horizontal_alignment,
                     vertical_alignment,
                     color,
+                    clip_bounds,
                 ) = match section {
                     Text::Paragraph {
-                        position, color, ..
+                        position,
+                        color,
+                        clip_bounds,
+                        ..
                     } => {
                         use crate::core::text::Paragraph as _;
 
@@ -137,10 +141,14 @@ impl Pipeline {
                             paragraph.horizontal_alignment(),
                             paragraph.vertical_alignment(),
                             *color,
+                            *clip_bounds,
                         )
                     }
                     Text::Editor {
-                        position, color, ..
+                        position,
+                        color,
+                        clip_bounds,
+                        ..
                     } => {
                         use crate::core::text::Editor as _;
 
@@ -155,6 +163,7 @@ impl Pipeline {
                             alignment::Horizontal::Left,
                             alignment::Vertical::Top,
                             *color,
+                            *clip_bounds,
                         )
                     }
                     Text::Cached(text) => {
@@ -173,6 +182,7 @@ impl Pipeline {
                             text.horizontal_alignment,
                             text.vertical_alignment,
                             text.color,
+                            text.clip_bounds,
                         )
                     }
                 };
@@ -195,13 +205,8 @@ impl Pipeline {
                     alignment::Vertical::Bottom => bounds.y - bounds.height,
                 };
 
-                let section_bounds = Rectangle {
-                    x: left,
-                    y: top,
-                    ..bounds
-                };
-
-                let clip_bounds = layer_bounds.intersection(&section_bounds)?;
+                let clip_bounds =
+                    layer_bounds.intersection(&(clip_bounds * scale_factor))?;
 
                 Some(glyphon::TextArea {
                     buffer,
