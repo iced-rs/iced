@@ -361,7 +361,7 @@ async fn run_instance<A, E, C>(
             Some(window::Id::MAIN),
             core::Event::Window(
                 window::Id::MAIN,
-                window::Event::Created { position, size },
+                window::Event::Opened { position, size },
             ),
         )]
     };
@@ -402,7 +402,7 @@ async fn run_instance<A, E, C>(
                     Some(id),
                     core::Event::Window(
                         id,
-                        window::Event::Created { position, size },
+                        window::Event::Opened { position, size },
                     ),
                 ));
             }
@@ -761,7 +761,7 @@ async fn run_instance<A, E, C>(
                                         None,
                                         core::Event::Window(
                                             id,
-                                            window::Event::Destroyed,
+                                            window::Event::Closed,
                                         ),
                                     ));
                                 }
@@ -884,8 +884,8 @@ fn run_command<A, C, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(id, action) => match action {
-                window::Action::Spawn { settings } => {
+            command::Action::Window(action) => match action {
+                window::Action::Spawn(id, settings) => {
                     let monitor = windows.last_monitor();
 
                     control_sender
@@ -897,7 +897,7 @@ fn run_command<A, C, E>(
                         })
                         .expect("Send control action");
                 }
-                window::Action::Close => {
+                window::Action::Close(id) => {
                     use winit::event_loop::ControlFlow;
 
                     let i = windows.delete(id);
@@ -911,10 +911,10 @@ fn run_command<A, C, E>(
                             .expect("Send control action");
                     }
                 }
-                window::Action::Drag => {
+                window::Action::Drag(id) => {
                     let _ = windows.with_raw(id).drag_window();
                 }
-                window::Action::Resize(size) => {
+                window::Action::Resize(id, size) => {
                     windows.with_raw(id).set_inner_size(
                         winit::dpi::LogicalSize {
                             width: size.width,
@@ -922,7 +922,7 @@ fn run_command<A, C, E>(
                         },
                     );
                 }
-                window::Action::FetchSize(callback) => {
+                window::Action::FetchSize(id, callback) => {
                     let window = windows.with_raw(id);
                     let size =
                         window.inner_size().to_logical(window.scale_factor());
@@ -934,13 +934,13 @@ fn run_command<A, C, E>(
                         )))
                         .expect("Send message to event loop");
                 }
-                window::Action::Maximize(maximized) => {
+                window::Action::Maximize(id, maximized) => {
                     windows.with_raw(id).set_maximized(maximized);
                 }
-                window::Action::Minimize(minimized) => {
+                window::Action::Minimize(id, minimized) => {
                     windows.with_raw(id).set_minimized(minimized);
                 }
-                window::Action::Move(position) => {
+                window::Action::Move(id, position) => {
                     windows.with_raw(id).set_outer_position(
                         winit::dpi::LogicalPosition {
                             x: position.x,
@@ -948,7 +948,7 @@ fn run_command<A, C, E>(
                         },
                     );
                 }
-                window::Action::ChangeMode(mode) => {
+                window::Action::ChangeMode(id, mode) => {
                     let window = windows.with_raw(id);
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
@@ -956,12 +956,12 @@ fn run_command<A, C, E>(
                         mode,
                     ));
                 }
-                window::Action::ChangeIcon(icon) => {
+                window::Action::ChangeIcon(id, icon) => {
                     windows
                         .with_raw(id)
                         .set_window_icon(conversion::icon(icon));
                 }
-                window::Action::FetchMode(tag) => {
+                window::Action::FetchMode(id, tag) => {
                     let window = windows.with_raw(id);
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
@@ -973,33 +973,33 @@ fn run_command<A, C, E>(
                         .send_event(tag(mode))
                         .expect("Event loop doesn't exist.");
                 }
-                window::Action::ToggleMaximize => {
+                window::Action::ToggleMaximize(id) => {
                     let window = windows.with_raw(id);
                     window.set_maximized(!window.is_maximized());
                 }
-                window::Action::ToggleDecorations => {
+                window::Action::ToggleDecorations(id) => {
                     let window = windows.with_raw(id);
                     window.set_decorations(!window.is_decorated());
                 }
-                window::Action::RequestUserAttention(attention_type) => {
+                window::Action::RequestUserAttention(id, attention_type) => {
                     windows.with_raw(id).request_user_attention(
                         attention_type.map(conversion::user_attention),
                     );
                 }
-                window::Action::GainFocus => {
+                window::Action::GainFocus(id) => {
                     windows.with_raw(id).focus_window();
                 }
-                window::Action::ChangeLevel(level) => {
+                window::Action::ChangeLevel(id, level) => {
                     windows
                         .with_raw(id)
                         .set_window_level(conversion::window_level(level));
                 }
-                window::Action::FetchId(tag) => {
+                window::Action::FetchId(id, tag) => {
                     proxy
                         .send_event(tag(windows.with_raw(id).id().into()))
                         .expect("Event loop doesn't exist.");
                 }
-                window::Action::Screenshot(tag) => {
+                window::Action::Screenshot(id, tag) => {
                     let i = windows.index_from_id(id);
                     let state = &windows.states[i];
                     let surface = &mut windows.surfaces[i];

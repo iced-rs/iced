@@ -35,8 +35,8 @@ enum Message {
     ScaleChanged(window::Id, String),
     TitleChanged(window::Id, String),
     CloseWindow(window::Id),
-    WindowCreated(window::Id, Option<Point>),
-    WindowDestroyed(window::Id),
+    WindowOpened(window::Id, Option<Point>),
+    WindowClosed(window::Id),
     NewWindow,
 }
 
@@ -69,6 +69,8 @@ impl multi_window::Application for Example {
                 let window =
                     self.windows.get_mut(&id).expect("Window not found!");
                 window.scale_input = scale;
+
+                Command::none()
             }
             Message::ScaleChanged(id, scale) => {
                 let window =
@@ -78,20 +80,23 @@ impl multi_window::Application for Example {
                     .parse::<f64>()
                     .unwrap_or(window.current_scale)
                     .clamp(0.5, 5.0);
+
+                Command::none()
             }
             Message::TitleChanged(id, title) => {
                 let window =
                     self.windows.get_mut(&id).expect("Window not found.");
 
                 window.title = title;
+
+                Command::none()
             }
-            Message::CloseWindow(id) => {
-                return window::close(id);
-            }
-            Message::WindowDestroyed(id) => {
+            Message::CloseWindow(id) => window::close(id),
+            Message::WindowClosed(id) => {
                 self.windows.remove(&id);
+                Command::none()
             }
-            Message::WindowCreated(id, position) => {
+            Message::WindowOpened(id, position) => {
                 if let Some(position) = position {
                     self.next_window_pos = window::Position::Specific(
                         position + Vector::new(20.0, 20.0),
@@ -99,27 +104,25 @@ impl multi_window::Application for Example {
                 }
 
                 if let Some(window) = self.windows.get(&id) {
-                    return text_input::focus(window.input_id.clone());
+                    text_input::focus(window.input_id.clone())
+                } else {
+                    Command::none()
                 }
             }
             Message::NewWindow => {
                 let count = self.windows.len() + 1;
-                let id = window::Id::new(count);
+
+                let (id, spawn_window) = window::spawn(window::Settings {
+                    position: self.next_window_pos,
+                    exit_on_close_request: count % 2 == 0,
+                    ..Default::default()
+                });
 
                 self.windows.insert(id, Window::new(count));
 
-                return window::spawn(
-                    id,
-                    window::Settings {
-                        position: self.next_window_pos,
-                        exit_on_close_request: count % 2 == 0,
-                        ..Default::default()
-                    },
-                );
+                spawn_window
             }
         }
-
-        Command::none()
     }
 
     fn view(&self, window: window::Id) -> Element<Message> {
@@ -151,12 +154,10 @@ impl multi_window::Application for Example {
                     window::Event::CloseRequested => {
                         Some(Message::CloseWindow(id))
                     }
-                    window::Event::Destroyed => {
-                        Some(Message::WindowDestroyed(id))
+                    window::Event::Opened { position, .. } => {
+                        Some(Message::WindowOpened(id, position))
                     }
-                    window::Event::Created { position, .. } => {
-                        Some(Message::WindowCreated(id, position))
-                    }
+                    window::Event::Closed => Some(Message::WindowClosed(id)),
                     _ => None,
                 }
             } else {

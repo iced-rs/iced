@@ -6,6 +6,22 @@ use std::path::PathBuf;
 /// A window-related event.
 #[derive(PartialEq, Clone, Debug)]
 pub enum Event {
+    /// A window was opened.
+    Opened {
+        /// The position of the opened window. This is relative to the top-left corner of the desktop
+        /// the window is on, including virtual desktops. Refers to window's "inner" position,
+        /// or the client area, in logical pixels.
+        ///
+        /// **Note**: Not available in Wayland.
+        position: Option<Point>,
+        /// The size of the created window. This is its "inner" size, or the size of the
+        /// client area, in logical pixels.
+        size: Size,
+    },
+
+    /// A window was closed.
+    Closed,
+
     /// A window was moved.
     Moved {
         /// The new logical x location of the window
@@ -29,22 +45,6 @@ pub enum Event {
 
     /// The user has requested for the window to close.
     CloseRequested,
-
-    /// A window was created.
-    Created {
-        /// The position of the created window. This is relative to the top-left corner of the desktop
-        /// the window is on, including virtual desktops. Refers to window's "inner" position,
-        /// or the client area, in logical pixels.
-        ///
-        /// **Note**: Not available in Wayland.
-        position: Option<Point>,
-        /// The size of the created window. This is its "inner" size, or the size of the
-        /// client area, in logical pixels.
-        size: Size,
-    },
-
-    /// A window was destroyed by the runtime.
-    Destroyed,
 
     /// A window was focused.
     Focused,

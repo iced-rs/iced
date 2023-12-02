@@ -27,7 +27,7 @@ pub enum Action<T> {
     Clipboard(clipboard::Action<T>),
 
     /// Run a window action.
-    Window(window::Id, window::Action<T>),
+    Window(window::Action<T>),
 
     /// Run a system action.
     System(system::Action<T>),
@@ -63,7 +63,7 @@ impl<T> Action<T> {
             Self::Future(future) => Action::Future(Box::pin(future.map(f))),
             Self::Stream(stream) => Action::Stream(Box::pin(stream.map(f))),
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
-            Self::Window(id, window) => Action::Window(id, window.map(f)),
+            Self::Window(window) => Action::Window(window.map(f)),
             Self::System(system) => Action::System(system.map(f)),
             Self::Widget(operation) => {
                 Action::Widget(Box::new(widget::operation::map(operation, f)))
@@ -84,8 +84,8 @@ impl<T> fmt::Debug for Action<T> {
             Self::Clipboard(action) => {
                 write!(f, "Action::Clipboard({action:?})")
             }
-            Self::Window(id, action) => {
-                write!(f, "Action::Window({id:?}, {action:?})")
+            Self::Window(action) => {
+                write!(f, "Action::Window({action:?})")
             }
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),

@@ -712,11 +712,11 @@ pub fn run_command<A, C, E>(
                     clipboard.write(contents);
                 }
             },
-            command::Action::Window(_, action) => match action {
-                window::Action::Close => {
+            command::Action::Window(action) => match action {
+                window::Action::Close(_id) => {
                     *should_exit = true;
                 }
-                window::Action::Drag => {
+                window::Action::Drag(_id) => {
                     let _res = window.drag_window();
                 }
                 window::Action::Spawn { .. } => {
@@ -725,13 +725,13 @@ pub fn run_command<A, C, E>(
                         multi-window applications."
                     );
                 }
-                window::Action::Resize(size) => {
+                window::Action::Resize(_id, size) => {
                     window.set_inner_size(winit::dpi::LogicalSize {
                         width: size.width,
                         height: size.height,
                     });
                 }
-                window::Action::FetchSize(callback) => {
+                window::Action::FetchSize(_id, callback) => {
                     let size =
                         window.inner_size().to_logical(window.scale_factor());
 
@@ -742,29 +742,29 @@ pub fn run_command<A, C, E>(
                         )))
                         .expect("Send message to event loop");
                 }
-                window::Action::Maximize(maximized) => {
+                window::Action::Maximize(_id, maximized) => {
                     window.set_maximized(maximized);
                 }
-                window::Action::Minimize(minimized) => {
+                window::Action::Minimize(_id, minimized) => {
                     window.set_minimized(minimized);
                 }
-                window::Action::Move(position) => {
+                window::Action::Move(_id, position) => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
                         x: position.x,
                         y: position.y,
                     });
                 }
-                window::Action::ChangeMode(mode) => {
+                window::Action::ChangeMode(_id, mode) => {
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
                         window.current_monitor(),
                         mode,
                     ));
                 }
-                window::Action::ChangeIcon(icon) => {
+                window::Action::ChangeIcon(_id, icon) => {
                     window.set_window_icon(conversion::icon(icon));
                 }
-                window::Action::FetchMode(tag) => {
+                window::Action::FetchMode(_id, tag) => {
                     let mode = if window.is_visible().unwrap_or(true) {
                         conversion::mode(window.fullscreen())
                     } else {
@@ -775,29 +775,29 @@ pub fn run_command<A, C, E>(
                         .send_event(tag(mode))
                         .expect("Send message to event loop");
                 }
-                window::Action::ToggleMaximize => {
+                window::Action::ToggleMaximize(_id) => {
                     window.set_maximized(!window.is_maximized());
                 }
-                window::Action::ToggleDecorations => {
+                window::Action::ToggleDecorations(_id) => {
                     window.set_decorations(!window.is_decorated());
                 }
-                window::Action::RequestUserAttention(user_attention) => {
+                window::Action::RequestUserAttention(_id, user_attention) => {
                     window.request_user_attention(
                         user_attention.map(conversion::user_attention),
                     );
                 }
-                window::Action::GainFocus => {
+                window::Action::GainFocus(_id) => {
                     window.focus_window();
                 }
-                window::Action::ChangeLevel(level) => {
+                window::Action::ChangeLevel(_id, level) => {
                     window.set_window_level(conversion::window_level(level));
                 }
-                window::Action::FetchId(tag) => {
+                window::Action::FetchId(_id, tag) => {
                     proxy
                         .send_event(tag(window.id().into()))
                         .expect("Send message to event loop");
                 }
-                window::Action::Screenshot(tag) => {
+                window::Action::Screenshot(_id, tag) => {
                     let bytes = compositor.screenshot(
                         renderer,
                         surface,
