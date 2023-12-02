@@ -164,13 +164,13 @@ where
         paragraph: &Self::Paragraph,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     ) {
         self.primitives.push(Primitive::Paragraph {
             paragraph: paragraph.downgrade(),
             position,
             color,
-            viewport,
+            clip_bounds,
         });
     }
 
@@ -179,13 +179,13 @@ where
         editor: &Self::Editor,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     ) {
         self.primitives.push(Primitive::Editor {
             editor: editor.downgrade(),
             position,
             color,
-            viewport,
+            clip_bounds,
         });
     }
 
@@ -194,7 +194,7 @@ where
         text: Text<'_, Self::Font>,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     ) {
         self.primitives.push(Primitive::Text {
             content: text.content.to_string(),
@@ -206,7 +206,7 @@ where
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
-            viewport,
+            clip_bounds,
         });
     }
 }

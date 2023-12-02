@@ -32,8 +32,8 @@ pub enum Primitive<T> {
         vertical_alignment: alignment::Vertical,
         /// The shaping strategy of the text.
         shaping: text::Shaping,
-        /// The viewport of the text.
-        viewport: Rectangle,
+        /// The clip bounds of the text.
+        clip_bounds: Rectangle,
     },
     /// A paragraph primitive
     Paragraph {
@@ -43,8 +43,8 @@ pub enum Primitive<T> {
         position: Point,
         /// The color of the paragraph.
         color: Color,
-        /// The viewport of the paragraph.
-        viewport: Rectangle,
+        /// The clip bounds of the paragraph.
+        clip_bounds: Rectangle,
     },
     /// An editor primitive
     Editor {
@@ -54,8 +54,8 @@ pub enum Primitive<T> {
         position: Point,
         /// The color of the editor.
         color: Color,
-        /// The viewport of the editor.
-        viewport: Rectangle,
+        /// The clip bounds of the editor.
+        clip_bounds: Rectangle,
     },
     /// A quad primitive
     Quad {

@@ -64,7 +64,7 @@ impl text::Renderer for Null {
         _paragraph: &Self::Paragraph,
         _position: Point,
         _color: Color,
-        _viewport: Rectangle,
+        _clip_bounds: Rectangle,
     ) {
     }
 
@@ -73,7 +73,7 @@ impl text::Renderer for Null {
         _editor: &Self::Editor,
         _position: Point,
         _color: Color,
-        _viewport: Rectangle,
+        _clip_bounds: Rectangle,
     ) {
     }
 
@@ -82,7 +82,7 @@ impl text::Renderer for Null {
         _paragraph: Text<'_, Self::Font>,
         _position: Point,
         _color: Color,
-        _viewport: Rectangle,
+        _clip_bounds: Rectangle,
     ) {
     }
 }

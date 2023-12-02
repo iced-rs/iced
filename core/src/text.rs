@@ -202,7 +202,7 @@ pub trait Renderer: crate::Renderer {
         text: &Self::Paragraph,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     );
 
     /// Draws the given [`Editor`] at the given position and with the given
@@ -212,7 +212,7 @@ pub trait Renderer: crate::Renderer {
         editor: &Self::Editor,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     );
 
     /// Draws the given [`Text`] at the given position and with the given
@@ -222,6 +222,6 @@ pub trait Renderer: crate::Renderer {
         text: Text<'_, Self::Font>,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     );
 }

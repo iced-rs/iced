@@ -346,7 +346,7 @@ impl Frame {
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
-            viewport: bounds,
+            clip_bounds: Rectangle::with_size(Size::INFINITY),
         });
     }
 

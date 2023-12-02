@@ -361,9 +361,10 @@ impl Backend {
                 paragraph,
                 position,
                 color,
-                viewport,
+                clip_bounds: text_clip_bounds,
             } => {
-                let physical_bounds = (*viewport + translation) * scale_factor;
+                let physical_bounds =
+                    (*text_clip_bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -385,9 +386,10 @@ impl Backend {
                 editor,
                 position,
                 color,
-                viewport,
+                clip_bounds: text_clip_bounds,
             } => {
-                let physical_bounds = (*viewport + translation) * scale_factor;
+                let physical_bounds =
+                    (*text_clip_bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -415,9 +417,10 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
                 shaping,
-                viewport,
+                clip_bounds: text_clip_bounds,
             } => {
-                let physical_bounds = (*viewport + translation) * scale_factor;
+                let physical_bounds =
+                    (*text_clip_bounds + translation) * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;

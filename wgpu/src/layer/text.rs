@@ -13,7 +13,7 @@ pub enum Text<'a> {
         paragraph: paragraph::Weak,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     },
     /// An editor.
     #[allow(missing_docs)]
@@ -21,7 +21,7 @@ pub enum Text<'a> {
         editor: editor::Weak,
         position: Point,
         color: Color,
-        viewport: Rectangle,
+        clip_bounds: Rectangle,
     },
     /// A cached text.
     Cached(Cached<'a>),
@@ -56,6 +56,6 @@ pub struct Cached<'a> {
     /// The shaping strategy of the text.
     pub shaping: text::Shaping,
 
-    /// The viewport of the text.
-    pub viewport: Rectangle,
+    /// The clip bounds of the text.
+    pub clip_bounds: Rectangle,
 }
