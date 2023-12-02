@@ -19,7 +19,7 @@ where
     title: String,
     scale_factor: f64,
     viewport: Viewport,
-    viewport_version: usize,
+    viewport_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::event::ModifiersState,
     theme: <A::Renderer as core::Renderer>::Theme,
@@ -86,7 +86,7 @@ where
     /// Returns the version of the [`Viewport`] of the [`State`].
     ///
     /// The version is incremented every time the [`Viewport`] changes.
-    pub fn viewport_version(&self) -> usize {
+    pub fn viewport_version(&self) -> u64 {
         self.viewport_version
     }
 
