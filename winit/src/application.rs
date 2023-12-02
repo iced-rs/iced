@@ -181,8 +181,8 @@ where
         };
     }
 
-    let (compositor, mut renderer) =
-        C::new(compositor_settings, Some(&window))?;
+    let compositor = C::new(compositor_settings, Some(&window))?;
+    let mut renderer = compositor.create_renderer();
 
     for font in settings.fonts {
         use crate::core::text::Renderer;

@@ -28,20 +28,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         _compatible_window: Option<&W>,
-    ) -> Result<(Self, Self::Renderer), Error> {
-        let (compositor, backend) = new(settings);
-
-        Ok((
-            compositor,
-            Renderer::new(
-                backend,
-                settings.default_font,
-                settings.default_text_size,
-            ),
-        ))
+    ) -> Result<Self, Error> {
+        Ok(new(settings))
     }
 
-    fn renderer(&self) -> Self::Renderer {
+    fn create_renderer(&self) -> Self::Renderer {
         Renderer::new(
             Backend::new(),
             self.settings.default_font,
@@ -130,14 +121,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn new<Theme>(settings: Settings) -> (Compositor<Theme>, Backend) {
-    (
-        Compositor {
-            settings,
-            _theme: PhantomData,
-        },
-        Backend::new(),
-    )
+pub fn new<Theme>(settings: Settings) -> Compositor<Theme> {
+    Compositor {
+        settings,
+        _theme: PhantomData,
+    }
 }
 
 pub fn present<T: AsRef<str>>(

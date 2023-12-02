@@ -26,7 +26,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Self::Renderer), Error> {
+    ) -> Result<Self, Error> {
         let candidates =
             Candidate::list_from_env().unwrap_or(Candidate::default_list());
 
@@ -34,9 +34,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
         for candidate in candidates {
             match candidate.build(settings, compatible_window) {
-                Ok((compositor, renderer)) => {
-                    return Ok((compositor, renderer))
-                }
+                Ok(compositor) => return Ok(compositor),
                 Err(new_error) => {
                     error = new_error;
                 }
@@ -46,14 +44,14 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         Err(error)
     }
 
-    fn renderer(&self) -> Self::Renderer {
+    fn create_renderer(&self) -> Self::Renderer {
         match self {
             Compositor::TinySkia(compositor) => {
-                Renderer::TinySkia(compositor.renderer())
+                Renderer::TinySkia(compositor.create_renderer())
             }
             #[cfg(feature = "wgpu")]
             Compositor::Wgpu(compositor) => {
-                Renderer::Wgpu(compositor.renderer())
+                Renderer::Wgpu(compositor.create_renderer())
             }
         }
     }
@@ -232,29 +230,21 @@ impl Candidate {
         self,
         settings: Settings,
         _compatible_window: Option<&W>,
-    ) -> Result<(Compositor<Theme>, Renderer<Theme>), Error> {
+    ) -> Result<Compositor<Theme>, Error> {
         match self {
             Self::TinySkia => {
-                let (compositor, backend) =
-                    iced_tiny_skia::window::compositor::new(
-                        iced_tiny_skia::Settings {
-                            default_font: settings.default_font,
-                            default_text_size: settings.default_text_size,
-                        },
-                    );
+                let compositor = iced_tiny_skia::window::compositor::new(
+                    iced_tiny_skia::Settings {
+                        default_font: settings.default_font,
+                        default_text_size: settings.default_text_size,
+                    },
+                );
 
-                Ok((
-                    Compositor::TinySkia(compositor),
-                    Renderer::TinySkia(iced_tiny_skia::Renderer::new(
-                        backend,
-                        settings.default_font,
-                        settings.default_text_size,
-                    )),
-                ))
+                Ok(Compositor::TinySkia(compositor))
             }
             #[cfg(feature = "wgpu")]
             Self::Wgpu => {
-                let (compositor, backend) = iced_wgpu::window::compositor::new(
+                let compositor = iced_wgpu::window::compositor::new(
                     iced_wgpu::Settings {
                         default_font: settings.default_font,
                         default_text_size: settings.default_text_size,
@@ -264,14 +254,7 @@ impl Candidate {
                     _compatible_window,
                 )?;
 
-                Ok((
-                    Compositor::Wgpu(compositor),
-                    Renderer::Wgpu(iced_wgpu::Renderer::new(
-                        backend,
-                        settings.default_font,
-                        settings.default_text_size,
-                    )),
-                ))
+                Ok(Compositor::Wgpu(compositor))
             }
             #[cfg(not(feature = "wgpu"))]
             Self::Wgpu => {

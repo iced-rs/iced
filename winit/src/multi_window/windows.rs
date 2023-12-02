@@ -97,7 +97,7 @@ where
             physical_size.width,
             physical_size.height,
         );
-        let renderer = compositor.renderer();
+        let renderer = compositor.create_renderer();
 
         self.ids.push(id);
         self.raw.push(window);

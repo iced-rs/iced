@@ -181,8 +181,8 @@ where
         };
     }
 
-    let (mut compositor, renderer) =
-        C::new(compositor_settings, Some(&main_window))?;
+    let mut compositor = C::new(compositor_settings, Some(&main_window))?;
+    let renderer = compositor.create_renderer();
 
     let windows = Windows::new(
         &application,
