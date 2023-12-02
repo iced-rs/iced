@@ -54,6 +54,3 @@ pub use clipboard::Clipboard;
 pub use error::Error;
 pub use proxy::Proxy;
 pub use settings::Settings;
-
-pub use crate::core::window::*;
-pub use iced_graphics::Viewport;
