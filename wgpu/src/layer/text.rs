@@ -1,6 +1,7 @@
 use crate::core::alignment;
 use crate::core::text;
 use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::graphics;
 use crate::graphics::text::editor;
 use crate::graphics::text::paragraph;
 
@@ -23,8 +24,10 @@ pub enum Text<'a> {
         color: Color,
         clip_bounds: Rectangle,
     },
-    /// A cached text.
+    /// Some cached text.
     Cached(Cached<'a>),
+    /// Some raw text.
+    Raw(graphics::text::Raw),
 }
 
 #[derive(Debug, Clone)]

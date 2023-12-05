@@ -73,6 +73,11 @@ impl<T: Damage> Damage for Primitive<T> {
 
                 bounds.expand(1.5)
             }
+            Self::RawText(raw) => {
+                // TODO: Add `size` field to `raw` to compute more accurate
+                // damage bounds (?)
+                raw.clip_bounds.expand(1.5)
+            }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
             | Self::Svg { bounds, .. } => bounds.expand(1.0),

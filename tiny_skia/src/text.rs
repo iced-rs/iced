@@ -1,6 +1,6 @@
 use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
-use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Size};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::editor;
@@ -143,6 +143,33 @@ impl Pipeline {
             color,
             horizontal_alignment,
             vertical_alignment,
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
+    }
+
+    pub fn draw_raw(
+        &mut self,
+        buffer: &cosmic_text::Buffer,
+        position: Point,
+        color: Color,
+        scale_factor: f32,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::Mask>,
+    ) {
+        let mut font_system = font_system().write().expect("Write font system");
+
+        let (width, height) = buffer.size();
+
+        draw(
+            font_system.raw(),
+            &mut self.glyph_cache,
+            buffer,
+            Rectangle::new(position, Size::new(width, height)),
+            color,
+            alignment::Horizontal::Left,
+            alignment::Vertical::Top,
             scale_factor,
             pixels,
             clip_mask,
