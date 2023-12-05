@@ -279,7 +279,7 @@ where
 
         let state = tree.state.downcast_mut::<State>();
 
-        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+        if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
             state.animation = state.animation.timed_transition(
                 self.cycle_duration,
                 self.rotation_duration,

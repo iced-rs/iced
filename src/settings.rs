@@ -46,14 +46,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
-
-    /// Whether the [`Application`] should exit when the user requests the
-    /// window to close (e.g. the user presses the close button).
-    ///
-    /// By default, it is enabled.
-    ///
-    /// [`Application`]: crate::Application
-    pub exit_on_close_request: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -71,7 +63,6 @@ impl<Flags> Settings<Flags> {
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
             antialiasing: default_settings.antialiasing,
-            exit_on_close_request: default_settings.exit_on_close_request,
         }
     }
 }
@@ -89,7 +80,6 @@ where
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: false,
-            exit_on_close_request: true,
         }
     }
 }
@@ -98,10 +88,9 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
             id: settings.id,
-            window: settings.window.into(),
+            window: settings.window,
             flags: settings.flags,
             fonts: settings.fonts,
-            exit_on_close_request: settings.exit_on_close_request,
         }
     }
 }

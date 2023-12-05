@@ -539,7 +539,9 @@ mod toast {
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
-            if let Event::Window(window::Event::RedrawRequested(now)) = &event {
+            if let Event::Window(_, window::Event::RedrawRequested(now)) =
+                &event
+            {
                 let mut next_redraw: Option<window::RedrawRequest> = None;
 
                 self.instants.iter_mut().enumerate().for_each(

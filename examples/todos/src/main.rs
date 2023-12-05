@@ -8,7 +8,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Subscription};
+use iced::{Color, Command, Length, Settings, Size, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub fn main() -> iced::Result {
 
     Todos::run(Settings {
         window: window::Settings {
-            size: (500, 800),
+            size: Size::new(500.0, 800.0),
             ..window::Settings::default()
         },
         ..Settings::default()
@@ -54,7 +54,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
-    ChangeWindowMode(window::Mode),
+    ToggleFullscreen(window::Mode),
 }
 
 impl Application for Todos {
@@ -165,8 +165,8 @@ impl Application for Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ChangeWindowMode(mode) => {
-                        window::change_mode(mode)
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(window::Id::MAIN, mode)
                     }
                     _ => Command::none(),
                 };
@@ -272,10 +272,10 @@ impl Application for Todos {
                     shift: modifiers.shift(),
                 }),
                 (keyboard::KeyCode::Up, keyboard::Modifiers::SHIFT) => {
-                    Some(Message::ChangeWindowMode(window::Mode::Fullscreen))
+                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
                 }
                 (keyboard::KeyCode::Down, keyboard::Modifiers::SHIFT) => {
-                    Some(Message::ChangeWindowMode(window::Mode::Windowed))
+                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
                 }
                 _ => None,
             }

@@ -35,7 +35,7 @@ where
     subscription::filter_map(
         (EventsWith, f),
         move |event, status| match event {
-            Event::Window(window::Event::RedrawRequested(_)) => None,
+            Event::Window(_, window::Event::RedrawRequested(_)) => None,
             _ => f(event, status),
         },
     )

@@ -167,7 +167,7 @@ impl Application for Example {
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 Some(Message::MouseMoved(position))
             }
-            Event::Window(window::Event::Resized { .. }) => {
+            Event::Window(_, window::Event::Resized { .. }) => {
                 Some(Message::WindowResized)
             }
             _ => None,

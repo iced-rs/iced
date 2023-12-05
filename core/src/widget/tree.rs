@@ -67,7 +67,7 @@ impl Tree {
         }
     }
 
-    /// Reconciliates the children of the tree with the provided list of widgets.
+    /// Reconciles the children of the tree with the provided list of widgets.
     pub fn diff_children<'a, Message, Renderer>(
         &mut self,
         new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],

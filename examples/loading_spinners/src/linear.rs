@@ -200,7 +200,7 @@ where
 
         let state = tree.state.downcast_mut::<State>();
 
-        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+        if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
             *state = state.timed_transition(self.cycle_duration, now);
 
             shell.request_redraw(RedrawRequest::At(
