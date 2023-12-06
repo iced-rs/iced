@@ -182,6 +182,9 @@ pub mod window;
 #[cfg(feature = "advanced")]
 pub mod advanced;
 
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
+
 pub use style::theme;
 
 pub use crate::core::alignment;

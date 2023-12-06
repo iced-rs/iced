@@ -175,11 +175,12 @@ impl<T> text::Renderer for Renderer<T> {
         paragraph: &Self::Paragraph,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.fill_paragraph(paragraph, position, color)
+            renderer.fill_paragraph(paragraph, position, color, clip_bounds)
         );
     }
 
@@ -188,11 +189,12 @@ impl<T> text::Renderer for Renderer<T> {
         editor: &Self::Editor,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.fill_editor(editor, position, color)
+            renderer.fill_editor(editor, position, color, clip_bounds)
         );
     }
 
@@ -201,8 +203,13 @@ impl<T> text::Renderer for Renderer<T> {
         text: Text<'_, Self::Font>,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     ) {
-        delegate!(self, renderer, renderer.fill_text(text, position, color));
+        delegate!(
+            self,
+            renderer,
+            renderer.fill_text(text, position, color, clip_bounds)
+        );
     }
 }
 

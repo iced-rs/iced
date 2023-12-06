@@ -544,6 +544,7 @@ where
                 } else {
                     appearance.text_color
                 },
+                *viewport,
             );
         }
     }

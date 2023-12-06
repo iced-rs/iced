@@ -253,7 +253,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
         draw(
@@ -271,6 +271,7 @@ where
             &self.handle,
             &self.style,
             || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
+            viewport,
         );
     }
 
@@ -662,6 +663,7 @@ pub fn draw<'a, T, Renderer>(
     handle: &Handle<Renderer::Font>,
     style: &<Renderer::Theme as StyleSheet>::Style,
     state: impl FnOnce() -> &'a State<Renderer::Paragraph>,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
@@ -746,6 +748,7 @@ pub fn draw<'a, T, Renderer>(
                 bounds.center_y(),
             ),
             style.handle_color,
+            *viewport,
         );
     }
 
@@ -774,6 +777,7 @@ pub fn draw<'a, T, Renderer>(
             } else {
                 style.placeholder_color
             },
+            *viewport,
         );
     }
 }

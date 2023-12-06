@@ -6,11 +6,128 @@ use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
-use crate::core::{Event, Point};
-use crate::Position;
+use crate::core::{Event, Point, Size};
+
+/// Converts some [`window::Settings`] into a `WindowBuilder` from `winit`.
+pub fn window_settings(
+    settings: window::Settings,
+    title: &str,
+    primary_monitor: Option<winit::monitor::MonitorHandle>,
+    _id: Option<String>,
+) -> winit::window::WindowBuilder {
+    let mut window_builder = winit::window::WindowBuilder::new();
+
+    window_builder = window_builder
+        .with_title(title)
+        .with_inner_size(winit::dpi::LogicalSize {
+            width: settings.size.width,
+            height: settings.size.height,
+        })
+        .with_resizable(settings.resizable)
+        .with_enabled_buttons(if settings.resizable {
+            winit::window::WindowButtons::all()
+        } else {
+            winit::window::WindowButtons::CLOSE
+                | winit::window::WindowButtons::MINIMIZE
+        })
+        .with_decorations(settings.decorations)
+        .with_transparent(settings.transparent)
+        .with_window_icon(settings.icon.and_then(icon))
+        .with_window_level(window_level(settings.level))
+        .with_visible(settings.visible);
+
+    if let Some(position) =
+        position(primary_monitor.as_ref(), settings.size, settings.position)
+    {
+        window_builder = window_builder.with_position(position);
+    }
+
+    if let Some(min_size) = settings.min_size {
+        window_builder =
+            window_builder.with_min_inner_size(winit::dpi::LogicalSize {
+                width: min_size.width,
+                height: min_size.height,
+            });
+    }
+
+    if let Some(max_size) = settings.max_size {
+        window_builder =
+            window_builder.with_max_inner_size(winit::dpi::LogicalSize {
+                width: max_size.width,
+                height: max_size.height,
+            });
+    }
+
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
+        // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
+        use ::winit::platform::wayland::WindowBuilderExtWayland;
+
+        if let Some(id) = _id {
+            window_builder = window_builder.with_name(id.clone(), id);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        #[allow(unsafe_code)]
+        unsafe {
+            window_builder = window_builder
+                .with_parent_window(settings.platform_specific.parent);
+        }
+        window_builder = window_builder
+            .with_drag_and_drop(settings.platform_specific.drag_and_drop);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::WindowBuilderExtMacOS;
+
+        window_builder = window_builder
+            .with_title_hidden(settings.platform_specific.title_hidden)
+            .with_titlebar_transparent(
+                settings.platform_specific.titlebar_transparent,
+            )
+            .with_fullsize_content_view(
+                settings.platform_specific.fullsize_content_view,
+            );
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        #[cfg(feature = "x11")]
+        {
+            use winit::platform::x11::WindowBuilderExtX11;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+        #[cfg(feature = "wayland")]
+        {
+            use winit::platform::wayland::WindowBuilderExtWayland;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+    }
+
+    window_builder
+}
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
+    id: window::Id,
     event: &winit::event::WindowEvent<'_>,
     scale_factor: f64,
     modifiers: winit::event::ModifiersState,
@@ -21,21 +138,27 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
+            Some(Event::Window(
+                id,
+                window::Event::Resized {
+                    width: logical_size.width,
+                    height: logical_size.height,
+                },
+            ))
         }
         WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
             let logical_size = new_inner_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
+            Some(Event::Window(
+                id,
+                window::Event::Resized {
+                    width: logical_size.width,
+                    height: logical_size.height,
+                },
+            ))
         }
         WindowEvent::CloseRequested => {
-            Some(Event::Window(window::Event::CloseRequested))
+            Some(Event::Window(id, window::Event::CloseRequested))
         }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
@@ -113,19 +236,22 @@ pub fn window_event(
         WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
             keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
         )),
-        WindowEvent::Focused(focused) => Some(Event::Window(if *focused {
-            window::Event::Focused
-        } else {
-            window::Event::Unfocused
-        })),
+        WindowEvent::Focused(focused) => Some(Event::Window(
+            id,
+            if *focused {
+                window::Event::Focused
+            } else {
+                window::Event::Unfocused
+            },
+        )),
         WindowEvent::HoveredFile(path) => {
-            Some(Event::Window(window::Event::FileHovered(path.clone())))
+            Some(Event::Window(id, window::Event::FileHovered(path.clone())))
         }
         WindowEvent::DroppedFile(path) => {
-            Some(Event::Window(window::Event::FileDropped(path.clone())))
+            Some(Event::Window(id, window::Event::FileDropped(path.clone())))
         }
         WindowEvent::HoveredFileCancelled => {
-            Some(Event::Window(window::Event::FilesHoveredLeft))
+            Some(Event::Window(id, window::Event::FilesHoveredLeft))
         }
         WindowEvent::Touch(touch) => {
             Some(Event::Touch(touch_event(*touch, scale_factor)))
@@ -134,7 +260,7 @@ pub fn window_event(
             let winit::dpi::LogicalPosition { x, y } =
                 position.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Moved { x, y }))
+            Some(Event::Window(id, window::Event::Moved { x, y }))
         }
         _ => None,
     }
@@ -153,23 +279,23 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
-/// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
+/// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
     monitor: Option<&winit::monitor::MonitorHandle>,
-    (width, height): (u32, u32),
-    position: Position,
+    size: Size,
+    position: window::Position,
 ) -> Option<winit::dpi::Position> {
     match position {
-        Position::Default => None,
-        Position::Specific(x, y) => {
+        window::Position::Default => None,
+        window::Position::Specific(position) => {
             Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
-                x: f64::from(x),
-                y: f64::from(y),
+                x: f64::from(position.x),
+                y: f64::from(position.y),
             }))
         }
-        Position::Centered => {
+        window::Position::Centered => {
             if let Some(monitor) = monitor {
                 let start = monitor.position();
 
@@ -178,8 +304,8 @@ pub fn position(
 
                 let centered: winit::dpi::PhysicalPosition<i32> =
                     winit::dpi::LogicalPosition {
-                        x: (resolution.width - f64::from(width)) / 2.0,
-                        y: (resolution.height - f64::from(height)) / 2.0,
+                        x: (resolution.width - f64::from(size.width)) / 2.0,
+                        y: (resolution.height - f64::from(size.height)) / 2.0,
                     }
                     .to_physical(monitor.scale_factor());
 

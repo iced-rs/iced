@@ -328,15 +328,17 @@ impl Frame {
             Point::new(transformed.x, transformed.y)
         };
 
+        let bounds = Rectangle {
+            x: position.x,
+            y: position.y,
+            width: f32::INFINITY,
+            height: f32::INFINITY,
+        };
+
         // TODO: Use vectorial text instead of primitive
         self.primitives.push(Primitive::Text {
             content: text.content,
-            bounds: Rectangle {
-                x: position.x,
-                y: position.y,
-                width: f32::INFINITY,
-                height: f32::INFINITY,
-            },
+            bounds,
             color: text.color,
             size: text.size,
             line_height: text.line_height,
@@ -344,6 +346,7 @@ impl Frame {
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
             shaping: text.shaping,
+            clip_bounds: Rectangle::with_size(Size::INFINITY),
         });
     }
 

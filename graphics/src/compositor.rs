@@ -22,7 +22,10 @@ pub trait Compositor: Sized {
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Self::Renderer), Error>;
+    ) -> Result<Self, Error>;
+
+    /// Creates a [`Self::Renderer`] for the [`Compositor`].
+    fn create_renderer(&self) -> Self::Renderer;
 
     /// Crates a new [`Surface`] for the given window.
     ///

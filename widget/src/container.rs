@@ -252,21 +252,23 @@ where
     ) {
         let style = theme.appearance(&self.style);
 
-        draw_background(renderer, &style, layout.bounds());
+        if let Some(viewport) = layout.bounds().intersection(viewport) {
+            draw_background(renderer, &style, layout.bounds());
 
-        self.content.as_widget().draw(
-            tree,
-            renderer,
-            theme,
-            &renderer::Style {
-                text_color: style
-                    .text_color
-                    .unwrap_or(renderer_style.text_color),
-            },
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-        );
+            self.content.as_widget().draw(
+                tree,
+                renderer,
+                theme,
+                &renderer::Style {
+                    text_color: style
+                        .text_color
+                        .unwrap_or(renderer_style.text_color),
+                },
+                layout.children().next().unwrap(),
+                cursor,
+                &viewport,
+            );
+        }
     }
 
     fn overlay<'b>(

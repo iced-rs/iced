@@ -12,6 +12,7 @@ keywords.workspace = true
 
 [features]
 debug = []
+multi-window = []
 
 [dependencies]
 iced_core.workspace = true

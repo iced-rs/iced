@@ -1,8 +1,8 @@
-use iced::alignment;
 use iced::keyboard::KeyCode;
 use iced::theme::{Button, Container};
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window::screenshot::{self, Screenshot};
+use iced::{alignment, window};
 use iced::{
     event, executor, keyboard, Alignment, Application, Command, ContentFit,
     Element, Event, Length, Rectangle, Renderer, Subscription, Theme,
@@ -70,7 +70,10 @@ impl Application for Example {
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match message {
             Message::Screenshot => {
-                return iced::window::screenshot(Message::ScreenshotData);
+                return iced::window::screenshot(
+                    window::Id::MAIN,
+                    Message::ScreenshotData,
+                );
             }
             Message::ScreenshotData(screenshot) => {
                 self.screenshot = Some(screenshot);

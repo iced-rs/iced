@@ -139,16 +139,14 @@ impl<Theme> Compositor<Theme> {
 pub fn new<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
     settings: Settings,
     compatible_window: Option<&W>,
-) -> Result<(Compositor<Theme>, Backend), Error> {
+) -> Result<Compositor<Theme>, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
         compatible_window,
     ))
     .ok_or(Error::GraphicsAdapterNotFound)?;
 
-    let backend = compositor.create_backend();
-
-    Ok((compositor, backend))
+    Ok(compositor)
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
@@ -214,17 +212,16 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
         compatible_window: Option<&W>,
-    ) -> Result<(Self, Self::Renderer), Error> {
-        let (compositor, backend) = new(settings, compatible_window)?;
+    ) -> Result<Self, Error> {
+        new(settings, compatible_window)
+    }
 
-        Ok((
-            compositor,
-            Renderer::new(
-                backend,
-                settings.default_font,
-                settings.default_text_size,
-            ),
-        ))
+    fn create_renderer(&self) -> Self::Renderer {
+        Renderer::new(
+            self.create_backend(),
+            self.settings.default_font,
+            self.settings.default_text_size,
+        )
     }
 
     fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(

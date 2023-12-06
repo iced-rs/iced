@@ -84,7 +84,9 @@ impl<T> fmt::Debug for Action<T> {
             Self::Clipboard(action) => {
                 write!(f, "Action::Clipboard({action:?})")
             }
-            Self::Window(action) => write!(f, "Action::Window({action:?})"),
+            Self::Window(action) => {
+                write!(f, "Action::Window({action:?})")
+            }
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),
