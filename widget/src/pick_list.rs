@@ -163,7 +163,7 @@ impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
 where
     T: Clone + ToString + Eq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'a + Copy,
+    Message: 'a + Clone,
     Renderer: text::Renderer + 'a,
     Renderer::Theme: StyleSheet
         + scrollable::StyleSheet
@@ -492,7 +492,7 @@ pub fn update<'a, T, P, Message>(
 where
     T: PartialEq + Clone + 'a,
     P: text::Paragraph + 'a,
-    Message: Copy,
+    Message: Clone,
 {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -506,7 +506,7 @@ where
 
                 if let Some(on_closed) = on_closed {
                     // Send callback when popup just close.
-                    shell.publish(*on_closed);
+                    shell.publish(on_closed.clone());
                 }
 
                 event::Status::Captured
@@ -517,7 +517,7 @@ where
 
                 if let Some(on_opened) = on_opened {
                     // Send callback when popup just opened.
-                    shell.publish(*on_opened);
+                    shell.publish(on_opened.clone());
                 }
 
                 event::Status::Captured
