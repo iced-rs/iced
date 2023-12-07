@@ -128,6 +128,15 @@ where
             highlighter_format: to_format,
         }
     }
+
+    /// Sets the style of the [`TextEditor`].
+    pub fn style(
+        mut self,
+        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+    ) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
 /// The content of a [`TextEditor`].
