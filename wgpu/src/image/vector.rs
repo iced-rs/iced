@@ -1,8 +1,8 @@
 use crate::core::svg;
 use crate::core::{Color, Size};
+use crate::graphics::text;
 use crate::image::atlas::{self, Atlas};
 
-use iced_graphics::text;
 use resvg::tiny_skia;
 use resvg::usvg::{self, TreeTextToPath};
 use std::collections::{HashMap, HashSet};
