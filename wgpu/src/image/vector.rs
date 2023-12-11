@@ -2,8 +2,9 @@ use crate::core::svg;
 use crate::core::{Color, Size};
 use crate::image::atlas::{self, Atlas};
 
+use iced_graphics::text;
 use resvg::tiny_skia;
-use resvg::usvg;
+use resvg::usvg::{self, TreeTextToPath};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 
@@ -51,11 +52,23 @@ impl Cache {
 
         let svg = match handle.data() {
             svg::Data::Path(path) => {
-                let tree = fs::read_to_string(path).ok().and_then(|contents| {
-                    usvg::Tree::from_str(&contents, &usvg::Options::default())
+                let mut tree =
+                    fs::read_to_string(path).ok().and_then(|contents| {
+                        usvg::Tree::from_str(
+                            &contents,
+                            &usvg::Options::default(),
+                        )
                         .ok()
-                });
-
+                    });
+                // If there are text nodes in the tree load fonts and convert the text to paths
+                if let Some(svg_tree) = &mut tree {
+                    if svg_tree.has_text_nodes() {
+                        let mut font_system = text::font_system()
+                            .write()
+                            .expect("Read font system");
+                        svg_tree.convert_text(font_system.raw().db_mut());
+                    }
+                }
                 tree.map(Svg::Loaded).unwrap_or(Svg::NotFound)
             }
             svg::Data::Bytes(bytes) => {
