@@ -50,27 +50,15 @@ impl Cache {
             return self.svgs.get(&handle.id()).unwrap();
         }
 
-        let svg = match handle.data() {
-            svg::Data::Path(path) => {
-                let mut tree =
-                    fs::read_to_string(path).ok().and_then(|contents| {
-                        usvg::Tree::from_str(
-                            &contents,
-                            &usvg::Options::default(),
-                        )
+        let mut svg = match handle.data() {
+            svg::Data::Path(path) => fs::read_to_string(path)
+                .ok()
+                .and_then(|contents| {
+                    usvg::Tree::from_str(&contents, &usvg::Options::default())
                         .ok()
-                    });
-                // If there are text nodes in the tree load fonts and convert the text to paths
-                if let Some(svg_tree) = &mut tree {
-                    if svg_tree.has_text_nodes() {
-                        let mut font_system = text::font_system()
-                            .write()
-                            .expect("Read font system");
-                        svg_tree.convert_text(font_system.raw().db_mut());
-                    }
-                }
-                tree.map(Svg::Loaded).unwrap_or(Svg::NotFound)
-            }
+                })
+                .map(Svg::Loaded)
+                .unwrap_or(Svg::NotFound),
             svg::Data::Bytes(bytes) => {
                 match usvg::Tree::from_data(bytes, &usvg::Options::default()) {
                     Ok(tree) => Svg::Loaded(tree),
@@ -78,6 +66,15 @@ impl Cache {
                 }
             }
         };
+
+        if let Svg::Loaded(svg) = &mut svg {
+            if svg.has_text_nodes() {
+                let mut font_system =
+                    text::font_system().write().expect("Write font system");
+
+                svg.convert_text(font_system.raw().db_mut());
+            }
+        }
 
         let _ = self.svgs.insert(handle.id(), svg);
         self.svgs.get(&handle.id()).unwrap()
