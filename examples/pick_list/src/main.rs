@@ -13,6 +13,8 @@ struct Example {
 #[derive(Debug, Clone, Copy)]
 enum Message {
     LanguageSelected(Language),
+    OpenedMenu,
+    ClosedMenu,
 }
 
 impl Sandbox for Example {
@@ -31,6 +33,12 @@ impl Sandbox for Example {
             Message::LanguageSelected(language) => {
                 self.selected_language = Some(language);
             }
+            Message::OpenedMenu => {
+                dbg!("menu has opened");
+            }
+            Message::ClosedMenu => {
+                dbg!("menu has closed");
+            }
         }
     }
 
@@ -40,6 +48,8 @@ impl Sandbox for Example {
             self.selected_language,
             Message::LanguageSelected,
         )
+        .on_opened(Message::OpenedMenu)
+        .on_closed(Message::ClosedMenu)
         .placeholder("Choose a language...");
 
         let content = column![
