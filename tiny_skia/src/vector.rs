@@ -96,7 +96,7 @@ impl Cache {
             if let Some(svg) = &mut svg {
                 if svg.has_text_nodes() {
                     let mut font_system =
-                        text::font_system().write().expect("Read font system");
+                        text::font_system().write().expect("Write font system");
 
                     svg.convert_text(font_system.raw().db_mut());
                 }
