@@ -145,7 +145,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let Size { width, height } = renderer.dimensions(&self.handle);
@@ -153,6 +153,7 @@ where
 
         let bounds = layout.bounds();
         let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+        let is_mouse_over = cursor.is_over(bounds);
 
         let render = |renderer: &mut Renderer| {
             let offset = Vector::new(
@@ -166,7 +167,11 @@ where
                 ..bounds
             };
 
-            let appearance = theme.appearance(&self.style);
+            let appearance = if is_mouse_over {
+                theme.appearance(&self.style)
+            } else {
+                theme.hovered(&self.style)
+            };
 
             renderer.draw(
                 self.handle.clone(),
