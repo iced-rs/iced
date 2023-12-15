@@ -22,7 +22,8 @@ palette.workspace = true
 palette.optional = true
 
 [target.'cfg(windows)'.dependencies]
-raw-window-handle.workspace = true
+# TODO: Use `workspace` dependency once `wgpu` upgrades `raw-window-handle`
+raw-window-handle = "0.6"
 
 [dev-dependencies]
 approx = "0.5"
