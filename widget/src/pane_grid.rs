@@ -531,6 +531,8 @@ pub fn update<'a, Message, T: Draggable>(
     on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: &Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
 ) -> event::Status {
+    const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
+
     let mut event_status = event::Status::Ignored;
 
     match event {
@@ -572,7 +574,6 @@ pub fn update<'a, Message, T: Draggable>(
                                 shell,
                                 contents,
                                 on_click,
-                                on_drag,
                             );
                         }
                     }
@@ -584,7 +585,6 @@ pub fn update<'a, Message, T: Draggable>(
                             shell,
                             contents,
                             on_click,
-                            on_drag,
                         );
                     }
                 }
@@ -637,7 +637,49 @@ pub fn update<'a, Message, T: Draggable>(
         }
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
-            if let Some((_, on_resize)) = on_resize {
+            if let Some((_, origin)) = action.clicked_pane() {
+                if let Some(on_drag) = &on_drag {
+                    let bounds = layout.bounds();
+
+                    if let Some(cursor_position) = cursor.position_over(bounds)
+                    {
+                        let mut clicked_region = contents
+                            .zip(layout.children())
+                            .filter(|(_, layout)| {
+                                layout.bounds().contains(cursor_position)
+                            });
+
+                        if let Some(((pane, content), layout)) =
+                            clicked_region.next()
+                        {
+                            if content
+                                .can_be_dragged_at(layout, cursor_position)
+                            {
+                                let pane_position = layout.position();
+
+                                let new_origin = cursor_position
+                                    - Vector::new(
+                                        pane_position.x,
+                                        pane_position.y,
+                                    );
+
+                                if new_origin.distance(origin)
+                                    > DRAG_DEADBAND_DISTANCE
+                                {
+                                    *action = state::Action::Dragging {
+                                        pane,
+                                        origin,
+                                    };
+
+                                    shell.publish(on_drag(DragEvent::Picked {
+                                        pane,
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if let Some((_, on_resize)) = on_resize {
                 if let Some((split, _)) = action.picked_split() {
                     let bounds = layout.bounds();
 
@@ -712,7 +754,6 @@ fn click_pane<'a, Message, T>(
     shell: &mut Shell<'_, Message>,
     contents: impl Iterator<Item = (Pane, T)>,
     on_click: &Option<Box<dyn Fn(Pane) -> Message + 'a>>,
-    on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
 ) where
     T: Draggable,
 {
@@ -720,23 +761,15 @@ fn click_pane<'a, Message, T>(
         .zip(layout.children())
         .filter(|(_, layout)| layout.bounds().contains(cursor_position));
 
-    if let Some(((pane, content), layout)) = clicked_region.next() {
+    if let Some(((pane, _), layout)) = clicked_region.next() {
         if let Some(on_click) = &on_click {
             shell.publish(on_click(pane));
         }
 
-        if let Some(on_drag) = &on_drag {
-            if content.can_be_dragged_at(layout, cursor_position) {
-                let pane_position = layout.position();
-
-                let origin = cursor_position
-                    - Vector::new(pane_position.x, pane_position.y);
-
-                *action = state::Action::Dragging { pane, origin };
-
-                shell.publish(on_drag(DragEvent::Picked { pane }));
-            }
-        }
+        let pane_position = layout.position();
+        let origin =
+            cursor_position - Vector::new(pane_position.x, pane_position.y);
+        *action = state::Action::Clicking { pane, origin };
     }
 }
 
@@ -749,7 +782,7 @@ pub fn mouse_interaction(
     spacing: f32,
     resize_leeway: Option<f32>,
 ) -> Option<mouse::Interaction> {
-    if action.picked_pane().is_some() {
+    if action.clicked_pane().is_some() || action.picked_pane().is_some() {
         return Some(mouse::Interaction::Grabbing);
     }
 
