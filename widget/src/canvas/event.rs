@@ -8,7 +8,7 @@ pub use crate::core::event::Status;
 /// A [`Canvas`] event.
 ///
 /// [`Canvas`]: crate::Canvas
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Event {
     /// A mouse event.
     Mouse(mouse::Event),

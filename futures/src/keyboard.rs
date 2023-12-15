@@ -24,6 +24,7 @@ where
                 core::Event::Keyboard(Event::KeyPressed {
                     key_code,
                     modifiers,
+                    ..
                 }),
                 core::event::Status::Ignored,
             ) => f(key_code, modifiers),

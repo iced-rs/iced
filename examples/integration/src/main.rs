@@ -19,8 +19,9 @@ use iced_winit::winit;
 use iced_winit::Clipboard;
 
 use winit::{
-    event::{Event, ModifiersState, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
+    keyboard::ModifiersState,
 };
 
 #[cfg(target_arch = "wasm32")]
@@ -48,7 +49,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     // Initialize winit
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new()?;
 
     #[cfg(target_arch = "wasm32")]
     let window = winit::window::WindowBuilder::new()
@@ -160,67 +161,15 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Run event loop
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, window_target| {
         // You should change this if you want to render continuosly
-        *control_flow = ControlFlow::Wait;
+        window_target.set_control_flow(ControlFlow::Wait);
 
         match event {
-            Event::WindowEvent { event, .. } => {
-                match event {
-                    WindowEvent::CursorMoved { position, .. } => {
-                        cursor_position = Some(position);
-                    }
-                    WindowEvent::ModifiersChanged(new_modifiers) => {
-                        modifiers = new_modifiers;
-                    }
-                    WindowEvent::Resized(_) => {
-                        resized = true;
-                    }
-                    WindowEvent::CloseRequested => {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                    _ => {}
-                }
-
-                // Map window event to iced event
-                if let Some(event) = iced_winit::conversion::window_event(
-                    window::Id::MAIN,
-                    &event,
-                    window.scale_factor(),
-                    modifiers,
-                ) {
-                    state.queue_event(event);
-                }
-            }
-            Event::MainEventsCleared => {
-                // If there are events pending
-                if !state.is_queue_empty() {
-                    // We update iced
-                    let _ = state.update(
-                        viewport.logical_size(),
-                        cursor_position
-                            .map(|p| {
-                                conversion::cursor_position(
-                                    p,
-                                    viewport.scale_factor(),
-                                )
-                            })
-                            .map(mouse::Cursor::Available)
-                            .unwrap_or(mouse::Cursor::Unavailable),
-                        &mut renderer,
-                        &Theme::Dark,
-                        &renderer::Style {
-                            text_color: Color::WHITE,
-                        },
-                        &mut clipboard,
-                        &mut debug,
-                    );
-
-                    // and request a redraw
-                    window.request_redraw();
-                }
-            }
-            Event::RedrawRequested(_) => {
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
                 if resized {
                     let size = window.inner_size();
 
@@ -309,7 +258,60 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     },
                 }
             }
+            Event::WindowEvent { event, .. } => {
+                match event {
+                    WindowEvent::CursorMoved { position, .. } => {
+                        cursor_position = Some(position);
+                    }
+                    WindowEvent::ModifiersChanged(new_modifiers) => {
+                        modifiers = new_modifiers.state();
+                    }
+                    WindowEvent::Resized(_) => {
+                        resized = true;
+                    }
+                    WindowEvent::CloseRequested => {
+                        window_target.exit();
+                    }
+                    _ => {}
+                }
+
+                // Map window event to iced event
+                if let Some(event) = iced_winit::conversion::window_event(
+                    window::Id::MAIN,
+                    &event,
+                    window.scale_factor(),
+                    modifiers,
+                ) {
+                    state.queue_event(event);
+                }
+            }
             _ => {}
         }
-    })
+
+        // If there are events pending
+        if !state.is_queue_empty() {
+            // We update iced
+            let _ = state.update(
+                viewport.logical_size(),
+                cursor_position
+                    .map(|p| {
+                        conversion::cursor_position(p, viewport.scale_factor())
+                    })
+                    .map(mouse::Cursor::Available)
+                    .unwrap_or(mouse::Cursor::Unavailable),
+                &mut renderer,
+                &Theme::Dark,
+                &renderer::Style {
+                    text_color: Color::WHITE,
+                },
+                &mut clipboard,
+                &mut debug,
+            );
+
+            // and request a redraw
+            window.request_redraw();
+        }
+    })?;
+
+    Ok(())
 }

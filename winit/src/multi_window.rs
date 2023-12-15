@@ -118,7 +118,10 @@ where
     let mut debug = Debug::new();
     debug.startup_started();
 
-    let event_loop = EventLoopBuilder::with_user_event().build();
+    let event_loop = EventLoopBuilder::with_user_event()
+        .build()
+        .expect("Create event loop");
+
     let proxy = event_loop.create_proxy();
 
     let runtime = {
@@ -210,78 +213,64 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    platform::run(event_loop, move |event, window_target, control_flow| {
-        use winit::event_loop::ControlFlow;
-
-        if let ControlFlow::ExitWithCode(_) = control_flow {
+    let _ = event_loop.run(move |event, event_loop| {
+        if event_loop.exiting() {
             return;
         }
 
-        let event = match event {
-            winit::event::Event::WindowEvent {
-                event:
-                    winit::event::WindowEvent::ScaleFactorChanged {
-                        new_inner_size,
-                        ..
-                    },
-                window_id,
-            } => Some(winit::event::Event::WindowEvent {
-                event: winit::event::WindowEvent::Resized(*new_inner_size),
-                window_id,
-            }),
-            _ => event.to_static(),
-        };
+        event_sender
+            .start_send(Event::EventLoopAwakened(event))
+            .expect("Send event");
 
-        if let Some(event) = event {
-            event_sender
-                .start_send(Event::EventLoopAwakened(event))
-                .expect("Send event");
+        loop {
+            let poll = instance.as_mut().poll(&mut context);
 
-            loop {
-                let poll = instance.as_mut().poll(&mut context);
+            match poll {
+                task::Poll::Pending => match control_receiver.try_next() {
+                    Ok(Some(control)) => match control {
+                        Control::ChangeFlow(flow) => {
+                            event_loop.set_control_flow(flow);
+                        }
+                        Control::CreateWindow {
+                            id,
+                            settings,
+                            title,
+                            monitor,
+                        } => {
+                            let exit_on_close_request =
+                                settings.exit_on_close_request;
 
-                match poll {
-                    task::Poll::Pending => match control_receiver.try_next() {
-                        Ok(Some(control)) => match control {
-                            Control::ChangeFlow(flow) => {
-                                *control_flow = flow;
-                            }
-                            Control::CreateWindow {
-                                id,
-                                settings,
-                                title,
-                                monitor,
-                            } => {
-                                let exit_on_close_request =
-                                    settings.exit_on_close_request;
+                            let window = conversion::window_settings(
+                                settings, &title, monitor, None,
+                            )
+                            .build(event_loop)
+                            .expect("Failed to build window");
 
-                                let window = conversion::window_settings(
-                                    settings, &title, monitor, None,
-                                )
-                                .build(window_target)
-                                .expect("Failed to build window");
-
-                                event_sender
-                                    .start_send(Event::WindowCreated {
-                                        id,
-                                        window,
-                                        exit_on_close_request,
-                                    })
-                                    .expect("Send event");
-                            }
-                        },
-                        _ => {
-                            break;
+                            event_sender
+                                .start_send(Event::WindowCreated {
+                                    id,
+                                    window,
+                                    exit_on_close_request,
+                                })
+                                .expect("Send event");
+                        }
+                        Control::Exit => {
+                            event_loop.exit();
                         }
                     },
-                    task::Poll::Ready(_) => {
-                        *control_flow = ControlFlow::Exit;
+                    _ => {
                         break;
                     }
-                };
-            }
+                },
+                task::Poll::Ready(_) => {
+                    event_loop.exit();
+                    break;
+                }
+            };
         }
-    })
+    });
+
+    Ok(())
 }
 
 enum Event<Message: 'static> {
@@ -290,11 +279,12 @@ enum Event<Message: 'static> {
         window: winit::window::Window,
         exit_on_close_request: bool,
     },
-    EventLoopAwakened(winit::event::Event<'static, Message>),
+    EventLoopAwakened(winit::event::Event<Message>),
 }
 
 enum Control {
     ChangeFlow(winit::event_loop::ControlFlow),
+    Exit,
     CreateWindow {
         id: window::Id,
         settings: window::Settings,
@@ -427,184 +417,6 @@ async fn run_instance<A, E, C>(
                                 | event::StartCause::ResumeTimeReached { .. }
                         );
                     }
-                    event::Event::MainEventsCleared => {
-                        debug.event_processing_started();
-                        let mut uis_stale = false;
-
-                        for (id, window) in window_manager.iter_mut() {
-                            let mut window_events = vec![];
-
-                            events.retain(|(window_id, event)| {
-                                if *window_id == Some(id) || window_id.is_none()
-                                {
-                                    window_events.push(event.clone());
-                                    false
-                                } else {
-                                    true
-                                }
-                            });
-
-                            if !redraw_pending
-                                && window_events.is_empty()
-                                && messages.is_empty()
-                            {
-                                continue;
-                            }
-
-                            let (ui_state, statuses) = user_interfaces
-                                .get_mut(&id)
-                                .expect("Get user interface")
-                                .update(
-                                    &window_events,
-                                    window.state.cursor(),
-                                    &mut window.renderer,
-                                    &mut clipboard,
-                                    &mut messages,
-                                );
-
-                            if !uis_stale {
-                                uis_stale = matches!(
-                                    ui_state,
-                                    user_interface::State::Outdated
-                                );
-                            }
-
-                            for (event, status) in window_events
-                                .into_iter()
-                                .zip(statuses.into_iter())
-                            {
-                                runtime.broadcast(event, status);
-                            }
-                        }
-
-                        debug.event_processing_finished();
-
-                        // TODO mw application update returns which window IDs to update
-                        if !messages.is_empty() || uis_stale {
-                            let mut cached_interfaces: HashMap<
-                                window::Id,
-                                user_interface::Cache,
-                            > = ManuallyDrop::into_inner(user_interfaces)
-                                .drain()
-                                .map(|(id, ui)| (id, ui.into_cache()))
-                                .collect();
-
-                            // Update application
-                            update(
-                                &mut application,
-                                &mut compositor,
-                                &mut runtime,
-                                &mut clipboard,
-                                &mut control_sender,
-                                &mut proxy,
-                                &mut debug,
-                                &mut messages,
-                                &mut window_manager,
-                                &mut cached_interfaces,
-                            );
-
-                            // we must synchronize all window states with application state after an
-                            // application update since we don't know what changed
-                            for (id, window) in window_manager.iter_mut() {
-                                window.state.synchronize(
-                                    &application,
-                                    id,
-                                    &window.raw,
-                                );
-                            }
-
-                            // rebuild UIs with the synchronized states
-                            user_interfaces =
-                                ManuallyDrop::new(build_user_interfaces(
-                                    &application,
-                                    &mut debug,
-                                    &mut window_manager,
-                                    cached_interfaces,
-                                ));
-                        }
-
-                        debug.draw_started();
-
-                        for (id, window) in window_manager.iter_mut() {
-                            // TODO: Avoid redrawing all the time by forcing widgets to
-                            //  request redraws on state changes
-                            //
-                            // Then, we can use the `interface_state` here to decide if a redraw
-                            // is needed right away, or simply wait until a specific time.
-                            let redraw_event = core::Event::Window(
-                                id,
-                                window::Event::RedrawRequested(Instant::now()),
-                            );
-
-                            let cursor = window.state.cursor();
-
-                            let ui = user_interfaces
-                                .get_mut(&id)
-                                .expect("Get user interface");
-
-                            let (ui_state, _) = ui.update(
-                                &[redraw_event.clone()],
-                                cursor,
-                                &mut window.renderer,
-                                &mut clipboard,
-                                &mut messages,
-                            );
-
-                            let new_mouse_interaction = {
-                                let state = &window.state;
-
-                                ui.draw(
-                                    &mut window.renderer,
-                                    state.theme(),
-                                    &renderer::Style {
-                                        text_color: state.text_color(),
-                                    },
-                                    cursor,
-                                )
-                            };
-
-                            if new_mouse_interaction != window.mouse_interaction
-                            {
-                                window.raw.set_cursor_icon(
-                                    conversion::mouse_interaction(
-                                        new_mouse_interaction,
-                                    ),
-                                );
-
-                                window.mouse_interaction =
-                                    new_mouse_interaction;
-                            }
-
-                            // TODO once widgets can request to be redrawn, we can avoid always requesting a
-                            // redraw
-                            window.raw.request_redraw();
-
-                            runtime.broadcast(
-                                redraw_event.clone(),
-                                core::event::Status::Ignored,
-                            );
-
-                            let _ = control_sender.start_send(
-                                Control::ChangeFlow(match ui_state {
-                                    user_interface::State::Updated {
-                                        redraw_request: Some(redraw_request),
-                                    } => match redraw_request {
-                                        window::RedrawRequest::NextFrame => {
-                                            ControlFlow::Poll
-                                        }
-                                        window::RedrawRequest::At(at) => {
-                                            ControlFlow::WaitUntil(at)
-                                        }
-                                    },
-                                    _ => ControlFlow::Wait,
-                                }),
-                            );
-                        }
-
-                        redraw_pending = false;
-
-                        debug.draw_finished();
-                    }
                     event::Event::PlatformSpecific(
                         event::PlatformSpecific::MacOS(
                             event::MacOS::ReceivedUrl(url),
@@ -624,7 +436,11 @@ async fn run_instance<A, E, C>(
                     event::Event::UserEvent(message) => {
                         messages.push(message);
                     }
-                    event::Event::RedrawRequested(id) => {
+                    event::Event::WindowEvent {
+                        window_id: id,
+                        event: event::WindowEvent::RedrawRequested,
+                        ..
+                    } => {
                         let Some((id, window)) =
                             window_manager.get_mut_alias(id)
                         else {
@@ -775,6 +591,163 @@ async fn run_instance<A, E, C>(
                 }
             }
         }
+
+        debug.event_processing_started();
+        let mut uis_stale = false;
+
+        for (id, window) in window_manager.iter_mut() {
+            let mut window_events = vec![];
+
+            events.retain(|(window_id, event)| {
+                if *window_id == Some(id) || window_id.is_none() {
+                    window_events.push(event.clone());
+                    false
+                } else {
+                    true
+                }
+            });
+
+            if !redraw_pending
+                && window_events.is_empty()
+                && messages.is_empty()
+            {
+                continue;
+            }
+
+            let (ui_state, statuses) = user_interfaces
+                .get_mut(&id)
+                .expect("Get user interface")
+                .update(
+                    &window_events,
+                    window.state.cursor(),
+                    &mut window.renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
+
+            if !uis_stale {
+                uis_stale = matches!(ui_state, user_interface::State::Outdated);
+            }
+
+            for (event, status) in
+                window_events.into_iter().zip(statuses.into_iter())
+            {
+                runtime.broadcast(event, status);
+            }
+        }
+
+        debug.event_processing_finished();
+
+        // TODO mw application update returns which window IDs to update
+        if !messages.is_empty() || uis_stale {
+            let mut cached_interfaces: HashMap<
+                window::Id,
+                user_interface::Cache,
+            > = ManuallyDrop::into_inner(user_interfaces)
+                .drain()
+                .map(|(id, ui)| (id, ui.into_cache()))
+                .collect();
+
+            // Update application
+            update(
+                &mut application,
+                &mut compositor,
+                &mut runtime,
+                &mut clipboard,
+                &mut control_sender,
+                &mut proxy,
+                &mut debug,
+                &mut messages,
+                &mut window_manager,
+                &mut cached_interfaces,
+            );
+
+            // we must synchronize all window states with application state after an
+            // application update since we don't know what changed
+            for (id, window) in window_manager.iter_mut() {
+                window.state.synchronize(&application, id, &window.raw);
+            }
+
+            // rebuild UIs with the synchronized states
+            user_interfaces = ManuallyDrop::new(build_user_interfaces(
+                &application,
+                &mut debug,
+                &mut window_manager,
+                cached_interfaces,
+            ));
+        }
+
+        debug.draw_started();
+
+        for (id, window) in window_manager.iter_mut() {
+            // TODO: Avoid redrawing all the time by forcing widgets to
+            //  request redraws on state changes
+            //
+            // Then, we can use the `interface_state` here to decide if a redraw
+            // is needed right away, or simply wait until a specific time.
+            let redraw_event = core::Event::Window(
+                id,
+                window::Event::RedrawRequested(Instant::now()),
+            );
+
+            let cursor = window.state.cursor();
+
+            let ui = user_interfaces.get_mut(&id).expect("Get user interface");
+
+            let (ui_state, _) = ui.update(
+                &[redraw_event.clone()],
+                cursor,
+                &mut window.renderer,
+                &mut clipboard,
+                &mut messages,
+            );
+
+            let new_mouse_interaction = {
+                let state = &window.state;
+
+                ui.draw(
+                    &mut window.renderer,
+                    state.theme(),
+                    &renderer::Style {
+                        text_color: state.text_color(),
+                    },
+                    cursor,
+                )
+            };
+
+            if new_mouse_interaction != window.mouse_interaction {
+                window.raw.set_cursor_icon(conversion::mouse_interaction(
+                    new_mouse_interaction,
+                ));
+
+                window.mouse_interaction = new_mouse_interaction;
+            }
+
+            // TODO once widgets can request to be redrawn, we can avoid always requesting a
+            // redraw
+            window.raw.request_redraw();
+
+            runtime
+                .broadcast(redraw_event.clone(), core::event::Status::Ignored);
+
+            let _ = control_sender.start_send(Control::ChangeFlow(
+                match ui_state {
+                    user_interface::State::Updated {
+                        redraw_request: Some(redraw_request),
+                    } => match redraw_request {
+                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
+                        window::RedrawRequest::At(at) => {
+                            ControlFlow::WaitUntil(at)
+                        }
+                    },
+                    _ => ControlFlow::Wait,
+                },
+            ));
+        }
+
+        redraw_pending = false;
+
+        debug.draw_finished();
     }
 
     let _ = ManuallyDrop::into_inner(user_interfaces);
@@ -901,16 +874,12 @@ fn run_command<A, C, E>(
                         .expect("Send control action");
                 }
                 window::Action::Close(id) => {
-                    use winit::event_loop::ControlFlow;
-
                     let _ = window_manager.remove(id);
                     let _ = ui_caches.remove(&id);
 
                     if window_manager.is_empty() {
                         control_sender
-                            .start_send(Control::ChangeFlow(
-                                ControlFlow::ExitWithCode(0),
-                            ))
+                            .start_send(Control::Exit)
                             .expect("Send control action");
                     }
                 }
@@ -921,10 +890,12 @@ fn run_command<A, C, E>(
                 }
                 window::Action::Resize(id, size) => {
                     if let Some(window) = window_manager.get_mut(id) {
-                        window.raw.set_inner_size(winit::dpi::LogicalSize {
-                            width: size.width,
-                            height: size.height,
-                        });
+                        let _ = window.raw.request_inner_size(
+                            winit::dpi::LogicalSize {
+                                width: size.width,
+                                height: size.height,
+                            },
+                        );
                     }
                 }
                 window::Action::FetchSize(id, callback) => {
@@ -1153,60 +1124,20 @@ where
 /// Returns true if the provided event should cause an [`Application`] to
 /// exit.
 pub fn user_force_quit(
-    event: &winit::event::WindowEvent<'_>,
-    _modifiers: winit::event::ModifiersState,
+    event: &winit::event::WindowEvent,
+    _modifiers: winit::keyboard::ModifiersState,
 ) -> bool {
     match event {
         #[cfg(target_os = "macos")]
         winit::event::WindowEvent::KeyboardInput {
-            input:
-                winit::event::KeyboardInput {
-                    virtual_keycode: Some(winit::event::VirtualKeyCode::Q),
+            event:
+                winit::event::KeyEvent {
+                    logical_key: winit::keyboard::Key::Character(c),
                     state: winit::event::ElementState::Pressed,
                     ..
                 },
             ..
-        } if _modifiers.logo() => true,
+        } if c == "q" && _modifiers.super_key() => true,
         _ => false,
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-mod platform {
-    pub fn run<T, F>(
-        mut event_loop: winit::event_loop::EventLoop<T>,
-        event_handler: F,
-    ) -> Result<(), super::Error>
-    where
-        F: 'static
-            + FnMut(
-                winit::event::Event<'_, T>,
-                &winit::event_loop::EventLoopWindowTarget<T>,
-                &mut winit::event_loop::ControlFlow,
-            ),
-    {
-        use winit::platform::run_return::EventLoopExtRunReturn;
-
-        let _ = event_loop.run_return(event_handler);
-
-        Ok(())
-    }
-}
-
-#[cfg(target_arch = "wasm32")]
-mod platform {
-    pub fn run<T, F>(
-        event_loop: winit::event_loop::EventLoop<T>,
-        event_handler: F,
-    ) -> !
-    where
-        F: 'static
-            + FnMut(
-                winit::event::Event<'_, T>,
-                &winit::event_loop::EventLoopWindowTarget<T>,
-                &mut winit::event_loop::ControlFlow,
-            ),
-    {
-        event_loop.run(event_handler)
     }
 }

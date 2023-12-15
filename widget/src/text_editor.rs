@@ -649,6 +649,7 @@ impl Update {
                 keyboard::Event::KeyPressed {
                     key_code,
                     modifiers,
+                    text,
                 } if state.is_focused => {
                     if let Some(motion) = motion(key_code) {
                         let motion =
@@ -678,11 +679,14 @@ impl Update {
                         {
                             Some(Self::Paste)
                         }
-                        _ => None,
+                        _ => {
+                            let text = text?;
+
+                            edit(Edit::Insert(
+                                text.chars().next().unwrap_or_default(),
+                            ))
+                        }
                     }
-                }
-                keyboard::Event::CharacterReceived(c) if state.is_focused => {
-                    edit(Edit::Insert(c))
                 }
                 _ => None,
             },

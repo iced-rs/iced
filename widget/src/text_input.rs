@@ -752,34 +752,9 @@ where
                 return event::Status::Captured;
             }
         }
-        Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
-            let state = state();
-
-            if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else {
-                    return event::Status::Ignored;
-                };
-
-                if state.is_pasting.is_none()
-                    && !state.keyboard_modifiers.command()
-                    && !c.is_control()
-                {
-                    let mut editor = Editor::new(value, &mut state.cursor);
-
-                    editor.insert(c);
-
-                    let message = (on_input)(editor.contents());
-                    shell.publish(message);
-
-                    focus.updated_at = Instant::now();
-
-                    update_cache(state, value);
-
-                    return event::Status::Captured;
-                }
-            }
-        }
-        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+        Event::Keyboard(keyboard::Event::KeyPressed {
+            key_code, text, ..
+        }) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
@@ -971,7 +946,30 @@ where
                     | keyboard::KeyCode::Down => {
                         return event::Status::Ignored;
                     }
-                    _ => {}
+                    _ => {
+                        if let Some(text) = text {
+                            let c = text.chars().next().unwrap_or_default();
+
+                            if state.is_pasting.is_none()
+                                && !state.keyboard_modifiers.command()
+                                && !c.is_control()
+                            {
+                                let mut editor =
+                                    Editor::new(value, &mut state.cursor);
+
+                                editor.insert(c);
+
+                                let message = (on_input)(editor.contents());
+                                shell.publish(message);
+
+                                focus.updated_at = Instant::now();
+
+                                update_cache(state, value);
+
+                                return event::Status::Captured;
+                            }
+                        }
+                    }
                 }
 
                 return event::Status::Captured;

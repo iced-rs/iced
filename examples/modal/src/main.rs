@@ -87,6 +87,7 @@ impl Application for App {
                 Event::Keyboard(keyboard::Event::KeyPressed {
                     key_code: keyboard::KeyCode::Tab,
                     modifiers,
+                    ..
                 }) => {
                     if modifiers.shift() {
                         widget::focus_previous()
