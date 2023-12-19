@@ -338,6 +338,38 @@ async fn run_instance<A, E, C>(
                 event: event::WindowEvent::RedrawRequested { .. },
                 ..
             } => {
+                // TODO: Avoid redrawing all the time by forcing widgets to
+                // request redraws on state changes
+                //
+                // Then, we can use the `interface_state` here to decide if a redraw
+                // is needed right away, or simply wait until a specific time.
+                let redraw_event = Event::Window(
+                    window::Id::MAIN,
+                    window::Event::RedrawRequested(Instant::now()),
+                );
+
+                let (interface_state, _) = user_interface.update(
+                    &[redraw_event.clone()],
+                    state.cursor(),
+                    &mut renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
+
+                let _ = control_sender.start_send(match interface_state {
+                    user_interface::State::Updated {
+                        redraw_request: Some(redraw_request),
+                    } => match redraw_request {
+                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
+                        window::RedrawRequest::At(at) => {
+                            ControlFlow::WaitUntil(at)
+                        }
+                    },
+                    _ => ControlFlow::Wait,
+                });
+
+                runtime.broadcast(redraw_event, core::event::Status::Ignored);
+
                 debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
@@ -514,36 +546,7 @@ async fn run_instance<A, E, C>(
             }
         }
 
-        // TODO: Avoid redrawing all the time by forcing widgets to
-        // request redraws on state changes
-        //
-        // Then, we can use the `interface_state` here to decide if a redraw
-        // is needed right away, or simply wait until a specific time.
-        let redraw_event = Event::Window(
-            window::Id::MAIN,
-            window::Event::RedrawRequested(Instant::now()),
-        );
-
-        let (interface_state, _) = user_interface.update(
-            &[redraw_event.clone()],
-            state.cursor(),
-            &mut renderer,
-            &mut clipboard,
-            &mut messages,
-        );
-
         window.request_redraw();
-        runtime.broadcast(redraw_event, core::event::Status::Ignored);
-
-        let _ = control_sender.start_send(match interface_state {
-            user_interface::State::Updated {
-                redraw_request: Some(redraw_request),
-            } => match redraw_request {
-                window::RedrawRequest::NextFrame => ControlFlow::Poll,
-                window::RedrawRequest::At(at) => ControlFlow::WaitUntil(at),
-            },
-            _ => ControlFlow::Wait,
-        });
 
         redraw_pending = false;
     }
