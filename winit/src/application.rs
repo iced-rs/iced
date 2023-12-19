@@ -417,6 +417,7 @@ async fn run_instance<A, E, C>(
                         },
                         state.cursor(),
                     );
+                    debug.draw_finished();
 
                     if new_mouse_interaction != mouse_interaction {
                         window.set_cursor_icon(conversion::mouse_interaction(
@@ -425,7 +426,6 @@ async fn run_instance<A, E, C>(
 
                         mouse_interaction = new_mouse_interaction;
                     }
-                    debug.draw_finished();
 
                     compositor.configure_surface(
                         &mut surface,

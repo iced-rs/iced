@@ -447,6 +447,72 @@ async fn run_instance<A, E, C>(
                             continue;
                         };
 
+                        // TODO: Avoid redrawing all the time by forcing widgets to
+                        // request redraws on state changes
+                        //
+                        // Then, we can use the `interface_state` here to decide if a redraw
+                        // is needed right away, or simply wait until a specific time.
+                        let redraw_event = core::Event::Window(
+                            id,
+                            window::Event::RedrawRequested(Instant::now()),
+                        );
+
+                        let cursor = window.state.cursor();
+
+                        let ui = user_interfaces
+                            .get_mut(&id)
+                            .expect("Get user interface");
+
+                        let (ui_state, _) = ui.update(
+                            &[redraw_event.clone()],
+                            cursor,
+                            &mut window.renderer,
+                            &mut clipboard,
+                            &mut messages,
+                        );
+
+                        debug.draw_started();
+                        let new_mouse_interaction = ui.draw(
+                            &mut window.renderer,
+                            window.state.theme(),
+                            &renderer::Style {
+                                text_color: window.state.text_color(),
+                            },
+                            cursor,
+                        );
+                        debug.draw_finished();
+
+                        if new_mouse_interaction != window.mouse_interaction {
+                            window.raw.set_cursor_icon(
+                                conversion::mouse_interaction(
+                                    new_mouse_interaction,
+                                ),
+                            );
+
+                            window.mouse_interaction = new_mouse_interaction;
+                        }
+
+                        runtime.broadcast(
+                            redraw_event.clone(),
+                            core::event::Status::Ignored,
+                        );
+
+                        let _ = control_sender.start_send(Control::ChangeFlow(
+                            match ui_state {
+                                user_interface::State::Updated {
+                                    redraw_request: Some(redraw_request),
+                                } => match redraw_request {
+                                    window::RedrawRequest::NextFrame => {
+                                        ControlFlow::Poll
+                                    }
+                                    window::RedrawRequest::At(at) => {
+                                        ControlFlow::WaitUntil(at)
+                                    }
+                                },
+                                _ => ControlFlow::Wait,
+                            },
+                        ));
+
                         let physical_size = window.state.physical_size();
 
                         if physical_size.width == 0 || physical_size.height == 0
@@ -454,14 +520,12 @@ async fn run_instance<A, E, C>(
                             continue;
                         }
 
-                        debug.render_started();
                         if window.viewport_version
                             != window.state.viewport_version()
                         {
                             let logical_size = window.state.logical_size();
 
                             debug.layout_started();
-
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
@@ -470,7 +534,6 @@ async fn run_instance<A, E, C>(
                                 id,
                                 ui.relayout(logical_size, &mut window.renderer),
                             );
-
                             debug.layout_finished();
 
                             debug.draw_started();
@@ -485,6 +548,7 @@ async fn run_instance<A, E, C>(
                                     },
                                     window.state.cursor(),
                                 );
+                            debug.draw_finished();
 
                             if new_mouse_interaction != window.mouse_interaction
                             {
@@ -497,7 +561,6 @@ async fn run_instance<A, E, C>(
                                 window.mouse_interaction =
                                     new_mouse_interaction;
                             }
-                            debug.draw_finished();
 
                             compositor.configure_surface(
                                 &mut window.surface,
@@ -509,6 +572,7 @@ async fn run_instance<A, E, C>(
                                 window.state.viewport_version();
                         }
 
+                        debug.render_started();
                         match compositor.present(
                             &mut window.renderer,
                             &mut window.surface,
@@ -529,9 +593,11 @@ async fn run_instance<A, E, C>(
                                 }
                                 _ => {
                                     debug.render_finished();
+
                                     log::error!(
-                                "Error {error:?} when presenting surface."
-                            );
+                                        "Error {error:?} when \
+                                        presenting surface."
+                                    );
 
                                     // Try rendering all windows again next frame.
                                     for (_id, window) in
@@ -677,77 +743,13 @@ async fn run_instance<A, E, C>(
             ));
         }
 
-        debug.draw_started();
-
-        for (id, window) in window_manager.iter_mut() {
-            // TODO: Avoid redrawing all the time by forcing widgets to
-            //  request redraws on state changes
-            //
-            // Then, we can use the `interface_state` here to decide if a redraw
-            // is needed right away, or simply wait until a specific time.
-            let redraw_event = core::Event::Window(
-                id,
-                window::Event::RedrawRequested(Instant::now()),
-            );
-
-            let cursor = window.state.cursor();
-
-            let ui = user_interfaces.get_mut(&id).expect("Get user interface");
-
-            let (ui_state, _) = ui.update(
-                &[redraw_event.clone()],
-                cursor,
-                &mut window.renderer,
-                &mut clipboard,
-                &mut messages,
-            );
-
-            let new_mouse_interaction = {
-                let state = &window.state;
-
-                ui.draw(
-                    &mut window.renderer,
-                    state.theme(),
-                    &renderer::Style {
-                        text_color: state.text_color(),
-                    },
-                    cursor,
-                )
-            };
-
-            if new_mouse_interaction != window.mouse_interaction {
-                window.raw.set_cursor_icon(conversion::mouse_interaction(
-                    new_mouse_interaction,
-                ));
-
-                window.mouse_interaction = new_mouse_interaction;
-            }
-
+        for (_id, window) in window_manager.iter_mut() {
             // TODO once widgets can request to be redrawn, we can avoid always requesting a
             // redraw
             window.raw.request_redraw();
-
-            runtime
-                .broadcast(redraw_event.clone(), core::event::Status::Ignored);
-
-            let _ = control_sender.start_send(Control::ChangeFlow(
-                match ui_state {
-                    user_interface::State::Updated {
-                        redraw_request: Some(redraw_request),
-                    } => match redraw_request {
-                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
-                        window::RedrawRequest::At(at) => {
-                            ControlFlow::WaitUntil(at)
-                        }
-                    },
-                    _ => ControlFlow::Wait,
-                },
-            ));
         }
 
         redraw_pending = false;
-
-        debug.draw_finished();
     }
 
     let _ = ManuallyDrop::into_inner(user_interfaces);
