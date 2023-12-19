@@ -312,13 +312,13 @@ async fn run_instance<A, E, C>(
 
     while let Some(event) = event_receiver.next().await {
         match event {
-            event::Event::NewEvents(start_cause) => {
-                redraw_pending = matches!(
-                    start_cause,
-                    event::StartCause::Init
-                        | event::StartCause::Poll
-                        | event::StartCause::ResumeTimeReached { .. }
-                );
+            event::Event::NewEvents(
+                event::StartCause::Init
+                | event::StartCause::Poll
+                | event::StartCause::ResumeTimeReached { .. },
+            ) if !redraw_pending => {
+                window.request_redraw();
+                redraw_pending = true;
             }
             event::Event::PlatformSpecific(event::PlatformSpecific::MacOS(
                 event::MacOS::ReceivedUrl(url),
@@ -338,6 +338,33 @@ async fn run_instance<A, E, C>(
                 event: event::WindowEvent::RedrawRequested { .. },
                 ..
             } => {
+                let physical_size = state.physical_size();
+
+                if physical_size.width == 0 || physical_size.height == 0 {
+                    continue;
+                }
+
+                let current_viewport_version = state.viewport_version();
+
+                if viewport_version != current_viewport_version {
+                    let logical_size = state.logical_size();
+
+                    debug.layout_started();
+                    user_interface = ManuallyDrop::new(
+                        ManuallyDrop::into_inner(user_interface)
+                            .relayout(logical_size, &mut renderer),
+                    );
+                    debug.layout_finished();
+
+                    compositor.configure_surface(
+                        &mut surface,
+                        physical_size.width,
+                        physical_size.height,
+                    );
+
+                    viewport_version = current_viewport_version;
+                }
+
                 // TODO: Avoid redrawing all the time by forcing widgets to
                 // request redraws on state changes
                 //
@@ -379,6 +406,7 @@ async fn run_instance<A, E, C>(
                     },
                     state.cursor(),
                 );
+                redraw_pending = false;
                 debug.draw_finished();
 
                 if new_mouse_interaction != mouse_interaction {
@@ -389,53 +417,7 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                let physical_size = state.physical_size();
-
-                if physical_size.width == 0 || physical_size.height == 0 {
-                    continue;
-                }
-
                 debug.render_started();
-                let current_viewport_version = state.viewport_version();
-
-                if viewport_version != current_viewport_version {
-                    let logical_size = state.logical_size();
-
-                    debug.layout_started();
-                    user_interface = ManuallyDrop::new(
-                        ManuallyDrop::into_inner(user_interface)
-                            .relayout(logical_size, &mut renderer),
-                    );
-                    debug.layout_finished();
-
-                    debug.draw_started();
-                    let new_mouse_interaction = user_interface.draw(
-                        &mut renderer,
-                        state.theme(),
-                        &renderer::Style {
-                            text_color: state.text_color(),
-                        },
-                        state.cursor(),
-                    );
-                    debug.draw_finished();
-
-                    if new_mouse_interaction != mouse_interaction {
-                        window.set_cursor_icon(conversion::mouse_interaction(
-                            new_mouse_interaction,
-                        ));
-
-                        mouse_interaction = new_mouse_interaction;
-                    }
-
-                    compositor.configure_surface(
-                        &mut surface,
-                        physical_size.width,
-                        physical_size.height,
-                    );
-
-                    viewport_version = current_viewport_version;
-                }
-
                 match compositor.present(
                     &mut renderer,
                     &mut surface,
@@ -546,9 +528,10 @@ async fn run_instance<A, E, C>(
             }
         }
 
-        window.request_redraw();
-
-        redraw_pending = false;
+        if !redraw_pending {
+            window.request_redraw();
+            redraw_pending = true;
+        }
     }
 
     // Manually drop the user interface
