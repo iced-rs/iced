@@ -469,71 +469,74 @@ async fn run_instance<A, E, C>(
                     events.push(event);
                 }
             }
-            _ => {}
-        }
+            event::Event::AboutToWait => {
+                if events.is_empty() && messages.is_empty() {
+                    continue;
+                }
 
-        if events.is_empty() && messages.is_empty() {
-            continue;
-        }
+                debug.event_processing_started();
 
-        debug.event_processing_started();
+                let (interface_state, statuses) = user_interface.update(
+                    &events,
+                    state.cursor(),
+                    &mut renderer,
+                    &mut clipboard,
+                    &mut messages,
+                );
 
-        let (interface_state, statuses) = user_interface.update(
-            &events,
-            state.cursor(),
-            &mut renderer,
-            &mut clipboard,
-            &mut messages,
-        );
+                debug.event_processing_finished();
 
-        debug.event_processing_finished();
+                for (event, status) in
+                    events.drain(..).zip(statuses.into_iter())
+                {
+                    runtime.broadcast(event, status);
+                }
 
-        for (event, status) in events.drain(..).zip(statuses.into_iter()) {
-            runtime.broadcast(event, status);
-        }
+                if !messages.is_empty()
+                    || matches!(
+                        interface_state,
+                        user_interface::State::Outdated
+                    )
+                {
+                    let mut cache =
+                        ManuallyDrop::into_inner(user_interface).into_cache();
 
-        if !messages.is_empty()
-            || matches!(interface_state, user_interface::State::Outdated)
-        {
-            let mut cache =
-                ManuallyDrop::into_inner(user_interface).into_cache();
+                    // Update application
+                    update(
+                        &mut application,
+                        &mut compositor,
+                        &mut surface,
+                        &mut cache,
+                        &mut state,
+                        &mut renderer,
+                        &mut runtime,
+                        &mut clipboard,
+                        &mut should_exit,
+                        &mut proxy,
+                        &mut debug,
+                        &mut messages,
+                        &window,
+                    );
 
-            // Update application
-            update(
-                &mut application,
-                &mut compositor,
-                &mut surface,
-                &mut cache,
-                &state,
-                &mut renderer,
-                &mut runtime,
-                &mut clipboard,
-                &mut should_exit,
-                &mut proxy,
-                &mut debug,
-                &mut messages,
-                &window,
-            );
+                    user_interface = ManuallyDrop::new(build_user_interface(
+                        &application,
+                        cache,
+                        &mut renderer,
+                        state.logical_size(),
+                        &mut debug,
+                    ));
 
-            // Update window
-            state.synchronize(&application, &window);
+                    if should_exit {
+                        break;
+                    }
+                }
 
-            user_interface = ManuallyDrop::new(build_user_interface(
-                &application,
-                cache,
-                &mut renderer,
-                state.logical_size(),
-                &mut debug,
-            ));
-
-            if should_exit {
-                break;
+                if !redraw_pending {
+                    window.request_redraw();
+                    redraw_pending = true;
+                }
             }
-        }
-
-        if !redraw_pending {
-            window.request_redraw();
-            redraw_pending = true;
+            _ => {}
         }
     }
 
@@ -595,7 +598,7 @@ pub fn update<A: Application, C, E: Executor>(
     compositor: &mut C,
     surface: &mut C::Surface,
     cache: &mut user_interface::Cache,
-    state: &State<A>,
+    state: &mut State<A>,
     renderer: &mut A::Renderer,
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
@@ -631,6 +634,8 @@ pub fn update<A: Application, C, E: Executor>(
             window,
         );
     }
+
+    state.synchronize(application, window);
 
     let subscription = application.subscription();
     runtime.track(subscription.into_recipes());
