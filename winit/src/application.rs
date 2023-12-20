@@ -314,7 +314,6 @@ async fn run_instance<A, E, C>(
         match event {
             event::Event::NewEvents(
                 event::StartCause::Init
-                | event::StartCause::Poll
                 | event::StartCause::ResumeTimeReached { .. },
             ) if !redraw_pending => {
                 window.request_redraw();
@@ -387,7 +386,11 @@ async fn run_instance<A, E, C>(
                     user_interface::State::Updated {
                         redraw_request: Some(redraw_request),
                     } => match redraw_request {
-                        window::RedrawRequest::NextFrame => ControlFlow::Poll,
+                        window::RedrawRequest::NextFrame => {
+                            window.request_redraw();
+
+                            ControlFlow::Wait
+                        }
                         window::RedrawRequest::At(at) => {
                             ControlFlow::WaitUntil(at)
                         }
@@ -469,7 +472,7 @@ async fn run_instance<A, E, C>(
             _ => {}
         }
 
-        if !redraw_pending && events.is_empty() && messages.is_empty() {
+        if events.is_empty() && messages.is_empty() {
             continue;
         }
 

@@ -275,8 +275,6 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        const FRAME_RATE: u64 = 60;
-
         let state = tree.state.downcast_mut::<State>();
 
         if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
@@ -287,9 +285,7 @@ where
             );
 
             state.cache.clear();
-            shell.request_redraw(RedrawRequest::At(
-                now + Duration::from_millis(1000 / FRAME_RATE),
-            ));
+            shell.request_redraw(RedrawRequest::NextFrame);
         }
 
         event::Status::Ignored
