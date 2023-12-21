@@ -23,6 +23,12 @@ struct Styling {
 enum ThemeType {
     Light,
     Dark,
+    Nord,
+    GruvboxLight,
+    GruvboxDark,
+    Dracula,
+    SolarizedLight,
+    SolarizedDark,
     Custom,
 }
 
@@ -53,6 +59,12 @@ impl Sandbox for Styling {
                 self.theme = match theme {
                     ThemeType::Light => Theme::Light,
                     ThemeType::Dark => Theme::Dark,
+                    ThemeType::Nord => Theme::Nord,
+                    ThemeType::GruvboxLight => Theme::GruvboxLight,
+                    ThemeType::GruvboxDark => Theme::GruvboxDark,
+                    ThemeType::Dracula => Theme::Dracula,
+                    ThemeType::SolarizedLight => Theme::SolarizedLight,
+                    ThemeType::SolarizedDark => Theme::SolarizedDark,
                     ThemeType::Custom => Theme::custom(
                         String::from("Custom"),
                         theme::Palette {
@@ -74,24 +86,39 @@ impl Sandbox for Styling {
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme =
-            [ThemeType::Light, ThemeType::Dark, ThemeType::Custom]
-                .iter()
-                .fold(
-                    column![text("Choose a theme:")].spacing(10),
-                    |column, theme| {
-                        column.push(radio(
-                            format!("{theme:?}"),
-                            *theme,
-                            Some(match self.theme {
-                                Theme::Light => ThemeType::Light,
-                                Theme::Dark => ThemeType::Dark,
-                                Theme::Custom { .. } => ThemeType::Custom,
-                            }),
-                            Message::ThemeChanged,
-                        ))
-                    },
-                );
+        let choose_theme = [
+            ThemeType::Light,
+            ThemeType::Dark,
+            ThemeType::Nord,
+            ThemeType::Dracula,
+            ThemeType::SolarizedLight,
+            ThemeType::SolarizedDark,
+            ThemeType::GruvboxLight,
+            ThemeType::GruvboxDark,
+            ThemeType::Custom,
+        ]
+        .iter()
+        .fold(
+            column![text("Choose a theme:")].spacing(10),
+            |column, theme| {
+                column.push(radio(
+                    format!("{theme:?}"),
+                    *theme,
+                    Some(match self.theme {
+                        Theme::Light => ThemeType::Light,
+                        Theme::Dark => ThemeType::Dark,
+                        Theme::Dracula => ThemeType::Dracula,
+                        Theme::Nord => ThemeType::Nord,
+                        Theme::SolarizedLight => ThemeType::SolarizedLight,
+                        Theme::SolarizedDark => ThemeType::SolarizedDark,
+                        Theme::GruvboxLight => ThemeType::GruvboxLight,
+                        Theme::GruvboxDark => ThemeType::GruvboxDark,
+                        Theme::Custom { .. } => ThemeType::Custom,
+                    }),
+                    Message::ThemeChanged,
+                ))
+            },
+        );
 
         let text_input = text_input("Type something...", &self.input_value)
             .on_input(Message::InputChanged)

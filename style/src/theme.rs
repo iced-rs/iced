@@ -34,6 +34,18 @@ pub enum Theme {
     Light,
     /// The built-in dark variant.
     Dark,
+    /// The built-in dracula variant.
+    Dracula,
+    /// The built-in nord variant.
+    Nord,
+    /// The built-in solarized light variant.
+    SolarizedLight,
+    /// The built-in solarized dark variant.
+    SolarizedDark,
+    /// The built-in gruvbox light variant.
+    GruvboxLight,
+    /// The built-in gruvbox dark variant.
+    GruvboxDark,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Box<Custom>),
 }
@@ -62,6 +74,12 @@ impl Theme {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
+            Self::Dracula => Palette::DRACULA,
+            Self::Nord => Palette::NORD,
+            Self::SolarizedLight => Palette::SOLARIZED_LIGHT,
+            Self::SolarizedDark => Palette::SOLARIZED_DARK,
+            Self::GruvboxLight => Palette::GRUVBOX_LIGHT,
+            Self::GruvboxDark => Palette::GRUVBOX_DARK,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -71,6 +89,12 @@ impl Theme {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
+            Self::Dracula => &palette::EXTENDED_DRACULA,
+            Self::Nord => &palette::EXTENDED_NORD,
+            Self::SolarizedLight => &palette::EXTENDED_SOLARIZED_LIGHT,
+            Self::SolarizedDark => &palette::EXTENDED_SOLARIZED_DARK,
+            Self::GruvboxLight => &palette::EXTENDED_GRUVBOX_LIGHT,
+            Self::GruvboxDark => &palette::EXTENDED_GRUVBOX_DARK,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -81,6 +105,12 @@ impl fmt::Display for Theme {
         match self {
             Self::Light => write!(f, "Light"),
             Self::Dark => write!(f, "Dark"),
+            Self::Dracula => write!(f, "Dracula"),
+            Self::Nord => write!(f, "Nord"),
+            Self::SolarizedLight => write!(f, "Solarized Light"),
+            Self::SolarizedDark => write!(f, "Solarized Dark"),
+            Self::GruvboxLight => write!(f, "Gruvbox Light"),
+            Self::GruvboxDark => write!(f, "Gruvbox Dark"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }
