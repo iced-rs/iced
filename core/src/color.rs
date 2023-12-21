@@ -190,7 +190,12 @@ macro_rules! color {
         let g = (hex & 0xff00) >> 8;
         let b = (hex & 0xff);
 
-        $crate::Color::from_rgb8(r as u8, g as u8, b as u8)
+        $crate::Color {
+            r: r as f32 / 255.0,
+            g: g as f32 / 255.0,
+            b: b as f32 / 255.0,
+            a: 1.0,
+        }
     }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
