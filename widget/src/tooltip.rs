@@ -64,6 +64,12 @@ where
         self
     }
 
+    /// Sets the [`text::Shaping`] strategy of the [`Tooltip`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.tooltip = self.tooltip.shaping(shaping);
+        self
+    }
+
     /// Sets the font of the [`Tooltip`].
     ///
     /// [`Font`]: Renderer::Font
