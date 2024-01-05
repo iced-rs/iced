@@ -43,18 +43,15 @@ pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    /// Returns the width of the [`Widget`].
-    fn width(&self) -> Length;
-
-    /// Returns the height of the [`Widget`].
-    fn height(&self) -> Length;
+    /// Returns the [`Size`] of the [`Widget`] in lengths.
+    fn size(&self) -> Size<Length>;
 
     /// Returns a [`Size`] hint for laying out the [`Widget`].
     ///
     /// This hint may be used by some widget containers to adjust their sizing strategy
     /// during construction.
     fn size_hint(&self) -> Size<Length> {
-        Size::new(self.width(), self.height())
+        self.size()
     }
 
     /// Returns the [`layout::Node`] of the [`Widget`].

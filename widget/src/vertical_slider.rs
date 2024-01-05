@@ -156,12 +156,11 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: self.height,
+        }
     }
 
     fn layout(

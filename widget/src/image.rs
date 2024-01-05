@@ -164,12 +164,11 @@ where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(

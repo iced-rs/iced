@@ -9,7 +9,7 @@ use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Color, Element, Length, Padding, Pixels, Rectangle, Shell,
+    Clipboard, Color, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
     Vector,
 };
 
@@ -316,12 +316,11 @@ where
         })
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(

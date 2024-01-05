@@ -281,12 +281,8 @@ mod modal {
             tree.diff_children(&[&self.base, &self.modal]);
         }
 
-        fn width(&self) -> Length {
-            self.base.as_widget().width()
-        }
-
-        fn height(&self) -> Length {
-            self.base.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.base.as_widget().size()
         }
 
         fn layout(

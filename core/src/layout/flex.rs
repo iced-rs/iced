@@ -86,10 +86,11 @@ where
     nodes.resize(items.len(), Node::default());
 
     for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
-        let (fill_main_factor, fill_cross_factor) = axis.pack(
-            child.as_widget().width().fill_factor(),
-            child.as_widget().height().fill_factor(),
-        );
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
+
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
 
         if fill_main_factor == 0 {
             if fill_cross_factor == 0 {
@@ -124,10 +125,11 @@ where
     };
 
     for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
-        let (fill_main_factor, fill_cross_factor) = axis.pack(
-            child.as_widget().width().fill_factor(),
-            child.as_widget().height().fill_factor(),
-        );
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
+
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
 
         if fill_main_factor == 0 && fill_cross_factor != 0 {
             let (max_width, max_height) = axis.pack(available, intrinsic_cross);
@@ -157,10 +159,11 @@ where
     };
 
     for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
-        let (fill_main_factor, fill_cross_factor) = axis.pack(
-            child.as_widget().width().fill_factor(),
-            child.as_widget().height().fill_factor(),
-        );
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
+
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
 
         if fill_main_factor != 0 {
             let max_main = if fill_main_factor == 0 {

@@ -85,12 +85,11 @@ where
     Renderer: crate::core::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT))
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
+        }
     }
 
     fn layout(

@@ -16,12 +16,11 @@ mod rainbow {
     }
 
     impl<Message> Widget<Message, Renderer> for Rainbow {
-        fn width(&self) -> Length {
-            Length::Fill
-        }
-
-        fn height(&self) -> Length {
-            Length::Shrink
+        fn size(&self) -> Size<Length> {
+            Size {
+                width: Length::Fill,
+                height: Length::Shrink,
+            }
         }
 
         fn layout(

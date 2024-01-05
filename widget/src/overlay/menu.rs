@@ -342,12 +342,11 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Length {
-        Length::Fill
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fill,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(

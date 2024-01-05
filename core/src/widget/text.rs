@@ -5,7 +5,9 @@ use crate::mouse;
 use crate::renderer;
 use crate::text::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Point, Rectangle, Widget};
+use crate::{
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+};
 
 use std::borrow::Cow;
 
@@ -134,12 +136,11 @@ where
         tree::State::new(State(Renderer::Paragraph::default()))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(

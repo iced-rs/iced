@@ -8,7 +8,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Widget,
+    Shell, Size, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -173,12 +173,11 @@ where
         }
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(

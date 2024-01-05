@@ -313,12 +313,8 @@ mod toast {
     }
 
     impl<'a, Message> Widget<Message, Renderer> for Manager<'a, Message> {
-        fn width(&self) -> Length {
-            self.content.as_widget().width()
-        }
-
-        fn height(&self) -> Length {
-            self.content.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.content.as_widget().size()
         }
 
         fn layout(

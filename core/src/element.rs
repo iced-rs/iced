@@ -6,7 +6,7 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Layout, Length, Rectangle, Shell, Vector, Widget,
+    Clipboard, Color, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
 };
 
 use std::any::Any;
@@ -296,12 +296,8 @@ where
         self.widget.diff(tree);
     }
 
-    fn width(&self) -> Length {
-        self.widget.width()
-    }
-
-    fn height(&self) -> Length {
-        self.widget.height()
+    fn size(&self) -> Size<Length> {
+        self.widget.size()
     }
 
     fn layout(
@@ -466,12 +462,8 @@ impl<'a, Message, Renderer> Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn width(&self) -> Length {
-        self.element.widget.width()
-    }
-
-    fn height(&self) -> Length {
-        self.element.widget.height()
+    fn size(&self) -> Size<Length> {
+        self.element.widget.size()
     }
 
     fn tag(&self) -> tree::Tag {

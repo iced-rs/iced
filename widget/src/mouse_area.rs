@@ -8,7 +8,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::{tree, Operation, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Rectangle, Shell, Widget,
+    Clipboard, Element, Layout, Length, Rectangle, Shell, Size, Widget,
 };
 
 /// Emit messages on mouse events.
@@ -110,12 +110,8 @@ where
         tree.diff_children(std::slice::from_ref(&self.content));
     }
 
-    fn width(&self) -> Length {
-        self.content.as_widget().width()
-    }
-
-    fn height(&self) -> Length {
-        self.content.as_widget().height()
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
     fn layout(

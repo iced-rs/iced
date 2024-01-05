@@ -142,12 +142,8 @@ where
         }
     }
 
-    fn width(&self) -> Length {
-        self.with_element(|element| element.as_widget().width())
-    }
-
-    fn height(&self) -> Length {
-        self.with_element(|element| element.as_widget().height())
+    fn size(&self) -> Size<Length> {
+        self.with_element(|element| element.as_widget().size())
     }
 
     fn size_hint(&self) -> Size<Length> {

@@ -14,8 +14,9 @@ use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
-use crate::core::{Clipboard, Element, Shell, Widget};
-use crate::core::{Length, Rectangle, Size, Vector};
+use crate::core::{
+    Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
+};
 use crate::graphics::geometry;
 
 use std::marker::PhantomData;
@@ -119,12 +120,11 @@ where
         tree::State::new(P::State::default())
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
