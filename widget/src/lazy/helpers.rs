@@ -6,6 +6,7 @@ use std::hash::Hash;
 
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
+#[cfg(feature = "lazy")]
 pub fn lazy<'a, Message, Renderer, Dependency, View>(
     dependency: Dependency,
     view: impl Fn(&Dependency) -> View + 'a,
@@ -19,6 +20,7 @@ where
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
+#[cfg(feature = "lazy")]
 pub fn component<'a, C, Message, Renderer>(
     component: C,
 ) -> Element<'a, Message, Renderer>
@@ -37,6 +39,7 @@ where
 /// The `view` closure will be provided with the current [`Size`] of
 /// the [`Responsive`] widget and, therefore, can be used to build the
 /// contents of the widget in a responsive way.
+#[cfg(feature = "lazy")]
 pub fn responsive<'a, Message, Renderer>(
     f: impl Fn(Size) -> Element<'a, Message, Renderer> + 'a,
 ) -> Responsive<'a, Message, Renderer>
