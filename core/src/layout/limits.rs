@@ -50,6 +50,10 @@ impl Limits {
             Length::Fill | Length::FillPortion(_) => {
                 self.fill.width = self.fill.width.min(self.max.width);
             }
+            Length::FillPercentage(percentage) => {
+                let amount = self.max.width * percentage;
+                self.fill.width = amount.min(self.max.width).max(self.min.width);
+            }
             Length::Fixed(amount) => {
                 let new_width = amount.min(self.max.width).max(self.min.width);
 
@@ -70,6 +74,10 @@ impl Limits {
             }
             Length::Fill | Length::FillPortion(_) => {
                 self.fill.height = self.fill.height.min(self.max.height);
+            }
+            Length::FillPercentage(percentage) => {
+                let amount = self.max.height * percentage;
+                self.fill.height = amount.min(self.max.height).max(self.min.height);
             }
             Length::Fixed(amount) => {
                 let new_height =

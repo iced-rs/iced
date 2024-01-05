@@ -15,6 +15,9 @@ pub enum Length {
     /// `Length::Fill` is equivalent to `Length::FillPortion(1)`.
     FillPortion(u16),
 
+    /// Fill a percentage of the remaining space (0.0..=1.0)
+    FillPercentage(f32),
+
     /// Fill the least amount of space
     Shrink,
 
@@ -32,6 +35,7 @@ impl Length {
         match self {
             Length::Fill => 1,
             Length::FillPortion(factor) => *factor,
+            Length::FillPercentage(_) => 0,
             Length::Shrink => 0,
             Length::Fixed(_) => 0,
         }
