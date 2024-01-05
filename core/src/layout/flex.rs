@@ -142,6 +142,7 @@ where
             let size = layout.size();
 
             available -= axis.main(size);
+            cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;
         }
