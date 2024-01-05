@@ -3,7 +3,7 @@ mod echo;
 use iced::alignment::{self, Alignment};
 use iced::executor;
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input, Column,
+    button, column, container, row, scrollable, text, text_input,
 };
 use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
@@ -108,13 +108,8 @@ impl Application for WebSocket {
             .into()
         } else {
             scrollable(
-                Column::with_children(
-                    self.messages
-                        .iter()
-                        .cloned()
-                        .map(text)
-                        .map(Element::from)
-                        .collect(),
+                column(
+                    self.messages.iter().cloned().map(text).map(Element::from),
                 )
                 .spacing(10),
             )

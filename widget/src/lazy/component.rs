@@ -252,6 +252,13 @@ where
         self.with_element(|element| element.as_widget().height())
     }
 
+    fn size_hint(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: Length::Shrink,
+        }
+    }
+
     fn layout(
         &self,
         tree: &mut Tree,

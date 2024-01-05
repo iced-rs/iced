@@ -46,11 +46,22 @@ where
     where
         T: Into<Element<'a, Message, Renderer>>,
     {
+        let content = content.into();
+        let size = content.as_widget().size_hint();
+
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: if size.width.is_fill() {
+                Length::Fill
+            } else {
+                Length::Shrink
+            },
+            height: if size.height.is_fill() {
+                Length::Fill
+            } else {
+                Length::Shrink
+            },
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,

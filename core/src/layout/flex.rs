@@ -91,8 +91,46 @@ where
             child.as_widget().height().fill_factor(),
         );
 
-        if fill_main_factor == 0 && fill_cross_factor == 0 {
-            let (max_width, max_height) = axis.pack(available, max_cross);
+        if fill_main_factor == 0 {
+            if fill_cross_factor == 0 {
+                let (max_width, max_height) = axis.pack(available, max_cross);
+
+                let child_limits =
+                    Limits::new(Size::ZERO, Size::new(max_width, max_height));
+
+                let layout =
+                    child.as_widget().layout(tree, renderer, &child_limits);
+                let size = layout.size();
+
+                available -= axis.main(size);
+                cross = cross.max(axis.cross(size));
+
+                nodes[i] = layout;
+            }
+        } else {
+            fill_main_sum += fill_main_factor;
+        }
+    }
+
+    let intrinsic_cross = match axis {
+        Axis::Horizontal => match height {
+            Length::Shrink => cross,
+            _ => max_cross,
+        },
+        Axis::Vertical => match width {
+            Length::Shrink => cross,
+            _ => max_cross,
+        },
+    };
+
+    for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
+        let (fill_main_factor, fill_cross_factor) = axis.pack(
+            child.as_widget().width().fill_factor(),
+            child.as_widget().height().fill_factor(),
+        );
+
+        if fill_main_factor == 0 && fill_cross_factor != 0 {
+            let (max_width, max_height) = axis.pack(available, intrinsic_cross);
 
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
@@ -102,11 +140,8 @@ where
             let size = layout.size();
 
             available -= axis.main(size);
-            cross = cross.max(axis.cross(size));
 
             nodes[i] = layout;
-        } else {
-            fill_main_sum += fill_main_factor;
         }
     }
 
@@ -121,24 +156,13 @@ where
         },
     };
 
-    let max_cross = match axis {
-        Axis::Horizontal => match height {
-            Length::Shrink if cross > 0.0 => cross,
-            _ => max_cross,
-        },
-        Axis::Vertical => match width {
-            Length::Shrink if cross > 0.0 => cross,
-            _ => max_cross,
-        },
-    };
-
     for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
         let (fill_main_factor, fill_cross_factor) = axis.pack(
             child.as_widget().width().fill_factor(),
             child.as_widget().height().fill_factor(),
         );
 
-        if fill_main_factor != 0 || fill_cross_factor != 0 {
+        if fill_main_factor != 0 {
             let max_main = if fill_main_factor == 0 {
                 available.max(0.0)
             } else {
@@ -149,6 +173,12 @@ where
                 0.0
             } else {
                 max_main
+            };
+
+            let max_cross = if fill_cross_factor == 0 {
+                max_cross
+            } else {
+                intrinsic_cross
             };
 
             let (min_width, min_height) =
@@ -203,8 +233,12 @@ where
         main += axis.main(size);
     }
 
-    let (width, height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(Size::new(width, height), width, height);
+    let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
+    let size = limits.resolve(
+        Size::new(intrinsic_width, intrinsic_height),
+        width,
+        height,
+    );
 
     Node::with_children(size.expand(padding), nodes)
 }

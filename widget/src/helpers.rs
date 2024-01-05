@@ -34,7 +34,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children(vec![$($crate::core::Element::from($x)),+])
+        $crate::Column::with_children([$($crate::core::Element::from($x)),+].into_iter())
     );
 }
 
@@ -47,7 +47,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children(vec![$($crate::core::Element::from($x)),+])
+        $crate::Row::with_children([$($crate::core::Element::from($x)),+].into_iter())
     );
 }
 
@@ -65,9 +65,12 @@ where
 }
 
 /// Creates a new [`Column`] with the given children.
-pub fn column<Message, Renderer>(
-    children: Vec<Element<'_, Message, Renderer>>,
-) -> Column<'_, Message, Renderer> {
+pub fn column<'a, Message, Renderer>(
+    children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+) -> Column<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Column::with_children(children)
 }
 
@@ -84,9 +87,12 @@ where
 /// Creates a new [`Row`] with the given children.
 ///
 /// [`Row`]: crate::Row
-pub fn row<Message, Renderer>(
-    children: Vec<Element<'_, Message, Renderer>>,
-) -> Row<'_, Message, Renderer> {
+pub fn row<'a, Message, Renderer>(
+    children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+) -> Row<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Row::with_children(children)
 }
 

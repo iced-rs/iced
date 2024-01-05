@@ -172,23 +172,21 @@ impl Application for ScrollableDemo {
         ]
         .spacing(10);
 
-        let scroll_alignment_controls = column(vec![
-            text("Scrollable alignment:").into(),
+        let scroll_alignment_controls = column![
+            text("Scrollable alignment:"),
             radio(
                 "Start",
                 scrollable::Alignment::Start,
                 Some(self.alignment),
                 Message::AlignmentChanged,
-            )
-            .into(),
+            ),
             radio(
                 "End",
                 scrollable::Alignment::End,
                 Some(self.alignment),
                 Message::AlignmentChanged,
             )
-            .into(),
-        ])
+        ]
         .spacing(10);
 
         let scroll_controls = row![
@@ -226,6 +224,7 @@ impl Application for ScrollableDemo {
                     .padding([40, 0, 40, 0])
                     .spacing(40),
                 )
+                .width(Length::Fill)
                 .height(Length::Fill)
                 .direction(scrollable::Direction::Vertical(
                     Properties::new()
@@ -251,6 +250,7 @@ impl Application for ScrollableDemo {
                     .padding([0, 40, 0, 40])
                     .spacing(40),
                 )
+                .width(Length::Fill)
                 .height(Length::Fill)
                 .direction(scrollable::Direction::Horizontal(
                     Properties::new()
@@ -293,6 +293,7 @@ impl Application for ScrollableDemo {
                     .padding([0, 40, 0, 40])
                     .spacing(40),
                 )
+                .width(Length::Fill)
                 .height(Length::Fill)
                 .direction({
                     let properties = Properties::new()
@@ -333,19 +334,11 @@ impl Application for ScrollableDemo {
 
         let content: Element<Message> =
             column![scroll_controls, scrollable_content, progress_bars]
-                .height(Length::Fill)
                 .align_items(Alignment::Center)
                 .spacing(10)
                 .into();
 
-        Element::from(
-            container(content)
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .padding(40)
-                .center_x()
-                .center_y(),
-        )
+        Element::from(container(content).padding(40).center_x().center_y())
     }
 
     fn theme(&self) -> Self::Theme {

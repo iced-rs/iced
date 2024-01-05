@@ -22,16 +22,12 @@ pub struct Column<'a, Message, Renderer = crate::Renderer> {
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Column<'a, Message, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
-        Self::with_children(Vec::new())
-    }
-
-    /// Creates a [`Column`] with the given elements.
-    pub fn with_children(
-        children: Vec<Element<'a, Message, Renderer>>,
-    ) -> Self {
         Column {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -39,8 +35,15 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
-            children,
+            children: Vec::new(),
         }
+    }
+
+    /// Creates a [`Column`] with the given elements.
+    pub fn with_children(
+        children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+    ) -> Self {
+        children.fold(Self::new(), |column, element| column.push(element))
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -88,12 +91,26 @@ impl<'a, Message, Renderer> Column<'a, Message, Renderer> {
         mut self,
         child: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
-        self.children.push(child.into());
+        let child = child.into();
+        let size = child.as_widget().size_hint();
+
+        if size.width.is_fill() {
+            self.width = Length::Fill;
+        }
+
+        if size.height.is_fill() {
+            self.height = Length::Fill;
+        }
+
+        self.children.push(child);
         self
     }
 }
 
-impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Default for Column<'a, Message, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
     fn default() -> Self {
         Self::new()
     }

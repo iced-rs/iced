@@ -106,7 +106,7 @@ impl Example {
                 column![text("Original text")].padding(10),
                 |quotes, i| {
                     column![
-                        row![vertical_rule(2), quotes],
+                        row![vertical_rule(2), quotes].height(Length::Shrink),
                         text(format!("Reply {i}"))
                     ]
                     .spacing(10)

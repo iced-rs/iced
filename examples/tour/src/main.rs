@@ -509,7 +509,6 @@ impl<'a> Step {
                         )
                     })
                     .map(Element::from)
-                    .collect()
             )
             .spacing(10)
         ]

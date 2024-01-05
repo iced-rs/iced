@@ -36,6 +36,12 @@ impl Length {
             Length::Fixed(_) => 0,
         }
     }
+
+    /// Returns `true` iff the [`Length`] is either [`Length::Fill`] or
+    // [`Length::FillPortion`].
+    pub fn is_fill(&self) -> bool {
+        self.fill_factor() != 0
+    }
 }
 
 impl From<Pixels> for Length {
