@@ -159,6 +159,7 @@
     rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 use iced_widget::graphics;
 use iced_widget::renderer;
 use iced_widget::style;
