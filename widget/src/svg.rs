@@ -168,9 +168,9 @@ where
             };
 
             let appearance = if is_mouse_over {
-                theme.appearance(&self.style)
-            } else {
                 theme.hovered(&self.style)
+            } else {
+                theme.appearance(&self.style)
             };
 
             renderer.draw(
