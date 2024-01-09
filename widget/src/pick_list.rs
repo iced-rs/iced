@@ -451,7 +451,6 @@ where
 
         limits
             .width(width)
-            .height(Length::Shrink)
             .shrink(padding)
             .resolve(width, Length::Shrink, intrinsic)
             .expand(padding)

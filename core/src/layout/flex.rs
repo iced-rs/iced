@@ -79,7 +79,17 @@ where
     let max_cross = axis.cross(limits.max());
 
     let mut fill_main_sum = 0;
-    let mut cross = 0.0f32;
+    let mut cross = match axis {
+        Axis::Horizontal => match height {
+            Length::Shrink => 0.0,
+            _ => max_cross,
+        },
+        Axis::Vertical => match width {
+            Length::Shrink => 0.0,
+            _ => max_cross,
+        },
+    };
+
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
@@ -113,17 +123,6 @@ where
         }
     }
 
-    let intrinsic_cross = match axis {
-        Axis::Horizontal => match height {
-            Length::Shrink => cross,
-            _ => max_cross,
-        },
-        Axis::Vertical => match width {
-            Length::Shrink => cross,
-            _ => max_cross,
-        },
-    };
-
     for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
         let (fill_main_factor, fill_cross_factor) = {
             let size = child.as_widget().size();
@@ -132,7 +131,7 @@ where
         };
 
         if fill_main_factor == 0 && fill_cross_factor != 0 {
-            let (max_width, max_height) = axis.pack(available, intrinsic_cross);
+            let (max_width, max_height) = axis.pack(available, cross);
 
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
@@ -182,7 +181,7 @@ where
             let max_cross = if fill_cross_factor == 0 {
                 max_cross
             } else {
-                intrinsic_cross
+                cross
             };
 
             let (min_width, min_height) =

@@ -1,4 +1,4 @@
-use iced::widget::{column, container, pick_list, scrollable, vertical_space};
+use iced::widget::{column, pick_list, scrollable, vertical_space};
 use iced::{Alignment, Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
@@ -48,15 +48,11 @@ impl Sandbox for Example {
             pick_list,
             vertical_space(600),
         ]
+        .width(Length::Fill)
         .align_items(Alignment::Center)
         .spacing(10);
 
-        container(scrollable(content))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        scrollable(content).into()
     }
 }
 
