@@ -338,7 +338,7 @@ impl Application for ScrollableDemo {
                 .spacing(10)
                 .into();
 
-        Element::from(container(content).padding(40).center_x().center_y())
+        container(content).padding(20).center_x().center_y().into()
     }
 
     fn theme(&self) -> Self::Theme {
