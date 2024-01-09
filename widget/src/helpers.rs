@@ -80,6 +80,7 @@ pub fn keyed_column<'a, Key, Message, Renderer>(
 ) -> keyed::Column<'a, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
+    Renderer: core::Renderer,
 {
     keyed::Column::with_children(children)
 }

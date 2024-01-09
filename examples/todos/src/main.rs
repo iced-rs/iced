@@ -254,13 +254,7 @@ impl Application for Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(
-                    container(content)
-                        .width(Length::Fill)
-                        .padding(40)
-                        .center_x(),
-                )
-                .into()
+                scrollable(container(content).padding(40).center_x()).into()
             }
         }
     }
@@ -472,7 +466,6 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .horizontal_alignment(alignment::Horizontal::Center)
             .style(Color::from([0.7, 0.7, 0.7])),
     )
-    .width(Length::Fill)
     .height(200)
     .center_y()
     .into()
