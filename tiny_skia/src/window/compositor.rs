@@ -4,33 +4,36 @@ use crate::graphics::damage;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::collections::VecDeque;
 use std::marker::PhantomData;
 use std::num::NonZeroU32;
 
-pub struct Compositor<Theme> {
-    context: Option<softbuffer::Context>,
+pub struct Compositor<W: HasDisplayHandle + HasWindowHandle, Theme> {
+    context: Option<softbuffer::Context<W>>,
     settings: Settings,
     _theme: PhantomData<Theme>,
 }
 
-pub struct Surface {
-    window: softbuffer::Surface,
+pub struct Surface<W: HasDisplayHandle + HasWindowHandle> {
+    window: softbuffer::Surface<W, W>,
     clip_mask: tiny_skia::Mask,
     // Primitives of existing buffers, by decreasing age
     primitives: VecDeque<Vec<Primitive>>,
     background_color: Color,
 }
 
-impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
+// XXX avoid clone bound?
+impl<W: HasDisplayHandle + HasWindowHandle + Clone, Theme>
+    crate::graphics::Compositor<W> for Compositor<W, Theme>
+{
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
-    type Surface = Surface;
+    type Surface = Surface<W>;
 
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new(
         settings: Self::Settings,
-        compatible_window: Option<&W>,
+        compatible_window: Option<W>,
     ) -> Result<Self, Error> {
         Ok(new(settings, compatible_window))
     }
@@ -43,20 +46,19 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         )
     }
 
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface(
         &mut self,
-        window: &W,
+        window: W,
         width: u32,
         height: u32,
-    ) -> Surface {
-        #[allow(unsafe_code)]
+    ) -> Surface<W> {
         let window = if let Some(context) = self.context.as_ref() {
-            unsafe { softbuffer::Surface::new(context, window) }
+            softbuffer::Surface::new(context, window)
                 .expect("Create softbuffer surface for window")
         } else {
-            let context = unsafe { softbuffer::Context::new(window) }
+            let context = softbuffer::Context::new(window.clone())
                 .expect("Create softbuffer context for window");
-            unsafe { softbuffer::Surface::new(&context, window) }
+            softbuffer::Surface::new(&context, window)
                 .expect("Create softbuffer surface for window")
         };
 
@@ -71,7 +73,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn configure_surface(
         &mut self,
-        surface: &mut Surface,
+        surface: &mut Surface<W>,
         width: u32,
         height: u32,
     ) {
@@ -90,7 +92,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
+        surface: &mut Surface<W>,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
@@ -128,13 +130,13 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn new<W: HasRawWindowHandle + HasRawDisplayHandle, Theme>(
+pub fn new<W: HasWindowHandle + HasDisplayHandle, Theme>(
     settings: Settings,
-    compatible_window: Option<&W>,
-) -> Compositor<Theme> {
+    compatible_window: Option<W>,
+) -> Compositor<W, Theme> {
     #[allow(unsafe_code)]
-    let context = compatible_window
-        .and_then(|w| unsafe { softbuffer::Context::new(w) }.ok());
+    let context =
+        compatible_window.and_then(|w| softbuffer::Context::new(w).ok());
     Compositor {
         context,
         settings,
@@ -142,9 +144,9 @@ pub fn new<W: HasRawWindowHandle + HasRawDisplayHandle, Theme>(
     }
 }
 
-pub fn present<T: AsRef<str>>(
+pub fn present<W: HasDisplayHandle + HasWindowHandle, T: AsRef<str>>(
     backend: &mut Backend,
-    surface: &mut Surface,
+    surface: &mut Surface<W>,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
@@ -216,8 +218,8 @@ pub fn present<T: AsRef<str>>(
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
-pub fn screenshot<T: AsRef<str>>(
-    surface: &mut Surface,
+pub fn screenshot<W: HasDisplayHandle + HasWindowHandle, T: AsRef<str>>(
+    surface: &mut Surface<W>,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,

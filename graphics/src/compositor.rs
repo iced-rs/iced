@@ -4,11 +4,11 @@ use crate::{Error, Viewport};
 
 use iced_core::Color;
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
-pub trait Compositor: Sized {
+pub trait Compositor<W: HasWindowHandle + HasDisplayHandle>: Sized {
     /// The settings of the backend.
     type Settings: Default;
 
@@ -19,9 +19,9 @@ pub trait Compositor: Sized {
     type Surface;
 
     /// Creates a new [`Compositor`].
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new(
         settings: Self::Settings,
-        compatible_window: Option<&W>,
+        compatible_window: Option<W>,
     ) -> Result<Self, Error>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
@@ -30,9 +30,9 @@ pub trait Compositor: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface(
         &mut self,
-        window: &W,
+        window: W,
         width: u32,
         height: u32,
     ) -> Self::Surface;

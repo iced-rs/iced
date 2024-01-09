@@ -70,6 +70,8 @@ thiserror.workspace = true
 image.workspace = true
 image.optional = true
 
+winit.workspace = true
+
 [profile.release-opt]
 inherits = "release"
 codegen-units = 1
@@ -126,7 +128,10 @@ bytemuck = { version = "1.0", features = ["derive"] }
 cosmic-text = "0.10"
 futures = "0.3"
 glam = "0.24"
-glyphon = "0.4"
+# glyphon = "0.4"
+# TODO update for wgpu 0.19
+# https://github.com/grovesNL/glyphon/pull/80
+glyphon = { git = "https://github.com/EggShark/glyphon" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -140,12 +145,12 @@ once_cell = "1.0"
 ouroboros = "0.17"
 palette = "0.7"
 qrcode = { version = "0.12", default-features = false }
-raw-window-handle = "0.5"
+raw-window-handle = "0.6"
 resvg = "0.36"
 rustc-hash = "1.0"
 smol = "1.0"
 smol_str = "0.2"
-softbuffer = "0.3.4"
+softbuffer = "0.4.1"
 syntect = "5.1"
 sysinfo = "0.28"
 thiserror = "1.0"
@@ -158,7 +163,8 @@ wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3"
 web-time = "0.2"
-wgpu = "0.18"
+wgpu = "0.19"
 winapi = "0.3"
-window_clipboard = "0.3"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5", features = ["rwh_05"] }
+# window_clipboard = "0.3"
+window_clipboard = { git = "https://github.com/ids1024/window_clipboard", branch = "raw-window-handle-0.6" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5", features = ["rwh_06"] }

@@ -24,6 +24,7 @@ use crate::{Clipboard, Error, Proxy, Settings};
 use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
+use std::sync::Arc;
 
 /// An interactive, native cross-platform application.
 ///
@@ -105,7 +106,7 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: Compositor<Renderer = A::Renderer> + 'static,
+    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
@@ -149,9 +150,12 @@ where
 
     log::debug!("Window builder: {builder:#?}");
 
-    let window = builder
-        .build(&event_loop)
-        .map_err(Error::WindowCreationFailed)?;
+    // XXX Arc?
+    let window = Arc::new(
+        builder
+            .build(&event_loop)
+            .map_err(Error::WindowCreationFailed)?,
+    );
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -183,7 +187,7 @@ where
         };
     }
 
-    let compositor = C::new(compositor_settings, Some(&window))?;
+    let compositor = C::new(compositor_settings, Some(window.clone()))?;
     let mut renderer = compositor.create_renderer();
 
     for font in settings.fonts {
@@ -248,13 +252,13 @@ async fn run_instance<A, E, C>(
     >,
     mut control_sender: mpsc::UnboundedSender<winit::event_loop::ControlFlow>,
     init_command: Command<A::Message>,
-    window: winit::window::Window,
+    window: Arc<winit::window::Window>,
     should_be_visible: bool,
     exit_on_close_request: bool,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: Compositor<Renderer = A::Renderer> + 'static,
+    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::stream::StreamExt;
@@ -268,7 +272,7 @@ async fn run_instance<A, E, C>(
     let mut clipboard = Clipboard::connect(&window);
     let mut cache = user_interface::Cache::default();
     let mut surface = compositor.create_surface(
-        &window,
+        window.clone(),
         physical_size.width,
         physical_size.height,
     );
@@ -608,7 +612,7 @@ pub fn update<A: Application, C, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
 ) where
-    C: Compositor<Renderer = A::Renderer> + 'static,
+    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
@@ -659,7 +663,7 @@ pub fn run_command<A, C, E>(
 ) where
     A: Application,
     E: Executor,
-    C: Compositor<Renderer = A::Renderer> + 'static,
+    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use crate::runtime::command;

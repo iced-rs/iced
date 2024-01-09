@@ -6,13 +6,13 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 use std::marker::PhantomData;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor<Theme> {
+pub struct Compositor<W, Theme> {
     settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
@@ -20,15 +20,18 @@ pub struct Compositor<Theme> {
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
     theme: PhantomData<Theme>,
+    w: PhantomData<W>,
 }
 
-impl<Theme> Compositor<Theme> {
+impl<W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync, Theme>
+    Compositor<W, Theme>
+{
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    pub async fn request(
         settings: Settings,
-        compatible_window: Option<&W>,
+        compatible_window: Option<W>,
     ) -> Option<Self> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: settings.internal_backend,
@@ -41,6 +44,7 @@ impl<Theme> Compositor<Theme> {
         if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.internal_backend)
+                .iter()
                 .map(|adapter| adapter.get_info())
                 .collect();
             log::info!("Available adapters: {available_adapters:#?}");
@@ -48,7 +52,7 @@ impl<Theme> Compositor<Theme> {
 
         #[allow(unsafe_code)]
         let compatible_surface = compatible_window
-            .and_then(|window| unsafe { instance.create_surface(window).ok() });
+            .and_then(|window| instance.create_surface(window).ok());
 
         let adapter = instance
             .request_adapter(&wgpu::RequestAdapterOptions {
@@ -100,14 +104,14 @@ impl<Theme> Compositor<Theme> {
 
         let (device, queue) =
             loop {
-                let limits = limits.next()?;
+                let required_limits = limits.next()?;
                 let device = adapter.request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(
                             "iced_wgpu::window::compositor device descriptor",
                         ),
-                        features: wgpu::Features::empty(),
-                        limits,
+                        required_features: wgpu::Features::empty(),
+                        required_limits,
                     },
                     None,
                 ).await.ok();
@@ -125,6 +129,7 @@ impl<Theme> Compositor<Theme> {
             queue,
             format,
             theme: PhantomData,
+            w: PhantomData,
         })
     }
 
@@ -136,10 +141,13 @@ impl<Theme> Compositor<Theme> {
 
 /// Creates a [`Compositor`] and its [`Backend`] for the given [`Settings`] and
 /// window.
-pub fn new<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
+pub fn new<
+    Theme,
+    W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync,
+>(
     settings: Settings,
-    compatible_window: Option<&W>,
-) -> Result<Compositor<Theme>, Error> {
+    compatible_window: Option<W>,
+) -> Result<Compositor<W, Theme>, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
         compatible_window,
@@ -150,10 +158,10 @@ pub fn new<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
-pub fn present<Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<Theme>,
+pub fn present<W, Theme, T: AsRef<str>>(
+    compositor: &mut Compositor<W, Theme>,
     backend: &mut Backend,
-    surface: &mut wgpu::Surface,
+    surface: &mut wgpu::Surface<'static>,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
@@ -204,14 +212,19 @@ pub fn present<Theme, T: AsRef<str>>(
     }
 }
 
-impl<Theme> graphics::Compositor for Compositor<Theme> {
+impl<
+        W: HasDisplayHandle + HasWindowHandle + wgpu::WasmNotSendSync + 'static,
+        Theme,
+    > graphics::Compositor<W> for Compositor<W, Theme>
+{
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
-    type Surface = wgpu::Surface;
+    // XXX generic instead of 'static
+    type Surface = wgpu::Surface<'static>;
 
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new(
         settings: Self::Settings,
-        compatible_window: Option<&W>,
+        compatible_window: Option<W>,
     ) -> Result<Self, Error> {
         new(settings, compatible_window)
     }
@@ -224,14 +237,15 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         )
     }
 
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface(
         &mut self,
-        window: &W,
+        window: W,
         width: u32,
         height: u32,
-    ) -> wgpu::Surface {
-        #[allow(unsafe_code)]
-        let mut surface = unsafe { self.instance.create_surface(window) }
+    ) -> wgpu::Surface<'static> {
+        let mut surface = self
+            .instance
+            .create_surface(window)
             .expect("Create surface");
 
         self.configure_surface(&mut surface, width, height);
@@ -241,7 +255,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
 
     fn configure_surface(
         &mut self,
-        surface: &mut Self::Surface,
+        surface: &mut wgpu::Surface<'static>,
         width: u32,
         height: u32,
     ) {
@@ -255,6 +269,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
                 height,
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![],
+                desired_maximum_frame_latency: 2,
             },
         );
     }
@@ -271,7 +286,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Self::Surface,
+        surface: &mut wgpu::Surface<'static>,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
@@ -292,7 +307,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        _surface: &mut Self::Surface,
+        _surface: &mut wgpu::Surface<'static>,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
@@ -313,8 +328,8 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
 /// Renders the current surface to an offscreen buffer.
 ///
 /// Returns RGBA bytes of the texture data.
-pub fn screenshot<Theme, T: AsRef<str>>(
-    compositor: &Compositor<Theme>,
+pub fn screenshot<W, Theme, T: AsRef<str>>(
+    compositor: &Compositor<W, Theme>,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,
