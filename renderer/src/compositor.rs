@@ -238,6 +238,7 @@ impl Candidate {
                         default_font: settings.default_font,
                         default_text_size: settings.default_text_size,
                     },
+                    _compatible_window,
                 );
 
                 Ok(Compositor::TinySkia(compositor))

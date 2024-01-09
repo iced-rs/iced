@@ -5,18 +5,21 @@ use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use std::collections::VecDeque;
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 
 pub struct Compositor<Theme> {
+    context: Option<softbuffer::Context>,
     settings: Settings,
     _theme: PhantomData<Theme>,
 }
 
 pub struct Surface {
-    window: softbuffer::GraphicsContext,
-    buffer: Vec<u32>,
+    window: softbuffer::Surface,
     clip_mask: tiny_skia::Mask,
-    primitives: Option<Vec<Primitive>>,
+    // Primitives of existing buffers, by decreasing age
+    primitives: VecDeque<Vec<Primitive>>,
     background_color: Color,
 }
 
@@ -27,9 +30,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
         settings: Self::Settings,
-        _compatible_window: Option<&W>,
+        compatible_window: Option<&W>,
     ) -> Result<Self, Error> {
-        Ok(new(settings))
+        Ok(new(settings, compatible_window))
     }
 
     fn create_renderer(&self) -> Self::Renderer {
@@ -47,16 +50,21 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         height: u32,
     ) -> Surface {
         #[allow(unsafe_code)]
-        let window =
-            unsafe { softbuffer::GraphicsContext::new(window, window) }
-                .expect("Create softbuffer for window");
+        let window = if let Some(context) = self.context.as_ref() {
+            unsafe { softbuffer::Surface::new(context, window) }
+                .expect("Create softbuffer surface for window")
+        } else {
+            let context = unsafe { softbuffer::Context::new(window) }
+                .expect("Create softbuffer context for window");
+            unsafe { softbuffer::Surface::new(&context, window) }
+                .expect("Create softbuffer surface for window")
+        };
 
         Surface {
             window,
-            buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            primitives: None,
+            primitives: VecDeque::new(),
             background_color: Color::BLACK,
         }
     }
@@ -67,10 +75,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
-        surface.buffer.resize((width * height) as usize, 0);
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.primitives = None;
+        surface.primitives.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -121,8 +128,15 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn new<Theme>(settings: Settings) -> Compositor<Theme> {
+pub fn new<W: HasRawWindowHandle + HasRawDisplayHandle, Theme>(
+    settings: Settings,
+    compatible_window: Option<&W>,
+) -> Compositor<Theme> {
+    #[allow(unsafe_code)]
+    let context = compatible_window
+        .and_then(|w| unsafe { softbuffer::Context::new(w) }.ok());
     Compositor {
+        context,
         settings,
         _theme: PhantomData,
     }
@@ -139,48 +153,67 @@ pub fn present<T: AsRef<str>>(
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
 
-    let mut pixels = tiny_skia::PixmapMut::from_bytes(
-        bytemuck::cast_slice_mut(&mut surface.buffer),
-        physical_size.width,
-        physical_size.height,
-    )
-    .expect("Create pixel map");
+    surface
+        .window
+        .resize(
+            NonZeroU32::new(physical_size.width).unwrap(),
+            NonZeroU32::new(physical_size.height).unwrap(),
+        )
+        .unwrap();
 
-    let damage = surface
-        .primitives
-        .as_deref()
+    // TODO Add variants to `SurfaceError`?
+    let mut buffer = surface
+        .window
+        .buffer_mut()
+        .map_err(|_| compositor::SurfaceError::Lost)?;
+
+    let age = buffer.age();
+
+    // Forget primatives for back buffers older than `age`
+    // Or if this is a new buffer, keep at most two.
+    let max = if age == 0 { 2 } else { age };
+    while surface.primitives.len() as u8 > max {
+        let _ = surface.primitives.pop_front();
+    }
+
+    let last_primitives = if surface.primitives.len() as u8 == age {
+        surface.primitives.pop_front()
+    } else {
+        None
+    };
+
+    let damage = last_primitives
         .and_then(|last_primitives| {
             (surface.background_color == background_color)
-                .then(|| damage::list(last_primitives, primitives))
+                .then(|| damage::list(&last_primitives, primitives))
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
-    if damage.is_empty() {
-        return Ok(());
-    }
-
-    surface.primitives = Some(primitives.to_vec());
+    surface.primitives.push_back(primitives.to_vec());
     surface.background_color = background_color;
 
-    let damage = damage::group(damage, scale_factor, physical_size);
+    if !damage.is_empty() {
+        let damage = damage::group(damage, scale_factor, physical_size);
 
-    backend.draw(
-        &mut pixels,
-        &mut surface.clip_mask,
-        primitives,
-        viewport,
-        &damage,
-        background_color,
-        overlay,
-    );
+        let mut pixels = tiny_skia::PixmapMut::from_bytes(
+            bytemuck::cast_slice_mut(&mut buffer),
+            physical_size.width,
+            physical_size.height,
+        )
+        .expect("Create pixel map");
 
-    surface.window.set_buffer(
-        &surface.buffer,
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
+        backend.draw(
+            &mut pixels,
+            &mut surface.clip_mask,
+            primitives,
+            viewport,
+            &damage,
+            background_color,
+            overlay,
+        );
+    }
 
-    Ok(())
+    buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
 pub fn screenshot<T: AsRef<str>>(
