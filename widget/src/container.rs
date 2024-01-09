@@ -67,7 +67,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
-            content: content.into(),
+            content,
         }
     }
 
