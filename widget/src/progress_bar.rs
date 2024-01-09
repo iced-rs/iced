@@ -98,13 +98,11 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let size = limits.resolve(
-            Size::ZERO,
+        layout::atomic(
+            limits,
             self.width,
             self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
-        );
-
-        layout::Node::new(size)
+        )
     }
 
     fn draw(

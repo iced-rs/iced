@@ -10,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -430,20 +430,7 @@ pub fn layout(
     padding: Padding,
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height);
-
-    let content = layout_content(&limits.shrink(padding));
-    let padding = padding.fit(content.size(), limits.max());
-
-    let size = limits
-        .shrink(padding)
-        .resolve(content.size(), width, height)
-        .expand(padding);
-
-    layout::Node::with_children(
-        size,
-        vec![content.move_to(Point::new(padding.left, padding.top))],
-    )
+    layout::padded(limits, width, height, padding, layout_content)
 }
 
 /// Returns the [`mouse::Interaction`] of a [`Button`].

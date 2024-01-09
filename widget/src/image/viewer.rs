@@ -113,9 +113,9 @@ where
         let Size { width, height } = renderer.dimensions(&self.handle);
 
         let mut size = limits.resolve(
-            Size::new(width as f32, height as f32),
             self.width,
             self.height,
+            Size::new(width as f32, height as f32),
         );
 
         let expansion_size = if height > width {

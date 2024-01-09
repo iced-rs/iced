@@ -257,10 +257,7 @@ where
         _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.size).height(self.size);
-        let size = limits.resolve(Size::ZERO, self.size, self.size);
-
-        layout::Node::new(size)
+        layout::atomic(limits, self.size, self.size)
     }
 
     fn on_event(

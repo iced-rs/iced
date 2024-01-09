@@ -89,19 +89,23 @@ impl Node {
     }
 
     /// Moves the [`Node`] to the given position.
-    pub fn move_to(mut self, position: Point) -> Self {
+    pub fn move_to(mut self, position: impl Into<Point>) -> Self {
         self.move_to_mut(position);
         self
     }
 
     /// Mutable reference version of [`move_to`].
-    pub fn move_to_mut(&mut self, position: Point) {
+    pub fn move_to_mut(&mut self, position: impl Into<Point>) {
+        let position = position.into();
+
         self.bounds.x = position.x;
         self.bounds.y = position.y;
     }
 
     /// Translates the [`Node`] by the given translation.
-    pub fn translate(self, translation: Vector) -> Self {
+    pub fn translate(self, translation: impl Into<Vector>) -> Self {
+        let translation = translation.into();
+
         Self {
             bounds: self.bounds + translation,
             ..self

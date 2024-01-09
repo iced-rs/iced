@@ -239,9 +239,9 @@ where
 
     let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
     let size = limits.resolve(
-        Size::new(intrinsic_width, intrinsic_height),
         width,
         height,
+        Size::new(intrinsic_width, intrinsic_height),
     );
 
     Node::with_children(size.expand(padding), nodes)

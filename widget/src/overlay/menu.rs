@@ -369,7 +369,7 @@ where
                     * self.options.len() as f32,
             );
 
-            limits.resolve(intrinsic, Length::Fill, Length::Shrink)
+            limits.resolve(Length::Fill, Length::Shrink, intrinsic)
         };
 
         layout::Node::new(size)

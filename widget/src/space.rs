@@ -58,7 +58,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::Node::new(limits.resolve(Size::ZERO, self.width, self.height))
+        layout::atomic(limits, self.width, self.height)
     }
 
     fn draw(

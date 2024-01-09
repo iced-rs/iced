@@ -508,8 +508,8 @@ where
     let padding = padding.fit(Size::ZERO, limits.max());
     let height = line_height.to_absolute(text_size);
 
-    let limits = limits.width(width).shrink(padding).height(height);
-    let text_bounds = limits.resolve(Size::ZERO, width, height);
+    let limits = limits.width(width).shrink(padding);
+    let text_bounds = limits.resolve(width, height, Size::ZERO);
 
     let placeholder_text = Text {
         font,

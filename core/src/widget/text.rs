@@ -206,28 +206,27 @@ pub fn layout<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let limits = limits.width(width).height(height);
-    let bounds = limits.max();
+    layout::sized(limits, width, height, |limits| {
+        let bounds = limits.max();
 
-    let size = size.unwrap_or_else(|| renderer.default_size());
-    let font = font.unwrap_or_else(|| renderer.default_font());
+        let size = size.unwrap_or_else(|| renderer.default_size());
+        let font = font.unwrap_or_else(|| renderer.default_font());
 
-    let State(ref mut paragraph) = state;
+        let State(ref mut paragraph) = state;
 
-    paragraph.update(text::Text {
-        content,
-        bounds,
-        size,
-        line_height,
-        font,
-        horizontal_alignment,
-        vertical_alignment,
-        shaping,
-    });
+        paragraph.update(text::Text {
+            content,
+            bounds,
+            size,
+            line_height,
+            font,
+            horizontal_alignment,
+            vertical_alignment,
+            shaping,
+        });
 
-    let size = limits.resolve(paragraph.min_bounds(), width, height);
-
-    layout::Node::new(size)
+        paragraph.min_bounds()
+    })
 }
 
 /// Draws text using the same logic as the [`Text`] widget.

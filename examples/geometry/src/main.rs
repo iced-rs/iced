@@ -29,9 +29,9 @@ mod rainbow {
             _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let size = limits.resolve(Size::ZERO, Length::Fill, Length::Shrink);
+            let width = limits.max().width;
 
-            layout::Node::new(Size::new(size.width, size.width))
+            layout::Node::new(Size::new(width, width))
         }
 
         fn draw(

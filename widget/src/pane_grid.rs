@@ -489,7 +489,7 @@ pub fn layout<Renderer, T>(
         &layout::Limits,
     ) -> layout::Node,
 ) -> layout::Node {
-    let size = limits.resolve(Size::ZERO, width, height);
+    let size = limits.resolve(width, height, Size::ZERO);
 
     let regions = node.pane_regions(spacing, size);
     let children = contents

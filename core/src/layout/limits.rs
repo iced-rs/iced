@@ -114,13 +114,14 @@ impl Limits {
         }
     }
 
-    /// Computes the resulting [`Size`] that fits the [`Limits`] given the
-    /// intrinsic size of some content.
+    /// Computes the resulting [`Size`] that fits the [`Limits`] given
+    /// some width and height requirements and the intrinsic size of
+    /// some content.
     pub fn resolve(
         &self,
-        intrinsic_size: Size,
         width: impl Into<Length>,
         height: impl Into<Length>,
+        intrinsic_size: Size,
     ) -> Size {
         let width = match width.into() {
             Length::Fill | Length::FillPortion(_) => self.max.width,

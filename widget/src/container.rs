@@ -321,27 +321,19 @@ pub fn layout(
     vertical_alignment: alignment::Vertical,
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .width(width)
-        .height(height)
-        .max_width(max_width)
-        .max_height(max_height);
-
-    let content = layout_content(&limits.shrink(padding).loose());
-    let padding = padding.fit(content.size(), limits.max());
-    let size = limits
-        .shrink(padding)
-        .resolve(content.size(), width, height);
-
-    layout::Node::with_children(
-        size.expand(padding),
-        vec![content
-            .move_to(Point::new(padding.left, padding.top))
-            .align(
+    layout::positioned(
+        &limits.max_width(max_width).max_height(max_height),
+        width,
+        height,
+        padding,
+        |limits| layout_content(&limits.loose()),
+        |content, size| {
+            content.align(
                 Alignment::from(horizontal_alignment),
                 Alignment::from(vertical_alignment),
                 size,
-            )],
+            )
+        },
     )
 }
 
