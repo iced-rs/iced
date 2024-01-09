@@ -34,7 +34,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children([$($crate::core::Element::from($x)),+].into_iter())
+        $crate::Column::with_children([$($crate::core::Element::from($x)),+])
     );
 }
 
@@ -47,7 +47,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children([$($crate::core::Element::from($x)),+].into_iter())
+        $crate::Row::with_children([$($crate::core::Element::from($x)),+])
     );
 }
 
@@ -66,7 +66,7 @@ where
 
 /// Creates a new [`Column`] with the given children.
 pub fn column<'a, Message, Renderer>(
-    children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
 ) -> Column<'a, Message, Renderer>
 where
     Renderer: core::Renderer,
@@ -89,7 +89,7 @@ where
 ///
 /// [`Row`]: crate::Row
 pub fn row<'a, Message, Renderer>(
-    children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
 ) -> Row<'a, Message, Renderer>
 where
     Renderer: core::Renderer,

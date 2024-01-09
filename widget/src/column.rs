@@ -41,9 +41,9 @@ where
 
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: impl Iterator<Item = Element<'a, Message, Renderer>>,
+        children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
     ) -> Self {
-        children.fold(Self::new(), |column, element| column.push(element))
+        children.into_iter().fold(Self::new(), Self::push)
     }
 
     /// Sets the vertical spacing _between_ elements.
