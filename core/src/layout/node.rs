@@ -60,7 +60,7 @@ impl Node {
         self
     }
 
-    /// Mutable reference version of [`align`].
+    /// Mutable reference version of [`Self::align`].
     pub fn align_mut(
         &mut self,
         horizontal_alignment: Alignment,
@@ -94,7 +94,7 @@ impl Node {
         self
     }
 
-    /// Mutable reference version of [`move_to`].
+    /// Mutable reference version of [`Self::move_to`].
     pub fn move_to_mut(&mut self, position: impl Into<Point>) {
         let position = position.into();
 
