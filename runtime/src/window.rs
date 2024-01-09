@@ -65,9 +65,31 @@ pub fn fetch_size<Message>(
     Command::single(command::Action::Window(Action::FetchSize(id, Box::new(f))))
 }
 
+/// Fetches if the window is maximized.
+pub fn fetch_maximized<Message>(
+    id: Id,
+    f: impl FnOnce(bool) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchMaximized(
+        id,
+        Box::new(f),
+    )))
+}
+
 /// Maximizes the window.
 pub fn maximize<Message>(id: Id, maximized: bool) -> Command<Message> {
     Command::single(command::Action::Window(Action::Maximize(id, maximized)))
+}
+
+/// Fetches if the window is minimized.
+pub fn fetch_minimized<Message>(
+    id: Id,
+    f: impl FnOnce(Option<bool>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchMinimized(
+        id,
+        Box::new(f),
+    )))
 }
 
 /// Minimizes the window.
