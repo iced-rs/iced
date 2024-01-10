@@ -271,7 +271,7 @@ pub fn pick_list<'a, Message, Renderer, T>(
     on_selected: impl Fn(T) -> Message + 'a,
 ) -> PickList<'a, T, Message, Renderer>
 where
-    T: ToString + Eq + 'static,
+    T: ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: core::text::Renderer,
     Renderer::Theme: pick_list::StyleSheet

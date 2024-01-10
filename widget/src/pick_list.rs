@@ -45,7 +45,7 @@ where
 
 impl<'a, T: 'a, Message, Renderer> PickList<'a, T, Message, Renderer>
 where
-    T: ToString + Eq,
+    T: ToString + PartialEq,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet
@@ -145,7 +145,7 @@ where
 impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
     for PickList<'a, T, Message, Renderer>
 where
-    T: Clone + ToString + Eq + 'static,
+    T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
@@ -281,7 +281,7 @@ where
 impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    T: Clone + ToString + Eq + 'static,
+    T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,

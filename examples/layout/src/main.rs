@@ -1,8 +1,8 @@
 use iced::executor;
 use iced::keyboard;
 use iced::widget::{
-    button, checkbox, column, container, horizontal_space, row, text,
-    vertical_rule,
+    button, checkbox, column, container, horizontal_space, pick_list, row,
+    text, vertical_rule,
 };
 use iced::{
     color, Alignment, Application, Color, Command, Element, Font, Length,
@@ -17,13 +17,15 @@ pub fn main() -> iced::Result {
 struct Layout {
     example: Example,
     explain: bool,
+    theme: Theme,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum Message {
     Next,
     Previous,
     ExplainToggled(bool),
+    ThemeSelected(Theme),
 }
 
 impl Application for Layout {
@@ -37,6 +39,7 @@ impl Application for Layout {
             Self {
                 example: Example::default(),
                 explain: false,
+                theme: Theme::Light,
             },
             Command::none(),
         )
@@ -57,6 +60,9 @@ impl Application for Layout {
             Message::ExplainToggled(explain) => {
                 self.explain = explain;
             }
+            Message::ThemeSelected(theme) => {
+                self.theme = theme;
+            }
         }
 
         Command::none()
@@ -75,7 +81,13 @@ impl Application for Layout {
             text(self.example.title).size(20).font(Font::MONOSPACE),
             horizontal_space(Length::Fill),
             checkbox("Explain", self.explain, Message::ExplainToggled),
+            pick_list(
+                Theme::ALL,
+                Some(self.theme.clone()),
+                Message::ThemeSelected
+            ),
         ]
+        .spacing(20)
         .align_items(Alignment::Center);
 
         let example = container(if self.explain {
@@ -115,7 +127,7 @@ impl Application for Layout {
     }
 
     fn theme(&self) -> Theme {
-        Theme::Dark
+        self.theme.clone()
     }
 }
 
