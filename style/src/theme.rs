@@ -383,6 +383,12 @@ pub enum Container {
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
 }
 
+impl From<container::Appearance> for Container {
+    fn from(appearance: container::Appearance) -> Self {
+        Self::Custom(Box::new(move |_: &_| appearance))
+    }
+}
+
 impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {
     fn from(f: T) -> Self {
         Self::Custom(Box::new(f))

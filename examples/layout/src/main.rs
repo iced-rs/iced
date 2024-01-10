@@ -1,8 +1,11 @@
 use iced::executor;
 use iced::keyboard;
-use iced::widget::{column, container, row, text, vertical_rule};
+use iced::widget::{
+    button, column, container, horizontal_space, row, text, vertical_rule,
+};
 use iced::{
-    Application, Command, Element, Length, Settings, Subscription, Theme,
+    color, Application, Color, Command, Element, Length, Settings,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -61,7 +64,29 @@ impl Application for Layout {
     }
 
     fn view(&self) -> Element<Message> {
-        self.example.view()
+        let example = container(self.example.view()).style(
+            container::Appearance::default().with_border(Color::BLACK, 2.0),
+        );
+
+        let controls = row([
+            (!self.example.is_first()).then_some(
+                button("← Previous")
+                    .padding([5, 10])
+                    .on_press(Message::Previous)
+                    .into(),
+            ),
+            Some(horizontal_space(Length::Fill).into()),
+            (!self.example.is_last()).then_some(
+                button("Next →")
+                    .padding([5, 10])
+                    .on_press(Message::Next)
+                    .into(),
+            ),
+        ]
+        .into_iter()
+        .filter_map(std::convert::identity));
+
+        column![example, controls].spacing(10).padding(20).into()
     }
 }
 
@@ -82,6 +107,14 @@ impl Example {
             view: nested_quotes,
         },
     ];
+
+    fn is_first(self) -> bool {
+        Self::LIST.first() == Some(&self)
+    }
+
+    fn is_last(self) -> bool {
+        Self::LIST.last() == Some(&self)
+    }
 
     fn previous(self) -> Self {
         let Some(index) =
@@ -127,20 +160,26 @@ fn centered<'a>() -> Element<'a, Message> {
 }
 
 fn nested_quotes<'a>() -> Element<'a, Message> {
-    container((1..5).fold(
-        column![text("Original text")].padding(10),
-        |quotes, i| {
+    let quotes =
+        (1..5).fold(column![text("Original text")].padding(10), |quotes, i| {
             column![
-                row![vertical_rule(2), quotes].height(Length::Shrink),
+                container(
+                    row![vertical_rule(2), quotes].height(Length::Shrink)
+                )
+                .style(
+                    container::Appearance::default()
+                        .with_background(color!(0x000000, 0.05))
+                ),
                 text(format!("Reply {i}"))
             ]
             .spacing(10)
             .padding(10)
-        },
-    ))
-    .width(Length::Fill)
-    .height(Length::Fill)
-    .center_x()
-    .center_y()
-    .into()
+        });
+
+    container(quotes)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
 }
