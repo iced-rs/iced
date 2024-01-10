@@ -1,4 +1,5 @@
 use iced::executor;
+use iced::keyboard;
 use iced::widget::{column, container, row, text, vertical_rule};
 use iced::{
     Application, Command, Element, Length, Settings, Subscription, Theme,
@@ -10,9 +11,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug)]
 struct Layout {
-    previous: Vec<Example>,
-    current: Example,
-    next: Vec<Example>,
+    example: Example,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -30,36 +29,23 @@ impl Application for Layout {
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
             Self {
-                previous: vec![],
-                current: Example::Centered,
-                next: vec![Example::NestedQuotes],
+                example: Example::default(),
             },
             Command::none(),
         )
     }
 
     fn title(&self) -> String {
-        String::from("Counter - Iced")
+        format!("{} - Layout - Iced", self.example.title)
     }
 
     fn update(&mut self, message: Self::Message) -> Command<Message> {
         match message {
             Message::Next => {
-                if !self.next.is_empty() {
-                    let previous = std::mem::replace(
-                        &mut self.current,
-                        self.next.remove(0),
-                    );
-
-                    self.previous.push(previous);
-                }
+                self.example = self.example.next();
             }
             Message::Previous => {
-                if let Some(previous) = self.previous.pop() {
-                    let next = std::mem::replace(&mut self.current, previous);
-
-                    self.next.insert(0, next);
-                }
+                self.example = self.example.previous();
             }
         }
 
@@ -67,57 +53,94 @@ impl Application for Layout {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        use iced::event::{self, Event};
-        use iced::keyboard;
-
-        event::listen_with(|event, status| match event {
-            Event::Keyboard(keyboard::Event::KeyReleased {
-                key_code, ..
-            }) if status == event::Status::Ignored => match key_code {
-                keyboard::KeyCode::Left => Some(Message::Previous),
-                keyboard::KeyCode::Right => Some(Message::Next),
-                _ => None,
-            },
+        keyboard::on_key_release(|key_code, _modifiers| match key_code {
+            keyboard::KeyCode::Left => Some(Message::Previous),
+            keyboard::KeyCode::Right => Some(Message::Next),
             _ => None,
         })
     }
 
     fn view(&self) -> Element<Message> {
-        self.current.view()
+        self.example.view()
     }
 }
 
-#[derive(Debug)]
-enum Example {
-    Centered,
-    NestedQuotes,
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Example {
+    title: &'static str,
+    view: fn() -> Element<'static, Message>,
 }
 
 impl Example {
-    fn view(&self) -> Element<Message> {
-        match self {
-            Self::Centered => container(text("I am centered!").size(50))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .center_x()
-                .center_y()
-                .into(),
-            Self::NestedQuotes => container((1..5).fold(
-                column![text("Original text")].padding(10),
-                |quotes, i| {
-                    column![
-                        row![vertical_rule(2), quotes].height(Length::Shrink),
-                        text(format!("Reply {i}"))
-                    ]
-                    .spacing(10)
-                    .padding(10)
-                },
-            ))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into(),
-        }
+    const LIST: &'static [Self] = &[
+        Self {
+            title: "Centered",
+            view: centered,
+        },
+        Self {
+            title: "Nested Quotes",
+            view: nested_quotes,
+        },
+    ];
+
+    fn previous(self) -> Self {
+        let Some(index) =
+            Self::LIST.iter().position(|&example| example == self)
+        else {
+            return self;
+        };
+
+        Self::LIST
+            .get(index.saturating_sub(1))
+            .copied()
+            .unwrap_or(self)
     }
+
+    fn next(self) -> Self {
+        let Some(index) =
+            Self::LIST.iter().position(|&example| example == self)
+        else {
+            return self;
+        };
+
+        Self::LIST.get(index + 1).copied().unwrap_or(self)
+    }
+
+    fn view(&self) -> Element<Message> {
+        (self.view)()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Self::LIST[0]
+    }
+}
+
+fn centered<'a>() -> Element<'a, Message> {
+    container(text("I am centered!").size(50))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y()
+        .into()
+}
+
+fn nested_quotes<'a>() -> Element<'a, Message> {
+    container((1..5).fold(
+        column![text("Original text")].padding(10),
+        |quotes, i| {
+            column![
+                row![vertical_rule(2), quotes].height(Length::Shrink),
+                text(format!("Reply {i}"))
+            ]
+            .spacing(10)
+            .padding(10)
+        },
+    ))
+    .width(Length::Fill)
+    .height(Length::Fill)
+    .center_x()
+    .center_y()
+    .into()
 }
