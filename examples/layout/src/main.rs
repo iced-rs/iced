@@ -1,11 +1,12 @@
 use iced::executor;
 use iced::keyboard;
 use iced::widget::{
-    button, column, container, horizontal_space, row, text, vertical_rule,
+    button, checkbox, column, container, horizontal_space, row, text,
+    vertical_rule,
 };
 use iced::{
-    color, Application, Color, Command, Element, Length, Settings,
-    Subscription, Theme,
+    color, Alignment, Application, Color, Command, Element, Font, Length,
+    Settings, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -15,12 +16,14 @@ pub fn main() -> iced::Result {
 #[derive(Debug)]
 struct Layout {
     example: Example,
+    explain: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
     Next,
     Previous,
+    ExplainToggled(bool),
 }
 
 impl Application for Layout {
@@ -33,6 +36,7 @@ impl Application for Layout {
         (
             Self {
                 example: Example::default(),
+                explain: false,
             },
             Command::none(),
         )
@@ -50,6 +54,9 @@ impl Application for Layout {
             Message::Previous => {
                 self.example = self.example.previous();
             }
+            Message::ExplainToggled(explain) => {
+                self.explain = explain;
+            }
         }
 
         Command::none()
@@ -64,9 +71,24 @@ impl Application for Layout {
     }
 
     fn view(&self) -> Element<Message> {
-        let example = container(self.example.view()).style(
-            container::Appearance::default().with_border(Color::BLACK, 2.0),
-        );
+        let header = row![
+            text(self.example.title).size(20).font(Font::MONOSPACE),
+            horizontal_space(Length::Fill),
+            checkbox("Explain", self.explain, Message::ExplainToggled),
+        ]
+        .align_items(Alignment::Center);
+
+        let example = container(if self.explain {
+            self.example.view().explain(color!(0x0000ff))
+        } else {
+            self.example.view()
+        })
+        .style(|theme: &Theme| {
+            let palette = theme.extended_palette();
+
+            container::Appearance::default()
+                .with_border(palette.background.strong.color, 4.0)
+        });
 
         let controls = row([
             (!self.example.is_first()).then_some(
@@ -86,7 +108,14 @@ impl Application for Layout {
         .into_iter()
         .flatten());
 
-        column![example, controls].spacing(10).padding(20).into()
+        column![header, example, controls]
+            .spacing(10)
+            .padding(20)
+            .into()
+    }
+
+    fn theme(&self) -> Theme {
+        Theme::Dark
     }
 }
 
@@ -166,10 +195,23 @@ fn nested_quotes<'a>() -> Element<'a, Message> {
                 container(
                     row![vertical_rule(2), quotes].height(Length::Shrink)
                 )
-                .style(
-                    container::Appearance::default()
-                        .with_background(color!(0x000000, 0.05))
-                ),
+                .style(|theme: &Theme| {
+                    let palette = theme.extended_palette();
+
+                    container::Appearance::default().with_background(
+                        if palette.is_dark {
+                            Color {
+                                a: 0.01,
+                                ..Color::WHITE
+                            }
+                        } else {
+                            Color {
+                                a: 0.08,
+                                ..Color::BLACK
+                            }
+                        },
+                    )
+                }),
                 text(format!("Reply {i}"))
             ]
             .spacing(10)
