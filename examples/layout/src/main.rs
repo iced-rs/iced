@@ -1,12 +1,14 @@
 use iced::executor;
 use iced::keyboard;
+use iced::mouse;
+use iced::theme;
 use iced::widget::{
-    button, checkbox, column, container, horizontal_space, pick_list, row,
-    text, vertical_rule,
+    button, canvas, checkbox, column, container, horizontal_space, pick_list,
+    row, scrollable, text, vertical_rule, vertical_space,
 };
 use iced::{
     color, Alignment, Application, Color, Command, Element, Font, Length,
-    Settings, Subscription, Theme,
+    Point, Rectangle, Renderer, Settings, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -100,7 +102,12 @@ impl Application for Layout {
 
             container::Appearance::default()
                 .with_border(palette.background.strong.color, 4.0)
-        });
+        })
+        .padding(4)
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .center_x()
+        .center_y();
 
         let controls = row([
             (!self.example.is_first()).then_some(
@@ -142,6 +149,22 @@ impl Example {
         Self {
             title: "Centered",
             view: centered,
+        },
+        Self {
+            title: "Column",
+            view: column_,
+        },
+        Self {
+            title: "Row",
+            view: row_,
+        },
+        Self {
+            title: "Space",
+            view: space,
+        },
+        Self {
+            title: "Application",
+            view: application,
         },
         Self {
             title: "Nested Quotes",
@@ -200,9 +223,79 @@ fn centered<'a>() -> Element<'a, Message> {
         .into()
 }
 
+fn column_<'a>() -> Element<'a, Message> {
+    column![
+        "A column can be used to",
+        "lay out widgets vertically.",
+        square(50),
+        square(50),
+        square(50),
+        "The amount of space between",
+        "elements can be configured!",
+    ]
+    .spacing(40)
+    .into()
+}
+
+fn row_<'a>() -> Element<'a, Message> {
+    row![
+        "A row works like a column...",
+        square(50),
+        square(50),
+        square(50),
+        "but lays out widgets horizontally!",
+    ]
+    .spacing(40)
+    .into()
+}
+
+fn space<'a>() -> Element<'a, Message> {
+    row!["Left!", horizontal_space(Length::Fill), "Right!"].into()
+}
+
+fn application<'a>() -> Element<'a, Message> {
+    let header = container(
+        row![
+            square(40),
+            horizontal_space(Length::Fill),
+            "Header!",
+            horizontal_space(Length::Fill),
+            square(40),
+        ]
+        .padding(10)
+        .align_items(Alignment::Center),
+    )
+    .style(|theme: &Theme| {
+        let palette = theme.extended_palette();
+
+        container::Appearance::default()
+            .with_border(palette.background.strong.color, 1)
+    });
+
+    let sidebar = container(
+        column!["Sidebar!", square(50), square(50)]
+            .spacing(40)
+            .padding(10)
+            .width(200)
+            .align_items(Alignment::Center),
+    )
+    .style(theme::Container::Box)
+    .height(Length::Fill)
+    .center_y();
+
+    let content = container(
+        scrollable(column!["Content!", vertical_space(2000), "The end"])
+            .width(Length::Fill)
+            .height(Length::Fill),
+    )
+    .padding(10);
+
+    column![header, row![sidebar, content]].into()
+}
+
 fn nested_quotes<'a>() -> Element<'a, Message> {
-    let quotes =
-        (1..5).fold(column![text("Original text")].padding(10), |quotes, i| {
+    (1..5)
+        .fold(column![text("Original text")].padding(10), |quotes, i| {
             column![
                 container(
                     row![vertical_rule(2), quotes].height(Length::Shrink)
@@ -228,12 +321,37 @@ fn nested_quotes<'a>() -> Element<'a, Message> {
             ]
             .spacing(10)
             .padding(10)
-        });
-
-    container(quotes)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
+        })
         .into()
+}
+
+fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
+    struct Square;
+
+    impl canvas::Program<Message> for Square {
+        type State = ();
+
+        fn draw(
+            &self,
+            _state: &Self::State,
+            renderer: &Renderer,
+            theme: &Theme,
+            bounds: Rectangle,
+            _cursor: mouse::Cursor,
+        ) -> Vec<canvas::Geometry> {
+            let mut frame = canvas::Frame::new(renderer, bounds.size());
+
+            let palette = theme.extended_palette();
+
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                bounds.size(),
+                palette.background.strong.color,
+            );
+
+            vec![frame.into_geometry()]
+        }
+    }
+
+    canvas(Square).width(size).height(size).into()
 }
