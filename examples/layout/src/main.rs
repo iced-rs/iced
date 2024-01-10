@@ -4,7 +4,7 @@ use iced::mouse;
 use iced::theme;
 use iced::widget::{
     button, canvas, checkbox, column, container, horizontal_space, pick_list,
-    row, scrollable, text, vertical_rule, vertical_space,
+    row, scrollable, text, vertical_rule,
 };
 use iced::{
     color, Alignment, Application, Color, Command, Element, Font, Length,
@@ -284,9 +284,19 @@ fn application<'a>() -> Element<'a, Message> {
     .center_y();
 
     let content = container(
-        scrollable(column!["Content!", vertical_space(2000), "The end"])
-            .width(Length::Fill)
-            .height(Length::Fill),
+        scrollable(
+            column![
+                "Content!",
+                square(400),
+                square(200),
+                square(400),
+                "The end"
+            ]
+            .spacing(40)
+            .align_items(Alignment::Center)
+            .width(Length::Fill),
+        )
+        .height(Length::Fill),
     )
     .padding(10);
 
