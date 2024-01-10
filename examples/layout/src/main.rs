@@ -84,7 +84,7 @@ impl Application for Layout {
             ),
         ]
         .into_iter()
-        .filter_map(std::convert::identity));
+        .flatten());
 
         column![example, controls].spacing(10).padding(20).into()
     }
