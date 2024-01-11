@@ -219,7 +219,7 @@ impl core::text::Paragraph for Paragraph {
             glyph.w
                 * (1.0
                     - graphemes_seen.saturating_sub(index) as f32
-                        / last_grapheme_count as f32)
+                        / last_grapheme_count.max(1) as f32)
         };
 
         Some(Point::new(
