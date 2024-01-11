@@ -42,6 +42,18 @@ impl Length {
     pub fn is_fill(&self) -> bool {
         self.fill_factor() != 0
     }
+
+    /// Returns the "fluid" variant of the [`Length`].
+    ///
+    /// Specifically:
+    /// - [`Length::Shrink`] if [`Length::Shrink`] or [`Length::Fixed`].
+    /// - [`Length::Fill`] otherwise.
+    pub fn fluid(&self) -> Length {
+        match self {
+            Length::Fill | Length::FillPortion(_) => Length::Fill,
+            Length::Shrink | Length::Fixed(_) => Length::Shrink,
+        }
+    }
 }
 
 impl From<Pixels> for Length {

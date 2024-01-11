@@ -71,11 +71,14 @@ where
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+        let content = content.into();
+        let size = content.as_widget().size_hint();
+
         Button {
-            content: content.into(),
+            content,
             on_press: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: size.width.fluid(),
+            height: size.height.fluid(),
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
         }

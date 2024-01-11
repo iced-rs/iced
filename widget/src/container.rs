@@ -52,16 +52,8 @@ where
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: if size.width.is_fill() {
-                Length::Fill
-            } else {
-                Length::Shrink
-            },
-            height: if size.height.is_fill() {
-                Length::Fill
-            } else {
-                Length::Shrink
-            },
+            width: size.width.fluid(),
+            height: size.height.fluid(),
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
