@@ -125,7 +125,7 @@ impl Application for WebSocket {
 
             let mut button = button(
                 text("Send")
-                    .height(Length::Fill)
+                    .height(40)
                     .vertical_alignment(alignment::Vertical::Center),
             )
             .padding([0, 20]);
