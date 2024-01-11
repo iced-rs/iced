@@ -166,13 +166,10 @@ where
         };
 
         if fill_main_factor != 0 {
-            let max_main = if fill_main_factor == 0 {
-                available.max(0.0)
-            } else {
-                remaining * fill_main_factor as f32 / fill_main_sum as f32
-            };
+            let max_main =
+                remaining * fill_main_factor as f32 / fill_main_sum as f32;
 
-            let min_main = if fill_main_factor == 0 || max_main.is_infinite() {
+            let min_main = if max_main.is_infinite() {
                 0.0
             } else {
                 max_main
@@ -184,9 +181,7 @@ where
                 cross
             };
 
-            let (min_width, min_height) =
-                axis.pack(min_main, axis.cross(limits.min()));
-
+            let (min_width, min_height) = axis.pack(min_main, 0.0);
             let (max_width, max_height) = axis.pack(max_main, max_cross);
 
             let child_limits = Limits::new(
