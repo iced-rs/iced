@@ -25,6 +25,8 @@ use futures::channel::mpsc;
 
 use std::mem::ManuallyDrop;
 
+use raw_window_handle::HasRawWindowHandle;
+
 /// An interactive, native cross-platform application.
 ///
 /// This trait is the main entrypoint of Iced. Once implemented, you can run
@@ -807,6 +809,9 @@ pub fn run_command<A, C, E>(
                         .send_event(tag(window.id().into()))
                         .expect("Send message to event loop");
                 }
+                window::Action::FetchHandle(_id, tag) => proxy
+                    .send_event(tag(window.raw_window_handle()))
+                    .expect("Send message to event loop"),
                 window::Action::Screenshot(_id, tag) => {
                     let bytes = compositor.screenshot(
                         renderer,

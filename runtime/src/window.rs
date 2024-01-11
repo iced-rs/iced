@@ -15,6 +15,8 @@ use crate::core::{Point, Size};
 use crate::futures::event;
 use crate::futures::Subscription;
 
+use raw_window_handle::RawWindowHandle;
+
 /// Subscribes to the frames of the window of the running application.
 ///
 /// The resulting [`Subscription`] will produce items at a rate equal to the
@@ -163,6 +165,17 @@ pub fn fetch_id<Message>(
     f: impl FnOnce(u64) -> Message + 'static,
 ) -> Command<Message> {
     Command::single(command::Action::Window(Action::FetchId(id, Box::new(f))))
+}
+
+/// Fetches the raw window handle for the specified window.
+pub fn fetch_handle<Message>(
+    id: Id,
+    f: impl FnOnce(RawWindowHandle) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchHandle(
+        id,
+        Box::new(f),
+    )))
 }
 
 /// Changes the [`Icon`] of the window.

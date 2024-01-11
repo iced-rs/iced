@@ -3,6 +3,8 @@ use crate::core::{Point, Size};
 use crate::futures::MaybeSend;
 use crate::window::Screenshot;
 
+use raw_window_handle::RawWindowHandle;
+
 use std::fmt;
 
 /// An operation to be performed on some window.
@@ -81,6 +83,8 @@ pub enum Action<T> {
     ChangeLevel(Id, Level),
     /// Fetch the raw identifier unique to the window.
     FetchId(Id, Box<dyn FnOnce(u64) -> T + 'static>),
+    /// Fetch the raw window handle.
+    FetchHandle(Id, Box<dyn FnOnce(RawWindowHandle) -> T + 'static>),
     /// Change the window [`Icon`].
     ///
     /// On Windows and X11, this is typically the small icon in the top-left
@@ -140,6 +144,9 @@ impl<T> Action<T> {
             Self::FetchId(id, o) => {
                 Action::FetchId(id, Box::new(move |s| f(o(s))))
             }
+            Self::FetchHandle(id, o) => {
+                Action::FetchHandle(id, Box::new(move |s| f(o(s))))
+            }
             Self::ChangeIcon(id, icon) => Action::ChangeIcon(id, icon),
             Self::Screenshot(id, tag) => Action::Screenshot(
                 id,
@@ -194,6 +201,9 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::ChangeLevel({id:?}, {level:?})")
             }
             Self::FetchId(id, _) => write!(f, "Action::FetchId({id:?})"),
+            Self::FetchHandle(id, _) => {
+                write!(f, "Action::FetchHandle({id:?})")
+            }
             Self::ChangeIcon(id, _icon) => {
                 write!(f, "Action::ChangeIcon({id:?})")
             }

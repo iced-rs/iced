@@ -26,6 +26,8 @@ use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 use std::time::Instant;
 
+use raw_window_handle::HasRawWindowHandle;
+
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
 /// This trait is the main entrypoint of multi-window Iced. Once implemented, you can run
@@ -1036,6 +1038,13 @@ fn run_command<A, C, E>(
                     if let Some(window) = window_manager.get_mut(id) {
                         proxy
                             .send_event(tag(window.raw.id().into()))
+                            .expect("Event loop doesn't exist.");
+                    }
+                }
+                window::Action::FetchHandle(id, tag) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        proxy
+                            .send_event(tag(window.raw.raw_window_handle()))
                             .expect("Event loop doesn't exist.");
                     }
                 }

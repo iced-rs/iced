@@ -31,6 +31,7 @@ thiserror.workspace = true
 tracing.workspace = true
 window_clipboard.workspace = true
 winit.workspace = true
+raw-window-handle.workspace = true
 
 sysinfo.workspace = true
 sysinfo.optional = true
