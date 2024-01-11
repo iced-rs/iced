@@ -187,38 +187,43 @@ impl core::text::Paragraph for Paragraph {
     }
 
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
+        use unicode_segmentation::UnicodeSegmentation;
+
         let run = self.internal().buffer.layout_runs().nth(line)?;
 
         // index represents a grapheme, not a glyph
         // Let's find the first glyph for the given grapheme cluster
         let mut last_start = None;
+        let mut last_grapheme_count = 0;
         let mut graphemes_seen = 0;
 
         let glyph = run
             .glyphs
             .iter()
             .find(|glyph| {
-                if graphemes_seen == index {
-                    return true;
-                }
-
                 if Some(glyph.start) != last_start {
+                    last_grapheme_count = run.text[glyph.start..glyph.end]
+                        .graphemes(false)
+                        .count();
                     last_start = Some(glyph.start);
-                    graphemes_seen += 1;
+                    graphemes_seen += last_grapheme_count;
                 }
 
-                false
+                graphemes_seen >= index
             })
             .or_else(|| run.glyphs.last())?;
 
-        let advance_last = if index == run.glyphs.len() {
-            glyph.w
-        } else {
+        let advance = if index == 0 {
             0.0
+        } else {
+            glyph.w
+                * (1.0
+                    - graphemes_seen.saturating_sub(index) as f32
+                        / last_grapheme_count.max(1) as f32)
         };
 
         Some(Point::new(
-            glyph.x + glyph.x_offset * glyph.font_size + advance_last,
+            glyph.x + glyph.x_offset * glyph.font_size + advance,
             glyph.y - glyph.y_offset * glyph.font_size,
         ))
     }
