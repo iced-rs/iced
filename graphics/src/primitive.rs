@@ -57,6 +57,8 @@ pub enum Primitive<T> {
         /// The clip bounds of the editor.
         clip_bounds: Rectangle,
     },
+    /// A raw `cosmic-text` primitive
+    RawText(crate::text::Raw),
     /// A quad primitive
     Quad {
         /// The bounds of the quad

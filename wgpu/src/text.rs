@@ -7,6 +7,7 @@ use crate::layer::Text;
 
 use std::borrow::Cow;
 use std::cell::RefCell;
+use std::sync::Arc;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
@@ -76,6 +77,7 @@ impl Pipeline {
             Paragraph(Paragraph),
             Editor(Editor),
             Cache(cache::KeyHash),
+            Raw(Arc<glyphon::Buffer>),
         }
 
         let allocations: Vec<_> = sections
@@ -107,6 +109,7 @@ impl Pipeline {
 
                     Some(Allocation::Cache(key))
                 }
+                Text::Raw(text) => text.buffer.upgrade().map(Allocation::Raw),
             })
             .collect();
 
@@ -181,6 +184,25 @@ impl Pipeline {
                             ),
                             text.horizontal_alignment,
                             text.vertical_alignment,
+                            text.color,
+                            text.clip_bounds,
+                        )
+                    }
+                    Text::Raw(text) => {
+                        let Some(Allocation::Raw(buffer)) = allocation else {
+                            return None;
+                        };
+
+                        let (width, height) = buffer.size();
+
+                        (
+                            buffer.as_ref(),
+                            Rectangle::new(
+                                text.position,
+                                Size::new(width, height),
+                            ),
+                            alignment::Horizontal::Left,
+                            alignment::Vertical::Top,
                             text.color,
                             text.clip_bounds,
                         )
