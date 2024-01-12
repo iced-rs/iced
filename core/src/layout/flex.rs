@@ -20,7 +20,7 @@ use crate::Element;
 
 use crate::layout::{Limits, Node};
 use crate::widget;
-use crate::{Alignment, Padding, Point, Size};
+use crate::{Alignment, Length, Padding, Point, Size};
 
 /// The main axis of a flex layout.
 #[derive(Debug)]
@@ -47,7 +47,7 @@ impl Axis {
         }
     }
 
-    fn pack(&self, main: f32, cross: f32) -> (f32, f32) {
+    fn pack<T>(&self, main: T, cross: T) -> (T, T) {
         match self {
             Axis::Horizontal => (main, cross),
             Axis::Vertical => (cross, main),
@@ -63,6 +63,8 @@ pub fn resolve<Message, Renderer>(
     axis: Axis,
     renderer: &Renderer,
     limits: &Limits,
+    width: Length,
+    height: Length,
     padding: Padding,
     spacing: f32,
     align_items: Alignment,
@@ -72,26 +74,64 @@ pub fn resolve<Message, Renderer>(
 where
     Renderer: crate::Renderer,
 {
-    let limits = limits.pad(padding);
+    let limits = limits.width(width).height(height).shrink(padding);
     let total_spacing = spacing * items.len().saturating_sub(1) as f32;
     let max_cross = axis.cross(limits.max());
 
-    let mut fill_sum = 0;
-    let mut cross = axis.cross(limits.min()).max(axis.cross(limits.fill()));
+    let mut fill_main_sum = 0;
+    let mut cross = match axis {
+        Axis::Horizontal => match height {
+            Length::Shrink => 0.0,
+            _ => max_cross,
+        },
+        Axis::Vertical => match width {
+            Length::Shrink => 0.0,
+            _ => max_cross,
+        },
+    };
+
     let mut available = axis.main(limits.max()) - total_spacing;
 
     let mut nodes: Vec<Node> = Vec::with_capacity(items.len());
     nodes.resize(items.len(), Node::default());
 
     for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
-        let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
-        }
-        .fill_factor();
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
 
-        if fill_factor == 0 {
-            let (max_width, max_height) = axis.pack(available, max_cross);
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
+
+        if fill_main_factor == 0 {
+            if fill_cross_factor == 0 {
+                let (max_width, max_height) = axis.pack(available, max_cross);
+
+                let child_limits =
+                    Limits::new(Size::ZERO, Size::new(max_width, max_height));
+
+                let layout =
+                    child.as_widget().layout(tree, renderer, &child_limits);
+                let size = layout.size();
+
+                available -= axis.main(size);
+                cross = cross.max(axis.cross(size));
+
+                nodes[i] = layout;
+            }
+        } else {
+            fill_main_sum += fill_main_factor;
+        }
+    }
+
+    for (i, (child, tree)) in items.iter().zip(trees.iter_mut()).enumerate() {
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
+
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
+
+        if fill_main_factor == 0 && fill_cross_factor != 0 {
+            let (max_width, max_height) = axis.pack(available, cross);
 
             let child_limits =
                 Limits::new(Size::ZERO, Size::new(max_width, max_height));
@@ -101,34 +141,47 @@ where
             let size = layout.size();
 
             available -= axis.main(size);
-            cross = cross.max(axis.cross(size));
+            cross = cross.max(axis.cross(layout.size()));
 
             nodes[i] = layout;
-        } else {
-            fill_sum += fill_factor;
         }
     }
 
-    let remaining = available.max(0.0);
+    let remaining = match axis {
+        Axis::Horizontal => match width {
+            Length::Shrink => 0.0,
+            _ => available.max(0.0),
+        },
+        Axis::Vertical => match height {
+            Length::Shrink => 0.0,
+            _ => available.max(0.0),
+        },
+    };
 
     for (i, (child, tree)) in items.iter().zip(trees).enumerate() {
-        let fill_factor = match axis {
-            Axis::Horizontal => child.as_widget().width(),
-            Axis::Vertical => child.as_widget().height(),
-        }
-        .fill_factor();
+        let (fill_main_factor, fill_cross_factor) = {
+            let size = child.as_widget().size();
 
-        if fill_factor != 0 {
-            let max_main = remaining * fill_factor as f32 / fill_sum as f32;
+            axis.pack(size.width.fill_factor(), size.height.fill_factor())
+        };
+
+        if fill_main_factor != 0 {
+            let max_main =
+                remaining * fill_main_factor as f32 / fill_main_sum as f32;
+
             let min_main = if max_main.is_infinite() {
                 0.0
             } else {
                 max_main
             };
 
-            let (min_width, min_height) =
-                axis.pack(min_main, axis.cross(limits.min()));
+            let max_cross = if fill_cross_factor == 0 {
+                max_cross
+            } else {
+                cross
+            };
 
+            let (min_width, min_height) = axis.pack(min_main, 0.0);
             let (max_width, max_height) = axis.pack(max_main, max_cross);
 
             let child_limits = Limits::new(
@@ -154,18 +207,18 @@ where
 
         let (x, y) = axis.pack(main, pad.1);
 
-        node.move_to(Point::new(x, y));
+        node.move_to_mut(Point::new(x, y));
 
         match axis {
             Axis::Horizontal => {
-                node.align(
+                node.align_mut(
                     Alignment::Start,
                     align_items,
                     Size::new(0.0, cross),
                 );
             }
             Axis::Vertical => {
-                node.align(
+                node.align_mut(
                     align_items,
                     Alignment::Start,
                     Size::new(cross, 0.0),
@@ -178,8 +231,12 @@ where
         main += axis.main(size);
     }
 
-    let (width, height) = axis.pack(main - pad.0, cross);
-    let size = limits.resolve(Size::new(width, height));
+    let (intrinsic_width, intrinsic_height) = axis.pack(main - pad.0, cross);
+    let size = limits.resolve(
+        width,
+        height,
+        Size::new(intrinsic_width, intrinsic_height),
+    );
 
-    Node::with_children(size.pad(padding), nodes)
+    Node::with_children(size.expand(padding), nodes)
 }

@@ -16,12 +16,11 @@ mod rainbow {
     }
 
     impl<Message> Widget<Message, Renderer> for Rainbow {
-        fn width(&self) -> Length {
-            Length::Fill
-        }
-
-        fn height(&self) -> Length {
-            Length::Shrink
+        fn size(&self) -> Size<Length> {
+            Size {
+                width: Length::Fill,
+                height: Length::Shrink,
+            }
         }
 
         fn layout(
@@ -30,9 +29,9 @@ mod rainbow {
             _renderer: &Renderer,
             limits: &layout::Limits,
         ) -> layout::Node {
-            let size = limits.width(Length::Fill).resolve(Size::ZERO);
+            let width = limits.max().width;
 
-            layout::Node::new(Size::new(size.width, size.width))
+            layout::Node::new(Size::new(width, width))
         }
 
         fn draw(

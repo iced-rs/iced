@@ -97,12 +97,11 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -113,10 +112,11 @@ where
     ) -> layout::Node {
         let Size { width, height } = renderer.dimensions(&self.handle);
 
-        let mut size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(Size::new(width as f32, height as f32));
+        let mut size = limits.resolve(
+            self.width,
+            self.height,
+            Size::new(width as f32, height as f32),
+        );
 
         let expansion_size = if height > width {
             self.width

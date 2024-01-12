@@ -82,8 +82,7 @@ impl Application for Events {
             self.last
                 .iter()
                 .map(|event| text(format!("{event:?}")).size(40))
-                .map(Element::from)
-                .collect(),
+                .map(Element::from),
         );
 
         let toggle = checkbox(

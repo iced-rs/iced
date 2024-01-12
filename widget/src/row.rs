@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
     Alignment, Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell,
-    Widget,
+    Size, Widget,
 };
 
 /// A container that distributes its contents horizontally.
@@ -21,24 +21,27 @@ pub struct Row<'a, Message, Renderer = crate::Renderer> {
     children: Vec<Element<'a, Message, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Row<'a, Message, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
     /// Creates an empty [`Row`].
     pub fn new() -> Self {
-        Self::with_children(Vec::new())
-    }
-
-    /// Creates a [`Row`] with the given elements.
-    pub fn with_children(
-        children: Vec<Element<'a, Message, Renderer>>,
-    ) -> Self {
         Row {
             spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
             height: Length::Shrink,
             align_items: Alignment::Start,
-            children,
+            children: Vec::new(),
         }
+    }
+
+    /// Creates a [`Row`] with the given elements.
+    pub fn with_children(
+        children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
+    ) -> Self {
+        children.into_iter().fold(Self::new(), Self::push)
     }
 
     /// Sets the horizontal spacing _between_ elements.
@@ -80,12 +83,26 @@ impl<'a, Message, Renderer> Row<'a, Message, Renderer> {
         mut self,
         child: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
-        self.children.push(child.into());
+        let child = child.into();
+        let size = child.as_widget().size_hint();
+
+        if size.width.is_fill() {
+            self.width = Length::Fill;
+        }
+
+        if size.height.is_fill() {
+            self.height = Length::Fill;
+        }
+
+        self.children.push(child);
         self
     }
 }
 
-impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer> {
+impl<'a, Message, Renderer> Default for Row<'a, Message, Renderer>
+where
+    Renderer: crate::core::Renderer,
+{
     fn default() -> Self {
         Self::new()
     }
@@ -104,12 +121,11 @@ where
         tree.diff_children(&self.children);
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -118,12 +134,12 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-
         layout::flex::resolve(
             layout::flex::Axis::Horizontal,
             renderer,
-            &limits,
+            limits,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align_items,

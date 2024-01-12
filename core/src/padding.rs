@@ -154,3 +154,9 @@ impl From<[f32; 4]> for Padding {
         }
     }
 }
+
+impl From<Padding> for Size {
+    fn from(padding: Padding) -> Self {
+        Self::new(padding.horizontal(), padding.vertical())
+    }
+}

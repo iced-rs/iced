@@ -50,12 +50,11 @@ impl<'a> QRCode<'a> {
 }
 
 impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
-    fn width(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(

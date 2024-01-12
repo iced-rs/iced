@@ -99,7 +99,7 @@ where
     };
 
     // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.width(width).height(height).resolve(image_size);
+    let raw_size = limits.resolve(width, height, image_size);
 
     // The uncropped size of the image when fit to the bounds above
     let full_size = content_fit.fit(image_size, raw_size);
@@ -164,12 +164,11 @@ where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(

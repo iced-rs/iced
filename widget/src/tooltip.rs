@@ -131,12 +131,8 @@ where
         widget::tree::Tag::of::<State>()
     }
 
-    fn width(&self) -> Length {
-        self.content.as_widget().width()
-    }
-
-    fn height(&self) -> Length {
-        self.content.as_widget().height()
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
     fn layout(
@@ -353,7 +349,7 @@ where
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .pad(Padding::new(self.padding)),
+            .shrink(Padding::new(self.padding)),
         );
 
         let text_bounds = text_layout.bounds();

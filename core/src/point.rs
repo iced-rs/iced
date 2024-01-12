@@ -36,20 +36,26 @@ impl<T: Num> Point<T> {
     }
 }
 
-impl From<[f32; 2]> for Point {
-    fn from([x, y]: [f32; 2]) -> Self {
+impl<T> From<[T; 2]> for Point<T>
+where
+    T: Num,
+{
+    fn from([x, y]: [T; 2]) -> Self {
         Point { x, y }
     }
 }
 
-impl From<[u16; 2]> for Point<u16> {
-    fn from([x, y]: [u16; 2]) -> Self {
-        Point::new(x, y)
+impl<T> From<(T, T)> for Point<T>
+where
+    T: Num,
+{
+    fn from((x, y): (T, T)) -> Self {
+        Self { x, y }
     }
 }
 
-impl From<Point> for [f32; 2] {
-    fn from(point: Point) -> [f32; 2] {
+impl<T> From<Point<T>> for [T; 2] {
+    fn from(point: Point<T>) -> [T; 2] {
         [point.x, point.y]
     }
 }

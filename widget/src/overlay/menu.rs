@@ -254,15 +254,14 @@ where
         )
         .width(self.width);
 
-        let mut node = self.container.layout(self.state, renderer, &limits);
+        let node = self.container.layout(self.state, renderer, &limits);
+        let size = node.size();
 
         node.move_to(if space_below > space_above {
             position + Vector::new(0.0, self.target_height)
         } else {
-            position - Vector::new(0.0, node.size().height)
-        });
-
-        node
+            position - Vector::new(0.0, size.height)
+        })
     }
 
     fn on_event(
@@ -343,12 +342,11 @@ where
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet,
 {
-    fn width(&self) -> Length {
-        Length::Fill
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fill,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -359,7 +357,6 @@ where
     ) -> layout::Node {
         use std::f32;
 
-        let limits = limits.width(Length::Fill).height(Length::Shrink);
         let text_size =
             self.text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -372,7 +369,7 @@ where
                     * self.options.len() as f32,
             );
 
-            limits.resolve(intrinsic)
+            limits.resolve(Length::Fill, Length::Shrink, intrinsic)
         };
 
         layout::Node::new(size)

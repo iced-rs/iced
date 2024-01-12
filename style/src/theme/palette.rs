@@ -82,6 +82,8 @@ pub struct Extended {
     pub success: Success,
     /// The set of danger colors.
     pub danger: Danger,
+    /// Whether the palette is dark or not.
+    pub is_dark: bool,
 }
 
 /// The built-in light variant of an [`Extended`] palette.
@@ -113,6 +115,7 @@ impl Extended {
                 palette.background,
                 palette.text,
             ),
+            is_dark: is_dark(palette.background),
         }
     }
 }

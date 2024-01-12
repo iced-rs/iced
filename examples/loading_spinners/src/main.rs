@@ -96,15 +96,14 @@ impl Application for LoadingSpinners {
 
         container(
             column.push(
-                row(vec![
-                    text("Cycle duration:").into(),
+                row![
+                    text("Cycle duration:"),
                     slider(1.0..=1000.0, self.cycle_duration * 100.0, |x| {
                         Message::CycleDurationChanged(x / 100.0)
                     })
-                    .width(200.0)
-                    .into(),
-                    text(format!("{:.2}s", self.cycle_duration)).into(),
-                ])
+                    .width(200.0),
+                    text(format!("{:.2}s", self.cycle_duration)),
+                ]
                 .align_items(iced::Alignment::Center)
                 .spacing(20.0),
             ),

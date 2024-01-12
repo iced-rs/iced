@@ -244,12 +244,11 @@ where
         tree::State::new(State::default())
     }
 
-    fn width(&self) -> Length {
-        Length::Fixed(self.size)
-    }
-
-    fn height(&self) -> Length {
-        Length::Fixed(self.size)
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fixed(self.size),
+            height: Length::Fixed(self.size),
+        }
     }
 
     fn layout(
@@ -258,10 +257,7 @@ where
         _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.size).height(self.size);
-        let size = limits.resolve(Size::ZERO);
-
-        layout::Node::new(size)
+        layout::atomic(limits, self.size, self.size)
     }
 
     fn on_event(

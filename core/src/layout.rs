@@ -7,7 +7,7 @@ pub mod flex;
 pub use limits::Limits;
 pub use node::Node;
 
-use crate::{Point, Rectangle, Size, Vector};
+use crate::{Length, Padding, Point, Rectangle, Size, Vector};
 
 /// The bounds of a [`Node`] and its children, using absolute coordinates.
 #[derive(Debug, Clone, Copy)]
@@ -71,12 +71,12 @@ pub fn next_to_each_other(
     left: impl FnOnce(&Limits) -> Node,
     right: impl FnOnce(&Limits) -> Node,
 ) -> Node {
-    let mut left_node = left(limits);
+    let left_node = left(limits);
     let left_size = left_node.size();
 
     let right_limits = limits.shrink(Size::new(left_size.width + spacing, 0.0));
 
-    let mut right_node = right(&right_limits);
+    let right_node = right(&right_limits);
     let right_size = right_node.size();
 
     let (left_y, right_y) = if left_size.height > right_size.height {
@@ -85,14 +85,106 @@ pub fn next_to_each_other(
         ((right_size.height - left_size.height) / 2.0, 0.0)
     };
 
-    left_node.move_to(Point::new(0.0, left_y));
-    right_node.move_to(Point::new(left_size.width + spacing, right_y));
-
     Node::with_children(
         Size::new(
             left_size.width + spacing + right_size.width,
             left_size.height.max(right_size.height),
         ),
-        vec![left_node, right_node],
+        vec![
+            left_node.move_to(Point::new(0.0, left_y)),
+            right_node.move_to(Point::new(left_size.width + spacing, right_y)),
+        ],
+    )
+}
+
+/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// some width and height requirements and no intrinsic size.
+pub fn atomic(
+    limits: &Limits,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+) -> Node {
+    let width = width.into();
+    let height = height.into();
+
+    Node::new(limits.resolve(width, height, Size::ZERO))
+}
+
+/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// some width and height requirements and a closure that produces
+/// the intrinsic [`Size`] inside the given [`Limits`].
+pub fn sized(
+    limits: &Limits,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+    f: impl FnOnce(&Limits) -> Size,
+) -> Node {
+    let width = width.into();
+    let height = height.into();
+
+    let limits = limits.width(width).height(height);
+    let intrinsic_size = f(&limits);
+
+    Node::new(limits.resolve(width, height, intrinsic_size))
+}
+
+/// Computes the resulting [`Node`] that fits the [`Limits`] given
+/// some width and height requirements and a closure that produces
+/// the content [`Node`] inside the given [`Limits`].
+pub fn contained(
+    limits: &Limits,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+    f: impl FnOnce(&Limits) -> Node,
+) -> Node {
+    let width = width.into();
+    let height = height.into();
+
+    let limits = limits.width(width).height(height);
+    let content = f(&limits);
+
+    Node::with_children(
+        limits.resolve(width, height, content.size()),
+        vec![content],
+    )
+}
+
+/// Computes the [`Node`] that fits the [`Limits`] given some width, height, and
+/// [`Padding`] requirements and a closure that produces the content [`Node`]
+/// inside the given [`Limits`].
+pub fn padded(
+    limits: &Limits,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+    padding: impl Into<Padding>,
+    layout: impl FnOnce(&Limits) -> Node,
+) -> Node {
+    positioned(limits, width, height, padding, layout, |content, _| content)
+}
+
+/// Computes a [`padded`] [`Node`] with a positioning step.
+pub fn positioned(
+    limits: &Limits,
+    width: impl Into<Length>,
+    height: impl Into<Length>,
+    padding: impl Into<Padding>,
+    layout: impl FnOnce(&Limits) -> Node,
+    position: impl FnOnce(Node, Size) -> Node,
+) -> Node {
+    let width = width.into();
+    let height = height.into();
+    let padding = padding.into();
+
+    let limits = limits.width(width).height(height);
+    let content = layout(&limits.shrink(padding));
+    let padding = padding.fit(content.size(), limits.max());
+
+    let size = limits
+        .shrink(padding)
+        .resolve(width, height, content.size());
+
+    Node::with_children(
+        size.expand(padding),
+        vec![position(content.move_to((padding.left, padding.top)), size)],
     )
 }

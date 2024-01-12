@@ -1,4 +1,4 @@
-use crate::{Padding, Vector};
+use crate::Vector;
 
 /// An amount of space in 2 dimensions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -26,15 +26,7 @@ impl Size {
     /// A [`Size`] with infinite width and height.
     pub const INFINITY: Size = Size::new(f32::INFINITY, f32::INFINITY);
 
-    /// Increments the [`Size`] to account for the given padding.
-    pub fn pad(&self, padding: Padding) -> Self {
-        Size {
-            width: self.width + padding.horizontal(),
-            height: self.height + padding.vertical(),
-        }
-    }
-
-    /// Returns the minimum of each component of this size and another
+    /// Returns the minimum of each component of this size and another.
     pub fn min(self, other: Self) -> Self {
         Size {
             width: self.width.min(other.width),
@@ -42,11 +34,21 @@ impl Size {
         }
     }
 
-    /// Returns the maximum of each component of this size and another
+    /// Returns the maximum of each component of this size and another.
     pub fn max(self, other: Self) -> Self {
         Size {
             width: self.width.max(other.width),
             height: self.height.max(other.height),
+        }
+    }
+
+    /// Expands this [`Size`] by the given amount.
+    pub fn expand(self, other: impl Into<Size>) -> Self {
+        let other = other.into();
+
+        Size {
+            width: self.width + other.width,
+            height: self.height + other.height,
         }
     }
 }
