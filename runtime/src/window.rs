@@ -160,6 +160,11 @@ pub fn change_level<Message>(id: Id, level: Level) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeLevel(id, level)))
 }
 
+/// Show window menu at cursor position.
+pub fn show_window_menu<Message>(id: Id) -> Command<Message> {
+    Command::single(command::Action::Window(Action::ShowWindowMenu(id)))
+}
+
 /// Fetches an identifier unique to the window, provided by the underlying windowing system. This is
 /// not to be confused with [`Id`].
 pub fn fetch_id<Message>(
