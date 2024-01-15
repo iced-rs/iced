@@ -12,4 +12,4 @@ iced.features = ["highlighter", "tokio", "debug"]
 tokio.workspace = true
 tokio.features = ["fs"]
 
-rfd = "0.12"
+rfd = "0.13"
