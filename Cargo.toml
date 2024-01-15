@@ -126,7 +126,7 @@ bytemuck = { version = "1.0", features = ["derive"] }
 cosmic-text = "0.10"
 futures = "0.3"
 glam = "0.24"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "2caa9fc5e5923c1d827d177c3619cab7e9885b85" }
+glyphon = "0.4"
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
