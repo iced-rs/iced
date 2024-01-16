@@ -1,5 +1,5 @@
 //! Identify keyboard keys.
-use smol_str::SmolStr;
+use crate::SmolStr;
 
 /// A key on the keyboard.
 ///

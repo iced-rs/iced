@@ -225,9 +225,7 @@ pub fn window_event(
                         key,
                         modifiers,
                         location,
-                        text: text
-                            .as_ref()
-                            .map(winit::keyboard::SmolStr::to_string),
+                        text,
                     }
                 }
                 winit::event::ElementState::Released => {

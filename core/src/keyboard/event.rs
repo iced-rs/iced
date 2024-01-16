@@ -1,4 +1,5 @@
 use crate::keyboard::{Key, Location, Modifiers};
+use crate::SmolStr;
 
 /// A keyboard event.
 ///
@@ -20,7 +21,7 @@ pub enum Event {
         modifiers: Modifiers,
 
         /// The text produced by the key press, if any.
-        text: Option<String>,
+        text: Option<SmolStr>,
     },
 
     /// A keyboard key was released.
