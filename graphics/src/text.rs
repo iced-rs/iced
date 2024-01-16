@@ -9,7 +9,6 @@ pub use paragraph::Paragraph;
 
 pub use cosmic_text;
 
-use crate::color;
 use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
 use crate::core::{Color, Point, Rectangle, Size};
@@ -173,12 +172,7 @@ pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
 
 /// Converts some [`Color`] to a [`cosmic_text::Color`].
 pub fn to_color(color: Color) -> cosmic_text::Color {
-    let [r, g, b, a] = color::pack(color).components();
+    let [r, g, b, a] = color.into_rgba8();
 
-    cosmic_text::Color::rgba(
-        (r * 255.0) as u8,
-        (g * 255.0) as u8,
-        (b * 255.0) as u8,
-        (a * 255.0) as u8,
-    )
+    cosmic_text::Color::rgba(r, g, b, a)
 }

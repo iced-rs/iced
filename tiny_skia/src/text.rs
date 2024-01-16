@@ -1,7 +1,6 @@
 use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
 use crate::core::{Color, Font, Pixels, Point, Rectangle, Size};
-use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::editor;
 use crate::graphics::text::font_system;
@@ -244,18 +243,7 @@ fn draw(
 fn from_color(color: cosmic_text::Color) -> Color {
     let [r, g, b, a] = color.as_rgba();
 
-    if color::GAMMA_CORRECTION {
-        // `cosmic_text::Color` is linear RGB in this case, so we
-        // need to convert back to sRGB
-        Color::from_linear_rgba(
-            r as f32 / 255.0,
-            g as f32 / 255.0,
-            b as f32 / 255.0,
-            a as f32 / 255.0,
-        )
-    } else {
-        Color::from_rgba8(r, g, b, a as f32 / 255.0)
-    }
+    Color::from_rgba8(r, g, b, a as f32 / 255.0)
 }
 
 #[derive(Debug, Clone, Default)]
