@@ -1,5 +1,6 @@
 use crate::core::{Background, Color, Gradient, Rectangle, Vector};
 use crate::graphics::backend;
+use crate::graphics::text;
 use crate::graphics::Viewport;
 use crate::primitive::{self, Primitive};
 
@@ -439,6 +440,35 @@ impl Backend {
                     *horizontal_alignment,
                     *vertical_alignment,
                     *shaping,
+                    scale_factor,
+                    pixels,
+                    clip_mask,
+                );
+            }
+            Primitive::RawText(text::Raw {
+                buffer,
+                position,
+                color,
+                clip_bounds: text_clip_bounds,
+            }) => {
+                let Some(buffer) = buffer.upgrade() else {
+                    return;
+                };
+
+                let physical_bounds =
+                    (*text_clip_bounds + translation) * scale_factor;
+
+                if !clip_bounds.intersects(&physical_bounds) {
+                    return;
+                }
+
+                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
+                    .then_some(clip_mask as &_);
+
+                self.text_pipeline.draw_raw(
+                    &buffer,
+                    *position + translation,
+                    *color,
                     scale_factor,
                     pixels,
                     clip_mask,

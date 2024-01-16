@@ -63,7 +63,6 @@ impl Sandbox for Tiger {
                 container(apply_color_filter).width(Length::Fill).center_x()
             ]
             .spacing(20)
-            .width(Length::Fill)
             .height(Length::Fill),
         )
         .width(Length::Fill)

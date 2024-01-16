@@ -146,7 +146,8 @@ impl Application for GameOfLife {
                 .view()
                 .map(move |message| Message::Grid(message, version)),
             controls,
-        ];
+        ]
+        .height(Length::Fill);
 
         container(content)
             .width(Length::Fill)
@@ -178,7 +179,6 @@ fn view_controls<'a>(
         slider(1.0..=1000.0, speed as f32, Message::SpeedChanged),
         text(format!("x{speed}")).size(16),
     ]
-    .width(Length::Fill)
     .align_items(Alignment::Center)
     .spacing(10);
 

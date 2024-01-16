@@ -915,9 +915,23 @@ fn run_command<A, C, E>(
                             .expect("Send message to event loop");
                     }
                 }
+                window::Action::FetchMaximized(id, callback) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        proxy
+                            .send_event(callback(window.raw.is_maximized()))
+                            .expect("Send message to event loop");
+                    }
+                }
                 window::Action::Maximize(id, maximized) => {
                     if let Some(window) = window_manager.get_mut(id) {
                         window.raw.set_maximized(maximized);
+                    }
+                }
+                window::Action::FetchMinimized(id, callback) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        proxy
+                            .send_event(callback(window.raw.is_minimized()))
+                            .expect("Send message to event loop");
                     }
                 }
                 window::Action::Minimize(id, minimized) => {

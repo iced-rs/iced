@@ -717,8 +717,18 @@ pub fn run_command<A, C, E>(
                         )))
                         .expect("Send message to event loop");
                 }
+                window::Action::FetchMaximized(_id, callback) => {
+                    proxy
+                        .send_event(callback(window.is_maximized()))
+                        .expect("Send message to event loop");
+                }
                 window::Action::Maximize(_id, maximized) => {
                     window.set_maximized(maximized);
+                }
+                window::Action::FetchMinimized(_id, callback) => {
+                    proxy
+                        .send_event(callback(window.is_minimized()))
+                        .expect("Send message to event loop");
                 }
                 window::Action::Minimize(_id, minimized) => {
                     window.set_minimized(minimized);

@@ -10,8 +10,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Point,
-    Rectangle, Shell, Vector, Widget,
+    Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -71,11 +71,14 @@ where
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+        let content = content.into();
+        let size = content.as_widget().size_hint();
+
         Button {
-            content: content.into(),
+            content,
             on_press: None,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: size.width.fluid(),
+            height: size.height.fluid(),
             padding: Padding::new(5.0),
             style: <Renderer::Theme as StyleSheet>::Style::default(),
         }
@@ -149,12 +152,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content));
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -431,15 +433,7 @@ pub fn layout(
     padding: Padding,
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height);
-
-    let mut content = layout_content(&limits.pad(padding));
-    let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size()).pad(padding);
-
-    content.move_to(Point::new(padding.left, padding.top));
-
-    layout::Node::with_children(size, vec![content])
+    layout::padded(limits, width, height, padding, layout_content)
 }
 
 /// Returns the [`mouse::Interaction`] of a [`Button`].

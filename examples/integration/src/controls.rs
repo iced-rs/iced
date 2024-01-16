@@ -81,32 +81,25 @@ impl Program for Controls {
             );
 
         Row::new()
-            .width(Length::Fill)
             .height(Length::Fill)
             .align_items(Alignment::End)
             .push(
-                Column::new()
-                    .width(Length::Fill)
-                    .align_items(Alignment::End)
-                    .push(
-                        Column::new()
-                            .padding(10)
-                            .spacing(10)
-                            .push(
-                                Text::new("Background color")
-                                    .style(Color::WHITE),
-                            )
-                            .push(sliders)
-                            .push(
-                                Text::new(format!("{background_color:?}"))
-                                    .size(14)
-                                    .style(Color::WHITE),
-                            )
-                            .push(
-                                text_input("Placeholder", text)
-                                    .on_input(Message::TextChanged),
-                            ),
-                    ),
+                Column::new().align_items(Alignment::End).push(
+                    Column::new()
+                        .padding(10)
+                        .spacing(10)
+                        .push(Text::new("Background color").style(Color::WHITE))
+                        .push(sliders)
+                        .push(
+                            Text::new(format!("{background_color:?}"))
+                                .size(14)
+                                .style(Color::WHITE),
+                        )
+                        .push(
+                            text_input("Placeholder", text)
+                                .on_input(Message::TextChanged),
+                        ),
+                ),
             )
             .into()
     }

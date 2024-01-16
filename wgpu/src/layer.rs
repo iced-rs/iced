@@ -177,6 +177,21 @@ impl<'a> Layer<'a> {
                     clip_bounds: *clip_bounds + translation,
                 }));
             }
+            graphics::Primitive::RawText(graphics::text::Raw {
+                buffer,
+                position,
+                color,
+                clip_bounds,
+            }) => {
+                let layer = &mut layers[current_layer];
+
+                layer.text.push(Text::Raw(graphics::text::Raw {
+                    buffer: buffer.clone(),
+                    position: *position + translation,
+                    color: *color,
+                    clip_bounds: *clip_bounds + translation,
+                }));
+            }
             Primitive::Quad {
                 bounds,
                 background,

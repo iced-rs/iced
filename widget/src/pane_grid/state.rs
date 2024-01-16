@@ -403,6 +403,15 @@ pub enum Action {
     ///
     /// [`PaneGrid`]: super::PaneGrid
     Idle,
+    /// A [`Pane`] in the [`PaneGrid`] is being clicked.
+    ///
+    /// [`PaneGrid`]: super::PaneGrid
+    Clicking {
+        /// The [`Pane`] being clicked.
+        pane: Pane,
+        /// The starting [`Point`] of the click interaction.
+        origin: Point,
+    },
     /// A [`Pane`] in the [`PaneGrid`] is being dragged.
     ///
     /// [`PaneGrid`]: super::PaneGrid
@@ -428,6 +437,14 @@ impl Action {
     pub fn picked_pane(&self) -> Option<(Pane, Point)> {
         match *self {
             Action::Dragging { pane, origin, .. } => Some((pane, origin)),
+            _ => None,
+        }
+    }
+
+    /// Returns the current [`Pane`] that is being clicked, if any.
+    pub fn clicked_pane(&self) -> Option<(Pane, Point)> {
+        match *self {
+            Action::Clicking { pane, origin, .. } => Some((pane, origin)),
             _ => None,
         }
     }

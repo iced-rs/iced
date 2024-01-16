@@ -58,7 +58,7 @@ pub enum Event {
     /// for each file separately.
     FileHovered(PathBuf),
 
-    /// A file has beend dropped into the window.
+    /// A file has been dropped into the window.
     ///
     /// When the user drops multiple files at once, this event will be emitted
     /// for each file separately.

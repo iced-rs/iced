@@ -64,6 +64,12 @@ where
         self
     }
 
+    /// Sets the [`text::Shaping`] strategy of the [`Tooltip`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.tooltip = self.tooltip.shaping(shaping);
+        self
+    }
+
     /// Sets the font of the [`Tooltip`].
     ///
     /// [`Font`]: Renderer::Font
@@ -125,12 +131,8 @@ where
         widget::tree::Tag::of::<State>()
     }
 
-    fn width(&self) -> Length {
-        self.content.as_widget().width()
-    }
-
-    fn height(&self) -> Length {
-        self.content.as_widget().height()
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
     fn layout(
@@ -347,7 +349,7 @@ where
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .pad(Padding::new(self.padding)),
+            .shrink(Padding::new(self.padding)),
         );
 
         let text_bounds = text_layout.bounds();

@@ -283,12 +283,11 @@ where
         }
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -506,14 +505,11 @@ where
 {
     let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = size.unwrap_or_else(|| renderer.default_size());
-
     let padding = padding.fit(Size::ZERO, limits.max());
-    let limits = limits
-        .width(width)
-        .pad(padding)
-        .height(line_height.to_absolute(text_size));
+    let height = line_height.to_absolute(text_size);
 
-    let text_bounds = limits.resolve(Size::ZERO);
+    let limits = limits.width(width).shrink(padding);
+    let text_bounds = limits.resolve(width, height, Size::ZERO);
 
     let placeholder_text = Text {
         font,
@@ -552,41 +548,41 @@ where
 
         let icon_width = state.icon.min_width();
 
-        let mut text_node = layout::Node::new(
-            text_bounds - Size::new(icon_width + icon.spacing, 0.0),
-        );
-
-        let mut icon_node =
-            layout::Node::new(Size::new(icon_width, text_bounds.height));
-
-        match icon.side {
-            Side::Left => {
-                text_node.move_to(Point::new(
+        let (text_position, icon_position) = match icon.side {
+            Side::Left => (
+                Point::new(
                     padding.left + icon_width + icon.spacing,
                     padding.top,
-                ));
-
-                icon_node.move_to(Point::new(padding.left, padding.top));
-            }
-            Side::Right => {
-                text_node.move_to(Point::new(padding.left, padding.top));
-
-                icon_node.move_to(Point::new(
+                ),
+                Point::new(padding.left, padding.top),
+            ),
+            Side::Right => (
+                Point::new(padding.left, padding.top),
+                Point::new(
                     padding.left + text_bounds.width - icon_width,
                     padding.top,
-                ));
-            }
+                ),
+            ),
         };
 
+        let text_node = layout::Node::new(
+            text_bounds - Size::new(icon_width + icon.spacing, 0.0),
+        )
+        .move_to(text_position);
+
+        let icon_node =
+            layout::Node::new(Size::new(icon_width, text_bounds.height))
+                .move_to(icon_position);
+
         layout::Node::with_children(
-            text_bounds.pad(padding),
+            text_bounds.expand(padding),
             vec![text_node, icon_node],
         )
     } else {
-        let mut text = layout::Node::new(text_bounds);
-        text.move_to(Point::new(padding.left, padding.top));
+        let text = layout::Node::new(text_bounds)
+            .move_to(Point::new(padding.left, padding.top));
 
-        layout::Node::with_children(text_bounds.pad(padding), vec![text])
+        layout::Node::with_children(text_bounds.expand(padding), vec![text])
     }
 }
 
@@ -1192,31 +1188,39 @@ pub fn draw<Renderer>(
         (None, 0.0)
     };
 
-    if let Some((cursor, color)) = cursor {
-        renderer.with_translation(Vector::new(-offset, 0.0), |renderer| {
-            renderer.fill_quad(cursor, color);
-        });
-    } else {
-        renderer.with_translation(Vector::ZERO, |_| {});
-    }
+    let draw = |renderer: &mut Renderer, viewport| {
+        if let Some((cursor, color)) = cursor {
+            renderer.with_translation(Vector::new(-offset, 0.0), |renderer| {
+                renderer.fill_quad(cursor, color);
+            });
+        } else {
+            renderer.with_translation(Vector::ZERO, |_| {});
+        }
 
-    renderer.fill_paragraph(
-        if text.is_empty() {
-            &state.placeholder
-        } else {
-            &state.value
-        },
-        Point::new(text_bounds.x, text_bounds.center_y())
-            - Vector::new(offset, 0.0),
-        if text.is_empty() {
-            theme.placeholder_color(style)
-        } else if is_disabled {
-            theme.disabled_color(style)
-        } else {
-            theme.value_color(style)
-        },
-        text_bounds,
-    );
+        renderer.fill_paragraph(
+            if text.is_empty() {
+                &state.placeholder
+            } else {
+                &state.value
+            },
+            Point::new(text_bounds.x, text_bounds.center_y())
+                - Vector::new(offset, 0.0),
+            if text.is_empty() {
+                theme.placeholder_color(style)
+            } else if is_disabled {
+                theme.disabled_color(style)
+            } else {
+                theme.value_color(style)
+            },
+            viewport,
+        );
+    };
+
+    if cursor.is_some() {
+        renderer.with_layer(text_bounds, |renderer| draw(renderer, *viewport));
+    } else {
+        draw(renderer, text_bounds);
+    }
 }
 
 /// Computes the current [`mouse::Interaction`] of the [`TextInput`].

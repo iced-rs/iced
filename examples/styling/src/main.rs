@@ -53,13 +53,16 @@ impl Sandbox for Styling {
                 self.theme = match theme {
                     ThemeType::Light => Theme::Light,
                     ThemeType::Dark => Theme::Dark,
-                    ThemeType::Custom => Theme::custom(theme::Palette {
-                        background: Color::from_rgb(1.0, 0.9, 1.0),
-                        text: Color::BLACK,
-                        primary: Color::from_rgb(0.5, 0.5, 0.0),
-                        success: Color::from_rgb(0.0, 1.0, 0.0),
-                        danger: Color::from_rgb(1.0, 0.0, 0.0),
-                    }),
+                    ThemeType::Custom => Theme::custom(
+                        String::from("Custom"),
+                        theme::Palette {
+                            background: Color::from_rgb(1.0, 0.9, 1.0),
+                            text: Color::BLACK,
+                            primary: Color::from_rgb(0.5, 0.5, 0.0),
+                            success: Color::from_rgb(0.0, 1.0, 0.0),
+                            danger: Color::from_rgb(1.0, 0.0, 0.0),
+                        },
+                    ),
                 }
             }
             Message::InputChanged(value) => self.input_value = value,
@@ -104,10 +107,11 @@ impl Sandbox for Styling {
 
         let progress_bar = progress_bar(0.0..=100.0, self.slider_value);
 
-        let scrollable = scrollable(
-            column!["Scroll me!", vertical_space(800), "You did it!"]
-                .width(Length::Fill),
-        )
+        let scrollable = scrollable(column![
+            "Scroll me!",
+            vertical_space(800),
+            "You did it!"
+        ])
         .width(Length::Fill)
         .height(100);
 

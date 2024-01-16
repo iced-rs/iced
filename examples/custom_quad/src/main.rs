@@ -26,12 +26,11 @@ mod quad {
     where
         Renderer: renderer::Renderer,
     {
-        fn width(&self) -> Length {
-            Length::Shrink
-        }
-
-        fn height(&self) -> Length {
-            Length::Shrink
+        fn size(&self) -> Size<Length> {
+            Size {
+                width: Length::Shrink,
+                height: Length::Shrink,
+            }
         }
 
         fn layout(

@@ -107,9 +107,7 @@ impl Application for App {
 
     fn view<'a>(&'a self) -> Element<'a, Message> {
         let subtitle = |title, content: Element<'a, Message>| {
-            column![text(title).size(14), content]
-                .width(Length::Fill)
-                .spacing(5)
+            column![text(title).size(14), content].spacing(5)
         };
 
         let mut add_toast = button("Add Toast");
@@ -154,14 +152,11 @@ impl Application for App {
                             Message::Timeout
                         )
                         .step(1.0)
-                        .width(Length::Fill)
                     ]
                     .spacing(5)
                     .into()
                 ),
-                column![add_toast]
-                    .width(Length::Fill)
-                    .align_items(Alignment::End)
+                column![add_toast].align_items(Alignment::End)
             ]
             .spacing(10)
             .max_width(200),
@@ -319,12 +314,8 @@ mod toast {
     }
 
     impl<'a, Message> Widget<Message, Renderer> for Manager<'a, Message> {
-        fn width(&self) -> Length {
-            self.content.as_widget().width()
-        }
-
-        fn height(&self) -> Length {
-            self.content.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.content.as_widget().size()
         }
 
         fn layout(
@@ -514,14 +505,14 @@ mod toast {
             position: Point,
             _translation: Vector,
         ) -> layout::Node {
-            let limits = layout::Limits::new(Size::ZERO, bounds)
-                .width(Length::Fill)
-                .height(Length::Fill);
+            let limits = layout::Limits::new(Size::ZERO, bounds);
 
             layout::flex::resolve(
                 layout::flex::Axis::Vertical,
                 renderer,
                 &limits,
+                Length::Fill,
+                Length::Fill,
                 10.into(),
                 10.0,
                 Alignment::End,

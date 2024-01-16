@@ -82,7 +82,7 @@ impl<Theme> Renderer for crate::Renderer<Theme> {
 /// Stores custom, user-provided pipelines.
 #[derive(Default, Debug)]
 pub struct Storage {
-    pipelines: HashMap<TypeId, Box<dyn Any>>,
+    pipelines: HashMap<TypeId, Box<dyn Any + Send>>,
 }
 
 impl Storage {
@@ -92,7 +92,7 @@ impl Storage {
     }
 
     /// Inserts the pipeline `T` in to [`Storage`].
-    pub fn store<T: 'static>(&mut self, pipeline: T) {
+    pub fn store<T: 'static + Send>(&mut self, pipeline: T) {
         let _ = self.pipelines.insert(TypeId::of::<T>(), Box::new(pipeline));
     }
 

@@ -9,14 +9,13 @@ pub use paragraph::Paragraph;
 
 pub use cosmic_text;
 
-use crate::color;
 use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
-use crate::core::{Color, Size};
+use crate::core::{Color, Point, Rectangle, Size};
 
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, RwLock, Weak};
 
 /// Returns the global [`FontSystem`].
 pub fn font_system() -> &'static RwLock<FontSystem> {
@@ -67,6 +66,29 @@ impl FontSystem {
 /// A version number.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Version(u32);
+
+/// A weak reference to a [`cosmic-text::Buffer`] that can be drawn.
+#[derive(Debug, Clone)]
+pub struct Raw {
+    /// A weak reference to a [`cosmic_text::Buffer`].
+    pub buffer: Weak<cosmic_text::Buffer>,
+    /// The position of the text.
+    pub position: Point,
+    /// The color of the text.
+    pub color: Color,
+    /// The clip bounds of the text.
+    pub clip_bounds: Rectangle,
+}
+
+impl PartialEq for Raw {
+    fn eq(&self, _other: &Self) -> bool {
+        // TODO: There is no proper way to compare raw buffers
+        // For now, no two instances of `Raw` text will be equal.
+        // This should be fine, but could trigger unnecessary redraws
+        // in the future.
+        false
+    }
+}
 
 /// Measures the dimensions of the given [`cosmic_text::Buffer`].
 pub fn measure(buffer: &cosmic_text::Buffer) -> Size {
@@ -150,12 +172,7 @@ pub fn to_shaping(shaping: Shaping) -> cosmic_text::Shaping {
 
 /// Converts some [`Color`] to a [`cosmic_text::Color`].
 pub fn to_color(color: Color) -> cosmic_text::Color {
-    let [r, g, b, a] = color::pack(color).components();
+    let [r, g, b, a] = color.into_rgba8();
 
-    cosmic_text::Color::rgba(
-        (r * 255.0) as u8,
-        (g * 255.0) as u8,
-        (b * 255.0) as u8,
-        (a * 255.0) as u8,
-    )
+    cosmic_text::Color::rgba(r, g, b, a)
 }

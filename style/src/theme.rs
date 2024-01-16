@@ -23,6 +23,7 @@ use crate::toggler;
 
 use iced_core::{Background, Color, Vector};
 
+use std::fmt;
 use std::rc::Rc;
 
 /// A built-in theme.
@@ -38,18 +39,22 @@ pub enum Theme {
 }
 
 impl Theme {
+    /// A list with all the defined themes.
+    pub const ALL: &'static [Self] = &[Self::Light, Self::Dark];
+
     /// Creates a new custom [`Theme`] from the given [`Palette`].
-    pub fn custom(palette: Palette) -> Self {
-        Self::custom_with_fn(palette, palette::Extended::generate)
+    pub fn custom(name: String, palette: Palette) -> Self {
+        Self::custom_with_fn(name, palette, palette::Extended::generate)
     }
 
     /// Creates a new custom [`Theme`] from the given [`Palette`], with
     /// a custom generator of a [`palette::Extended`].
     pub fn custom_with_fn(
+        name: String,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
-        Self::Custom(Box::new(Custom::with_fn(palette, generate)))
+        Self::Custom(Box::new(Custom::with_fn(name, palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].
@@ -71,29 +76,48 @@ impl Theme {
     }
 }
 
+impl fmt::Display for Theme {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Light => write!(f, "Light"),
+            Self::Dark => write!(f, "Dark"),
+            Self::Custom(custom) => custom.fmt(f),
+        }
+    }
+}
+
 /// A [`Theme`] with a customized [`Palette`].
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
+    name: String,
     palette: Palette,
     extended: palette::Extended,
 }
 
 impl Custom {
     /// Creates a [`Custom`] theme from the given [`Palette`].
-    pub fn new(palette: Palette) -> Self {
-        Self::with_fn(palette, palette::Extended::generate)
+    pub fn new(name: String, palette: Palette) -> Self {
+        Self::with_fn(name, palette, palette::Extended::generate)
     }
 
     /// Creates a [`Custom`] theme from the given [`Palette`] with
     /// a custom generator of a [`palette::Extended`].
     pub fn with_fn(
+        name: String,
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
         Self {
+            name,
             palette,
             extended: generate(palette),
         }
+    }
+}
+
+impl fmt::Display for Custom {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 
@@ -381,6 +405,12 @@ pub enum Container {
     Box,
     /// A custom style.
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
+}
+
+impl From<container::Appearance> for Container {
+    fn from(appearance: container::Appearance) -> Self {
+        Self::Custom(Box::new(move |_: &_| appearance))
+    }
 }
 
 impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {

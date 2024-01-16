@@ -297,7 +297,6 @@ fn view_content<'a>(
         text(format!("{}x{}", size.width, size.height)).size(24),
         controls,
     ]
-    .width(Length::Fill)
     .spacing(10)
     .align_items(Alignment::Center);
 

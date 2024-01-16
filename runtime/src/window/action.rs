@@ -21,8 +21,19 @@ pub enum Action<T> {
     Resize(Id, Size),
     /// Fetch the current logical dimensions of the window.
     FetchSize(Id, Box<dyn FnOnce(Size) -> T + 'static>),
+    /// Fetch if the current window is maximized or not.
+    ///
+    /// ## Platform-specific
+    /// - **iOS / Android / Web:** Unsupported.
+    FetchMaximized(Id, Box<dyn FnOnce(bool) -> T + 'static>),
     /// Set the window to maximized or back
     Maximize(Id, bool),
+    /// Fetch if the current window is minimized or not.
+    ///
+    /// ## Platform-specific
+    /// - **Wayland:** Always `None`.
+    /// - **iOS / Android / Web:** Unsupported.
+    FetchMinimized(Id, Box<dyn FnOnce(Option<bool>) -> T + 'static>),
     /// Set the window to minimized or back
     Minimize(Id, bool),
     /// Move the window to the given logical coordinates.
@@ -106,7 +117,13 @@ impl<T> Action<T> {
             Self::FetchSize(id, o) => {
                 Action::FetchSize(id, Box::new(move |s| f(o(s))))
             }
+            Self::FetchMaximized(id, o) => {
+                Action::FetchMaximized(id, Box::new(move |s| f(o(s))))
+            }
             Self::Maximize(id, maximized) => Action::Maximize(id, maximized),
+            Self::FetchMinimized(id, o) => {
+                Action::FetchMinimized(id, Box::new(move |s| f(o(s))))
+            }
             Self::Minimize(id, minimized) => Action::Minimize(id, minimized),
             Self::Move(id, position) => Action::Move(id, position),
             Self::ChangeMode(id, mode) => Action::ChangeMode(id, mode),
@@ -144,8 +161,14 @@ impl<T> fmt::Debug for Action<T> {
                 write!(f, "Action::Resize({id:?}, {size:?})")
             }
             Self::FetchSize(id, _) => write!(f, "Action::FetchSize({id:?})"),
+            Self::FetchMaximized(id, _) => {
+                write!(f, "Action::FetchMaximized({id:?})")
+            }
             Self::Maximize(id, maximized) => {
                 write!(f, "Action::Maximize({id:?}, {maximized})")
+            }
+            Self::FetchMinimized(id, _) => {
+                write!(f, "Action::FetchMinimized({id:?})")
             }
             Self::Minimize(id, minimized) => {
                 write!(f, "Action::Minimize({id:?}, {minimized}")

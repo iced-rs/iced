@@ -45,7 +45,7 @@ where
 
 impl<'a, T: 'a, Message, Renderer> PickList<'a, T, Message, Renderer>
 where
-    T: ToString + Eq,
+    T: ToString + PartialEq,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: text::Renderer,
     Renderer::Theme: StyleSheet
@@ -145,7 +145,7 @@ where
 impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
     for PickList<'a, T, Message, Renderer>
 where
-    T: Clone + ToString + Eq + 'static,
+    T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
@@ -164,12 +164,11 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -282,7 +281,7 @@ where
 impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
     for Element<'a, Message, Renderer>
 where
-    T: Clone + ToString + Eq + 'static,
+    T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
     Renderer: text::Renderer + 'a,
@@ -393,7 +392,6 @@ where
 {
     use std::f32;
 
-    let limits = limits.width(width).height(Length::Shrink).pad(padding);
     let font = font.unwrap_or_else(|| renderer.default_font());
     let text_size = text_size.unwrap_or_else(|| renderer.default_size());
 
@@ -451,7 +449,11 @@ where
             f32::from(text_line_height.to_absolute(text_size)),
         );
 
-        limits.resolve(intrinsic).pad(padding)
+        limits
+            .width(width)
+            .shrink(padding)
+            .resolve(width, Length::Shrink, intrinsic)
+            .expand(padding)
     };
 
     layout::Node::new(size)

@@ -96,12 +96,11 @@ where
     Renderer: svg::Renderer,
     Renderer::Theme: iced_style::svg::StyleSheet,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -115,10 +114,7 @@ where
         let image_size = Size::new(width as f32, height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(image_size);
+        let raw_size = limits.resolve(self.width, self.height, image_size);
 
         // The uncropped size of the image when fit to the bounds above
         let full_size = self.content_fit.fit(image_size, raw_size);

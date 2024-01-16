@@ -8,7 +8,9 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::{Clipboard, Element, Length, Padding, Rectangle, Shell};
+use crate::core::{
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size,
+};
 use crate::overlay::menu;
 use crate::text::LineHeight;
 use crate::{container, scrollable, text_input, TextInput};
@@ -297,12 +299,8 @@ where
         + scrollable::StyleSheet
         + menu::StyleSheet,
 {
-    fn width(&self) -> Length {
-        Widget::<TextInputEvent, Renderer>::width(&self.text_input)
-    }
-
-    fn height(&self) -> Length {
-        Widget::<TextInputEvent, Renderer>::height(&self.text_input)
+    fn size(&self) -> Size<Length> {
+        Widget::<TextInputEvent, Renderer>::size(&self.text_input)
     }
 
     fn layout(

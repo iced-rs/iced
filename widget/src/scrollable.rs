@@ -220,12 +220,11 @@ where
         tree.diff_children(std::slice::from_ref(&self.content));
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -470,28 +469,25 @@ pub fn layout<Renderer>(
     direction: &Direction,
     layout_content: impl FnOnce(&Renderer, &layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits.width(width).height(height);
+    layout::contained(limits, width, height, |limits| {
+        let child_limits = layout::Limits::new(
+            Size::new(limits.min().width, limits.min().height),
+            Size::new(
+                if direction.horizontal().is_some() {
+                    f32::INFINITY
+                } else {
+                    limits.max().width
+                },
+                if direction.vertical().is_some() {
+                    f32::MAX
+                } else {
+                    limits.max().height
+                },
+            ),
+        );
 
-    let child_limits = layout::Limits::new(
-        Size::new(limits.min().width, limits.min().height),
-        Size::new(
-            if direction.horizontal().is_some() {
-                f32::INFINITY
-            } else {
-                limits.max().width
-            },
-            if direction.vertical().is_some() {
-                f32::MAX
-            } else {
-                limits.max().height
-            },
-        ),
-    );
-
-    let content = layout_content(renderer, &child_limits);
-    let size = limits.resolve(content.size());
-
-    layout::Node::with_children(size, vec![content])
+        layout_content(renderer, &child_limits)
+    })
 }
 
 /// Processes an [`Event`] and updates the [`State`] of a [`Scrollable`]
