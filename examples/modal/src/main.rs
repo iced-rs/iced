@@ -1,6 +1,7 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
+use iced::keyboard::key;
 use iced::theme;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
@@ -85,7 +86,7 @@ impl Application for App {
             }
             Message::Event(event) => match event {
                 Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Tab,
+                    key: keyboard::Key::Named(key::Named::Tab),
                     modifiers,
                     ..
                 }) => {
@@ -96,7 +97,7 @@ impl Application for App {
                     }
                 }
                 Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Escape,
+                    key: keyboard::Key::Named(key::Named::Escape),
                     ..
                 }) => {
                     self.hide_modal();

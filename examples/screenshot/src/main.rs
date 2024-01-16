@@ -1,11 +1,13 @@
-use iced::keyboard::KeyCode;
-use iced::theme::{Button, Container};
+use iced::alignment;
+use iced::executor;
+use iced::keyboard;
+use iced::theme;
 use iced::widget::{button, column, container, image, row, text, text_input};
+use iced::window;
 use iced::window::screenshot::{self, Screenshot};
-use iced::{alignment, window};
 use iced::{
-    event, executor, keyboard, Alignment, Application, Command, ContentFit,
-    Element, Event, Length, Rectangle, Renderer, Subscription, Theme,
+    Alignment, Application, Command, ContentFit, Element, Length, Rectangle,
+    Renderer, Subscription, Theme,
 };
 
 use ::image as img;
@@ -147,7 +149,7 @@ impl Application for Example {
 
         let image = container(image)
             .padding(10)
-            .style(Container::Box)
+            .style(theme::Container::Box)
             .width(Length::FillPortion(2))
             .height(Length::Fill)
             .center_x()
@@ -202,9 +204,10 @@ impl Application for Example {
                         self.screenshot.is_some().then(|| Message::Png),
                     )
                 } else {
-                    button(centered_text("Saving...")).style(Button::Secondary)
+                    button(centered_text("Saving..."))
+                        .style(theme::Button::Secondary)
                 }
-                .style(Button::Secondary)
+                .style(theme::Button::Secondary)
                 .padding([10, 20, 10, 20])
                 .width(Length::Fill)
             ]
@@ -213,7 +216,7 @@ impl Application for Example {
                 crop_controls,
                 button(centered_text("Crop"))
                     .on_press(Message::Crop)
-                    .style(Button::Destructive)
+                    .style(theme::Button::Destructive)
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill),
             ]
@@ -256,16 +259,10 @@ impl Application for Example {
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {
-        event::listen_with(|event, status| {
-            if let event::Status::Captured = status {
-                return None;
-            }
+        use keyboard::key;
 
-            if let Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: KeyCode::F5,
-                ..
-            }) = event
-            {
+        keyboard::on_key_press(|key, _modifiers| {
+            if let keyboard::Key::Named(key::Named::F5) = key {
                 Some(Message::Screenshot)
             } else {
                 None

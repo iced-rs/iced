@@ -260,15 +260,21 @@ impl Application for Todos {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key_code, modifiers| {
-            match (key_code, modifiers) {
-                (keyboard::KeyCode::Tab, _) => Some(Message::TabPressed {
+        use keyboard::key;
+
+        keyboard::on_key_press(|key, modifiers| {
+            let keyboard::Key::Named(key) = key else {
+                return None;
+            };
+
+            match (key, modifiers) {
+                (key::Named::Tab, _) => Some(Message::TabPressed {
                     shift: modifiers.shift(),
                 }),
-                (keyboard::KeyCode::Up, keyboard::Modifiers::SHIFT) => {
+                (key::Named::ArrowUp, keyboard::Modifiers::SHIFT) => {
                     Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
                 }
-                (keyboard::KeyCode::Down, keyboard::Modifiers::SHIFT) => {
+                (key::Named::ArrowDown, keyboard::Modifiers::SHIFT) => {
                     Some(Message::ToggleFullscreen(window::Mode::Windowed))
                 }
                 _ => None,

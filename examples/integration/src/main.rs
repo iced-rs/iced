@@ -278,7 +278,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // Map window event to iced event
                 if let Some(event) = iced_winit::conversion::window_event(
                     window::Id::MAIN,
-                    &event,
+                    event,
                     window.scale_factor(),
                     modifiers,
                 ) {

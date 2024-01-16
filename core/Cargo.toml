@@ -13,10 +13,11 @@ keywords.workspace = true
 [dependencies]
 bitflags.workspace = true
 log.workspace = true
-thiserror.workspace = true
-xxhash-rust.workspace = true
 num-traits.workspace = true
+smol_str.workspace = true
+thiserror.workspace = true
 web-time.workspace = true
+xxhash-rust.workspace = true
 
 palette.workspace = true
 palette.optional = true

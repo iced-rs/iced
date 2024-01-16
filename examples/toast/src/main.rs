@@ -1,6 +1,7 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
+use iced::keyboard::key;
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
@@ -93,12 +94,12 @@ impl Application for App {
                 Command::none()
             }
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Tab,
+                key: keyboard::Key::Named(key::Named::Tab),
                 modifiers,
                 ..
             })) if modifiers.shift() => widget::focus_previous(),
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Tab,
+                key: keyboard::Key::Named(key::Named::Tab),
                 ..
             })) => widget::focus_next(),
             Message::Event(_) => Command::none(),

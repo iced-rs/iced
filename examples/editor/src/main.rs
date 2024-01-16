@@ -134,8 +134,8 @@ impl Application for Editor {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key_code, modifiers| match key_code {
-            keyboard::KeyCode::S if modifiers.command() => {
+        keyboard::on_key_press(|key, modifiers| match key.as_ref() {
+            keyboard::Key::Character("s") if modifiers.command() => {
                 Some(Message::SaveFile)
             }
             _ => None,

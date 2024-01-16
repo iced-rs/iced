@@ -1,4 +1,4 @@
-use super::{KeyCode, Modifiers};
+use crate::keyboard::{Key, Location, Modifiers};
 
 /// A keyboard event.
 ///
@@ -10,10 +10,13 @@ use super::{KeyCode, Modifiers};
 pub enum Event {
     /// A keyboard key was pressed.
     KeyPressed {
-        /// The key identifier
-        key_code: KeyCode,
+        /// The key pressed.
+        key: Key,
 
-        /// The state of the modifier keys
+        /// The location of the key.
+        location: Location,
+
+        /// The state of the modifier keys.
         modifiers: Modifiers,
 
         /// The text produced by the key press, if any.
@@ -22,10 +25,13 @@ pub enum Event {
 
     /// A keyboard key was released.
     KeyReleased {
-        /// The key identifier
-        key_code: KeyCode,
+        /// The key released.
+        key: Key,
 
-        /// The state of the modifier keys
+        /// The location of the key.
+        location: Location,
+
+        /// The state of the modifier keys.
         modifiers: Modifiers,
     },
 

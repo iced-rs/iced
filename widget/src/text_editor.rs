@@ -1,6 +1,7 @@
 //! Display a multi-line text input for text editing.
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
+use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
@@ -646,34 +647,48 @@ impl Update {
             },
             Event::Keyboard(event) => match event {
                 keyboard::Event::KeyPressed {
-                    key_code,
+                    key,
                     modifiers,
                     text,
+                    ..
                 } if state.is_focused => {
-                    if let Some(motion) = motion(key_code) {
-                        let motion =
-                            if platform::is_jump_modifier_pressed(modifiers) {
+                    if let keyboard::Key::Named(named_key) = key.as_ref() {
+                        if let Some(motion) = motion(named_key) {
+                            let motion = if platform::is_jump_modifier_pressed(
+                                modifiers,
+                            ) {
                                 motion.widen()
                             } else {
                                 motion
                             };
 
-                        return action(if modifiers.shift() {
-                            Action::Select(motion)
-                        } else {
-                            Action::Move(motion)
-                        });
+                            return action(if modifiers.shift() {
+                                Action::Select(motion)
+                            } else {
+                                Action::Move(motion)
+                            });
+                        }
                     }
 
-                    match key_code {
-                        keyboard::KeyCode::Enter => edit(Edit::Enter),
-                        keyboard::KeyCode::Backspace => edit(Edit::Backspace),
-                        keyboard::KeyCode::Delete => edit(Edit::Delete),
-                        keyboard::KeyCode::Escape => Some(Self::Unfocus),
-                        keyboard::KeyCode::C if modifiers.command() => {
+                    match key.as_ref() {
+                        keyboard::Key::Named(key::Named::Enter) => {
+                            edit(Edit::Enter)
+                        }
+                        keyboard::Key::Named(key::Named::Backspace) => {
+                            edit(Edit::Backspace)
+                        }
+                        keyboard::Key::Named(key::Named::Delete) => {
+                            edit(Edit::Delete)
+                        }
+                        keyboard::Key::Named(key::Named::Escape) => {
+                            Some(Self::Unfocus)
+                        }
+                        keyboard::Key::Character("c")
+                            if modifiers.command() =>
+                        {
                             Some(Self::Copy)
                         }
-                        keyboard::KeyCode::V
+                        keyboard::Key::Character("v")
                             if modifiers.command() && !modifiers.alt() =>
                         {
                             Some(Self::Paste)
@@ -694,16 +709,16 @@ impl Update {
     }
 }
 
-fn motion(key_code: keyboard::KeyCode) -> Option<Motion> {
-    match key_code {
-        keyboard::KeyCode::Left => Some(Motion::Left),
-        keyboard::KeyCode::Right => Some(Motion::Right),
-        keyboard::KeyCode::Up => Some(Motion::Up),
-        keyboard::KeyCode::Down => Some(Motion::Down),
-        keyboard::KeyCode::Home => Some(Motion::Home),
-        keyboard::KeyCode::End => Some(Motion::End),
-        keyboard::KeyCode::PageUp => Some(Motion::PageUp),
-        keyboard::KeyCode::PageDown => Some(Motion::PageDown),
+fn motion(key: key::Named) -> Option<Motion> {
+    match key {
+        key::Named::ArrowLeft => Some(Motion::Left),
+        key::Named::ArrowRight => Some(Motion::Right),
+        key::Named::ArrowUp => Some(Motion::Up),
+        key::Named::ArrowDown => Some(Motion::Down),
+        key::Named::Home => Some(Motion::Home),
+        key::Named::End => Some(Motion::End),
+        key::Named::PageUp => Some(Motion::PageUp),
+        key::Named::PageDown => Some(Motion::PageDown),
         _ => None,
     }
 }
