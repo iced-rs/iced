@@ -167,7 +167,7 @@ impl<Message> canvas::Program<Message> for State {
                 vertical_alignment: alignment::Vertical::Center,
                 shaping: text::Shaping::Advanced,
                 ..canvas::Text::default()
-            })
+            });
         });
 
         vec![geometry]
