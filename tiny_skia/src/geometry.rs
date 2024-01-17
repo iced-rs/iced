@@ -97,54 +97,65 @@ impl Frame {
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
-        let (position, size, line_height) = if self.transform.is_identity() {
-            (text.position, text.size, text.line_height)
-        } else {
-            let mut position = [tiny_skia::Point {
-                x: text.position.x,
-                y: text.position.y,
-            }];
+        let (scale_x, scale_y) = self.transform.get_scale();
 
-            self.transform.map_points(&mut position);
+        if self.transform.is_scale_translate()
+            && scale_x == scale_y
+            && scale_x > 0.0
+            && scale_y > 0.0
+        {
+            let (position, size, line_height) = if self.transform.is_identity()
+            {
+                (text.position, text.size, text.line_height)
+            } else {
+                let mut position = [tiny_skia::Point {
+                    x: text.position.x,
+                    y: text.position.y,
+                }];
 
-            let (_, scale_y) = self.transform.get_scale();
+                self.transform.map_points(&mut position);
 
-            let size = text.size.0 * scale_y;
+                let size = text.size.0 * scale_y;
 
-            let line_height = match text.line_height {
-                LineHeight::Absolute(size) => {
-                    LineHeight::Absolute(Pixels(size.0 * scale_y))
-                }
-                LineHeight::Relative(factor) => LineHeight::Relative(factor),
+                let line_height = match text.line_height {
+                    LineHeight::Absolute(size) => {
+                        LineHeight::Absolute(Pixels(size.0 * scale_y))
+                    }
+                    LineHeight::Relative(factor) => {
+                        LineHeight::Relative(factor)
+                    }
+                };
+
+                (
+                    Point::new(position[0].x, position[0].y),
+                    size.into(),
+                    line_height,
+                )
             };
 
-            (
-                Point::new(position[0].x, position[0].y),
-                size.into(),
+            let bounds = Rectangle {
+                x: position.x,
+                y: position.y,
+                width: f32::INFINITY,
+                height: f32::INFINITY,
+            };
+
+            // TODO: Honor layering!
+            self.primitives.push(Primitive::Text {
+                content: text.content,
+                bounds,
+                color: text.color,
+                size,
                 line_height,
-            )
-        };
-
-        let bounds = Rectangle {
-            x: position.x,
-            y: position.y,
-            width: f32::INFINITY,
-            height: f32::INFINITY,
-        };
-
-        // TODO: Use vectorial text instead of primitive
-        self.primitives.push(Primitive::Text {
-            content: text.content,
-            bounds,
-            color: text.color,
-            size,
-            line_height,
-            font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
-            shaping: text.shaping,
-            clip_bounds: Rectangle::with_size(Size::INFINITY),
-        });
+                font: text.font,
+                horizontal_alignment: text.horizontal_alignment,
+                vertical_alignment: text.vertical_alignment,
+                shaping: text.shaping,
+                clip_bounds: Rectangle::with_size(Size::INFINITY),
+            });
+        } else {
+            text.draw_with(|path, color| self.fill(&path, color));
+        }
     }
 
     pub fn push_transform(&mut self) {
