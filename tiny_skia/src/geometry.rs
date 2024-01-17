@@ -1,4 +1,5 @@
-use crate::core::{Point, Rectangle, Size, Vector};
+use crate::core::text::LineHeight;
+use crate::core::{Pixels, Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
@@ -96,17 +97,32 @@ impl Frame {
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
-        let position = if self.transform.is_identity() {
-            text.position
+        let (position, size, line_height) = if self.transform.is_identity() {
+            (text.position, text.size, text.line_height)
         } else {
-            let mut transformed = [tiny_skia::Point {
+            let mut position = [tiny_skia::Point {
                 x: text.position.x,
                 y: text.position.y,
             }];
 
-            self.transform.map_points(&mut transformed);
+            self.transform.map_points(&mut position);
 
-            Point::new(transformed[0].x, transformed[0].y)
+            let (_, scale_y) = self.transform.get_scale();
+
+            let size = text.size.0 * scale_y;
+
+            let line_height = match text.line_height {
+                LineHeight::Absolute(size) => {
+                    LineHeight::Absolute(Pixels(size.0 * scale_y))
+                }
+                LineHeight::Relative(factor) => LineHeight::Relative(factor),
+            };
+
+            (
+                Point::new(position[0].x, position[0].y),
+                size.into(),
+                line_height,
+            )
         };
 
         let bounds = Rectangle {
@@ -121,8 +137,8 @@ impl Frame {
             content: text.content,
             bounds,
             color: text.color,
-            size: text.size,
-            line_height: text.line_height,
+            size,
+            line_height,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
