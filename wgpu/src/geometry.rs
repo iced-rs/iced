@@ -1,4 +1,5 @@
 //! Build and draw geometry.
+use crate::core::text::LineHeight;
 use crate::core::{Point, Rectangle, Size, Vector};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
@@ -318,14 +319,41 @@ impl Frame {
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
-        let position = if self.transforms.current.is_identity {
-            text.position
+        let (position, size, line_height) = if self
+            .transforms
+            .current
+            .is_identity
+        {
+            (text.position, text.size, text.line_height)
         } else {
-            let transformed = self.transforms.current.raw.transform_point(
+            let position = self.transforms.current.raw.transform_point(
                 lyon::math::Point::new(text.position.x, text.position.y),
             );
 
-            Point::new(transformed.x, transformed.y)
+            let size =
+                self.transforms.current.raw.transform_vector(
+                    lyon::math::Vector::new(0.0, text.size.0),
+                );
+
+            let line_height = match text.line_height {
+                LineHeight::Absolute(size) => {
+                    let new_height = self
+                        .transforms
+                        .current
+                        .raw
+                        .transform_vector(lyon::math::Vector::new(0.0, size.0))
+                        .y;
+
+                    LineHeight::Absolute(new_height.into())
+                }
+                LineHeight::Relative(factor) => LineHeight::Relative(factor),
+            };
+
+            (
+                Point::new(position.x, position.y),
+                size.y.into(),
+                line_height,
+            )
         };
 
         let bounds = Rectangle {
@@ -340,8 +368,8 @@ impl Frame {
             content: text.content,
             bounds,
             color: text.color,
-            size: text.size,
-            line_height: text.line_height,
+            size,
+            line_height,
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
