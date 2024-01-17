@@ -40,9 +40,12 @@ impl Frame {
     }
 
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Some(path) = convert_path(path) else {
+        let Some(path) =
+            convert_path(path).and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
+
         let fill = fill.into();
 
         self.primitives
@@ -50,7 +53,6 @@ impl Frame {
                 path,
                 paint: into_paint(fill.style),
                 rule: into_fill_rule(fill.rule),
-                transform: self.transform,
             }));
     }
 
@@ -60,9 +62,12 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else {
+        let Some(path) = convert_path(&Path::rectangle(top_left, size))
+            .and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
+
         let fill = fill.into();
 
         self.primitives
@@ -73,12 +78,13 @@ impl Frame {
                     ..into_paint(fill.style)
                 },
                 rule: into_fill_rule(fill.rule),
-                transform: self.transform,
             }));
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let Some(path) = convert_path(path) else {
+        let Some(path) =
+            convert_path(path).and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
 
@@ -90,7 +96,6 @@ impl Frame {
                 path,
                 paint: into_paint(stroke.style),
                 stroke: skia_stroke,
-                transform: self.transform,
             }));
     }
 

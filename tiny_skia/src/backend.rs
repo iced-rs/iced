@@ -543,7 +543,6 @@ impl Backend {
                 path,
                 paint,
                 rule,
-                transform,
             }) => {
                 let bounds = path.bounds();
 
@@ -566,9 +565,11 @@ impl Backend {
                     path,
                     paint,
                     *rule,
-                    transform
-                        .post_translate(translation.x, translation.y)
-                        .post_scale(scale_factor, scale_factor),
+                    tiny_skia::Transform::from_translate(
+                        translation.x,
+                        translation.y,
+                    )
+                    .post_scale(scale_factor, scale_factor),
                     clip_mask,
                 );
             }
@@ -576,7 +577,6 @@ impl Backend {
                 path,
                 paint,
                 stroke,
-                transform,
             }) => {
                 let bounds = path.bounds();
 
@@ -599,9 +599,11 @@ impl Backend {
                     path,
                     paint,
                     stroke,
-                    transform
-                        .post_translate(translation.x, translation.y)
-                        .post_scale(scale_factor, scale_factor),
+                    tiny_skia::Transform::from_translate(
+                        translation.x,
+                        translation.y,
+                    )
+                    .post_scale(scale_factor, scale_factor),
                     clip_mask,
                 );
             }
