@@ -10,6 +10,12 @@ pub enum Button {
     /// The middle (wheel) button.
     Middle,
 
+    /// The back mouse button.
+    Back,
+
+    /// The forward mouse button.
+    Forward,
+
     /// Some other button.
     Other(u16),
 }

@@ -71,9 +71,13 @@ impl Application for Layout {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_release(|key_code, _modifiers| match key_code {
-            keyboard::KeyCode::Left => Some(Message::Previous),
-            keyboard::KeyCode::Right => Some(Message::Next),
+        use keyboard::key;
+
+        keyboard::on_key_release(|key, _modifiers| match key {
+            keyboard::Key::Named(key::Named::ArrowLeft) => {
+                Some(Message::Previous)
+            }
+            keyboard::Key::Named(key::Named::ArrowRight) => Some(Message::Next),
             _ => None,
         })
     }

@@ -14,6 +14,7 @@ use editor::Editor;
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
+use crate::core::keyboard::key;
 use crate::core::layout;
 use crate::core::mouse::{self, click};
 use crate::core::renderer;
@@ -748,34 +749,7 @@ where
                 return event::Status::Captured;
             }
         }
-        Event::Keyboard(keyboard::Event::CharacterReceived(c)) => {
-            let state = state();
-
-            if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else {
-                    return event::Status::Ignored;
-                };
-
-                if state.is_pasting.is_none()
-                    && !state.keyboard_modifiers.command()
-                    && !c.is_control()
-                {
-                    let mut editor = Editor::new(value, &mut state.cursor);
-
-                    editor.insert(c);
-
-                    let message = (on_input)(editor.contents());
-                    shell.publish(message);
-
-                    focus.updated_at = Instant::now();
-
-                    update_cache(state, value);
-
-                    return event::Status::Captured;
-                }
-            }
-        }
-        Event::Keyboard(keyboard::Event::KeyPressed { key_code, .. }) => {
+        Event::Keyboard(keyboard::Event::KeyPressed { key, text, .. }) => {
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
@@ -786,14 +760,13 @@ where
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
-                match key_code {
-                    keyboard::KeyCode::Enter
-                    | keyboard::KeyCode::NumpadEnter => {
+                match key.as_ref() {
+                    keyboard::Key::Named(key::Named::Enter) => {
                         if let Some(on_submit) = on_submit.clone() {
                             shell.publish(on_submit);
                         }
                     }
-                    keyboard::KeyCode::Backspace => {
+                    keyboard::Key::Named(key::Named::Backspace) => {
                         if platform::is_jump_modifier_pressed(modifiers)
                             && state.cursor.selection(value).is_none()
                         {
@@ -813,7 +786,7 @@ where
 
                         update_cache(state, value);
                     }
-                    keyboard::KeyCode::Delete => {
+                    keyboard::Key::Named(key::Named::Delete) => {
                         if platform::is_jump_modifier_pressed(modifiers)
                             && state.cursor.selection(value).is_none()
                         {
@@ -835,7 +808,7 @@ where
 
                         update_cache(state, value);
                     }
-                    keyboard::KeyCode::Left => {
+                    keyboard::Key::Named(key::Named::ArrowLeft) => {
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !is_secure
                         {
@@ -850,7 +823,7 @@ where
                             state.cursor.move_left(value);
                         }
                     }
-                    keyboard::KeyCode::Right => {
+                    keyboard::Key::Named(key::Named::ArrowRight) => {
                         if platform::is_jump_modifier_pressed(modifiers)
                             && !is_secure
                         {
@@ -865,7 +838,7 @@ where
                             state.cursor.move_right(value);
                         }
                     }
-                    keyboard::KeyCode::Home => {
+                    keyboard::Key::Named(key::Named::Home) => {
                         if modifiers.shift() {
                             state
                                 .cursor
@@ -874,7 +847,7 @@ where
                             state.cursor.move_to(0);
                         }
                     }
-                    keyboard::KeyCode::End => {
+                    keyboard::Key::Named(key::Named::End) => {
                         if modifiers.shift() {
                             state.cursor.select_range(
                                 state.cursor.start(value),
@@ -884,7 +857,7 @@ where
                             state.cursor.move_to(value.len());
                         }
                     }
-                    keyboard::KeyCode::C
+                    keyboard::Key::Character("c")
                         if state.keyboard_modifiers.command() =>
                     {
                         if let Some((start, end)) =
@@ -894,7 +867,7 @@ where
                                 .write(value.select(start, end).to_string());
                         }
                     }
-                    keyboard::KeyCode::X
+                    keyboard::Key::Character("x")
                         if state.keyboard_modifiers.command() =>
                     {
                         if let Some((start, end)) =
@@ -912,7 +885,7 @@ where
 
                         update_cache(state, value);
                     }
-                    keyboard::KeyCode::V => {
+                    keyboard::Key::Character("v") => {
                         if state.keyboard_modifiers.command()
                             && !state.keyboard_modifiers.alt()
                         {
@@ -949,12 +922,12 @@ where
                             state.is_pasting = None;
                         }
                     }
-                    keyboard::KeyCode::A
+                    keyboard::Key::Character("a")
                         if state.keyboard_modifiers.command() =>
                     {
                         state.cursor.select_all(value);
                     }
-                    keyboard::KeyCode::Escape => {
+                    keyboard::Key::Named(key::Named::Escape) => {
                         state.is_focused = None;
                         state.is_dragging = false;
                         state.is_pasting = None;
@@ -962,28 +935,55 @@ where
                         state.keyboard_modifiers =
                             keyboard::Modifiers::default();
                     }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
+                    keyboard::Key::Named(
+                        key::Named::Tab
+                        | key::Named::ArrowUp
+                        | key::Named::ArrowDown,
+                    ) => {
                         return event::Status::Ignored;
                     }
-                    _ => {}
+                    _ => {
+                        if let Some(text) = text {
+                            let c = text.chars().next().unwrap_or_default();
+
+                            if state.is_pasting.is_none()
+                                && !state.keyboard_modifiers.command()
+                                && !c.is_control()
+                            {
+                                let mut editor =
+                                    Editor::new(value, &mut state.cursor);
+
+                                editor.insert(c);
+
+                                let message = (on_input)(editor.contents());
+                                shell.publish(message);
+
+                                focus.updated_at = Instant::now();
+
+                                update_cache(state, value);
+
+                                return event::Status::Captured;
+                            }
+                        }
+                    }
                 }
 
                 return event::Status::Captured;
             }
         }
-        Event::Keyboard(keyboard::Event::KeyReleased { key_code, .. }) => {
+        Event::Keyboard(keyboard::Event::KeyReleased { key, .. }) => {
             let state = state();
 
             if state.is_focused.is_some() {
-                match key_code {
-                    keyboard::KeyCode::V => {
+                match key.as_ref() {
+                    keyboard::Key::Character("v") => {
                         state.is_pasting = None;
                     }
-                    keyboard::KeyCode::Tab
-                    | keyboard::KeyCode::Up
-                    | keyboard::KeyCode::Down => {
+                    keyboard::Key::Named(
+                        key::Named::Tab
+                        | key::Named::ArrowUp
+                        | key::Named::ArrowDown,
+                    ) => {
                         return event::Status::Ignored;
                     }
                     _ => {}

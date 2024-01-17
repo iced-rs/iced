@@ -27,4 +27,4 @@ jobs:
     - name: Delete `web-sys` dependency from `integration` example
       run: sed -i '$d' examples/integration/Cargo.toml
     - name: Find outdated dependencies
-      run: cargo outdated --workspace --exit-code 1
+      run: cargo outdated --workspace --exit-code 1 --ignore raw-window-handle
