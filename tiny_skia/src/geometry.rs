@@ -48,10 +48,13 @@ impl Frame {
 
         let fill = fill.into();
 
+        let mut paint = into_paint(fill.style);
+        paint.shader.transform(self.transform);
+
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Fill {
                 path,
-                paint: into_paint(fill.style),
+                paint,
                 rule: into_fill_rule(fill.rule),
             }));
     }
@@ -70,13 +73,16 @@ impl Frame {
 
         let fill = fill.into();
 
+        let mut paint = tiny_skia::Paint {
+            anti_alias: false,
+            ..into_paint(fill.style)
+        };
+        paint.shader.transform(self.transform);
+
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Fill {
                 path,
-                paint: tiny_skia::Paint {
-                    anti_alias: false,
-                    ..into_paint(fill.style)
-                },
+                paint,
                 rule: into_fill_rule(fill.rule),
             }));
     }
@@ -91,10 +97,13 @@ impl Frame {
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
 
+        let mut paint = into_paint(stroke.style);
+        paint.shader.transform(self.transform);
+
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Stroke {
                 path,
-                paint: into_paint(stroke.style),
+                paint,
                 stroke: skia_stroke,
             }));
     }
