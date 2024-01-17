@@ -1,6 +1,6 @@
 //! Build and draw geometry.
 use crate::core::text::LineHeight;
-use crate::core::{Point, Rectangle, Size, Vector};
+use crate::core::{Pixels, Point, Rectangle, Size, Vector};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -116,19 +116,26 @@ struct Transforms {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Transform {
-    raw: lyon::math::Transform,
-    is_identity: bool,
-}
+struct Transform(lyon::math::Transform);
 
 impl Transform {
-    /// Transforms the given [Point] by the transformation matrix.
-    fn transform_point(&self, point: &mut Point) {
+    fn is_identity(&self) -> bool {
+        self.0 == lyon::math::Transform::identity()
+    }
+
+    fn scale(&self) -> (f32, f32) {
+        (self.0.m12, self.0.m22)
+    }
+
+    fn transform_point(&self, point: Point) -> Point {
         let transformed = self
-            .raw
+            .0
             .transform_point(euclid::Point2D::new(point.x, point.y));
-        point.x = transformed.x;
-        point.y = transformed.y;
+
+        Point {
+            x: transformed.x,
+            y: transformed.y,
+        }
     }
 
     fn transform_style(&self, style: Style) -> Style {
@@ -143,8 +150,8 @@ impl Transform {
     fn transform_gradient(&self, mut gradient: Gradient) -> Gradient {
         match &mut gradient {
             Gradient::Linear(linear) => {
-                self.transform_point(&mut linear.start);
-                self.transform_point(&mut linear.end);
+                linear.start = self.transform_point(linear.start);
+                linear.end = self.transform_point(linear.end);
             }
         }
 
@@ -164,10 +171,7 @@ impl Frame {
             primitives: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform {
-                    raw: lyon::math::Transform::identity(),
-                    is_identity: true,
-                },
+                current: Transform(lyon::math::Transform::identity()),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
@@ -210,14 +214,14 @@ impl Frame {
         let options = tessellation::FillOptions::default()
             .with_fill_rule(into_fill_rule(rule));
 
-        if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity() {
             self.fill_tessellator.tessellate_path(
                 path.raw(),
                 &options,
                 buffer.as_mut(),
             )
         } else {
-            let path = path.transform(&self.transforms.current.raw);
+            let path = path.transform(&self.transforms.current.0);
 
             self.fill_tessellator.tessellate_path(
                 path.raw(),
@@ -242,13 +246,14 @@ impl Frame {
             .buffers
             .get_fill(&self.transforms.current.transform_style(style));
 
-        let top_left =
-            self.transforms.current.raw.transform_point(
-                lyon::math::Point::new(top_left.x, top_left.y),
-            );
+        let top_left = self
+            .transforms
+            .current
+            .0
+            .transform_point(lyon::math::Point::new(top_left.x, top_left.y));
 
         let size =
-            self.transforms.current.raw.transform_vector(
+            self.transforms.current.0.transform_vector(
                 lyon::math::Vector::new(size.width, size.height),
             );
 
@@ -285,14 +290,14 @@ impl Frame {
             Cow::Owned(dashed(path, stroke.line_dash))
         };
 
-        if self.transforms.current.is_identity {
+        if self.transforms.current.is_identity() {
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
                 &options,
                 buffer.as_mut(),
             )
         } else {
-            let path = path.transform(&self.transforms.current.raw);
+            let path = path.transform(&self.transforms.current.0);
 
             self.stroke_tessellator.tessellate_path(
                 path.raw(),
@@ -319,42 +324,28 @@ impl Frame {
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
-        let (position, size, line_height) = if self
-            .transforms
-            .current
-            .is_identity
-        {
-            (text.position, text.size, text.line_height)
-        } else {
-            let position = self.transforms.current.raw.transform_point(
-                lyon::math::Point::new(text.position.x, text.position.y),
-            );
+        let (position, size, line_height) =
+            if self.transforms.current.is_identity() {
+                (text.position, text.size, text.line_height)
+            } else {
+                let (_, scale_y) = self.transforms.current.scale();
 
-            let size =
-                self.transforms.current.raw.transform_vector(
-                    lyon::math::Vector::new(0.0, text.size.0),
-                );
+                let position =
+                    self.transforms.current.transform_point(text.position);
 
-            let line_height = match text.line_height {
-                LineHeight::Absolute(size) => {
-                    let new_height = self
-                        .transforms
-                        .current
-                        .raw
-                        .transform_vector(lyon::math::Vector::new(0.0, size.0))
-                        .y;
+                let size = Pixels(text.size.0 * scale_y);
 
-                    LineHeight::Absolute(new_height.into())
-                }
-                LineHeight::Relative(factor) => LineHeight::Relative(factor),
+                let line_height = match text.line_height {
+                    LineHeight::Absolute(size) => {
+                        LineHeight::Absolute(Pixels(size.0 * scale_y))
+                    }
+                    LineHeight::Relative(factor) => {
+                        LineHeight::Relative(factor)
+                    }
+                };
+
+                (position, size, line_height)
             };
-
-            (
-                Point::new(position.x, position.y),
-                size.y.into(),
-                line_height,
-            )
-        };
 
         let bounds = Rectangle {
             x: position.x,
@@ -451,26 +442,24 @@ impl Frame {
     /// Applies a translation to the current transform of the [`Frame`].
     #[inline]
     pub fn translate(&mut self, translation: Vector) {
-        self.transforms.current.raw = self
-            .transforms
-            .current
-            .raw
-            .pre_translate(lyon::math::Vector::new(
-                translation.x,
-                translation.y,
-            ));
-        self.transforms.current.is_identity = false;
+        self.transforms.current.0 =
+            self.transforms
+                .current
+                .0
+                .pre_translate(lyon::math::Vector::new(
+                    translation.x,
+                    translation.y,
+                ));
     }
 
     /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
     pub fn rotate(&mut self, angle: f32) {
-        self.transforms.current.raw = self
+        self.transforms.current.0 = self
             .transforms
             .current
-            .raw
+            .0
             .pre_rotate(lyon::math::Angle::radians(angle));
-        self.transforms.current.is_identity = false;
     }
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
@@ -486,9 +475,8 @@ impl Frame {
     pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
         let scale = scale.into();
 
-        self.transforms.current.raw =
-            self.transforms.current.raw.pre_scale(scale.x, scale.y);
-        self.transforms.current.is_identity = false;
+        self.transforms.current.0 =
+            self.transforms.current.0.pre_scale(scale.x, scale.y);
     }
 
     /// Produces the [`Primitive`] representing everything drawn on the [`Frame`].
