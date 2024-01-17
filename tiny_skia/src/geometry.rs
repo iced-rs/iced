@@ -1,4 +1,5 @@
-use crate::core::{Point, Rectangle, Size, Vector};
+use crate::core::text::LineHeight;
+use crate::core::{Pixels, Point, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
@@ -39,17 +40,22 @@ impl Frame {
     }
 
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        let Some(path) = convert_path(path) else {
+        let Some(path) =
+            convert_path(path).and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
+
         let fill = fill.into();
+
+        let mut paint = into_paint(fill.style);
+        paint.shader.transform(self.transform);
 
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Fill {
                 path,
-                paint: into_paint(fill.style),
+                paint,
                 rule: into_fill_rule(fill.rule),
-                transform: self.transform,
             }));
     }
 
@@ -59,76 +65,111 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        let Some(path) = convert_path(&Path::rectangle(top_left, size)) else {
+        let Some(path) = convert_path(&Path::rectangle(top_left, size))
+            .and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
+
         let fill = fill.into();
+
+        let mut paint = tiny_skia::Paint {
+            anti_alias: false,
+            ..into_paint(fill.style)
+        };
+        paint.shader.transform(self.transform);
 
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Fill {
                 path,
-                paint: tiny_skia::Paint {
-                    anti_alias: false,
-                    ..into_paint(fill.style)
-                },
+                paint,
                 rule: into_fill_rule(fill.rule),
-                transform: self.transform,
             }));
     }
 
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        let Some(path) = convert_path(path) else {
+        let Some(path) =
+            convert_path(path).and_then(|path| path.transform(self.transform))
+        else {
             return;
         };
 
         let stroke = stroke.into();
         let skia_stroke = into_stroke(&stroke);
 
+        let mut paint = into_paint(stroke.style);
+        paint.shader.transform(self.transform);
+
         self.primitives
             .push(Primitive::Custom(primitive::Custom::Stroke {
                 path,
-                paint: into_paint(stroke.style),
+                paint,
                 stroke: skia_stroke,
-                transform: self.transform,
             }));
     }
 
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
-        let position = if self.transform.is_identity() {
-            text.position
+        let (scale_x, scale_y) = self.transform.get_scale();
+
+        if self.transform.is_scale_translate()
+            && scale_x == scale_y
+            && scale_x > 0.0
+            && scale_y > 0.0
+        {
+            let (position, size, line_height) = if self.transform.is_identity()
+            {
+                (text.position, text.size, text.line_height)
+            } else {
+                let mut position = [tiny_skia::Point {
+                    x: text.position.x,
+                    y: text.position.y,
+                }];
+
+                self.transform.map_points(&mut position);
+
+                let size = text.size.0 * scale_y;
+
+                let line_height = match text.line_height {
+                    LineHeight::Absolute(size) => {
+                        LineHeight::Absolute(Pixels(size.0 * scale_y))
+                    }
+                    LineHeight::Relative(factor) => {
+                        LineHeight::Relative(factor)
+                    }
+                };
+
+                (
+                    Point::new(position[0].x, position[0].y),
+                    size.into(),
+                    line_height,
+                )
+            };
+
+            let bounds = Rectangle {
+                x: position.x,
+                y: position.y,
+                width: f32::INFINITY,
+                height: f32::INFINITY,
+            };
+
+            // TODO: Honor layering!
+            self.primitives.push(Primitive::Text {
+                content: text.content,
+                bounds,
+                color: text.color,
+                size,
+                line_height,
+                font: text.font,
+                horizontal_alignment: text.horizontal_alignment,
+                vertical_alignment: text.vertical_alignment,
+                shaping: text.shaping,
+                clip_bounds: Rectangle::with_size(Size::INFINITY),
+            });
         } else {
-            let mut transformed = [tiny_skia::Point {
-                x: text.position.x,
-                y: text.position.y,
-            }];
-
-            self.transform.map_points(&mut transformed);
-
-            Point::new(transformed[0].x, transformed[0].y)
-        };
-
-        let bounds = Rectangle {
-            x: position.x,
-            y: position.y,
-            width: f32::INFINITY,
-            height: f32::INFINITY,
-        };
-
-        // TODO: Use vectorial text instead of primitive
-        self.primitives.push(Primitive::Text {
-            content: text.content,
-            bounds,
-            color: text.color,
-            size: text.size,
-            line_height: text.line_height,
-            font: text.font,
-            horizontal_alignment: text.horizontal_alignment,
-            vertical_alignment: text.vertical_alignment,
-            shaping: text.shaping,
-            clip_bounds: Rectangle::with_size(Size::INFINITY),
-        });
+            text.draw_with(|path, color| self.fill(&path, color));
+        }
     }
 
     pub fn push_transform(&mut self) {

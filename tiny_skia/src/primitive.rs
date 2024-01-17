@@ -13,8 +13,6 @@ pub enum Custom {
         paint: tiny_skia::Paint<'static>,
         /// The fill rule to follow.
         rule: tiny_skia::FillRule,
-        /// The transform to apply to the path.
-        transform: tiny_skia::Transform,
     },
     /// A path stroked with some paint.
     Stroke {
@@ -24,8 +22,6 @@ pub enum Custom {
         paint: tiny_skia::Paint<'static>,
         /// The stroke settings.
         stroke: tiny_skia::Stroke,
-        /// The transform to apply to the path.
-        transform: tiny_skia::Transform,
     },
 }
 
