@@ -229,7 +229,21 @@ where
                 task::Poll::Pending => match control_receiver.try_next() {
                     Ok(Some(control)) => match control {
                         Control::ChangeFlow(flow) => {
-                            event_loop.set_control_flow(flow);
+                            use winit::event_loop::ControlFlow;
+
+                            match (event_loop.control_flow(), flow) {
+                                (
+                                    ControlFlow::WaitUntil(current),
+                                    ControlFlow::WaitUntil(new),
+                                ) if new < current => {}
+                                (
+                                    ControlFlow::WaitUntil(target),
+                                    ControlFlow::Wait,
+                                ) if target > Instant::now() => {}
+                                _ => {
+                                    event_loop.set_control_flow(flow);
+                                }
+                            }
                         }
                         Control::CreateWindow {
                             id,
@@ -362,7 +376,6 @@ async fn run_instance<A, E, C>(
     runtime.track(application.subscription().into_recipes());
 
     let mut messages = Vec::new();
-    let mut redraw_pending = false;
 
     debug.startup_finished();
 
@@ -409,13 +422,15 @@ async fn run_instance<A, E, C>(
             }
             Event::EventLoopAwakened(event) => {
                 match event {
-                    event::Event::NewEvents(start_cause) => {
-                        redraw_pending = matches!(
-                            start_cause,
-                            event::StartCause::Init
-                                | event::StartCause::Poll
-                                | event::StartCause::ResumeTimeReached { .. }
-                        );
+                    event::Event::NewEvents(
+                        event::StartCause::Init
+                        | event::StartCause::ResumeTimeReached { .. },
+                    ) => {
+                        for (_id, window) in window_manager.iter_mut() {
+                            // TODO once widgets can request to be redrawn, we can avoid always requesting a
+                            // redraw
+                            window.raw.request_redraw();
+                        }
                     }
                     event::Event::PlatformSpecific(
                         event::PlatformSpecific::MacOS(
@@ -503,7 +518,9 @@ async fn run_instance<A, E, C>(
                                     redraw_request: Some(redraw_request),
                                 } => match redraw_request {
                                     window::RedrawRequest::NextFrame => {
-                                        ControlFlow::Poll
+                                        window.raw.request_redraw();
+
+                                        ControlFlow::Wait
                                     }
                                     window::RedrawRequest::At(at) => {
                                         ControlFlow::WaitUntil(at)
@@ -653,103 +670,113 @@ async fn run_instance<A, E, C>(
                             }
                         }
                     }
+                    event::Event::AboutToWait => {
+                        if events.is_empty() && messages.is_empty() {
+                            continue;
+                        }
+
+                        debug.event_processing_started();
+                        let mut uis_stale = false;
+
+                        for (id, window) in window_manager.iter_mut() {
+                            let mut window_events = vec![];
+
+                            events.retain(|(window_id, event)| {
+                                if *window_id == Some(id) || window_id.is_none()
+                                {
+                                    window_events.push(event.clone());
+                                    false
+                                } else {
+                                    true
+                                }
+                            });
+
+                            if window_events.is_empty() && messages.is_empty() {
+                                continue;
+                            }
+
+                            let (ui_state, statuses) = user_interfaces
+                                .get_mut(&id)
+                                .expect("Get user interface")
+                                .update(
+                                    &window_events,
+                                    window.state.cursor(),
+                                    &mut window.renderer,
+                                    &mut clipboard,
+                                    &mut messages,
+                                );
+
+                            window.raw.request_redraw();
+
+                            if !uis_stale {
+                                uis_stale = matches!(
+                                    ui_state,
+                                    user_interface::State::Outdated
+                                );
+                            }
+
+                            for (event, status) in window_events
+                                .into_iter()
+                                .zip(statuses.into_iter())
+                            {
+                                runtime.broadcast(event, status);
+                            }
+                        }
+
+                        debug.event_processing_finished();
+
+                        // TODO mw application update returns which window IDs to update
+                        if !messages.is_empty() || uis_stale {
+                            let mut cached_interfaces: HashMap<
+                                window::Id,
+                                user_interface::Cache,
+                            > = ManuallyDrop::into_inner(user_interfaces)
+                                .drain()
+                                .map(|(id, ui)| (id, ui.into_cache()))
+                                .collect();
+
+                            // Update application
+                            update(
+                                &mut application,
+                                &mut compositor,
+                                &mut runtime,
+                                &mut clipboard,
+                                &mut control_sender,
+                                &mut proxy,
+                                &mut debug,
+                                &mut messages,
+                                &mut window_manager,
+                                &mut cached_interfaces,
+                            );
+
+                            // we must synchronize all window states with application state after an
+                            // application update since we don't know what changed
+                            for (id, window) in window_manager.iter_mut() {
+                                window.state.synchronize(
+                                    &application,
+                                    id,
+                                    &window.raw,
+                                );
+
+                                // TODO once widgets can request to be redrawn, we can avoid always requesting a
+                                // redraw
+                                window.raw.request_redraw();
+                            }
+
+                            // rebuild UIs with the synchronized states
+                            user_interfaces =
+                                ManuallyDrop::new(build_user_interfaces(
+                                    &application,
+                                    &mut debug,
+                                    &mut window_manager,
+                                    cached_interfaces,
+                                ));
+                        }
+                    }
                     _ => {}
                 }
             }
         }
-
-        debug.event_processing_started();
-        let mut uis_stale = false;
-
-        for (id, window) in window_manager.iter_mut() {
-            let mut window_events = vec![];
-
-            events.retain(|(window_id, event)| {
-                if *window_id == Some(id) || window_id.is_none() {
-                    window_events.push(event.clone());
-                    false
-                } else {
-                    true
-                }
-            });
-
-            if !redraw_pending
-                && window_events.is_empty()
-                && messages.is_empty()
-            {
-                continue;
-            }
-
-            let (ui_state, statuses) = user_interfaces
-                .get_mut(&id)
-                .expect("Get user interface")
-                .update(
-                    &window_events,
-                    window.state.cursor(),
-                    &mut window.renderer,
-                    &mut clipboard,
-                    &mut messages,
-                );
-
-            if !uis_stale {
-                uis_stale = matches!(ui_state, user_interface::State::Outdated);
-            }
-
-            for (event, status) in
-                window_events.into_iter().zip(statuses.into_iter())
-            {
-                runtime.broadcast(event, status);
-            }
-        }
-
-        debug.event_processing_finished();
-
-        // TODO mw application update returns which window IDs to update
-        if !messages.is_empty() || uis_stale {
-            let mut cached_interfaces: HashMap<
-                window::Id,
-                user_interface::Cache,
-            > = ManuallyDrop::into_inner(user_interfaces)
-                .drain()
-                .map(|(id, ui)| (id, ui.into_cache()))
-                .collect();
-
-            // Update application
-            update(
-                &mut application,
-                &mut compositor,
-                &mut runtime,
-                &mut clipboard,
-                &mut control_sender,
-                &mut proxy,
-                &mut debug,
-                &mut messages,
-                &mut window_manager,
-                &mut cached_interfaces,
-            );
-
-            // we must synchronize all window states with application state after an
-            // application update since we don't know what changed
-            for (id, window) in window_manager.iter_mut() {
-                window.state.synchronize(&application, id, &window.raw);
-            }
-
-            // rebuild UIs with the synchronized states
-            user_interfaces = ManuallyDrop::new(build_user_interfaces(
-                &application,
-                &mut debug,
-                &mut window_manager,
-                cached_interfaces,
-            ));
-        }
-
-        for (_id, window) in window_manager.iter_mut() {
-            // TODO once widgets can request to be redrawn, we can avoid always requesting a
-            // redraw
-            window.raw.request_redraw();
-        }
-
-        redraw_pending = false;
     }
 
     let _ = ManuallyDrop::into_inner(user_interfaces);
