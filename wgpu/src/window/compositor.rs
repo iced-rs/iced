@@ -228,7 +228,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
         window: W,
         width: u32,
         height: u32,
-    ) -> wgpu::Surface<'static> {
+    ) -> Self::Surface {
         let mut surface = self
             .instance
             .create_surface(window)
@@ -241,7 +241,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
 
     fn configure_surface(
         &mut self,
-        surface: &mut wgpu::Surface<'static>,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
     ) {
@@ -272,7 +272,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut wgpu::Surface<'static>,
+        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
@@ -293,7 +293,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
     fn screenshot<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        _surface: &mut wgpu::Surface<'static>,
+        _surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],

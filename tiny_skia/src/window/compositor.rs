@@ -50,7 +50,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         window: W,
         width: u32,
         height: u32,
-    ) -> Surface {
+    ) -> Self::Surface {
         let window = softbuffer::Surface::new(
             &self.context,
             Box::new(window.clone()) as _,
@@ -73,7 +73,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn configure_surface(
         &mut self,
-        surface: &mut Surface,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
     ) {
@@ -100,7 +100,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     fn present<T: AsRef<str>>(
         &mut self,
         renderer: &mut Self::Renderer,
-        surface: &mut Surface,
+        surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
         overlay: &[T],
