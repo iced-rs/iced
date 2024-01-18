@@ -165,9 +165,9 @@ pub fn present<T: AsRef<str>>(
         .buffer_mut()
         .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let age = buffer.age();
-
     let last_primitives = {
+        let age = buffer.age();
+
         surface.max_age = surface.max_age.max(age);
         surface.primitive_stack.truncate(surface.max_age as usize);
 
