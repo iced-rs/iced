@@ -113,7 +113,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             (
                 Self::TinySkia(_compositor),
                 crate::Renderer::TinySkia(renderer),
-                Surface::TinySkia(ref mut surface),
+                Surface::TinySkia(surface),
             ) => renderer.with_primitives(|backend, primitives| {
                 iced_tiny_skia::window::compositor::present(
                     backend,
@@ -128,7 +128,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             (
                 Self::Wgpu(compositor),
                 crate::Renderer::Wgpu(renderer),
-                Surface::Wgpu(ref mut surface),
+                Surface::Wgpu(surface),
             ) => renderer.with_primitives(|backend, primitives| {
                 iced_wgpu::window::compositor::present(
                     compositor,
@@ -160,7 +160,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             (
                 Self::TinySkia(_compositor),
                 Renderer::TinySkia(renderer),
-                Surface::TinySkia(ref mut surface),
+                Surface::TinySkia(surface),
             ) => renderer.with_primitives(|backend, primitives| {
                 iced_tiny_skia::window::compositor::screenshot(
                     surface,
