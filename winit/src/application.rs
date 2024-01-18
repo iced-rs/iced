@@ -150,7 +150,6 @@ where
 
     log::debug!("Window builder: {builder:#?}");
 
-    // XXX Arc?
     let window = Arc::new(
         builder
             .build(&event_loop)
