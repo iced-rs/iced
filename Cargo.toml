@@ -70,8 +70,6 @@ thiserror.workspace = true
 image.workspace = true
 image.optional = true
 
-winit.workspace = true
-
 [profile.release-opt]
 inherits = "release"
 codegen-units = 1
