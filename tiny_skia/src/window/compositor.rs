@@ -185,29 +185,31 @@ pub fn present<T: AsRef<str>>(
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
+    if damage.is_empty() {
+        return Ok(());
+    }
+
     surface.primitive_stack.push_front(primitives.to_vec());
     surface.background_color = background_color;
 
-    if !damage.is_empty() {
-        let damage = damage::group(damage, scale_factor, physical_size);
+    let damage = damage::group(damage, scale_factor, physical_size);
 
-        let mut pixels = tiny_skia::PixmapMut::from_bytes(
-            bytemuck::cast_slice_mut(&mut buffer),
-            physical_size.width,
-            physical_size.height,
-        )
-        .expect("Create pixel map");
+    let mut pixels = tiny_skia::PixmapMut::from_bytes(
+        bytemuck::cast_slice_mut(&mut buffer),
+        physical_size.width,
+        physical_size.height,
+    )
+    .expect("Create pixel map");
 
-        backend.draw(
-            &mut pixels,
-            &mut surface.clip_mask,
-            primitives,
-            viewport,
-            &damage,
-            background_color,
-            overlay,
-        );
-    }
+    backend.draw(
+        &mut pixels,
+        &mut surface.clip_mask,
+        primitives,
+        viewport,
+        &damage,
+        background_color,
+        overlay,
+    );
 
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
