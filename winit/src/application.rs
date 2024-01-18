@@ -187,7 +187,7 @@ where
         };
     }
 
-    let compositor = C::new(compositor_settings, Some(window.clone()))?;
+    let compositor = C::new(compositor_settings, window.clone())?;
     let mut renderer = compositor.create_renderer();
 
     for font in settings.fonts {

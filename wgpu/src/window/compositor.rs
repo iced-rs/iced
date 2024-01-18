@@ -137,11 +137,11 @@ impl<Theme> Compositor<Theme> {
 /// window.
 pub fn new<W: compositor::Window, Theme>(
     settings: Settings,
-    compatible_window: Option<W>,
+    compatible_window: W,
 ) -> Result<Compositor<Theme>, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
-        compatible_window,
+        Some(compatible_window),
     ))
     .ok_or(Error::GraphicsAdapterNotFound)?;
 
@@ -210,7 +210,7 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
 
     fn new<W: compositor::Window>(
         settings: Self::Settings,
-        compatible_window: Option<W>,
+        compatible_window: W,
     ) -> Result<Self, Error> {
         new(settings, compatible_window)
     }

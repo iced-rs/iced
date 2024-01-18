@@ -24,7 +24,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn new<W: Window + Clone>(
         settings: Self::Settings,
-        compatible_window: Option<W>,
+        compatible_window: W,
     ) -> Result<Self, Error> {
         let candidates =
             Candidate::list_from_env().unwrap_or(Candidate::default_list());
@@ -228,7 +228,7 @@ impl Candidate {
     fn build<Theme, W: Window>(
         self,
         settings: Settings,
-        _compatible_window: Option<W>,
+        _compatible_window: W,
     ) -> Result<Compositor<Theme>, Error> {
         match self {
             Self::TinySkia => {

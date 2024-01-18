@@ -187,8 +187,7 @@ where
         };
     }
 
-    let mut compositor =
-        C::new(compositor_settings, Some(main_window.clone()))?;
+    let mut compositor = C::new(compositor_settings, main_window.clone())?;
 
     let mut window_manager = WindowManager::new();
     let _ = window_manager.insert(

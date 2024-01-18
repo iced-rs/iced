@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::num::NonZeroU32;
 
 pub struct Compositor<Theme> {
-    context: Option<softbuffer::Context<Box<dyn compositor::Window>>>,
+    context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
     _theme: PhantomData<Theme>,
 }
@@ -32,7 +32,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
     fn new<W: compositor::Window>(
         settings: Self::Settings,
-        compatible_window: Option<W>,
+        compatible_window: W,
     ) -> Result<Self, Error> {
         Ok(new(settings, compatible_window))
     }
@@ -51,17 +51,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) -> Surface {
-        let window = if let Some(context) = self.context.as_ref() {
-            softbuffer::Surface::new(context, Box::new(window.clone()) as _)
-                .expect("Create softbuffer surface for window")
-        } else {
-            let context =
-                softbuffer::Context::new(Box::new(window.clone()) as _)
-                    .expect("Create softbuffer context for window");
-
-            softbuffer::Surface::new(&context, Box::new(window.clone()) as _)
-                .expect("Create softbuffer surface for window")
-        };
+        let window = softbuffer::Surface::new(
+            &self.context,
+            Box::new(window.clone()) as _,
+        )
+        .expect("Create softbuffer surface for window");
 
         Surface {
             window,
@@ -133,11 +127,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
 
 pub fn new<W: compositor::Window, Theme>(
     settings: Settings,
-    compatible_window: Option<W>,
+    compatible_window: W,
 ) -> Compositor<Theme> {
     #[allow(unsafe_code)]
-    let context = compatible_window
-        .and_then(|w| softbuffer::Context::new(Box::new(w) as _).ok());
+    let context = softbuffer::Context::new(Box::new(compatible_window) as _)
+        .expect("Create softbuffer context");
 
     Compositor {
         context,

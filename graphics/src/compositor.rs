@@ -22,7 +22,7 @@ pub trait Compositor: Sized {
     /// Creates a new [`Compositor`].
     fn new<W: Window + Clone>(
         settings: Self::Settings,
-        compatible_window: Option<W>,
+        compatible_window: W,
     ) -> Result<Self, Error>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
