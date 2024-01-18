@@ -57,14 +57,18 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         )
         .expect("Create softbuffer surface for window");
 
-        Surface {
+        let mut surface = Surface {
             window,
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
             primitive_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
-        }
+        };
+
+        self.configure_surface(&mut surface, width, height);
+
+        surface
     }
 
     fn configure_surface(
@@ -73,6 +77,14 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         width: u32,
         height: u32,
     ) {
+        surface
+            .window
+            .resize(
+                NonZeroU32::new(width).expect("Non-zero width"),
+                NonZeroU32::new(height).expect("Non-zero height"),
+            )
+            .expect("Resize surface");
+
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
         surface.primitive_stack.clear();
@@ -151,14 +163,6 @@ pub fn present<T: AsRef<str>>(
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
-
-    surface
-        .window
-        .resize(
-            NonZeroU32::new(physical_size.width).unwrap(),
-            NonZeroU32::new(physical_size.height).unwrap(),
-        )
-        .unwrap();
 
     let mut buffer = surface
         .window
