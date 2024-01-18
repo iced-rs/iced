@@ -20,9 +20,9 @@ pub struct Surface {
         Box<dyn compositor::Window>,
     >,
     clip_mask: tiny_skia::Mask,
-    // Primitives of existing buffers, by decreasing age
-    primitives: VecDeque<Vec<Primitive>>,
+    primitive_stack: VecDeque<Vec<Primitive>>,
     background_color: Color,
+    max_age: u8,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -61,8 +61,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
             window,
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            primitives: VecDeque::new(),
+            primitive_stack: VecDeque::new(),
             background_color: Color::BLACK,
+            max_age: 0,
         }
     }
 
@@ -74,7 +75,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     ) {
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.primitives.clear();
+        surface.primitive_stack.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -159,7 +160,6 @@ pub fn present<T: AsRef<str>>(
         )
         .unwrap();
 
-    // TODO Add variants to `SurfaceError`?
     let mut buffer = surface
         .window
         .buffer_mut()
@@ -167,27 +167,25 @@ pub fn present<T: AsRef<str>>(
 
     let age = buffer.age();
 
-    // Forget primatives for back buffers older than `age`
-    // Or if this is a new buffer, keep at most two.
-    let max = if age == 0 { 2 } else { age };
-    while surface.primitives.len() as u8 > max {
-        let _ = surface.primitives.pop_front();
-    }
+    let last_primitives = {
+        surface.max_age = surface.max_age.max(age);
+        surface.primitive_stack.truncate(surface.max_age as usize);
 
-    let last_primitives = if surface.primitives.len() as u8 == age {
-        surface.primitives.pop_front()
-    } else {
-        None
+        if age > 0 {
+            surface.primitive_stack.get(age as usize - 1)
+        } else {
+            None
+        }
     };
 
     let damage = last_primitives
         .and_then(|last_primitives| {
             (surface.background_color == background_color)
-                .then(|| damage::list(&last_primitives, primitives))
+                .then(|| damage::list(last_primitives, primitives))
         })
         .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
 
-    surface.primitives.push_back(primitives.to_vec());
+    surface.primitive_stack.push_front(primitives.to_vec());
     surface.background_color = background_color;
 
     if !damage.is_empty() {
