@@ -24,7 +24,7 @@ mod platform {
 
     impl<T> MaybeSend for T {}
 
-    /// An extension trait that enforces `Send` only on native platforms.
+    /// An extension trait that enforces `Sync` only on native platforms.
     ///
     /// Useful to write cross-platform async code!
     pub trait MaybeSync {}
