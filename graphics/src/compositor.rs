@@ -2,13 +2,14 @@
 //! surfaces.
 use crate::{Error, Viewport};
 
-use iced_core::Color;
+use crate::core::Color;
+use crate::futures::{MaybeSend, MaybeSync};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
-pub trait Compositor<W: HasWindowHandle + HasDisplayHandle>: Sized {
+pub trait Compositor: Sized {
     /// The settings of the backend.
     type Settings: Default;
 
@@ -19,7 +20,7 @@ pub trait Compositor<W: HasWindowHandle + HasDisplayHandle>: Sized {
     type Surface;
 
     /// Creates a new [`Compositor`].
-    fn new(
+    fn new<W: Window + Clone>(
         settings: Self::Settings,
         compatible_window: Option<W>,
     ) -> Result<Self, Error>;
@@ -30,7 +31,7 @@ pub trait Compositor<W: HasWindowHandle + HasDisplayHandle>: Sized {
     /// Crates a new [`Surface`] for the given window.
     ///
     /// [`Surface`]: Self::Surface
-    fn create_surface(
+    fn create_surface<W: Window + Clone>(
         &mut self,
         window: W,
         width: u32,
@@ -75,6 +76,20 @@ pub trait Compositor<W: HasWindowHandle + HasDisplayHandle>: Sized {
         background_color: Color,
         overlay: &[T],
     ) -> Vec<u8>;
+}
+
+/// A window that can be used in a [`Compositor`].
+///
+/// This is just a convenient super trait of the `raw-window-handle`
+/// traits.
+pub trait Window:
+    HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
+{
+}
+
+impl<T> Window for T where
+    T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
+{
 }
 
 /// Result of an unsuccessful call to [`Compositor::present`].

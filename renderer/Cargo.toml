@@ -27,5 +27,4 @@ iced_wgpu.workspace = true
 iced_wgpu.optional = true
 
 log.workspace = true
-raw-window-handle.workspace = true
 thiserror.workspace = true

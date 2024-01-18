@@ -1,8 +1,6 @@
 //! Build interactive cross-platform applications.
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-use std::sync::Arc;
-
 pub use crate::style::application::{Appearance, StyleSheet};
 
 /// An interactive cross-platform application.
@@ -210,10 +208,7 @@ pub trait Application: Sized {
         Ok(crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::Compositor<
-                Arc<winit::window::Window>,
-                Self::Theme,
-            >,
+            crate::renderer::Compositor<Self::Theme>,
         >(settings.into(), renderer_settings)?)
     }
 }

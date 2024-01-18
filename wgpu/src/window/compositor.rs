@@ -6,13 +6,11 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-
 use std::marker::PhantomData;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor<W, Theme> {
+pub struct Compositor<Theme> {
     settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
@@ -20,16 +18,13 @@ pub struct Compositor<W, Theme> {
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
     theme: PhantomData<Theme>,
-    w: PhantomData<W>,
 }
 
-impl<W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync, Theme>
-    Compositor<W, Theme>
-{
+impl<Theme> Compositor<Theme> {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
-    pub async fn request(
+    pub async fn request<W: compositor::Window>(
         settings: Settings,
         compatible_window: Option<W>,
     ) -> Option<Self> {
@@ -45,7 +40,7 @@ impl<W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync, Theme>
             let available_adapters: Vec<_> = instance
                 .enumerate_adapters(settings.internal_backend)
                 .iter()
-                .map(|adapter| adapter.get_info())
+                .map(wgpu::Adapter::get_info)
                 .collect();
             log::info!("Available adapters: {available_adapters:#?}");
         }
@@ -129,7 +124,6 @@ impl<W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync, Theme>
             queue,
             format,
             theme: PhantomData,
-            w: PhantomData,
         })
     }
 
@@ -141,13 +135,10 @@ impl<W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync, Theme>
 
 /// Creates a [`Compositor`] and its [`Backend`] for the given [`Settings`] and
 /// window.
-pub fn new<
-    Theme,
-    W: HasWindowHandle + HasDisplayHandle + wgpu::WasmNotSendSync,
->(
+pub fn new<W: compositor::Window, Theme>(
     settings: Settings,
     compatible_window: Option<W>,
-) -> Result<Compositor<W, Theme>, Error> {
+) -> Result<Compositor<Theme>, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
         compatible_window,
@@ -158,8 +149,8 @@ pub fn new<
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
-pub fn present<W, Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<W, Theme>,
+pub fn present<Theme, T: AsRef<str>>(
+    compositor: &mut Compositor<Theme>,
     backend: &mut Backend,
     surface: &mut wgpu::Surface<'static>,
     primitives: &[Primitive],
@@ -212,17 +203,12 @@ pub fn present<W, Theme, T: AsRef<str>>(
     }
 }
 
-impl<
-        W: HasDisplayHandle + HasWindowHandle + wgpu::WasmNotSendSync + 'static,
-        Theme,
-    > graphics::Compositor<W> for Compositor<W, Theme>
-{
+impl<Theme> graphics::Compositor for Compositor<Theme> {
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
-    // XXX generic instead of 'static
     type Surface = wgpu::Surface<'static>;
 
-    fn new(
+    fn new<W: compositor::Window>(
         settings: Self::Settings,
         compatible_window: Option<W>,
     ) -> Result<Self, Error> {
@@ -237,7 +223,7 @@ impl<
         )
     }
 
-    fn create_surface(
+    fn create_surface<W: compositor::Window>(
         &mut self,
         window: W,
         width: u32,
@@ -328,8 +314,8 @@ impl<
 /// Renders the current surface to an offscreen buffer.
 ///
 /// Returns RGBA bytes of the texture data.
-pub fn screenshot<W, Theme, T: AsRef<str>>(
-    compositor: &Compositor<W, Theme>,
+pub fn screenshot<Theme, T: AsRef<str>>(
+    compositor: &Compositor<Theme>,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,

@@ -6,6 +6,13 @@ mod platform {
     pub trait MaybeSend: Send {}
 
     impl<T> MaybeSend for T where T: Send {}
+
+    /// An extension trait that enforces `Sync` only on native platforms.
+    ///
+    /// Useful to write cross-platform async code!
+    pub trait MaybeSync: Sync {}
+
+    impl<T> MaybeSync for T where T: Sync {}
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -16,6 +23,13 @@ mod platform {
     pub trait MaybeSend {}
 
     impl<T> MaybeSend for T {}
+
+    /// An extension trait that enforces `Send` only on native platforms.
+    ///
+    /// Useful to write cross-platform async code!
+    pub trait MaybeSync {}
+
+    impl<T> MaybeSync for T {}
 }
 
-pub use platform::MaybeSend;
+pub use platform::{MaybeSend, MaybeSync};

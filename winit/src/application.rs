@@ -106,7 +106,7 @@ pub fn run<A, E, C>(
 where
     A: Application + 'static,
     E: Executor + 'static,
-    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::task;
@@ -258,7 +258,7 @@ async fn run_instance<A, E, C>(
 ) where
     A: Application + 'static,
     E: Executor + 'static,
-    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use futures::stream::StreamExt;
@@ -612,7 +612,7 @@ pub fn update<A: Application, C, E: Executor>(
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
 ) where
-    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
@@ -663,7 +663,7 @@ pub fn run_command<A, C, E>(
 ) where
     A: Application,
     E: Executor,
-    C: Compositor<Arc<winit::window::Window>, Renderer = A::Renderer> + 'static,
+    C: Compositor<Renderer = A::Renderer> + 'static,
     <A::Renderer as core::Renderer>::Theme: StyleSheet,
 {
     use crate::runtime::command;

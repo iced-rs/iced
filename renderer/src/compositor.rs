@@ -1,36 +1,28 @@
 use crate::core::Color;
-use crate::graphics::compositor::{Information, SurfaceError};
+use crate::graphics::compositor::{Information, SurfaceError, Window};
 use crate::graphics::{Error, Viewport};
 use crate::{Renderer, Settings};
 
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::env;
 
-pub enum Compositor<W: HasWindowHandle + HasDisplayHandle, Theme> {
-    TinySkia(iced_tiny_skia::window::Compositor<W, Theme>),
+pub enum Compositor<Theme> {
+    TinySkia(iced_tiny_skia::window::Compositor<Theme>),
     #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::window::Compositor<W, Theme>),
+    Wgpu(iced_wgpu::window::Compositor<Theme>),
 }
 
-pub enum Surface<W: HasWindowHandle + HasDisplayHandle> {
-    TinySkia(iced_tiny_skia::window::Surface<W>),
+pub enum Surface {
+    TinySkia(iced_tiny_skia::window::Surface),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::window::Surface<'static>),
 }
 
-// XXX Clone bound
-// XXX Send/Sync?
-// 'static?
-impl<
-        W: Clone + Send + Sync + HasWindowHandle + HasDisplayHandle + 'static,
-        Theme,
-    > crate::graphics::Compositor<W> for Compositor<W, Theme>
-{
+impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     type Settings = Settings;
     type Renderer = Renderer<Theme>;
-    type Surface = Surface<W>;
+    type Surface = Surface;
 
-    fn new(
+    fn new<W: Window + Clone>(
         settings: Self::Settings,
         compatible_window: Option<W>,
     ) -> Result<Self, Error> {
@@ -63,12 +55,12 @@ impl<
         }
     }
 
-    fn create_surface(
+    fn create_surface<W: Window + Clone>(
         &mut self,
         window: W,
         width: u32,
         height: u32,
-    ) -> Surface<W> {
+    ) -> Surface {
         match self {
             Self::TinySkia(compositor) => Surface::TinySkia(
                 compositor.create_surface(window, width, height),
@@ -82,7 +74,7 @@ impl<
 
     fn configure_surface(
         &mut self,
-        surface: &mut Surface<W>,
+        surface: &mut Surface,
         width: u32,
         height: u32,
     ) {
@@ -233,11 +225,11 @@ impl Candidate {
         )
     }
 
-    fn build<Theme, W: HasWindowHandle + HasDisplayHandle + Send + Sync>(
+    fn build<Theme, W: Window>(
         self,
         settings: Settings,
         _compatible_window: Option<W>,
-    ) -> Result<Compositor<W, Theme>, Error> {
+    ) -> Result<Compositor<Theme>, Error> {
         match self {
             Self::TinySkia => {
                 let compositor = iced_tiny_skia::window::compositor::new(

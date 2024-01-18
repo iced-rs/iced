@@ -97,6 +97,7 @@ impl Pipeline {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             },
+            wgpu::util::TextureDataOrder::LayerMajor,
             &normal_map_data,
         );
 
@@ -122,6 +123,7 @@ impl Pipeline {
                 usage: wgpu::TextureUsages::TEXTURE_BINDING,
                 view_formats: &[],
             },
+            wgpu::util::TextureDataOrder::LayerMajor,
             &skybox_data,
         );
 

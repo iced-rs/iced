@@ -128,10 +128,7 @@ bytemuck = { version = "1.0", features = ["derive"] }
 cosmic-text = "0.10"
 futures = "0.3"
 glam = "0.24"
-# glyphon = "0.4"
-# TODO update for wgpu 0.19
-# https://github.com/grovesNL/glyphon/pull/80
-glyphon = { git = "https://github.com/EggShark/glyphon" }
+glyphon = "0.5"
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -165,6 +162,5 @@ web-sys = "0.3"
 web-time = "0.2"
 wgpu = "0.19"
 winapi = "0.3"
-# window_clipboard = "0.3"
-window_clipboard = { git = "https://github.com/ids1024/window_clipboard", branch = "raw-window-handle-0.6" }
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5", features = ["rwh_06"] }
+window_clipboard = "0.4"
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5" }
