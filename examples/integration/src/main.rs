@@ -24,6 +24,8 @@ use winit::{
     keyboard::ModifiersState,
 };
 
+use std::sync::Arc;
+
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
@@ -59,6 +61,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(target_arch = "wasm32"))]
     let window = winit::window::Window::new(&event_loop)?;
 
+    let window = Arc::new(window);
+
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
         Size::new(physical_size.width, physical_size.height),
@@ -81,7 +85,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         backends: backend,
         ..Default::default()
     });
-    let surface = unsafe { instance.create_surface(&window) }?;
+    let surface = instance.create_surface(window.clone())?;
 
     let (format, (device, queue)) =
         futures::futures::executor::block_on(async {
@@ -115,9 +119,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .request_device(
                         &wgpu::DeviceDescriptor {
                             label: None,
-                            features: adapter_features
+                            required_features: adapter_features
                                 & wgpu::Features::default(),
-                            limits: needed_limits,
+                            required_limits: needed_limits,
                         },
                         None,
                     )
@@ -136,6 +140,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         },
     );
 
@@ -188,6 +193,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                             present_mode: wgpu::PresentMode::AutoVsync,
                             alpha_mode: wgpu::CompositeAlphaMode::Auto,
                             view_formats: vec![],
+                            desired_maximum_frame_latency: 2,
                         },
                     );
 

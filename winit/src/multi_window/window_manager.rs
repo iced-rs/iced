@@ -6,6 +6,7 @@ use crate::multi_window::{Application, State};
 use crate::style::application::StyleSheet;
 
 use std::collections::BTreeMap;
+use std::sync::Arc;
 use winit::monitor::MonitorHandle;
 
 #[allow(missing_debug_implementations)]
@@ -34,7 +35,7 @@ where
     pub fn insert(
         &mut self,
         id: Id,
-        window: winit::window::Window,
+        window: Arc<winit::window::Window>,
         application: &A,
         compositor: &mut C,
         exit_on_close_request: bool,
@@ -43,7 +44,7 @@ where
         let viewport_version = state.viewport_version();
         let physical_size = state.physical_size();
         let surface = compositor.create_surface(
-            &window,
+            window.clone(),
             physical_size.width,
             physical_size.height,
         );
@@ -122,7 +123,7 @@ where
     C: Compositor<Renderer = A::Renderer>,
     <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
 {
-    pub raw: winit::window::Window,
+    pub raw: Arc<winit::window::Window>,
     pub state: State<A>,
     pub viewport_version: u64,
     pub exit_on_close_request: bool,

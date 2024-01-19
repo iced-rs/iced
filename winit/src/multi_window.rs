@@ -24,6 +24,7 @@ use crate::{Clipboard, Error, Proxy, Settings};
 
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
+use std::sync::Arc;
 use std::time::Instant;
 
 /// An interactive, native, cross-platform, multi-windowed application.
@@ -150,9 +151,11 @@ where
 
     log::info!("Window builder: {:#?}", builder);
 
-    let main_window = builder
-        .build(&event_loop)
-        .map_err(Error::WindowCreationFailed)?;
+    let main_window = Arc::new(
+        builder
+            .build(&event_loop)
+            .map_err(Error::WindowCreationFailed)?,
+    );
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -184,7 +187,7 @@ where
         };
     }
 
-    let mut compositor = C::new(compositor_settings, Some(&main_window))?;
+    let mut compositor = C::new(compositor_settings, main_window.clone())?;
 
     let mut window_manager = WindowManager::new();
     let _ = window_manager.insert(
@@ -388,7 +391,7 @@ async fn run_instance<A, E, C>(
             } => {
                 let window = window_manager.insert(
                     id,
-                    window,
+                    Arc::new(window),
                     &application,
                     &mut compositor,
                     exit_on_close_request,

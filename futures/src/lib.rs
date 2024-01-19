@@ -15,7 +15,7 @@
 pub use futures;
 pub use iced_core as core;
 
-mod maybe_send;
+mod maybe;
 mod runtime;
 
 pub mod backend;
@@ -25,7 +25,7 @@ pub mod keyboard;
 pub mod subscription;
 
 pub use executor::Executor;
-pub use maybe_send::MaybeSend;
+pub use maybe::{MaybeSend, MaybeSync};
 pub use platform::*;
 pub use runtime::Runtime;
 pub use subscription::Subscription;

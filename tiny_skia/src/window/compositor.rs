@@ -4,20 +4,25 @@ use crate::graphics::damage;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use std::collections::VecDeque;
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 
 pub struct Compositor<Theme> {
+    context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
     _theme: PhantomData<Theme>,
 }
 
 pub struct Surface {
-    window: softbuffer::GraphicsContext,
-    buffer: Vec<u32>,
+    window: softbuffer::Surface<
+        Box<dyn compositor::Window>,
+        Box<dyn compositor::Window>,
+    >,
     clip_mask: tiny_skia::Mask,
-    primitives: Option<Vec<Primitive>>,
+    primitive_stack: VecDeque<Vec<Primitive>>,
     background_color: Color,
+    max_age: u8,
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -25,11 +30,11 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     type Renderer = Renderer<Theme>;
     type Surface = Surface;
 
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new<W: compositor::Window>(
         settings: Self::Settings,
-        _compatible_window: Option<&W>,
+        compatible_window: W,
     ) -> Result<Self, Error> {
-        Ok(new(settings))
+        Ok(new(settings, compatible_window))
     }
 
     fn create_renderer(&self) -> Self::Renderer {
@@ -40,37 +45,49 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         )
     }
 
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface<W: compositor::Window + Clone>(
         &mut self,
-        window: &W,
+        window: W,
         width: u32,
         height: u32,
-    ) -> Surface {
-        #[allow(unsafe_code)]
-        let window =
-            unsafe { softbuffer::GraphicsContext::new(window, window) }
-                .expect("Create softbuffer for window");
+    ) -> Self::Surface {
+        let window = softbuffer::Surface::new(
+            &self.context,
+            Box::new(window.clone()) as _,
+        )
+        .expect("Create softbuffer surface for window");
 
-        Surface {
+        let mut surface = Surface {
             window,
-            buffer: vec![0; width as usize * height as usize],
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            primitives: None,
+            primitive_stack: VecDeque::new(),
             background_color: Color::BLACK,
-        }
+            max_age: 0,
+        };
+
+        self.configure_surface(&mut surface, width, height);
+
+        surface
     }
 
     fn configure_surface(
         &mut self,
-        surface: &mut Surface,
+        surface: &mut Self::Surface,
         width: u32,
         height: u32,
     ) {
-        surface.buffer.resize((width * height) as usize, 0);
+        surface
+            .window
+            .resize(
+                NonZeroU32::new(width).expect("Non-zero width"),
+                NonZeroU32::new(height).expect("Non-zero height"),
+            )
+            .expect("Resize surface");
+
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.primitives = None;
+        surface.primitive_stack.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -121,8 +138,16 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn new<Theme>(settings: Settings) -> Compositor<Theme> {
+pub fn new<W: compositor::Window, Theme>(
+    settings: Settings,
+    compatible_window: W,
+) -> Compositor<Theme> {
+    #[allow(unsafe_code)]
+    let context = softbuffer::Context::new(Box::new(compatible_window) as _)
+        .expect("Create softbuffer context");
+
     Compositor {
+        context,
         settings,
         _theme: PhantomData,
     }
@@ -139,16 +164,25 @@ pub fn present<T: AsRef<str>>(
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
 
-    let mut pixels = tiny_skia::PixmapMut::from_bytes(
-        bytemuck::cast_slice_mut(&mut surface.buffer),
-        physical_size.width,
-        physical_size.height,
-    )
-    .expect("Create pixel map");
+    let mut buffer = surface
+        .window
+        .buffer_mut()
+        .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let damage = surface
-        .primitives
-        .as_deref()
+    let last_primitives = {
+        let age = buffer.age();
+
+        surface.max_age = surface.max_age.max(age);
+        surface.primitive_stack.truncate(surface.max_age as usize);
+
+        if age > 0 {
+            surface.primitive_stack.get(age as usize - 1)
+        } else {
+            None
+        }
+    };
+
+    let damage = last_primitives
         .and_then(|last_primitives| {
             (surface.background_color == background_color)
                 .then(|| damage::list(last_primitives, primitives))
@@ -159,10 +193,17 @@ pub fn present<T: AsRef<str>>(
         return Ok(());
     }
 
-    surface.primitives = Some(primitives.to_vec());
+    surface.primitive_stack.push_front(primitives.to_vec());
     surface.background_color = background_color;
 
     let damage = damage::group(damage, scale_factor, physical_size);
+
+    let mut pixels = tiny_skia::PixmapMut::from_bytes(
+        bytemuck::cast_slice_mut(&mut buffer),
+        physical_size.width,
+        physical_size.height,
+    )
+    .expect("Create pixel map");
 
     backend.draw(
         &mut pixels,
@@ -174,13 +215,7 @@ pub fn present<T: AsRef<str>>(
         overlay,
     );
 
-    surface.window.set_buffer(
-        &surface.buffer,
-        physical_size.width as u16,
-        physical_size.height as u16,
-    );
-
-    Ok(())
+    buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
 pub fn screenshot<T: AsRef<str>>(

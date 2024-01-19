@@ -1,9 +1,8 @@
 use crate::core::Color;
-use crate::graphics::compositor::{Information, SurfaceError};
+use crate::graphics::compositor::{Information, SurfaceError, Window};
 use crate::graphics::{Error, Viewport};
 use crate::{Renderer, Settings};
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use std::env;
 
 pub enum Compositor<Theme> {
@@ -15,7 +14,7 @@ pub enum Compositor<Theme> {
 pub enum Surface {
     TinySkia(iced_tiny_skia::window::Surface),
     #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::window::Surface),
+    Wgpu(iced_wgpu::window::Surface<'static>),
 }
 
 impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
@@ -23,9 +22,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     type Renderer = Renderer<Theme>;
     type Surface = Surface;
 
-    fn new<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn new<W: Window + Clone>(
         settings: Self::Settings,
-        compatible_window: Option<&W>,
+        compatible_window: W,
     ) -> Result<Self, Error> {
         let candidates =
             Candidate::list_from_env().unwrap_or(Candidate::default_list());
@@ -33,7 +32,7 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         let mut error = Error::GraphicsAdapterNotFound;
 
         for candidate in candidates {
-            match candidate.build(settings, compatible_window) {
+            match candidate.build(settings, compatible_window.clone()) {
                 Ok(compositor) => return Ok(compositor),
                 Err(new_error) => {
                     error = new_error;
@@ -56,9 +55,9 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
         }
     }
 
-    fn create_surface<W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn create_surface<W: Window + Clone>(
         &mut self,
-        window: &W,
+        window: W,
         width: u32,
         height: u32,
     ) -> Surface {
@@ -226,10 +225,10 @@ impl Candidate {
         )
     }
 
-    fn build<Theme, W: HasRawWindowHandle + HasRawDisplayHandle>(
+    fn build<Theme, W: Window>(
         self,
         settings: Settings,
-        _compatible_window: Option<&W>,
+        _compatible_window: W,
     ) -> Result<Compositor<Theme>, Error> {
         match self {
             Self::TinySkia => {
@@ -238,6 +237,7 @@ impl Candidate {
                         default_font: settings.default_font,
                         default_text_size: settings.default_text_size,
                     },
+                    _compatible_window,
                 );
 
                 Ok(Compositor::TinySkia(compositor))
