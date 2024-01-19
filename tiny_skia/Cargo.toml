@@ -22,15 +22,10 @@ bytemuck.workspace = true
 cosmic-text.workspace = true
 kurbo.workspace = true
 log.workspace = true
-raw-window-handle.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
 tiny-skia.workspace = true
-twox-hash.workspace = true
+xxhash-rust.workspace = true
 
 resvg.workspace = true
 resvg.optional = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-twox-hash.workspace = true
-twox-hash.features = ["std"]

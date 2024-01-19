@@ -244,12 +244,11 @@ where
         tree::State::new(State::default())
     }
 
-    fn width(&self) -> Length {
-        Length::Fixed(self.size)
-    }
-
-    fn height(&self) -> Length {
-        Length::Fixed(self.size)
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fixed(self.size),
+            height: Length::Fixed(self.size),
+        }
     }
 
     fn layout(
@@ -258,10 +257,7 @@ where
         _renderer: &iced::Renderer<Theme>,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.size).height(self.size);
-        let size = limits.resolve(Size::ZERO);
-
-        layout::Node::new(size)
+        layout::atomic(limits, self.size, self.size)
     }
 
     fn on_event(
@@ -275,11 +271,9 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        const FRAME_RATE: u64 = 60;
-
         let state = tree.state.downcast_mut::<State>();
 
-        if let Event::Window(window::Event::RedrawRequested(now)) = event {
+        if let Event::Window(_, window::Event::RedrawRequested(now)) = event {
             state.animation = state.animation.timed_transition(
                 self.cycle_duration,
                 self.rotation_duration,
@@ -287,9 +281,7 @@ where
             );
 
             state.cache.clear();
-            shell.request_redraw(RedrawRequest::At(
-                now + Duration::from_millis(1000 / FRAME_RATE),
-            ));
+            shell.request_redraw(RedrawRequest::NextFrame);
         }
 
         event::Status::Ignored

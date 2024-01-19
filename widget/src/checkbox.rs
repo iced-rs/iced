@@ -174,12 +174,11 @@ where
         tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -266,7 +265,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let is_mouse_over = cursor.is_over(layout.bounds());
 
@@ -315,6 +314,7 @@ where
                     },
                     bounds.center(),
                     custom_style.icon_color,
+                    *viewport,
                 );
             }
         }
@@ -330,6 +330,7 @@ where
                 crate::text::Appearance {
                     color: custom_style.text_color,
                 },
+                viewport,
             );
         }
     }

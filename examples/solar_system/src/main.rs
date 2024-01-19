@@ -114,14 +114,14 @@ impl State {
 
     pub fn new() -> State {
         let now = Instant::now();
-        let (width, height) = window::Settings::default().size;
+        let size = window::Settings::default().size;
 
         State {
             space_cache: canvas::Cache::default(),
             system_cache: canvas::Cache::default(),
             start: now,
             now,
-            stars: Self::generate_stars(width, height),
+            stars: Self::generate_stars(size.width, size.height),
         }
     }
 
@@ -130,7 +130,7 @@ impl State {
         self.system_cache.clear();
     }
 
-    fn generate_stars(width: u32, height: u32) -> Vec<(Point, f32)> {
+    fn generate_stars(width: f32, height: f32) -> Vec<(Point, f32)> {
         use rand::Rng;
 
         let mut rng = rand::thread_rng();
@@ -139,12 +139,8 @@ impl State {
             .map(|_| {
                 (
                     Point::new(
-                        rng.gen_range(
-                            (-(width as f32) / 2.0)..(width as f32 / 2.0),
-                        ),
-                        rng.gen_range(
-                            (-(height as f32) / 2.0)..(height as f32 / 2.0),
-                        ),
+                        rng.gen_range((-width / 2.0)..(width / 2.0)),
+                        rng.gen_range((-height / 2.0)..(height / 2.0)),
                     ),
                     rng.gen_range(0.5..1.0),
                 )

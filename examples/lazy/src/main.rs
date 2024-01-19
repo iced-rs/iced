@@ -46,7 +46,7 @@ enum Color {
 }
 
 impl Color {
-    const ALL: &[Color] = &[
+    const ALL: &'static [Color] = &[
         Color::Black,
         Color::Red,
         Color::Orange,
@@ -178,35 +178,23 @@ impl Sandbox for App {
                 }
             });
 
-            column(
-                items
-                    .into_iter()
-                    .map(|item| {
-                        let button = button("Delete")
-                            .on_press(Message::DeleteItem(item.clone()))
-                            .style(theme::Button::Destructive);
+            column(items.into_iter().map(|item| {
+                let button = button("Delete")
+                    .on_press(Message::DeleteItem(item.clone()))
+                    .style(theme::Button::Destructive);
 
-                        row![
-                            text(&item.name)
-                                .style(theme::Text::Color(item.color.into())),
-                            horizontal_space(Length::Fill),
-                            pick_list(
-                                Color::ALL,
-                                Some(item.color),
-                                move |color| {
-                                    Message::ItemColorChanged(
-                                        item.clone(),
-                                        color,
-                                    )
-                                }
-                            ),
-                            button
-                        ]
-                        .spacing(20)
-                        .into()
-                    })
-                    .collect(),
-            )
+                row![
+                    text(&item.name)
+                        .style(theme::Text::Color(item.color.into())),
+                    horizontal_space(Length::Fill),
+                    pick_list(Color::ALL, Some(item.color), move |color| {
+                        Message::ItemColorChanged(item.clone(), color)
+                    }),
+                    button
+                ]
+                .spacing(20)
+                .into()
+            }))
             .spacing(10)
         });
 

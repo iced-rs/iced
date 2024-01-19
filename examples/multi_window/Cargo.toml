@@ -1,0 +1,9 @@
+[package]
+name = "multi_window"
+version = "0.1.0"
+authors = ["Bingus <shankern@protonmail.com>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced = { path = "../..", features = ["debug", "multi-window"] }

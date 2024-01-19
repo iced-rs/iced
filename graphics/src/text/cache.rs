@@ -1,3 +1,4 @@
+//! Cache text.
 use crate::core::{Font, Size};
 use crate::text;
 
@@ -5,6 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map;
 use std::hash::{BuildHasher, Hash, Hasher};
 
+/// A store of recently used sections of text.
 #[allow(missing_debug_implementations)]
 #[derive(Default)]
 pub struct Cache {
@@ -14,21 +16,20 @@ pub struct Cache {
     hasher: HashBuilder,
 }
 
-#[cfg(not(target_arch = "wasm32"))]
-type HashBuilder = twox_hash::RandomXxHashBuilder64;
-
-#[cfg(target_arch = "wasm32")]
-type HashBuilder = std::hash::BuildHasherDefault<twox_hash::XxHash64>;
+type HashBuilder = xxhash_rust::xxh3::Xxh3Builder;
 
 impl Cache {
+    /// Creates a new empty [`Cache`].
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Gets the text [`Entry`] with the given [`KeyHash`].
     pub fn get(&self, key: &KeyHash) -> Option<&Entry> {
         self.entries.get(key)
     }
 
+    /// Allocates a text [`Entry`] if it is not already present in the [`Cache`].
     pub fn allocate(
         &mut self,
         font_system: &mut cosmic_text::FontSystem,
@@ -88,6 +89,9 @@ impl Cache {
         (hash, self.entries.get_mut(&hash).unwrap())
     }
 
+    /// Trims the [`Cache`].
+    ///
+    /// This will clear the sections of text that have not been used since the last `trim`.
     pub fn trim(&mut self) {
         self.entries
             .retain(|key, _| self.recently_used.contains(key));
@@ -99,13 +103,20 @@ impl Cache {
     }
 }
 
+/// A cache key representing a section of text.
 #[derive(Debug, Clone, Copy)]
 pub struct Key<'a> {
+    /// The content of the text.
     pub content: &'a str,
+    /// The size of the text.
     pub size: f32,
+    /// The line height of the text.
     pub line_height: f32,
+    /// The [`Font`] of the text.
     pub font: Font,
+    /// The bounds of the text.
     pub bounds: Size,
+    /// The shaping strategy of the text.
     pub shaping: text::Shaping,
 }
 
@@ -123,10 +134,14 @@ impl Key<'_> {
     }
 }
 
+/// The hash of a [`Key`].
 pub type KeyHash = u64;
 
+/// A cache entry.
 #[allow(missing_debug_implementations)]
 pub struct Entry {
+    /// The buffer of text, ready for drawing.
     pub buffer: cosmic_text::Buffer,
+    /// The minimum bounds of the text.
     pub min_bounds: Size,
 }

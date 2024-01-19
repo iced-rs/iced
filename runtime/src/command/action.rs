@@ -18,6 +18,11 @@ pub enum Action<T> {
     /// [`Future`]: iced_futures::BoxFuture
     Future(iced_futures::BoxFuture<T>),
 
+    /// Run a [`Stream`] to completion.
+    ///
+    /// [`Stream`]: iced_futures::BoxStream
+    Stream(iced_futures::BoxStream<T>),
+
     /// Run a clipboard action.
     Clipboard(clipboard::Action<T>),
 
@@ -52,10 +57,11 @@ impl<T> Action<T> {
         A: 'static,
         T: 'static,
     {
-        use iced_futures::futures::FutureExt;
+        use iced_futures::futures::{FutureExt, StreamExt};
 
         match self {
             Self::Future(future) => Action::Future(Box::pin(future.map(f))),
+            Self::Stream(stream) => Action::Stream(Box::pin(stream.map(f))),
             Self::Clipboard(action) => Action::Clipboard(action.map(f)),
             Self::Window(window) => Action::Window(window.map(f)),
             Self::System(system) => Action::System(system.map(f)),
@@ -74,10 +80,13 @@ impl<T> fmt::Debug for Action<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Future(_) => write!(f, "Action::Future"),
+            Self::Stream(_) => write!(f, "Action::Stream"),
             Self::Clipboard(action) => {
                 write!(f, "Action::Clipboard({action:?})")
             }
-            Self::Window(action) => write!(f, "Action::Window({action:?})"),
+            Self::Window(action) => {
+                write!(f, "Action::Window({action:?})")
+            }
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),

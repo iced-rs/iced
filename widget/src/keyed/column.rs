@@ -8,7 +8,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Widget,
+    Shell, Size, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -30,26 +30,10 @@ where
 impl<'a, Key, Message, Renderer> Column<'a, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
+    Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
-        Self::with_children(Vec::new())
-    }
-
-    /// Creates a [`Column`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
-    ) -> Self {
-        let (keys, children) = children.into_iter().fold(
-            (Vec::new(), Vec::new()),
-            |(mut keys, mut children), (key, child)| {
-                keys.push(key);
-                children.push(child);
-
-                (keys, children)
-            },
-        );
-
         Column {
             spacing: 0.0,
             padding: Padding::ZERO,
@@ -57,9 +41,18 @@ where
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
-            keys,
-            children,
+            keys: Vec::new(),
+            children: Vec::new(),
         }
+    }
+
+    /// Creates a [`Column`] with the given elements.
+    pub fn with_children(
+        children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
+    ) -> Self {
+        children
+            .into_iter()
+            .fold(Self::new(), |column, (key, child)| column.push(key, child))
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -108,8 +101,19 @@ where
         key: Key,
         child: impl Into<Element<'a, Message, Renderer>>,
     ) -> Self {
+        let child = child.into();
+        let size = child.as_widget().size_hint();
+
+        if size.width.is_fill() {
+            self.width = Length::Fill;
+        }
+
+        if size.height.is_fill() {
+            self.height = Length::Fill;
+        }
+
         self.keys.push(key);
-        self.children.push(child.into());
+        self.children.push(child);
         self
     }
 }
@@ -117,6 +121,7 @@ where
 impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
+    Renderer: crate::core::Renderer,
 {
     fn default() -> Self {
         Self::new()
@@ -173,12 +178,11 @@ where
         }
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -196,6 +200,8 @@ where
             layout::flex::Axis::Vertical,
             renderer,
             &limits,
+            self.width,
+            self.height,
             self.padding,
             self.spacing,
             self.align_items,

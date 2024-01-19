@@ -15,7 +15,8 @@ enum State {
 impl Clipboard {
     /// Creates a new [`Clipboard`] for the given window.
     pub fn connect(window: &winit::window::Window) -> Clipboard {
-        let state = window_clipboard::Clipboard::connect(window)
+        #[allow(unsafe_code)]
+        let state = unsafe { window_clipboard::Clipboard::connect(window) }
             .ok()
             .map(State::Connected)
             .unwrap_or(State::Unavailable);

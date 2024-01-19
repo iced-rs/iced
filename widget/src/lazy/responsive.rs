@@ -6,7 +6,8 @@ use crate::core::renderer;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Widget,
+    self, Clipboard, Element, Length, Point, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 use crate::horizontal_space;
 use crate::runtime::overlay::Nested;
@@ -134,12 +135,11 @@ where
         })
     }
 
-    fn width(&self) -> Length {
-        Length::Fill
-    }
-
-    fn height(&self) -> Length {
-        Length::Fill
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Fill,
+            height: Length::Fill,
+        }
     }
 
     fn layout(
@@ -367,9 +367,10 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

@@ -3,7 +3,7 @@ mod echo;
 use iced::alignment::{self, Alignment};
 use iced::executor;
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input, Column,
+    button, column, container, row, scrollable, text, text_input,
 };
 use iced::{
     Application, Color, Command, Element, Length, Settings, Subscription, Theme,
@@ -108,15 +108,9 @@ impl Application for WebSocket {
             .into()
         } else {
             scrollable(
-                Column::with_children(
-                    self.messages
-                        .iter()
-                        .cloned()
-                        .map(text)
-                        .map(Element::from)
-                        .collect(),
+                column(
+                    self.messages.iter().cloned().map(text).map(Element::from),
                 )
-                .width(Length::Fill)
                 .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
@@ -131,7 +125,7 @@ impl Application for WebSocket {
 
             let mut button = button(
                 text("Send")
-                    .height(Length::Fill)
+                    .height(40)
                     .vertical_alignment(alignment::Vertical::Center),
             )
             .padding([0, 20]);
@@ -149,7 +143,6 @@ impl Application for WebSocket {
         };
 
         column![message_log, new_message_input]
-            .width(Length::Fill)
             .height(Length::Fill)
             .padding(20)
             .spacing(10)

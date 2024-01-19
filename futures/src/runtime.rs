@@ -1,7 +1,7 @@
 //! Run commands and keep track of subscriptions.
 use crate::core::event::{self, Event};
 use crate::subscription;
-use crate::{BoxFuture, Executor, MaybeSend};
+use crate::{BoxFuture, BoxStream, Executor, MaybeSend};
 
 use futures::{channel::mpsc, Sink};
 use std::marker::PhantomData;
@@ -65,6 +65,29 @@ where
         let future = future.then(|message| async move {
             let _ = sender.send(message).await;
         });
+
+        self.executor.spawn(future);
+    }
+
+    /// Runs a [`Stream`] in the [`Runtime`] until completion.
+    ///
+    /// The resulting `Message`s will be forwarded to the `Sender` of the
+    /// [`Runtime`].
+    ///
+    /// [`Stream`]: BoxStream
+    pub fn run(&mut self, stream: BoxStream<Message>) {
+        use futures::{FutureExt, StreamExt};
+
+        let sender = self.sender.clone();
+        let future =
+            stream.map(Ok).forward(sender).map(|result| match result {
+                Ok(()) => (),
+                Err(error) => {
+                    log::warn!(
+                        "Stream could not run until completion: {error}"
+                    );
+                }
+            });
 
         self.executor.spawn(future);
     }

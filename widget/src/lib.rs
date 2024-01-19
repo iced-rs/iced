@@ -35,6 +35,7 @@ pub mod scrollable;
 pub mod slider;
 pub mod space;
 pub mod text;
+pub mod text_editor;
 pub mod text_input;
 pub mod toggler;
 pub mod tooltip;
@@ -86,6 +87,8 @@ pub use space::Space;
 #[doc(no_inline)]
 pub use text::Text;
 #[doc(no_inline)]
+pub use text_editor::TextEditor;
+#[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]
 pub use toggler::Toggler;
@@ -93,6 +96,13 @@ pub use toggler::Toggler;
 pub use tooltip::Tooltip;
 #[doc(no_inline)]
 pub use vertical_slider::VerticalSlider;
+
+#[cfg(feature = "wgpu")]
+pub mod shader;
+
+#[cfg(feature = "wgpu")]
+#[doc(no_inline)]
+pub use shader::Shader;
 
 #[cfg(feature = "svg")]
 pub mod svg;

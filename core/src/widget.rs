@@ -15,7 +15,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Length, Rectangle, Shell};
+use crate::{Clipboard, Length, Rectangle, Shell, Size};
 
 /// A component that displays information and allows interaction.
 ///
@@ -43,11 +43,16 @@ pub trait Widget<Message, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    /// Returns the width of the [`Widget`].
-    fn width(&self) -> Length;
+    /// Returns the [`Size`] of the [`Widget`] in lengths.
+    fn size(&self) -> Size<Length>;
 
-    /// Returns the height of the [`Widget`].
-    fn height(&self) -> Length;
+    /// Returns a [`Size`] hint for laying out the [`Widget`].
+    ///
+    /// This hint may be used by some widget containers to adjust their sizing strategy
+    /// during construction.
+    fn size_hint(&self) -> Size<Length> {
+        self.size()
+    }
 
     /// Returns the [`layout::Node`] of the [`Widget`].
     ///

@@ -46,17 +46,20 @@ where
     where
         T: Into<Element<'a, Message, Renderer>>,
     {
+        let content = content.into();
+        let size = content.as_widget().size_hint();
+
         Container {
             id: None,
             padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
+            width: size.width.fluid(),
+            height: size.height.fluid(),
             max_width: f32::INFINITY,
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
-            content: content.into(),
+            content,
         }
     }
 
@@ -152,12 +155,11 @@ where
         self.content.as_widget().diff(tree);
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -252,21 +254,23 @@ where
     ) {
         let style = theme.appearance(&self.style);
 
-        draw_background(renderer, &style, layout.bounds());
+        if let Some(viewport) = layout.bounds().intersection(viewport) {
+            draw_background(renderer, &style, layout.bounds());
 
-        self.content.as_widget().draw(
-            tree,
-            renderer,
-            theme,
-            &renderer::Style {
-                text_color: style
-                    .text_color
-                    .unwrap_or(renderer_style.text_color),
-            },
-            layout.children().next().unwrap(),
-            cursor,
-            viewport,
-        );
+            self.content.as_widget().draw(
+                tree,
+                renderer,
+                theme,
+                &renderer::Style {
+                    text_color: style
+                        .text_color
+                        .unwrap_or(renderer_style.text_color),
+                },
+                layout.children().next().unwrap(),
+                cursor,
+                &viewport,
+            );
+        }
     }
 
     fn overlay<'b>(
@@ -309,25 +313,20 @@ pub fn layout(
     vertical_alignment: alignment::Vertical,
     layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
 ) -> layout::Node {
-    let limits = limits
-        .loose()
-        .max_width(max_width)
-        .max_height(max_height)
-        .width(width)
-        .height(height);
-
-    let mut content = layout_content(&limits.pad(padding).loose());
-    let padding = padding.fit(content.size(), limits.max());
-    let size = limits.pad(padding).resolve(content.size());
-
-    content.move_to(Point::new(padding.left, padding.top));
-    content.align(
-        Alignment::from(horizontal_alignment),
-        Alignment::from(vertical_alignment),
-        size,
-    );
-
-    layout::Node::with_children(size.pad(padding), vec![content])
+    layout::positioned(
+        &limits.max_width(max_width).max_height(max_height),
+        width,
+        height,
+        padding,
+        |limits| layout_content(&limits.loose()),
+        |content, size| {
+            content.align(
+                Alignment::from(horizontal_alignment),
+                Alignment::from(vertical_alignment),
+                size,
+            )
+        },
+    )
 }
 
 /// Draws the background of a [`Container`] given its [`Appearance`] and its `bounds`.

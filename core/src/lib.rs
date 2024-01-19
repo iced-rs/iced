@@ -75,3 +75,5 @@ pub use size::Size;
 pub use text::Text;
 pub use vector::Vector;
 pub use widget::Widget;
+
+pub use smol_str::SmolStr;

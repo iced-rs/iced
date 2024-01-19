@@ -19,7 +19,7 @@ pub enum Event {
     Mouse(mouse::Event),
 
     /// A window event
-    Window(window::Event),
+    Window(window::Id, window::Event),
 
     /// A touch event
     Touch(touch::Event),

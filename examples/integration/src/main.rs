@@ -6,18 +6,25 @@ use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
 use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
+use iced_winit::core::window;
 use iced_winit::core::{Color, Font, Pixels, Size};
+use iced_winit::futures;
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
 use iced_winit::style::Theme;
-use iced_winit::{conversion, futures, winit, Clipboard};
+use iced_winit::winit;
+use iced_winit::Clipboard;
 
 use winit::{
-    event::{Event, ModifiersState, WindowEvent},
+    event::{Event, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
+    keyboard::ModifiersState,
 };
+
+use std::sync::Arc;
 
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
@@ -44,7 +51,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
 
     // Initialize winit
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new()?;
 
     #[cfg(target_arch = "wasm32")]
     let window = winit::window::WindowBuilder::new()
@@ -53,6 +60,8 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     #[cfg(not(target_arch = "wasm32"))]
     let window = winit::window::Window::new(&event_loop)?;
+
+    let window = Arc::new(window);
 
     let physical_size = window.inner_size();
     let mut viewport = Viewport::with_physical_size(
@@ -76,7 +85,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
         backends: backend,
         ..Default::default()
     });
-    let surface = unsafe { instance.create_surface(&window) }?;
+    let surface = instance.create_surface(window.clone())?;
 
     let (format, (device, queue)) =
         futures::futures::executor::block_on(async {
@@ -110,9 +119,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .request_device(
                         &wgpu::DeviceDescriptor {
                             label: None,
-                            features: adapter_features
+                            required_features: adapter_features
                                 & wgpu::Features::default(),
-                            limits: needed_limits,
+                            required_limits: needed_limits,
                         },
                         None,
                     )
@@ -131,6 +140,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
             present_mode: wgpu::PresentMode::AutoVsync,
             alpha_mode: wgpu::CompositeAlphaMode::Auto,
             view_formats: vec![],
+            desired_maximum_frame_latency: 2,
         },
     );
 
@@ -156,66 +166,15 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Run event loop
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, window_target| {
         // You should change this if you want to render continuosly
-        *control_flow = ControlFlow::Wait;
+        window_target.set_control_flow(ControlFlow::Wait);
 
         match event {
-            Event::WindowEvent { event, .. } => {
-                match event {
-                    WindowEvent::CursorMoved { position, .. } => {
-                        cursor_position = Some(position);
-                    }
-                    WindowEvent::ModifiersChanged(new_modifiers) => {
-                        modifiers = new_modifiers;
-                    }
-                    WindowEvent::Resized(_) => {
-                        resized = true;
-                    }
-                    WindowEvent::CloseRequested => {
-                        *control_flow = ControlFlow::Exit;
-                    }
-                    _ => {}
-                }
-
-                // Map window event to iced event
-                if let Some(event) = iced_winit::conversion::window_event(
-                    &event,
-                    window.scale_factor(),
-                    modifiers,
-                ) {
-                    state.queue_event(event);
-                }
-            }
-            Event::MainEventsCleared => {
-                // If there are events pending
-                if !state.is_queue_empty() {
-                    // We update iced
-                    let _ = state.update(
-                        viewport.logical_size(),
-                        cursor_position
-                            .map(|p| {
-                                conversion::cursor_position(
-                                    p,
-                                    viewport.scale_factor(),
-                                )
-                            })
-                            .map(mouse::Cursor::Available)
-                            .unwrap_or(mouse::Cursor::Unavailable),
-                        &mut renderer,
-                        &Theme::Dark,
-                        &renderer::Style {
-                            text_color: Color::WHITE,
-                        },
-                        &mut clipboard,
-                        &mut debug,
-                    );
-
-                    // and request a redraw
-                    window.request_redraw();
-                }
-            }
-            Event::RedrawRequested(_) => {
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
                 if resized {
                     let size = window.inner_size();
 
@@ -234,6 +193,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                             present_mode: wgpu::PresentMode::AutoVsync,
                             alpha_mode: wgpu::CompositeAlphaMode::Auto,
                             view_formats: vec![],
+                            desired_maximum_frame_latency: 2,
                         },
                     );
 
@@ -271,6 +231,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 &queue,
                                 &mut encoder,
                                 None,
+                                frame.texture.format(),
                                 &view,
                                 primitive,
                                 &viewport,
@@ -303,7 +264,60 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     },
                 }
             }
+            Event::WindowEvent { event, .. } => {
+                match event {
+                    WindowEvent::CursorMoved { position, .. } => {
+                        cursor_position = Some(position);
+                    }
+                    WindowEvent::ModifiersChanged(new_modifiers) => {
+                        modifiers = new_modifiers.state();
+                    }
+                    WindowEvent::Resized(_) => {
+                        resized = true;
+                    }
+                    WindowEvent::CloseRequested => {
+                        window_target.exit();
+                    }
+                    _ => {}
+                }
+
+                // Map window event to iced event
+                if let Some(event) = iced_winit::conversion::window_event(
+                    window::Id::MAIN,
+                    event,
+                    window.scale_factor(),
+                    modifiers,
+                ) {
+                    state.queue_event(event);
+                }
+            }
             _ => {}
         }
-    })
+
+        // If there are events pending
+        if !state.is_queue_empty() {
+            // We update iced
+            let _ = state.update(
+                viewport.logical_size(),
+                cursor_position
+                    .map(|p| {
+                        conversion::cursor_position(p, viewport.scale_factor())
+                    })
+                    .map(mouse::Cursor::Available)
+                    .unwrap_or(mouse::Cursor::Unavailable),
+                &mut renderer,
+                &Theme::Dark,
+                &renderer::Style {
+                    text_color: Color::WHITE,
+                },
+                &mut clipboard,
+                &mut debug,
+            );
+
+            // and request a redraw
+            window.request_redraw();
+        }
+    })?;
+
+    Ok(())
 }

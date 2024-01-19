@@ -1,6 +1,15 @@
 //! Draw and interact with text.
+mod paragraph;
+
+pub mod editor;
+pub mod highlighter;
+
+pub use editor::Editor;
+pub use highlighter::Highlighter;
+pub use paragraph::Paragraph;
+
 use crate::alignment;
-use crate::{Color, Pixels, Point, Size};
+use crate::{Color, Pixels, Point, Rectangle, Size};
 
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
@@ -126,6 +135,33 @@ impl Hit {
     }
 }
 
+/// The difference detected in some text.
+///
+/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
+/// [`Text`].
+///
+/// [`compare`]: Paragraph::compare
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Difference {
+    /// No difference.
+    ///
+    /// The text can be reused as it is!
+    None,
+
+    /// A bounds difference.
+    ///
+    /// This normally means a relayout is necessary, but the shape of the text can
+    /// be reused.
+    Bounds,
+
+    /// A shape difference.
+    ///
+    /// The contents, alignment, sizes, fonts, or any other essential attributes
+    /// of the shape of the text have changed. A complete reshape and relayout of
+    /// the text is necessary.
+    Shape,
+}
+
 /// A renderer capable of measuring and drawing [`Text`].
 pub trait Renderer: crate::Renderer {
     /// The font type used.
@@ -133,6 +169,9 @@ pub trait Renderer: crate::Renderer {
 
     /// The [`Paragraph`] of this [`Renderer`].
     type Paragraph: Paragraph<Font = Self::Font> + 'static;
+
+    /// The [`Editor`] of this [`Renderer`].
+    type Editor: Editor<Font = Self::Font> + 'static;
 
     /// The icon font of the backend.
     const ICON_FONT: Self::Font;
@@ -156,33 +195,6 @@ pub trait Renderer: crate::Renderer {
     /// Loads a [`Self::Font`] from its bytes.
     fn load_font(&mut self, font: Cow<'static, [u8]>);
 
-    /// Creates a new [`Paragraph`] laid out with the given [`Text`].
-    fn create_paragraph(&self, text: Text<'_, Self::Font>) -> Self::Paragraph;
-
-    /// Lays out the given [`Paragraph`] with some new boundaries.
-    fn resize_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        new_bounds: Size,
-    );
-
-    /// Updates a [`Paragraph`] to match the given [`Text`], if needed.
-    fn update_paragraph(
-        &self,
-        paragraph: &mut Self::Paragraph,
-        text: Text<'_, Self::Font>,
-    ) {
-        match compare(paragraph, text) {
-            Difference::None => {}
-            Difference::Bounds => {
-                self.resize_paragraph(paragraph, text.bounds);
-            }
-            Difference::Shape => {
-                *paragraph = self.create_paragraph(text);
-            }
-        }
-    }
-
     /// Draws the given [`Paragraph`] at the given position and with the given
     /// [`Color`].
     fn fill_paragraph(
@@ -190,6 +202,17 @@ pub trait Renderer: crate::Renderer {
         text: &Self::Paragraph,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
+    );
+
+    /// Draws the given [`Editor`] at the given position and with the given
+    /// [`Color`].
+    fn fill_editor(
+        &mut self,
+        editor: &Self::Editor,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
     );
 
     /// Draws the given [`Text`] at the given position and with the given
@@ -199,103 +222,6 @@ pub trait Renderer: crate::Renderer {
         text: Text<'_, Self::Font>,
         position: Point,
         color: Color,
+        clip_bounds: Rectangle,
     );
-}
-/// A text paragraph.
-pub trait Paragraph: Default {
-    /// The font of this [`Paragraph`].
-    type Font;
-
-    /// Returns the content of the [`Paragraph`].
-    fn content(&self) -> &str;
-
-    /// Returns the text size of the [`Paragraph`].
-    fn text_size(&self) -> Pixels;
-
-    /// Returns the [`LineHeight`] of the [`Paragraph`].
-    fn line_height(&self) -> LineHeight;
-
-    /// Returns the [`Self::Font`] of the [`Paragraph`].
-    fn font(&self) -> Self::Font;
-
-    /// Returns the [`Shaping`] strategy of the [`Paragraph`].
-    fn shaping(&self) -> Shaping;
-
-    /// Returns the horizontal alignment of the [`Paragraph`].
-    fn horizontal_alignment(&self) -> alignment::Horizontal;
-
-    /// Returns the vertical alignment of the [`Paragraph`].
-    fn vertical_alignment(&self) -> alignment::Vertical;
-
-    /// Returns the boundaries of the [`Paragraph`].
-    fn bounds(&self) -> Size;
-
-    /// Returns the minimum boundaries that can fit the contents of the
-    /// [`Paragraph`].
-    fn min_bounds(&self) -> Size;
-
-    /// Tests whether the provided point is within the boundaries of the
-    /// [`Paragraph`], returning information about the nearest character.
-    fn hit_test(&self, point: Point) -> Option<Hit>;
-
-    /// Returns the distance to the given grapheme index in the [`Paragraph`].
-    fn grapheme_position(&self, line: usize, index: usize) -> Option<Point>;
-
-    /// Returns the minimum width that can fit the contents of the [`Paragraph`].
-    fn min_width(&self) -> f32 {
-        self.min_bounds().width
-    }
-
-    /// Returns the minimum height that can fit the contents of the [`Paragraph`].
-    fn min_height(&self) -> f32 {
-        self.min_bounds().height
-    }
-}
-
-/// The difference detected in some text.
-///
-/// You will obtain a [`Difference`] when you [`compare`] a [`Paragraph`] with some
-/// [`Text`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Difference {
-    /// No difference.
-    ///
-    /// The text can be reused as it is!
-    None,
-
-    /// A bounds difference.
-    ///
-    /// This normally means a relayout is necessary, but the shape of the text can
-    /// be reused.
-    Bounds,
-
-    /// A shape difference.
-    ///
-    /// The contents, alignment, sizes, fonts, or any other essential attributes
-    /// of the shape of the text have changed. A complete reshape and relayout of
-    /// the text is necessary.
-    Shape,
-}
-
-/// Compares a [`Paragraph`] with some desired [`Text`] and returns the
-/// [`Difference`].
-pub fn compare<Font: PartialEq>(
-    paragraph: &impl Paragraph<Font = Font>,
-    text: Text<'_, Font>,
-) -> Difference {
-    if paragraph.content() != text.content
-        || paragraph.text_size() != text.size
-        || paragraph.line_height().to_absolute(text.size)
-            != text.line_height.to_absolute(text.size)
-        || paragraph.font() != text.font
-        || paragraph.shaping() != text.shaping
-        || paragraph.horizontal_alignment() != text.horizontal_alignment
-        || paragraph.vertical_alignment() != text.vertical_alignment
-    {
-        Difference::Shape
-    } else if paragraph.bounds() != text.bounds {
-        Difference::Bounds
-    } else {
-        Difference::None
-    }
 }

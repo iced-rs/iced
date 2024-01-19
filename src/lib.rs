@@ -168,6 +168,9 @@ use iced_winit::runtime;
 
 pub use iced_futures::futures;
 
+#[cfg(feature = "highlighter")]
+pub use iced_highlighter as highlighter;
+
 mod error;
 mod sandbox;
 
@@ -179,6 +182,9 @@ pub mod window;
 #[cfg(feature = "advanced")]
 pub mod advanced;
 
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
+
 pub use style::theme;
 
 pub use crate::core::alignment;
@@ -187,7 +193,6 @@ pub use crate::core::{
     color, Alignment, Background, BorderRadius, Color, ContentFit, Degrees,
     Gradient, Length, Padding, Pixels, Point, Radians, Rectangle, Size, Vector,
 };
-pub use crate::runtime::Command;
 
 pub mod clipboard {
     //! Access the clipboard.
@@ -225,7 +230,8 @@ pub mod event {
 
 pub mod keyboard {
     //! Listen and react to keyboard events.
-    pub use crate::core::keyboard::{Event, KeyCode, Modifiers};
+    pub use crate::core::keyboard::key;
+    pub use crate::core::keyboard::{Event, Key, Location, Modifiers};
     pub use iced_futures::keyboard::{on_key_press, on_key_release};
 }
 
@@ -234,6 +240,11 @@ pub mod mouse {
     pub use crate::core::mouse::{
         Button, Cursor, Event, Interaction, ScrollDelta,
     };
+}
+
+pub mod command {
+    //! Run asynchronous actions.
+    pub use crate::runtime::command::{channel, Command};
 }
 
 pub mod subscription {
@@ -284,6 +295,7 @@ pub mod widget {
 }
 
 pub use application::Application;
+pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;

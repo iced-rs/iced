@@ -16,6 +16,7 @@ use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
 use crate::text::{self, Text};
+use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
@@ -33,7 +34,7 @@ macro_rules! column {
         $crate::Column::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Column::with_children(vec![$($crate::core::Element::from($x)),+])
+        $crate::Column::with_children([$($crate::core::Element::from($x)),+])
     );
 }
 
@@ -46,7 +47,7 @@ macro_rules! row {
         $crate::Row::new()
     );
     ($($x:expr),+ $(,)?) => (
-        $crate::Row::with_children(vec![$($crate::core::Element::from($x)),+])
+        $crate::Row::with_children([$($crate::core::Element::from($x)),+])
     );
 }
 
@@ -64,9 +65,12 @@ where
 }
 
 /// Creates a new [`Column`] with the given children.
-pub fn column<Message, Renderer>(
-    children: Vec<Element<'_, Message, Renderer>>,
-) -> Column<'_, Message, Renderer> {
+pub fn column<'a, Message, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
+) -> Column<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Column::with_children(children)
 }
 
@@ -76,6 +80,7 @@ pub fn keyed_column<'a, Key, Message, Renderer>(
 ) -> keyed::Column<'a, Key, Message, Renderer>
 where
     Key: Copy + PartialEq,
+    Renderer: core::Renderer,
 {
     keyed::Column::with_children(children)
 }
@@ -83,9 +88,12 @@ where
 /// Creates a new [`Row`] with the given children.
 ///
 /// [`Row`]: crate::Row
-pub fn row<Message, Renderer>(
-    children: Vec<Element<'_, Message, Renderer>>,
-) -> Row<'_, Message, Renderer> {
+pub fn row<'a, Message, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
+) -> Row<'a, Message, Renderer>
+where
+    Renderer: core::Renderer,
+{
     Row::with_children(children)
 }
 
@@ -206,6 +214,20 @@ where
     TextInput::new(placeholder, value)
 }
 
+/// Creates a new [`TextEditor`].
+///
+/// [`TextEditor`]: crate::TextEditor
+pub fn text_editor<Message, Renderer>(
+    content: &text_editor::Content<Renderer>,
+) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Renderer>
+where
+    Message: Clone,
+    Renderer: core::text::Renderer,
+    Renderer::Theme: text_editor::StyleSheet,
+{
+    TextEditor::new(content)
+}
+
 /// Creates a new [`Slider`].
 ///
 /// [`Slider`]: crate::Slider
@@ -249,7 +271,7 @@ pub fn pick_list<'a, Message, Renderer, T>(
     on_selected: impl Fn(T) -> Message + 'a,
 ) -> PickList<'a, T, Message, Renderer>
 where
-    T: ToString + Eq + 'static,
+    T: ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: core::text::Renderer,
     Renderer::Theme: pick_list::StyleSheet
@@ -368,6 +390,17 @@ where
     P: crate::canvas::Program<Message, Renderer>,
 {
     crate::Canvas::new(program)
+}
+
+/// Creates a new [`Shader`].
+///
+/// [`Shader`]: crate::Shader
+#[cfg(feature = "wgpu")]
+pub fn shader<Message, P>(program: P) -> crate::Shader<Message, P>
+where
+    P: crate::shader::Program<Message>,
+{
+    crate::Shader::new(program)
 }
 
 /// Focuses the previous focusable widget.

@@ -86,12 +86,16 @@ impl Application for Stopwatch {
         };
 
         fn handle_hotkey(
-            key_code: keyboard::KeyCode,
+            key: keyboard::Key,
             _modifiers: keyboard::Modifiers,
         ) -> Option<Message> {
-            match key_code {
-                keyboard::KeyCode::Space => Some(Message::Toggle),
-                keyboard::KeyCode::R => Some(Message::Reset),
+            use keyboard::key;
+
+            match key.as_ref() {
+                keyboard::Key::Named(key::Named::Space) => {
+                    Some(Message::Toggle)
+                }
+                keyboard::Key::Character("r") => Some(Message::Reset),
                 _ => None,
             }
         }

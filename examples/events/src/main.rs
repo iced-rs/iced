@@ -10,7 +10,10 @@ use iced::{
 
 pub fn main() -> iced::Result {
     Events::run(Settings {
-        exit_on_close_request: false,
+        window: window::Settings {
+            exit_on_close_request: false,
+            ..window::Settings::default()
+        },
         ..Settings::default()
     })
 }
@@ -54,8 +57,9 @@ impl Application for Events {
                 Command::none()
             }
             Message::EventOccurred(event) => {
-                if let Event::Window(window::Event::CloseRequested) = event {
-                    window::close()
+                if let Event::Window(id, window::Event::CloseRequested) = event
+                {
+                    window::close(id)
                 } else {
                     Command::none()
                 }
@@ -65,7 +69,7 @@ impl Application for Events {
 
                 Command::none()
             }
-            Message::Exit => window::close(),
+            Message::Exit => window::close(window::Id::MAIN),
         }
     }
 
@@ -78,8 +82,7 @@ impl Application for Events {
             self.last
                 .iter()
                 .map(|event| text(format!("{event:?}")).size(40))
-                .map(Element::from)
-                .collect(),
+                .map(Element::from),
         );
 
         let toggle = checkbox(

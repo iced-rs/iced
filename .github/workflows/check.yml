@@ -1,0 +1,29 @@
+name: Check
+on: [push, pull_request]
+jobs:
+  widget:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+    - uses: actions/checkout@master
+    - name: Check standalone `iced_widget` crate
+      run: cargo check --package iced_widget --features image,svg,canvas
+
+  wasm:
+    runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: --cfg=web_sys_unstable_apis
+    steps:
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: stable
+        targets: wasm32-unknown-unknown
+    - uses: actions/checkout@master
+    - name: Run checks
+      run: cargo check --package iced --target wasm32-unknown-unknown
+    - name: Check compilation of `tour` example
+      run: cargo build --package tour --target wasm32-unknown-unknown
+    - name: Check compilation of `todos` example
+      run: cargo build --package todos --target wasm32-unknown-unknown
+    - name: Check compilation of `integration` example
+      run: cargo build --package integration --target wasm32-unknown-unknown

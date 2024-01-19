@@ -1,4 +1,4 @@
-use iced::alignment;
+use iced::alignment::{self, Alignment};
 use iced::theme;
 use iced::widget::{
     checkbox, column, container, horizontal_space, image, radio, row,
@@ -126,7 +126,10 @@ impl Steps {
                 Step::Toggler {
                     can_continue: false,
                 },
-                Step::Image { width: 300 },
+                Step::Image {
+                    width: 300,
+                    filter_method: image::FilterMethod::Linear,
+                },
                 Step::Scrollable,
                 Step::TextInput {
                     value: String::new(),
@@ -195,6 +198,7 @@ enum Step {
     },
     Image {
         width: u16,
+        filter_method: image::FilterMethod,
     },
     Scrollable,
     TextInput {
@@ -215,6 +219,7 @@ pub enum StepMessage {
     TextColorChanged(Color),
     LanguageSelected(Language),
     ImageWidthChanged(u16),
+    ImageUseNearestToggled(bool),
     InputChanged(String),
     ToggleSecureInput(bool),
     ToggleTextInputIcon(bool),
@@ -263,6 +268,15 @@ impl<'a> Step {
             StepMessage::ImageWidthChanged(new_width) => {
                 if let Step::Image { width, .. } = self {
                     *width = new_width;
+                }
+            }
+            StepMessage::ImageUseNearestToggled(use_nearest) => {
+                if let Step::Image { filter_method, .. } = self {
+                    *filter_method = if use_nearest {
+                        image::FilterMethod::Nearest
+                    } else {
+                        image::FilterMethod::Linear
+                    };
                 }
             }
             StepMessage::InputChanged(new_value) => {
@@ -330,7 +344,10 @@ impl<'a> Step {
             Step::Toggler { can_continue } => Self::toggler(*can_continue),
             Step::Slider { value } => Self::slider(*value),
             Step::Text { size, color } => Self::text(*size, *color),
-            Step::Image { width } => Self::image(*width),
+            Step::Image {
+                width,
+                filter_method,
+            } => Self::image(*width, *filter_method),
             Step::RowsAndColumns { layout, spacing } => {
                 Self::rows_and_columns(*layout, *spacing)
             }
@@ -492,7 +509,6 @@ impl<'a> Step {
                         )
                     })
                     .map(Element::from)
-                    .collect()
             )
             .spacing(10)
         ]
@@ -525,16 +541,25 @@ impl<'a> Step {
             )
     }
 
-    fn image(width: u16) -> Column<'a, StepMessage> {
+    fn image(
+        width: u16,
+        filter_method: image::FilterMethod,
+    ) -> Column<'a, StepMessage> {
         Self::container("Image")
             .push("An image that tries to keep its aspect ratio.")
-            .push(ferris(width))
+            .push(ferris(width, filter_method))
             .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
             .push(
                 text(format!("Width: {width} px"))
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
+            .push(checkbox(
+                "Use nearest interpolation",
+                filter_method == image::FilterMethod::Nearest,
+                StepMessage::ImageUseNearestToggled,
+            ))
+            .align_items(Alignment::Center)
     }
 
     fn scrollable() -> Column<'a, StepMessage> {
@@ -555,7 +580,7 @@ impl<'a> Step {
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
             .push(vertical_space(4096))
-            .push(ferris(300))
+            .push(ferris(300, image::FilterMethod::Linear))
             .push(
                 text("You made it!")
                     .width(Length::Fill)
@@ -646,7 +671,10 @@ impl<'a> Step {
     }
 }
 
-fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
+fn ferris<'a>(
+    width: u16,
+    filter_method: image::FilterMethod,
+) -> Container<'a, StepMessage> {
     container(
         // This should go away once we unify resource loading on native
         // platforms
@@ -655,6 +683,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
         } else {
             image(format!("{}/images/ferris.png", env!("CARGO_MANIFEST_DIR")))
         }
+        .filter_method(filter_method)
         .width(width),
     )
     .width(Length::Fill)
@@ -662,11 +691,7 @@ fn ferris<'a>(width: u16) -> Container<'a, StepMessage> {
 }
 
 fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
-    iced::widget::button(
-        text(label).horizontal_alignment(alignment::Horizontal::Center),
-    )
-    .padding(12)
-    .width(100)
+    iced::widget::button(text(label)).padding([12, 24])
 }
 
 fn color_slider<'a>(

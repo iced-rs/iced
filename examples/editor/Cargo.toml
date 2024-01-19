@@ -1,0 +1,15 @@
+[package]
+name = "editor"
+version = "0.1.0"
+authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
+edition = "2021"
+publish = false
+
+[dependencies]
+iced.workspace = true
+iced.features = ["highlighter", "tokio", "debug"]
+
+tokio.workspace = true
+tokio.features = ["fs"]
+
+rfd = "0.13"

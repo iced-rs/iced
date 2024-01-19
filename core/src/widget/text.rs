@@ -5,7 +5,9 @@ use crate::mouse;
 use crate::renderer;
 use crate::text::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
-use crate::{Color, Element, Layout, Length, Pixels, Point, Rectangle, Widget};
+use crate::{
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+};
 
 use std::borrow::Cow;
 
@@ -134,12 +136,11 @@ where
         tree::State::new(State(Renderer::Paragraph::default()))
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -172,7 +173,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
@@ -182,6 +183,7 @@ where
             layout,
             state,
             theme.appearance(self.style.clone()),
+            viewport,
         );
     }
 }
@@ -204,17 +206,15 @@ pub fn layout<Renderer>(
 where
     Renderer: text::Renderer,
 {
-    let limits = limits.width(width).height(height);
-    let bounds = limits.max();
+    layout::sized(limits, width, height, |limits| {
+        let bounds = limits.max();
 
-    let size = size.unwrap_or_else(|| renderer.default_size());
-    let font = font.unwrap_or_else(|| renderer.default_font());
+        let size = size.unwrap_or_else(|| renderer.default_size());
+        let font = font.unwrap_or_else(|| renderer.default_font());
 
-    let State(ref mut paragraph) = state;
+        let State(ref mut paragraph) = state;
 
-    renderer.update_paragraph(
-        paragraph,
-        text::Text {
+        paragraph.update(text::Text {
             content,
             bounds,
             size,
@@ -223,12 +223,10 @@ where
             horizontal_alignment,
             vertical_alignment,
             shaping,
-        },
-    );
+        });
 
-    let size = limits.resolve(paragraph.min_bounds());
-
-    layout::Node::new(size)
+        paragraph.min_bounds()
+    })
 }
 
 /// Draws text using the same logic as the [`Text`] widget.
@@ -247,6 +245,7 @@ pub fn draw<Renderer>(
     layout: Layout<'_>,
     state: &State<Renderer::Paragraph>,
     appearance: Appearance,
+    viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
 {
@@ -269,6 +268,7 @@ pub fn draw<Renderer>(
         paragraph,
         Point::new(x, y),
         appearance.color.unwrap_or(style.text_color),
+        *viewport,
     );
 }
 

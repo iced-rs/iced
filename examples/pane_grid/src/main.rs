@@ -220,23 +220,26 @@ const PANE_ID_COLOR_FOCUSED: Color = Color::from_rgb(
     0x47 as f32 / 255.0,
 );
 
-fn handle_hotkey(key_code: keyboard::KeyCode) -> Option<Message> {
-    use keyboard::KeyCode;
+fn handle_hotkey(key: keyboard::Key) -> Option<Message> {
+    use keyboard::key::{self, Key};
     use pane_grid::{Axis, Direction};
 
-    let direction = match key_code {
-        KeyCode::Up => Some(Direction::Up),
-        KeyCode::Down => Some(Direction::Down),
-        KeyCode::Left => Some(Direction::Left),
-        KeyCode::Right => Some(Direction::Right),
-        _ => None,
-    };
+    match key.as_ref() {
+        Key::Character("v") => Some(Message::SplitFocused(Axis::Vertical)),
+        Key::Character("h") => Some(Message::SplitFocused(Axis::Horizontal)),
+        Key::Character("w") => Some(Message::CloseFocused),
+        Key::Named(key) => {
+            let direction = match key {
+                key::Named::ArrowUp => Some(Direction::Up),
+                key::Named::ArrowDown => Some(Direction::Down),
+                key::Named::ArrowLeft => Some(Direction::Left),
+                key::Named::ArrowRight => Some(Direction::Right),
+                _ => None,
+            };
 
-    match key_code {
-        KeyCode::V => Some(Message::SplitFocused(Axis::Vertical)),
-        KeyCode::H => Some(Message::SplitFocused(Axis::Horizontal)),
-        KeyCode::W => Some(Message::CloseFocused),
-        _ => direction.map(Message::FocusAdjacent),
+            direction.map(Message::FocusAdjacent)
+        }
+        _ => None,
     }
 }
 
@@ -297,7 +300,6 @@ fn view_content<'a>(
         text(format!("{}x{}", size.width, size.height)).size(24),
         controls,
     ]
-    .width(Length::Fill)
     .spacing(10)
     .align_items(Alignment::Center);
 

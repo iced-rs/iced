@@ -64,6 +64,12 @@ where
         self
     }
 
+    /// Sets the [`text::Shaping`] strategy of the [`Tooltip`].
+    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
+        self.tooltip = self.tooltip.shaping(shaping);
+        self
+    }
+
     /// Sets the font of the [`Tooltip`].
     ///
     /// [`Font`]: Renderer::Font
@@ -125,12 +131,8 @@ where
         widget::tree::Tag::of::<State>()
     }
 
-    fn width(&self) -> Length {
-        self.content.as_widget().width()
-    }
-
-    fn height(&self) -> Length {
-        self.content.as_widget().height()
+    fn size(&self) -> Size<Length> {
+        self.content.as_widget().size()
     }
 
     fn layout(
@@ -157,10 +159,18 @@ where
     ) -> event::Status {
         let state = tree.state.downcast_mut::<State>();
 
+        let was_idle = *state == State::Idle;
+
         *state = cursor
             .position_over(layout.bounds())
             .map(|cursor_position| State::Hovered { cursor_position })
             .unwrap_or_default();
+
+        let is_idle = *state == State::Idle;
+
+        if was_idle != is_idle {
+            shell.invalidate_layout();
+        }
 
         self.content.as_widget_mut().on_event(
             &mut tree.children[0],
@@ -289,7 +299,7 @@ pub enum Position {
     Right,
 }
 
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 enum State {
     #[default]
     Idle,
@@ -325,6 +335,7 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        _translation: Vector,
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
@@ -338,7 +349,7 @@ where
                     .then(|| viewport.size())
                     .unwrap_or(Size::INFINITY),
             )
-            .pad(Padding::new(self.padding)),
+            .shrink(Padding::new(self.padding)),
         );
 
         let text_bounds = text_layout.bounds();

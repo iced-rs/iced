@@ -35,7 +35,8 @@ pub struct Pipeline {
     vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
-    sampler: wgpu::Sampler,
+    nearest_sampler: wgpu::Sampler,
+    linear_sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
     texture_version: usize,
     texture_atlas: Atlas,
@@ -49,16 +50,16 @@ pub struct Pipeline {
 #[derive(Debug)]
 struct Layer {
     uniforms: wgpu::Buffer,
-    constants: wgpu::BindGroup,
-    instances: Buffer<Instance>,
-    instance_count: usize,
+    nearest: Data,
+    linear: Data,
 }
 
 impl Layer {
     fn new(
         device: &wgpu::Device,
         constant_layout: &wgpu::BindGroupLayout,
-        sampler: &wgpu::Sampler,
+        nearest_sampler: &wgpu::Sampler,
+        linear_sampler: &wgpu::Sampler,
     ) -> Self {
         let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("iced_wgpu::image uniforms buffer"),
@@ -67,6 +68,59 @@ impl Layer {
             mapped_at_creation: false,
         });
 
+        let nearest =
+            Data::new(device, constant_layout, nearest_sampler, &uniforms);
+
+        let linear =
+            Data::new(device, constant_layout, linear_sampler, &uniforms);
+
+        Self {
+            uniforms,
+            nearest,
+            linear,
+        }
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        nearest_instances: &[Instance],
+        linear_instances: &[Instance],
+        transformation: Transformation,
+    ) {
+        queue.write_buffer(
+            &self.uniforms,
+            0,
+            bytemuck::bytes_of(&Uniforms {
+                transform: transformation.into(),
+            }),
+        );
+
+        self.nearest.upload(device, queue, nearest_instances);
+        self.linear.upload(device, queue, linear_instances);
+    }
+
+    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        self.nearest.render(render_pass);
+        self.linear.render(render_pass);
+    }
+}
+
+#[derive(Debug)]
+struct Data {
+    constants: wgpu::BindGroup,
+    instances: Buffer<Instance>,
+    instance_count: usize,
+}
+
+impl Data {
+    pub fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        uniforms: &wgpu::Buffer,
+    ) -> Self {
         let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::image constants bind group"),
             layout: constant_layout,
@@ -75,7 +129,7 @@ impl Layer {
                     binding: 0,
                     resource: wgpu::BindingResource::Buffer(
                         wgpu::BufferBinding {
-                            buffer: &uniforms,
+                            buffer: uniforms,
                             offset: 0,
                             size: None,
                         },
@@ -96,28 +150,18 @@ impl Layer {
         );
 
         Self {
-            uniforms,
             constants,
             instances,
             instance_count: 0,
         }
     }
 
-    fn prepare(
+    fn upload(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         instances: &[Instance],
-        transformation: Transformation,
     ) {
-        queue.write_buffer(
-            &self.uniforms,
-            0,
-            bytemuck::bytes_of(&Uniforms {
-                transform: transformation.into(),
-            }),
-        );
-
         let _ = self.instances.resize(device, instances.len());
         let _ = self.instances.write(queue, 0, instances);
 
@@ -134,12 +178,22 @@ impl Layer {
 
 impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
-        let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
             address_mode_w: wgpu::AddressMode::ClampToEdge,
-            mag_filter: wgpu::FilterMode::Linear,
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
             min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
             mipmap_filter: wgpu::FilterMode::Linear,
             ..Default::default()
         });
@@ -286,7 +340,8 @@ impl Pipeline {
             vector_cache: RefCell::new(vector::Cache::default()),
 
             pipeline,
-            sampler,
+            nearest_sampler,
+            linear_sampler,
             texture,
             texture_version: texture_atlas.layer_count(),
             texture_atlas,
@@ -329,7 +384,8 @@ impl Pipeline {
         #[cfg(feature = "tracing")]
         let _ = info_span!("Wgpu::Image", "DRAW").entered();
 
-        let instances: &mut Vec<Instance> = &mut Vec::new();
+        let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
+        let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
         #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
@@ -340,7 +396,11 @@ impl Pipeline {
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                layer::Image::Raster { handle, bounds } => {
+                layer::Image::Raster {
+                    handle,
+                    filter_method,
+                    bounds,
+                } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         device,
                         encoder,
@@ -351,7 +411,12 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             atlas_entry,
-                            instances,
+                            match filter_method {
+                                image::FilterMethod::Nearest => {
+                                    nearest_instances
+                                }
+                                image::FilterMethod::Linear => linear_instances,
+                            },
                         );
                     }
                 }
@@ -379,7 +444,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             size,
                             atlas_entry,
-                            instances,
+                            nearest_instances,
                         );
                     }
                 }
@@ -388,7 +453,7 @@ impl Pipeline {
             }
         }
 
-        if instances.is_empty() {
+        if nearest_instances.is_empty() && linear_instances.is_empty() {
             return;
         }
 
@@ -416,12 +481,20 @@ impl Pipeline {
             self.layers.push(Layer::new(
                 device,
                 &self.constant_layout,
-                &self.sampler,
+                &self.nearest_sampler,
+                &self.linear_sampler,
             ));
         }
 
         let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, queue, instances, transformation);
+
+        layer.prepare(
+            device,
+            queue,
+            nearest_instances,
+            linear_instances,
+            transformation,
+        );
 
         self.prepare_layer += 1;
     }
@@ -470,7 +543,7 @@ struct Instance {
 }
 
 impl Instance {
-    pub const INITIAL: usize = 1_000;
+    pub const INITIAL: usize = 20;
 }
 
 #[repr(C)]

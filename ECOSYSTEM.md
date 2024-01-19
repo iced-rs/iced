@@ -45,7 +45,7 @@ The widgets of a _graphical_ user interface produce some primitives that eventua
 Currently, there are two different official renderers:
 
 - [`iced_wgpu`] is powered by [`wgpu`] and supports Vulkan, DirectX 12, and Metal.
-- [`iced_glow`] is powered by [`glow`] and supports OpenGL 2.1+ and OpenGL ES 2.0+.
+- [`tiny-skia`] is used as a fallback software renderer when `wgpu` is not supported.
 
 Additionally, the [`iced_graphics`] subcrate contains a bunch of backend-agnostic types that can be leveraged to build renderers. Both of the renderers rely on the graphical foundations provided by this crate.
 
@@ -54,10 +54,7 @@ The widgets of a graphical user _interface_ are interactive. __Shells__ gather a
 
 Normally, a shell will be responsible of creating a window and managing the lifecycle of a user interface, implementing a runtime of [The Elm Architecture].
 
-As of now, there are two official shells:
-
-- [`iced_winit`] implements a shell runtime on top of [`winit`].
-- [`iced_glutin`] is similar to [`iced_winit`], but it also deals with [OpenGL context creation].
+As of now, there is one official shell: [`iced_winit`] implements a shell runtime on top of [`winit`].
 
 ## The web target
 The Web platform provides all the abstractions necessary to draw widgets and gather users interactions.
@@ -91,5 +88,4 @@ Finally, [`iced`] unifies everything into a simple abstraction to create cross-p
 [`winit`]: https://github.com/rust-windowing/winit
 [`glutin`]: https://github.com/rust-windowing/glutin
 [`dodrio`]: https://github.com/fitzgen/dodrio
-[OpenGL context creation]: https://www.khronos.org/opengl/wiki/Creating_an_OpenGL_Context
 [The Elm Architecture]: https://guide.elm-lang.org/architecture/

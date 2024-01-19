@@ -244,12 +244,15 @@ where
         self.rebuild_element_if_necessary();
     }
 
-    fn width(&self) -> Length {
-        self.with_element(|element| element.as_widget().width())
+    fn size(&self) -> Size<Length> {
+        self.with_element(|element| element.as_widget().size())
     }
 
-    fn height(&self) -> Length {
-        self.with_element(|element| element.as_widget().height())
+    fn size_hint(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -577,9 +580,10 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
         self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position)
+            overlay.layout(renderer, bounds, position, translation)
         })
         .unwrap_or_default()
     }

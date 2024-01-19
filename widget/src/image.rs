@@ -13,7 +13,7 @@ use crate::core::{
 
 use std::hash::Hash;
 
-pub use image::Handle;
+pub use image::{FilterMethod, Handle};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
 pub fn viewer<Handle>(handle: Handle) -> Viewer<Handle> {
@@ -37,6 +37,7 @@ pub struct Image<Handle> {
     width: Length,
     height: Length,
     content_fit: ContentFit,
+    filter_method: FilterMethod,
 }
 
 impl<Handle> Image<Handle> {
@@ -47,6 +48,7 @@ impl<Handle> Image<Handle> {
             width: Length::Shrink,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
+            filter_method: FilterMethod::default(),
         }
     }
 
@@ -65,11 +67,15 @@ impl<Handle> Image<Handle> {
     /// Sets the [`ContentFit`] of the [`Image`].
     ///
     /// Defaults to [`ContentFit::Contain`]
-    pub fn content_fit(self, content_fit: ContentFit) -> Self {
-        Self {
-            content_fit,
-            ..self
-        }
+    pub fn content_fit(mut self, content_fit: ContentFit) -> Self {
+        self.content_fit = content_fit;
+        self
+    }
+
+    /// Sets the [`FilterMethod`] of the [`Image`].
+    pub fn filter_method(mut self, filter_method: FilterMethod) -> Self {
+        self.filter_method = filter_method;
+        self
     }
 }
 
@@ -93,7 +99,7 @@ where
     };
 
     // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.width(width).height(height).resolve(image_size);
+    let raw_size = limits.resolve(width, height, image_size);
 
     // The uncropped size of the image when fit to the bounds above
     let full_size = content_fit.fit(image_size, raw_size);
@@ -119,6 +125,7 @@ pub fn draw<Renderer, Handle>(
     layout: Layout<'_>,
     handle: &Handle,
     content_fit: ContentFit,
+    filter_method: FilterMethod,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
@@ -141,7 +148,7 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), drawing_bounds + offset);
+        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset);
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
@@ -157,12 +164,11 @@ where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -191,7 +197,13 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        draw(renderer, layout, &self.handle, self.content_fit);
+        draw(
+            renderer,
+            layout,
+            &self.handle,
+            self.content_fit,
+            self.filter_method,
+        );
     }
 }
 

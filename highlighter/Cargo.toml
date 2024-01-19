@@ -1,0 +1,17 @@
+[package]
+name = "iced_highlighter"
+description = "A syntax highlighter for iced"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+[dependencies]
+iced_core.workspace = true
+
+once_cell.workspace = true
+syntect.workspace = true

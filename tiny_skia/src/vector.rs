@@ -1,7 +1,8 @@
 use crate::core::svg::{Data, Handle};
 use crate::core::{Color, Rectangle, Size};
+use crate::graphics::text;
 
-use resvg::usvg;
+use resvg::usvg::{self, TreeTextToPath};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use std::cell::RefCell;
@@ -77,7 +78,7 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.trees.entry(id) {
-            let svg = match handle.data() {
+            let mut svg = match handle.data() {
                 Data::Path(path) => {
                     fs::read_to_string(path).ok().and_then(|contents| {
                         usvg::Tree::from_str(
@@ -91,6 +92,15 @@ impl Cache {
                     usvg::Tree::from_data(bytes, &usvg::Options::default()).ok()
                 }
             };
+
+            if let Some(svg) = &mut svg {
+                if svg.has_text_nodes() {
+                    let mut font_system =
+                        text::font_system().write().expect("Write font system");
+
+                    svg.convert_text(font_system.raw().db_mut());
+                }
+            }
 
             let _ = entry.insert(svg);
         }

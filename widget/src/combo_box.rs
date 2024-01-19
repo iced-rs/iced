@@ -1,6 +1,7 @@
 //! Display a dropdown list of searchable and selectable options.
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
+use crate::core::keyboard::key;
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::overlay;
@@ -8,7 +9,9 @@ use crate::core::renderer;
 use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
-use crate::core::{Clipboard, Element, Length, Padding, Rectangle, Shell};
+use crate::core::{
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size,
+};
 use crate::overlay::menu;
 use crate::text::LineHeight;
 use crate::{container, scrollable, text_input, TextInput};
@@ -297,12 +300,8 @@ where
         + scrollable::StyleSheet
         + menu::StyleSheet,
 {
-    fn width(&self) -> Length {
-        Widget::<TextInputEvent, Renderer>::width(&self.text_input)
-    }
-
-    fn height(&self) -> Length {
-        Widget::<TextInputEvent, Renderer>::height(&self.text_input)
+    fn size(&self) -> Size<Length> {
+        Widget::<TextInputEvent, Renderer>::size(&self.text_input)
     }
 
     fn layout(
@@ -438,14 +437,14 @@ where
                 }
 
                 if let Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code,
+                    key: keyboard::Key::Named(named_key),
                     modifiers,
                     ..
                 }) = event
                 {
                     let shift_modifer = modifiers.shift();
-                    match (key_code, shift_modifer) {
-                        (keyboard::KeyCode::Enter, _) => {
+                    match (named_key, shift_modifer) {
+                        (key::Named::Enter, _) => {
                             if let Some(index) = &menu.hovered_option {
                                 if let Some(option) =
                                     state.filtered_options.options.get(*index)
@@ -457,8 +456,7 @@ where
                             event_status = event::Status::Captured;
                         }
 
-                        (keyboard::KeyCode::Up, _)
-                        | (keyboard::KeyCode::Tab, true) => {
+                        (key::Named::ArrowUp, _) | (key::Named::Tab, true) => {
                             if let Some(index) = &mut menu.hovered_option {
                                 if *index == 0 {
                                     *index = state
@@ -494,8 +492,8 @@ where
 
                             event_status = event::Status::Captured;
                         }
-                        (keyboard::KeyCode::Down, _)
-                        | (keyboard::KeyCode::Tab, false)
+                        (key::Named::ArrowDown, _)
+                        | (key::Named::Tab, false)
                             if !modifiers.shift() =>
                         {
                             if let Some(index) = &mut menu.hovered_option {
@@ -622,7 +620,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let is_focused = {
             let text_input_state = tree.children[0]
@@ -645,6 +643,7 @@ where
             layout,
             cursor,
             selection,
+            viewport,
         );
     }
 

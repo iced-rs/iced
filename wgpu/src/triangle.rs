@@ -300,10 +300,15 @@ impl Pipeline {
                         wgpu::RenderPassColorAttachment {
                             view: attachment,
                             resolve_target,
-                            ops: wgpu::Operations { load, store: true },
+                            ops: wgpu::Operations {
+                                load,
+                                store: wgpu::StoreOp::Store,
+                            },
                         },
                     )],
                     depth_stencil_attachment: None,
+                    timestamp_writes: None,
+                    occlusion_query_set: None,
                 });
 
             let layer = &mut self.layers[layer];

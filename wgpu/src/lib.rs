@@ -23,7 +23,7 @@
 #![forbid(rust_2018_idioms)]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unsafe_code,
     unused_results,
     rustdoc::broken_intra_doc_links

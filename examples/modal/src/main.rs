@@ -1,6 +1,7 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
+use iced::keyboard::key;
 use iced::theme;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
@@ -85,8 +86,9 @@ impl Application for App {
             }
             Message::Event(event) => match event {
                 Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Tab,
+                    key: keyboard::Key::Named(key::Named::Tab),
                     modifiers,
+                    ..
                 }) => {
                     if modifiers.shift() {
                         widget::focus_previous()
@@ -95,7 +97,7 @@ impl Application for App {
                     }
                 }
                 Event::Keyboard(keyboard::Event::KeyPressed {
-                    key_code: keyboard::KeyCode::Escape,
+                    key: keyboard::Key::Named(key::Named::Escape),
                     ..
                 }) => {
                     self.hide_modal();
@@ -205,7 +207,8 @@ enum Plan {
 }
 
 impl Plan {
-    pub const ALL: &[Self] = &[Self::Basic, Self::Pro, Self::Enterprise];
+    pub const ALL: &'static [Self] =
+        &[Self::Basic, Self::Pro, Self::Enterprise];
 }
 
 impl fmt::Display for Plan {
@@ -230,6 +233,7 @@ mod modal {
     use iced::mouse;
     use iced::{
         BorderRadius, Color, Element, Event, Length, Point, Rectangle, Size,
+        Vector,
     };
 
     /// A widget that centers a modal element over some base element
@@ -279,12 +283,8 @@ mod modal {
             tree.diff_children(&[&self.base, &self.modal]);
         }
 
-        fn width(&self) -> Length {
-            self.base.as_widget().width()
-        }
-
-        fn height(&self) -> Length {
-            self.base.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.base.as_widget().size()
         }
 
         fn layout(
@@ -412,22 +412,20 @@ mod modal {
             renderer: &Renderer,
             _bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, self.size)
                 .width(Length::Fill)
                 .height(Length::Fill);
 
-            let mut child = self
+            let child = self
                 .content
                 .as_widget()
-                .layout(self.tree, renderer, &limits);
+                .layout(self.tree, renderer, &limits)
+                .align(Alignment::Center, Alignment::Center, limits.max());
 
-            child.align(Alignment::Center, Alignment::Center, limits.max());
-
-            let mut node = layout::Node::with_children(self.size, vec![child]);
-            node.move_to(position);
-
-            node
+            layout::Node::with_children(self.size, vec![child])
+                .move_to(position)
         }
 
         fn on_event(

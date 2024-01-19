@@ -1,12 +1,14 @@
+//! Draw paragraphs.
 use crate::core;
 use crate::core::alignment;
 use crate::core::text::{Hit, LineHeight, Shaping, Text};
 use crate::core::{Font, Pixels, Point, Size};
-use crate::text::{self, FontSystem};
+use crate::text;
 
 use std::fmt;
 use std::sync::{self, Arc};
 
+/// A bunch of text.
 #[derive(Clone, PartialEq)]
 pub struct Paragraph(Option<Arc<Internal>>);
 
@@ -23,17 +25,50 @@ struct Internal {
 }
 
 impl Paragraph {
+    /// Creates a new empty [`Paragraph`].
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn with_text(text: Text<'_, Font>, font_system: &FontSystem) -> Self {
+    /// Returns the buffer of the [`Paragraph`].
+    pub fn buffer(&self) -> &cosmic_text::Buffer {
+        &self.internal().buffer
+    }
+
+    /// Creates a [`Weak`] reference to the [`Paragraph`].
+    ///
+    /// This is useful to avoid cloning the [`Paragraph`] when
+    /// referential guarantees are unnecessary. For instance,
+    /// when creating a rendering tree.
+    pub fn downgrade(&self) -> Weak {
+        let paragraph = self.internal();
+
+        Weak {
+            raw: Arc::downgrade(paragraph),
+            min_bounds: paragraph.min_bounds,
+            horizontal_alignment: paragraph.horizontal_alignment,
+            vertical_alignment: paragraph.vertical_alignment,
+        }
+    }
+
+    fn internal(&self) -> &Arc<Internal> {
+        self.0
+            .as_ref()
+            .expect("paragraph should always be initialized")
+    }
+}
+
+impl core::text::Paragraph for Paragraph {
+    type Font = Font;
+
+    fn with_text(text: Text<'_, Font>) -> Self {
         log::trace!("Allocating paragraph: {}", text.content);
 
-        let (mut font_system, version) = font_system.write();
+        let mut font_system =
+            text::font_system().write().expect("Write font system");
 
         let mut buffer = cosmic_text::Buffer::new(
-            &mut font_system,
+            font_system.raw(),
             cosmic_text::Metrics::new(
                 text.size.into(),
                 text.line_height.to_absolute(text.size).into(),
@@ -41,13 +76,13 @@ impl Paragraph {
         );
 
         buffer.set_size(
-            &mut font_system,
+            font_system.raw(),
             text.bounds.width,
             text.bounds.height,
         );
 
         buffer.set_text(
-            &mut font_system,
+            font_system.raw(),
             text.content,
             text::to_attributes(text.font),
             text::to_shaping(text.shaping),
@@ -64,30 +99,11 @@ impl Paragraph {
             shaping: text.shaping,
             bounds: text.bounds,
             min_bounds,
-            version,
+            version: font_system.version(),
         })))
     }
 
-    pub fn buffer(&self) -> &cosmic_text::Buffer {
-        &self.internal().buffer
-    }
-
-    pub fn version(&self) -> text::Version {
-        self.internal().version
-    }
-
-    pub fn downgrade(&self) -> Weak {
-        let paragraph = self.internal();
-
-        Weak {
-            raw: Arc::downgrade(paragraph),
-            min_bounds: paragraph.min_bounds,
-            horizontal_alignment: paragraph.horizontal_alignment,
-            vertical_alignment: paragraph.vertical_alignment,
-        }
-    }
-
-    pub fn resize(&mut self, new_bounds: Size, font_system: &FontSystem) {
+    fn resize(&mut self, new_bounds: Size) {
         let paragraph = self
             .0
             .take()
@@ -95,10 +111,11 @@ impl Paragraph {
 
         match Arc::try_unwrap(paragraph) {
             Ok(mut internal) => {
-                let (mut font_system, _) = font_system.write();
+                let mut font_system =
+                    text::font_system().write().expect("Write font system");
 
                 internal.buffer.set_size(
-                    &mut font_system,
+                    font_system.raw(),
                     new_bounds.width,
                     new_bounds.height,
                 );
@@ -113,55 +130,42 @@ impl Paragraph {
 
                 // If there is a strong reference somewhere, we recompute the
                 // buffer from scratch
-                *self = Self::with_text(
-                    Text {
-                        content: &internal.content,
-                        bounds: internal.bounds,
-                        size: Pixels(metrics.font_size),
-                        line_height: LineHeight::Absolute(Pixels(
-                            metrics.line_height,
-                        )),
-                        font: internal.font,
-                        horizontal_alignment: internal.horizontal_alignment,
-                        vertical_alignment: internal.vertical_alignment,
-                        shaping: internal.shaping,
-                    },
-                    font_system,
-                );
+                *self = Self::with_text(Text {
+                    content: &internal.content,
+                    bounds: internal.bounds,
+                    size: Pixels(metrics.font_size),
+                    line_height: LineHeight::Absolute(Pixels(
+                        metrics.line_height,
+                    )),
+                    font: internal.font,
+                    horizontal_alignment: internal.horizontal_alignment,
+                    vertical_alignment: internal.vertical_alignment,
+                    shaping: internal.shaping,
+                });
             }
         }
     }
 
-    fn internal(&self) -> &Arc<Internal> {
-        self.0
-            .as_ref()
-            .expect("paragraph should always be initialized")
-    }
-}
+    fn compare(&self, text: Text<'_, Font>) -> core::text::Difference {
+        let font_system = text::font_system().read().expect("Read font system");
+        let paragraph = self.internal();
+        let metrics = paragraph.buffer.metrics();
 
-impl core::text::Paragraph for Paragraph {
-    type Font = Font;
-
-    fn content(&self) -> &str {
-        &self.internal().content
-    }
-
-    fn text_size(&self) -> Pixels {
-        Pixels(self.internal().buffer.metrics().font_size)
-    }
-
-    fn line_height(&self) -> LineHeight {
-        LineHeight::Absolute(Pixels(
-            self.internal().buffer.metrics().line_height,
-        ))
-    }
-
-    fn font(&self) -> Font {
-        self.internal().font
-    }
-
-    fn shaping(&self) -> Shaping {
-        self.internal().shaping
+        if paragraph.version != font_system.version
+            || paragraph.content != text.content
+            || metrics.font_size != text.size.0
+            || metrics.line_height != text.line_height.to_absolute(text.size).0
+            || paragraph.font != text.font
+            || paragraph.shaping != text.shaping
+            || paragraph.horizontal_alignment != text.horizontal_alignment
+            || paragraph.vertical_alignment != text.vertical_alignment
+        {
+            core::text::Difference::Shape
+        } else if paragraph.bounds != text.bounds {
+            core::text::Difference::Bounds
+        } else {
+            core::text::Difference::None
+        }
     }
 
     fn horizontal_alignment(&self) -> alignment::Horizontal {
@@ -170,10 +174,6 @@ impl core::text::Paragraph for Paragraph {
 
     fn vertical_alignment(&self) -> alignment::Vertical {
         self.internal().vertical_alignment
-    }
-
-    fn bounds(&self) -> Size {
-        self.internal().bounds
     }
 
     fn min_bounds(&self) -> Size {
@@ -187,38 +187,43 @@ impl core::text::Paragraph for Paragraph {
     }
 
     fn grapheme_position(&self, line: usize, index: usize) -> Option<Point> {
+        use unicode_segmentation::UnicodeSegmentation;
+
         let run = self.internal().buffer.layout_runs().nth(line)?;
 
         // index represents a grapheme, not a glyph
         // Let's find the first glyph for the given grapheme cluster
         let mut last_start = None;
+        let mut last_grapheme_count = 0;
         let mut graphemes_seen = 0;
 
         let glyph = run
             .glyphs
             .iter()
             .find(|glyph| {
-                if graphemes_seen == index {
-                    return true;
-                }
-
                 if Some(glyph.start) != last_start {
+                    last_grapheme_count = run.text[glyph.start..glyph.end]
+                        .graphemes(false)
+                        .count();
                     last_start = Some(glyph.start);
-                    graphemes_seen += 1;
+                    graphemes_seen += last_grapheme_count;
                 }
 
-                false
+                graphemes_seen >= index
             })
             .or_else(|| run.glyphs.last())?;
 
-        let advance_last = if index == run.glyphs.len() {
-            glyph.w
-        } else {
+        let advance = if index == 0 {
             0.0
+        } else {
+            glyph.w
+                * (1.0
+                    - graphemes_seen.saturating_sub(index) as f32
+                        / last_grapheme_count.max(1) as f32)
         };
 
         Some(Point::new(
-            glyph.x + glyph.x_offset * glyph.font_size + advance_last,
+            glyph.x + glyph.x_offset * glyph.font_size + advance,
             glyph.y - glyph.y_offset * glyph.font_size,
         ))
     }
@@ -278,15 +283,20 @@ impl Default for Internal {
     }
 }
 
+/// A weak reference to a [`Paragraph`].
 #[derive(Debug, Clone)]
 pub struct Weak {
     raw: sync::Weak<Internal>,
+    /// The minimum bounds of the [`Paragraph`].
     pub min_bounds: Size,
+    /// The horizontal alignment of the [`Paragraph`].
     pub horizontal_alignment: alignment::Horizontal,
+    /// The vertical alignment of the [`Paragraph`].
     pub vertical_alignment: alignment::Vertical,
 }
 
 impl Weak {
+    /// Tries to update the reference into a [`Paragraph`].
     pub fn upgrade(&self) -> Option<Paragraph> {
         self.raw.upgrade().map(Some).map(Paragraph)
     }

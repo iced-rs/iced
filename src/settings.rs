@@ -2,6 +2,8 @@
 use crate::window;
 use crate::{Font, Pixels};
 
+use std::borrow::Cow;
+
 /// The settings of an application.
 #[derive(Debug, Clone)]
 pub struct Settings<Flags> {
@@ -20,6 +22,9 @@ pub struct Settings<Flags> {
     ///
     /// [`Application`]: crate::Application
     pub flags: Flags,
+
+    /// The fonts to load on boot.
+    pub fonts: Vec<Cow<'static, [u8]>>,
 
     /// The default [`Font`] to be used.
     ///
@@ -41,14 +46,6 @@ pub struct Settings<Flags> {
     ///
     /// [`Canvas`]: crate::widget::Canvas
     pub antialiasing: bool,
-
-    /// Whether the [`Application`] should exit when the user requests the
-    /// window to close (e.g. the user presses the close button).
-    ///
-    /// By default, it is enabled.
-    ///
-    /// [`Application`]: crate::Application
-    pub exit_on_close_request: bool,
 }
 
 impl<Flags> Settings<Flags> {
@@ -62,10 +59,10 @@ impl<Flags> Settings<Flags> {
             flags,
             id: default_settings.id,
             window: default_settings.window,
+            fonts: default_settings.fonts,
             default_font: default_settings.default_font,
             default_text_size: default_settings.default_text_size,
             antialiasing: default_settings.antialiasing,
-            exit_on_close_request: default_settings.exit_on_close_request,
         }
     }
 }
@@ -79,10 +76,10 @@ where
             id: None,
             window: window::Settings::default(),
             flags: Default::default(),
+            fonts: Vec::new(),
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: false,
-            exit_on_close_request: true,
         }
     }
 }
@@ -91,9 +88,9 @@ impl<Flags> From<Settings<Flags>> for iced_winit::Settings<Flags> {
     fn from(settings: Settings<Flags>) -> iced_winit::Settings<Flags> {
         iced_winit::Settings {
             id: settings.id,
-            window: settings.window.into(),
+            window: settings.window,
             flags: settings.flags,
-            exit_on_close_request: settings.exit_on_close_request,
+            fonts: settings.fonts,
         }
     }
 }

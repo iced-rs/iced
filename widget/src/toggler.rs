@@ -168,12 +168,11 @@ where
         tree::State::new(widget::text::State::<Renderer::Paragraph>::default())
     }
 
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        Length::Shrink
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: Length::Shrink,
+        }
     }
 
     fn layout(
@@ -266,7 +265,7 @@ where
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         /// Makes sure that the border radius of the toggler looks good at every size.
         const BORDER_RADIUS_RATIO: f32 = 32.0 / 13.0;
@@ -287,6 +286,7 @@ where
                 label_layout,
                 tree.state.downcast_ref(),
                 crate::text::Appearance::default(),
+                viewport,
             );
         }
 

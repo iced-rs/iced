@@ -19,6 +19,7 @@ x11 = ["winit/x11"]
 wayland = ["winit/wayland"]
 wayland-dlopen = ["winit/wayland-dlopen"]
 wayland-csd-adwaita = ["winit/wayland-csd-adwaita"]
+multi-window = ["iced_runtime/multi-window"]
 
 [dependencies]
 iced_graphics.workspace = true
@@ -26,7 +27,6 @@ iced_runtime.workspace = true
 iced_style.workspace = true
 
 log.workspace = true
-raw-window-handle.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 window_clipboard.workspace = true

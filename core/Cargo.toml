@@ -13,15 +13,17 @@ keywords.workspace = true
 [dependencies]
 bitflags.workspace = true
 log.workspace = true
-thiserror.workspace = true
-twox-hash.workspace = true
 num-traits.workspace = true
+smol_str.workspace = true
+thiserror.workspace = true
+web-time.workspace = true
+xxhash-rust.workspace = true
 
 palette.workspace = true
 palette.optional = true
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-instant.workspace = true
+[target.'cfg(windows)'.dependencies]
+raw-window-handle.workspace = true
 
 [dev-dependencies]
 approx = "0.5"

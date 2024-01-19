@@ -16,25 +16,25 @@ all-features = true
 
 [features]
 geometry = ["lyon_path"]
-opengl = []
 image = ["dep:image", "kamadak-exif"]
 web-colors = []
 
 [dependencies]
 iced_core.workspace = true
+iced_futures.workspace = true
 
 bitflags.workspace = true
 bytemuck.workspace = true
+cosmic-text.workspace = true
 glam.workspace = true
 half.workspace = true
 log.workspace = true
+once_cell.workspace = true
 raw-window-handle.workspace = true
-thiserror.workspace = true
-cosmic-text.workspace = true
 rustc-hash.workspace = true
-
-lyon_path.workspace = true
-lyon_path.optional = true
+thiserror.workspace = true
+unicode-segmentation.workspace = true
+xxhash-rust.workspace = true
 
 image.workspace = true
 image.optional = true
@@ -42,8 +42,5 @@ image.optional = true
 kamadak-exif.workspace = true
 kamadak-exif.optional = true
 
-twox-hash.workspace = true
-
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-twox-hash.workspace = true
-twox-hash.features = ["std"]
+lyon_path.workspace = true
+lyon_path.optional = true

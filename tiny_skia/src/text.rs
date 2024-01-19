@@ -1,9 +1,10 @@
 use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
-use crate::core::{Color, Font, Pixels, Point, Rectangle};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Size};
 use crate::graphics::text::cache::{self, Cache};
+use crate::graphics::text::editor;
+use crate::graphics::text::font_system;
 use crate::graphics::text::paragraph;
-use crate::graphics::text::FontSystem;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::borrow::Cow;
@@ -12,7 +13,6 @@ use std::collections::hash_map;
 
 #[allow(missing_debug_implementations)]
 pub struct Pipeline {
-    font_system: FontSystem,
     glyph_cache: GlyphCache,
     cache: RefCell<Cache>,
 }
@@ -20,18 +20,16 @@ pub struct Pipeline {
 impl Pipeline {
     pub fn new() -> Self {
         Pipeline {
-            font_system: FontSystem::new(),
             glyph_cache: GlyphCache::new(),
             cache: RefCell::new(Cache::new()),
         }
     }
 
-    pub fn font_system(&self) -> &FontSystem {
-        &self.font_system
-    }
-
     pub fn load_font(&mut self, bytes: Cow<'static, [u8]>) {
-        self.font_system.load_font(bytes);
+        font_system()
+            .write()
+            .expect("Write font system")
+            .load_font(bytes);
 
         self.cache = RefCell::new(Cache::new());
     }
@@ -51,14 +49,47 @@ impl Pipeline {
             return;
         };
 
+        let mut font_system = font_system().write().expect("Write font system");
+
         draw(
-            self.font_system.get_mut(),
+            font_system.raw(),
             &mut self.glyph_cache,
             paragraph.buffer(),
             Rectangle::new(position, paragraph.min_bounds()),
             color,
             paragraph.horizontal_alignment(),
             paragraph.vertical_alignment(),
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
+    }
+
+    pub fn draw_editor(
+        &mut self,
+        editor: &editor::Weak,
+        position: Point,
+        color: Color,
+        scale_factor: f32,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::Mask>,
+    ) {
+        use crate::core::text::Editor as _;
+
+        let Some(editor) = editor.upgrade() else {
+            return;
+        };
+
+        let mut font_system = font_system().write().expect("Write font system");
+
+        draw(
+            font_system.raw(),
+            &mut self.glyph_cache,
+            editor.buffer(),
+            Rectangle::new(position, editor.bounds()),
+            color,
+            alignment::Horizontal::Left,
+            alignment::Vertical::Top,
             scale_factor,
             pixels,
             clip_mask,
@@ -82,7 +113,9 @@ impl Pipeline {
     ) {
         let line_height = f32::from(line_height.to_absolute(size));
 
-        let font_system = self.font_system.get_mut();
+        let mut font_system = font_system().write().expect("Write font system");
+        let font_system = font_system.raw();
+
         let key = cache::Key {
             bounds: bounds.size(),
             content,
@@ -109,6 +142,33 @@ impl Pipeline {
             color,
             horizontal_alignment,
             vertical_alignment,
+            scale_factor,
+            pixels,
+            clip_mask,
+        );
+    }
+
+    pub fn draw_raw(
+        &mut self,
+        buffer: &cosmic_text::Buffer,
+        position: Point,
+        color: Color,
+        scale_factor: f32,
+        pixels: &mut tiny_skia::PixmapMut<'_>,
+        clip_mask: Option<&tiny_skia::Mask>,
+    ) {
+        let mut font_system = font_system().write().expect("Write font system");
+
+        let (width, height) = buffer.size();
+
+        draw(
+            font_system.raw(),
+            &mut self.glyph_cache,
+            buffer,
+            Rectangle::new(position, Size::new(width, height)),
+            color,
+            alignment::Horizontal::Left,
+            alignment::Vertical::Top,
             scale_factor,
             pixels,
             clip_mask,
@@ -155,7 +215,7 @@ fn draw(
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
-                color,
+                glyph.color_opt.map(from_color).unwrap_or(color),
                 font_system,
                 &mut swash,
             ) {
@@ -178,6 +238,12 @@ fn draw(
             }
         }
     }
+}
+
+fn from_color(color: cosmic_text::Color) -> Color {
+    let [r, g, b, a] = color.as_rgba();
+
+    Color::from_rgba8(r, g, b, a as f32 / 255.0)
 }
 
 #[derive(Debug, Clone, Default)]

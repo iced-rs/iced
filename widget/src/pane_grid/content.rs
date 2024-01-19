@@ -165,7 +165,7 @@ where
 
             let title_bar_size = title_bar_layout.size();
 
-            let mut body_layout = self.body.as_widget().layout(
+            let body_layout = self.body.as_widget().layout(
                 &mut tree.children[0],
                 renderer,
                 &layout::Limits::new(
@@ -177,11 +177,12 @@ where
                 ),
             );
 
-            body_layout.move_to(Point::new(0.0, title_bar_size.height));
-
             layout::Node::with_children(
                 max_size,
-                vec![title_bar_layout, body_layout],
+                vec![
+                    title_bar_layout,
+                    body_layout.move_to(Point::new(0.0, title_bar_size.height)),
+                ],
             )
         } else {
             self.body.as_widget().layout(

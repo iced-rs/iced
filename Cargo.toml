@@ -20,7 +20,7 @@ maintenance = { status = "actively-developed" }
 [features]
 default = ["wgpu"]
 # Enable the `wgpu` GPU-accelerated renderer backend
-wgpu = ["iced_renderer/wgpu"]
+wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
@@ -47,6 +47,10 @@ system = ["iced_winit/system"]
 web-colors = ["iced_renderer/web-colors"]
 # Enables the WebGL backend, replacing WebGPU
 webgl = ["iced_renderer/webgl"]
+# Enables the syntax `highlighter` module
+highlighter = ["iced_highlighter"]
+# Enables experimental multi-window support.
+multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
 advanced = []
 
@@ -57,6 +61,9 @@ iced_renderer.workspace = true
 iced_widget.workspace = true
 iced_winit.features = ["application"]
 iced_winit.workspace = true
+
+iced_highlighter.workspace = true
+iced_highlighter.optional = true
 
 thiserror.workspace = true
 
@@ -78,8 +85,9 @@ members = [
     "core",
     "futures",
     "graphics",
-    "runtime",
+    "highlighter",
     "renderer",
+    "runtime",
     "style",
     "tiny_skia",
     "wgpu",
@@ -103,6 +111,7 @@ iced = { version = "0.12", path = "." }
 iced_core = { version = "0.12", path = "core" }
 iced_futures = { version = "0.12", path = "futures" }
 iced_graphics = { version = "0.12", path = "graphics" }
+iced_highlighter = { version = "0.12", path = "highlighter" }
 iced_renderer = { version = "0.12", path = "renderer" }
 iced_runtime = { version = "0.12", path = "runtime" }
 iced_style = { version = "0.12", path = "style" }
@@ -114,14 +123,13 @@ iced_winit = { version = "0.12", path = "winit" }
 async-std = "1.0"
 bitflags = "1.0"
 bytemuck = { version = "1.0", features = ["derive"] }
-cosmic-text = "0.9"
+cosmic-text = "0.10"
 futures = "0.3"
 glam = "0.24"
-glyphon = { git = "https://github.com/grovesNL/glyphon.git", rev = "20f0f8fa80e0d0df4c63634ce9176fa489546ca9" }
+glyphon = "0.5"
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
-instant = "0.1"
 kamadak-exif = "0.5"
 kurbo = "0.9"
 log = "0.4"
@@ -132,22 +140,25 @@ once_cell = "1.0"
 ouroboros = "0.17"
 palette = "0.7"
 qrcode = { version = "0.12", default-features = false }
-raw-window-handle = "0.5"
-resvg = "0.35"
+raw-window-handle = "0.6"
+resvg = "0.36"
 rustc-hash = "1.0"
 smol = "1.0"
-softbuffer = "0.2"
+smol_str = "0.2"
+softbuffer = "0.4"
+syntect = "5.1"
 sysinfo = "0.28"
 thiserror = "1.0"
-tiny-skia = "0.10"
+tiny-skia = "0.11"
 tokio = "1.0"
 tracing = "0.1"
-twox-hash = { version = "1.0", default-features = false }
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
 unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3"
-wgpu = "0.17"
+web-time = "0.2"
+wgpu = "0.19"
 winapi = "0.3"
-window_clipboard = "0.3"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "c52db2045d0a2f1b8d9923870de1d4ab1994146e", default-features = false }
+window_clipboard = "0.4"
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5" }

@@ -156,12 +156,11 @@ where
         tree::State::new(State::new())
     }
 
-    fn width(&self) -> Length {
-        Length::Shrink
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -170,10 +169,7 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let limits = limits.width(self.width).height(self.height);
-        let size = limits.resolve(Size::ZERO);
-
-        layout::Node::new(size)
+        layout::atomic(limits, self.width, self.height)
     }
 
     fn on_event(

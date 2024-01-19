@@ -96,12 +96,11 @@ where
     Renderer: svg::Renderer,
     Renderer::Theme: iced_style::svg::StyleSheet,
 {
-    fn width(&self) -> Length {
-        self.width
-    }
-
-    fn height(&self) -> Length {
-        self.height
+    fn size(&self) -> Size<Length> {
+        Size {
+            width: self.width,
+            height: self.height,
+        }
     }
 
     fn layout(
@@ -115,10 +114,7 @@ where
         let image_size = Size::new(width as f32, height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
-        let raw_size = limits
-            .width(self.width)
-            .height(self.height)
-            .resolve(image_size);
+        let raw_size = limits.resolve(self.width, self.height, image_size);
 
         // The uncropped size of the image when fit to the bounds above
         let full_size = self.content_fit.fit(image_size, raw_size);
@@ -145,7 +141,7 @@ where
         theme: &Renderer::Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
-        _cursor: mouse::Cursor,
+        cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
         let Size { width, height } = renderer.dimensions(&self.handle);
@@ -153,6 +149,7 @@ where
 
         let bounds = layout.bounds();
         let adjusted_fit = self.content_fit.fit(image_size, bounds.size());
+        let is_mouse_over = cursor.is_over(bounds);
 
         let render = |renderer: &mut Renderer| {
             let offset = Vector::new(
@@ -166,7 +163,11 @@ where
                 ..bounds
             };
 
-            let appearance = theme.appearance(&self.style);
+            let appearance = if is_mouse_over {
+                theme.hovered(&self.style)
+            } else {
+                theme.appearance(&self.style)
+            };
 
             renderer.draw(
                 self.handle.clone(),

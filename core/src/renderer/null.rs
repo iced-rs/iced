@@ -43,6 +43,7 @@ impl Renderer for Null {
 impl text::Renderer for Null {
     type Font = Font;
     type Paragraph = ();
+    type Editor = ();
 
     const ICON_FONT: Font = Font::DEFAULT;
     const CHECKMARK_ICON: char = '0';
@@ -58,21 +59,21 @@ impl text::Renderer for Null {
 
     fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
-    fn create_paragraph(&self, _text: Text<'_, Self::Font>) -> Self::Paragraph {
-    }
-
-    fn resize_paragraph(
-        &self,
-        _paragraph: &mut Self::Paragraph,
-        _new_bounds: Size,
-    ) {
-    }
-
     fn fill_paragraph(
         &mut self,
         _paragraph: &Self::Paragraph,
         _position: Point,
         _color: Color,
+        _clip_bounds: Rectangle,
+    ) {
+    }
+
+    fn fill_editor(
+        &mut self,
+        _editor: &Self::Editor,
+        _position: Point,
+        _color: Color,
+        _clip_bounds: Rectangle,
     ) {
     }
 
@@ -81,6 +82,7 @@ impl text::Renderer for Null {
         _paragraph: Text<'_, Self::Font>,
         _position: Point,
         _color: Color,
+        _clip_bounds: Rectangle,
     ) {
     }
 }
@@ -88,24 +90,12 @@ impl text::Renderer for Null {
 impl text::Paragraph for () {
     type Font = Font;
 
-    fn content(&self) -> &str {
-        ""
-    }
+    fn with_text(_text: Text<'_, Self::Font>) -> Self {}
 
-    fn text_size(&self) -> Pixels {
-        Pixels(16.0)
-    }
+    fn resize(&mut self, _new_bounds: Size) {}
 
-    fn font(&self) -> Self::Font {
-        Font::default()
-    }
-
-    fn line_height(&self) -> text::LineHeight {
-        text::LineHeight::default()
-    }
-
-    fn shaping(&self) -> text::Shaping {
-        text::Shaping::default()
+    fn compare(&self, _text: Text<'_, Self::Font>) -> text::Difference {
+        text::Difference::None
     }
 
     fn horizontal_alignment(&self) -> alignment::Horizontal {
@@ -120,15 +110,63 @@ impl text::Paragraph for () {
         None
     }
 
-    fn bounds(&self) -> Size {
-        Size::ZERO
-    }
-
     fn min_bounds(&self) -> Size {
         Size::ZERO
     }
 
     fn hit_test(&self, _point: Point) -> Option<text::Hit> {
         None
+    }
+}
+
+impl text::Editor for () {
+    type Font = Font;
+
+    fn with_text(_text: &str) -> Self {}
+
+    fn cursor(&self) -> text::editor::Cursor {
+        text::editor::Cursor::Caret(Point::ORIGIN)
+    }
+
+    fn cursor_position(&self) -> (usize, usize) {
+        (0, 0)
+    }
+
+    fn selection(&self) -> Option<String> {
+        None
+    }
+
+    fn line(&self, _index: usize) -> Option<&str> {
+        None
+    }
+
+    fn line_count(&self) -> usize {
+        0
+    }
+
+    fn perform(&mut self, _action: text::editor::Action) {}
+
+    fn bounds(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn update(
+        &mut self,
+        _new_bounds: Size,
+        _new_font: Self::Font,
+        _new_size: Pixels,
+        _new_line_height: text::LineHeight,
+        _new_highlighter: &mut impl text::Highlighter,
+    ) {
+    }
+
+    fn highlight<H: text::Highlighter>(
+        &mut self,
+        _font: Self::Font,
+        _highlighter: &mut H,
+        _format_highlight: impl Fn(
+            &H::Highlight,
+        ) -> text::highlighter::Format<Self::Font>,
+    ) {
     }
 }

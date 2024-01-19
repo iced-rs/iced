@@ -33,6 +33,9 @@ pub use iced_runtime::futures;
 pub use iced_style as style;
 pub use winit;
 
+#[cfg(feature = "multi-window")]
+pub mod multi_window;
+
 #[cfg(feature = "application")]
 pub mod application;
 pub mod clipboard;
@@ -43,17 +46,11 @@ pub mod settings;
 pub mod system;
 
 mod error;
-mod position;
 mod proxy;
 
 #[cfg(feature = "application")]
 pub use application::Application;
-#[cfg(feature = "trace")]
-pub use application::Profiler;
 pub use clipboard::Clipboard;
 pub use error::Error;
-pub use position::Position;
 pub use proxy::Proxy;
 pub use settings::Settings;
-
-pub use iced_graphics::Viewport;

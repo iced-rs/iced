@@ -13,6 +13,7 @@ use std::any::Any;
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Renderer> {
     position: Point,
+    translation: Vector,
     overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
 }
 
@@ -25,7 +26,11 @@ where
         position: Point,
         overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
     ) -> Self {
-        Self { position, overlay }
+        Self {
+            position,
+            overlay,
+            translation: Vector::ZERO,
+        }
     }
 
     /// Returns the position of the [`Element`].
@@ -36,6 +41,7 @@ where
     /// Translates the [`Element`].
     pub fn translate(mut self, translation: Vector) -> Self {
         self.position = self.position + translation;
+        self.translation = self.translation + translation;
         self
     }
 
@@ -48,6 +54,7 @@ where
     {
         Element {
             position: self.position,
+            translation: self.translation,
             overlay: Box::new(Map::new(self.overlay, f)),
         }
     }
@@ -59,8 +66,12 @@ where
         bounds: Size,
         translation: Vector,
     ) -> layout::Node {
-        self.overlay
-            .layout(renderer, bounds, self.position + translation)
+        self.overlay.layout(
+            renderer,
+            bounds,
+            self.position + translation,
+            self.translation + translation,
+        )
     }
 
     /// Processes a runtime [`Event`].
@@ -154,8 +165,9 @@ where
         renderer: &Renderer,
         bounds: Size,
         position: Point,
+        translation: Vector,
     ) -> layout::Node {
-        self.content.layout(renderer, bounds, position)
+        self.content.layout(renderer, bounds, position, translation)
     }
 
     fn operate(

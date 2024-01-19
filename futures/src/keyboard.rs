@@ -1,6 +1,6 @@
 //! Listen to keyboard events.
 use crate::core;
-use crate::core::keyboard::{Event, KeyCode, Modifiers};
+use crate::core::keyboard::{Event, Key, Modifiers};
 use crate::subscription::{self, Subscription};
 use crate::MaybeSend;
 
@@ -10,7 +10,7 @@ use crate::MaybeSend;
 /// If the function returns `None`, the key press will be simply
 /// ignored.
 pub fn on_key_press<Message>(
-    f: fn(KeyCode, Modifiers) -> Option<Message>,
+    f: fn(Key, Modifiers) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: MaybeSend + 'static,
@@ -22,11 +22,10 @@ where
         match (event, status) {
             (
                 core::Event::Keyboard(Event::KeyPressed {
-                    key_code,
-                    modifiers,
+                    key, modifiers, ..
                 }),
                 core::event::Status::Ignored,
-            ) => f(key_code, modifiers),
+            ) => f(key, modifiers),
             _ => None,
         }
     })
@@ -38,7 +37,7 @@ where
 /// If the function returns `None`, the key release will be simply
 /// ignored.
 pub fn on_key_release<Message>(
-    f: fn(KeyCode, Modifiers) -> Option<Message>,
+    f: fn(Key, Modifiers) -> Option<Message>,
 ) -> Subscription<Message>
 where
     Message: MaybeSend + 'static,
@@ -50,11 +49,12 @@ where
         match (event, status) {
             (
                 core::Event::Keyboard(Event::KeyReleased {
-                    key_code,
+                    key,
                     modifiers,
+                    ..
                 }),
                 core::event::Status::Ignored,
-            ) => f(key_code, modifiers),
+            ) => f(key, modifiers),
             _ => None,
         }
     })

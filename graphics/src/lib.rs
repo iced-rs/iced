@@ -10,7 +10,7 @@
 #![forbid(rust_2018_idioms)]
 #![deny(
     missing_debug_implementations,
-    //missing_docs,
+    missing_docs,
     unsafe_code,
     unused_results,
     rustdoc::broken_intra_doc_links
@@ -50,3 +50,4 @@ pub use transformation::Transformation;
 pub use viewport::Viewport;
 
 pub use iced_core as core;
+pub use iced_futures as futures;

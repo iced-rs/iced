@@ -1,6 +1,7 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
+use iced::keyboard::key;
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
@@ -93,11 +94,12 @@ impl Application for App {
                 Command::none()
             }
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Tab,
+                key: keyboard::Key::Named(key::Named::Tab),
                 modifiers,
+                ..
             })) if modifiers.shift() => widget::focus_previous(),
             Message::Event(Event::Keyboard(keyboard::Event::KeyPressed {
-                key_code: keyboard::KeyCode::Tab,
+                key: keyboard::Key::Named(key::Named::Tab),
                 ..
             })) => widget::focus_next(),
             Message::Event(_) => Command::none(),
@@ -106,9 +108,7 @@ impl Application for App {
 
     fn view<'a>(&'a self) -> Element<'a, Message> {
         let subtitle = |title, content: Element<'a, Message>| {
-            column![text(title).size(14), content]
-                .width(Length::Fill)
-                .spacing(5)
+            column![text(title).size(14), content].spacing(5)
         };
 
         let mut add_toast = button("Add Toast");
@@ -153,14 +153,11 @@ impl Application for App {
                             Message::Timeout
                         )
                         .step(1.0)
-                        .width(Length::Fill)
                     ]
                     .spacing(5)
                     .into()
                 ),
-                column![add_toast]
-                    .width(Length::Fill)
-                    .align_items(Alignment::End)
+                column![add_toast].align_items(Alignment::End)
             ]
             .spacing(10)
             .max_width(200),
@@ -210,7 +207,7 @@ mod toast {
     }
 
     impl Status {
-        pub const ALL: &[Self] =
+        pub const ALL: &'static [Self] =
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
     }
 
@@ -318,12 +315,8 @@ mod toast {
     }
 
     impl<'a, Message> Widget<Message, Renderer> for Manager<'a, Message> {
-        fn width(&self) -> Length {
-            self.content.as_widget().width()
-        }
-
-        fn height(&self) -> Length {
-            self.content.as_widget().height()
+        fn size(&self) -> Size<Length> {
+            self.content.as_widget().size()
         }
 
         fn layout(
@@ -511,15 +504,16 @@ mod toast {
             renderer: &Renderer,
             bounds: Size,
             position: Point,
+            _translation: Vector,
         ) -> layout::Node {
-            let limits = layout::Limits::new(Size::ZERO, bounds)
-                .width(Length::Fill)
-                .height(Length::Fill);
+            let limits = layout::Limits::new(Size::ZERO, bounds);
 
             layout::flex::resolve(
                 layout::flex::Axis::Vertical,
                 renderer,
                 &limits,
+                Length::Fill,
+                Length::Fill,
                 10.into(),
                 10.0,
                 Alignment::End,
@@ -538,7 +532,9 @@ mod toast {
             clipboard: &mut dyn Clipboard,
             shell: &mut Shell<'_, Message>,
         ) -> event::Status {
-            if let Event::Window(window::Event::RedrawRequested(now)) = &event {
+            if let Event::Window(_, window::Event::RedrawRequested(now)) =
+                &event
+            {
                 let mut next_redraw: Option<window::RedrawRequest> = None;
 
                 self.instants.iter_mut().enumerate().for_each(

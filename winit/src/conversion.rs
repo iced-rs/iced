@@ -6,14 +6,131 @@ use crate::core::keyboard;
 use crate::core::mouse;
 use crate::core::touch;
 use crate::core::window;
-use crate::core::{Event, Point};
-use crate::Position;
+use crate::core::{Event, Point, Size};
+
+/// Converts some [`window::Settings`] into a `WindowBuilder` from `winit`.
+pub fn window_settings(
+    settings: window::Settings,
+    title: &str,
+    primary_monitor: Option<winit::monitor::MonitorHandle>,
+    _id: Option<String>,
+) -> winit::window::WindowBuilder {
+    let mut window_builder = winit::window::WindowBuilder::new();
+
+    window_builder = window_builder
+        .with_title(title)
+        .with_inner_size(winit::dpi::LogicalSize {
+            width: settings.size.width,
+            height: settings.size.height,
+        })
+        .with_resizable(settings.resizable)
+        .with_enabled_buttons(if settings.resizable {
+            winit::window::WindowButtons::all()
+        } else {
+            winit::window::WindowButtons::CLOSE
+                | winit::window::WindowButtons::MINIMIZE
+        })
+        .with_decorations(settings.decorations)
+        .with_transparent(settings.transparent)
+        .with_window_icon(settings.icon.and_then(icon))
+        .with_window_level(window_level(settings.level))
+        .with_visible(settings.visible);
+
+    if let Some(position) =
+        position(primary_monitor.as_ref(), settings.size, settings.position)
+    {
+        window_builder = window_builder.with_position(position);
+    }
+
+    if let Some(min_size) = settings.min_size {
+        window_builder =
+            window_builder.with_min_inner_size(winit::dpi::LogicalSize {
+                width: min_size.width,
+                height: min_size.height,
+            });
+    }
+
+    if let Some(max_size) = settings.max_size {
+        window_builder =
+            window_builder.with_max_inner_size(winit::dpi::LogicalSize {
+                width: max_size.width,
+                height: max_size.height,
+            });
+    }
+
+    #[cfg(any(
+        target_os = "dragonfly",
+        target_os = "freebsd",
+        target_os = "netbsd",
+        target_os = "openbsd"
+    ))]
+    {
+        // `with_name` is available on both `WindowBuilderExtWayland` and `WindowBuilderExtX11` and they do
+        // exactly the same thing. We arbitrarily choose `WindowBuilderExtWayland` here.
+        use ::winit::platform::wayland::WindowBuilderExtWayland;
+
+        if let Some(id) = _id {
+            window_builder = window_builder.with_name(id.clone(), id);
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use winit::platform::windows::WindowBuilderExtWindows;
+        #[allow(unsafe_code)]
+        unsafe {
+            window_builder = window_builder
+                .with_parent_window(settings.platform_specific.parent);
+        }
+        window_builder = window_builder
+            .with_drag_and_drop(settings.platform_specific.drag_and_drop);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::WindowBuilderExtMacOS;
+
+        window_builder = window_builder
+            .with_title_hidden(settings.platform_specific.title_hidden)
+            .with_titlebar_transparent(
+                settings.platform_specific.titlebar_transparent,
+            )
+            .with_fullsize_content_view(
+                settings.platform_specific.fullsize_content_view,
+            );
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        #[cfg(feature = "x11")]
+        {
+            use winit::platform::x11::WindowBuilderExtX11;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+        #[cfg(feature = "wayland")]
+        {
+            use winit::platform::wayland::WindowBuilderExtWayland;
+
+            window_builder = window_builder.with_name(
+                &settings.platform_specific.application_id,
+                &settings.platform_specific.application_id,
+            );
+        }
+    }
+
+    window_builder
+}
 
 /// Converts a winit window event into an iced event.
 pub fn window_event(
-    event: &winit::event::WindowEvent<'_>,
+    id: window::Id,
+    event: winit::event::WindowEvent,
     scale_factor: f64,
-    modifiers: winit::event::ModifiersState,
+    modifiers: winit::keyboard::ModifiersState,
 ) -> Option<Event> {
     use winit::event::WindowEvent;
 
@@ -21,21 +138,16 @@ pub fn window_event(
         WindowEvent::Resized(new_size) => {
             let logical_size = new_size.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
-        }
-        WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-            let logical_size = new_inner_size.to_logical(scale_factor);
-
-            Some(Event::Window(window::Event::Resized {
-                width: logical_size.width,
-                height: logical_size.height,
-            }))
+            Some(Event::Window(
+                id,
+                window::Event::Resized {
+                    width: logical_size.width,
+                    height: logical_size.height,
+                },
+            ))
         }
         WindowEvent::CloseRequested => {
-            Some(Event::Window(window::Event::CloseRequested))
+            Some(Event::Window(id, window::Event::CloseRequested))
         }
         WindowEvent::CursorMoved { position, .. } => {
             let position = position.to_logical::<f64>(scale_factor);
@@ -51,7 +163,7 @@ pub fn window_event(
             Some(Event::Mouse(mouse::Event::CursorLeft))
         }
         WindowEvent::MouseInput { button, state, .. } => {
-            let button = mouse_button(*button);
+            let button = mouse_button(button);
 
             Some(Event::Mouse(match state {
                 winit::event::ElementState::Pressed => {
@@ -66,8 +178,8 @@ pub fn window_event(
             winit::event::MouseScrollDelta::LineDelta(delta_x, delta_y) => {
                 Some(Event::Mouse(mouse::Event::WheelScrolled {
                     delta: mouse::ScrollDelta::Lines {
-                        x: *delta_x,
-                        y: *delta_y,
+                        x: delta_x,
+                        y: delta_y,
                     },
                 }))
             }
@@ -80,61 +192,81 @@ pub fn window_event(
                 }))
             }
         },
-        WindowEvent::ReceivedCharacter(c) if !is_private_use_character(*c) => {
-            Some(Event::Keyboard(keyboard::Event::CharacterReceived(*c)))
-        }
         WindowEvent::KeyboardInput {
-            input:
-                winit::event::KeyboardInput {
-                    virtual_keycode: Some(virtual_keycode),
+            event:
+                winit::event::KeyEvent {
+                    logical_key,
                     state,
+                    text,
+                    location,
                     ..
                 },
             ..
         } => Some(Event::Keyboard({
-            let key_code = key_code(*virtual_keycode);
+            let key = key(logical_key);
             let modifiers = self::modifiers(modifiers);
+
+            let location = match location {
+                winit::keyboard::KeyLocation::Standard => {
+                    keyboard::Location::Standard
+                }
+                winit::keyboard::KeyLocation::Left => keyboard::Location::Left,
+                winit::keyboard::KeyLocation::Right => {
+                    keyboard::Location::Right
+                }
+                winit::keyboard::KeyLocation::Numpad => {
+                    keyboard::Location::Numpad
+                }
+            };
 
             match state {
                 winit::event::ElementState::Pressed => {
                     keyboard::Event::KeyPressed {
-                        key_code,
+                        key,
                         modifiers,
+                        location,
+                        text,
                     }
                 }
                 winit::event::ElementState::Released => {
                     keyboard::Event::KeyReleased {
-                        key_code,
+                        key,
                         modifiers,
+                        location,
                     }
                 }
             }
         })),
-        WindowEvent::ModifiersChanged(new_modifiers) => Some(Event::Keyboard(
-            keyboard::Event::ModifiersChanged(self::modifiers(*new_modifiers)),
+        WindowEvent::ModifiersChanged(new_modifiers) => {
+            Some(Event::Keyboard(keyboard::Event::ModifiersChanged(
+                self::modifiers(new_modifiers.state()),
+            )))
+        }
+        WindowEvent::Focused(focused) => Some(Event::Window(
+            id,
+            if focused {
+                window::Event::Focused
+            } else {
+                window::Event::Unfocused
+            },
         )),
-        WindowEvent::Focused(focused) => Some(Event::Window(if *focused {
-            window::Event::Focused
-        } else {
-            window::Event::Unfocused
-        })),
         WindowEvent::HoveredFile(path) => {
-            Some(Event::Window(window::Event::FileHovered(path.clone())))
+            Some(Event::Window(id, window::Event::FileHovered(path.clone())))
         }
         WindowEvent::DroppedFile(path) => {
-            Some(Event::Window(window::Event::FileDropped(path.clone())))
+            Some(Event::Window(id, window::Event::FileDropped(path.clone())))
         }
         WindowEvent::HoveredFileCancelled => {
-            Some(Event::Window(window::Event::FilesHoveredLeft))
+            Some(Event::Window(id, window::Event::FilesHoveredLeft))
         }
         WindowEvent::Touch(touch) => {
-            Some(Event::Touch(touch_event(*touch, scale_factor)))
+            Some(Event::Touch(touch_event(touch, scale_factor)))
         }
         WindowEvent::Moved(position) => {
             let winit::dpi::LogicalPosition { x, y } =
                 position.to_logical(scale_factor);
 
-            Some(Event::Window(window::Event::Moved { x, y }))
+            Some(Event::Window(id, window::Event::Moved { x, y }))
         }
         _ => None,
     }
@@ -153,23 +285,23 @@ pub fn window_level(level: window::Level) -> winit::window::WindowLevel {
     }
 }
 
-/// Converts a [`Position`] to a [`winit`] logical position for a given monitor.
+/// Converts a [`window::Position`] to a [`winit`] logical position for a given monitor.
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 pub fn position(
     monitor: Option<&winit::monitor::MonitorHandle>,
-    (width, height): (u32, u32),
-    position: Position,
+    size: Size,
+    position: window::Position,
 ) -> Option<winit::dpi::Position> {
     match position {
-        Position::Default => None,
-        Position::Specific(x, y) => {
+        window::Position::Default => None,
+        window::Position::Specific(position) => {
             Some(winit::dpi::Position::Logical(winit::dpi::LogicalPosition {
-                x: f64::from(x),
-                y: f64::from(y),
+                x: f64::from(position.x),
+                y: f64::from(position.y),
             }))
         }
-        Position::Centered => {
+        window::Position::Centered => {
             if let Some(monitor) = monitor {
                 let start = monitor.position();
 
@@ -178,8 +310,8 @@ pub fn position(
 
                 let centered: winit::dpi::PhysicalPosition<i32> =
                     winit::dpi::LogicalPosition {
-                        x: (resolution.width - f64::from(width)) / 2.0,
-                        y: (resolution.height - f64::from(height)) / 2.0,
+                        x: (resolution.width - f64::from(size.width)) / 2.0,
+                        y: (resolution.height - f64::from(size.height)) / 2.0,
                     }
                     .to_physical(monitor.scale_factor());
 
@@ -239,7 +371,7 @@ pub fn mouse_interaction(
 
     match interaction {
         Interaction::Idle => winit::window::CursorIcon::Default,
-        Interaction::Pointer => winit::window::CursorIcon::Hand,
+        Interaction::Pointer => winit::window::CursorIcon::Pointer,
         Interaction::Working => winit::window::CursorIcon::Progress,
         Interaction::Grab => winit::window::CursorIcon::Grab,
         Interaction::Grabbing => winit::window::CursorIcon::Grabbing,
@@ -262,6 +394,8 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
         winit::event::MouseButton::Left => mouse::Button::Left,
         winit::event::MouseButton::Right => mouse::Button::Right,
         winit::event::MouseButton::Middle => mouse::Button::Middle,
+        winit::event::MouseButton::Back => mouse::Button::Back,
+        winit::event::MouseButton::Forward => mouse::Button::Forward,
         winit::event::MouseButton::Other(other) => mouse::Button::Other(other),
     }
 }
@@ -272,14 +406,14 @@ pub fn mouse_button(mouse_button: winit::event::MouseButton) -> mouse::Button {
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
 pub fn modifiers(
-    modifiers: winit::event::ModifiersState,
+    modifiers: winit::keyboard::ModifiersState,
 ) -> keyboard::Modifiers {
     let mut result = keyboard::Modifiers::empty();
 
-    result.set(keyboard::Modifiers::SHIFT, modifiers.shift());
-    result.set(keyboard::Modifiers::CTRL, modifiers.ctrl());
-    result.set(keyboard::Modifiers::ALT, modifiers.alt());
-    result.set(keyboard::Modifiers::LOGO, modifiers.logo());
+    result.set(keyboard::Modifiers::SHIFT, modifiers.shift_key());
+    result.set(keyboard::Modifiers::CTRL, modifiers.control_key());
+    result.set(keyboard::Modifiers::ALT, modifiers.alt_key());
+    result.set(keyboard::Modifiers::LOGO, modifiers.super_key());
 
     result
 }
@@ -329,179 +463,328 @@ pub fn touch_event(
 ///
 /// [`winit`]: https://github.com/rust-windowing/winit
 /// [`iced`]: https://github.com/iced-rs/iced/tree/0.10
-pub fn key_code(
-    virtual_keycode: winit::event::VirtualKeyCode,
-) -> keyboard::KeyCode {
-    use keyboard::KeyCode;
+pub fn key(key: winit::keyboard::Key) -> keyboard::Key {
+    use keyboard::key::Named;
+    use winit::keyboard::NamedKey;
 
-    match virtual_keycode {
-        winit::event::VirtualKeyCode::Key1 => KeyCode::Key1,
-        winit::event::VirtualKeyCode::Key2 => KeyCode::Key2,
-        winit::event::VirtualKeyCode::Key3 => KeyCode::Key3,
-        winit::event::VirtualKeyCode::Key4 => KeyCode::Key4,
-        winit::event::VirtualKeyCode::Key5 => KeyCode::Key5,
-        winit::event::VirtualKeyCode::Key6 => KeyCode::Key6,
-        winit::event::VirtualKeyCode::Key7 => KeyCode::Key7,
-        winit::event::VirtualKeyCode::Key8 => KeyCode::Key8,
-        winit::event::VirtualKeyCode::Key9 => KeyCode::Key9,
-        winit::event::VirtualKeyCode::Key0 => KeyCode::Key0,
-        winit::event::VirtualKeyCode::A => KeyCode::A,
-        winit::event::VirtualKeyCode::B => KeyCode::B,
-        winit::event::VirtualKeyCode::C => KeyCode::C,
-        winit::event::VirtualKeyCode::D => KeyCode::D,
-        winit::event::VirtualKeyCode::E => KeyCode::E,
-        winit::event::VirtualKeyCode::F => KeyCode::F,
-        winit::event::VirtualKeyCode::G => KeyCode::G,
-        winit::event::VirtualKeyCode::H => KeyCode::H,
-        winit::event::VirtualKeyCode::I => KeyCode::I,
-        winit::event::VirtualKeyCode::J => KeyCode::J,
-        winit::event::VirtualKeyCode::K => KeyCode::K,
-        winit::event::VirtualKeyCode::L => KeyCode::L,
-        winit::event::VirtualKeyCode::M => KeyCode::M,
-        winit::event::VirtualKeyCode::N => KeyCode::N,
-        winit::event::VirtualKeyCode::O => KeyCode::O,
-        winit::event::VirtualKeyCode::P => KeyCode::P,
-        winit::event::VirtualKeyCode::Q => KeyCode::Q,
-        winit::event::VirtualKeyCode::R => KeyCode::R,
-        winit::event::VirtualKeyCode::S => KeyCode::S,
-        winit::event::VirtualKeyCode::T => KeyCode::T,
-        winit::event::VirtualKeyCode::U => KeyCode::U,
-        winit::event::VirtualKeyCode::V => KeyCode::V,
-        winit::event::VirtualKeyCode::W => KeyCode::W,
-        winit::event::VirtualKeyCode::X => KeyCode::X,
-        winit::event::VirtualKeyCode::Y => KeyCode::Y,
-        winit::event::VirtualKeyCode::Z => KeyCode::Z,
-        winit::event::VirtualKeyCode::Escape => KeyCode::Escape,
-        winit::event::VirtualKeyCode::F1 => KeyCode::F1,
-        winit::event::VirtualKeyCode::F2 => KeyCode::F2,
-        winit::event::VirtualKeyCode::F3 => KeyCode::F3,
-        winit::event::VirtualKeyCode::F4 => KeyCode::F4,
-        winit::event::VirtualKeyCode::F5 => KeyCode::F5,
-        winit::event::VirtualKeyCode::F6 => KeyCode::F6,
-        winit::event::VirtualKeyCode::F7 => KeyCode::F7,
-        winit::event::VirtualKeyCode::F8 => KeyCode::F8,
-        winit::event::VirtualKeyCode::F9 => KeyCode::F9,
-        winit::event::VirtualKeyCode::F10 => KeyCode::F10,
-        winit::event::VirtualKeyCode::F11 => KeyCode::F11,
-        winit::event::VirtualKeyCode::F12 => KeyCode::F12,
-        winit::event::VirtualKeyCode::F13 => KeyCode::F13,
-        winit::event::VirtualKeyCode::F14 => KeyCode::F14,
-        winit::event::VirtualKeyCode::F15 => KeyCode::F15,
-        winit::event::VirtualKeyCode::F16 => KeyCode::F16,
-        winit::event::VirtualKeyCode::F17 => KeyCode::F17,
-        winit::event::VirtualKeyCode::F18 => KeyCode::F18,
-        winit::event::VirtualKeyCode::F19 => KeyCode::F19,
-        winit::event::VirtualKeyCode::F20 => KeyCode::F20,
-        winit::event::VirtualKeyCode::F21 => KeyCode::F21,
-        winit::event::VirtualKeyCode::F22 => KeyCode::F22,
-        winit::event::VirtualKeyCode::F23 => KeyCode::F23,
-        winit::event::VirtualKeyCode::F24 => KeyCode::F24,
-        winit::event::VirtualKeyCode::Snapshot => KeyCode::Snapshot,
-        winit::event::VirtualKeyCode::Scroll => KeyCode::Scroll,
-        winit::event::VirtualKeyCode::Pause => KeyCode::Pause,
-        winit::event::VirtualKeyCode::Insert => KeyCode::Insert,
-        winit::event::VirtualKeyCode::Home => KeyCode::Home,
-        winit::event::VirtualKeyCode::Delete => KeyCode::Delete,
-        winit::event::VirtualKeyCode::End => KeyCode::End,
-        winit::event::VirtualKeyCode::PageDown => KeyCode::PageDown,
-        winit::event::VirtualKeyCode::PageUp => KeyCode::PageUp,
-        winit::event::VirtualKeyCode::Left => KeyCode::Left,
-        winit::event::VirtualKeyCode::Up => KeyCode::Up,
-        winit::event::VirtualKeyCode::Right => KeyCode::Right,
-        winit::event::VirtualKeyCode::Down => KeyCode::Down,
-        winit::event::VirtualKeyCode::Back => KeyCode::Backspace,
-        winit::event::VirtualKeyCode::Return => KeyCode::Enter,
-        winit::event::VirtualKeyCode::Space => KeyCode::Space,
-        winit::event::VirtualKeyCode::Compose => KeyCode::Compose,
-        winit::event::VirtualKeyCode::Caret => KeyCode::Caret,
-        winit::event::VirtualKeyCode::Numlock => KeyCode::Numlock,
-        winit::event::VirtualKeyCode::Numpad0 => KeyCode::Numpad0,
-        winit::event::VirtualKeyCode::Numpad1 => KeyCode::Numpad1,
-        winit::event::VirtualKeyCode::Numpad2 => KeyCode::Numpad2,
-        winit::event::VirtualKeyCode::Numpad3 => KeyCode::Numpad3,
-        winit::event::VirtualKeyCode::Numpad4 => KeyCode::Numpad4,
-        winit::event::VirtualKeyCode::Numpad5 => KeyCode::Numpad5,
-        winit::event::VirtualKeyCode::Numpad6 => KeyCode::Numpad6,
-        winit::event::VirtualKeyCode::Numpad7 => KeyCode::Numpad7,
-        winit::event::VirtualKeyCode::Numpad8 => KeyCode::Numpad8,
-        winit::event::VirtualKeyCode::Numpad9 => KeyCode::Numpad9,
-        winit::event::VirtualKeyCode::AbntC1 => KeyCode::AbntC1,
-        winit::event::VirtualKeyCode::AbntC2 => KeyCode::AbntC2,
-        winit::event::VirtualKeyCode::NumpadAdd => KeyCode::NumpadAdd,
-        winit::event::VirtualKeyCode::Plus => KeyCode::Plus,
-        winit::event::VirtualKeyCode::Apostrophe => KeyCode::Apostrophe,
-        winit::event::VirtualKeyCode::Apps => KeyCode::Apps,
-        winit::event::VirtualKeyCode::At => KeyCode::At,
-        winit::event::VirtualKeyCode::Ax => KeyCode::Ax,
-        winit::event::VirtualKeyCode::Backslash => KeyCode::Backslash,
-        winit::event::VirtualKeyCode::Calculator => KeyCode::Calculator,
-        winit::event::VirtualKeyCode::Capital => KeyCode::Capital,
-        winit::event::VirtualKeyCode::Colon => KeyCode::Colon,
-        winit::event::VirtualKeyCode::Comma => KeyCode::Comma,
-        winit::event::VirtualKeyCode::Convert => KeyCode::Convert,
-        winit::event::VirtualKeyCode::NumpadDecimal => KeyCode::NumpadDecimal,
-        winit::event::VirtualKeyCode::NumpadDivide => KeyCode::NumpadDivide,
-        winit::event::VirtualKeyCode::Equals => KeyCode::Equals,
-        winit::event::VirtualKeyCode::Grave => KeyCode::Grave,
-        winit::event::VirtualKeyCode::Kana => KeyCode::Kana,
-        winit::event::VirtualKeyCode::Kanji => KeyCode::Kanji,
-        winit::event::VirtualKeyCode::LAlt => KeyCode::LAlt,
-        winit::event::VirtualKeyCode::LBracket => KeyCode::LBracket,
-        winit::event::VirtualKeyCode::LControl => KeyCode::LControl,
-        winit::event::VirtualKeyCode::LShift => KeyCode::LShift,
-        winit::event::VirtualKeyCode::LWin => KeyCode::LWin,
-        winit::event::VirtualKeyCode::Mail => KeyCode::Mail,
-        winit::event::VirtualKeyCode::MediaSelect => KeyCode::MediaSelect,
-        winit::event::VirtualKeyCode::MediaStop => KeyCode::MediaStop,
-        winit::event::VirtualKeyCode::Minus => KeyCode::Minus,
-        winit::event::VirtualKeyCode::NumpadMultiply => KeyCode::NumpadMultiply,
-        winit::event::VirtualKeyCode::Mute => KeyCode::Mute,
-        winit::event::VirtualKeyCode::MyComputer => KeyCode::MyComputer,
-        winit::event::VirtualKeyCode::NavigateForward => {
-            KeyCode::NavigateForward
+    match key {
+        winit::keyboard::Key::Character(c) => keyboard::Key::Character(c),
+        winit::keyboard::Key::Named(named_key) => {
+            keyboard::Key::Named(match named_key {
+                NamedKey::Alt => Named::Alt,
+                NamedKey::AltGraph => Named::AltGraph,
+                NamedKey::CapsLock => Named::CapsLock,
+                NamedKey::Control => Named::Control,
+                NamedKey::Fn => Named::Fn,
+                NamedKey::FnLock => Named::FnLock,
+                NamedKey::NumLock => Named::NumLock,
+                NamedKey::ScrollLock => Named::ScrollLock,
+                NamedKey::Shift => Named::Shift,
+                NamedKey::Symbol => Named::Symbol,
+                NamedKey::SymbolLock => Named::SymbolLock,
+                NamedKey::Meta => Named::Meta,
+                NamedKey::Hyper => Named::Hyper,
+                NamedKey::Super => Named::Super,
+                NamedKey::Enter => Named::Enter,
+                NamedKey::Tab => Named::Tab,
+                NamedKey::Space => Named::Space,
+                NamedKey::ArrowDown => Named::ArrowDown,
+                NamedKey::ArrowLeft => Named::ArrowLeft,
+                NamedKey::ArrowRight => Named::ArrowRight,
+                NamedKey::ArrowUp => Named::ArrowUp,
+                NamedKey::End => Named::End,
+                NamedKey::Home => Named::Home,
+                NamedKey::PageDown => Named::PageDown,
+                NamedKey::PageUp => Named::PageUp,
+                NamedKey::Backspace => Named::Backspace,
+                NamedKey::Clear => Named::Clear,
+                NamedKey::Copy => Named::Copy,
+                NamedKey::CrSel => Named::CrSel,
+                NamedKey::Cut => Named::Cut,
+                NamedKey::Delete => Named::Delete,
+                NamedKey::EraseEof => Named::EraseEof,
+                NamedKey::ExSel => Named::ExSel,
+                NamedKey::Insert => Named::Insert,
+                NamedKey::Paste => Named::Paste,
+                NamedKey::Redo => Named::Redo,
+                NamedKey::Undo => Named::Undo,
+                NamedKey::Accept => Named::Accept,
+                NamedKey::Again => Named::Again,
+                NamedKey::Attn => Named::Attn,
+                NamedKey::Cancel => Named::Cancel,
+                NamedKey::ContextMenu => Named::ContextMenu,
+                NamedKey::Escape => Named::Escape,
+                NamedKey::Execute => Named::Execute,
+                NamedKey::Find => Named::Find,
+                NamedKey::Help => Named::Help,
+                NamedKey::Pause => Named::Pause,
+                NamedKey::Play => Named::Play,
+                NamedKey::Props => Named::Props,
+                NamedKey::Select => Named::Select,
+                NamedKey::ZoomIn => Named::ZoomIn,
+                NamedKey::ZoomOut => Named::ZoomOut,
+                NamedKey::BrightnessDown => Named::BrightnessDown,
+                NamedKey::BrightnessUp => Named::BrightnessUp,
+                NamedKey::Eject => Named::Eject,
+                NamedKey::LogOff => Named::LogOff,
+                NamedKey::Power => Named::Power,
+                NamedKey::PowerOff => Named::PowerOff,
+                NamedKey::PrintScreen => Named::PrintScreen,
+                NamedKey::Hibernate => Named::Hibernate,
+                NamedKey::Standby => Named::Standby,
+                NamedKey::WakeUp => Named::WakeUp,
+                NamedKey::AllCandidates => Named::AllCandidates,
+                NamedKey::Alphanumeric => Named::Alphanumeric,
+                NamedKey::CodeInput => Named::CodeInput,
+                NamedKey::Compose => Named::Compose,
+                NamedKey::Convert => Named::Convert,
+                NamedKey::FinalMode => Named::FinalMode,
+                NamedKey::GroupFirst => Named::GroupFirst,
+                NamedKey::GroupLast => Named::GroupLast,
+                NamedKey::GroupNext => Named::GroupNext,
+                NamedKey::GroupPrevious => Named::GroupPrevious,
+                NamedKey::ModeChange => Named::ModeChange,
+                NamedKey::NextCandidate => Named::NextCandidate,
+                NamedKey::NonConvert => Named::NonConvert,
+                NamedKey::PreviousCandidate => Named::PreviousCandidate,
+                NamedKey::Process => Named::Process,
+                NamedKey::SingleCandidate => Named::SingleCandidate,
+                NamedKey::HangulMode => Named::HangulMode,
+                NamedKey::HanjaMode => Named::HanjaMode,
+                NamedKey::JunjaMode => Named::JunjaMode,
+                NamedKey::Eisu => Named::Eisu,
+                NamedKey::Hankaku => Named::Hankaku,
+                NamedKey::Hiragana => Named::Hiragana,
+                NamedKey::HiraganaKatakana => Named::HiraganaKatakana,
+                NamedKey::KanaMode => Named::KanaMode,
+                NamedKey::KanjiMode => Named::KanjiMode,
+                NamedKey::Katakana => Named::Katakana,
+                NamedKey::Romaji => Named::Romaji,
+                NamedKey::Zenkaku => Named::Zenkaku,
+                NamedKey::ZenkakuHankaku => Named::ZenkakuHankaku,
+                NamedKey::Soft1 => Named::Soft1,
+                NamedKey::Soft2 => Named::Soft2,
+                NamedKey::Soft3 => Named::Soft3,
+                NamedKey::Soft4 => Named::Soft4,
+                NamedKey::ChannelDown => Named::ChannelDown,
+                NamedKey::ChannelUp => Named::ChannelUp,
+                NamedKey::Close => Named::Close,
+                NamedKey::MailForward => Named::MailForward,
+                NamedKey::MailReply => Named::MailReply,
+                NamedKey::MailSend => Named::MailSend,
+                NamedKey::MediaClose => Named::MediaClose,
+                NamedKey::MediaFastForward => Named::MediaFastForward,
+                NamedKey::MediaPause => Named::MediaPause,
+                NamedKey::MediaPlay => Named::MediaPlay,
+                NamedKey::MediaPlayPause => Named::MediaPlayPause,
+                NamedKey::MediaRecord => Named::MediaRecord,
+                NamedKey::MediaRewind => Named::MediaRewind,
+                NamedKey::MediaStop => Named::MediaStop,
+                NamedKey::MediaTrackNext => Named::MediaTrackNext,
+                NamedKey::MediaTrackPrevious => Named::MediaTrackPrevious,
+                NamedKey::New => Named::New,
+                NamedKey::Open => Named::Open,
+                NamedKey::Print => Named::Print,
+                NamedKey::Save => Named::Save,
+                NamedKey::SpellCheck => Named::SpellCheck,
+                NamedKey::Key11 => Named::Key11,
+                NamedKey::Key12 => Named::Key12,
+                NamedKey::AudioBalanceLeft => Named::AudioBalanceLeft,
+                NamedKey::AudioBalanceRight => Named::AudioBalanceRight,
+                NamedKey::AudioBassBoostDown => Named::AudioBassBoostDown,
+                NamedKey::AudioBassBoostToggle => Named::AudioBassBoostToggle,
+                NamedKey::AudioBassBoostUp => Named::AudioBassBoostUp,
+                NamedKey::AudioFaderFront => Named::AudioFaderFront,
+                NamedKey::AudioFaderRear => Named::AudioFaderRear,
+                NamedKey::AudioSurroundModeNext => Named::AudioSurroundModeNext,
+                NamedKey::AudioTrebleDown => Named::AudioTrebleDown,
+                NamedKey::AudioTrebleUp => Named::AudioTrebleUp,
+                NamedKey::AudioVolumeDown => Named::AudioVolumeDown,
+                NamedKey::AudioVolumeUp => Named::AudioVolumeUp,
+                NamedKey::AudioVolumeMute => Named::AudioVolumeMute,
+                NamedKey::MicrophoneToggle => Named::MicrophoneToggle,
+                NamedKey::MicrophoneVolumeDown => Named::MicrophoneVolumeDown,
+                NamedKey::MicrophoneVolumeUp => Named::MicrophoneVolumeUp,
+                NamedKey::MicrophoneVolumeMute => Named::MicrophoneVolumeMute,
+                NamedKey::SpeechCorrectionList => Named::SpeechCorrectionList,
+                NamedKey::SpeechInputToggle => Named::SpeechInputToggle,
+                NamedKey::LaunchApplication1 => Named::LaunchApplication1,
+                NamedKey::LaunchApplication2 => Named::LaunchApplication2,
+                NamedKey::LaunchCalendar => Named::LaunchCalendar,
+                NamedKey::LaunchContacts => Named::LaunchContacts,
+                NamedKey::LaunchMail => Named::LaunchMail,
+                NamedKey::LaunchMediaPlayer => Named::LaunchMediaPlayer,
+                NamedKey::LaunchMusicPlayer => Named::LaunchMusicPlayer,
+                NamedKey::LaunchPhone => Named::LaunchPhone,
+                NamedKey::LaunchScreenSaver => Named::LaunchScreenSaver,
+                NamedKey::LaunchSpreadsheet => Named::LaunchSpreadsheet,
+                NamedKey::LaunchWebBrowser => Named::LaunchWebBrowser,
+                NamedKey::LaunchWebCam => Named::LaunchWebCam,
+                NamedKey::LaunchWordProcessor => Named::LaunchWordProcessor,
+                NamedKey::BrowserBack => Named::BrowserBack,
+                NamedKey::BrowserFavorites => Named::BrowserFavorites,
+                NamedKey::BrowserForward => Named::BrowserForward,
+                NamedKey::BrowserHome => Named::BrowserHome,
+                NamedKey::BrowserRefresh => Named::BrowserRefresh,
+                NamedKey::BrowserSearch => Named::BrowserSearch,
+                NamedKey::BrowserStop => Named::BrowserStop,
+                NamedKey::AppSwitch => Named::AppSwitch,
+                NamedKey::Call => Named::Call,
+                NamedKey::Camera => Named::Camera,
+                NamedKey::CameraFocus => Named::CameraFocus,
+                NamedKey::EndCall => Named::EndCall,
+                NamedKey::GoBack => Named::GoBack,
+                NamedKey::GoHome => Named::GoHome,
+                NamedKey::HeadsetHook => Named::HeadsetHook,
+                NamedKey::LastNumberRedial => Named::LastNumberRedial,
+                NamedKey::Notification => Named::Notification,
+                NamedKey::MannerMode => Named::MannerMode,
+                NamedKey::VoiceDial => Named::VoiceDial,
+                NamedKey::TV => Named::TV,
+                NamedKey::TV3DMode => Named::TV3DMode,
+                NamedKey::TVAntennaCable => Named::TVAntennaCable,
+                NamedKey::TVAudioDescription => Named::TVAudioDescription,
+                NamedKey::TVAudioDescriptionMixDown => {
+                    Named::TVAudioDescriptionMixDown
+                }
+                NamedKey::TVAudioDescriptionMixUp => {
+                    Named::TVAudioDescriptionMixUp
+                }
+                NamedKey::TVContentsMenu => Named::TVContentsMenu,
+                NamedKey::TVDataService => Named::TVDataService,
+                NamedKey::TVInput => Named::TVInput,
+                NamedKey::TVInputComponent1 => Named::TVInputComponent1,
+                NamedKey::TVInputComponent2 => Named::TVInputComponent2,
+                NamedKey::TVInputComposite1 => Named::TVInputComposite1,
+                NamedKey::TVInputComposite2 => Named::TVInputComposite2,
+                NamedKey::TVInputHDMI1 => Named::TVInputHDMI1,
+                NamedKey::TVInputHDMI2 => Named::TVInputHDMI2,
+                NamedKey::TVInputHDMI3 => Named::TVInputHDMI3,
+                NamedKey::TVInputHDMI4 => Named::TVInputHDMI4,
+                NamedKey::TVInputVGA1 => Named::TVInputVGA1,
+                NamedKey::TVMediaContext => Named::TVMediaContext,
+                NamedKey::TVNetwork => Named::TVNetwork,
+                NamedKey::TVNumberEntry => Named::TVNumberEntry,
+                NamedKey::TVPower => Named::TVPower,
+                NamedKey::TVRadioService => Named::TVRadioService,
+                NamedKey::TVSatellite => Named::TVSatellite,
+                NamedKey::TVSatelliteBS => Named::TVSatelliteBS,
+                NamedKey::TVSatelliteCS => Named::TVSatelliteCS,
+                NamedKey::TVSatelliteToggle => Named::TVSatelliteToggle,
+                NamedKey::TVTerrestrialAnalog => Named::TVTerrestrialAnalog,
+                NamedKey::TVTerrestrialDigital => Named::TVTerrestrialDigital,
+                NamedKey::TVTimer => Named::TVTimer,
+                NamedKey::AVRInput => Named::AVRInput,
+                NamedKey::AVRPower => Named::AVRPower,
+                NamedKey::ColorF0Red => Named::ColorF0Red,
+                NamedKey::ColorF1Green => Named::ColorF1Green,
+                NamedKey::ColorF2Yellow => Named::ColorF2Yellow,
+                NamedKey::ColorF3Blue => Named::ColorF3Blue,
+                NamedKey::ColorF4Grey => Named::ColorF4Grey,
+                NamedKey::ColorF5Brown => Named::ColorF5Brown,
+                NamedKey::ClosedCaptionToggle => Named::ClosedCaptionToggle,
+                NamedKey::Dimmer => Named::Dimmer,
+                NamedKey::DisplaySwap => Named::DisplaySwap,
+                NamedKey::DVR => Named::DVR,
+                NamedKey::Exit => Named::Exit,
+                NamedKey::FavoriteClear0 => Named::FavoriteClear0,
+                NamedKey::FavoriteClear1 => Named::FavoriteClear1,
+                NamedKey::FavoriteClear2 => Named::FavoriteClear2,
+                NamedKey::FavoriteClear3 => Named::FavoriteClear3,
+                NamedKey::FavoriteRecall0 => Named::FavoriteRecall0,
+                NamedKey::FavoriteRecall1 => Named::FavoriteRecall1,
+                NamedKey::FavoriteRecall2 => Named::FavoriteRecall2,
+                NamedKey::FavoriteRecall3 => Named::FavoriteRecall3,
+                NamedKey::FavoriteStore0 => Named::FavoriteStore0,
+                NamedKey::FavoriteStore1 => Named::FavoriteStore1,
+                NamedKey::FavoriteStore2 => Named::FavoriteStore2,
+                NamedKey::FavoriteStore3 => Named::FavoriteStore3,
+                NamedKey::Guide => Named::Guide,
+                NamedKey::GuideNextDay => Named::GuideNextDay,
+                NamedKey::GuidePreviousDay => Named::GuidePreviousDay,
+                NamedKey::Info => Named::Info,
+                NamedKey::InstantReplay => Named::InstantReplay,
+                NamedKey::Link => Named::Link,
+                NamedKey::ListProgram => Named::ListProgram,
+                NamedKey::LiveContent => Named::LiveContent,
+                NamedKey::Lock => Named::Lock,
+                NamedKey::MediaApps => Named::MediaApps,
+                NamedKey::MediaAudioTrack => Named::MediaAudioTrack,
+                NamedKey::MediaLast => Named::MediaLast,
+                NamedKey::MediaSkipBackward => Named::MediaSkipBackward,
+                NamedKey::MediaSkipForward => Named::MediaSkipForward,
+                NamedKey::MediaStepBackward => Named::MediaStepBackward,
+                NamedKey::MediaStepForward => Named::MediaStepForward,
+                NamedKey::MediaTopMenu => Named::MediaTopMenu,
+                NamedKey::NavigateIn => Named::NavigateIn,
+                NamedKey::NavigateNext => Named::NavigateNext,
+                NamedKey::NavigateOut => Named::NavigateOut,
+                NamedKey::NavigatePrevious => Named::NavigatePrevious,
+                NamedKey::NextFavoriteChannel => Named::NextFavoriteChannel,
+                NamedKey::NextUserProfile => Named::NextUserProfile,
+                NamedKey::OnDemand => Named::OnDemand,
+                NamedKey::Pairing => Named::Pairing,
+                NamedKey::PinPDown => Named::PinPDown,
+                NamedKey::PinPMove => Named::PinPMove,
+                NamedKey::PinPToggle => Named::PinPToggle,
+                NamedKey::PinPUp => Named::PinPUp,
+                NamedKey::PlaySpeedDown => Named::PlaySpeedDown,
+                NamedKey::PlaySpeedReset => Named::PlaySpeedReset,
+                NamedKey::PlaySpeedUp => Named::PlaySpeedUp,
+                NamedKey::RandomToggle => Named::RandomToggle,
+                NamedKey::RcLowBattery => Named::RcLowBattery,
+                NamedKey::RecordSpeedNext => Named::RecordSpeedNext,
+                NamedKey::RfBypass => Named::RfBypass,
+                NamedKey::ScanChannelsToggle => Named::ScanChannelsToggle,
+                NamedKey::ScreenModeNext => Named::ScreenModeNext,
+                NamedKey::Settings => Named::Settings,
+                NamedKey::SplitScreenToggle => Named::SplitScreenToggle,
+                NamedKey::STBInput => Named::STBInput,
+                NamedKey::STBPower => Named::STBPower,
+                NamedKey::Subtitle => Named::Subtitle,
+                NamedKey::Teletext => Named::Teletext,
+                NamedKey::VideoModeNext => Named::VideoModeNext,
+                NamedKey::Wink => Named::Wink,
+                NamedKey::ZoomToggle => Named::ZoomToggle,
+                NamedKey::F1 => Named::F1,
+                NamedKey::F2 => Named::F2,
+                NamedKey::F3 => Named::F3,
+                NamedKey::F4 => Named::F4,
+                NamedKey::F5 => Named::F5,
+                NamedKey::F6 => Named::F6,
+                NamedKey::F7 => Named::F7,
+                NamedKey::F8 => Named::F8,
+                NamedKey::F9 => Named::F9,
+                NamedKey::F10 => Named::F10,
+                NamedKey::F11 => Named::F11,
+                NamedKey::F12 => Named::F12,
+                NamedKey::F13 => Named::F13,
+                NamedKey::F14 => Named::F14,
+                NamedKey::F15 => Named::F15,
+                NamedKey::F16 => Named::F16,
+                NamedKey::F17 => Named::F17,
+                NamedKey::F18 => Named::F18,
+                NamedKey::F19 => Named::F19,
+                NamedKey::F20 => Named::F20,
+                NamedKey::F21 => Named::F21,
+                NamedKey::F22 => Named::F22,
+                NamedKey::F23 => Named::F23,
+                NamedKey::F24 => Named::F24,
+                NamedKey::F25 => Named::F25,
+                NamedKey::F26 => Named::F26,
+                NamedKey::F27 => Named::F27,
+                NamedKey::F28 => Named::F28,
+                NamedKey::F29 => Named::F29,
+                NamedKey::F30 => Named::F30,
+                NamedKey::F31 => Named::F31,
+                NamedKey::F32 => Named::F32,
+                NamedKey::F33 => Named::F33,
+                NamedKey::F34 => Named::F34,
+                NamedKey::F35 => Named::F35,
+                _ => return keyboard::Key::Unidentified,
+            })
         }
-        winit::event::VirtualKeyCode::NavigateBackward => {
-            KeyCode::NavigateBackward
-        }
-        winit::event::VirtualKeyCode::NextTrack => KeyCode::NextTrack,
-        winit::event::VirtualKeyCode::NoConvert => KeyCode::NoConvert,
-        winit::event::VirtualKeyCode::NumpadComma => KeyCode::NumpadComma,
-        winit::event::VirtualKeyCode::NumpadEnter => KeyCode::NumpadEnter,
-        winit::event::VirtualKeyCode::NumpadEquals => KeyCode::NumpadEquals,
-        winit::event::VirtualKeyCode::OEM102 => KeyCode::OEM102,
-        winit::event::VirtualKeyCode::Period => KeyCode::Period,
-        winit::event::VirtualKeyCode::PlayPause => KeyCode::PlayPause,
-        winit::event::VirtualKeyCode::Power => KeyCode::Power,
-        winit::event::VirtualKeyCode::PrevTrack => KeyCode::PrevTrack,
-        winit::event::VirtualKeyCode::RAlt => KeyCode::RAlt,
-        winit::event::VirtualKeyCode::RBracket => KeyCode::RBracket,
-        winit::event::VirtualKeyCode::RControl => KeyCode::RControl,
-        winit::event::VirtualKeyCode::RShift => KeyCode::RShift,
-        winit::event::VirtualKeyCode::RWin => KeyCode::RWin,
-        winit::event::VirtualKeyCode::Semicolon => KeyCode::Semicolon,
-        winit::event::VirtualKeyCode::Slash => KeyCode::Slash,
-        winit::event::VirtualKeyCode::Sleep => KeyCode::Sleep,
-        winit::event::VirtualKeyCode::Stop => KeyCode::Stop,
-        winit::event::VirtualKeyCode::NumpadSubtract => KeyCode::NumpadSubtract,
-        winit::event::VirtualKeyCode::Sysrq => KeyCode::Sysrq,
-        winit::event::VirtualKeyCode::Tab => KeyCode::Tab,
-        winit::event::VirtualKeyCode::Underline => KeyCode::Underline,
-        winit::event::VirtualKeyCode::Unlabeled => KeyCode::Unlabeled,
-        winit::event::VirtualKeyCode::VolumeDown => KeyCode::VolumeDown,
-        winit::event::VirtualKeyCode::VolumeUp => KeyCode::VolumeUp,
-        winit::event::VirtualKeyCode::Wake => KeyCode::Wake,
-        winit::event::VirtualKeyCode::WebBack => KeyCode::WebBack,
-        winit::event::VirtualKeyCode::WebFavorites => KeyCode::WebFavorites,
-        winit::event::VirtualKeyCode::WebForward => KeyCode::WebForward,
-        winit::event::VirtualKeyCode::WebHome => KeyCode::WebHome,
-        winit::event::VirtualKeyCode::WebRefresh => KeyCode::WebRefresh,
-        winit::event::VirtualKeyCode::WebSearch => KeyCode::WebSearch,
-        winit::event::VirtualKeyCode::WebStop => KeyCode::WebStop,
-        winit::event::VirtualKeyCode::Yen => KeyCode::Yen,
-        winit::event::VirtualKeyCode::Copy => KeyCode::Copy,
-        winit::event::VirtualKeyCode::Paste => KeyCode::Paste,
-        winit::event::VirtualKeyCode::Cut => KeyCode::Cut,
-        winit::event::VirtualKeyCode::Asterisk => KeyCode::Asterisk,
+        _ => keyboard::Key::Unidentified,
     }
 }
 
@@ -528,14 +811,4 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     let (pixels, size) = icon.into_raw();
 
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
-}
-
-// As defined in: http://www.unicode.org/faq/private_use.html
-pub(crate) fn is_private_use_character(c: char) -> bool {
-    matches!(
-        c,
-        '\u{E000}'..='\u{F8FF}'
-        | '\u{F0000}'..='\u{FFFFD}'
-        | '\u{100000}'..='\u{10FFFD}'
-    )
 }

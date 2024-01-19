@@ -8,7 +8,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Subscription};
+use iced::{Color, Command, Length, Settings, Size, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub fn main() -> iced::Result {
 
     Todos::run(Settings {
         window: window::Settings {
-            size: (500, 800),
+            size: Size::new(500.0, 800.0),
             ..window::Settings::default()
         },
         ..Settings::default()
@@ -54,7 +54,7 @@ enum Message {
     FilterChanged(Filter),
     TaskMessage(usize, TaskMessage),
     TabPressed { shift: bool },
-    ChangeWindowMode(window::Mode),
+    ToggleFullscreen(window::Mode),
 }
 
 impl Application for Todos {
@@ -165,8 +165,8 @@ impl Application for Todos {
                             widget::focus_next()
                         }
                     }
-                    Message::ChangeWindowMode(mode) => {
-                        window::change_mode(mode)
+                    Message::ToggleFullscreen(mode) => {
+                        window::change_mode(window::Id::MAIN, mode)
                     }
                     _ => Command::none(),
                 };
@@ -254,28 +254,28 @@ impl Application for Todos {
                     .spacing(20)
                     .max_width(800);
 
-                scrollable(
-                    container(content)
-                        .width(Length::Fill)
-                        .padding(40)
-                        .center_x(),
-                )
-                .into()
+                scrollable(container(content).padding(40).center_x()).into()
             }
         }
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        keyboard::on_key_press(|key_code, modifiers| {
-            match (key_code, modifiers) {
-                (keyboard::KeyCode::Tab, _) => Some(Message::TabPressed {
+        use keyboard::key;
+
+        keyboard::on_key_press(|key, modifiers| {
+            let keyboard::Key::Named(key) = key else {
+                return None;
+            };
+
+            match (key, modifiers) {
+                (key::Named::Tab, _) => Some(Message::TabPressed {
                     shift: modifiers.shift(),
                 }),
-                (keyboard::KeyCode::Up, keyboard::Modifiers::SHIFT) => {
-                    Some(Message::ChangeWindowMode(window::Mode::Fullscreen))
+                (key::Named::ArrowUp, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ToggleFullscreen(window::Mode::Fullscreen))
                 }
-                (keyboard::KeyCode::Down, keyboard::Modifiers::SHIFT) => {
-                    Some(Message::ChangeWindowMode(window::Mode::Windowed))
+                (key::Named::ArrowDown, keyboard::Modifiers::SHIFT) => {
+                    Some(Message::ToggleFullscreen(window::Mode::Windowed))
                 }
                 _ => None,
             }
@@ -472,7 +472,6 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .horizontal_alignment(alignment::Horizontal::Center)
             .style(Color::from([0.7, 0.7, 0.7])),
     )
-    .width(Length::Fill)
     .height(200)
     .center_y()
     .into()

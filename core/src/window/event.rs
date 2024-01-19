@@ -1,10 +1,27 @@
 use crate::time::Instant;
+use crate::{Point, Size};
 
 use std::path::PathBuf;
 
 /// A window-related event.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum Event {
+    /// A window was opened.
+    Opened {
+        /// The position of the opened window. This is relative to the top-left corner of the desktop
+        /// the window is on, including virtual desktops. Refers to window's "inner" position,
+        /// or the client area, in logical pixels.
+        ///
+        /// **Note**: Not available in Wayland.
+        position: Option<Point>,
+        /// The size of the created window. This is its "inner" size, or the size of the
+        /// client area, in logical pixels.
+        size: Size,
+    },
+
+    /// A window was closed.
+    Closed,
+
     /// A window was moved.
     Moved {
         /// The new logical x location of the window
@@ -27,9 +44,6 @@ pub enum Event {
     RedrawRequested(Instant),
 
     /// The user has requested for the window to close.
-    ///
-    /// Usually, you will want to terminate the execution whenever this event
-    /// occurs.
     CloseRequested,
 
     /// A window was focused.
@@ -44,7 +58,7 @@ pub enum Event {
     /// for each file separately.
     FileHovered(PathBuf),
 
-    /// A file has beend dropped into the window.
+    /// A file has been dropped into the window.
     ///
     /// When the user drops multiple files at once, this event will be emitted
     /// for each file separately.
