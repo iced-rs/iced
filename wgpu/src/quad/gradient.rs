@@ -83,6 +83,8 @@ impl Pipeline {
                         concat!(
                             include_str!("../shader/quad.wgsl"),
                             "\n",
+                            include_str!("../shader/vertex.wgsl"),
+                            "\n",
                             include_str!("../shader/quad/gradient.wgsl"),
                             "\n",
                             include_str!("../shader/color/oklab.wgsl")
@@ -90,6 +92,8 @@ impl Pipeline {
                     } else {
                         concat!(
                             include_str!("../shader/quad.wgsl"),
+                            "\n",
+                            include_str!("../shader/vertex.wgsl"),
                             "\n",
                             include_str!("../shader/quad/gradient.wgsl"),
                             "\n",
@@ -106,36 +110,32 @@ impl Pipeline {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "gradient_vs_main",
-                    buffers: &[
-                        quad::Vertex::buffer_layout(),
-                        wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<Gradient>()
-                                as u64,
-                            step_mode: wgpu::VertexStepMode::Instance,
-                            attributes: &wgpu::vertex_attr_array!(
-                                // Colors 1-2
-                                1 => Uint32x4,
-                                // Colors 3-4
-                                2 => Uint32x4,
-                                // Colors 5-6
-                                3 => Uint32x4,
-                                // Colors 7-8
-                                4 => Uint32x4,
-                                // Offsets 1-8
-                                5 => Uint32x4,
-                                // Direction
-                                6 => Float32x4,
-                                // Position & Scale
-                                7 => Float32x4,
-                                // Border color
-                                8 => Float32x4,
-                                // Border radius
-                                9 => Float32x4,
-                                // Border width
-                                10 => Float32
-                            ),
-                        },
-                    ],
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Gradient>() as u64,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array!(
+                            // Colors 1-2
+                            0 => Uint32x4,
+                            // Colors 3-4
+                            1 => Uint32x4,
+                            // Colors 5-6
+                            2 => Uint32x4,
+                            // Colors 7-8
+                            3 => Uint32x4,
+                            // Offsets 1-8
+                            4 => Uint32x4,
+                            // Direction
+                            5 => Float32x4,
+                            // Position & Scale
+                            6 => Float32x4,
+                            // Border color
+                            7 => Float32x4,
+                            // Border radius
+                            8 => Float32x4,
+                            // Border width
+                            9 => Float32
+                        ),
+                    }],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -171,12 +171,8 @@ impl Pipeline {
 
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, constants, &[]);
-        render_pass.set_vertex_buffer(1, layer.instances.slice(..));
+        render_pass.set_vertex_buffer(0, layer.instances.slice(..));
 
-        render_pass.draw_indexed(
-            0..quad::INDICES.len() as u32,
-            0,
-            range.start as u32..range.end as u32,
-        );
+        render_pass.draw(0..6, range.start as u32..range.end as u32);
     }
 }

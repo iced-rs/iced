@@ -1,15 +1,15 @@
 struct GradientVertexInput {
-    @location(0) v_pos: vec2<f32>,
-    @location(1) @interpolate(flat) colors_1: vec4<u32>,
-    @location(2) @interpolate(flat) colors_2: vec4<u32>,
-    @location(3) @interpolate(flat) colors_3: vec4<u32>,
-    @location(4) @interpolate(flat) colors_4: vec4<u32>,
-    @location(5) @interpolate(flat) offsets: vec4<u32>,
-    @location(6) direction: vec4<f32>,
-    @location(7) position_and_scale: vec4<f32>,
-    @location(8) border_color: vec4<f32>,
-    @location(9) border_radius: vec4<f32>,
-    @location(10) border_width: f32,
+    @builtin(vertex_index) vertex_index: u32,
+    @location(0) @interpolate(flat) colors_1: vec4<u32>,
+    @location(1) @interpolate(flat) colors_2: vec4<u32>,
+    @location(2) @interpolate(flat) colors_3: vec4<u32>,
+    @location(3) @interpolate(flat) colors_4: vec4<u32>,
+    @location(4) @interpolate(flat) offsets: vec4<u32>,
+    @location(5) direction: vec4<f32>,
+    @location(6) position_and_scale: vec4<f32>,
+    @location(7) border_color: vec4<f32>,
+    @location(8) border_radius: vec4<f32>,
+    @location(9) border_width: f32,
 }
 
 struct GradientVertexOutput {
@@ -48,7 +48,7 @@ fn gradient_vs_main(input: GradientVertexInput) -> GradientVertexOutput {
         vec4<f32>(pos - vec2<f32>(0.5, 0.5), 0.0, 1.0)
     );
 
-    out.position = globals.transform * transform * vec4<f32>(input.v_pos, 0.0, 1.0);
+    out.position = globals.transform * transform * vec4<f32>(vertex_position(input.vertex_index), 0.0, 1.0);
     out.colors_1 = input.colors_1;
     out.colors_2 = input.colors_2;
     out.colors_3 = input.colors_3;

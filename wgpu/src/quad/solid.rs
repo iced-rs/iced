@@ -75,6 +75,8 @@ impl Pipeline {
                     concat!(
                         include_str!("../shader/quad.wgsl"),
                         "\n",
+                        include_str!("../shader/vertex.wgsl"),
+                        "\n",
                         include_str!("../shader/quad/solid.wgsl"),
                     ),
                 )),
@@ -87,27 +89,24 @@ impl Pipeline {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "solid_vs_main",
-                    buffers: &[
-                        quad::Vertex::buffer_layout(),
-                        wgpu::VertexBufferLayout {
-                            array_stride: std::mem::size_of::<Solid>() as u64,
-                            step_mode: wgpu::VertexStepMode::Instance,
-                            attributes: &wgpu::vertex_attr_array!(
-                                // Color
-                                1 => Float32x4,
-                                // Position
-                                2 => Float32x2,
-                                // Size
-                                3 => Float32x2,
-                                // Border color
-                                4 => Float32x4,
-                                // Border radius
-                                5 => Float32x4,
-                                // Border width
-                                6 => Float32,
-                            ),
-                        },
-                    ],
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Solid>() as u64,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array!(
+                            // Color
+                            0 => Float32x4,
+                            // Position
+                            1 => Float32x2,
+                            // Size
+                            2 => Float32x2,
+                            // Border color
+                            3 => Float32x4,
+                            // Border radius
+                            4 => Float32x4,
+                            // Border width
+                            5 => Float32,
+                        ),
+                    }],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -143,12 +142,8 @@ impl Pipeline {
 
         render_pass.set_pipeline(&self.pipeline);
         render_pass.set_bind_group(0, constants, &[]);
-        render_pass.set_vertex_buffer(1, layer.instances.slice(..));
+        render_pass.set_vertex_buffer(0, layer.instances.slice(..));
 
-        render_pass.draw_indexed(
-            0..quad::INDICES.len() as u32,
-            0,
-            range.start as u32..range.end as u32,
-        );
+        render_pass.draw(0..6, range.start as u32..range.end as u32);
     }
 }

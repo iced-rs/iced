@@ -9,7 +9,6 @@ use crate::graphics::color;
 use crate::graphics::{self, Transformation};
 
 use bytemuck::{Pod, Zeroable};
-use wgpu::util::DeviceExt;
 
 use std::mem;
 
@@ -23,8 +22,6 @@ pub struct Pipeline {
     solid: solid::Pipeline,
     gradient: gradient::Pipeline,
     constant_layout: wgpu::BindGroupLayout,
-    vertices: wgpu::Buffer,
-    indices: wgpu::Buffer,
     layers: Vec<Layer>,
     prepare_layer: usize,
 }
@@ -48,23 +45,7 @@ impl Pipeline {
                 }],
             });
 
-        let vertices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::quad vertex buffer"),
-                contents: bytemuck::cast_slice(&VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-
-        let indices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::quad index buffer"),
-                contents: bytemuck::cast_slice(&INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            });
-
         Self {
-            vertices,
-            indices,
             solid: solid::Pipeline::new(device, format, &constant_layout),
             gradient: gradient::Pipeline::new(device, format, &constant_layout),
             layers: Vec::new(),
@@ -105,11 +86,6 @@ impl Pipeline {
                 bounds.width,
                 bounds.height,
             );
-            render_pass.set_index_buffer(
-                self.indices.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
             let mut solid_offset = 0;
             let mut gradient_offset = 0;
@@ -310,43 +286,6 @@ fn color_target_state(
         write_mask: wgpu::ColorWrites::ALL,
     })]
 }
-
-#[repr(C)]
-#[derive(Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
-pub struct Vertex {
-    _position: [f32; 2],
-}
-
-impl Vertex {
-    fn buffer_layout<'a>() -> wgpu::VertexBufferLayout<'a> {
-        wgpu::VertexBufferLayout {
-            array_stride: mem::size_of::<Self>() as u64,
-            step_mode: wgpu::VertexStepMode::Vertex,
-            attributes: &[wgpu::VertexAttribute {
-                shader_location: 0,
-                format: wgpu::VertexFormat::Float32x2,
-                offset: 0,
-            }],
-        }
-    }
-}
-
-const INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-const VERTICES: [Vertex; 4] = [
-    Vertex {
-        _position: [0.0, 0.0],
-    },
-    Vertex {
-        _position: [1.0, 0.0],
-    },
-    Vertex {
-        _position: [1.0, 1.0],
-    },
-    Vertex {
-        _position: [0.0, 1.0],
-    },
-];
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]

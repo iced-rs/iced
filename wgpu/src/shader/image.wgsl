@@ -7,12 +7,12 @@ struct Globals {
 @group(1) @binding(0) var u_texture: texture_2d_array<f32>;
 
 struct VertexInput {
-    @location(0) v_pos: vec2<f32>,
-    @location(1) pos: vec2<f32>,
-    @location(2) scale: vec2<f32>,
-    @location(3) atlas_pos: vec2<f32>,
-    @location(4) atlas_scale: vec2<f32>,
-    @location(5) layer: i32,
+    @builtin(vertex_index) vertex_index: u32,
+    @location(0) pos: vec2<f32>,
+    @location(1) scale: vec2<f32>,
+    @location(2) atlas_pos: vec2<f32>,
+    @location(3) atlas_scale: vec2<f32>,
+    @location(4) layer: i32,
 }
 
 struct VertexOutput {
@@ -25,7 +25,9 @@ struct VertexOutput {
 fn vs_main(input: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
-    out.uv = vec2<f32>(input.v_pos * input.atlas_scale + input.atlas_pos);
+    let v_pos = vertex_position(input.vertex_index);
+
+    out.uv = vec2<f32>(v_pos * input.atlas_scale + input.atlas_pos);
     out.layer = f32(input.layer);
 
     var transform: mat4x4<f32> = mat4x4<f32>(
@@ -35,7 +37,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
         vec4<f32>(input.pos, 0.0, 1.0)
     );
 
-    out.position = globals.transform * transform * vec4<f32>(input.v_pos, 0.0, 1.0);
+    out.position = globals.transform * transform * vec4<f32>(v_pos, 0.0, 1.0);
 
     return out;
 }

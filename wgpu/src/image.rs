@@ -35,8 +35,6 @@ pub struct Pipeline {
     vector_cache: RefCell<vector::Cache>,
 
     pipeline: wgpu::RenderPipeline,
-    vertices: wgpu::Buffer,
-    indices: wgpu::Buffer,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
@@ -172,20 +170,14 @@ impl Data {
 
     fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
         render_pass.set_bind_group(0, &self.constants, &[]);
-        render_pass.set_vertex_buffer(1, self.instances.slice(..));
+        render_pass.set_vertex_buffer(0, self.instances.slice(..));
 
-        render_pass.draw_indexed(
-            0..QUAD_INDICES.len() as u32,
-            0,
-            0..self.instance_count as u32,
-        );
+        render_pass.draw(0..6, 0..self.instance_count as u32);
     }
 }
 
 impl Pipeline {
     pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
-        use wgpu::util::DeviceExt;
-
         let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -261,7 +253,11 @@ impl Pipeline {
             device.create_shader_module(wgpu::ShaderModuleDescriptor {
                 label: Some("iced_wgpu image shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    include_str!("shader/image.wgsl"),
+                    concat!(
+                        include_str!("shader/vertex.wgsl"),
+                        "\n",
+                        include_str!("shader/image.wgsl"),
+                    ),
                 )),
             });
 
@@ -272,28 +268,22 @@ impl Pipeline {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[
-                        wgpu::VertexBufferLayout {
-                            array_stride: mem::size_of::<Vertex>() as u64,
-                            step_mode: wgpu::VertexStepMode::Vertex,
-                            attributes: &[wgpu::VertexAttribute {
-                                shader_location: 0,
-                                format: wgpu::VertexFormat::Float32x2,
-                                offset: 0,
-                            }],
-                        },
-                        wgpu::VertexBufferLayout {
-                            array_stride: mem::size_of::<Instance>() as u64,
-                            step_mode: wgpu::VertexStepMode::Instance,
-                            attributes: &wgpu::vertex_attr_array!(
-                                1 => Float32x2,
-                                2 => Float32x2,
-                                3 => Float32x2,
-                                4 => Float32x2,
-                                5 => Sint32,
-                            ),
-                        },
-                    ],
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: mem::size_of::<Instance>() as u64,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array!(
+                            // Position
+                            0 => Float32x2,
+                            // Scale
+                            1 => Float32x2,
+                            // Atlas position
+                            2 => Float32x2,
+                            // Atlas scale
+                            3 => Float32x2,
+                            // Layer
+                            4 => Sint32,
+                        ),
+                    }],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -329,20 +319,6 @@ impl Pipeline {
                 multiview: None,
             });
 
-        let vertices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::image vertex buffer"),
-                contents: bytemuck::cast_slice(&QUAD_VERTICES),
-                usage: wgpu::BufferUsages::VERTEX,
-            });
-
-        let indices =
-            device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-                label: Some("iced_wgpu::image index buffer"),
-                contents: bytemuck::cast_slice(&QUAD_INDICES),
-                usage: wgpu::BufferUsages::INDEX,
-            });
-
         let texture_atlas = Atlas::new(device);
 
         let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -364,8 +340,6 @@ impl Pipeline {
             vector_cache: RefCell::new(vector::Cache::default()),
 
             pipeline,
-            vertices,
-            indices,
             nearest_sampler,
             linear_sampler,
             texture,
@@ -542,11 +516,6 @@ impl Pipeline {
             );
 
             render_pass.set_bind_group(1, &self.texture, &[]);
-            render_pass.set_index_buffer(
-                self.indices.slice(..),
-                wgpu::IndexFormat::Uint16,
-            );
-            render_pass.set_vertex_buffer(0, self.vertices.slice(..));
 
             layer.render(render_pass);
         }
@@ -562,29 +531,6 @@ impl Pipeline {
         self.prepare_layer = 0;
     }
 }
-
-#[repr(C)]
-#[derive(Clone, Copy, Zeroable, Pod)]
-pub struct Vertex {
-    _position: [f32; 2],
-}
-
-const QUAD_INDICES: [u16; 6] = [0, 1, 2, 0, 2, 3];
-
-const QUAD_VERTICES: [Vertex; 4] = [
-    Vertex {
-        _position: [0.0, 0.0],
-    },
-    Vertex {
-        _position: [1.0, 0.0],
-    },
-    Vertex {
-        _position: [1.0, 1.0],
-    },
-    Vertex {
-        _position: [0.0, 1.0],
-    },
-];
 
 #[repr(C)]
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
