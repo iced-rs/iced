@@ -3,6 +3,8 @@ use crate::core::{Point, Size};
 use crate::futures::MaybeSend;
 use crate::window::Screenshot;
 
+use raw_window_handle::WindowHandle;
+
 use std::fmt;
 
 /// An operation to be performed on some window.
@@ -96,6 +98,8 @@ pub enum Action<T> {
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Id, Icon),
+    /// Requests access to the windows native handle.
+    FetchNativeHandle(Id, Box<dyn FnOnce(&WindowHandle<'_>) -> T + 'static>),
     /// Screenshot the viewport of the window.
     Screenshot(Id, Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }
@@ -141,6 +145,9 @@ impl<T> Action<T> {
                 Action::FetchId(id, Box::new(move |s| f(o(s))))
             }
             Self::ChangeIcon(id, icon) => Action::ChangeIcon(id, icon),
+            Self::FetchNativeHandle(id, o) => {
+                Action::FetchNativeHandle(id, Box::new(move |s| f(o(s))))
+            }
             Self::Screenshot(id, tag) => Action::Screenshot(
                 id,
                 Box::new(move |screenshot| f(tag(screenshot))),
@@ -196,6 +203,9 @@ impl<T> fmt::Debug for Action<T> {
             Self::FetchId(id, _) => write!(f, "Action::FetchId({id:?})"),
             Self::ChangeIcon(id, _icon) => {
                 write!(f, "Action::ChangeIcon({id:?})")
+            }
+            Self::FetchNativeHandle(id, _) => {
+                write!(f, "Action::RequestNativeHandle({id:?})")
             }
             Self::Screenshot(id, _) => write!(f, "Action::Screenshot({id:?})"),
         }

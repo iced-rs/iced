@@ -22,6 +22,8 @@ use crate::runtime::Debug;
 use crate::style::application::StyleSheet;
 use crate::{Clipboard, Error, Proxy, Settings};
 
+use winit::raw_window_handle::HasWindowHandle;
+
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
@@ -1034,6 +1036,16 @@ fn run_command<A, C, E>(
                     if let Some(window) = window_manager.get_mut(id) {
                         proxy
                             .send_event(tag(window.raw.id().into()))
+                            .expect("Event loop doesn't exist.");
+                    }
+                }
+                window::Action::FetchNativeHandle(id, tag) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        proxy
+                            .send_event(tag(&window
+                                .raw
+                                .window_handle()
+                                .expect("Missing window handle.")))
                             .expect("Event loop doesn't exist.");
                     }
                 }

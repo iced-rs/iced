@@ -23,6 +23,8 @@ use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
 
+use winit::raw_window_handle::HasWindowHandle;
+
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 
@@ -781,6 +783,13 @@ pub fn run_command<A, C, E>(
                 window::Action::FetchId(_id, tag) => {
                     proxy
                         .send_event(tag(window.id().into()))
+                        .expect("Send message to event loop");
+                }
+                window::Action::FetchNativeHandle(_id, tag) => {
+                    proxy
+                        .send_event(tag(&window
+                            .window_handle()
+                            .expect("Missing window handle")))
                         .expect("Send message to event loop");
                 }
                 window::Action::Screenshot(_id, tag) => {
