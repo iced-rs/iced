@@ -155,9 +155,7 @@ impl Backend {
                 border_radius,
                 border_width,
                 border_color,
-                shadow_color,
-                shadow_offset,
-                shadow_blur_radius,
+                shadow,
             } => {
                 let physical_bounds = (*bounds + translation) * scale_factor;
 
@@ -187,7 +185,7 @@ impl Backend {
                 }
                 let path = rounded_rectangle(*bounds, fill_border_radius);
 
-                if shadow_color.a > 0.0 {
+                if let Some(shadow) = shadow {
                     fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
                         let x = ((x - a) / (b - a)).clamp(0.0, 1.0);
 
@@ -216,10 +214,10 @@ impl Backend {
                     }
 
                     let shadow_bounds = (Rectangle {
-                        x: bounds.x + shadow_offset.x - shadow_blur_radius,
-                        y: bounds.y + shadow_offset.y - shadow_blur_radius,
-                        width: bounds.width + shadow_blur_radius * 2.0,
-                        height: bounds.height + shadow_blur_radius * 2.0,
+                        x: bounds.x + shadow.offset.x - shadow.blur_radius,
+                        y: bounds.y + shadow.offset.y - shadow.blur_radius,
+                        width: bounds.width + shadow.blur_radius * 2.0,
+                        height: bounds.height + shadow.blur_radius * 2.0,
                     } + translation)
                         * scale_factor;
 
@@ -245,10 +243,10 @@ impl Backend {
                                 let shadow_distance = rounded_box_sdf(
                                     Vector::new(
                                         x - physical_bounds.position().x
-                                            - (shadow_offset.x * scale_factor)
+                                            - (shadow.offset.x * scale_factor)
                                             - half_width,
                                         y - physical_bounds.position().y
-                                            - (shadow_offset.y * scale_factor)
+                                            - (shadow.offset.y * scale_factor)
                                             - half_height,
                                     ),
                                     size,
@@ -256,12 +254,12 @@ impl Backend {
                                 );
                                 let shadow_alpha = 1.0
                                     - smoothstep(
-                                        -shadow_blur_radius * scale_factor,
-                                        *shadow_blur_radius * scale_factor,
+                                        -shadow.blur_radius * scale_factor,
+                                        shadow.blur_radius * scale_factor,
                                         shadow_distance,
                                     );
 
-                                let mut color = into_color(*shadow_color);
+                                let mut color = into_color(shadow.color);
                                 color.apply_opacity(shadow_alpha);
 
                                 color.to_color_u8().premultiply()

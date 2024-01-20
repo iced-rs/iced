@@ -127,9 +127,7 @@ impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
             border_radius: quad.border_radius.into(),
             border_width: quad.border_width,
             border_color: quad.border_color,
-            shadow_color: quad.shadow.color,
-            shadow_offset: quad.shadow.offset,
-            shadow_blur_radius: quad.shadow.blur_radius,
+            shadow: quad.shadow,
         });
     }
 

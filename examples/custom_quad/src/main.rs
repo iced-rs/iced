@@ -65,7 +65,7 @@ mod quad {
                     border_radius: self.radius.into(),
                     border_width: self.border_width,
                     border_color: Color::from_rgb(1.0, 0.0, 0.0),
-                    shadow: self.shadow,
+                    shadow: Some(self.shadow),
                 },
                 Color::BLACK,
             );

@@ -80,26 +80,25 @@ impl<T: Damage> Damage for Primitive<T> {
             }
             Self::Quad {
                 bounds,
-                shadow_offset,
-                shadow_blur_radius,
+                shadow: Some(shadow),
                 ..
             } => {
                 let bounds_with_shadow = Rectangle {
-                    x: bounds.x + shadow_offset.x.min(0.0) - shadow_blur_radius,
-                    y: bounds.y + shadow_offset.y.min(0.0) - shadow_blur_radius,
+                    x: bounds.x + shadow.offset.x.min(0.0) - shadow.blur_radius,
+                    y: bounds.y + shadow.offset.y.min(0.0) - shadow.blur_radius,
                     width: bounds.width
-                        + shadow_offset.x.abs()
-                        + shadow_blur_radius * 2.0,
+                        + shadow.offset.x.abs()
+                        + shadow.blur_radius * 2.0,
                     height: bounds.height
-                        + shadow_offset.y.abs()
-                        + shadow_blur_radius * 2.0,
+                        + shadow.offset.y.abs()
+                        + shadow.blur_radius * 2.0,
                 };
 
                 bounds_with_shadow.expand(1.0)
             }
-            Self::Image { bounds, .. } | Self::Svg { bounds, .. } => {
-                bounds.expand(1.0)
-            }
+            Self::Quad { bounds, .. }
+            | Self::Image { bounds, .. }
+            | Self::Svg { bounds, .. } => bounds.expand(1.0),
             Self::Clip { bounds, .. } => bounds.expand(1.0),
             Self::Group { primitives } => primitives
                 .iter()

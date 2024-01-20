@@ -3,7 +3,9 @@ use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
-use crate::core::{Background, Color, Font, Pixels, Point, Rectangle, Vector};
+use crate::core::{
+    Background, Color, Font, Pixels, Point, Rectangle, Shadow, Vector,
+};
 use crate::text::editor;
 use crate::text::paragraph;
 
@@ -71,12 +73,8 @@ pub enum Primitive<T> {
         border_width: f32,
         /// The border color of the quad
         border_color: Color,
-        /// The shadow color of the quad
-        shadow_color: Color,
-        /// The shadow offset of the quad
-        shadow_offset: Vector,
-        /// The shadow blur radius of the quad
-        shadow_blur_radius: f32,
+        /// The [`Shadow`] of the quad
+        shadow: Option<Shadow>,
     },
     /// An image primitive
     Image {
