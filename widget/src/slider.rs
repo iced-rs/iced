@@ -8,8 +8,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -399,9 +399,7 @@ pub fn draw<T, R>(
                 height: style.rail.width,
             },
             border_radius: style.rail.border_radius,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-            shadow: Default::default(),
+            ..renderer::Quad::default()
         },
         style.rail.colors.0,
     );
@@ -415,9 +413,7 @@ pub fn draw<T, R>(
                 height: style.rail.width,
             },
             border_radius: style.rail.border_radius,
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-            shadow: Default::default(),
+            ..renderer::Quad::default()
         },
         style.rail.colors.1,
     );
@@ -433,7 +429,7 @@ pub fn draw<T, R>(
             border_radius: handle_border_radius,
             border_width: style.handle.border_width,
             border_color: style.handle.border_color,
-            shadow: Default::default(),
+            ..renderer::Quad::default()
         },
         style.handle.color,
     );

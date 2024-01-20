@@ -475,9 +475,7 @@ mod modal {
                 renderer::Quad {
                     bounds: layout.bounds(),
                     border_radius: BorderRadius::default(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                    shadow: Default::default(),
+                    ..renderer::Quad::default()
                 },
                 Color {
                     a: 0.80,

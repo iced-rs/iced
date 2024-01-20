@@ -3,9 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
-use crate::core::{
-    Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
-};
+use crate::core::{Element, Layout, Length, Pixels, Rectangle, Size, Widget};
 
 pub use crate::style::rule::{Appearance, FillMode, StyleSheet};
 
@@ -125,9 +123,7 @@ where
             renderer::Quad {
                 bounds,
                 border_radius: style.radius,
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             style.color,
         );

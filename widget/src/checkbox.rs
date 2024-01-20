@@ -287,7 +287,7 @@ where
                     border_radius: custom_style.border_radius,
                     border_width: custom_style.border_width,
                     border_color: custom_style.border_color,
-                    shadow: Default::default(),
+                    ..renderer::Quad::default()
                 },
                 custom_style.background,
             );

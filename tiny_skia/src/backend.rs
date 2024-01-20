@@ -267,22 +267,23 @@ impl Backend {
                         })
                         .collect();
 
-                    if let Some(p) = tiny_skia::IntSize::from_wh(width, height)
-                        .and_then(|size| {
-                            tiny_skia::Pixmap::from_vec(
-                                bytemuck::cast_vec(colors),
-                                size,
-                            )
-                        })
-                    {
+                    if let Some(pixmap) = tiny_skia::IntSize::from_wh(
+                        width, height,
+                    )
+                    .and_then(|size| {
+                        tiny_skia::Pixmap::from_vec(
+                            bytemuck::cast_vec(colors),
+                            size,
+                        )
+                    }) {
                         pixels.draw_pixmap(
                             x as i32,
                             y as i32,
-                            p.as_ref(),
-                            &Default::default(),
-                            Default::default(),
+                            pixmap.as_ref(),
+                            &tiny_skia::PixmapPaint::default(),
+                            tiny_skia::Transform::default(),
                             None,
-                        )
+                        );
                     }
                 }
 

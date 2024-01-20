@@ -42,8 +42,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Color, Element, Layout, Length, Pixels, Point, Rectangle, Shell,
-    Size, Vector, Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 
 /// A collection of panes distributed using either vertical or horizontal splits
@@ -921,7 +921,7 @@ pub fn draw<Renderer, T>(
                                     .border_radius,
                                 border_width: hovered_region_style.border_width,
                                 border_color: hovered_region_style.border_color,
-                                shadow: Default::default(),
+                                ..renderer::Quad::default()
                             },
                             theme.hovered_region(style).background,
                         );
@@ -951,7 +951,7 @@ pub fn draw<Renderer, T>(
                 border_radius: hovered_region_style.border_radius,
                 border_width: hovered_region_style.border_width,
                 border_color: hovered_region_style.border_color,
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             theme.hovered_region(style).background,
         );
@@ -1012,10 +1012,7 @@ pub fn draw<Renderer, T>(
                                 height: split_region.height,
                             },
                         },
-                        border_radius: 0.0.into(),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
-                        shadow: Default::default(),
+                        ..renderer::Quad::default()
                     },
                     highlight.color,
                 );

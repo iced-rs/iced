@@ -317,7 +317,7 @@ where
                 border_color: style
                     .background_border
                     .unwrap_or(style.background),
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             style.background,
         );
@@ -342,7 +342,7 @@ where
                 border_color: style
                     .foreground_border
                     .unwrap_or(style.foreground),
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             style.foreground,
         );

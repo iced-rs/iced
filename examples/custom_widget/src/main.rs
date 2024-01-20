@@ -63,9 +63,7 @@ mod circle {
                 renderer::Quad {
                     bounds: layout.bounds(),
                     border_radius: self.radius.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
-                    shadow: Default::default(),
+                    ..renderer::Quad::default()
                 },
                 Color::BLACK,
             );

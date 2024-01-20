@@ -9,8 +9,7 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Color, Element, Layout, Length, Pixels, Rectangle, Shell, Size,
-    Widget,
+    Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
 };
 
 pub use iced_style::radio::{Appearance, StyleSheet};
@@ -315,7 +314,7 @@ where
                     border_radius: (size / 2.0).into(),
                     border_width: custom_style.border_width,
                     border_color: custom_style.border_color,
-                    shadow: Default::default(),
+                    ..renderer::Quad::default()
                 },
                 custom_style.background,
             );
@@ -330,9 +329,7 @@ where
                             height: bounds.height - dot_size,
                         },
                         border_radius: (dot_size / 2.0).into(),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
-                        shadow: Default::default(),
+                        ..renderer::Quad::default()
                     },
                     custom_style.dot_color,
                 );

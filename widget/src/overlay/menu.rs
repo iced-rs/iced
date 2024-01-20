@@ -10,7 +10,7 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Clipboard, Color, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    Clipboard, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -309,7 +309,7 @@ where
                 border_color: appearance.border_color,
                 border_width: appearance.border_width,
                 border_radius: appearance.border_radius,
-                shadow: Default::default(),
+                ..renderer::Quad::default()
             },
             appearance.background,
         );
@@ -517,10 +517,8 @@ where
                             width: bounds.width - appearance.border_width * 2.0,
                             ..bounds
                         },
-                        border_color: Color::TRANSPARENT,
-                        border_width: 0.0,
                         border_radius: appearance.border_radius,
-                        shadow: Default::default(),
+                        ..renderer::Quad::default()
                     },
                     appearance.selected_background,
                 );

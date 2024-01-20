@@ -912,7 +912,7 @@ pub fn draw<Renderer>(
                             border_radius: style.border_radius,
                             border_width: style.border_width,
                             border_color: style.border_color,
-                            shadow: Default::default(),
+                            ..renderer::Quad::default()
                         },
                         style
                             .background
@@ -933,7 +933,7 @@ pub fn draw<Renderer>(
                             border_radius: style.scroller.border_radius,
                             border_width: style.scroller.border_width,
                             border_color: style.scroller.border_color,
-                            shadow: Default::default(),
+                            ..renderer::Quad::default()
                         },
                         style.scroller.color,
                     );
