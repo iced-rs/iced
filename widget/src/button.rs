@@ -391,11 +391,15 @@ where
         style_sheet.active(style)
     };
 
-    if styling.background.is_some() || styling.border.width > 0.0 {
+    if styling.background.is_some()
+        || styling.shadow.color.a > 0.0
+        || styling.border.width > 0.0
+    {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
                 border: styling.border,
+                shadow: styling.shadow,
                 ..renderer::Quad::default()
             },
             styling
