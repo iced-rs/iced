@@ -21,7 +21,7 @@ use crate::text_editor;
 use crate::text_input;
 use crate::toggler;
 
-use iced_core::{Background, Color, Vector};
+use crate::core::{Background, Border, Color, Vector};
 
 use std::fmt;
 use std::rc::Rc;
@@ -199,7 +199,7 @@ impl button::StyleSheet for Theme {
         let palette = self.extended_palette();
 
         let appearance = button::Appearance {
-            border_radius: 2.0.into(),
+            border: Border::with_radius(2),
             ..button::Appearance::default()
         };
 
@@ -388,9 +388,11 @@ fn checkbox_appearance(
             base.color
         }),
         icon_color,
-        border_radius: 2.0.into(),
-        border_width: 1.0,
-        border_color: accent.color,
+        border: Border {
+            radius: 2.0.into(),
+            width: 1.0,
+            color: accent.color,
+        },
         text_color: None,
     }
 }
@@ -431,9 +433,7 @@ impl container::StyleSheet for Theme {
                 container::Appearance {
                     text_color: None,
                     background: Some(palette.background.weak.color.into()),
-                    border_radius: 2.0.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    border: Border::with_radius(2),
                 }
             }
             Container::Custom(custom) => custom.appearance(self),
@@ -555,9 +555,11 @@ impl menu::StyleSheet for Theme {
                 menu::Appearance {
                     text_color: palette.background.weak.text,
                     background: palette.background.weak.color.into(),
-                    border_width: 1.0,
-                    border_radius: 0.0.into(),
-                    border_color: palette.background.strong.color,
+                    border: Border {
+                        width: 1.0,
+                        radius: 0.0.into(),
+                        color: palette.background.strong.color,
+                    },
                     selected_text_color: palette.primary.strong.text,
                     selected_background: palette.primary.strong.color.into(),
                 }
@@ -602,9 +604,11 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0.into(),
-                    border_width: 1.0,
-                    border_color: palette.background.strong.color,
+                    border: Border {
+                        radius: 2.0.into(),
+                        width: 1.0,
+                        color: palette.background.strong.color,
+                    },
                 }
             }
             PickList::Custom(custom, _) => custom.active(self),
@@ -621,9 +625,11 @@ impl pick_list::StyleSheet for Theme {
                     background: palette.background.weak.color.into(),
                     placeholder_color: palette.background.strong.color,
                     handle_color: palette.background.weak.text,
-                    border_radius: 2.0.into(),
-                    border_width: 1.0,
-                    border_color: palette.primary.strong.color,
+                    border: Border {
+                        radius: 2.0.into(),
+                        width: 1.0,
+                        color: palette.primary.strong.color,
+                    },
                 }
             }
             PickList::Custom(custom, _) => custom.hovered(self),
@@ -776,9 +782,11 @@ impl pane_grid::StyleSheet for Theme {
                         a: 0.5,
                         ..palette.primary.base.color
                     }),
-                    border_width: 2.0,
-                    border_color: palette.primary.strong.color,
-                    border_radius: 0.0.into(),
+                    border: Border {
+                        width: 2.0,
+                        color: palette.primary.strong.color,
+                        radius: 0.0.into(),
+                    },
                 }
             }
             PaneGrid::Custom(custom) => custom.hovered_region(self),
@@ -986,14 +994,10 @@ impl scrollable::StyleSheet for Theme {
 
                 scrollable::Scrollbar {
                     background: Some(palette.background.weak.color.into()),
-                    border_radius: 2.0.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    border: Border::with_radius(2),
                     scroller: scrollable::Scroller {
                         color: palette.background.strong.color,
-                        border_radius: 2.0.into(),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
+                        border: Border::with_radius(2),
                     },
                 }
             }
@@ -1013,14 +1017,10 @@ impl scrollable::StyleSheet for Theme {
 
                     scrollable::Scrollbar {
                         background: Some(palette.background.weak.color.into()),
-                        border_radius: 2.0.into(),
-                        border_width: 0.0,
-                        border_color: Color::TRANSPARENT,
+                        border: Border::with_radius(2),
                         scroller: scrollable::Scroller {
                             color: palette.primary.strong.color,
-                            border_radius: 2.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                            border: Border::with_radius(2),
                         },
                     }
                 } else {
@@ -1120,9 +1120,11 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
+            },
             icon_color: palette.background.weak.text,
         }
     }
@@ -1136,9 +1138,11 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.base.text,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.base.text,
+            },
             icon_color: palette.background.weak.text,
         }
     }
@@ -1152,9 +1156,11 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.primary.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.primary.strong.color,
+            },
             icon_color: palette.background.weak.text,
         }
     }
@@ -1198,9 +1204,11 @@ impl text_input::StyleSheet for Theme {
 
         text_input::Appearance {
             background: palette.background.weak.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
+            },
             icon_color: palette.background.strong.color,
         }
     }
@@ -1236,9 +1244,11 @@ impl text_editor::StyleSheet for Theme {
 
         text_editor::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
+            },
         }
     }
 
@@ -1251,9 +1261,11 @@ impl text_editor::StyleSheet for Theme {
 
         text_editor::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.base.text,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.base.text,
+            },
         }
     }
 
@@ -1266,9 +1278,11 @@ impl text_editor::StyleSheet for Theme {
 
         text_editor::Appearance {
             background: palette.background.base.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.primary.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.primary.strong.color,
+            },
         }
     }
 
@@ -1311,9 +1325,11 @@ impl text_editor::StyleSheet for Theme {
 
         text_editor::Appearance {
             background: palette.background.weak.color.into(),
-            border_radius: 2.0.into(),
-            border_width: 1.0,
-            border_color: palette.background.strong.color,
+            border: Border {
+                radius: 2.0.into(),
+                width: 1.0,
+                color: palette.background.strong.color,
+            },
         }
     }
 

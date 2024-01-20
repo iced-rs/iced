@@ -12,9 +12,7 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{
-    Color, Font, Pixels, Point, Rectangle, Shadow, Size, Vector,
-};
+use crate::core::{Color, Font, Pixels, Point, Rectangle, Size, Vector};
 use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::Viewport;
@@ -197,18 +195,10 @@ impl<'a> Layer<'a> {
             Primitive::Quad {
                 bounds,
                 background,
-                border_radius,
-                border_width,
-                border_color,
+                border,
                 shadow,
             } => {
                 let layer = &mut layers[current_layer];
-
-                let shadow = shadow.unwrap_or_else(|| Shadow {
-                    color: Color::TRANSPARENT,
-                    offset: Vector::ZERO,
-                    blur_radius: 0.0,
-                });
 
                 let quad = Quad {
                     position: [
@@ -216,9 +206,9 @@ impl<'a> Layer<'a> {
                         bounds.y + translation.y,
                     ],
                     size: [bounds.width, bounds.height],
-                    border_color: color::pack(*border_color),
-                    border_radius: *border_radius,
-                    border_width: *border_width,
+                    border_color: color::pack(border.color),
+                    border_radius: border.radius.into(),
+                    border_width: border.width,
                     shadow_color: shadow.color.into_linear(),
                     shadow_offset: shadow.offset.into(),
                     shadow_blur_radius: shadow.blur_radius,

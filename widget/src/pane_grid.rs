@@ -917,10 +917,7 @@ pub fn draw<Renderer, T>(
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds,
-                                border_radius: hovered_region_style
-                                    .border_radius,
-                                border_width: hovered_region_style.border_width,
-                                border_color: hovered_region_style.border_color,
+                                border: hovered_region_style.border,
                                 ..renderer::Quad::default()
                             },
                             theme.hovered_region(style).background,
@@ -948,9 +945,7 @@ pub fn draw<Renderer, T>(
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: hovered_region_style.border_radius,
-                border_width: hovered_region_style.border_width,
-                border_color: hovered_region_style.border_color,
+                border: hovered_region_style.border,
                 ..renderer::Quad::default()
             },
             theme.hovered_region(style).background,

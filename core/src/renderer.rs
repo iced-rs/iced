@@ -5,7 +5,7 @@ mod null;
 #[cfg(debug_assertions)]
 pub use null::Null;
 
-use crate::{Background, BorderRadius, Color, Rectangle, Shadow, Size, Vector};
+use crate::{Background, Border, Color, Rectangle, Shadow, Size, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
@@ -37,27 +37,19 @@ pub struct Quad {
     /// The bounds of the [`Quad`].
     pub bounds: Rectangle,
 
-    /// The border radius of the [`Quad`].
-    pub border_radius: BorderRadius,
+    /// The [`Border`] of the [`Quad`].
+    pub border: Border,
 
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
-
-    /// The border color of the [`Quad`].
-    pub border_color: Color,
-
-    /// The shadow of the [`Quad`].
-    pub shadow: Option<Shadow>,
+    /// The [`Shadow`] of the [`Quad`].
+    pub shadow: Shadow,
 }
 
 impl Default for Quad {
     fn default() -> Self {
         Self {
             bounds: Rectangle::with_size(Size::ZERO),
-            border_radius: 0.0.into(),
-            border_width: 0.0,
-            border_color: Color::TRANSPARENT,
-            shadow: None,
+            border: Border::default(),
+            shadow: Shadow::default(),
         }
     }
 }

@@ -653,9 +653,7 @@ pub fn draw<'a, T, Renderer>(
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_color: style.border_color,
-            border_width: style.border_width,
-            border_radius: style.border_radius,
+            border: style.border,
             ..renderer::Quad::default()
         },
         style.background,

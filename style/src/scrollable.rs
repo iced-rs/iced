@@ -1,17 +1,13 @@
 //! Change the appearance of a scrollable.
-use iced_core::{Background, BorderRadius, Color};
+use crate::core::{Background, Border, Color};
 
 /// The appearance of a scrollable.
 #[derive(Debug, Clone, Copy)]
 pub struct Scrollbar {
     /// The [`Background`] of a scrollable.
     pub background: Option<Background>,
-    /// The border radius of a scrollable.
-    pub border_radius: BorderRadius,
-    /// The border width of a scrollable.
-    pub border_width: f32,
-    /// The border [`Color`] of a scrollable.
-    pub border_color: Color,
+    /// The [`Border`] of a scrollable.
+    pub border: Border,
     /// The appearance of the [`Scroller`] of a scrollable.
     pub scroller: Scroller,
 }
@@ -21,12 +17,8 @@ pub struct Scrollbar {
 pub struct Scroller {
     /// The [`Color`] of the scroller.
     pub color: Color,
-    /// The border radius of the scroller.
-    pub border_radius: BorderRadius,
-    /// The border width of the scroller.
-    pub border_width: f32,
-    /// The border [`Color`] of the scroller.
-    pub border_color: Color,
+    /// The [`Border`] of the scroller.
+    pub border: Border,
 }
 
 /// A set of rules that dictate the style of a scrollable.

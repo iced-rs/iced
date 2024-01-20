@@ -466,9 +466,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: appearance.border_radius,
-                border_width: appearance.border_width,
-                border_color: appearance.border_color,
+                border: appearance.border,
                 ..renderer::Quad::default()
             },
             appearance.background,

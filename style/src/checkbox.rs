@@ -1,5 +1,5 @@
 //! Change the appearance of a checkbox.
-use iced_core::{Background, BorderRadius, Color};
+use iced_core::{Background, Border, Color};
 
 /// The appearance of a checkbox.
 #[derive(Debug, Clone, Copy)]
@@ -8,12 +8,8 @@ pub struct Appearance {
     pub background: Background,
     /// The icon [`Color`] of the checkbox.
     pub icon_color: Color,
-    /// The border radius of the checkbox.
-    pub border_radius: BorderRadius,
-    /// The border width of the checkbox.
-    pub border_width: f32,
-    /// The border [`Color`] of the checkbox.
-    pub border_color: Color,
+    /// The [`Border`] of hte checkbox.
+    pub border: Border,
     /// The text [`Color`] of the checkbox.
     pub text_color: Option<Color>,
 }

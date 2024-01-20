@@ -4,7 +4,7 @@ use crate::core::image;
 use crate::core::svg;
 use crate::core::text;
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Shadow, Vector,
+    Background, Border, Color, Font, Pixels, Point, Rectangle, Shadow, Vector,
 };
 use crate::text::editor;
 use crate::text::paragraph;
@@ -67,14 +67,10 @@ pub enum Primitive<T> {
         bounds: Rectangle,
         /// The background of the quad
         background: Background,
-        /// The border radii of the quad
-        border_radius: [f32; 4],
-        /// The border width of the quad
-        border_width: f32,
-        /// The border color of the quad
-        border_color: Color,
+        /// The [`Border`] of the quad
+        border: Border,
         /// The [`Shadow`] of the quad
-        shadow: Option<Shadow>,
+        shadow: Shadow,
     },
     /// An image primitive
     Image {

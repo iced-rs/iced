@@ -9,8 +9,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Event, Layout, Length, Pixels, Rectangle, Shell, Size,
-    Widget,
+    Border, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle,
+    Shell, Size, Widget,
 };
 
 pub use crate::style::toggler::{Appearance, StyleSheet};
@@ -312,11 +312,11 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_background_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style
-                    .background_border
-                    .unwrap_or(style.background),
+                border: Border {
+                    radius: border_radius.into(),
+                    width: 1.0,
+                    color: style.background_border.unwrap_or(style.background),
+                },
                 ..renderer::Quad::default()
             },
             style.background,
@@ -337,11 +337,11 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: toggler_foreground_bounds,
-                border_radius: border_radius.into(),
-                border_width: 1.0,
-                border_color: style
-                    .foreground_border
-                    .unwrap_or(style.foreground),
+                border: Border {
+                    radius: border_radius.into(),
+                    width: 1.0,
+                    color: style.foreground_border.unwrap_or(style.foreground),
+                },
                 ..renderer::Quad::default()
             },
             style.foreground,

@@ -1,5 +1,6 @@
 //! Change the apperance of a slider.
-use iced_core::{BorderRadius, Color};
+use crate::core::border;
+use crate::core::Color;
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
@@ -18,7 +19,7 @@ pub struct Rail {
     /// The width of the stroke of a slider rail.
     pub width: f32,
     /// The border radius of the corners of the rail.
-    pub border_radius: BorderRadius,
+    pub border_radius: border::Radius,
 }
 
 /// The appearance of the handle of a slider.
@@ -47,7 +48,7 @@ pub enum HandleShape {
         /// The width of the rectangle.
         width: u16,
         /// The border radius of the corners of the rectangle.
-        border_radius: BorderRadius,
+        border_radius: border::Radius,
     },
 }
 

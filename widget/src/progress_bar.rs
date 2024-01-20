@@ -3,7 +3,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
-use crate::core::{Element, Layout, Length, Rectangle, Size, Widget};
+use crate::core::{Border, Element, Layout, Length, Rectangle, Size, Widget};
 
 use std::ops::RangeInclusive;
 
@@ -130,7 +130,7 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
-                border_radius: style.border_radius,
+                border: Border::with_radius(style.border_radius),
                 ..renderer::Quad::default()
             },
             style.background,
@@ -143,7 +143,7 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border_radius: style.border_radius,
+                    border: Border::with_radius(style.border_radius),
                     ..renderer::Quad::default()
                 },
                 style.bar,

@@ -13,7 +13,7 @@ mod circle {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Color, Element, Length, Rectangle, Size};
+    use iced::{Border, Color, Element, Length, Rectangle, Size};
 
     pub struct Circle {
         radius: f32,
@@ -62,7 +62,7 @@ mod circle {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_radius: self.radius.into(),
+                    border: Border::with_radius(self.radius),
                     ..renderer::Quad::default()
                 },
                 Color::BLACK,

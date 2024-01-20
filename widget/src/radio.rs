@@ -9,7 +9,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
+    Border, Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size,
+    Widget,
 };
 
 pub use iced_style::radio::{Appearance, StyleSheet};
@@ -311,9 +312,11 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: (size / 2.0).into(),
-                    border_width: custom_style.border_width,
-                    border_color: custom_style.border_color,
+                    border: Border {
+                        radius: (size / 2.0).into(),
+                        width: custom_style.border_width,
+                        color: custom_style.border_color,
+                    },
                     ..renderer::Quad::default()
                 },
                 custom_style.background,
@@ -328,7 +331,7 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border_radius: (dot_size / 2.0).into(),
+                        border: Border::with_radius(dot_size / 2.0),
                         ..renderer::Quad::default()
                     },
                     custom_style.dot_color,

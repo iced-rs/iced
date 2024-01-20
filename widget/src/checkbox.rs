@@ -284,9 +284,7 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border_radius: custom_style.border_radius,
-                    border_width: custom_style.border_width,
-                    border_color: custom_style.border_color,
+                    border: custom_style.border,
                     ..renderer::Quad::default()
                 },
                 custom_style.background,

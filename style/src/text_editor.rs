@@ -1,17 +1,13 @@
 //! Change the appearance of a text editor.
-use crate::core::{Background, BorderRadius, Color};
+use crate::core::{Background, Border, Color};
 
 /// The appearance of a text input.
 #[derive(Debug, Clone, Copy)]
 pub struct Appearance {
-    /// The [`Background`] of the text input.
+    /// The [`Background`] of the text editor.
     pub background: Background,
-    /// The border radius of the text input.
-    pub border_radius: BorderRadius,
-    /// The border width of the text input.
-    pub border_width: f32,
-    /// The border [`Color`] of the text input.
-    pub border_color: Color,
+    /// The [`Border`] of the text editor.
+    pub border: Border,
 }
 
 /// A set of rules that dictate the style of a text input.

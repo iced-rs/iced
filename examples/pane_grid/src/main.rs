@@ -348,7 +348,7 @@ fn view_controls<'a>(
 
 mod style {
     use iced::widget::container;
-    use iced::Theme;
+    use iced::{Border, Theme};
 
     pub fn title_bar_active(theme: &Theme) -> container::Appearance {
         let palette = theme.extended_palette();
@@ -375,8 +375,11 @@ mod style {
 
         container::Appearance {
             background: Some(palette.background.weak.color.into()),
-            border_width: 2.0,
-            border_color: palette.background.strong.color,
+            border: Border {
+                width: 2.0,
+                color: palette.background.strong.color,
+                ..Border::default()
+            },
             ..Default::default()
         }
     }
@@ -386,8 +389,11 @@ mod style {
 
         container::Appearance {
             background: Some(palette.background.weak.color.into()),
-            border_width: 2.0,
-            border_color: palette.primary.strong.color,
+            border: Border {
+                width: 2.0,
+                color: palette.primary.strong.color,
+                ..Border::default()
+            },
             ..Default::default()
         }
     }

@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
-    Shell, Size, Vector, Widget,
+    Shell, Size, Widget,
 };
 
 pub use iced_style::button::{Appearance, StyleSheet};
@@ -391,29 +391,11 @@ where
         style_sheet.active(style)
     };
 
-    if styling.background.is_some() || styling.border_width > 0.0 {
-        if styling.shadow_offset != Vector::default() {
-            // TODO: Implement proper shadow support
-            renderer.fill_quad(
-                renderer::Quad {
-                    bounds: Rectangle {
-                        x: bounds.x + styling.shadow_offset.x,
-                        y: bounds.y + styling.shadow_offset.y,
-                        ..bounds
-                    },
-                    border_radius: styling.border_radius,
-                    ..renderer::Quad::default()
-                },
-                Background::Color([0.0, 0.0, 0.0, 0.5].into()),
-            );
-        }
-
+    if styling.background.is_some() || styling.border.width > 0.0 {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: styling.border_radius,
-                border_width: styling.border_width,
-                border_color: styling.border_color,
+                border: styling.border,
                 ..renderer::Quad::default()
             },
             styling
