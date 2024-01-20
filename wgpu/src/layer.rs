@@ -195,9 +195,8 @@ impl<'a> Layer<'a> {
             Primitive::Quad {
                 bounds,
                 background,
-                border_radius,
-                border_width,
-                border_color,
+                border,
+                shadow,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -207,9 +206,12 @@ impl<'a> Layer<'a> {
                         bounds.y + translation.y,
                     ],
                     size: [bounds.width, bounds.height],
-                    border_color: color::pack(*border_color),
-                    border_radius: *border_radius,
-                    border_width: *border_width,
+                    border_color: color::pack(border.color),
+                    border_radius: border.radius.into(),
+                    border_width: border.width,
+                    shadow_color: shadow.color.into_linear(),
+                    shadow_offset: shadow.offset.into(),
+                    shadow_blur_radius: shadow.blur_radius,
                 };
 
                 layer.quads.add(quad, background);

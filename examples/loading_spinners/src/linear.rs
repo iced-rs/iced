@@ -225,9 +225,7 @@ where
                     width: bounds.width,
                     height: bounds.height,
                 },
-                border_radius: 0.0.into(),
-                border_width: 0.0,
-                border_color: Color::TRANSPARENT,
+                ..renderer::Quad::default()
             },
             Background::Color(custom_style.track_color),
         );
@@ -241,9 +239,7 @@ where
                         width: self.easing.y_at_x(*progress) * bounds.width,
                         height: bounds.height,
                     },
-                    border_radius: 0.0.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    ..renderer::Quad::default()
                 },
                 Background::Color(custom_style.bar_color),
             ),
@@ -258,9 +254,7 @@ where
                             * bounds.width,
                         height: bounds.height,
                     },
-                    border_radius: 0.0.into(),
-                    border_width: 0.0,
-                    border_color: Color::TRANSPARENT,
+                    ..renderer::Quad::default()
                 },
                 Background::Color(custom_style.bar_color),
             ),
@@ -288,7 +282,7 @@ pub struct Appearance {
     pub bar_color: Color,
 }
 
-impl std::default::Default for Appearance {
+impl Default for Appearance {
     fn default() -> Self {
         Self {
             track_color: Color::TRANSPARENT,

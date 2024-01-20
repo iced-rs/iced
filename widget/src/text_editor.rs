@@ -10,8 +10,7 @@ use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Color, Element, Length, Padding, Pixels, Rectangle, Shell, Size,
-    Vector,
+    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
 };
 
 use std::cell::RefCell;
@@ -467,9 +466,8 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: appearance.border_radius,
-                border_width: appearance.border_width,
-                border_color: appearance.border_color,
+                border: appearance.border,
+                ..renderer::Quad::default()
             },
             appearance.background,
         );
@@ -508,9 +506,7 @@ where
                                         )
                                         .into(),
                                 },
-                                border_radius: 0.0.into(),
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
+                                ..renderer::Quad::default()
                             },
                             theme.value_color(&self.style),
                         );
@@ -523,9 +519,7 @@ where
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: range,
-                                border_radius: 0.0.into(),
-                                border_width: 0.0,
-                                border_color: Color::TRANSPARENT,
+                                ..renderer::Quad::default()
                             },
                             theme.selection_color(&self.style),
                         );

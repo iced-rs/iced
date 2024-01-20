@@ -1,5 +1,5 @@
 //! Change the appearance of menus.
-use iced_core::{Background, BorderRadius, Color};
+use iced_core::{Background, Border, Color};
 
 /// The appearance of a menu.
 #[derive(Debug, Clone, Copy)]
@@ -8,12 +8,8 @@ pub struct Appearance {
     pub text_color: Color,
     /// The [`Background`] of the menu.
     pub background: Background,
-    /// The border width of the menu.
-    pub border_width: f32,
-    /// The border radius of the menu.
-    pub border_radius: BorderRadius,
-    /// The border [`Color`] of the menu.
-    pub border_color: Color,
+    /// The [`Border`] of the menu.
+    pub border: Border,
     /// The text [`Color`] of a selected option in the menu.
     pub selected_text_color: Color,
     /// The background [`Color`] of a selected option in the menu.

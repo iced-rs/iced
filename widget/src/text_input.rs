@@ -26,8 +26,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Clipboard, Color, Element, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
 
@@ -1082,9 +1082,8 @@ pub fn draw<Renderer>(
     renderer.fill_quad(
         renderer::Quad {
             bounds,
-            border_radius: appearance.border_radius,
-            border_width: appearance.border_width,
-            border_color: appearance.border_color,
+            border: appearance.border,
+            ..renderer::Quad::default()
         },
         appearance.background,
     );
@@ -1131,9 +1130,7 @@ pub fn draw<Renderer>(
                                 width: 1.0,
                                 height: text_bounds.height,
                             },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                            ..renderer::Quad::default()
                         },
                         theme.value_color(style),
                     ))
@@ -1172,9 +1169,7 @@ pub fn draw<Renderer>(
                                 width,
                                 height: text_bounds.height,
                             },
-                            border_radius: 0.0.into(),
-                            border_width: 0.0,
-                            border_color: Color::TRANSPARENT,
+                            ..renderer::Quad::default()
                         },
                         theme.selection_color(style),
                     )),

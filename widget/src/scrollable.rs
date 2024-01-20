@@ -903,15 +903,14 @@ pub fn draw<Renderer>(
                 if scrollbar.bounds.width > 0.0
                     && scrollbar.bounds.height > 0.0
                     && (style.background.is_some()
-                        || (style.border_color != Color::TRANSPARENT
-                            && style.border_width > 0.0))
+                        || (style.border.color != Color::TRANSPARENT
+                            && style.border.width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.bounds,
-                            border_radius: style.border_radius,
-                            border_width: style.border_width,
-                            border_color: style.border_color,
+                            border: style.border,
+                            ..renderer::Quad::default()
                         },
                         style
                             .background
@@ -923,15 +922,14 @@ pub fn draw<Renderer>(
                 if scrollbar.scroller.bounds.width > 0.0
                     && scrollbar.scroller.bounds.height > 0.0
                     && (style.scroller.color != Color::TRANSPARENT
-                        || (style.scroller.border_color != Color::TRANSPARENT
-                            && style.scroller.border_width > 0.0))
+                        || (style.scroller.border.color != Color::TRANSPARENT
+                            && style.scroller.border.width > 0.0))
                 {
                     renderer.fill_quad(
                         renderer::Quad {
                             bounds: scrollbar.scroller.bounds,
-                            border_radius: style.scroller.border_radius,
-                            border_width: style.scroller.border_width,
-                            border_color: style.scroller.border_color,
+                            border: style.scroller.border,
+                            ..renderer::Quad::default()
                         },
                         style.scroller.color,
                     );

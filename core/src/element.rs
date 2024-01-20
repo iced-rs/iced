@@ -6,7 +6,8 @@ use crate::renderer;
 use crate::widget;
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Clipboard, Color, Layout, Length, Rectangle, Shell, Size, Vector, Widget,
+    Border, Clipboard, Color, Layout, Length, Rectangle, Shell, Size, Vector,
+    Widget,
 };
 
 use std::any::Any;
@@ -537,9 +538,12 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds: layout.bounds(),
-                    border_color: color,
-                    border_width: 1.0,
-                    border_radius: 0.0.into(),
+                    border: Border {
+                        color,
+                        width: 1.0,
+                        ..Border::default()
+                    },
+                    ..renderer::Quad::default()
                 },
                 Color::TRANSPARENT,
             );

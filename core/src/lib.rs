@@ -17,6 +17,7 @@
     rustdoc::broken_intra_doc_links
 )]
 pub mod alignment;
+pub mod border;
 pub mod clipboard;
 pub mod event;
 pub mod font;
@@ -36,7 +37,6 @@ pub mod window;
 
 mod angle;
 mod background;
-mod border_radius;
 mod color;
 mod content_fit;
 mod element;
@@ -46,6 +46,7 @@ mod padding;
 mod pixels;
 mod point;
 mod rectangle;
+mod shadow;
 mod shell;
 mod size;
 mod vector;
@@ -53,7 +54,7 @@ mod vector;
 pub use alignment::Alignment;
 pub use angle::{Degrees, Radians};
 pub use background::Background;
-pub use border_radius::BorderRadius;
+pub use border::Border;
 pub use clipboard::Clipboard;
 pub use color::Color;
 pub use content_fit::ContentFit;
@@ -70,6 +71,7 @@ pub use pixels::Pixels;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use renderer::Renderer;
+pub use shadow::Shadow;
 pub use shell::Shell;
 pub use size::Size;
 pub use text::Text;

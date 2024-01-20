@@ -78,6 +78,20 @@ impl<T: Damage> Damage for Primitive<T> {
                 // damage bounds (?)
                 raw.clip_bounds.expand(1.5)
             }
+            Self::Quad { bounds, shadow, .. } if shadow.color.a > 0.0 => {
+                let bounds_with_shadow = Rectangle {
+                    x: bounds.x + shadow.offset.x.min(0.0) - shadow.blur_radius,
+                    y: bounds.y + shadow.offset.y.min(0.0) - shadow.blur_radius,
+                    width: bounds.width
+                        + shadow.offset.x.abs()
+                        + shadow.blur_radius * 2.0,
+                    height: bounds.height
+                        + shadow.offset.y.abs()
+                        + shadow.blur_radius * 2.0,
+                };
+
+                bounds_with_shadow.expand(1.0)
+            }
             Self::Quad { bounds, .. }
             | Self::Image { bounds, .. }
             | Self::Svg { bounds, .. } => bounds.expand(1.0),

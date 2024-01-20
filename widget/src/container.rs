@@ -337,13 +337,15 @@ pub fn draw_background<Renderer>(
 ) where
     Renderer: crate::core::Renderer,
 {
-    if appearance.background.is_some() || appearance.border_width > 0.0 {
+    if appearance.background.is_some()
+        || appearance.border.width > 0.0
+        || appearance.shadow.color.a > 0.0
+    {
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_radius: appearance.border_radius,
-                border_width: appearance.border_width,
-                border_color: appearance.border_color,
+                border: appearance.border,
+                shadow: appearance.shadow,
             },
             appearance
                 .background

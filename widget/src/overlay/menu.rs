@@ -10,7 +10,7 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Clipboard, Color, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    Border, Clipboard, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
@@ -306,9 +306,8 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border_color: appearance.border_color,
-                border_width: appearance.border_width,
-                border_radius: appearance.border_radius,
+                border: appearance.border,
+                ..renderer::Quad::default()
             },
             appearance.background,
         );
@@ -512,13 +511,12 @@ where
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
-                            x: bounds.x + appearance.border_width,
-                            width: bounds.width - appearance.border_width * 2.0,
+                            x: bounds.x + appearance.border.width,
+                            width: bounds.width - appearance.border.width * 2.0,
                             ..bounds
                         },
-                        border_color: Color::TRANSPARENT,
-                        border_width: 0.0,
-                        border_radius: appearance.border_radius,
+                        border: Border::with_radius(appearance.border.radius),
+                        ..renderer::Quad::default()
                     },
                     appearance.selected_background,
                 );
