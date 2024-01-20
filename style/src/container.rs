@@ -1,5 +1,5 @@
 //! Change the appearance of a container.
-use crate::core::{Background, Border, Color, Pixels};
+use crate::core::{Background, Border, Color, Pixels, Shadow};
 
 /// The appearance of a container.
 #[derive(Debug, Clone, Copy, Default)]
@@ -10,6 +10,8 @@ pub struct Appearance {
     pub background: Option<Background>,
     /// The [`Border`] of the container.
     pub border: Border,
+    /// The [`Shadow`] of the container.
+    pub shadow: Shadow,
 }
 
 impl Appearance {

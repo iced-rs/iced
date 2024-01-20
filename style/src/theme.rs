@@ -21,7 +21,7 @@ use crate::text_editor;
 use crate::text_input;
 use crate::toggler;
 
-use crate::core::{Background, Border, Color, Vector};
+use crate::core::{Background, Border, Color, Shadow, Vector};
 
 use std::fmt;
 use std::rc::Rc;
@@ -434,6 +434,7 @@ impl container::StyleSheet for Theme {
                     text_color: None,
                     background: Some(palette.background.weak.color.into()),
                     border: Border::with_radius(2),
+                    shadow: Shadow::default(),
                 }
             }
             Container::Custom(custom) => custom.appearance(self),
