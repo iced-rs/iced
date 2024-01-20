@@ -31,6 +31,7 @@ pub struct MouseArea<
     on_mouse_enter: Option<Message>,
     on_mouse_move: Option<Box<dyn Fn(Point) -> Message>>,
     on_mouse_exit: Option<Message>,
+    interaction: Option<mouse::Interaction>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -99,6 +100,16 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self.on_mouse_exit = Some(message);
         self
     }
+
+    /// The version of the cursor to use when hovering.
+    #[must_use]
+    pub fn mouse_interaction(
+        mut self,
+        interaction: mouse::Interaction,
+    ) -> Self {
+        self.interaction = Some(interaction);
+        self
+    }
 }
 
 /// Local state of the [`MouseArea`].
@@ -123,6 +134,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_mouse_enter: None,
             on_mouse_move: None,
             on_mouse_exit: None,
+            interaction: None,
         }
     }
 }
@@ -214,6 +226,14 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
+        if !cursor.is_over(layout.bounds()) {
+            return mouse::Interaction::default();
+        }
+
+        if let Some(interaction) = self.interaction {
+            return interaction;
+        }
+
         self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
