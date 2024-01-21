@@ -29,19 +29,19 @@ use std::rc::Rc;
 
 /// A widget that only rebuilds its contents when necessary.
 #[allow(missing_debug_implementations)]
-pub struct Lazy<'a, Message, Renderer, Dependency, View> {
+pub struct Lazy<'a, Message, Theme, Renderer, Dependency, View> {
     dependency: Dependency,
     view: Box<dyn Fn(&Dependency) -> View + 'a>,
     element: RefCell<
-        Option<Rc<RefCell<Option<Element<'static, Message, Renderer>>>>>,
+        Option<Rc<RefCell<Option<Element<'static, Message, Theme, Renderer>>>>>,
     >,
 }
 
-impl<'a, Message, Renderer, Dependency, View>
-    Lazy<'a, Message, Renderer, Dependency, View>
+impl<'a, Message, Theme, Renderer, Dependency, View>
+    Lazy<'a, Message, Theme, Renderer, Dependency, View>
 where
     Dependency: Hash + 'a,
-    View: Into<Element<'static, Message, Renderer>>,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
 {
     /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
     /// closure that can turn this data into a widget tree.
@@ -58,7 +58,7 @@ where
 
     fn with_element<T>(
         &self,
-        f: impl FnOnce(&Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&Element<'_, Message, Theme, Renderer>) -> T,
     ) -> T {
         f(self
             .element
@@ -72,7 +72,7 @@ where
 
     fn with_element_mut<T>(
         &self,
-        f: impl FnOnce(&mut Element<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Element<'_, Message, Theme, Renderer>) -> T,
     ) -> T {
         f(self
             .element
@@ -85,17 +85,19 @@ where
     }
 }
 
-struct Internal<Message, Renderer> {
-    element: Rc<RefCell<Option<Element<'static, Message, Renderer>>>>,
+struct Internal<Message, Theme, Renderer> {
+    element: Rc<RefCell<Option<Element<'static, Message, Theme, Renderer>>>>,
     hash: u64,
 }
 
-impl<'a, Message, Renderer, Dependency, View> Widget<Message, Renderer>
-    for Lazy<'a, Message, Renderer, Dependency, View>
+impl<'a, Message, Theme, Renderer, Dependency, View>
+    Widget<Message, Theme, Renderer>
+    for Lazy<'a, Message, Theme, Renderer, Dependency, View>
 where
-    View: Into<Element<'static, Message, Renderer>> + 'static,
+    View: Into<Element<'static, Message, Theme, Renderer>> + 'static,
     Dependency: Hash + 'a,
     Message: 'static,
+    Theme: 'static,
     Renderer: core::Renderer + 'static,
 {
     fn tag(&self) -> tree::Tag {
@@ -121,7 +123,9 @@ where
     }
 
     fn diff(&self, tree: &mut Tree) {
-        let current = tree.state.downcast_mut::<Internal<Message, Renderer>>();
+        let current = tree
+            .state
+            .downcast_mut::<Internal<Message, Theme, Renderer>>();
 
         let mut hasher = Hasher::default();
         self.dependency.hash(&mut hasher);
@@ -231,7 +235,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -255,7 +259,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
         let overlay = Overlay(Some(
             InnerBuilder {
                 cell: self.element.borrow().as_ref().unwrap().clone(),
@@ -287,29 +291,33 @@ where
 }
 
 #[self_referencing]
-struct Inner<'a, Message: 'a, Renderer: 'a> {
-    cell: Rc<RefCell<Option<Element<'static, Message, Renderer>>>>,
-    element: Element<'static, Message, Renderer>,
+struct Inner<'a, Message: 'a, Theme: 'a, Renderer: 'a> {
+    cell: Rc<RefCell<Option<Element<'static, Message, Theme, Renderer>>>>,
+    element: Element<'static, Message, Theme, Renderer>,
     tree: &'a mut Tree,
 
     #[borrows(mut element, mut tree)]
     #[not_covariant]
-    overlay: Option<RefCell<Nested<'this, Message, Renderer>>>,
+    overlay: Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
 }
 
-struct Overlay<'a, Message, Renderer>(Option<Inner<'a, Message, Renderer>>);
+struct Overlay<'a, Message, Theme, Renderer>(
+    Option<Inner<'a, Message, Theme, Renderer>>,
+);
 
-impl<'a, Message, Renderer> Drop for Overlay<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> Drop
+    for Overlay<'a, Message, Theme, Renderer>
+{
     fn drop(&mut self) {
         let heads = self.0.take().unwrap().into_heads();
         (*heads.cell.borrow_mut()) = Some(heads.element);
     }
 }
 
-impl<'a, Message, Renderer> Overlay<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer> {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.0.as_ref().unwrap().with_overlay(|overlay| {
             overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
@@ -318,7 +326,7 @@ impl<'a, Message, Renderer> Overlay<'a, Message, Renderer> {
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut Nested<'_, Message, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.0.as_mut().unwrap().with_overlay_mut(|overlay| {
             overlay.as_mut().map(|nested| (f)(nested.get_mut()))
@@ -326,8 +334,8 @@ impl<'a, Message, Renderer> Overlay<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> overlay::Overlay<Message, Renderer>
-    for Overlay<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -347,7 +355,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -398,16 +406,19 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Dependency, View>
-    From<Lazy<'a, Message, Renderer, Dependency, View>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer, Dependency, View>
+    From<Lazy<'a, Message, Theme, Renderer, Dependency, View>>
+    for Element<'a, Message, Theme, Renderer>
 where
-    View: Into<Element<'static, Message, Renderer>> + 'static,
+    View: Into<Element<'static, Message, Theme, Renderer>> + 'static,
     Renderer: core::Renderer + 'static,
     Message: 'static,
+    Theme: 'static,
     Dependency: Hash + 'a,
 {
-    fn from(lazy: Lazy<'a, Message, Renderer, Dependency, View>) -> Self {
+    fn from(
+        lazy: Lazy<'a, Message, Theme, Renderer, Dependency, View>,
+    ) -> Self {
         Self::new(lazy)
     }
 }

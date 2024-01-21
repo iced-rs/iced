@@ -67,7 +67,7 @@ pub trait Renderer: crate::core::Renderer {
     );
 }
 
-impl<Theme> Renderer for crate::Renderer<Theme> {
+impl Renderer for crate::Renderer {
     fn draw_pipeline_primitive(
         &mut self,
         bounds: Rectangle,

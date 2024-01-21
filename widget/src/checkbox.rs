@@ -12,7 +12,7 @@ use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
 };
 
-pub use iced_style::checkbox::{Appearance, StyleSheet};
+pub use crate::style::checkbox::{Appearance, StyleSheet};
 
 /// A box that can be checked.
 ///
@@ -20,7 +20,7 @@ pub use iced_style::checkbox::{Appearance, StyleSheet};
 ///
 /// ```no_run
 /// # type Checkbox<'a, Message> =
-/// #     iced_widget::Checkbox<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Checkbox<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),
@@ -33,10 +33,14 @@ pub use iced_style::checkbox::{Appearance, StyleSheet};
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Checkbox<'a, Message, Renderer = crate::Renderer>
-where
+pub struct Checkbox<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
     is_checked: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
@@ -49,13 +53,13 @@ where
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> Checkbox<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
+    Theme: StyleSheet + crate::text::StyleSheet,
 {
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: f32 = 20.0;
@@ -153,18 +157,18 @@ where
     /// Sets the style of the [`Checkbox`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style: impl Into<<Theme as StyleSheet>::Style>,
     ) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Checkbox<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Checkbox<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
@@ -261,7 +265,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -335,16 +339,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Checkbox<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Checkbox<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: 'a + StyleSheet + crate::text::StyleSheet,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
     fn from(
-        checkbox: Checkbox<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        checkbox: Checkbox<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(checkbox)
     }
 }

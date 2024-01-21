@@ -2,14 +2,15 @@
 use iced::advanced::layout;
 use iced::advanced::renderer;
 use iced::advanced::widget::tree::{self, Tree};
-use iced::advanced::{Clipboard, Layout, Renderer, Shell, Widget};
+use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
 use iced::event;
 use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window::{self, RedrawRequest};
 use iced::{
-    Background, Color, Element, Event, Length, Rectangle, Size, Vector,
+    Background, Color, Element, Event, Length, Rectangle, Renderer, Size,
+    Vector,
 };
 
 use super::easing::{self, Easing};
@@ -230,7 +231,7 @@ struct State {
     cache: canvas::Cache,
 }
 
-impl<'a, Message, Theme> Widget<Message, iced::Renderer<Theme>>
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
     for Circular<'a, Theme>
 where
     Message: 'a + Clone,
@@ -254,7 +255,7 @@ where
     fn layout(
         &self,
         _tree: &mut Tree,
-        _renderer: &iced::Renderer<Theme>,
+        _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         layout::atomic(limits, self.size, self.size)
@@ -266,7 +267,7 @@ where
         event: Event,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
-        _renderer: &iced::Renderer<Theme>,
+        _renderer: &Renderer,
         _clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
@@ -290,13 +291,15 @@ where
     fn draw(
         &self,
         tree: &Tree,
-        renderer: &mut iced::Renderer<Theme>,
+        renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+        use advanced::Renderer as _;
+
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
         let custom_style =
@@ -361,7 +364,7 @@ where
 }
 
 impl<'a, Message, Theme> From<Circular<'a, Theme>>
-    for Element<'a, Message, iced::Renderer<Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
     Theme: StyleSheet + 'a,

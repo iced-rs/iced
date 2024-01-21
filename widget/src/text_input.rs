@@ -38,7 +38,7 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 /// # Example
 /// ```no_run
 /// # pub type TextInput<'a, Message> =
-/// #     iced_widget::TextInput<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::TextInput<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// #[derive(Debug, Clone)]
 /// enum Message {
@@ -56,10 +56,14 @@ pub use iced_style::text_input::{Appearance, StyleSheet};
 /// ```
 /// ![Text input drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/text_input.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct TextInput<'a, Message, Renderer = crate::Renderer>
-where
+pub struct TextInput<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
     placeholder: String,
@@ -74,17 +78,17 @@ where
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
 pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 
-impl<'a, Message, Renderer> TextInput<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`TextInput`].
     ///
@@ -193,10 +197,7 @@ where
     }
 
     /// Sets the style of the [`TextInput`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -235,7 +236,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         value: Option<&Value>,
@@ -257,12 +258,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for TextInput<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Renderer::Paragraph>>()
@@ -360,7 +361,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -393,16 +394,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<TextInput<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn from(
-        text_input: TextInput<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        text_input: TextInput<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
 }
@@ -1043,9 +1044,9 @@ where
 /// [`Value`] if provided.
 ///
 /// [`Renderer`]: text::Renderer
-pub fn draw<Renderer>(
+pub fn draw<Theme, Renderer>(
     renderer: &mut Renderer,
-    theme: &Renderer::Theme,
+    theme: &Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     state: &State<Renderer::Paragraph>,
@@ -1053,11 +1054,11 @@ pub fn draw<Renderer>(
     is_disabled: bool,
     is_secure: bool,
     icon: Option<&Icon<Renderer::Font>>,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    style: &Theme::Style,
     viewport: &Rectangle,
 ) where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     let secure_value = is_secure.then(|| value.secure());
     let value = secure_value.as_ref().unwrap_or(value);

@@ -19,10 +19,14 @@ pub use iced_style::container::{Appearance, StyleSheet};
 ///
 /// It is normally used for alignment purposes.
 #[allow(missing_debug_implementations)]
-pub struct Container<'a, Message, Renderer = crate::Renderer>
-where
+pub struct Container<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
     padding: Padding,
@@ -32,19 +36,19 @@ where
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: <Renderer::Theme as StyleSheet>::Style,
-    content: Element<'a, Message, Renderer>,
+    style: Theme::Style,
+    content: Element<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Renderer> Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
-        T: Into<Element<'a, Message, Renderer>>,
+        T: Into<Element<'a, Message, Theme, Renderer>>,
     {
         let content = content.into();
         let size = content.as_widget().size_hint();
@@ -124,20 +128,17 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Container<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Container<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         self.content.as_widget().tag()
@@ -246,7 +247,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -278,7 +279,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             tree,
             layout.children().next().unwrap(),
@@ -287,16 +288,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Container<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: 'a + StyleSheet,
     Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn from(
-        column: Container<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        column: Container<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(column)
     }
 }

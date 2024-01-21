@@ -234,17 +234,17 @@ mod modal {
     use iced::{Color, Element, Event, Length, Point, Rectangle, Size, Vector};
 
     /// A widget that centers a modal element over some base element
-    pub struct Modal<'a, Message, Renderer> {
-        base: Element<'a, Message, Renderer>,
-        modal: Element<'a, Message, Renderer>,
+    pub struct Modal<'a, Message, Theme, Renderer> {
+        base: Element<'a, Message, Theme, Renderer>,
+        modal: Element<'a, Message, Theme, Renderer>,
         on_blur: Option<Message>,
     }
 
-    impl<'a, Message, Renderer> Modal<'a, Message, Renderer> {
+    impl<'a, Message, Theme, Renderer> Modal<'a, Message, Theme, Renderer> {
         /// Returns a new [`Modal`]
         pub fn new(
-            base: impl Into<Element<'a, Message, Renderer>>,
-            modal: impl Into<Element<'a, Message, Renderer>>,
+            base: impl Into<Element<'a, Message, Theme, Renderer>>,
+            modal: impl Into<Element<'a, Message, Theme, Renderer>>,
         ) -> Self {
             Self {
                 base: base.into(),
@@ -263,8 +263,8 @@ mod modal {
         }
     }
 
-    impl<'a, Message, Renderer> Widget<Message, Renderer>
-        for Modal<'a, Message, Renderer>
+    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Modal<'a, Message, Theme, Renderer>
     where
         Renderer: advanced::Renderer,
         Message: Clone,
@@ -324,7 +324,7 @@ mod modal {
             &self,
             state: &widget::Tree,
             renderer: &mut Renderer,
-            theme: &<Renderer as advanced::Renderer>::Theme,
+            theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
@@ -346,7 +346,7 @@ mod modal {
             state: &'b mut widget::Tree,
             layout: Layout<'_>,
             _renderer: &Renderer,
-        ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
             Some(overlay::Element::new(
                 layout.position(),
                 Box::new(Overlay {
@@ -391,15 +391,16 @@ mod modal {
         }
     }
 
-    struct Overlay<'a, 'b, Message, Renderer> {
-        content: &'b mut Element<'a, Message, Renderer>,
+    struct Overlay<'a, 'b, Message, Theme, Renderer> {
+        content: &'b mut Element<'a, Message, Theme, Renderer>,
         tree: &'b mut widget::Tree,
         size: Size,
         on_blur: Option<Message>,
     }
 
-    impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
-        for Overlay<'a, 'b, Message, Renderer>
+    impl<'a, 'b, Message, Theme, Renderer>
+        overlay::Overlay<Message, Theme, Renderer>
+        for Overlay<'a, 'b, Message, Theme, Renderer>
     where
         Renderer: advanced::Renderer,
         Message: Clone,
@@ -463,7 +464,7 @@ mod modal {
         fn draw(
             &self,
             renderer: &mut Renderer,
-            theme: &Renderer::Theme,
+            theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
@@ -524,7 +525,7 @@ mod modal {
             &'c mut self,
             layout: Layout<'_>,
             renderer: &Renderer,
-        ) -> Option<overlay::Element<'c, Message, Renderer>> {
+        ) -> Option<overlay::Element<'c, Message, Theme, Renderer>> {
             self.content.as_widget_mut().overlay(
                 self.tree,
                 layout.children().next().unwrap(),
@@ -533,13 +534,14 @@ mod modal {
         }
     }
 
-    impl<'a, Message, Renderer> From<Modal<'a, Message, Renderer>>
-        for Element<'a, Message, Renderer>
+    impl<'a, Message, Theme, Renderer> From<Modal<'a, Message, Theme, Renderer>>
+        for Element<'a, Message, Theme, Renderer>
     where
-        Renderer: 'a + advanced::Renderer,
+        Theme: 'a,
         Message: 'a + Clone,
+        Renderer: 'a + advanced::Renderer,
     {
-        fn from(modal: Modal<'a, Message, Renderer>) -> Self {
+        fn from(modal: Modal<'a, Message, Theme, Renderer>) -> Self {
             Element::new(modal)
         }
     }

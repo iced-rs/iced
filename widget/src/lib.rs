@@ -132,4 +132,5 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
-type Renderer<Theme = style::Theme> = renderer::Renderer<Theme>;
+pub use crate::style::theme::{self, Theme};
+pub use renderer::Renderer;

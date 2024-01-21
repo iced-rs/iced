@@ -10,16 +10,18 @@ use crate::core::{
 
 /// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
-pub struct Nested<'a, Message, Renderer> {
-    overlay: overlay::Element<'a, Message, Renderer>,
+pub struct Nested<'a, Message, Theme, Renderer> {
+    overlay: overlay::Element<'a, Message, Theme, Renderer>,
 }
 
-impl<'a, Message, Renderer> Nested<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Nested<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
 {
     /// Creates a nested overlay from the provided [`overlay::Element`]
-    pub fn new(element: overlay::Element<'a, Message, Renderer>) -> Self {
+    pub fn new(
+        element: overlay::Element<'a, Message, Theme, Renderer>,
+    ) -> Self {
         Self { overlay: element }
     }
 
@@ -38,8 +40,8 @@ where
         _position: Point,
         translation: Vector,
     ) -> layout::Node {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             renderer: &Renderer,
             bounds: Size,
             translation: Vector,
@@ -71,16 +73,16 @@ where
     pub fn draw(
         &mut self,
         renderer: &mut Renderer,
-        theme: &<Renderer as renderer::Renderer>::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &mut Renderer,
-            theme: &<Renderer as renderer::Renderer>::Theme,
+            theme: &Theme,
             style: &renderer::Style,
             cursor: mouse::Cursor,
         ) where
@@ -144,8 +146,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn widget::Operation<Message>,
     ) {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &Renderer,
             operation: &mut dyn widget::Operation<Message>,
@@ -178,8 +180,8 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             event: Event,
             cursor: mouse::Cursor,
@@ -267,8 +269,8 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             cursor: mouse::Cursor,
             viewport: &Rectangle,
@@ -318,8 +320,8 @@ where
         renderer: &Renderer,
         cursor_position: Point,
     ) -> bool {
-        fn recurse<Message, Renderer>(
-            element: &mut overlay::Element<'_, Message, Renderer>,
+        fn recurse<Message, Theme, Renderer>(
+            element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             layout: Layout<'_>,
             renderer: &Renderer,
             cursor_position: Point,

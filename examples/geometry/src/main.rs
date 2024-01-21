@@ -15,7 +15,7 @@ mod rainbow {
         Rainbow
     }
 
-    impl<Message> Widget<Message, Renderer> for Rainbow {
+    impl<Message> Widget<Message, Theme, Renderer> for Rainbow {
         fn size(&self) -> Size<Length> {
             Size {
                 width: Length::Fill,
@@ -139,7 +139,7 @@ mod rainbow {
         }
     }
 
-    impl<'a, Message> From<Rainbow> for Element<'a, Message, Renderer> {
+    impl<'a, Message> From<Rainbow> for Element<'a, Message> {
         fn from(rainbow: Rainbow) -> Self {
             Self::new(rainbow)
         }

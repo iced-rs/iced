@@ -11,21 +11,19 @@ pub use crate::style::rule::{Appearance, FillMode, StyleSheet};
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule<Renderer = crate::Renderer>
+pub struct Rule<Theme = crate::Theme>
 where
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<Renderer> Rule<Renderer>
+impl<Theme> Rule<Theme>
 where
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// Creates a horizontal [`Rule`] with the given height.
     pub fn horizontal(height: impl Into<Pixels>) -> Self {
@@ -48,19 +46,16 @@ where
     }
 
     /// Sets the style of the [`Rule`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Rule<Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<Theme>
 where
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -82,7 +77,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -132,14 +127,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Rule<Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Rule<Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: StyleSheet + 'a,
     Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(rule: Rule<Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(rule: Rule<Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(rule)
     }
 }

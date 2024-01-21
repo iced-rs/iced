@@ -5,7 +5,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Pixels, Renderer, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -697,7 +697,7 @@ fn button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
 fn color_slider<'a>(
     component: f32,
     update: impl Fn(f32) -> Color + 'a,
-) -> Slider<'a, f64, StepMessage, Renderer> {
+) -> Slider<'a, f64, StepMessage> {
     slider(0.0..=1.0, f64::from(component), move |c| {
         StepMessage::TextColorChanged(update(c as f32))
     })

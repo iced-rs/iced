@@ -5,10 +5,10 @@ use crate::{Renderer, Settings};
 
 use std::env;
 
-pub enum Compositor<Theme> {
-    TinySkia(iced_tiny_skia::window::Compositor<Theme>),
+pub enum Compositor {
+    TinySkia(iced_tiny_skia::window::Compositor),
     #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::window::Compositor<Theme>),
+    Wgpu(iced_wgpu::window::Compositor),
 }
 
 pub enum Surface {
@@ -17,9 +17,9 @@ pub enum Surface {
     Wgpu(iced_wgpu::window::Surface<'static>),
 }
 
-impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
+impl crate::graphics::Compositor for Compositor {
     type Settings = Settings;
-    type Renderer = Renderer<Theme>;
+    type Renderer = Renderer;
     type Surface = Surface;
 
     fn new<W: Window + Clone>(
@@ -225,11 +225,11 @@ impl Candidate {
         )
     }
 
-    fn build<Theme, W: Window>(
+    fn build<W: Window>(
         self,
         settings: Settings,
         _compatible_window: W,
-    ) -> Result<Compositor<Theme>, Error> {
+    ) -> Result<Compositor, Error> {
         match self {
             Self::TinySkia => {
                 let compositor = iced_tiny_skia::window::compositor::new(

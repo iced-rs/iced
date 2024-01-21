@@ -159,7 +159,8 @@ pub fn draw<Renderer, Handle>(
     }
 }
 
-impl<Message, Renderer, Handle> Widget<Message, Renderer> for Image<Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
+    for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
@@ -191,7 +192,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
+        _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -207,13 +208,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Image<Handle>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash + 'a,
 {
-    fn from(image: Image<Handle>) -> Element<'a, Message, Renderer> {
+    fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)
     }
 }

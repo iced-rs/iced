@@ -15,10 +15,10 @@ pub use text::{LineHeight, Shaping};
 
 /// A paragraph of text.
 #[allow(missing_debug_implementations)]
-pub struct Text<'a, Renderer>
+pub struct Text<'a, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     content: Cow<'a, str>,
     size: Option<Pixels>,
@@ -29,13 +29,13 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, Renderer> Text<'a, Renderer>
+impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Create a new fragment of [`Text`] with the given contents.
     pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
@@ -74,10 +74,7 @@ where
     }
 
     /// Sets the style of the [`Text`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -123,10 +120,11 @@ where
 #[derive(Debug, Default)]
 pub struct State<P: Paragraph>(P);
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Text<'a, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Text<'a, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Renderer::Paragraph>>()
@@ -169,7 +167,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: mouse::Cursor,
@@ -272,21 +270,23 @@ pub fn draw<Renderer>(
     );
 }
 
-impl<'a, Message, Renderer> From<Text<'a, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(text: Text<'a, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        text: Text<'a, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text)
     }
 }
 
-impl<'a, Renderer> Clone for Text<'a, Renderer>
+impl<'a, Theme, Renderer> Clone for Text<'a, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn clone(&self) -> Self {
         Self {
@@ -304,20 +304,21 @@ where
     }
 }
 
-impl<'a, Renderer> From<&'a str> for Text<'a, Renderer>
+impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn from(content: &'a str) -> Self {
         Self::new(content)
     }
 }
 
-impl<'a, Message, Renderer> From<&'a str> for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<&'a str>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
 {
     fn from(content: &'a str) -> Self {
         Text::from(content).into()

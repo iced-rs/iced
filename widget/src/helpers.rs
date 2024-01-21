@@ -54,20 +54,20 @@ macro_rules! row {
 /// Creates a new [`Container`] with the provided content.
 ///
 /// [`Container`]: crate::Container
-pub fn container<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Container<'a, Message, Renderer>
+pub fn container<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet,
     Renderer: core::Renderer,
-    Renderer::Theme: container::StyleSheet,
 {
     Container::new(content)
 }
 
 /// Creates a new [`Column`] with the given children.
-pub fn column<'a, Message, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
-) -> Column<'a, Message, Renderer>
+pub fn column<'a, Message, Theme, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+) -> Column<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -75,9 +75,9 @@ where
 }
 
 /// Creates a new [`keyed::Column`] with the given children.
-pub fn keyed_column<'a, Key, Message, Renderer>(
-    children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
-) -> keyed::Column<'a, Key, Message, Renderer>
+pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
+    children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
+) -> keyed::Column<'a, Key, Message, Theme, Renderer>
 where
     Key: Copy + PartialEq,
     Renderer: core::Renderer,
@@ -88,9 +88,9 @@ where
 /// Creates a new [`Row`] with the given children.
 ///
 /// [`Row`]: crate::Row
-pub fn row<'a, Message, Renderer>(
-    children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
-) -> Row<'a, Message, Renderer>
+pub fn row<'a, Message, Theme, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+) -> Row<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
@@ -100,12 +100,12 @@ where
 /// Creates a new [`Scrollable`] with the provided content.
 ///
 /// [`Scrollable`]: crate::Scrollable
-pub fn scrollable<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Scrollable<'a, Message, Renderer>
+pub fn scrollable<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Scrollable<'a, Message, Theme, Renderer>
 where
+    Theme: scrollable::StyleSheet,
     Renderer: core::Renderer,
-    Renderer::Theme: scrollable::StyleSheet,
 {
     Scrollable::new(content)
 }
@@ -113,13 +113,12 @@ where
 /// Creates a new [`Button`] with the provided content.
 ///
 /// [`Button`]: crate::Button
-pub fn button<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
-) -> Button<'a, Message, Renderer>
+pub fn button<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Button<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
-    Renderer::Theme: button::StyleSheet,
-    <Renderer::Theme as button::StyleSheet>::Style: Default,
+    Theme: button::StyleSheet,
 {
     Button::new(content)
 }
@@ -128,14 +127,14 @@ where
 ///
 /// [`Tooltip`]: crate::Tooltip
 /// [`tooltip::Position`]: crate::tooltip::Position
-pub fn tooltip<'a, Message, Renderer>(
-    content: impl Into<Element<'a, Message, Renderer>>,
+pub fn tooltip<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
     tooltip: impl ToString,
     position: tooltip::Position,
-) -> crate::Tooltip<'a, Message, Renderer>
+) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet + text::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: container::StyleSheet + text::StyleSheet,
 {
     Tooltip::new(content, tooltip.to_string(), position)
 }
@@ -143,10 +142,12 @@ where
 /// Creates a new [`Text`] widget with the provided content.
 ///
 /// [`Text`]: core::widget::Text
-pub fn text<'a, Renderer>(text: impl ToString) -> Text<'a, Renderer>
+pub fn text<'a, Theme, Renderer>(
+    text: impl ToString,
+) -> Text<'a, Theme, Renderer>
 where
+    Theme: text::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: text::StyleSheet,
 {
     Text::new(text.to_string())
 }
@@ -154,14 +155,14 @@ where
 /// Creates a new [`Checkbox`].
 ///
 /// [`Checkbox`]: crate::Checkbox
-pub fn checkbox<'a, Message, Renderer>(
+pub fn checkbox<'a, Message, Theme, Renderer>(
     label: impl Into<String>,
     is_checked: bool,
     f: impl Fn(bool) -> Message + 'a,
-) -> Checkbox<'a, Message, Renderer>
+) -> Checkbox<'a, Message, Theme, Renderer>
 where
+    Theme: checkbox::StyleSheet + text::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: checkbox::StyleSheet + text::StyleSheet,
 {
     Checkbox::new(label, is_checked, f)
 }
@@ -169,16 +170,16 @@ where
 /// Creates a new [`Radio`].
 ///
 /// [`Radio`]: crate::Radio
-pub fn radio<Message, Renderer, V>(
+pub fn radio<Message, Theme, Renderer, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> Radio<Message, Renderer>
+) -> Radio<Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: radio::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: radio::StyleSheet,
     V: Copy + Eq,
 {
     Radio::new(label, value, selected, on_click)
@@ -187,14 +188,14 @@ where
 /// Creates a new [`Toggler`].
 ///
 /// [`Toggler`]: crate::Toggler
-pub fn toggler<'a, Message, Renderer>(
+pub fn toggler<'a, Message, Theme, Renderer>(
     label: impl Into<Option<String>>,
     is_checked: bool,
     f: impl Fn(bool) -> Message + 'a,
-) -> Toggler<'a, Message, Renderer>
+) -> Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: core::text::Renderer,
-    Renderer::Theme: toggler::StyleSheet,
+    Theme: toggler::StyleSheet,
 {
     Toggler::new(label, is_checked, f)
 }
@@ -202,14 +203,14 @@ where
 /// Creates a new [`TextInput`].
 ///
 /// [`TextInput`]: crate::TextInput
-pub fn text_input<'a, Message, Renderer>(
+pub fn text_input<'a, Message, Theme, Renderer>(
     placeholder: &str,
     value: &str,
-) -> TextInput<'a, Message, Renderer>
+) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: text_input::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: text_input::StyleSheet,
 {
     TextInput::new(placeholder, value)
 }
@@ -217,13 +218,13 @@ where
 /// Creates a new [`TextEditor`].
 ///
 /// [`TextEditor`]: crate::TextEditor
-pub fn text_editor<Message, Renderer>(
+pub fn text_editor<Message, Theme, Renderer>(
     content: &text_editor::Content<Renderer>,
-) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Renderer>
+) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: text_editor::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: text_editor::StyleSheet,
 {
     TextEditor::new(content)
 }
@@ -231,16 +232,15 @@ where
 /// Creates a new [`Slider`].
 ///
 /// [`Slider`]: crate::Slider
-pub fn slider<'a, T, Message, Renderer>(
+pub fn slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
     on_change: impl Fn(T) -> Message + 'a,
-) -> Slider<'a, T, Message, Renderer>
+) -> Slider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: core::Renderer,
-    Renderer::Theme: slider::StyleSheet,
+    Theme: slider::StyleSheet,
 {
     Slider::new(range, value, on_change)
 }
@@ -248,16 +248,15 @@ where
 /// Creates a new [`VerticalSlider`].
 ///
 /// [`VerticalSlider`]: crate::VerticalSlider
-pub fn vertical_slider<'a, T, Message, Renderer>(
+pub fn vertical_slider<'a, T, Message, Theme>(
     range: std::ops::RangeInclusive<T>,
     value: T,
     on_change: impl Fn(T) -> Message + 'a,
-) -> VerticalSlider<'a, T, Message, Renderer>
+) -> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: core::Renderer,
-    Renderer::Theme: slider::StyleSheet,
+    Theme: slider::StyleSheet,
 {
     VerticalSlider::new(range, value, on_change)
 }
@@ -265,21 +264,21 @@ where
 /// Creates a new [`PickList`].
 ///
 /// [`PickList`]: crate::PickList
-pub fn pick_list<'a, Message, Renderer, T>(
+pub fn pick_list<'a, Message, Theme, Renderer, T>(
     options: impl Into<Cow<'a, [T]>>,
     selected: Option<T>,
     on_selected: impl Fn(T) -> Message + 'a,
-) -> PickList<'a, T, Message, Renderer>
+) -> PickList<'a, T, Message, Theme, Renderer>
 where
     T: ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Renderer: core::text::Renderer,
-    Renderer::Theme: pick_list::StyleSheet
+    Theme: pick_list::StyleSheet
         + scrollable::StyleSheet
         + overlay::menu::StyleSheet
         + container::StyleSheet,
-    <Renderer::Theme as overlay::menu::StyleSheet>::Style:
-        From<<Renderer::Theme as pick_list::StyleSheet>::Style>,
+    <Theme as overlay::menu::StyleSheet>::Style:
+        From<<Theme as pick_list::StyleSheet>::Style>,
 {
     PickList::new(options, selected, on_selected)
 }
@@ -287,16 +286,16 @@ where
 /// Creates a new [`ComboBox`].
 ///
 /// [`ComboBox`]: crate::ComboBox
-pub fn combo_box<'a, T, Message, Renderer>(
+pub fn combo_box<'a, T, Message, Theme, Renderer>(
     state: &'a combo_box::State<T>,
     placeholder: &str,
     selection: Option<&T>,
     on_selected: impl Fn(T) -> Message + 'static,
-) -> ComboBox<'a, T, Message, Renderer>
+) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
+    Theme: text_input::StyleSheet + overlay::menu::StyleSheet,
     Renderer: core::text::Renderer,
-    Renderer::Theme: text_input::StyleSheet + overlay::menu::StyleSheet,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
 }
@@ -318,10 +317,9 @@ pub fn vertical_space(height: impl Into<Length>) -> Space {
 /// Creates a horizontal [`Rule`] with the given height.
 ///
 /// [`Rule`]: crate::Rule
-pub fn horizontal_rule<Renderer>(height: impl Into<Pixels>) -> Rule<Renderer>
+pub fn horizontal_rule<Theme>(height: impl Into<Pixels>) -> Rule<Theme>
 where
-    Renderer: core::Renderer,
-    Renderer::Theme: rule::StyleSheet,
+    Theme: rule::StyleSheet,
 {
     Rule::horizontal(height)
 }
@@ -329,10 +327,9 @@ where
 /// Creates a vertical [`Rule`] with the given width.
 ///
 /// [`Rule`]: crate::Rule
-pub fn vertical_rule<Renderer>(width: impl Into<Pixels>) -> Rule<Renderer>
+pub fn vertical_rule<Theme>(width: impl Into<Pixels>) -> Rule<Theme>
 where
-    Renderer: core::Renderer,
-    Renderer::Theme: rule::StyleSheet,
+    Theme: rule::StyleSheet,
 {
     Rule::vertical(width)
 }
@@ -344,13 +341,12 @@ where
 ///   * the current value of the [`ProgressBar`].
 ///
 /// [`ProgressBar`]: crate::ProgressBar
-pub fn progress_bar<Renderer>(
+pub fn progress_bar<Theme>(
     range: RangeInclusive<f32>,
     value: f32,
-) -> ProgressBar<Renderer>
+) -> ProgressBar<Theme>
 where
-    Renderer: core::Renderer,
-    Renderer::Theme: progress_bar::StyleSheet,
+    Theme: progress_bar::StyleSheet,
 {
     ProgressBar::new(range, value)
 }
@@ -368,12 +364,9 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 /// [`Svg`]: crate::Svg
 /// [`Handle`]: crate::svg::Handle
 #[cfg(feature = "svg")]
-pub fn svg<Renderer>(
-    handle: impl Into<core::svg::Handle>,
-) -> crate::Svg<Renderer>
+pub fn svg<Theme>(handle: impl Into<core::svg::Handle>) -> crate::Svg<Theme>
 where
-    Renderer: core::svg::Renderer,
-    Renderer::Theme: crate::svg::StyleSheet,
+    Theme: crate::svg::StyleSheet,
 {
     crate::Svg::new(handle)
 }
@@ -382,12 +375,12 @@ where
 ///
 /// [`Canvas`]: crate::Canvas
 #[cfg(feature = "canvas")]
-pub fn canvas<P, Message, Renderer>(
+pub fn canvas<P, Message, Theme, Renderer>(
     program: P,
-) -> crate::Canvas<P, Message, Renderer>
+) -> crate::Canvas<P, Message, Theme, Renderer>
 where
     Renderer: crate::graphics::geometry::Renderer,
-    P: crate::canvas::Program<Message, Renderer>,
+    P: crate::canvas::Program<Message, Theme, Renderer>,
 {
     crate::Canvas::new(program)
 }
@@ -420,9 +413,9 @@ where
 }
 
 /// A container intercepting mouse events.
-pub fn mouse_area<'a, Message, Renderer>(
-    widget: impl Into<Element<'a, Message, Renderer>>,
-) -> MouseArea<'a, Message, Renderer>
+pub fn mouse_area<'a, Message, Theme, Renderer>(
+    widget: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> MouseArea<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {

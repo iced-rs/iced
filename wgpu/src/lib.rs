@@ -63,4 +63,4 @@ mod image;
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer<Theme> = iced_graphics::Renderer<Backend, Theme>;
+pub type Renderer = iced_graphics::Renderer<Backend>;

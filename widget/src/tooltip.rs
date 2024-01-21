@@ -17,24 +17,28 @@ use std::borrow::Cow;
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
-pub struct Tooltip<'a, Message, Renderer = crate::Renderer>
-where
+pub struct Tooltip<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
-    content: Element<'a, Message, Renderer>,
-    tooltip: Text<'a, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
+    tooltip: Text<'a, Theme, Renderer>,
     position: Position,
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
-    style: <Renderer::Theme as container::StyleSheet>::Style,
+    style: <Theme as container::StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> Tooltip<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
     const DEFAULT_PADDING: f32 = 5.0;
@@ -43,7 +47,7 @@ where
     ///
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
-        content: impl Into<Element<'a, Message, Renderer>>,
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
         tooltip: impl Into<Cow<'a, str>>,
         position: Position,
     ) -> Self {
@@ -99,23 +103,23 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
+        style: impl Into<<Theme as container::StyleSheet>::Style>,
     ) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Tooltip<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Tooltip<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
 {
     fn children(&self) -> Vec<widget::Tree> {
         vec![
             widget::Tree::new(&self.content),
-            widget::Tree::new(&self.tooltip as &dyn Widget<Message, _>),
+            widget::Tree::new(&self.tooltip as &dyn Widget<Message, _, _>),
         ]
     }
 
@@ -205,7 +209,7 @@ where
         &self,
         tree: &widget::Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -227,7 +231,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
         let mut children = tree.children.iter_mut();
@@ -270,16 +274,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Tooltip<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::StyleSheet + crate::text::StyleSheet + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn from(
-        tooltip: Tooltip<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        tooltip: Tooltip<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(tooltip)
     }
 }
@@ -308,12 +312,12 @@ enum State {
     },
 }
 
-struct Overlay<'a, 'b, Renderer>
+struct Overlay<'a, 'b, Theme, Renderer>
 where
+    Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
-    tooltip: &'b Text<'a, Renderer>,
+    tooltip: &'b Text<'a, Theme, Renderer>,
     state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
@@ -321,14 +325,15 @@ where
     position: Position,
     gap: f32,
     padding: f32,
-    style: &'b <Renderer::Theme as container::StyleSheet>::Style,
+    style: &'b <Theme as container::StyleSheet>::Style,
 }
 
-impl<'a, 'b, Message, Renderer> overlay::Overlay<Message, Renderer>
-    for Overlay<'a, 'b, Renderer>
+impl<'a, 'b, Message, Theme, Renderer>
+    overlay::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, 'b, Theme, Renderer>
 where
+    Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet + widget::text::StyleSheet,
 {
     fn layout(
         &mut self,
@@ -339,7 +344,7 @@ where
     ) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let text_layout = Widget::<(), Renderer>::layout(
+        let text_layout = Widget::<(), Theme, Renderer>::layout(
             self.tooltip,
             self.state,
             renderer,
@@ -430,14 +435,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &<Renderer as renderer::Renderer>::Theme,
+        theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = <Renderer::Theme as container::StyleSheet>::appearance(
-            theme, self.style,
-        );
+        let style = container::StyleSheet::appearance(theme, self.style);
 
         container::draw_background(renderer, &style, layout.bounds());
 
@@ -445,7 +448,7 @@ where
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };
 
-        Widget::<(), Renderer>::draw(
+        Widget::<(), Theme, Renderer>::draw(
             self.tooltip,
             self.state,
             renderer,

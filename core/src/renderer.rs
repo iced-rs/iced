@@ -9,9 +9,6 @@ use crate::{Background, Border, Color, Rectangle, Shadow, Size, Vector};
 
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer: Sized {
-    /// The supported theme of the [`Renderer`].
-    type Theme;
-
     /// Draws the primitives recorded in the given closure in a new layer.
     ///
     /// The layer will clip its contents to the provided `bounds`.

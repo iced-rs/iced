@@ -20,7 +20,7 @@ pub use iced_style::radio::{Appearance, StyleSheet};
 /// # Example
 /// ```no_run
 /// # type Radio<Message> =
-/// #     iced_widget::Radio<Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Radio<Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// # use iced_widget::column;
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,10 +69,10 @@ pub use iced_style::radio::{Appearance, StyleSheet};
 /// let content = column![a, b, c, all];
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message, Renderer = crate::Renderer>
+pub struct Radio<Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     is_selected: bool,
     on_click: Message,
@@ -84,14 +84,14 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<Message, Renderer> Radio<Message, Renderer>
+impl<Message, Theme, Renderer> Radio<Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Radio`] button.
     pub const DEFAULT_SIZE: f32 = 28.0;
@@ -178,20 +178,18 @@ where
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Radio<Message, Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Radio<Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
@@ -286,7 +284,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -356,14 +354,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Radio<Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Radio<Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
+    Theme: StyleSheet + crate::text::StyleSheet + 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
-    fn from(radio: Radio<Message, Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(
+        radio: Radio<Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(radio)
     }
 }

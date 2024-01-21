@@ -28,4 +28,4 @@ pub use settings::Settings;
 ///
 /// [`tiny-skia`]: https://github.com/RazrFalcon/tiny-skia
 /// [`iced`]: https://github.com/iced-rs/iced
-pub type Renderer<Theme> = iced_graphics::Renderer<Backend, Theme>;
+pub type Renderer = iced_graphics::Renderer<Backend>;

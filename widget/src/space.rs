@@ -41,7 +41,7 @@ impl Space {
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Space
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space
 where
     Renderer: core::Renderer,
 {
@@ -65,7 +65,7 @@ where
         &self,
         _state: &Tree,
         _renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
+        _theme: &Theme,
         _style: &renderer::Style,
         _layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -74,12 +74,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Space> for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Space>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
     Message: 'a,
 {
-    fn from(space: Space) -> Element<'a, Message, Renderer> {
+    fn from(space: Space) -> Element<'a, Message, Theme, Renderer> {
         Element::new(space)
     }
 }

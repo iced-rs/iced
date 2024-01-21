@@ -13,27 +13,31 @@ use crate::core::{
 ///
 /// [`Pane`]: super::Pane
 #[allow(missing_debug_implementations)]
-pub struct TitleBar<'a, Message, Renderer = crate::Renderer>
-where
+pub struct TitleBar<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: container::StyleSheet,
 {
-    content: Element<'a, Message, Renderer>,
-    controls: Option<Element<'a, Message, Renderer>>,
+    content: Element<'a, Message, Theme, Renderer>,
+    controls: Option<Element<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: <Renderer::Theme as container::StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: container::StyleSheet,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
     where
-        E: Into<Element<'a, Message, Renderer>>,
+        E: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Self {
             content: content.into(),
@@ -47,7 +51,7 @@ where
     /// Sets the controls of the [`TitleBar`].
     pub fn controls(
         mut self,
-        controls: impl Into<Element<'a, Message, Renderer>>,
+        controls: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         self.controls = Some(controls.into());
         self
@@ -60,10 +64,7 @@ where
     }
 
     /// Sets the style of the [`TitleBar`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as container::StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -82,10 +83,10 @@ where
     }
 }
 
-impl<'a, Message, Renderer> TitleBar<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
+    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: container::StyleSheet,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(controls) = self.controls.as_ref() {
@@ -119,15 +120,13 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         inherited_style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
         show_controls: bool,
     ) {
-        use container::StyleSheet;
-
         let bounds = layout.bounds();
         let style = theme.appearance(&self.style);
         let inherited_style = renderer::Style {
@@ -406,7 +405,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
         let padded = children.next()?;
 

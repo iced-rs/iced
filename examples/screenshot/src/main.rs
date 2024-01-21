@@ -7,7 +7,7 @@ use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
     Alignment, Application, Command, ContentFit, Element, Length, Rectangle,
-    Renderer, Subscription, Theme,
+    Subscription, Theme,
 };
 
 use ::image as img;
@@ -131,7 +131,7 @@ impl Application for Example {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
+    fn view(&self) -> Element<'_, Self::Message> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
             image(image::Handle::from_pixels(

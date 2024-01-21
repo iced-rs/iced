@@ -19,8 +19,6 @@ impl Null {
 }
 
 impl Renderer for Null {
-    type Theme = ();
-
     fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
 
     fn with_translation(

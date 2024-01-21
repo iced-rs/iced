@@ -31,8 +31,8 @@ impl Tree {
     }
 
     /// Creates a new [`Tree`] for the provided [`Widget`].
-    pub fn new<'a, Message, Renderer>(
-        widget: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
+    pub fn new<'a, Message, Theme, Renderer>(
+        widget: impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>,
     ) -> Self
     where
         Renderer: crate::Renderer,
@@ -54,9 +54,9 @@ impl Tree {
     /// Otherwise, the whole [`Tree`] is recreated.
     ///
     /// [`Widget::diff`]: crate::Widget::diff
-    pub fn diff<'a, Message, Renderer>(
+    pub fn diff<'a, Message, Theme, Renderer>(
         &mut self,
-        new: impl Borrow<dyn Widget<Message, Renderer> + 'a>,
+        new: impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>,
     ) where
         Renderer: crate::Renderer,
     {
@@ -68,9 +68,9 @@ impl Tree {
     }
 
     /// Reconciles the children of the tree with the provided list of widgets.
-    pub fn diff_children<'a, Message, Renderer>(
+    pub fn diff_children<'a, Message, Theme, Renderer>(
         &mut self,
-        new_children: &[impl Borrow<dyn Widget<Message, Renderer> + 'a>],
+        new_children: &[impl Borrow<dyn Widget<Message, Theme, Renderer> + 'a>],
     ) where
         Renderer: crate::Renderer,
     {

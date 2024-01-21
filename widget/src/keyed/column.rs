@@ -13,8 +13,13 @@ use crate::core::{
 
 /// A container that distributes its contents vertically.
 #[allow(missing_debug_implementations)]
-pub struct Column<'a, Key, Message, Renderer = crate::Renderer>
-where
+pub struct Column<
+    'a,
+    Key,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Key: Copy + PartialEq,
 {
     spacing: f32,
@@ -24,10 +29,11 @@ where
     max_width: f32,
     align_items: Alignment,
     keys: Vec<Key>,
-    children: Vec<Element<'a, Message, Renderer>>,
+    children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
-impl<'a, Key, Message, Renderer> Column<'a, Key, Message, Renderer>
+impl<'a, Key, Message, Theme, Renderer>
+    Column<'a, Key, Message, Theme, Renderer>
 where
     Key: Copy + PartialEq,
     Renderer: crate::core::Renderer,
@@ -48,7 +54,9 @@ where
 
     /// Creates a [`Column`] with the given elements.
     pub fn with_children(
-        children: impl IntoIterator<Item = (Key, Element<'a, Message, Renderer>)>,
+        children: impl IntoIterator<
+            Item = (Key, Element<'a, Message, Theme, Renderer>),
+        >,
     ) -> Self {
         children
             .into_iter()
@@ -99,7 +107,7 @@ where
     pub fn push(
         mut self,
         key: Key,
-        child: impl Into<Element<'a, Message, Renderer>>,
+        child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
         let size = child.as_widget().size_hint();
@@ -135,8 +143,8 @@ where
     keys: Vec<Key>,
 }
 
-impl<'a, Key, Message, Renderer> Widget<Message, Renderer>
-    for Column<'a, Key, Message, Renderer>
+impl<'a, Key, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Column<'a, Key, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
     Key: Copy + PartialEq + 'static,
@@ -285,7 +293,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -308,19 +316,21 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(&mut self.children, tree, layout, renderer)
     }
 }
 
-impl<'a, Key, Message, Renderer> From<Column<'a, Key, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Key, Message, Theme, Renderer>
+    From<Column<'a, Key, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Key: Copy + PartialEq + 'static,
     Message: 'a,
+    Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(column: Column<'a, Key, Message, Renderer>) -> Self {
+    fn from(column: Column<'a, Key, Message, Theme, Renderer>) -> Self {
         Self::new(column)
     }
 }

@@ -12,6 +12,9 @@ pub trait Program: Sized {
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Send;
 
+    /// The theme used to draw the [`Program`].
+    type Theme;
+
     /// Handles a __message__ and updates the state of the [`Program`].
     ///
     /// This is where you define your __update logic__. All the __messages__,
@@ -28,5 +31,5 @@ pub trait Program: Sized {
     fn view(
         &self,
         window: window::Id,
-    ) -> Element<'_, Self::Message, Self::Renderer>;
+    ) -> Element<'_, Self::Message, Self::Theme, Self::Renderer>;
 }

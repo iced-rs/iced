@@ -1,5 +1,4 @@
 use crate::conversion;
-use crate::core;
 use crate::core::{mouse, window};
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
@@ -14,7 +13,7 @@ use winit::window::Window;
 /// The state of a multi-windowed [`Application`].
 pub struct State<A: Application>
 where
-    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+    A::Theme: application::StyleSheet,
 {
     title: String,
     scale_factor: f64,
@@ -22,13 +21,13 @@ where
     viewport_version: u64,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
-    theme: <A::Renderer as core::Renderer>::Theme,
+    theme: A::Theme,
     appearance: application::Appearance,
 }
 
 impl<A: Application> Debug for State<A>
 where
-    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+    A::Theme: application::StyleSheet,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("multi_window::State")
@@ -44,7 +43,7 @@ where
 
 impl<A: Application> State<A>
 where
-    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+    A::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] for the provided [`Application`]'s `window`.
     pub fn new(
@@ -124,7 +123,7 @@ where
     }
 
     /// Returns the current theme of the [`State`].
-    pub fn theme(&self) -> &<A::Renderer as core::Renderer>::Theme {
+    pub fn theme(&self) -> &A::Theme {
         &self.theme
     }
 

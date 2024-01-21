@@ -11,20 +11,20 @@ use std::any::Any;
 
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
-pub struct Element<'a, Message, Renderer> {
+pub struct Element<'a, Message, Theme, Renderer> {
     position: Point,
     translation: Vector,
-    overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+    overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
     /// Creates a new [`Element`] containing the given [`Overlay`].
     pub fn new(
         position: Point,
-        overlay: Box<dyn Overlay<Message, Renderer> + 'a>,
+        overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
     ) -> Self {
         Self {
             position,
@@ -46,9 +46,13 @@ where
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
-    pub fn map<B>(self, f: &'a dyn Fn(Message) -> B) -> Element<'a, B, Renderer>
+    pub fn map<B>(
+        self,
+        f: &'a dyn Fn(Message) -> B,
+    ) -> Element<'a, B, Theme, Renderer>
     where
         Message: 'a,
+        Theme: 'a,
         Renderer: 'a,
         B: 'a,
     {
@@ -104,7 +108,7 @@ where
     pub fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -137,26 +141,27 @@ where
         &'b mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<Element<'b, Message, Renderer>> {
+    ) -> Option<Element<'b, Message, Theme, Renderer>> {
         self.overlay.overlay(layout, renderer)
     }
 }
 
-struct Map<'a, A, B, Renderer> {
-    content: Box<dyn Overlay<A, Renderer> + 'a>,
+struct Map<'a, A, B, Theme, Renderer> {
+    content: Box<dyn Overlay<A, Theme, Renderer> + 'a>,
     mapper: &'a dyn Fn(A) -> B,
 }
 
-impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
+impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     pub fn new(
-        content: Box<dyn Overlay<A, Renderer> + 'a>,
+        content: Box<dyn Overlay<A, Theme, Renderer> + 'a>,
         mapper: &'a dyn Fn(A) -> B,
-    ) -> Map<'a, A, B, Renderer> {
+    ) -> Map<'a, A, B, Theme, Renderer> {
         Map { content, mapper }
     }
 }
 
-impl<'a, A, B, Renderer> Overlay<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
+    for Map<'a, A, B, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -269,7 +274,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -290,7 +295,7 @@ where
         &'b mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<Element<'b, B, Renderer>> {
+    ) -> Option<Element<'b, B, Theme, Renderer>> {
         self.content
             .overlay(layout, renderer)
             .map(|overlay| overlay.map(self.mapper))

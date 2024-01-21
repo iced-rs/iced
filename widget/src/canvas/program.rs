@@ -9,7 +9,7 @@ use crate::graphics::geometry;
 /// application.
 ///
 /// [`Canvas`]: crate::Canvas
-pub trait Program<Message, Renderer = crate::Renderer>
+pub trait Program<Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: geometry::Renderer,
 {
@@ -49,7 +49,7 @@ where
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Vec<Renderer::Geometry>;
@@ -70,10 +70,10 @@ where
     }
 }
 
-impl<Message, Renderer, T> Program<Message, Renderer> for &T
+impl<Message, Theme, Renderer, T> Program<Message, Theme, Renderer> for &T
 where
     Renderer: geometry::Renderer,
-    T: Program<Message, Renderer>,
+    T: Program<Message, Theme, Renderer>,
 {
     type State = T::State;
 
@@ -91,7 +91,7 @@ where
         &self,
         state: &Self::State,
         renderer: &Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
     ) -> Vec<Renderer::Geometry> {

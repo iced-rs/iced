@@ -11,14 +11,15 @@ use crate::{
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
 #[allow(missing_debug_implementations)]
-pub struct Group<'a, Message, Renderer> {
-    children: Vec<overlay::Element<'a, Message, Renderer>>,
+pub struct Group<'a, Message, Theme, Renderer> {
+    children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Group<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Group<'a, Message, Theme, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Theme: 'a,
+    Renderer: 'a + crate::Renderer,
 {
     /// Creates an empty [`Group`].
     pub fn new() -> Self {
@@ -27,7 +28,7 @@ where
 
     /// Creates a [`Group`] with the given elements.
     pub fn with_children(
-        children: Vec<overlay::Element<'a, Message, Renderer>>,
+        children: Vec<overlay::Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         Group { children }
     }
@@ -35,30 +36,32 @@ where
     /// Adds an [`overlay::Element`] to the [`Group`].
     pub fn push(
         mut self,
-        child: impl Into<overlay::Element<'a, Message, Renderer>>,
+        child: impl Into<overlay::Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         self.children.push(child.into());
         self
     }
 
     /// Turns the [`Group`] into an overlay [`overlay::Element`].
-    pub fn overlay(self) -> overlay::Element<'a, Message, Renderer> {
+    pub fn overlay(self) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(Point::ORIGIN, Box::new(self))
     }
 }
 
-impl<'a, Message, Renderer> Default for Group<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Default
+    for Group<'a, Message, Theme, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Theme: 'a,
+    Renderer: 'a + crate::Renderer,
 {
     fn default() -> Self {
         Self::with_children(Vec::new())
     }
 }
 
-impl<'a, Message, Renderer> Overlay<Message, Renderer>
-    for Group<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
+    for Group<'a, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -106,7 +109,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &<Renderer as crate::Renderer>::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -166,7 +169,7 @@ where
         &'b mut self,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let children = self
             .children
             .iter_mut()
@@ -178,13 +181,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Group<'a, Message, Renderer>>
-    for overlay::Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Group<'a, Message, Theme, Renderer>>
+    for overlay::Element<'a, Message, Theme, Renderer>
 where
-    Renderer: 'a + crate::Renderer,
     Message: 'a,
+    Theme: 'a,
+    Renderer: 'a + crate::Renderer,
 {
-    fn from(group: Group<'a, Message, Renderer>) -> Self {
+    fn from(group: Group<'a, Message, Theme, Renderer>) -> Self {
         group.overlay()
     }
 }

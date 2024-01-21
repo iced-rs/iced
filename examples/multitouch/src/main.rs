@@ -96,7 +96,7 @@ impl Application for Multitouch {
     }
 }
 
-impl canvas::Program<Message, Renderer> for State {
+impl canvas::Program<Message> for State {
     type State = ();
 
     fn update(

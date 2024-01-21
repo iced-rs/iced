@@ -1,6 +1,5 @@
 use crate::application::{self, StyleSheet as _};
 use crate::conversion;
-use crate::core;
 use crate::core::mouse;
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
@@ -15,7 +14,7 @@ use winit::window::Window;
 #[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
-    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+    A::Theme: application::StyleSheet,
 {
     title: String,
     scale_factor: f64,
@@ -23,14 +22,14 @@ where
     viewport_version: usize,
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
-    theme: <A::Renderer as core::Renderer>::Theme,
+    theme: A::Theme,
     appearance: application::Appearance,
     application: PhantomData<A>,
 }
 
 impl<A: Application> State<A>
 where
-    <A::Renderer as core::Renderer>::Theme: application::StyleSheet,
+    A::Theme: application::StyleSheet,
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
@@ -107,7 +106,7 @@ where
     }
 
     /// Returns the current theme of the [`State`].
-    pub fn theme(&self) -> &<A::Renderer as core::Renderer>::Theme {
+    pub fn theme(&self) -> &A::Theme {
         &self.theme
     }
 

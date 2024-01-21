@@ -30,7 +30,7 @@ use std::rc::Rc;
 ///
 /// Additionally, a [`Component`] is capable of producing a `Message` to notify
 /// the parent application of any relevant interactions.
-pub trait Component<Message, Renderer> {
+pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     /// The internal state of this [`Component`].
     type State: Default;
 
@@ -48,7 +48,10 @@ pub trait Component<Message, Renderer> {
 
     /// Produces the widgets of the [`Component`], which may trigger an [`Event`](Component::Event)
     /// on user interaction.
-    fn view(&self, state: &Self::State) -> Element<'_, Self::Event, Renderer>;
+    fn view(
+        &self,
+        state: &Self::State,
+    ) -> Element<'_, Self::Event, Theme, Renderer>;
 
     /// Update the [`Component`] state based on the provided [`Operation`](widget::Operation)
     ///
@@ -65,13 +68,14 @@ struct Tag<T>(T);
 
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
-pub fn view<'a, C, Message, Renderer>(
+pub fn view<'a, C, Message, Theme, Renderer>(
     component: C,
-) -> Element<'a, Message, Renderer>
+) -> Element<'a, Message, Theme, Renderer>
 where
-    C: Component<Message, Renderer> + 'a,
+    C: Component<Message, Theme, Renderer> + 'a,
     C::State: 'static,
     Message: 'a,
+    Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
     Element::new(Instance {
@@ -88,24 +92,26 @@ where
     })
 }
 
-struct Instance<'a, Message, Renderer, Event, S> {
-    state: RefCell<Option<State<'a, Message, Renderer, Event, S>>>,
+struct Instance<'a, Message, Theme, Renderer, Event, S> {
+    state: RefCell<Option<State<'a, Message, Theme, Renderer, Event, S>>>,
     tree: RefCell<Rc<RefCell<Option<Tree>>>>,
 }
 
 #[self_referencing]
-struct State<'a, Message: 'a, Renderer: 'a, Event: 'a, S: 'a> {
-    component:
-        Box<dyn Component<Message, Renderer, Event = Event, State = S> + 'a>,
+struct State<'a, Message: 'a, Theme: 'a, Renderer: 'a, Event: 'a, S: 'a> {
+    component: Box<
+        dyn Component<Message, Theme, Renderer, Event = Event, State = S> + 'a,
+    >,
     message: PhantomData<Message>,
     state: PhantomData<S>,
 
     #[borrows(component)]
     #[covariant]
-    element: Option<Element<'this, Event, Renderer>>,
+    element: Option<Element<'this, Event, Theme, Renderer>>,
 }
 
-impl<'a, Message, Renderer, Event, S> Instance<'a, Message, Renderer, Event, S>
+impl<'a, Message, Theme, Renderer, Event, S>
+    Instance<'a, Message, Theme, Renderer, Event, S>
 where
     S: Default + 'static,
     Renderer: renderer::Renderer,
@@ -196,14 +202,14 @@ where
 
     fn with_element<T>(
         &self,
-        f: impl FnOnce(&Element<'_, Event, Renderer>) -> T,
+        f: impl FnOnce(&Element<'_, Event, Theme, Renderer>) -> T,
     ) -> T {
         self.with_element_mut(|element| f(element))
     }
 
     fn with_element_mut<T>(
         &self,
-        f: impl FnOnce(&mut Element<'_, Event, Renderer>) -> T,
+        f: impl FnOnce(&mut Element<'_, Event, Theme, Renderer>) -> T,
     ) -> T {
         self.rebuild_element_if_necessary();
         self.state
@@ -214,8 +220,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer, Event, S> Widget<Message, Renderer>
-    for Instance<'a, Message, Renderer, Event, S>
+impl<'a, Message, Theme, Renderer, Event, S> Widget<Message, Theme, Renderer>
+    for Instance<'a, Message, Theme, Renderer, Event, S>
 where
     S: 'static + Default,
     Renderer: core::Renderer,
@@ -411,7 +417,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -456,7 +462,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
         let tree = tree
             .state
@@ -506,12 +512,12 @@ where
     }
 }
 
-struct Overlay<'a, 'b, Message, Renderer, Event, S>(
-    Option<Inner<'a, 'b, Message, Renderer, Event, S>>,
+struct Overlay<'a, 'b, Message, Theme, Renderer, Event, S>(
+    Option<Inner<'a, 'b, Message, Theme, Renderer, Event, S>>,
 );
 
-impl<'a, 'b, Message, Renderer, Event, S> Drop
-    for Overlay<'a, 'b, Message, Renderer, Event, S>
+impl<'a, 'b, Message, Theme, Renderer, Event, S> Drop
+    for Overlay<'a, 'b, Message, Theme, Renderer, Event, S>
 {
     fn drop(&mut self) {
         if let Some(heads) = self.0.take().map(Inner::into_heads) {
@@ -521,26 +527,26 @@ impl<'a, 'b, Message, Renderer, Event, S> Drop
 }
 
 #[self_referencing]
-struct Inner<'a, 'b, Message, Renderer, Event, S> {
-    instance: &'a mut Instance<'b, Message, Renderer, Event, S>,
+struct Inner<'a, 'b, Message, Theme, Renderer, Event, S> {
+    instance: &'a mut Instance<'b, Message, Theme, Renderer, Event, S>,
     tree: Tree,
     types: PhantomData<(Message, Event, S)>,
 
     #[borrows(mut instance, mut tree)]
     #[not_covariant]
-    overlay: Option<RefCell<Nested<'this, Event, Renderer>>>,
+    overlay: Option<RefCell<Nested<'this, Event, Theme, Renderer>>>,
 }
 
-struct OverlayInstance<'a, 'b, Message, Renderer, Event, S> {
-    overlay: Option<Overlay<'a, 'b, Message, Renderer, Event, S>>,
+struct OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S> {
+    overlay: Option<Overlay<'a, 'b, Message, Theme, Renderer, Event, S>>,
 }
 
-impl<'a, 'b, Message, Renderer, Event, S>
-    OverlayInstance<'a, 'b, Message, Renderer, Event, S>
+impl<'a, 'b, Message, Theme, Renderer, Event, S>
+    OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
 {
     fn with_overlay_maybe<T>(
         &self,
-        f: impl FnOnce(&mut Nested<'_, Event, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Event, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.overlay
             .as_ref()
@@ -555,7 +561,7 @@ impl<'a, 'b, Message, Renderer, Event, S>
 
     fn with_overlay_mut_maybe<T>(
         &mut self,
-        f: impl FnOnce(&mut Nested<'_, Event, Renderer>) -> T,
+        f: impl FnOnce(&mut Nested<'_, Event, Theme, Renderer>) -> T,
     ) -> Option<T> {
         self.overlay
             .as_mut()
@@ -569,8 +575,9 @@ impl<'a, 'b, Message, Renderer, Event, S>
     }
 }
 
-impl<'a, 'b, Message, Renderer, Event, S> overlay::Overlay<Message, Renderer>
-    for OverlayInstance<'a, 'b, Message, Renderer, Event, S>
+impl<'a, 'b, Message, Theme, Renderer, Event, S>
+    overlay::Overlay<Message, Theme, Renderer>
+    for OverlayInstance<'a, 'b, Message, Theme, Renderer, Event, S>
 where
     Renderer: core::Renderer,
     S: 'static + Default,
@@ -591,7 +598,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,

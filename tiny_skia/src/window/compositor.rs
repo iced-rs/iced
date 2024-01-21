@@ -5,13 +5,11 @@ use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use std::collections::VecDeque;
-use std::marker::PhantomData;
 use std::num::NonZeroU32;
 
-pub struct Compositor<Theme> {
+pub struct Compositor {
     context: softbuffer::Context<Box<dyn compositor::Window>>,
     settings: Settings,
-    _theme: PhantomData<Theme>,
 }
 
 pub struct Surface {
@@ -25,9 +23,9 @@ pub struct Surface {
     max_age: u8,
 }
 
-impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
+impl crate::graphics::Compositor for Compositor {
     type Settings = Settings;
-    type Renderer = Renderer<Theme>;
+    type Renderer = Renderer;
     type Surface = Surface;
 
     fn new<W: compositor::Window>(
@@ -138,19 +136,15 @@ impl<Theme> crate::graphics::Compositor for Compositor<Theme> {
     }
 }
 
-pub fn new<W: compositor::Window, Theme>(
+pub fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
-) -> Compositor<Theme> {
+) -> Compositor {
     #[allow(unsafe_code)]
     let context = softbuffer::Context::new(Box::new(compatible_window) as _)
         .expect("Create softbuffer context");
 
-    Compositor {
-        context,
-        settings,
-        _theme: PhantomData,
-    }
+    Compositor { context, settings }
 }
 
 pub fn present<T: AsRef<str>>(

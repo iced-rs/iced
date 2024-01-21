@@ -19,10 +19,15 @@ pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
-pub struct Menu<'a, T, Message, Renderer = crate::Renderer>
-where
+pub struct Menu<
+    'a,
+    T,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     state: &'a mut State,
     options: &'a [T],
@@ -35,16 +40,15 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, T, Message, Renderer> Menu<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
+    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
     Renderer: text::Renderer + 'a,
-    Renderer::Theme:
-        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
     /// the message to produced when an option is selected.
@@ -113,7 +117,7 @@ where
     /// Sets the style of the [`Menu`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style: impl Into<<Theme as StyleSheet>::Style>,
     ) -> Self {
         self.style = style.into();
         self
@@ -129,7 +133,7 @@ where
         self,
         position: Point,
         target_height: f32,
-    ) -> overlay::Element<'a, Message, Renderer> {
+    ) -> overlay::Element<'a, Message, Theme, Renderer> {
         overlay::Element::new(
             position,
             Box::new(Overlay::new(self, target_height)),
@@ -158,28 +162,26 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, Message, Renderer>
+struct Overlay<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     state: &'a mut Tree,
-    container: Container<'a, Message, Renderer>,
+    container: Container<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> Overlay<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: 'a,
-    Renderer: text::Renderer,
-    Renderer::Theme:
-        StyleSheet + container::StyleSheet + scrollable::StyleSheet,
+    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(
-        menu: Menu<'a, T, Message, Renderer>,
+        menu: Menu<'a, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
     where
@@ -213,7 +215,7 @@ where
             style: style.clone(),
         }));
 
-        state.tree.diff(&container as &dyn Widget<_, _>);
+        state.tree.diff(&container as &dyn Widget<_, _, _>);
 
         Self {
             state: &mut state.tree,
@@ -225,11 +227,12 @@ where
     }
 }
 
-impl<'a, Message, Renderer> crate::core::Overlay<Message, Renderer>
-    for Overlay<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer>
+    crate::core::Overlay<Message, Theme, Renderer>
+    for Overlay<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + container::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     fn layout(
         &mut self,
@@ -295,12 +298,12 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let appearance = theme.appearance(&self.style);
+        let appearance = StyleSheet::appearance(theme, &self.style);
         let bounds = layout.bounds();
 
         renderer.fill_quad(
@@ -317,10 +320,10 @@ where
     }
 }
 
-struct List<'a, T, Message, Renderer>
+struct List<'a, T, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     options: &'a [T],
     hovered_option: &'a mut Option<usize>,
@@ -331,15 +334,15 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for List<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for List<'a, T, Message, Theme, Renderer>
 where
     T: Clone + ToString,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -475,7 +478,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -545,15 +548,16 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<List<'a, T, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer>
+    From<List<'a, T, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
+    Theme: StyleSheet + 'a,
     Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(list: List<'a, T, Message, Renderer>) -> Self {
+    fn from(list: List<'a, T, Message, Theme, Renderer>) -> Self {
         Element::new(list)
     }
 }

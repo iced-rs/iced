@@ -32,10 +32,10 @@ use std::borrow::Cow;
 /// The default graphics renderer for [`iced`].
 ///
 /// [`iced`]: https://github.com/iced-rs/iced
-pub enum Renderer<Theme> {
-    TinySkia(iced_tiny_skia::Renderer<Theme>),
+pub enum Renderer {
+    TinySkia(iced_tiny_skia::Renderer),
     #[cfg(feature = "wgpu")]
-    Wgpu(iced_wgpu::Renderer<Theme>),
+    Wgpu(iced_wgpu::Renderer),
 }
 
 macro_rules! delegate {
@@ -48,7 +48,7 @@ macro_rules! delegate {
     };
 }
 
-impl<T> Renderer<T> {
+impl Renderer {
     pub fn draw_mesh(&mut self, mesh: Mesh) {
         match self {
             Self::TinySkia(_) => {
@@ -64,9 +64,7 @@ impl<T> Renderer<T> {
     }
 }
 
-impl<T> core::Renderer for Renderer<T> {
-    type Theme = T;
-
+impl core::Renderer for Renderer {
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         match self {
             Self::TinySkia(renderer) => {
@@ -148,15 +146,14 @@ impl<T> core::Renderer for Renderer<T> {
     }
 }
 
-impl<T> text::Renderer for Renderer<T> {
+impl text::Renderer for Renderer {
     type Font = Font;
     type Paragraph = Paragraph;
     type Editor = Editor;
 
-    const ICON_FONT: Font = iced_tiny_skia::Renderer::<T>::ICON_FONT;
-    const CHECKMARK_ICON: char = iced_tiny_skia::Renderer::<T>::CHECKMARK_ICON;
-    const ARROW_DOWN_ICON: char =
-        iced_tiny_skia::Renderer::<T>::ARROW_DOWN_ICON;
+    const ICON_FONT: Font = iced_tiny_skia::Renderer::ICON_FONT;
+    const CHECKMARK_ICON: char = iced_tiny_skia::Renderer::CHECKMARK_ICON;
+    const ARROW_DOWN_ICON: char = iced_tiny_skia::Renderer::ARROW_DOWN_ICON;
 
     fn default_font(&self) -> Self::Font {
         delegate!(self, renderer, renderer.default_font())
@@ -214,7 +211,7 @@ impl<T> text::Renderer for Renderer<T> {
 }
 
 #[cfg(feature = "image")]
-impl<T> crate::core::image::Renderer for Renderer<T> {
+impl crate::core::image::Renderer for Renderer {
     type Handle = crate::core::image::Handle;
 
     fn dimensions(
@@ -235,7 +232,7 @@ impl<T> crate::core::image::Renderer for Renderer<T> {
 }
 
 #[cfg(feature = "svg")]
-impl<T> crate::core::svg::Renderer for Renderer<T> {
+impl crate::core::svg::Renderer for Renderer {
     fn dimensions(&self, handle: &crate::core::svg::Handle) -> core::Size<u32> {
         delegate!(self, renderer, renderer.dimensions(handle))
     }
@@ -251,7 +248,7 @@ impl<T> crate::core::svg::Renderer for Renderer<T> {
 }
 
 #[cfg(feature = "geometry")]
-impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
+impl crate::graphics::geometry::Renderer for Renderer {
     type Geometry = crate::Geometry;
 
     fn draw(&mut self, layers: Vec<Self::Geometry>) {
@@ -283,7 +280,7 @@ impl<T> crate::graphics::geometry::Renderer for Renderer<T> {
 }
 
 #[cfg(feature = "wgpu")]
-impl<T> iced_wgpu::primitive::pipeline::Renderer for Renderer<T> {
+impl iced_wgpu::primitive::pipeline::Renderer for Renderer {
     fn draw_pipeline_primitive(
         &mut self,
         bounds: Rectangle,

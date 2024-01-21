@@ -23,13 +23,13 @@ use std::borrow::Borrow;
 ///
 /// [built-in widget]: crate::widget
 #[allow(missing_debug_implementations)]
-pub struct Element<'a, Message, Renderer> {
-    widget: Box<dyn Widget<Message, Renderer> + 'a>,
+pub struct Element<'a, Message, Theme, Renderer> {
+    widget: Box<dyn Widget<Message, Theme, Renderer> + 'a>,
 }
 
-impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// Creates a new [`Element`] containing the given [`Widget`].
-    pub fn new(widget: impl Widget<Message, Renderer> + 'a) -> Self
+    pub fn new(widget: impl Widget<Message, Theme, Renderer> + 'a) -> Self
     where
         Renderer: crate::Renderer,
     {
@@ -39,12 +39,14 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     }
 
     /// Returns a reference to the [`Widget`] of the [`Element`],
-    pub fn as_widget(&self) -> &dyn Widget<Message, Renderer> {
+    pub fn as_widget(&self) -> &dyn Widget<Message, Theme, Renderer> {
         self.widget.as_ref()
     }
 
     /// Returns a mutable reference to the [`Widget`] of the [`Element`],
-    pub fn as_widget_mut(&mut self) -> &mut dyn Widget<Message, Renderer> {
+    pub fn as_widget_mut(
+        &mut self,
+    ) -> &mut dyn Widget<Message, Theme, Renderer> {
         self.widget.as_mut()
     }
 
@@ -100,7 +102,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// #     impl Counter {
     /// #         pub fn view(
     /// #             &self,
-    /// #         ) -> iced_core::Element<Message, iced_core::renderer::Null> {
+    /// #         ) -> iced_core::Element<Message, (), iced_core::renderer::Null> {
     /// #             unimplemented!()
     /// #         }
     /// #     }
@@ -126,7 +128,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     /// #
     /// #             pub fn push(
     /// #                 mut self,
-    /// #                 _: iced_core::Element<Message, iced_core::renderer::Null>,
+    /// #                 _: iced_core::Element<Message, (), iced_core::renderer::Null>,
     /// #             ) -> Self {
     /// #                 unimplemented!()
     /// #             }
@@ -155,7 +157,7 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     ///             Row::new().spacing(20),
     ///             |row, (index, counter)| {
     ///                 // We display the counter
-    ///                 let element: Element<counter::Message, Renderer> =
+    ///                 let element: Element<counter::Message, _, _> =
     ///                     counter.view().into();
     ///
     ///                 row.push(
@@ -210,9 +212,10 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     pub fn map<B>(
         self,
         f: impl Fn(Message) -> B + 'a,
-    ) -> Element<'a, B, Renderer>
+    ) -> Element<'a, B, Theme, Renderer>
     where
         Message: 'a,
+        Theme: 'a,
         Renderer: crate::Renderer + 'a,
         B: 'a,
     {
@@ -228,9 +231,10 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     pub fn explain<C: Into<Color>>(
         self,
         color: C,
-    ) -> Element<'a, Message, Renderer>
+    ) -> Element<'a, Message, Theme, Renderer>
     where
-        Message: 'static,
+        Message: 'a,
+        Theme: 'a,
         Renderer: crate::Renderer + 'a,
     {
         Element {
@@ -239,32 +243,34 @@ impl<'a, Message, Renderer> Element<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer>
+    Borrow<dyn Widget<Message, Theme, Renderer> + 'a>
+    for Element<'a, Message, Theme, Renderer>
 {
-    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+    fn borrow(&self) -> &(dyn Widget<Message, Theme, Renderer> + 'a) {
         self.widget.borrow()
     }
 }
 
-impl<'a, Message, Renderer> Borrow<dyn Widget<Message, Renderer> + 'a>
-    for &Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer>
+    Borrow<dyn Widget<Message, Theme, Renderer> + 'a>
+    for &Element<'a, Message, Theme, Renderer>
 {
-    fn borrow(&self) -> &(dyn Widget<Message, Renderer> + 'a) {
+    fn borrow(&self) -> &(dyn Widget<Message, Theme, Renderer> + 'a) {
         self.widget.borrow()
     }
 }
 
-struct Map<'a, A, B, Renderer> {
-    widget: Box<dyn Widget<A, Renderer> + 'a>,
+struct Map<'a, A, B, Theme, Renderer> {
+    widget: Box<dyn Widget<A, Theme, Renderer> + 'a>,
     mapper: Box<dyn Fn(A) -> B + 'a>,
 }
 
-impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
+impl<'a, A, B, Theme, Renderer> Map<'a, A, B, Theme, Renderer> {
     pub fn new<F>(
-        widget: Box<dyn Widget<A, Renderer> + 'a>,
+        widget: Box<dyn Widget<A, Theme, Renderer> + 'a>,
         mapper: F,
-    ) -> Map<'a, A, B, Renderer>
+    ) -> Map<'a, A, B, Theme, Renderer>
     where
         F: 'a + Fn(A) -> B,
     {
@@ -275,7 +281,8 @@ impl<'a, A, B, Renderer> Map<'a, A, B, Renderer> {
     }
 }
 
-impl<'a, A, B, Renderer> Widget<B, Renderer> for Map<'a, A, B, Renderer>
+impl<'a, A, B, Theme, Renderer> Widget<B, Theme, Renderer>
+    for Map<'a, A, B, Theme, Renderer>
 where
     Renderer: crate::Renderer + 'a,
     A: 'a,
@@ -408,7 +415,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -435,7 +442,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, B, Renderer>> {
+    ) -> Option<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
@@ -444,22 +451,25 @@ where
     }
 }
 
-struct Explain<'a, Message, Renderer: crate::Renderer> {
-    element: Element<'a, Message, Renderer>,
+struct Explain<'a, Message, Theme, Renderer: crate::Renderer> {
+    element: Element<'a, Message, Theme, Renderer>,
     color: Color,
 }
 
-impl<'a, Message, Renderer> Explain<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Explain<'a, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn new(element: Element<'a, Message, Renderer>, color: Color) -> Self {
+    fn new(
+        element: Element<'a, Message, Theme, Renderer>,
+        color: Color,
+    ) -> Self {
         Explain { element, color }
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Explain<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Explain<'a, Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -524,7 +534,7 @@ where
         &self,
         state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -578,7 +588,7 @@ where
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.element.widget.overlay(state, layout, renderer)
     }
 }

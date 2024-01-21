@@ -29,7 +29,7 @@ mod circle {
         Circle::new(radius)
     }
 
-    impl<Message, Renderer> Widget<Message, Renderer> for Circle
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Circle
     where
         Renderer: renderer::Renderer,
     {
@@ -53,7 +53,7 @@ mod circle {
             &self,
             _state: &widget::Tree,
             renderer: &mut Renderer,
-            _theme: &Renderer::Theme,
+            _theme: &Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
             _cursor: mouse::Cursor,
@@ -70,7 +70,8 @@ mod circle {
         }
     }
 
-    impl<'a, Message, Renderer> From<Circle> for Element<'a, Message, Renderer>
+    impl<'a, Message, Theme, Renderer> From<Circle>
+        for Element<'a, Message, Theme, Renderer>
     where
         Renderer: renderer::Renderer,
     {
