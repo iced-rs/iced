@@ -20,7 +20,7 @@ use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
-use crate::{Column, MouseArea, Row, Space, VerticalSlider};
+use crate::{Column, MouseArea, Row, Space, Themer, VerticalSlider};
 
 use std::borrow::Cow;
 use std::ops::RangeInclusive;
@@ -420,4 +420,15 @@ where
     Renderer: core::Renderer,
 {
     MouseArea::new(widget)
+}
+
+/// A widget that applies any `Theme` to its contents.
+pub fn themer<'a, Message, Theme, Renderer>(
+    theme: Theme,
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Themer<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Themer::new(theme, content)
 }
