@@ -84,6 +84,9 @@ pub fn window_settings(
         }
         window_builder = window_builder
             .with_drag_and_drop(settings.platform_specific.drag_and_drop);
+
+        window_builder = window_builder
+            .with_skip_taskbar(settings.platform_specific.skip_taskbar);
     }
 
     #[cfg(target_os = "macos")]
