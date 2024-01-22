@@ -886,42 +886,38 @@ where
 
                         update_cache(state, value);
                     }
-                    keyboard::Key::Character("v") => {
+                    keyboard::Key::Character("v")
                         if state.keyboard_modifiers.command()
-                            && !state.keyboard_modifiers.alt()
-                        {
-                            let content = match state.is_pasting.take() {
-                                Some(content) => content,
-                                None => {
-                                    let content: String = clipboard
-                                        .read()
-                                        .unwrap_or_default()
-                                        .chars()
-                                        .filter(|c| !c.is_control())
-                                        .collect();
+                            && !state.keyboard_modifiers.alt() =>
+                    {
+                        let content = match state.is_pasting.take() {
+                            Some(content) => content,
+                            None => {
+                                let content: String = clipboard
+                                    .read()
+                                    .unwrap_or_default()
+                                    .chars()
+                                    .filter(|c| !c.is_control())
+                                    .collect();
 
-                                    Value::new(&content)
-                                }
-                            };
+                                Value::new(&content)
+                            }
+                        };
 
-                            let mut editor =
-                                Editor::new(value, &mut state.cursor);
+                        let mut editor = Editor::new(value, &mut state.cursor);
 
-                            editor.paste(content.clone());
+                        editor.paste(content.clone());
 
-                            let message = if let Some(paste) = &on_paste {
-                                (paste)(editor.contents())
-                            } else {
-                                (on_input)(editor.contents())
-                            };
-                            shell.publish(message);
-
-                            state.is_pasting = Some(content);
-
-                            update_cache(state, value);
+                        let message = if let Some(paste) = &on_paste {
+                            (paste)(editor.contents())
                         } else {
-                            state.is_pasting = None;
-                        }
+                            (on_input)(editor.contents())
+                        };
+                        shell.publish(message);
+
+                        state.is_pasting = Some(content);
+
+                        update_cache(state, value);
                     }
                     keyboard::Key::Character("a")
                         if state.keyboard_modifiers.command() =>
@@ -945,12 +941,11 @@ where
                     }
                     _ => {
                         if let Some(text) = text {
+                            state.is_pasting = None;
+
                             let c = text.chars().next().unwrap_or_default();
 
-                            if state.is_pasting.is_none()
-                                && !state.keyboard_modifiers.command()
-                                && !c.is_control()
-                            {
+                            if !c.is_control() {
                                 let mut editor =
                                     Editor::new(value, &mut state.cursor);
 
