@@ -12,19 +12,17 @@ use crate::text;
 use crate::Primitive;
 
 use std::borrow::Cow;
-use std::marker::PhantomData;
 
 /// A backend-agnostic renderer that supports all the built-in widgets.
 #[derive(Debug)]
-pub struct Renderer<B: Backend, Theme> {
+pub struct Renderer<B: Backend> {
     backend: B,
     default_font: Font,
     default_text_size: Pixels,
     primitives: Vec<Primitive<B::Primitive>>,
-    theme: PhantomData<Theme>,
 }
 
-impl<B: Backend, T> Renderer<B, T> {
+impl<B: Backend> Renderer<B> {
     /// Creates a new [`Renderer`] from the given [`Backend`].
     pub fn new(
         backend: B,
@@ -36,7 +34,6 @@ impl<B: Backend, T> Renderer<B, T> {
             default_font,
             default_text_size,
             primitives: Vec::new(),
-            theme: PhantomData,
         }
     }
 
@@ -93,9 +90,7 @@ impl<B: Backend, T> Renderer<B, T> {
     }
 }
 
-impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
-    type Theme = T;
-
+impl<B: Backend> iced_core::Renderer for Renderer<B> {
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         let current = self.start_layer();
 
@@ -134,7 +129,7 @@ impl<B: Backend, T> iced_core::Renderer for Renderer<B, T> {
     }
 }
 
-impl<B, T> core::text::Renderer for Renderer<B, T>
+impl<B> core::text::Renderer for Renderer<B>
 where
     B: Backend + backend::Text,
 {
@@ -210,7 +205,7 @@ where
     }
 }
 
-impl<B, T> image::Renderer for Renderer<B, T>
+impl<B> image::Renderer for Renderer<B>
 where
     B: Backend + backend::Image,
 {
@@ -234,7 +229,7 @@ where
     }
 }
 
-impl<B, T> svg::Renderer for Renderer<B, T>
+impl<B> svg::Renderer for Renderer<B>
 where
     B: Backend + backend::Svg,
 {

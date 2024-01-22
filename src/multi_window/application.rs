@@ -114,7 +114,7 @@ pub trait Application: Sized {
     fn view(
         &self,
         window: window::Id,
-    ) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+    ) -> Element<'_, Self::Message, Self::Theme, crate::Renderer>;
 
     /// Returns the current [`Theme`] of the `window` of the [`Application`].
     ///
@@ -185,7 +185,7 @@ pub trait Application: Sized {
         Ok(crate::shell::multi_window::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::Compositor<Self::Theme>,
+            crate::renderer::Compositor,
         >(settings.into(), renderer_settings)?)
     }
 }
@@ -196,8 +196,9 @@ impl<A> crate::runtime::multi_window::Program for Instance<A>
 where
     A: Application,
 {
-    type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
+    type Theme = A::Theme;
+    type Renderer = crate::Renderer;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
@@ -206,7 +207,7 @@ where
     fn view(
         &self,
         window: window::Id,
-    ) -> Element<'_, Self::Message, Self::Renderer> {
+    ) -> Element<'_, Self::Message, Self::Theme, Self::Renderer> {
         self.0.view(window)
     }
 }

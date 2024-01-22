@@ -23,11 +23,16 @@ pub use crate::style::pick_list::{Appearance, StyleSheet};
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
-pub struct PickList<'a, T, Message, Renderer = crate::Renderer>
-where
+pub struct PickList<
+    'a,
+    T,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     [T]: ToOwned<Owned = Vec<T>>,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     on_selected: Box<dyn Fn(T) -> Message + 'a>,
     options: Cow<'a, [T]>,
@@ -40,20 +45,20 @@ where
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, T: 'a, Message, Renderer> PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Theme, Renderer>
+    PickList<'a, T, Message, Theme, Renderer>
 where
     T: ToString + PartialEq,
     [T]: ToOwned<Owned = Vec<T>>,
-    Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet
+    Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
         + container::StyleSheet,
-    <Renderer::Theme as menu::StyleSheet>::Style:
-        From<<Renderer::Theme as StyleSheet>::Style>,
+    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Renderer: text::Renderer,
 {
     /// The default padding of a [`PickList`].
     pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
@@ -135,26 +140,25 @@ where
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style: impl Into<<Theme as StyleSheet>::Style>,
     ) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, T: 'a, Message, Renderer> Widget<Message, Renderer>
-    for PickList<'a, T, Message, Renderer>
+impl<'a, T: 'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PickList<'a, T, Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
-    Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet
+    Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
         + container::StyleSheet,
-    <Renderer::Theme as menu::StyleSheet>::Style:
-        From<<Renderer::Theme as StyleSheet>::Style>,
+    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Renderer: text::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State<Renderer::Paragraph>>()
@@ -230,7 +234,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -261,7 +265,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         overlay(
@@ -278,21 +282,22 @@ where
     }
 }
 
-impl<'a, T: 'a, Message, Renderer> From<PickList<'a, T, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, T: 'a, Message, Theme, Renderer>
+    From<PickList<'a, T, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
     Message: 'a,
-    Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet
+    Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet,
-    <Renderer::Theme as menu::StyleSheet>::Style:
-        From<<Renderer::Theme as StyleSheet>::Style>,
+        + container::StyleSheet
+        + 'a,
+    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Renderer: text::Renderer + 'a,
 {
-    fn from(pick_list: PickList<'a, T, Message, Renderer>) -> Self {
+    fn from(pick_list: PickList<'a, T, Message, Theme, Renderer>) -> Self {
         Self::new(pick_list)
     }
 }
@@ -566,7 +571,7 @@ pub fn mouse_interaction(
 }
 
 /// Returns the current overlay of a [`PickList`].
-pub fn overlay<'a, T, Message, Renderer>(
+pub fn overlay<'a, T, Message, Theme, Renderer>(
     layout: Layout<'_>,
     state: &'a mut State<Renderer::Paragraph>,
     padding: Padding,
@@ -575,18 +580,18 @@ pub fn overlay<'a, T, Message, Renderer>(
     font: Renderer::Font,
     options: &'a [T],
     on_selected: &'a dyn Fn(T) -> Message,
-    style: <Renderer::Theme as StyleSheet>::Style,
-) -> Option<overlay::Element<'a, Message, Renderer>>
+    style: <Theme as StyleSheet>::Style,
+) -> Option<overlay::Element<'a, Message, Theme, Renderer>>
 where
     T: Clone + ToString,
     Message: 'a,
-    Renderer: text::Renderer + 'a,
-    Renderer::Theme: StyleSheet
+    Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet,
-    <Renderer::Theme as menu::StyleSheet>::Style:
-        From<<Renderer::Theme as StyleSheet>::Style>,
+        + container::StyleSheet
+        + 'a,
+    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Renderer: text::Renderer + 'a,
 {
     if state.is_open {
         let bounds = layout.bounds();
@@ -619,9 +624,9 @@ where
 }
 
 /// Draws a [`PickList`].
-pub fn draw<'a, T, Renderer>(
+pub fn draw<'a, T, Theme, Renderer>(
     renderer: &mut Renderer,
-    theme: &Renderer::Theme,
+    theme: &Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     padding: Padding,
@@ -632,12 +637,12 @@ pub fn draw<'a, T, Renderer>(
     placeholder: Option<&str>,
     selected: Option<&T>,
     handle: &Handle<Renderer::Font>,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    style: &Theme::Style,
     state: impl FnOnce() -> &'a State<Renderer::Paragraph>,
     viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
     T: ToString + 'a,
 {
     let bounds = layout.bounds();

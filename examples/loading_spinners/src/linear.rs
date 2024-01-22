@@ -2,7 +2,7 @@
 use iced::advanced::layout;
 use iced::advanced::renderer::{self, Quad};
 use iced::advanced::widget::tree::{self, Tree};
-use iced::advanced::{Clipboard, Layout, Shell, Widget};
+use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
 use iced::event;
 use iced::mouse;
 use iced::time::Instant;
@@ -14,29 +14,27 @@ use super::easing::{self, Easing};
 use std::time::Duration;
 
 #[allow(missing_debug_implementations)]
-pub struct Linear<'a, Renderer>
+pub struct Linear<'a, Theme>
 where
-    Renderer: iced::advanced::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     width: Length,
     height: Length,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
     easing: &'a Easing,
     cycle_duration: Duration,
 }
 
-impl<'a, Renderer> Linear<'a, Renderer>
+impl<'a, Theme> Linear<'a, Theme>
 where
-    Renderer: iced::advanced::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// Creates a new [`Linear`] with the given content.
     pub fn new() -> Self {
         Linear {
             width: Length::Fixed(100.0),
             height: Length::Fixed(4.0),
-            style: <Renderer::Theme as StyleSheet>::Style::default(),
+            style: Theme::Style::default(),
             easing: &easing::STANDARD,
             cycle_duration: Duration::from_millis(600),
         }
@@ -55,11 +53,8 @@ where
     }
 
     /// Sets the style variant of this [`Linear`].
-    pub fn style(
-        mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
-    ) -> Self {
-        self.style = style;
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+        self.style = style.into();
         self
     }
 
@@ -76,10 +71,9 @@ where
     }
 }
 
-impl<'a, Renderer> Default for Linear<'a, Renderer>
+impl<'a, Theme> Default for Linear<'a, Theme>
 where
-    Renderer: iced::advanced::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     fn default() -> Self {
         Self::new()
@@ -151,11 +145,12 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer> for Linear<'a, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Linear<'a, Theme>
 where
-    Message: 'a + Clone,
-    Renderer: 'a + iced::advanced::Renderer,
-    Renderer::Theme: StyleSheet,
+    Message: Clone + 'a,
+    Theme: StyleSheet + 'a,
+    Renderer: advanced::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -207,7 +202,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -262,14 +257,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Linear<'a, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Linear<'a, Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
+    Theme: StyleSheet + 'a,
     Renderer: iced::advanced::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(linear: Linear<'a, Renderer>) -> Self {
+    fn from(linear: Linear<'a, Theme>) -> Self {
         Self::new(linear)
     }
 }

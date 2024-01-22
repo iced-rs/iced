@@ -21,7 +21,7 @@ pub use crate::style::toggler::{Appearance, StyleSheet};
 ///
 /// ```no_run
 /// # type Toggler<'a, Message> =
-/// #     iced_widget::Toggler<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Toggler<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),
@@ -32,10 +32,14 @@ pub use crate::style::toggler::{Appearance, StyleSheet};
 /// Toggler::new(String::from("Toggle me!"), is_toggled, |b| Message::TogglerToggled(b));
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Toggler<'a, Message, Renderer = crate::Renderer>
-where
+pub struct Toggler<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     is_toggled: bool,
     on_toggle: Box<dyn Fn(bool) -> Message + 'a>,
@@ -48,13 +52,13 @@ where
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, Message, Renderer> Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// The default size of a [`Toggler`].
     pub const DEFAULT_SIZE: f32 = 20.0;
@@ -145,20 +149,17 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Toggler<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
@@ -261,7 +262,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -349,16 +350,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Toggler<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + text::Renderer,
-    Renderer::Theme: StyleSheet + crate::text::StyleSheet,
+    Theme: StyleSheet + crate::text::StyleSheet + 'a,
+    Renderer: text::Renderer + 'a,
 {
     fn from(
-        toggler: Toggler<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        toggler: Toggler<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
     }
 }

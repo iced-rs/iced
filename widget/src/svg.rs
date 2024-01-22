@@ -20,22 +20,20 @@ pub use svg::Handle;
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
 #[allow(missing_debug_implementations)]
-pub struct Svg<Renderer = crate::Renderer>
+pub struct Svg<Theme = crate::Theme>
 where
-    Renderer: svg::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     handle: Handle,
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
 }
 
-impl<Renderer> Svg<Renderer>
+impl<Theme> Svg<Theme>
 where
-    Renderer: svg::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// Creates a new [`Svg`] from the given [`Handle`].
     pub fn new(handle: impl Into<Handle>) -> Self {
@@ -82,19 +80,16 @@ where
 
     /// Sets the style variant of this [`Svg`].
     #[must_use]
-    pub fn style(
-        mut self,
-        style: <Renderer::Theme as StyleSheet>::Style,
-    ) -> Self {
-        self.style = style;
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+        self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for Svg<Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<Theme>
 where
+    Theme: iced_style::svg::StyleSheet,
     Renderer: svg::Renderer,
-    Renderer::Theme: iced_style::svg::StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -138,7 +133,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -186,13 +181,13 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Svg<Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Svg<Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
+    Theme: iced_style::svg::StyleSheet + 'a,
     Renderer: svg::Renderer + 'a,
-    Renderer::Theme: iced_style::svg::StyleSheet,
 {
-    fn from(icon: Svg<Renderer>) -> Element<'a, Message, Renderer> {
+    fn from(icon: Svg<Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(icon)
     }
 }

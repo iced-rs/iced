@@ -71,7 +71,7 @@ use crate::core::{
 /// # use iced_widget::{pane_grid, text};
 /// #
 /// # type PaneGrid<'a, Message> =
-/// #     iced_widget::PaneGrid<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::PaneGrid<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// enum PaneState {
 ///     SomePane,
@@ -96,25 +96,29 @@ use crate::core::{
 ///     .on_resize(10, Message::PaneResized);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct PaneGrid<'a, Message, Renderer = crate::Renderer>
-where
+pub struct PaneGrid<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet + container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
-    contents: Contents<'a, Content<'a, Message, Renderer>>,
+    contents: Contents<'a, Content<'a, Message, Theme, Renderer>>,
     width: Length,
     height: Length,
     spacing: f32,
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: <Theme as StyleSheet>::Style,
 }
 
-impl<'a, Message, Renderer> PaneGrid<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet + container::StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -122,7 +126,7 @@ where
     /// [`State`]. [`bool`] is set if the pane is maximized.
     pub fn new<T>(
         state: &'a State<T>,
-        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Renderer>,
+        view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
     ) -> Self {
         let contents = if let Some((pane, pane_state)) =
             state.maximized.and_then(|pane| {
@@ -216,7 +220,7 @@ where
     /// Sets the style of the [`PaneGrid`].
     pub fn style(
         mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
+        style: impl Into<<Theme as StyleSheet>::Style>,
     ) -> Self {
         self.style = style.into();
         self
@@ -229,11 +233,11 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for PaneGrid<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PaneGrid<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet + container::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<state::Action>()
@@ -408,7 +412,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -443,7 +447,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'_, Message, Renderer>> {
+    ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
         let children = self
             .contents
             .iter_mut()
@@ -458,16 +462,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<PaneGrid<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet + container::StyleSheet + 'a,
+    Renderer: crate::core::Renderer + 'a,
 {
     fn from(
-        pane_grid: PaneGrid<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(pane_grid)
     }
 }
@@ -811,18 +815,18 @@ pub fn mouse_interaction(
 }
 
 /// Draws a [`PaneGrid`].
-pub fn draw<Renderer, T>(
+pub fn draw<Theme, Renderer, T>(
     action: &state::Action,
     node: &Node,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     renderer: &mut Renderer,
-    theme: &Renderer::Theme,
+    theme: &Theme,
     default_style: &renderer::Style,
     viewport: &Rectangle,
     spacing: f32,
     resize_leeway: Option<f32>,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    style: &Theme::Style,
     contents: impl Iterator<Item = (Pane, T)>,
     draw_pane: impl Fn(
         T,
@@ -833,8 +837,8 @@ pub fn draw<Renderer, T>(
         &Rectangle,
     ),
 ) where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     let picked_pane = action.picked_pane();
 

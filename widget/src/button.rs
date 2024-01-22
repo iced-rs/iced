@@ -14,13 +14,13 @@ use crate::core::{
     Shell, Size, Widget,
 };
 
-pub use iced_style::button::{Appearance, StyleSheet};
+pub use crate::style::button::{Appearance, StyleSheet};
 
 /// A generic widget that produces a message when pressed.
 ///
 /// ```no_run
 /// # type Button<'a, Message> =
-/// #     iced_widget::Button<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Button<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -35,7 +35,7 @@ pub use iced_style::button::{Appearance, StyleSheet};
 ///
 /// ```
 /// # type Button<'a, Message> =
-/// #     iced_widget::Button<'a, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Button<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -51,26 +51,28 @@ pub use iced_style::button::{Appearance, StyleSheet};
 /// }
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Button<'a, Message, Renderer = crate::Renderer>
+pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     width: Length,
     height: Length,
     padding: Padding,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, Message, Renderer> Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Button`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
 
@@ -80,7 +82,7 @@ where
             width: size.width.fluid(),
             height: size.height.fluid(),
             padding: Padding::new(5.0),
-            style: <Renderer::Theme as StyleSheet>::Style::default(),
+            style: Theme::Style::default(),
         }
     }
 
@@ -120,21 +122,18 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Button<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Button<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
+    Theme: StyleSheet,
     Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -224,7 +223,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -272,7 +271,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
@@ -281,14 +280,14 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Button<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
+    Theme: StyleSheet + 'a,
     Renderer: crate::core::Renderer + 'a,
-    Renderer::Theme: StyleSheet,
 {
-    fn from(button: Button<'a, Message, Renderer>) -> Self {
+    fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
         Self::new(button)
     }
 }
@@ -361,34 +360,32 @@ pub fn update<'a, Message: Clone>(
 }
 
 /// Draws a [`Button`].
-pub fn draw<'a, Renderer: crate::core::Renderer>(
+pub fn draw<'a, Theme, Renderer: crate::core::Renderer>(
     renderer: &mut Renderer,
     bounds: Rectangle,
     cursor: mouse::Cursor,
     is_enabled: bool,
-    style_sheet: &dyn StyleSheet<
-        Style = <Renderer::Theme as StyleSheet>::Style,
-    >,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    theme: &Theme,
+    style: &Theme::Style,
     state: impl FnOnce() -> &'a State,
 ) -> Appearance
 where
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     let is_mouse_over = cursor.is_over(bounds);
 
     let styling = if !is_enabled {
-        style_sheet.disabled(style)
+        theme.disabled(style)
     } else if is_mouse_over {
         let state = state();
 
         if state.is_pressed {
-            style_sheet.pressed(style)
+            theme.pressed(style)
         } else {
-            style_sheet.hovered(style)
+            theme.hovered(style)
         }
     } else {
-        style_sheet.active(style)
+        theme.active(style)
     };
 
     if styling.background.is_some()

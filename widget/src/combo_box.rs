@@ -25,29 +25,34 @@ use std::fmt::Display;
 /// to search for corresponding values from the list of options that are displayed
 /// as a Menu.
 #[allow(missing_debug_implementations)]
-pub struct ComboBox<'a, T, Message, Renderer = crate::Renderer>
-where
+pub struct ComboBox<
+    'a,
+    T,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: text_input::StyleSheet + menu::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: text_input::StyleSheet + menu::StyleSheet,
 {
     state: &'a State<T>,
-    text_input: TextInput<'a, TextInputEvent, Renderer>,
+    text_input: TextInput<'a, TextInputEvent, Theme, Renderer>,
     font: Option<Renderer::Font>,
     selection: text_input::Value,
     on_selected: Box<dyn Fn(T) -> Message>,
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_style: <Renderer::Theme as menu::StyleSheet>::Style,
+    menu_style: <Theme as menu::StyleSheet>::Style,
     padding: Padding,
     size: Option<f32>,
 }
 
-impl<'a, T, Message, Renderer> ComboBox<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
+    Theme: text_input::StyleSheet + menu::StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: text_input::StyleSheet + menu::StyleSheet,
 {
     /// Creates a new [`ComboBox`] with the given list of options, a placeholder,
     /// the current selected value, and the message to produce when an option is
@@ -116,8 +121,8 @@ where
     // TODO: Define its own `StyleSheet` trait
     pub fn style<S>(mut self, style: S) -> Self
     where
-        S: Into<<Renderer::Theme as text_input::StyleSheet>::Style>
-            + Into<<Renderer::Theme as menu::StyleSheet>::Style>
+        S: Into<<Theme as text_input::StyleSheet>::Style>
+            + Into<<Theme as menu::StyleSheet>::Style>
             + Clone,
     {
         self.menu_style = style.clone().into();
@@ -128,7 +133,7 @@ where
     /// Sets the style of the [`TextInput`] of the [`ComboBox`].
     pub fn text_input_style<S>(mut self, style: S) -> Self
     where
-        S: Into<<Renderer::Theme as text_input::StyleSheet>::Style> + Clone,
+        S: Into<<Theme as text_input::StyleSheet>::Style> + Clone,
     {
         self.text_input = self.text_input.style(style);
         self
@@ -289,19 +294,19 @@ enum TextInputEvent {
     TextChanged(String),
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for ComboBox<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
-    Renderer: text::Renderer,
-    Renderer::Theme: container::StyleSheet
+    Theme: container::StyleSheet
         + text_input::StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet,
+    Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
-        Widget::<TextInputEvent, Renderer>::size(&self.text_input)
+        Widget::<TextInputEvent, Theme, Renderer>::size(&self.text_input)
     }
 
     fn layout(
@@ -340,7 +345,7 @@ where
     }
 
     fn children(&self) -> Vec<widget::Tree> {
-        vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _>)]
+        vec![widget::Tree::new(&self.text_input as &dyn Widget<_, _, _>)]
     }
 
     fn on_event(
@@ -616,7 +621,7 @@ where
         &self,
         tree: &widget::Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -652,7 +657,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let is_focused = {
             let text_input_state = tree.children[0]
                 .state
@@ -707,18 +712,20 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<ComboBox<'a, T, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer>
+    From<ComboBox<'a, T, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
-    Message: 'a + Clone,
-    Renderer: text::Renderer + 'a,
-    Renderer::Theme: container::StyleSheet
+    Message: Clone + 'a,
+    Theme: container::StyleSheet
         + text_input::StyleSheet
         + scrollable::StyleSheet
-        + menu::StyleSheet,
+        + menu::StyleSheet
+        + 'a,
+    Renderer: text::Renderer + 'a,
 {
-    fn from(combo_box: ComboBox<'a, T, Message, Renderer>) -> Self {
+    fn from(combo_box: ComboBox<'a, T, Message, Theme, Renderer>) -> Self {
         Self::new(combo_box)
     }
 }

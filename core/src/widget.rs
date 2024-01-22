@@ -39,7 +39,7 @@ use crate::{Clipboard, Length, Rectangle, Shell, Size};
 /// [`geometry`]: https://github.com/iced-rs/iced/tree/0.10/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
 /// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.10/wgpu
-pub trait Widget<Message, Renderer>
+pub trait Widget<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -70,7 +70,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -146,7 +146,7 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<overlay::Element<'a, Message, Renderer>> {
+    ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
     }
 }

@@ -49,7 +49,7 @@ impl<'a> QRCode<'a> {
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -60,7 +60,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
     fn layout(
         &self,
         _tree: &mut Tree,
-        _renderer: &Renderer<Theme>,
+        _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
         let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
@@ -72,7 +72,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
     fn draw(
         &self,
         _state: &Tree,
-        renderer: &mut Renderer<Theme>,
+        renderer: &mut Renderer,
         _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
@@ -128,7 +128,7 @@ impl<'a, Message, Theme> Widget<Message, Renderer<Theme>> for QRCode<'a> {
 }
 
 impl<'a, Message, Theme> From<QRCode<'a>>
-    for Element<'a, Message, Renderer<Theme>>
+    for Element<'a, Message, Theme, Renderer>
 {
     fn from(qr_code: QRCode<'a>) -> Self {
         Self::new(qr_code)

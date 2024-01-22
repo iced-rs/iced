@@ -12,16 +12,16 @@ use crate::core::{
 
 /// A container that distributes its contents horizontally.
 #[allow(missing_debug_implementations)]
-pub struct Row<'a, Message, Renderer = crate::Renderer> {
+pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     spacing: f32,
     padding: Padding,
     width: Length,
     height: Length,
     align_items: Alignment,
-    children: Vec<Element<'a, Message, Renderer>>,
+    children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
-impl<'a, Message, Renderer> Row<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Row<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -39,7 +39,7 @@ where
 
     /// Creates a [`Row`] with the given elements.
     pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Renderer>>,
+        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         children.into_iter().fold(Self::new(), Self::push)
     }
@@ -81,7 +81,7 @@ where
     /// Adds an [`Element`] to the [`Row`].
     pub fn push(
         mut self,
-        child: impl Into<Element<'a, Message, Renderer>>,
+        child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
         let size = child.as_widget().size_hint();
@@ -108,8 +108,8 @@ where
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Row<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Row<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -223,7 +223,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -248,18 +248,19 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         overlay::from_children(&mut self.children, tree, layout, renderer)
     }
 }
 
-impl<'a, Message, Renderer> From<Row<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<Row<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
-    fn from(row: Row<'a, Message, Renderer>) -> Self {
+    fn from(row: Row<'a, Message, Theme, Renderer>) -> Self {
         Self::new(row)
     }
 }

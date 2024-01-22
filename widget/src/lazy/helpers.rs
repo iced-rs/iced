@@ -7,13 +7,13 @@ use std::hash::Hash;
 /// Creates a new [`Lazy`] widget with the given data `Dependency` and a
 /// closure that can turn this data into a widget tree.
 #[cfg(feature = "lazy")]
-pub fn lazy<'a, Message, Renderer, Dependency, View>(
+pub fn lazy<'a, Message, Theme, Renderer, Dependency, View>(
     dependency: Dependency,
     view: impl Fn(&Dependency) -> View + 'a,
-) -> Lazy<'a, Message, Renderer, Dependency, View>
+) -> Lazy<'a, Message, Theme, Renderer, Dependency, View>
 where
     Dependency: Hash + 'a,
-    View: Into<Element<'static, Message, Renderer>>,
+    View: Into<Element<'static, Message, Theme, Renderer>>,
 {
     Lazy::new(dependency, view)
 }
@@ -21,13 +21,14 @@ where
 /// Turns an implementor of [`Component`] into an [`Element`] that can be
 /// embedded in any application.
 #[cfg(feature = "lazy")]
-pub fn component<'a, C, Message, Renderer>(
+pub fn component<'a, C, Message, Theme, Renderer>(
     component: C,
-) -> Element<'a, Message, Renderer>
+) -> Element<'a, Message, Theme, Renderer>
 where
-    C: Component<Message, Renderer> + 'a,
+    C: Component<Message, Theme, Renderer> + 'a,
     C::State: 'static,
     Message: 'a,
+    Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
     component::view(component)
@@ -40,9 +41,9 @@ where
 /// the [`Responsive`] widget and, therefore, can be used to build the
 /// contents of the widget in a responsive way.
 #[cfg(feature = "lazy")]
-pub fn responsive<'a, Message, Renderer>(
-    f: impl Fn(Size) -> Element<'a, Message, Renderer> + 'a,
-) -> Responsive<'a, Message, Renderer>
+pub fn responsive<'a, Message, Theme, Renderer>(
+    f: impl Fn(Size) -> Element<'a, Message, Theme, Renderer> + 'a,
+) -> Responsive<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {

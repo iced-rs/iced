@@ -8,8 +8,8 @@ use iced::widget::shader::wgpu;
 use iced::widget::{checkbox, column, container, row, shader, slider, text};
 use iced::window;
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Renderer,
-    Subscription, Theme,
+    Alignment, Application, Color, Command, Element, Length, Subscription,
+    Theme,
 };
 
 fn main() -> iced::Result {
@@ -72,7 +72,7 @@ impl Application for IcedCubes {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Renderer<Self::Theme>> {
+    fn view(&self) -> Element<'_, Self::Message> {
         let top_controls = row![
             control(
                 "Amount",

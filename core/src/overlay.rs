@@ -14,7 +14,7 @@ use crate::widget::Tree;
 use crate::{Clipboard, Layout, Point, Rectangle, Shell, Size, Vector};
 
 /// An interactive component that can be displayed on top of other widgets.
-pub trait Overlay<Message, Renderer>
+pub trait Overlay<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
@@ -36,7 +36,7 @@ where
     fn draw(
         &self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -106,7 +106,7 @@ where
         &'a mut self,
         _layout: Layout<'_>,
         _renderer: &Renderer,
-    ) -> Option<Element<'a, Message, Renderer>> {
+    ) -> Option<Element<'a, Message, Theme, Renderer>> {
         None
     }
 }
@@ -115,12 +115,12 @@ where
 ///
 /// This method will generally only be used by advanced users that are
 /// implementing the [`Widget`](crate::Widget) trait.
-pub fn from_children<'a, Message, Renderer>(
-    children: &'a mut [crate::Element<'_, Message, Renderer>],
+pub fn from_children<'a, Message, Theme, Renderer>(
+    children: &'a mut [crate::Element<'_, Message, Theme, Renderer>],
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
-) -> Option<Element<'a, Message, Renderer>>
+) -> Option<Element<'a, Message, Theme, Renderer>>
 where
     Renderer: crate::Renderer,
 {

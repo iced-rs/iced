@@ -84,7 +84,8 @@ impl<Handle> Viewer<Handle> {
     }
 }
 
-impl<Message, Renderer, Handle> Widget<Message, Renderer> for Viewer<Handle>
+impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
+    for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
@@ -305,7 +306,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
+        _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -390,14 +391,14 @@ impl State {
     }
 }
 
-impl<'a, Message, Renderer, Handle> From<Viewer<Handle>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
     Handle: Clone + Hash + 'a,
 {
-    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Renderer> {
+    fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(viewer)
     }
 }

@@ -39,7 +39,7 @@ use std::sync::Arc;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    <Self::Renderer as core::Renderer>::Theme: StyleSheet,
+    Self::Theme: StyleSheet,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -61,12 +61,10 @@ where
     fn title(&self) -> String;
 
     /// Returns the current `Theme` of the [`Application`].
-    fn theme(&self) -> <Self::Renderer as core::Renderer>::Theme;
+    fn theme(&self) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(
-        &self,
-    ) -> <<Self::Renderer as core::Renderer>::Theme as StyleSheet>::Style {
+    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
         Default::default()
     }
 
@@ -107,7 +105,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use futures::task;
     use futures::Future;
@@ -258,7 +256,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use futures::stream::StreamExt;
     use winit::event;
@@ -579,9 +577,9 @@ pub fn build_user_interface<'a, A: Application>(
     renderer: &mut A::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, A::Message, A::Renderer>
+) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     debug.view_started();
     let view = application.view();
@@ -612,7 +610,7 @@ pub fn update<A: Application, C, E: Executor>(
     window: &winit::window::Window,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -663,7 +661,7 @@ pub fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use crate::runtime::command;
     use crate::runtime::system;

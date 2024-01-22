@@ -13,8 +13,13 @@ use crate::core::{
 
 /// Emit messages on mouse events.
 #[allow(missing_debug_implementations)]
-pub struct MouseArea<'a, Message, Renderer> {
-    content: Element<'a, Message, Renderer>,
+pub struct MouseArea<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> {
+    content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     on_release: Option<Message>,
     on_right_press: Option<Message>,
@@ -23,7 +28,7 @@ pub struct MouseArea<'a, Message, Renderer> {
     on_middle_release: Option<Message>,
 }
 
-impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// The message to emit on a left button press.
     #[must_use]
     pub fn on_press(mut self, message: Message) -> Self {
@@ -73,9 +78,11 @@ struct State {
     // TODO: Support on_mouse_enter and on_mouse_exit
 }
 
-impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
+impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     /// Creates a [`MouseArea`] with the given content.
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
         MouseArea {
             content: content.into(),
             on_press: None,
@@ -88,8 +95,8 @@ impl<'a, Message, Renderer> MouseArea<'a, Message, Renderer> {
     }
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for MouseArea<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for MouseArea<'a, Message, Theme, Renderer>
 where
     Renderer: renderer::Renderer,
     Message: Clone,
@@ -188,7 +195,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         renderer_style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -210,7 +217,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout,
@@ -219,23 +226,24 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<MouseArea<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<MouseArea<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
+    Theme: 'a,
     Renderer: 'a + renderer::Renderer,
 {
     fn from(
-        area: MouseArea<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        area: MouseArea<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(area)
     }
 }
 
 /// Processes the given [`Event`] and updates the [`State`] of an [`MouseArea`]
 /// accordingly.
-fn update<Message: Clone, Renderer>(
-    widget: &mut MouseArea<'_, Message, Renderer>,
+fn update<Message: Clone, Theme, Renderer>(
+    widget: &mut MouseArea<'_, Message, Theme, Renderer>,
     event: &Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,

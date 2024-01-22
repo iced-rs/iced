@@ -82,7 +82,7 @@ impl Application for Clock {
     }
 }
 
-impl<Message> canvas::Program<Message, Renderer> for Clock {
+impl<Message> canvas::Program<Message> for Clock {
     type State = ();
 
     fn draw(

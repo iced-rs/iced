@@ -139,7 +139,7 @@ pub trait Application: Sized {
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, crate::Renderer<Self::Theme>>;
+    fn view(&self) -> Element<'_, Self::Message, Self::Theme, crate::Renderer>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     ///
@@ -208,7 +208,7 @@ pub trait Application: Sized {
         Ok(crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::Compositor<Self::Theme>,
+            crate::renderer::Compositor,
         >(settings.into(), renderer_settings)?)
     }
 }
@@ -219,14 +219,15 @@ impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
 {
-    type Renderer = crate::Renderer<A::Theme>;
     type Message = A::Message;
+    type Theme = A::Theme;
+    type Renderer = crate::Renderer;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)
     }
 
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer> {
+    fn view(&self) -> Element<'_, Self::Message, Self::Theme, Self::Renderer> {
         self.0.view()
     }
 }

@@ -12,7 +12,7 @@ use winit::monitor::MonitorHandle;
 #[allow(missing_debug_implementations)]
 pub struct WindowManager<A: Application, C: Compositor>
 where
-    <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
     C: Compositor<Renderer = A::Renderer>,
 {
     aliases: BTreeMap<winit::window::WindowId, Id>,
@@ -23,7 +23,7 @@ impl<A, C> WindowManager<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     pub fn new() -> Self {
         Self {
@@ -109,7 +109,7 @@ impl<A, C> Default for WindowManager<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     fn default() -> Self {
         Self::new()
@@ -121,7 +121,7 @@ pub struct Window<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     pub raw: Arc<winit::window::Window>,
     pub state: State<A>,
@@ -136,7 +136,7 @@ impl<A, C> Window<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    <A::Renderer as crate::core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     pub fn position(&self) -> Option<Point> {
         self.raw

@@ -29,7 +29,7 @@ mod quad {
         }
     }
 
-    impl<Message, Renderer> Widget<Message, Renderer> for CustomQuad
+    impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for CustomQuad
     where
         Renderer: renderer::Renderer,
     {
@@ -53,7 +53,7 @@ mod quad {
             &self,
             _state: &widget::Tree,
             renderer: &mut Renderer,
-            _theme: &Renderer::Theme,
+            _theme: &Theme,
             _style: &renderer::Style,
             layout: Layout<'_>,
             _cursor: mouse::Cursor,
@@ -74,10 +74,7 @@ mod quad {
         }
     }
 
-    impl<'a, Message, Renderer> From<CustomQuad> for Element<'a, Message, Renderer>
-    where
-        Renderer: renderer::Renderer,
-    {
+    impl<'a, Message> From<CustomQuad> for Element<'a, Message> {
         fn from(circle: CustomQuad) -> Self {
             Self::new(circle)
         }

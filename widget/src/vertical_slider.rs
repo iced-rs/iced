@@ -28,7 +28,7 @@ use crate::core::{
 /// # Example
 /// ```no_run
 /// # type VerticalSlider<'a, T, Message> =
-/// #     iced_widget::VerticalSlider<'a, T, Message, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::VerticalSlider<'a, T, Message, iced_widget::style::Theme>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {
@@ -40,10 +40,9 @@ use crate::core::{
 /// VerticalSlider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct VerticalSlider<'a, T, Message, Renderer = crate::Renderer>
+pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>
 where
-    Renderer: core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     range: RangeInclusive<T>,
     step: T,
@@ -52,15 +51,14 @@ where
     on_release: Option<Message>,
     width: f32,
     height: Length,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, T, Message, Renderer> VerticalSlider<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// The default width of a [`VerticalSlider`].
     pub const DEFAULT_WIDTH: f32 = 22.0;
@@ -125,10 +123,7 @@ where
     }
 
     /// Sets the style of the [`VerticalSlider`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -140,13 +135,13 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for VerticalSlider<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
+    Theme: StyleSheet,
     Renderer: core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -201,7 +196,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -231,17 +226,18 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<VerticalSlider<'a, T, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer>
+    From<VerticalSlider<'a, T, Message, Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
-    T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
-    Message: 'a + Clone,
-    Renderer: 'a + core::Renderer,
-    Renderer::Theme: StyleSheet,
+    T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
+    Message: Clone + 'a,
+    Theme: StyleSheet + 'a,
+    Renderer: core::Renderer + 'a,
 {
     fn from(
-        slider: VerticalSlider<'a, T, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        slider: VerticalSlider<'a, T, Message, Theme>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(slider)
     }
 }
@@ -337,19 +333,19 @@ where
 }
 
 /// Draws a [`VerticalSlider`].
-pub fn draw<T, R>(
-    renderer: &mut R,
+pub fn draw<T, Theme, Renderer>(
+    renderer: &mut Renderer,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     state: &State,
     value: T,
     range: &RangeInclusive<T>,
-    style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
-    style: &<R::Theme as StyleSheet>::Style,
+    style_sheet: &Theme,
+    style: &Theme::Style,
 ) where
     T: Into<f64> + Copy,
-    R: core::Renderer,
-    R::Theme: StyleSheet,
+    Theme: StyleSheet,
+    Renderer: core::Renderer,
 {
     let bounds = layout.bounds();
     let is_mouse_over = cursor.is_over(bounds);

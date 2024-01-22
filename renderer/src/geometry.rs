@@ -29,7 +29,7 @@ macro_rules! delegate {
 }
 
 impl Frame {
-    pub fn new<Theme>(renderer: &Renderer<Theme>, size: Size) -> Self {
+    pub fn new(renderer: &Renderer, size: Size) -> Self {
         match renderer {
             Renderer::TinySkia(_) => {
                 Frame::TinySkia(iced_tiny_skia::geometry::Frame::new(size))

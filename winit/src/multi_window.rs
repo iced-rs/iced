@@ -40,7 +40,7 @@ use std::time::Instant;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    <Self::Renderer as core::Renderer>::Theme: StyleSheet,
+    Self::Theme: StyleSheet,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -62,15 +62,10 @@ where
     fn title(&self, window: window::Id) -> String;
 
     /// Returns the current `Theme` of the [`Application`].
-    fn theme(
-        &self,
-        window: window::Id,
-    ) -> <Self::Renderer as core::Renderer>::Theme;
+    fn theme(&self, window: window::Id) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(
-        &self,
-    ) -> <<Self::Renderer as core::Renderer>::Theme as StyleSheet>::Style {
+    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
         Default::default()
     }
 
@@ -112,7 +107,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use winit::event_loop::EventLoopBuilder;
 
@@ -325,7 +320,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
@@ -793,9 +788,9 @@ fn build_user_interface<'a, A: Application>(
     size: Size,
     debug: &mut Debug,
     id: window::Id,
-) -> UserInterface<'a, A::Message, A::Renderer>
+) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     debug.view_started();
     let view = application.view(id);
@@ -823,7 +818,7 @@ fn update<A: Application, C, E: Executor>(
     ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -866,7 +861,7 @@ fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
 {
     use crate::runtime::clipboard;
     use crate::runtime::system;
@@ -1142,9 +1137,9 @@ pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
     debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
     mut cached_user_interfaces: HashMap<window::Id, user_interface::Cache>,
-) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Renderer>>
+) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
 where
-    <A::Renderer as core::Renderer>::Theme: StyleSheet,
+    A::Theme: StyleSheet,
     C: Compositor<Renderer = A::Renderer>,
 {
     cached_user_interfaces

@@ -6,21 +6,18 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
-use std::marker::PhantomData;
-
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
-pub struct Compositor<Theme> {
+pub struct Compositor {
     settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
-    theme: PhantomData<Theme>,
 }
 
-impl<Theme> Compositor<Theme> {
+impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
     /// Returns `None` if no compatible graphics adapter could be found.
@@ -123,7 +120,6 @@ impl<Theme> Compositor<Theme> {
             device,
             queue,
             format,
-            theme: PhantomData,
         })
     }
 
@@ -135,10 +131,10 @@ impl<Theme> Compositor<Theme> {
 
 /// Creates a [`Compositor`] and its [`Backend`] for the given [`Settings`] and
 /// window.
-pub fn new<W: compositor::Window, Theme>(
+pub fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
-) -> Result<Compositor<Theme>, Error> {
+) -> Result<Compositor, Error> {
     let compositor = futures::executor::block_on(Compositor::request(
         settings,
         Some(compatible_window),
@@ -149,8 +145,8 @@ pub fn new<W: compositor::Window, Theme>(
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
-pub fn present<Theme, T: AsRef<str>>(
-    compositor: &mut Compositor<Theme>,
+pub fn present<T: AsRef<str>>(
+    compositor: &mut Compositor,
     backend: &mut Backend,
     surface: &mut wgpu::Surface<'static>,
     primitives: &[Primitive],
@@ -203,9 +199,9 @@ pub fn present<Theme, T: AsRef<str>>(
     }
 }
 
-impl<Theme> graphics::Compositor for Compositor<Theme> {
+impl graphics::Compositor for Compositor {
     type Settings = Settings;
-    type Renderer = Renderer<Theme>;
+    type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
     fn new<W: compositor::Window>(
@@ -314,8 +310,8 @@ impl<Theme> graphics::Compositor for Compositor<Theme> {
 /// Renders the current surface to an offscreen buffer.
 ///
 /// Returns RGBA bytes of the texture data.
-pub fn screenshot<Theme, T: AsRef<str>>(
-    compositor: &Compositor<Theme>,
+pub fn screenshot<T: AsRef<str>>(
+    compositor: &Compositor,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,

@@ -56,7 +56,8 @@ impl<Message, P: Program<Message>> Shader<Message, P> {
     }
 }
 
-impl<P, Message, Renderer> Widget<Message, Renderer> for Shader<Message, P>
+impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Shader<Message, P>
 where
     P: Program<Message>,
     Renderer: pipeline::Renderer,
@@ -150,7 +151,7 @@ where
         &self,
         tree: &widget::Tree,
         renderer: &mut Renderer,
-        _theme: &Renderer::Theme,
+        _theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
@@ -166,14 +167,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer, P> From<Shader<Message, P>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer, P> From<Shader<Message, P>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Renderer: pipeline::Renderer,
     P: Program<Message> + 'a,
 {
-    fn from(custom: Shader<Message, P>) -> Element<'a, Message, Renderer> {
+    fn from(
+        custom: Shader<Message, P>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(custom)
     }
 }

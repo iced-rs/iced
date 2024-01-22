@@ -30,9 +30,8 @@ use std::marker::PhantomData;
 /// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
 /// # use iced_widget::core::{Color, Rectangle};
 /// # use iced_widget::core::mouse;
-/// # use iced_widget::style::Theme;
+/// # use iced_widget::{Renderer, Theme};
 /// #
-/// # pub type Renderer = iced_widget::renderer::Renderer<Theme>;
 /// // First, we define the data we need for drawing
 /// #[derive(Debug)]
 /// struct Circle {
@@ -62,22 +61,23 @@ use std::marker::PhantomData;
 /// let canvas = Canvas::new(Circle { radius: 50.0 });
 /// ```
 #[derive(Debug)]
-pub struct Canvas<P, Message, Renderer = crate::Renderer>
+pub struct Canvas<P, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: geometry::Renderer,
-    P: Program<Message, Renderer>,
+    P: Program<Message, Theme, Renderer>,
 {
     width: Length,
     height: Length,
     program: P,
     message_: PhantomData<Message>,
-    theme_: PhantomData<Renderer>,
+    theme_: PhantomData<Theme>,
+    renderer_: PhantomData<Renderer>,
 }
 
-impl<P, Message, Renderer> Canvas<P, Message, Renderer>
+impl<P, Message, Theme, Renderer> Canvas<P, Message, Theme, Renderer>
 where
+    P: Program<Message, Theme, Renderer>,
     Renderer: geometry::Renderer,
-    P: Program<Message, Renderer>,
 {
     const DEFAULT_SIZE: f32 = 100.0;
 
@@ -89,6 +89,7 @@ where
             program,
             message_: PhantomData,
             theme_: PhantomData,
+            renderer_: PhantomData,
         }
     }
 
@@ -105,11 +106,11 @@ where
     }
 }
 
-impl<P, Message, Renderer> Widget<Message, Renderer>
-    for Canvas<P, Message, Renderer>
+impl<P, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Canvas<P, Message, Theme, Renderer>
 where
     Renderer: geometry::Renderer,
-    P: Program<Message, Renderer>,
+    P: Program<Message, Theme, Renderer>,
 {
     fn tag(&self) -> tree::Tag {
         struct Tag<T>(T);
@@ -192,7 +193,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -217,16 +218,17 @@ where
     }
 }
 
-impl<'a, P, Message, Renderer> From<Canvas<P, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, P, Message, Theme, Renderer> From<Canvas<P, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: 'a,
     Renderer: 'a + geometry::Renderer,
-    P: Program<Message, Renderer> + 'a,
+    P: 'a + Program<Message, Theme, Renderer>,
 {
     fn from(
-        canvas: Canvas<P, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        canvas: Canvas<P, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(canvas)
     }
 }

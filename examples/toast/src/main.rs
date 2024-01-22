@@ -177,7 +177,6 @@ mod toast {
     use std::fmt;
     use std::time::{Duration, Instant};
 
-    use iced::advanced;
     use iced::advanced::layout::{self, Layout};
     use iced::advanced::overlay;
     use iced::advanced::renderer;
@@ -314,7 +313,7 @@ mod toast {
         }
     }
 
-    impl<'a, Message> Widget<Message, Renderer> for Manager<'a, Message> {
+    impl<'a, Message> Widget<Message, Theme, Renderer> for Manager<'a, Message> {
         fn size(&self) -> Size<Length> {
             self.content.as_widget().size()
         }
@@ -457,7 +456,7 @@ mod toast {
             state: &'b mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
-        ) -> Option<overlay::Element<'b, Message, Renderer>> {
+        ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
 
             let (content_state, toasts_state) = state.children.split_at_mut(1);
@@ -496,7 +495,7 @@ mod toast {
         timeout_secs: u64,
     }
 
-    impl<'a, 'b, Message> overlay::Overlay<Message, Renderer>
+    impl<'a, 'b, Message> overlay::Overlay<Message, Theme, Renderer>
         for Overlay<'a, 'b, Message>
     {
         fn layout(
@@ -601,7 +600,7 @@ mod toast {
         fn draw(
             &self,
             renderer: &mut Renderer,
-            theme: &<Renderer as advanced::Renderer>::Theme,
+            theme: &Theme,
             style: &renderer::Style,
             layout: Layout<'_>,
             cursor: mouse::Cursor,

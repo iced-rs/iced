@@ -48,7 +48,7 @@ impl Sandbox for Component {
 mod numeric_input {
     use iced::alignment::{self, Alignment};
     use iced::widget::{button, component, row, text, text_input, Component};
-    use iced::{Element, Length, Renderer};
+    use iced::{Element, Length};
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -81,7 +81,7 @@ mod numeric_input {
         }
     }
 
-    impl<Message> Component<Message, Renderer> for NumericInput<Message> {
+    impl<Message> Component<Message> for NumericInput<Message> {
         type State = ();
         type Event = Event;
 
@@ -111,7 +111,7 @@ mod numeric_input {
             }
         }
 
-        fn view(&self, _state: &Self::State) -> Element<Event, Renderer> {
+        fn view(&self, _state: &Self::State) -> Element<Event> {
             let button = |label, on_press| {
                 button(
                     text(label)
@@ -145,7 +145,7 @@ mod numeric_input {
         }
     }
 
-    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message, Renderer>
+    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message>
     where
         Message: 'a,
     {

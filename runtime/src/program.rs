@@ -13,6 +13,9 @@ pub trait Program: Sized {
     /// The graphics backend to use to draw the [`Program`].
     type Renderer: Renderer + text::Renderer;
 
+    /// The theme used to draw the [`Program`].
+    type Theme;
+
     /// The type of __messages__ your [`Program`] will produce.
     type Message: std::fmt::Debug + Send;
 
@@ -29,5 +32,5 @@ pub trait Program: Sized {
     /// Returns the widgets to display in the [`Program`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, Self::Renderer>;
+    fn view(&self) -> Element<'_, Self::Message, Self::Theme, Self::Renderer>;
 }

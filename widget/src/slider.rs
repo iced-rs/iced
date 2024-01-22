@@ -29,7 +29,7 @@ pub use iced_style::slider::{
 /// # Example
 /// ```no_run
 /// # type Slider<'a, T, Message> =
-/// #     iced_widget::Slider<'a, Message, T, iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// #     iced_widget::Slider<'a, Message, T, iced_widget::style::Theme>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {
@@ -43,10 +43,9 @@ pub use iced_style::slider::{
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Renderer = crate::Renderer>
+pub struct Slider<'a, T, Message, Theme = crate::Theme>
 where
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     range: RangeInclusive<T>,
     step: T,
@@ -55,15 +54,14 @@ where
     on_release: Option<Message>,
     width: Length,
     height: f32,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, T, Message, Renderer> Slider<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: f32 = 22.0;
@@ -128,10 +126,7 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -143,13 +138,13 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> Widget<Message, Renderer>
-    for Slider<'a, T, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Slider<'a, T, Message, Theme>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -204,7 +199,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -234,17 +229,17 @@ where
     }
 }
 
-impl<'a, T, Message, Renderer> From<Slider<'a, T, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
-    T: 'a + Copy + Into<f64> + num_traits::FromPrimitive,
-    Message: 'a + Clone,
-    Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
+    Message: Clone + 'a,
+    Theme: StyleSheet + 'a,
+    Renderer: crate::core::Renderer + 'a,
 {
     fn from(
-        slider: Slider<'a, T, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        slider: Slider<'a, T, Message, Theme>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(slider)
     }
 }
@@ -338,29 +333,29 @@ where
 }
 
 /// Draws a [`Slider`].
-pub fn draw<T, R>(
-    renderer: &mut R,
+pub fn draw<T, Theme, Renderer>(
+    renderer: &mut Renderer,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     state: &State,
     value: T,
     range: &RangeInclusive<T>,
-    style_sheet: &dyn StyleSheet<Style = <R::Theme as StyleSheet>::Style>,
-    style: &<R::Theme as StyleSheet>::Style,
+    theme: &Theme,
+    style: &Theme::Style,
 ) where
     T: Into<f64> + Copy,
-    R: crate::core::Renderer,
-    R::Theme: StyleSheet,
+    Theme: StyleSheet,
+    Renderer: crate::core::Renderer,
 {
     let bounds = layout.bounds();
     let is_mouse_over = cursor.is_over(bounds);
 
     let style = if state.is_dragging {
-        style_sheet.dragging(style)
+        theme.dragging(style)
     } else if is_mouse_over {
-        style_sheet.hovered(style)
+        theme.hovered(style)
     } else {
-        style_sheet.active(style)
+        theme.active(style)
     };
 
     let (handle_width, handle_height, handle_border_radius) =

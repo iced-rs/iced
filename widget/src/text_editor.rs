@@ -23,11 +23,16 @@ pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
 #[allow(missing_debug_implementations)]
-pub struct TextEditor<'a, Highlighter, Message, Renderer = crate::Renderer>
-where
+pub struct TextEditor<
+    'a,
+    Highlighter,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
     Highlighter: text::Highlighter,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     content: &'a Content<Renderer>,
     font: Option<Renderer::Font>,
@@ -36,20 +41,20 @@ where
     width: Length,
     height: Length,
     padding: Padding,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
         &Highlighter::Highlight,
-        &Renderer::Theme,
+        &Theme,
     ) -> highlighter::Format<Renderer::Font>,
 }
 
-impl<'a, Message, Renderer>
-    TextEditor<'a, highlighter::PlainText, Message, Renderer>
+impl<'a, Message, Theme, Renderer>
+    TextEditor<'a, highlighter::PlainText, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self {
@@ -71,12 +76,12 @@ where
     }
 }
 
-impl<'a, Highlighter, Message, Renderer>
-    TextEditor<'a, Highlighter, Message, Renderer>
+impl<'a, Highlighter, Message, Theme, Renderer>
+    TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Sets the message that should be produced when some action is performed in
     /// the [`TextEditor`].
@@ -111,9 +116,9 @@ where
         settings: H::Settings,
         to_format: fn(
             &H::Highlight,
-            &Renderer::Theme,
+            &Theme,
         ) -> highlighter::Format<Renderer::Font>,
-    ) -> TextEditor<'a, H, Message, Renderer> {
+    ) -> TextEditor<'a, H, Message, Theme, Renderer> {
         TextEditor {
             content: self.content,
             font: self.font,
@@ -130,10 +135,7 @@ where
     }
 
     /// Sets the style of the [`TextEditor`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -292,12 +294,12 @@ struct State<Highlighter: text::Highlighter> {
     highlighter_format_address: usize,
 }
 
-impl<'a, Highlighter, Message, Renderer> Widget<Message, Renderer>
-    for TextEditor<'a, Highlighter, Message, Renderer>
+impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> widget::tree::Tag {
         widget::tree::Tag::of::<State<Highlighter>>()
@@ -433,7 +435,7 @@ where
         &self,
         tree: &widget::Tree,
         renderer: &mut Renderer,
-        theme: &<Renderer as renderer::Renderer>::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -551,17 +553,17 @@ where
     }
 }
 
-impl<'a, Highlighter, Message, Renderer>
-    From<TextEditor<'a, Highlighter, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Highlighter, Message, Theme, Renderer>
+    From<TextEditor<'a, Highlighter, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Message: 'a,
+    Theme: StyleSheet + 'a,
     Renderer: text::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn from(
-        text_editor: TextEditor<'a, Highlighter, Message, Renderer>,
+        text_editor: TextEditor<'a, Highlighter, Message, Theme, Renderer>,
     ) -> Self {
         Self::new(text_editor)
     }

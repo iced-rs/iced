@@ -13,8 +13,7 @@ pub use iced_style::progress_bar::{Appearance, StyleSheet};
 ///
 /// # Example
 /// ```no_run
-/// # type ProgressBar =
-/// #     iced_widget::ProgressBar<iced_widget::renderer::Renderer<iced_widget::style::Theme>>;
+/// # type ProgressBar = iced_widget::ProgressBar<iced_widget::style::Theme>;
 /// #
 /// let value = 50.0;
 ///
@@ -23,22 +22,20 @@ pub use iced_style::progress_bar::{Appearance, StyleSheet};
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar<Renderer = crate::Renderer>
+pub struct ProgressBar<Theme = crate::Theme>
 where
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<Renderer> ProgressBar<Renderer>
+impl<Theme> ProgressBar<Theme>
 where
-    Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     /// The default height of a [`ProgressBar`].
     pub const DEFAULT_HEIGHT: f32 = 30.0;
@@ -71,19 +68,17 @@ where
     }
 
     /// Sets the style of the [`ProgressBar`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<Message, Renderer> Widget<Message, Renderer> for ProgressBar<Renderer>
+impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ProgressBar<Theme>
 where
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
+    Theme: StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -109,7 +104,7 @@ where
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -152,16 +147,16 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<ProgressBar<Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> From<ProgressBar<Theme>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: StyleSheet + 'a,
     Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn from(
-        progress_bar: ProgressBar<Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        progress_bar: ProgressBar<Theme>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(progress_bar)
     }
 }

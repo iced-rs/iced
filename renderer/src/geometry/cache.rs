@@ -54,9 +54,9 @@ impl Cache {
     /// Otherwise, the previously stored [`Geometry`] will be returned. The
     /// [`Cache`] is not cleared in this case. In other words, it will keep
     /// returning the stored [`Geometry`] if needed.
-    pub fn draw<Theme>(
+    pub fn draw(
         &self,
-        renderer: &Renderer<Theme>,
+        renderer: &Renderer,
         bounds: Size,
         draw_fn: impl FnOnce(&mut Frame),
     ) -> Geometry {

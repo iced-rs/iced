@@ -91,7 +91,7 @@ where
         bounds: Size,
         cursor: mouse::Cursor,
         renderer: &mut P::Renderer,
-        theme: &<P::Renderer as iced_core::Renderer>::Theme,
+        theme: &P::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
         debug: &mut Debug,
@@ -219,7 +219,7 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     debug: &mut Debug,
-) -> UserInterface<'a, P::Message, P::Renderer> {
+) -> UserInterface<'a, P::Message, P::Theme, P::Renderer> {
     debug.view_started();
     let view = program.view();
     debug.view_finished();

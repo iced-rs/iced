@@ -271,8 +271,12 @@ pub mod overlay {
     /// This is an alias of an [`overlay::Element`] with a default `Renderer`.
     ///
     /// [`overlay::Element`]: crate::core::overlay::Element
-    pub type Element<'a, Message, Renderer = crate::Renderer> =
-        crate::core::overlay::Element<'a, Message, Renderer>;
+    pub type Element<
+        'a,
+        Message,
+        Theme = crate::Renderer,
+        Renderer = crate::Renderer,
+    > = crate::core::overlay::Element<'a, Message, Theme, Renderer>;
 
     pub use iced_widget::overlay::*;
 }
@@ -302,19 +306,21 @@ pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
+pub use renderer::Renderer;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
 pub use theme::Theme;
 
-/// The default renderer.
-pub type Renderer<Theme = style::Theme> = renderer::Renderer<Theme>;
-
 /// A generic widget.
 ///
 /// This is an alias of an `iced_native` element with a default `Renderer`.
-pub type Element<'a, Message, Renderer = crate::Renderer> =
-    crate::core::Element<'a, Message, Renderer>;
+pub type Element<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> = crate::core::Element<'a, Message, Theme, Renderer>;
 
 /// The result of running an [`Application`].
 ///

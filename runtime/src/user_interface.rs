@@ -23,15 +23,15 @@ use crate::overlay;
 ///
 /// [`integration`]: https://github.com/iced-rs/iced/tree/0.10/examples/integration
 #[allow(missing_debug_implementations)]
-pub struct UserInterface<'a, Message, Renderer> {
-    root: Element<'a, Message, Renderer>,
+pub struct UserInterface<'a, Message, Theme, Renderer> {
+    root: Element<'a, Message, Theme, Renderer>,
     base: layout::Node,
     state: widget::Tree,
     overlay: Option<layout::Node>,
     bounds: Size,
 }
 
-impl<'a, Message, Renderer> UserInterface<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> UserInterface<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
@@ -54,7 +54,7 @@ where
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::Size;
@@ -86,7 +86,7 @@ where
     ///     cache = user_interface.into_cache();
     /// }
     /// ```
-    pub fn build<E: Into<Element<'a, Message, Renderer>>>(
+    pub fn build<E: Into<Element<'a, Message, Theme, Renderer>>>(
         root: E,
         bounds: Size,
         cache: Cache,
@@ -130,7 +130,7 @@ where
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> iced_core::Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn view(&self) -> iced_core::Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
@@ -384,7 +384,7 @@ where
     /// #
     /// # impl Counter {
     /// #     pub fn new() -> Self { Counter }
-    /// #     pub fn view(&self) -> Element<(), Renderer> { unimplemented!() }
+    /// #     pub fn view(&self) -> Element<(), (), Renderer> { unimplemented!() }
     /// #     pub fn update(&mut self, _: ()) {}
     /// # }
     /// use iced_runtime::core::clipboard;
@@ -439,7 +439,7 @@ where
     pub fn draw(
         &mut self,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         cursor: mouse::Cursor,
     ) -> mouse::Interaction {

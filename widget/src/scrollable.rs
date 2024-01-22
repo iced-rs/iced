@@ -21,27 +21,33 @@ pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 /// A widget that can vertically display an infinite amount of content with a
 /// scrollbar.
 #[allow(missing_debug_implementations)]
-pub struct Scrollable<'a, Message, Renderer = crate::Renderer>
-where
+pub struct Scrollable<
+    'a,
+    Message,
+    Theme = crate::Theme,
+    Renderer = crate::Renderer,
+> where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     id: Option<Id>,
     width: Length,
     height: Length,
     direction: Direction,
-    content: Element<'a, Message, Renderer>,
+    content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
-    style: <Renderer::Theme as StyleSheet>::Style,
+    style: Theme::Style,
 }
 
-impl<'a, Message, Renderer> Scrollable<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     /// Creates a new [`Scrollable`].
-    pub fn new(content: impl Into<Element<'a, Message, Renderer>>) -> Self {
+    pub fn new(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
         Scrollable {
             id: None,
             width: Length::Shrink,
@@ -86,10 +92,7 @@ where
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style(
-        mut self,
-        style: impl Into<<Renderer::Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
         self
     }
@@ -198,11 +201,11 @@ pub enum Alignment {
     End,
 }
 
-impl<'a, Message, Renderer> Widget<Message, Renderer>
-    for Scrollable<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Scrollable<'a, Message, Theme, Renderer>
 where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -324,7 +327,7 @@ where
         &self,
         tree: &Tree,
         renderer: &mut Renderer,
-        theme: &Renderer::Theme,
+        theme: &Theme,
         style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
@@ -382,7 +385,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
-    ) -> Option<overlay::Element<'b, Message, Renderer>> {
+    ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content
             .as_widget_mut()
             .overlay(
@@ -404,16 +407,17 @@ where
     }
 }
 
-impl<'a, Message, Renderer> From<Scrollable<'a, Message, Renderer>>
-    for Element<'a, Message, Renderer>
+impl<'a, Message, Theme, Renderer>
+    From<Scrollable<'a, Message, Theme, Renderer>>
+    for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
+    Theme: StyleSheet + 'a,
     Renderer: 'a + crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     fn from(
-        text_input: Scrollable<'a, Message, Renderer>,
-    ) -> Element<'a, Message, Renderer> {
+        text_input: Scrollable<'a, Message, Theme, Renderer>,
+    ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(text_input)
     }
 }
@@ -841,18 +845,18 @@ pub fn mouse_interaction(
 }
 
 /// Draws a [`Scrollable`].
-pub fn draw<Renderer>(
+pub fn draw<Theme, Renderer>(
     state: &State,
     renderer: &mut Renderer,
-    theme: &Renderer::Theme,
+    theme: &Theme,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     direction: Direction,
-    style: &<Renderer::Theme as StyleSheet>::Style,
+    style: &Theme::Style,
     draw_content: impl FnOnce(&mut Renderer, Layout<'_>, mouse::Cursor, &Rectangle),
 ) where
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
-    Renderer::Theme: StyleSheet,
 {
     let bounds = layout.bounds();
     let content_layout = layout.children().next().unwrap();

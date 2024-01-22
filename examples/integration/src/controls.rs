@@ -29,8 +29,9 @@ impl Controls {
 }
 
 impl Program for Controls {
-    type Renderer = Renderer<Theme>;
+    type Theme = Theme;
     type Message = Message;
+    type Renderer = Renderer;
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
@@ -45,7 +46,7 @@ impl Program for Controls {
         Command::none()
     }
 
-    fn view(&self) -> Element<Message, Renderer<Theme>> {
+    fn view(&self) -> Element<Message, Theme, Renderer> {
         let background_color = self.background_color;
         let text = &self.text;
 

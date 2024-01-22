@@ -19,6 +19,7 @@ pub use iced_style as style;
 mod column;
 mod mouse_area;
 mod row;
+mod themer;
 
 pub mod button;
 pub mod checkbox;
@@ -91,6 +92,8 @@ pub use text_editor::TextEditor;
 #[doc(no_inline)]
 pub use text_input::TextInput;
 #[doc(no_inline)]
+pub use themer::Themer;
+#[doc(no_inline)]
 pub use toggler::Toggler;
 #[doc(no_inline)]
 pub use tooltip::Tooltip;
@@ -132,4 +135,5 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
-type Renderer<Theme = style::Theme> = renderer::Renderer<Theme>;
+pub use renderer::Renderer;
+pub use style::theme::{self, Theme};
