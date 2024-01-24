@@ -60,26 +60,6 @@ where
         }
     }
 
-    /// Sets the size of the text of the [`Tooltip`].
-    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.tooltip = self.tooltip.size(size);
-        self
-    }
-
-    /// Sets the [`text::Shaping`] strategy of the [`Tooltip`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.tooltip = self.tooltip.shaping(shaping);
-        self
-    }
-
-    /// Sets the font of the [`Tooltip`].
-    ///
-    /// [`Font`]: Renderer::Font
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.tooltip = self.tooltip.font(font);
-        self
-    }
-
     /// Sets the gap between the content and its [`Tooltip`].
     pub fn gap(mut self, gap: impl Into<Pixels>) -> Self {
         self.gap = gap.into().0;
