@@ -129,7 +129,7 @@ where
 /// [`tooltip::Position`]: crate::tooltip::Position
 pub fn tooltip<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    tooltip: impl Into<Text<'a, Theme, Renderer>>,
+    tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
     position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where

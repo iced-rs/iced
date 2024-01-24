@@ -1,6 +1,6 @@
 use iced::theme;
 use iced::widget::tooltip::Position;
-use iced::widget::{button, container, tooltip};
+use iced::widget::{button, column, container, progress_bar, tooltip};
 use iced::{Element, Length, Sandbox, Settings};
 
 pub fn main() -> iced::Result {
@@ -9,11 +9,13 @@ pub fn main() -> iced::Result {
 
 struct Example {
     position: Position,
+    progress: f32,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
     ChangePosition,
+    IncreaseProgress,
 }
 
 impl Sandbox for Example {
@@ -22,6 +24,7 @@ impl Sandbox for Example {
     fn new() -> Self {
         Self {
             position: Position::Bottom,
+            progress: 0.0,
         }
     }
 
@@ -42,11 +45,17 @@ impl Sandbox for Example {
 
                 self.position = position;
             }
+            Message::IncreaseProgress => {
+                if self.progress >= 1.0 {
+                    self.progress = 0.0;
+                }
+                self.progress += 0.1;
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let tooltip = tooltip(
+        let positioned_tooltip = tooltip(
             button("Press to change position")
                 .on_press(Message::ChangePosition),
             position_to_text(self.position),
@@ -55,7 +64,18 @@ impl Sandbox for Example {
         .gap(10)
         .style(theme::Container::Box);
 
-        container(tooltip)
+        let progress_tooltip = tooltip(
+            button("Press to increase progress")
+                .on_press(Message::IncreaseProgress),
+            progress_bar(0.0..=1.0, self.progress).width(Length::Fixed(100.0)),
+            self.position,
+        );
+
+        let tooltips = column![positioned_tooltip, progress_tooltip]
+            .spacing(100)
+            .align_items(iced::Alignment::Center);
+
+        container(tooltips)
             .width(Length::Fill)
             .height(Length::Fill)
             .center_x()
