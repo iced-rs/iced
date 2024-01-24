@@ -13,8 +13,6 @@ use crate::core::{
 };
 use crate::Text;
 
-use std::borrow::Cow;
-
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
 pub struct Tooltip<
@@ -48,12 +46,12 @@ where
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        tooltip: impl Into<Cow<'a, str>>,
+        tooltip: impl Into<Text<'a, Theme, Renderer>>,
         position: Position,
     ) -> Self {
         Tooltip {
             content: content.into(),
-            tooltip: Text::new(tooltip),
+            tooltip: tooltip.into(),
             position,
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
