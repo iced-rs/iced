@@ -419,6 +419,12 @@ where
                     clipboard.write(selection);
                 }
             }
+            Update::Cut => {
+                if let Some(selection) = self.content.selection() {
+                    clipboard.write(selection.clone());
+                    shell.publish(on_edit(Action::Edit(Edit::Delete)));
+                }
+            }
             Update::Paste => {
                 if let Some(contents) = clipboard.read() {
                     shell.publish(on_edit(Action::Edit(Edit::Paste(
@@ -575,6 +581,7 @@ enum Update {
     Release,
     Action(Action),
     Copy,
+    Cut,
     Paste,
 }
 
@@ -683,6 +690,11 @@ impl Update {
                             if modifiers.command() =>
                         {
                             Some(Self::Copy)
+                        }
+                        keyboard::Key::Character("x")
+                            if modifiers.command() =>
+                        {
+                            Some(Self::Cut)
                         }
                         keyboard::Key::Character("v")
                             if modifiers.command() && !modifiers.alt() =>
