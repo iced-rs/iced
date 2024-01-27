@@ -797,13 +797,15 @@ impl toggler::StyleSheet for Theme {
                     } else {
                         palette.background.strong.color
                     },
-                    background_border: None,
+                    background_border_width: 0.0,
+                    background_border_color: Color::TRANSPARENT,
                     foreground: if is_active {
                         palette.primary.strong.text
                     } else {
                         palette.background.base.color
                     },
-                    foreground_border: None,
+                    foreground_border_width: 0.0,
+                    foreground_border_color: Color::TRANSPARENT,
                 }
             }
             Toggler::Custom(custom) => custom.active(self, is_active),

@@ -6,12 +6,16 @@ use iced_core::Color;
 pub struct Appearance {
     /// The background [`Color`] of the toggler.
     pub background: Color,
+    /// The width of the background border of the toggler.
+    pub background_border_width: f32,
     /// The [`Color`] of the background border of the toggler.
-    pub background_border: Option<Color>,
+    pub background_border_color: Color,
     /// The foreground [`Color`] of the toggler.
     pub foreground: Color,
+    /// The width of the foreground border of the toggler.
+    pub foreground_border_width: f32,
     /// The [`Color`] of the foreground border of the toggler.
-    pub foreground_border: Option<Color>,
+    pub foreground_border_color: Color,
 }
 
 /// A set of rules that dictate the style of a toggler.
