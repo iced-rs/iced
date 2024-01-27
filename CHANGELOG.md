@@ -88,7 +88,6 @@ Many thanks to...
 - @derezzedex
 - @dtzxporter
 - @GyulyVGC
-- @hecrj
 - @hicaru
 - @ids1024
 - @Imberflur
