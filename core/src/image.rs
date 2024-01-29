@@ -112,7 +112,9 @@ impl std::hash::Hash for Bytes {
 
 impl PartialEq for Bytes {
     fn eq(&self, other: &Self) -> bool {
-        self.as_ref() == other.as_ref()
+        let a = self.as_ref();
+        let b = other.as_ref();
+        core::ptr::eq(a, b) || a == b
     }
 }
 
