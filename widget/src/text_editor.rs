@@ -139,6 +139,17 @@ where
         self.style = style.into();
         self
     }
+
+    /// Choose whether or not to shrink the size of the editor to its contents.
+    pub fn shrink_to_content(mut self, shrink: bool) -> Self {
+        if shrink {
+            self.height = Length::Shrink;
+        } else {
+            self.height = Length::Fill;
+        }
+
+        self
+    }
 }
 
 /// The content of a [`TextEditor`].
@@ -360,7 +371,17 @@ where
             state.highlighter.borrow_mut().deref_mut(),
         );
 
-        layout::Node::new(limits.max())
+        if self.height == Length::Fill {
+            layout::Node::new(limits.max())
+        } else {
+            let lines_height = self
+                .line_height
+                .to_absolute(self.text_size.unwrap_or(renderer.default_size()))
+                .0
+                * internal.editor.line_count() as f32;
+            let height = lines_height + self.padding.top + self.padding.bottom;
+            layout::Node::new(limits.max_height(height).max())
+        }
     }
 
     fn on_event(
