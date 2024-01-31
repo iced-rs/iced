@@ -106,7 +106,8 @@ where
     }
 
     /// Sets the optional default value for the [`VerticalSlider`].
-    /// If set, [`VerticalSlider`] will reset to this value when doubled-clicked, ctrl-clicked, or command-clicked.
+    ///
+    /// If set, the [`VerticalSlider`] will reset to this value when ctrl-clicked or command-clicked.
     pub fn default(mut self, default: impl Into<T>) -> Self {
         self.default = Some(default.into());
         self
