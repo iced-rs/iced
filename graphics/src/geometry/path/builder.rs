@@ -1,6 +1,6 @@
 use crate::geometry::path::{arc, Arc, Path};
 
-use iced_core::{Point, Size};
+use iced_core::{Point, Radians, Size};
 
 use lyon_path::builder::{self, SvgPathBuilder};
 use lyon_path::geom;
@@ -106,9 +106,11 @@ impl Builder {
         let arc = geom::Arc {
             center: math::Point::new(arc.center.x, arc.center.y),
             radii: math::Vector::new(arc.radii.x, arc.radii.y),
-            x_rotation: math::Angle::radians(arc.rotation),
-            start_angle: math::Angle::radians(arc.start_angle),
-            sweep_angle: math::Angle::radians(arc.end_angle - arc.start_angle),
+            x_rotation: math::Angle::radians(arc.rotation.0),
+            start_angle: math::Angle::radians(arc.start_angle.0),
+            sweep_angle: math::Angle::radians(
+                (arc.end_angle - arc.start_angle).0,
+            ),
         };
 
         let _ = self.raw.move_to(arc.sample(0.0));
@@ -165,8 +167,8 @@ impl Builder {
         self.arc(Arc {
             center,
             radius,
-            start_angle: 0.0,
-            end_angle: 2.0 * std::f32::consts::PI,
+            start_angle: Radians(0.0),
+            end_angle: Radians(2.0 * std::f32::consts::PI),
         });
     }
 
