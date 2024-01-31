@@ -525,7 +525,7 @@ pub fn update<Message>(
     let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
         scrollbars.is_mouse_over(cursor);
 
-    let event_status = {
+    let mut event_status = {
         let cursor = match cursor_over_scrollable {
             Some(cursor_position)
                 if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -589,7 +589,7 @@ pub fn update<Message>(
 
             notify_on_scroll(state, on_scroll, bounds, content_bounds, shell);
 
-            return event::Status::Captured;
+            event_status = event::Status::Captured;
         }
         Event::Touch(event)
             if state.scroll_area_touched_at.is_some()
@@ -635,7 +635,7 @@ pub fn update<Message>(
                 }
             }
 
-            return event::Status::Captured;
+            event_status = event::Status::Captured;
         }
         _ => {}
     }
@@ -647,7 +647,7 @@ pub fn update<Message>(
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 state.y_scroller_grabbed_at = None;
 
-                return event::Status::Captured;
+                event_status = event::Status::Captured;
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
@@ -673,7 +673,7 @@ pub fn update<Message>(
                         shell,
                     );
 
-                    return event::Status::Captured;
+                    event_status = event::Status::Captured;
                 }
             }
             _ => {}
@@ -709,7 +709,7 @@ pub fn update<Message>(
                     );
                 }
 
-                return event::Status::Captured;
+                event_status = event::Status::Captured;
             }
             _ => {}
         }
@@ -722,7 +722,7 @@ pub fn update<Message>(
             | Event::Touch(touch::Event::FingerLost { .. }) => {
                 state.x_scroller_grabbed_at = None;
 
-                return event::Status::Captured;
+                event_status = event::Status::Captured;
             }
             Event::Mouse(mouse::Event::CursorMoved { .. })
             | Event::Touch(touch::Event::FingerMoved { .. }) => {
@@ -749,7 +749,7 @@ pub fn update<Message>(
                     );
                 }
 
-                return event::Status::Captured;
+                event_status = event::Status::Captured;
             }
             _ => {}
         }
@@ -783,14 +783,14 @@ pub fn update<Message>(
                         shell,
                     );
 
-                    return event::Status::Captured;
+                    event_status = event::Status::Captured;
                 }
             }
             _ => {}
         }
     }
 
-    event::Status::Ignored
+    event_status
 }
 
 /// Computes the current [`mouse::Interaction`] of a [`Scrollable`].
