@@ -48,7 +48,7 @@ where
 {
     range: RangeInclusive<T>,
     step: T,
-    step_fine: Option<T>,
+    shift_step: Option<T>,
     value: T,
     default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
@@ -96,7 +96,7 @@ where
             default: None,
             range,
             step: T::from(1),
-            step_fine: None,
+            shift_step: None,
             on_change: Box::new(on_change),
             on_release: None,
             width: Self::DEFAULT_WIDTH,
@@ -147,10 +147,11 @@ where
         self
     }
 
-    /// Sets the optional fine-grained step size for the [`VerticalSlider`].
-    /// If set, this value is used as the step size while shift is pressed.
-    pub fn step_fine(mut self, step_fine: impl Into<T>) -> Self {
-        self.step_fine = Some(step_fine.into());
+    /// Sets the optional "shift" step for the [`VerticalSlider`].
+    ///
+    /// If set, this value is used as the step while the shift key is pressed.
+    pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
+        self.shift_step = Some(shift_step.into());
         self
     }
 }
@@ -208,7 +209,7 @@ where
             self.default,
             &self.range,
             self.step,
-            self.step_fine,
+            self.shift_step,
             self.on_change.as_ref(),
             &self.on_release,
         )
@@ -276,7 +277,7 @@ pub fn update<Message, T>(
     default: Option<T>,
     range: &RangeInclusive<T>,
     step: T,
-    step_fine: Option<T>,
+    shift_step: Option<T>,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
 ) -> event::Status
@@ -296,7 +297,7 @@ where
             Some(*range.end())
         } else {
             let step = if state.keyboard_modifiers.shift() {
-                step_fine.unwrap_or(step)
+                shift_step.unwrap_or(step)
             } else {
                 step
             }
@@ -320,7 +321,7 @@ where
 
     let increment = |value: T| -> Option<T> {
         let step = if state.keyboard_modifiers.shift() {
-            step_fine.unwrap_or(step)
+            shift_step.unwrap_or(step)
         } else {
             step
         }
@@ -338,7 +339,7 @@ where
 
     let decrement = |value: T| -> Option<T> {
         let step = if state.keyboard_modifiers.shift() {
-            step_fine.unwrap_or(step)
+            shift_step.unwrap_or(step)
         } else {
             step
         }
