@@ -74,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clippy docs keyword quoting. [#2091](https://github.com/iced-rs/iced/pull/2091)
 - Clippy map transformations. [#2090](https://github.com/iced-rs/iced/pull/2090)
 - Inline format args for ease of reading. [#2089](https://github.com/iced-rs/iced/pull/2089)
+- Stuck scrolling in `Scrollable` with touch events. [#1940](https://github.com/iced-rs/iced/pull/1940)
 
 Many thanks to...
 
