@@ -296,12 +296,13 @@ where
         } else if cursor_position.x >= bounds.x + bounds.width {
             Some(*range.end())
         } else {
-            let step = match step_fine {
-                Some(step_fine) if state.keyboard_modifiers.shift() => {
-                    step_fine.into()
-                }
-                _ => step.into(),
-            };
+            let step = if state.keyboard_modifiers.shift() {
+                step_fine.unwrap_or(step)
+            } else {
+                step
+            }
+            .into();
+
             let start = (*range.start()).into();
             let end = (*range.end()).into();
 
@@ -318,15 +319,15 @@ where
     };
 
     let increment = |value: T| -> Option<T> {
-        let step = match step_fine {
-            Some(step_fine) if state.keyboard_modifiers.shift() => {
-                step_fine.into()
-            }
-            _ => step.into(),
-        };
+        let step = if state.keyboard_modifiers.shift() {
+            step_fine.unwrap_or(step)
+        } else {
+            step
+        }
+        .into();
 
         let steps = (value.into() / step).round();
-        let new_value = step * (steps + f64::from(1));
+        let new_value = step * (steps + 1.0);
 
         if new_value > (*range.end()).into() {
             return Some(*range.end());
@@ -336,15 +337,15 @@ where
     };
 
     let decrement = |value: T| -> Option<T> {
-        let step = match step_fine {
-            Some(step_fine) if state.keyboard_modifiers.shift() => {
-                step_fine.into()
-            }
-            _ => step.into(),
-        };
+        let step = if state.keyboard_modifiers.shift() {
+            step_fine.unwrap_or(step)
+        } else {
+            step
+        }
+        .into();
 
         let steps = (value.into() / step).round();
-        let new_value = step * (steps - f64::from(1));
+        let new_value = step * (steps - 1.0);
 
         if new_value < (*range.start()).into() {
             return Some(*range.start());
