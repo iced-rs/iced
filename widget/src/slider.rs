@@ -2,6 +2,8 @@
 //!
 //! A [`Slider`] has some local [`State`].
 use crate::core::event::{self, Event};
+use crate::core::keyboard;
+use crate::core::keyboard::key::{self, Key};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
@@ -49,7 +51,9 @@ where
 {
     range: RangeInclusive<T>,
     step: T,
+    shift_step: Option<T>,
     value: T,
+    default: Option<T>,
     on_change: Box<dyn Fn(T) -> Message + 'a>,
     on_release: Option<Message>,
     width: Length,
@@ -59,7 +63,7 @@ where
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
-    T: Copy + From<u8> + std::cmp::PartialOrd,
+    T: Copy + From<u8> + PartialOrd,
     Message: Clone,
     Theme: StyleSheet,
 {
@@ -92,14 +96,24 @@ where
 
         Slider {
             value,
+            default: None,
             range,
             step: T::from(1),
+            shift_step: None,
             on_change: Box::new(on_change),
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
             style: Default::default(),
         }
+    }
+
+    /// Sets the optional default value for the [`Slider`].
+    ///
+    /// If set, the [`Slider`] will reset to this value when ctrl-clicked or command-clicked.
+    pub fn default(mut self, default: impl Into<T>) -> Self {
+        self.default = Some(default.into());
+        self
     }
 
     /// Sets the release message of the [`Slider`].
@@ -134,6 +148,14 @@ where
     /// Sets the step size of the [`Slider`].
     pub fn step(mut self, step: impl Into<T>) -> Self {
         self.step = step.into();
+        self
+    }
+
+    /// Sets the optional "shift" step for the [`Slider`].
+    ///
+    /// If set, this value is used as the step while the shift key is pressed.
+    pub fn shift_step(mut self, shift_step: impl Into<T>) -> Self {
+        self.shift_step = Some(shift_step.into());
         self
     }
 }
@@ -188,8 +210,10 @@ where
             shell,
             tree.state.downcast_mut::<State>(),
             &mut self.value,
+            self.default,
             &self.range,
             self.step,
+            self.shift_step,
             self.on_change.as_ref(),
             &self.on_release,
         )
@@ -253,8 +277,10 @@ pub fn update<Message, T>(
     shell: &mut Shell<'_, Message>,
     state: &mut State,
     value: &mut T,
+    default: Option<T>,
     range: &RangeInclusive<T>,
     step: T,
+    shift_step: Option<T>,
     on_change: &dyn Fn(T) -> Message,
     on_release: &Option<Message>,
 ) -> event::Status
@@ -263,15 +289,22 @@ where
     Message: Clone,
 {
     let is_dragging = state.is_dragging;
+    let current_value = *value;
 
-    let mut change = |cursor_position: Point| {
+    let locate = |cursor_position: Point| -> Option<T> {
         let bounds = layout.bounds();
         let new_value = if cursor_position.x <= bounds.x {
-            *range.start()
+            Some(*range.start())
         } else if cursor_position.x >= bounds.x + bounds.width {
-            *range.end()
+            Some(*range.end())
         } else {
-            let step = step.into();
+            let step = if state.keyboard_modifiers.shift() {
+                shift_step.unwrap_or(step)
+            } else {
+                step
+            }
+            .into();
+
             let start = (*range.start()).into();
             let end = (*range.end()).into();
 
@@ -281,13 +314,49 @@ where
             let steps = (percent * (end - start) / step).round();
             let value = steps * step + start;
 
-            if let Some(value) = T::from_f64(value) {
-                value
-            } else {
-                return;
-            }
+            T::from_f64(value)
         };
 
+        new_value
+    };
+
+    let increment = |value: T| -> Option<T> {
+        let step = if state.keyboard_modifiers.shift() {
+            shift_step.unwrap_or(step)
+        } else {
+            step
+        }
+        .into();
+
+        let steps = (value.into() / step).round();
+        let new_value = step * (steps + 1.0);
+
+        if new_value > (*range.end()).into() {
+            return Some(*range.end());
+        }
+
+        T::from_f64(new_value)
+    };
+
+    let decrement = |value: T| -> Option<T> {
+        let step = if state.keyboard_modifiers.shift() {
+            shift_step.unwrap_or(step)
+        } else {
+            step
+        }
+        .into();
+
+        let steps = (value.into() / step).round();
+        let new_value = step * (steps - 1.0);
+
+        if new_value < (*range.start()).into() {
+            return Some(*range.start());
+        }
+
+        T::from_f64(new_value)
+    };
+
+    let change = |new_value: T| {
         if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
             shell.publish((on_change)(new_value));
 
@@ -300,8 +369,13 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             if let Some(cursor_position) = cursor.position_over(layout.bounds())
             {
-                change(cursor_position);
-                state.is_dragging = true;
+                if state.keyboard_modifiers.command() {
+                    let _ = default.map(change);
+                    state.is_dragging = false;
+                } else {
+                    let _ = locate(cursor_position).map(change);
+                    state.is_dragging = true;
+                }
 
                 return event::Status::Captured;
             }
@@ -321,10 +395,28 @@ where
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
             if is_dragging {
-                let _ = cursor.position().map(change);
+                let _ = cursor.position().and_then(locate).map(change);
 
                 return event::Status::Captured;
             }
+        }
+        Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
+            if cursor.position_over(layout.bounds()).is_some() {
+                match key {
+                    Key::Named(key::Named::ArrowUp) => {
+                        let _ = increment(current_value).map(change);
+                    }
+                    Key::Named(key::Named::ArrowDown) => {
+                        let _ = decrement(current_value).map(change);
+                    }
+                    _ => (),
+                }
+
+                return event::Status::Captured;
+            }
+        }
+        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+            state.keyboard_modifiers = modifiers;
         }
         _ => {}
     }
@@ -454,6 +546,7 @@ pub fn mouse_interaction(
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_dragging: bool,
+    keyboard_modifiers: keyboard::Modifiers,
 }
 
 impl State {
