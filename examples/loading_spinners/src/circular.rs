@@ -8,10 +8,9 @@ use iced::mouse;
 use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window::{self, RedrawRequest};
-use iced::Radians;
 use iced::{
-    Background, Color, Element, Event, Length, Rectangle, Renderer, Size,
-    Vector,
+    Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
+    Size, Vector,
 };
 
 use super::easing::{self, Easing};
@@ -140,7 +139,8 @@ impl Animation {
                 progress: 0.0,
                 rotation: rotation.wrapping_add(
                     BASE_ROTATION_SPEED.wrapping_add(
-                        ((WRAP_ANGLE.0 / (2.0 * PI)) * u32::MAX as f32) as u32,
+                        (f64::from(WRAP_ANGLE / (2.0 * Radians::PI)) * f64::MAX)
+                            as u32,
                     ),
                 ),
                 last: now,
@@ -319,7 +319,7 @@ where
 
             let mut builder = canvas::path::Builder::new();
 
-            let start = iced::Radians(state.animation.rotation() * 2.0 * PI);
+            let start = Radians(state.animation.rotation() * 2.0 * PI);
 
             match state.animation {
                 Animation::Expanding { progress, .. } => {

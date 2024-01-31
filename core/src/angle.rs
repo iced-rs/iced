@@ -13,7 +13,26 @@ pub struct Radians(pub f32);
 
 impl Radians {
     /// The range of radians of a circle.
-    pub const RANGE: RangeInclusive<Radians> = Radians(0.0)..=Radians(2.0 * PI);
+    pub const RANGE: RangeInclusive<Self> = Self(0.0)..=Self(2.0 * PI);
+
+    /// The amount of radians in half a circle.
+    pub const PI: Self = Self(PI);
+
+    /// Calculates the line in which the angle intercepts the `bounds`.
+    pub fn to_distance(&self, bounds: &Rectangle) -> (Point, Point) {
+        let angle = self.0 - FRAC_PI_2;
+        let r = Vector::new(f32::cos(angle), f32::sin(angle));
+
+        let distance_to_rect = f32::max(
+            f32::abs(r.x * bounds.width / 2.0),
+            f32::abs(r.y * bounds.height / 2.0),
+        );
+
+        let start = bounds.center() - r * distance_to_rect;
+        let end = bounds.center() + r * distance_to_rect;
+
+        (start, end)
+    }
 }
 
 impl From<Degrees> for Radians {
@@ -54,64 +73,70 @@ impl num_traits::FromPrimitive for Radians {
     }
 }
 
-impl Radians {
-    /// Calculates the line in which the angle intercepts the `bounds`.
-    pub fn to_distance(&self, bounds: &Rectangle) -> (Point, Point) {
-        let angle = self.0 - FRAC_PI_2;
-        let r = Vector::new(f32::cos(angle), f32::sin(angle));
+impl Sub for Radians {
+    type Output = Self;
 
-        let distance_to_rect = f32::max(
-            f32::abs(r.x * bounds.width / 2.0),
-            f32::abs(r.y * bounds.height / 2.0),
-        );
-
-        let start = bounds.center() - r * distance_to_rect;
-        let end = bounds.center() + r * distance_to_rect;
-
-        (start, end)
+    fn sub(self, rhs: Self) -> Self::Output {
+        Self(self.0 - rhs.0)
     }
 }
 
-impl SubAssign<Radians> for Radians {
-    fn sub_assign(&mut self, rhs: Radians) {
+impl SubAssign for Radians {
+    fn sub_assign(&mut self, rhs: Self) {
         self.0 = self.0 - rhs.0;
     }
 }
 
-impl AddAssign<Radians> for Radians {
+impl Add for Radians {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Self(self.0 + rhs.0)
+    }
+}
+
+impl AddAssign for Radians {
     fn add_assign(&mut self, rhs: Radians) {
         self.0 = self.0 + rhs.0;
     }
 }
 
-impl Add<Radians> for Radians {
-    type Output = Radians;
+impl Mul for Radians {
+    type Output = Self;
 
-    fn add(self, rhs: Radians) -> Self::Output {
-        Radians(self.0 + rhs.0)
-    }
-}
-
-impl Sub<Radians> for Radians {
-    type Output = Radians;
-
-    fn sub(self, rhs: Radians) -> Self::Output {
-        Radians(self.0 - rhs.0)
+    fn mul(self, rhs: Radians) -> Self::Output {
+        Radians(self.0 * rhs.0)
     }
 }
 
 impl Mul<f32> for Radians {
-    type Output = Radians;
+    type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
-        Radians(self.0 * rhs)
+        Self(self.0 * rhs)
+    }
+}
+
+impl Mul<Radians> for f32 {
+    type Output = Radians;
+
+    fn mul(self, rhs: Radians) -> Self::Output {
+        Radians(self * rhs.0)
     }
 }
 
 impl Div<f32> for Radians {
-    type Output = Radians;
+    type Output = Self;
 
     fn div(self, rhs: f32) -> Self::Output {
         Radians(self.0 / rhs)
+    }
+}
+
+impl Div for Radians {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        Self(self.0 / rhs.0)
     }
 }
