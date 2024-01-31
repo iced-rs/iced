@@ -481,6 +481,10 @@ where
         self.element.widget.size()
     }
 
+    fn size_hint(&self) -> Size<Length> {
+        self.element.widget.size_hint()
+    }
+
     fn tag(&self) -> tree::Tag {
         self.element.widget.tag()
     }
