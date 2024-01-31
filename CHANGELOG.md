@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `theme::Custom::with_fn` to generate completely custom themes. [#2067](https://github.com/iced-rs/iced/pull/2067)
 - `style` attribute for `Font`. [#2041](https://github.com/iced-rs/iced/pull/2041)
 - Texture filtering options for `Image`. [#1894](https://github.com/iced-rs/iced/pull/1894)
+- `default` and `shift_step` methods for `slider` widgets. [#2100](https://github.com/iced-rs/iced/pull/2100)
 
 ### Changed
 - Enable WebGPU backend in `wgpu` by default instead of WebGL. [#2068](https://github.com/iced-rs/iced/pull/2068)
@@ -99,6 +100,7 @@ Many thanks to...
 - @jhff
 - @jim-ec
 - @joshuamegnauth54
+- @jpttrssn
 - @lufte
 - @matze
 - @MichalLebeda
