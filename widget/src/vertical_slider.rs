@@ -11,7 +11,6 @@ use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
-use crate::core::mouse::click;
 use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
@@ -286,8 +285,9 @@ where
     Message: Clone,
 {
     let is_dragging = state.is_dragging;
+    let current_value = *value;
 
-    let change_cursor_position = |cursor_position: Point| -> Option<T> {
+    let locate = |cursor_position: Point| -> Option<T> {
         let bounds = layout.bounds();
 
         let new_value = if cursor_position.y >= bounds.y + bounds.height {
@@ -353,25 +353,11 @@ where
         T::from_f64(new_value)
     };
 
-    enum Change {
-        Default,
-        CursorPosition(Point),
-        Increment,
-        Decrement,
-    }
+    let change = |new_value: T| {
+        if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
+            shell.publish((on_change)(new_value));
 
-    let mut change = |change: Change| {
-        if let Some(new_value) = match change {
-            Change::Default => default,
-            Change::CursorPosition(point) => change_cursor_position(point),
-            Change::Increment => increment(*value),
-            Change::Decrement => decrement(*value),
-        } {
-            if ((*value).into() - new_value.into()).abs() > f64::EPSILON {
-                shell.publish((on_change)(new_value));
-
-                *value = new_value;
-            }
+            *value = new_value;
         }
     };
 
@@ -380,31 +366,15 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             if let Some(cursor_position) = cursor.position_over(layout.bounds())
             {
-                let click =
-                    mouse::Click::new(cursor_position, state.last_click);
-
-                match click.kind() {
-                    click::Kind::Single => {
-                        if state.keyboard_modifiers.control()
-                            || state.keyboard_modifiers.command()
-                        {
-                            change(Change::Default);
-                            state.is_dragging = false;
-                        } else {
-                            change(Change::CursorPosition(cursor_position));
-                            state.is_dragging = true;
-                        }
-                    }
-                    click::Kind::Double => {
-                        change(Change::Default);
-                        state.is_dragging = false;
-                    }
-                    mouse::click::Kind::Triple => {
-                        state.is_dragging = false;
-                    }
+                if state.keyboard_modifiers.control()
+                    || state.keyboard_modifiers.command()
+                {
+                    let _ = default.map(change);
+                    state.is_dragging = false;
+                } else {
+                    let _ = locate(cursor_position).map(change);
+                    state.is_dragging = true;
                 }
-
-                state.last_click = Some(click);
 
                 return event::Status::Captured;
             }
@@ -424,9 +394,7 @@ where
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
             if is_dragging {
-                let _ = cursor
-                    .position()
-                    .map(|point| change(Change::CursorPosition(point)));
+                let _ = cursor.position().and_then(locate).map(change);
 
                 return event::Status::Captured;
             }
@@ -435,10 +403,10 @@ where
             if cursor.position_over(layout.bounds()).is_some() {
                 match key {
                     Key::Named(key::Named::ArrowUp) => {
-                        change(Change::Increment);
+                        let _ = increment(current_value).map(change);
                     }
                     Key::Named(key::Named::ArrowDown) => {
-                        change(Change::Decrement);
+                        let _ = decrement(current_value).map(change);
                     }
                     _ => (),
                 }
@@ -574,10 +542,9 @@ pub fn mouse_interaction(
 }
 
 /// The local state of a [`VerticalSlider`].
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct State {
     is_dragging: bool,
-    last_click: Option<mouse::Click>,
     keyboard_modifiers: keyboard::Modifiers,
 }
 
@@ -587,11 +554,3 @@ impl State {
         State::default()
     }
 }
-
-impl PartialEq for State {
-    fn eq(&self, other: &Self) -> bool {
-        self.is_dragging == other.is_dragging
-    }
-}
-
-impl Eq for State {}
