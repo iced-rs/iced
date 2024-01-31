@@ -308,6 +308,10 @@ where
         self.widget.size()
     }
 
+    fn size_hint(&self) -> Size<Length> {
+        self.widget.size_hint()
+    }
+
     fn layout(
         &self,
         tree: &mut Tree,
