@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use workspace dependencies and package inheritance. [#2069](https://github.com/iced-rs/iced/pull/2069)
 - Update `wgpu` to `0.17`. [#2065](https://github.com/iced-rs/iced/pull/2065)
 - Support automatic style type casting for `Button`. [#2046](https://github.com/iced-rs/iced/pull/2046)
+- `with_clip` and `with_save` in `Frame` can now return the data of the provided closure. [#1994](https://github.com/iced-rs/iced/pull/1994)
 
 ### Fixed
 - Clipping of `TextInput` selection. [#2199](https://github.com/iced-rs/iced/pull/2199)
@@ -99,6 +100,7 @@ Many thanks to...
 - @joshuamegnauth54
 - @lufte
 - @matze
+- @MichalLebeda
 - @MrAntix
 - @nicksenger
 - @Nisatru
