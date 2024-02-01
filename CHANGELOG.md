@@ -48,6 +48,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Make `with_clip` and `with_save` in `Frame` able to return the data of the provided closure. [#1994](https://github.com/iced-rs/iced/pull/1994)
 - Use `Radians` for angle fields in `Arc` and `arc::Elliptical`. [#2027](https://github.com/iced-rs/iced/pull/2027)
 - Assert dimensions of quads are normal in `iced_tiny_skia`. [#2082](https://github.com/iced-rs/iced/pull/2082)
+- Remove `position` from `overlay::Element`. [#2226](https://github.com/iced-rs/iced/pull/2226)
 
 ### Fixed
 - Clipping of `TextInput` selection. [#2199](https://github.com/iced-rs/iced/pull/2199)
@@ -111,6 +112,7 @@ Many thanks to...
 - @nyurik
 - @Remmirad
 - @ripytide
+- @tarkah
 - @tzemanovic
 - @william-shere
 
