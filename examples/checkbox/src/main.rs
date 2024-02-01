@@ -76,7 +76,7 @@ impl Application for Example {
             styled_checkbox("Success", theme::Checkbox::Success),
             styled_checkbox("Danger", theme::Checkbox::Danger),
         ]
-        .spacing(10);
+        .spacing(20);
 
         let custom_checkbox = checkbox("Custom", self.custom)
             .on_toggle(Message::CustomToggled)
@@ -89,7 +89,7 @@ impl Application for Example {
             });
 
         let content =
-            column![default_checkbox, checkboxes, custom_checkbox,].spacing(22);
+            column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
         container(content)
             .width(Length::Fill)
