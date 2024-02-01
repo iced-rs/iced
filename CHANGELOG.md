@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Gradients in Oklab color space. [#2055](https://github.com/iced-rs/iced/pull/2055)
 - `Themer` widget. [#2209](https://github.com/iced-rs/iced/pull/2209)
 - Cut functionality for `TextEditor`. [#2215](https://github.com/iced-rs/iced/pull/2215)
+- Disabled support for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
 - `skip_taskbar` window setting for Windows. [#2211](https://github.com/iced-rs/iced/pull/2211)
 - `fetch_maximized` and `fetch_minimized` window commands. [#2189](https://github.com/iced-rs/iced/pull/2189)
 - `text_shaping` method for `Tooltip`. [#2172](https://github.com/iced-rs/iced/pull/2172)
@@ -87,6 +88,7 @@ Many thanks to...
 - @alec-deason
 - @arslee07
 - @AustinMReppert
+- @avsaase
 - @bungoboingo
 - @Calastrophe
 - @casperstorm
