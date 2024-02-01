@@ -15,7 +15,7 @@ pub fn fetch_information<Message>(
 pub(crate) fn information(
     graphics_info: compositor::Information,
 ) -> Information {
-    use sysinfo::{CpuExt, ProcessExt, System, SystemExt};
+    use sysinfo::{Process, System};
     let mut system = System::new_all();
     system.refresh_all();
 
@@ -23,14 +23,14 @@ pub(crate) fn information(
 
     let memory_used = sysinfo::get_current_pid()
         .and_then(|pid| system.process(pid).ok_or("Process not found"))
-        .map(ProcessExt::memory)
+        .map(Process::memory)
         .ok();
 
     Information {
-        system_name: system.name(),
-        system_kernel: system.kernel_version(),
-        system_version: system.long_os_version(),
-        system_short_version: system.os_version(),
+        system_name: System::name(),
+        system_kernel: System::kernel_version(),
+        system_version: System::long_os_version(),
+        system_short_version: System::os_version(),
         cpu_brand: cpu.brand().into(),
         cpu_cores: system.physical_core_count(),
         memory_total: system.total_memory(),
