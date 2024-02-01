@@ -319,7 +319,7 @@ impl checkbox::StyleSheet for Theme {
             Checkbox::Secondary => checkbox_appearance(
                 palette.background.base.text,
                 palette.background.base,
-                palette.background.weak,
+                palette.background.strong,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
@@ -355,7 +355,7 @@ impl checkbox::StyleSheet for Theme {
             Checkbox::Secondary => checkbox_appearance(
                 palette.background.base.text,
                 palette.background.weak,
-                palette.background.weak,
+                palette.background.strong,
                 is_checked,
             ),
             Checkbox::Success => checkbox_appearance(
