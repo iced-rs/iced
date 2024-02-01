@@ -28,7 +28,7 @@ pub use crate::style::checkbox::{Appearance, StyleSheet};
 ///
 /// let is_checked = true;
 ///
-/// Checkbox::new("Toggle me!", is_checked, Message::CheckboxToggled);
+/// Checkbox::new("Toggle me!", is_checked).on_toggle(Message::CheckboxToggled);
 /// ```
 ///
 /// ![Checkbox drawn by `iced_wgpu`](https://github.com/iced-rs/iced/blob/7760618fb112074bc40b148944521f312152012a/docs/images/checkbox.png?raw=true)
