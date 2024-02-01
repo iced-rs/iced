@@ -5,11 +5,13 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
 use thiserror::Error;
+
+pub use crate::style::qr_code::StyleSheet;
 
 const DEFAULT_CELL_SIZE: u16 = 4;
 const QUIET_ZONE: usize = 2;
@@ -17,29 +19,26 @@ const QUIET_ZONE: usize = 2;
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
 #[derive(Debug)]
-pub struct QRCode<'a> {
+pub struct QRCode<'a, Theme = crate::Theme>
+where
+    Theme: StyleSheet,
+{
     state: &'a State,
-    dark: Color,
-    light: Color,
     cell_size: u16,
+    style: Theme::Style,
 }
 
-impl<'a> QRCode<'a> {
+impl<'a, Theme> QRCode<'a, Theme>
+where
+    Theme: StyleSheet,
+{
     /// Creates a new [`QRCode`] with the provided [`State`].
     pub fn new(state: &'a State) -> Self {
         Self {
             cell_size: DEFAULT_CELL_SIZE,
-            dark: Color::BLACK,
-            light: Color::WHITE,
             state,
+            style: Default::default(),
         }
-    }
-
-    /// Sets both the dark and light [`Color`]s of the [`QRCode`].
-    pub fn color(mut self, dark: Color, light: Color) -> Self {
-        self.dark = dark;
-        self.light = light;
-        self
     }
 
     /// Sets the size of the squares of the grid cell of the [`QRCode`].
@@ -47,9 +46,18 @@ impl<'a> QRCode<'a> {
         self.cell_size = cell_size;
         self
     }
+
+    /// Sets the style of the [`QRCode`].
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+where
+    Theme: StyleSheet,
+{
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -73,7 +81,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
         &self,
         _state: &Tree,
         renderer: &mut Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
@@ -81,6 +89,8 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
     ) {
         let bounds = layout.bounds();
         let side_length = self.state.width + 2 * QUIET_ZONE;
+
+        let style = theme.appearance(&self.style);
 
         // Reuse cache if possible
         let geometry =
@@ -92,7 +102,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
                 frame.fill_rectangle(
                     Point::ORIGIN,
                     Size::new(side_length as f32, side_length as f32),
-                    self.light,
+                    style.background,
                 );
 
                 // Avoid drawing on the quiet zone
@@ -114,7 +124,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
                         frame.fill_rectangle(
                             Point::new(column as f32, row as f32),
                             Size::UNIT,
-                            self.dark,
+                            style.cell,
                         );
                     });
             });
@@ -128,10 +138,12 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
     }
 }
 
-impl<'a, Message, Theme> From<QRCode<'a>>
+impl<'a, Message, Theme> From<QRCode<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
+where
+    Theme: StyleSheet + 'a,
 {
-    fn from(qr_code: QRCode<'a>) -> Self {
+    fn from(qr_code: QRCode<'a, Theme>) -> Self {
         Self::new(qr_code)
     }
 }
