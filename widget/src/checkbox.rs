@@ -116,8 +116,7 @@ where
     where
         F: Fn(bool) -> Message + 'a,
     {
-        self.on_toggle =
-            f.map(|f| Box::new(f) as Box<dyn Fn(bool) -> Message + 'a>);
+        self.on_toggle = f.map(|f| Box::new(f) as _);
         self
     }
 
