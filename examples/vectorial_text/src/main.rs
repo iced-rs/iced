@@ -75,11 +75,8 @@ impl Sandbox for VectorialText {
         column![
             canvas(&self.state).width(Length::Fill).height(Length::Fill),
             column![
-                checkbox(
-                    "Use Japanese",
-                    self.state.use_japanese,
-                    Message::ToggleJapanese
-                ),
+                checkbox("Use Japanese", self.state.use_japanese,)
+                    .on_toggle(Message::ToggleJapanese),
                 row![
                     slider_with_label(
                         "Size",

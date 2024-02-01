@@ -158,13 +158,12 @@ where
 pub fn checkbox<'a, Message, Theme, Renderer>(
     label: impl Into<String>,
     is_checked: bool,
-    f: impl Fn(bool) -> Message + 'a,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
     Theme: checkbox::StyleSheet + text::StyleSheet,
     Renderer: core::text::Renderer,
 {
-    Checkbox::new(label, is_checked, f)
+    Checkbox::new(label, is_checked)
 }
 
 /// Creates a new [`Radio`].

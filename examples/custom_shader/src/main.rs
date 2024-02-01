@@ -89,11 +89,8 @@ impl Application for IcedCubes {
                     .step(0.01)
                     .width(100),
             ),
-            checkbox(
-                "Show Depth Buffer",
-                self.scene.show_depth_buffer,
-                Message::ShowDepthBuffer
-            ),
+            checkbox("Show Depth Buffer", self.scene.show_depth_buffer)
+                .on_toggle(Message::ShowDepthBuffer),
         ]
         .spacing(40);
 

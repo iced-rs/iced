@@ -51,11 +51,9 @@ impl Sandbox for Tiger {
             },
         );
 
-        let apply_color_filter = checkbox(
-            "Apply a color filter",
-            self.apply_color_filter,
-            Message::ToggleColorFilter,
-        );
+        let apply_color_filter =
+            checkbox("Apply a color filter", self.apply_color_filter)
+                .on_toggle(Message::ToggleColorFilter);
 
         container(
             column![
