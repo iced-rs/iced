@@ -4,9 +4,7 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget;
-use crate::core::{
-    Clipboard, Event, Layout, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::core::{Clipboard, Event, Layout, Point, Rectangle, Shell, Size};
 
 /// An overlay container that displays nested overlays
 #[allow(missing_debug_implementations)]
@@ -25,11 +23,6 @@ where
         Self { overlay: element }
     }
 
-    /// Returns the position of the [`Nested`] overlay.
-    pub fn position(&self) -> Point {
-        self.overlay.position()
-    }
-
     /// Returns the layout [`Node`] of the [`Nested`] overlay.
     ///
     /// [`Node`]: layout::Node
@@ -37,36 +30,30 @@ where
         &mut self,
         renderer: &Renderer,
         bounds: Size,
-        _position: Point,
-        translation: Vector,
     ) -> layout::Node {
         fn recurse<Message, Theme, Renderer>(
             element: &mut overlay::Element<'_, Message, Theme, Renderer>,
             renderer: &Renderer,
             bounds: Size,
-            translation: Vector,
         ) -> layout::Node
         where
             Renderer: renderer::Renderer,
         {
-            let node = element.layout(renderer, bounds, translation);
+            let node = element.layout(renderer, bounds);
 
             if let Some(mut nested) =
                 element.overlay(Layout::new(&node), renderer)
             {
                 layout::Node::with_children(
                     node.size(),
-                    vec![
-                        node,
-                        recurse(&mut nested, renderer, bounds, translation),
-                    ],
+                    vec![node, recurse(&mut nested, renderer, bounds)],
                 )
             } else {
                 layout::Node::with_children(node.size(), vec![node])
             }
         }
 
-        recurse(&mut self.overlay, renderer, bounds, translation)
+        recurse(&mut self.overlay, renderer, bounds)
     }
 
     /// Draws the [`Nested`] overlay using the associated `Renderer`.

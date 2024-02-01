@@ -447,6 +447,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
         let children = self
             .contents
@@ -454,7 +455,7 @@ where
             .zip(&mut tree.children)
             .zip(layout.children())
             .filter_map(|(((_, content), state), layout)| {
-                content.overlay(state, layout, renderer)
+                content.overlay(state, layout, renderer, translation)
             })
             .collect::<Vec<_>>();
 

@@ -446,11 +446,12 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(tree, layout, renderer)
+            .overlay(tree, layout, renderer, translation)
             .map(move |overlay| overlay.map(mapper))
     }
 }
@@ -596,7 +597,10 @@ where
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.element.widget.overlay(state, layout, renderer)
+        self.element
+            .widget
+            .overlay(state, layout, renderer, translation)
     }
 }

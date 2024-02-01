@@ -10,7 +10,7 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size,
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
@@ -657,6 +657,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         _renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let is_focused = {
             let text_input_state = tree.children[0]
@@ -705,7 +706,7 @@ where
                 menu = menu.text_size(size);
             }
 
-            Some(menu.overlay(layout.position(), bounds.height))
+            Some(menu.overlay(layout.position() + translation, bounds.height))
         } else {
             None
         }

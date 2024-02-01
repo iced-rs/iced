@@ -12,8 +12,6 @@ use std::any::Any;
 /// A generic [`Overlay`].
 #[allow(missing_debug_implementations)]
 pub struct Element<'a, Message, Theme, Renderer> {
-    position: Point,
-    translation: Vector,
     overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
 }
 
@@ -23,26 +21,9 @@ where
 {
     /// Creates a new [`Element`] containing the given [`Overlay`].
     pub fn new(
-        position: Point,
         overlay: Box<dyn Overlay<Message, Theme, Renderer> + 'a>,
     ) -> Self {
-        Self {
-            position,
-            overlay,
-            translation: Vector::ZERO,
-        }
-    }
-
-    /// Returns the position of the [`Element`].
-    pub fn position(&self) -> Point {
-        self.position
-    }
-
-    /// Translates the [`Element`].
-    pub fn translate(mut self, translation: Vector) -> Self {
-        self.position = self.position + translation;
-        self.translation = self.translation + translation;
-        self
+        Self { overlay }
     }
 
     /// Applies a transformation to the produced message of the [`Element`].
@@ -57,8 +38,6 @@ where
         B: 'a,
     {
         Element {
-            position: self.position,
-            translation: self.translation,
             overlay: Box::new(Map::new(self.overlay, f)),
         }
     }
@@ -68,14 +47,8 @@ where
         &mut self,
         renderer: &Renderer,
         bounds: Size,
-        translation: Vector,
     ) -> layout::Node {
-        self.overlay.layout(
-            renderer,
-            bounds,
-            self.position + translation,
-            self.translation + translation,
-        )
+        self.overlay.layout(renderer, bounds)
     }
 
     /// Processes a runtime [`Event`].
@@ -165,14 +138,8 @@ impl<'a, A, B, Theme, Renderer> Overlay<B, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        translation: Vector,
-    ) -> layout::Node {
-        self.content.layout(renderer, bounds, position, translation)
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.content.layout(renderer, bounds)
     }
 
     fn operate(

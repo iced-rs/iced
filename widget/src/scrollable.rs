@@ -385,25 +385,24 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.content
-            .as_widget_mut()
-            .overlay(
-                &mut tree.children[0],
-                layout.children().next().unwrap(),
-                renderer,
-            )
-            .map(|overlay| {
-                let bounds = layout.bounds();
-                let content_layout = layout.children().next().unwrap();
-                let content_bounds = content_layout.bounds();
-                let translation = tree
-                    .state
-                    .downcast_ref::<State>()
-                    .translation(self.direction, bounds, content_bounds);
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
 
-                overlay.translate(Vector::new(-translation.x, -translation.y))
-            })
+        let offset = tree.state.downcast_ref::<State>().translation(
+            self.direction,
+            bounds,
+            content_bounds,
+        );
+
+        self.content.as_widget_mut().overlay(
+            &mut tree.children[0],
+            layout.children().next().unwrap(),
+            renderer,
+            translation - offset,
+        )
     }
 }
 
