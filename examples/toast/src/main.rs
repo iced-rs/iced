@@ -456,6 +456,7 @@ mod toast {
             state: &'b mut Tree,
             layout: Layout<'_>,
             renderer: &Renderer,
+            translation: Vector,
         ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
             let instants = state.state.downcast_mut::<Vec<Option<Instant>>>();
 
@@ -465,19 +466,18 @@ mod toast {
                 &mut content_state[0],
                 layout,
                 renderer,
+                translation,
             );
 
             let toasts = (!self.toasts.is_empty()).then(|| {
-                overlay::Element::new(
-                    layout.bounds().position(),
-                    Box::new(Overlay {
-                        toasts: &mut self.toasts,
-                        state: toasts_state,
-                        instants,
-                        on_close: &self.on_close,
-                        timeout_secs: self.timeout_secs,
-                    }),
-                )
+                overlay::Element::new(Box::new(Overlay {
+                    position: layout.bounds().position() + translation,
+                    toasts: &mut self.toasts,
+                    state: toasts_state,
+                    instants,
+                    on_close: &self.on_close,
+                    timeout_secs: self.timeout_secs,
+                }))
             });
             let overlays =
                 content.into_iter().chain(toasts).collect::<Vec<_>>();
@@ -488,6 +488,7 @@ mod toast {
     }
 
     struct Overlay<'a, 'b, Message> {
+        position: Point,
         toasts: &'b mut [Element<'a, Message>],
         state: &'b mut [Tree],
         instants: &'b mut [Option<Instant>],
@@ -502,8 +503,6 @@ mod toast {
             &mut self,
             renderer: &Renderer,
             bounds: Size,
-            position: Point,
-            _translation: Vector,
         ) -> layout::Node {
             let limits = layout::Limits::new(Size::ZERO, bounds);
 
@@ -519,7 +518,7 @@ mod toast {
                 self.toasts,
                 self.state,
             )
-            .translate(Vector::new(position.x, position.y))
+            .translate(Vector::new(self.position.x, self.position.y))
         }
 
         fn on_event(

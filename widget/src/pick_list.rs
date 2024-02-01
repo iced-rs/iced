@@ -12,7 +12,7 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Widget,
+    Shell, Size, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
@@ -265,11 +265,13 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
 
         overlay(
             layout,
+            translation,
             state,
             self.padding,
             self.text_size,
@@ -573,6 +575,7 @@ pub fn mouse_interaction(
 /// Returns the current overlay of a [`PickList`].
 pub fn overlay<'a, T, Message, Theme, Renderer>(
     layout: Layout<'_>,
+    translation: Vector,
     state: &'a mut State<Renderer::Paragraph>,
     padding: Padding,
     text_size: Option<Pixels>,
@@ -617,7 +620,7 @@ where
             menu = menu.text_size(text_size);
         }
 
-        Some(menu.overlay(layout.position(), bounds.height))
+        Some(menu.overlay(layout.position() + translation, bounds.height))
     } else {
         None
     }

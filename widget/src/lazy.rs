@@ -259,6 +259,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'_, Message, Theme, Renderer>> {
         let overlay = Overlay(Some(
             InnerBuilder {
@@ -275,18 +276,14 @@ where
                 overlay_builder: |element, tree| {
                     element
                         .as_widget_mut()
-                        .overlay(tree, layout, renderer)
+                        .overlay(tree, layout, renderer, translation)
                         .map(|overlay| RefCell::new(Nested::new(overlay)))
                 },
             }
             .build(),
         ));
 
-        let has_overlay =
-            overlay.with_overlay_maybe(|overlay| overlay.position());
-
-        has_overlay
-            .map(|position| overlay::Element::new(position, Box::new(overlay)))
+        Some(overlay::Element::new(Box::new(overlay)))
     }
 }
 
@@ -339,17 +336,9 @@ impl<'a, Message, Theme, Renderer> overlay::Overlay<Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        translation: Vector,
-    ) -> layout::Node {
-        self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position, translation)
-        })
-        .unwrap_or_default()
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds))
+            .unwrap_or_default()
     }
 
     fn draw(

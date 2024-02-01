@@ -4,9 +4,7 @@ use crate::mouse;
 use crate::overlay;
 use crate::renderer;
 use crate::widget;
-use crate::{
-    Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size, Vector,
-};
+use crate::{Clipboard, Event, Layout, Overlay, Point, Rectangle, Shell, Size};
 
 /// An [`Overlay`] container that displays multiple overlay [`overlay::Element`]
 /// children.
@@ -44,7 +42,7 @@ where
 
     /// Turns the [`Group`] into an overlay [`overlay::Element`].
     pub fn overlay(self) -> overlay::Element<'a, Message, Theme, Renderer> {
-        overlay::Element::new(Point::ORIGIN, Box::new(self))
+        overlay::Element::new(Box::new(self))
     }
 }
 
@@ -65,18 +63,12 @@ impl<'a, Message, Theme, Renderer> Overlay<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        _position: Point,
-        translation: Vector,
-    ) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         layout::Node::with_children(
             bounds,
             self.children
                 .iter_mut()
-                .map(|child| child.layout(renderer, bounds, translation))
+                .map(|child| child.layout(renderer, bounds))
                 .collect(),
         )
     }
