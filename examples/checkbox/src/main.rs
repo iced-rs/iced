@@ -66,7 +66,7 @@ impl Application for Example {
 
         let styled_checkbox = |label, style| {
             checkbox(label, self.styled)
-                .on_toggle_maybe(self.default.then(|| Message::StyledToggled))
+                .on_toggle_maybe(self.default.then_some(Message::StyledToggled))
                 .style(style)
         };
 
