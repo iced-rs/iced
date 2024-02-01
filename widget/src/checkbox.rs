@@ -292,18 +292,16 @@ where
         viewport: &Rectangle,
     ) {
         let is_mouse_over = cursor.is_over(layout.bounds());
-        let is_enabled = self.on_toggle.is_some();
+        let is_disabled = self.on_toggle.is_none();
 
         let mut children = layout.children();
 
-        let custom_style = if is_enabled {
-            if is_mouse_over {
-                theme.hovered(&self.style, self.is_checked)
-            } else {
-                theme.active(&self.style, self.is_checked)
-            }
-        } else {
+        let custom_style = if is_disabled {
             theme.disabled(&self.style, self.is_checked)
+        } else if is_mouse_over {
+            theme.hovered(&self.style, self.is_checked)
+        } else {
+            theme.active(&self.style, self.is_checked)
         };
 
         {
