@@ -11,9 +11,6 @@ use crate::core::{
     Clipboard, Element, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
     Vector,
 };
-use crate::Text;
-
-use std::borrow::Cow;
 
 /// An element to display a widget over another.
 #[allow(missing_debug_implementations)]
@@ -27,7 +24,7 @@ pub struct Tooltip<
     Renderer: text::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
-    tooltip: Text<'a, Theme, Renderer>,
+    tooltip: Element<'a, Message, Theme, Renderer>,
     position: Position,
     gap: f32,
     padding: f32,
@@ -48,38 +45,18 @@ where
     /// [`Tooltip`]: struct.Tooltip.html
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        tooltip: impl Into<Cow<'a, str>>,
+        tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
         position: Position,
     ) -> Self {
         Tooltip {
             content: content.into(),
-            tooltip: Text::new(tooltip),
+            tooltip: tooltip.into(),
             position,
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
             style: Default::default(),
         }
-    }
-
-    /// Sets the size of the text of the [`Tooltip`].
-    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
-        self.tooltip = self.tooltip.size(size);
-        self
-    }
-
-    /// Sets the [`text::Shaping`] strategy of the [`Tooltip`].
-    pub fn text_shaping(mut self, shaping: text::Shaping) -> Self {
-        self.tooltip = self.tooltip.shaping(shaping);
-        self
-    }
-
-    /// Sets the font of the [`Tooltip`].
-    ///
-    /// [`Font`]: Renderer::Font
-    pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
-        self.tooltip = self.tooltip.font(font);
-        self
     }
 
     /// Sets the gap between the content and its [`Tooltip`].
@@ -119,12 +96,15 @@ where
     fn children(&self) -> Vec<widget::Tree> {
         vec![
             widget::Tree::new(&self.content),
-            widget::Tree::new(&self.tooltip as &dyn Widget<Message, _, _>),
+            widget::Tree::new(&self.tooltip),
         ]
     }
 
     fn diff(&self, tree: &mut widget::Tree) {
-        tree.diff_children(&[self.content.as_widget(), &self.tooltip]);
+        tree.diff_children(&[
+            self.content.as_widget(),
+            self.tooltip.as_widget(),
+        ]);
     }
 
     fn state(&self) -> widget::tree::State {
@@ -312,13 +292,13 @@ enum State {
     },
 }
 
-struct Overlay<'a, 'b, Theme, Renderer>
+struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
 {
     position: Point,
-    tooltip: &'b Text<'a, Theme, Renderer>,
+    tooltip: &'b Element<'a, Message, Theme, Renderer>,
     state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
@@ -331,7 +311,7 @@ where
 
 impl<'a, 'b, Message, Theme, Renderer>
     overlay::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, 'b, Theme, Renderer>
+    for Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
@@ -339,8 +319,8 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let text_layout = Widget::<(), Theme, Renderer>::layout(
-            self.tooltip,
+        let text_layout = Widget::<Message, Theme, Renderer>::layout(
+            self.tooltip.as_widget(),
             self.state,
             renderer,
             &layout::Limits::new(
@@ -450,8 +430,8 @@ where
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };
 
-        Widget::<(), Theme, Renderer>::draw(
-            self.tooltip,
+        Widget::<Message, Theme, Renderer>::draw(
+            self.tooltip.as_widget(),
             self.state,
             renderer,
             theme,
