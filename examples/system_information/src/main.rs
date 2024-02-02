@@ -102,19 +102,19 @@ impl Application for Example {
                 ));
 
                 let memory_readable =
-                    ByteSize::kb(information.memory_total).to_string();
+                    ByteSize::b(information.memory_total).to_string();
 
                 let memory_total = text(format!(
-                    "Memory (total): {} kb ({memory_readable})",
+                    "Memory (total): {} bytes ({memory_readable})",
                     information.memory_total,
                 ));
 
                 let memory_text = if let Some(memory_used) =
                     information.memory_used
                 {
-                    let memory_readable = ByteSize::kb(memory_used).to_string();
+                    let memory_readable = ByteSize::b(memory_used).to_string();
 
-                    format!("{memory_used} kb ({memory_readable})")
+                    format!("{memory_used} bytes ({memory_readable})")
                 } else {
                     String::from("None")
                 };

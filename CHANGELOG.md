@@ -81,6 +81,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clippy map transformations. [#2090](https://github.com/iced-rs/iced/pull/2090)
 - Inline format args for ease of reading. [#2089](https://github.com/iced-rs/iced/pull/2089)
 - Stuck scrolling in `Scrollable` with touch events. [#1940](https://github.com/iced-rs/iced/pull/1940)
+- Incorrect unit in `system::Information`. [#2223](https://github.com/iced-rs/iced/pull/2223)
 
 Many thanks to...
 
@@ -89,6 +90,7 @@ Many thanks to...
 - @arslee07
 - @AustinMReppert
 - @avsaase
+- @brianch
 - @bungoboingo
 - @Calastrophe
 - @casperstorm
@@ -114,6 +116,7 @@ Many thanks to...
 - @nyurik
 - @Remmirad
 - @ripytide
+- @Tahinli
 - @tarkah
 - @tzemanovic
 - @william-shere

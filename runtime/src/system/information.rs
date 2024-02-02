@@ -18,9 +18,9 @@ pub struct Information {
     pub cpu_brand: String,
     /// The number of physical cores on the processor
     pub cpu_cores: Option<usize>,
-    /// Total RAM size, KB
+    /// Total RAM size, in bytes
     pub memory_total: u64,
-    /// Memory used by this process, KB
+    /// Memory used by this process, in bytes
     pub memory_used: Option<u64>,
     /// Underlying graphics backend for rendering
     pub graphics_backend: String,
