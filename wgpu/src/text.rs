@@ -109,7 +109,9 @@ impl Pipeline {
 
                     Some(Allocation::Cache(key))
                 }
-                Text::Raw(text) => text.buffer.upgrade().map(Allocation::Raw),
+                Text::Raw { raw, .. } => {
+                    raw.buffer.upgrade().map(Allocation::Raw)
+                }
             })
             .collect();
 
@@ -194,7 +196,10 @@ impl Pipeline {
                             Transformation::IDENTITY,
                         )
                     }
-                    Text::Raw(text) => {
+                    Text::Raw {
+                        raw,
+                        transformation,
+                    } => {
                         let Some(Allocation::Raw(buffer)) = allocation else {
                             return None;
                         };
@@ -204,14 +209,14 @@ impl Pipeline {
                         (
                             buffer.as_ref(),
                             Rectangle::new(
-                                text.position,
+                                raw.position,
                                 Size::new(width, height),
                             ),
                             alignment::Horizontal::Left,
                             alignment::Vertical::Top,
-                            text.color,
-                            text.clip_bounds,
-                            Transformation::IDENTITY,
+                            raw.color,
+                            raw.clip_bounds,
+                            *transformation,
                         )
                     }
                 };

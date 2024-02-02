@@ -29,7 +29,11 @@ pub enum Text<'a> {
     /// Some cached text.
     Cached(Cached<'a>),
     /// Some raw text.
-    Raw(graphics::text::Raw),
+    #[allow(missing_docs)]
+    Raw {
+        raw: graphics::text::Raw,
+        transformation: Transformation,
+    },
 }
 
 #[derive(Debug, Clone)]
