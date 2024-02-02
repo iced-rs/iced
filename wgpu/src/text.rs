@@ -234,8 +234,9 @@ impl Pipeline {
                     alignment::Vertical::Bottom => bounds.y - bounds.height,
                 };
 
-                let clip_bounds =
-                    layer_bounds.intersection(&(clip_bounds * scale_factor))?;
+                let clip_bounds = layer_bounds.intersection(
+                    &(clip_bounds * transformation * scale_factor),
+                )?;
 
                 Some(glyphon::TextArea {
                     buffer,
