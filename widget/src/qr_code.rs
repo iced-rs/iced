@@ -5,8 +5,7 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Transformation,
-    Vector, Widget,
+    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
@@ -120,10 +119,8 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
                     });
             });
 
-        let translation = Vector::new(bounds.x, bounds.y);
-
-        renderer.with_transformation(
-            Transformation::translate(translation.x, translation.y),
+        renderer.with_translation(
+            bounds.position() - Point::ORIGIN,
             |renderer| {
                 renderer.draw(vec![geometry]);
             },

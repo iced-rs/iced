@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Transformation, Vector, Widget,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -328,21 +328,18 @@ where
         };
 
         renderer.with_layer(bounds, |renderer| {
-            renderer.with_transformation(
-                Transformation::translate(translation.x, translation.y),
-                |renderer| {
-                    image::Renderer::draw(
-                        renderer,
-                        self.handle.clone(),
-                        self.filter_method,
-                        Rectangle {
-                            x: bounds.x,
-                            y: bounds.y,
-                            ..Rectangle::with_size(image_size)
-                        },
-                    );
-                },
-            );
+            renderer.with_translation(translation, |renderer| {
+                image::Renderer::draw(
+                    renderer,
+                    self.handle.clone(),
+                    self.filter_method,
+                    Rectangle {
+                        x: bounds.x,
+                        y: bounds.y,
+                        ..Rectangle::with_size(image_size)
+                    },
+                );
+            });
         });
     }
 }
