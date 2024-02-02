@@ -962,22 +962,21 @@ pub fn draw<Theme, Renderer, T>(
         if let Some(cursor_position) = cursor.position() {
             let bounds = layout.bounds();
 
-            renderer.with_translation(
-                cursor_position
-                    - Point::new(bounds.x + origin.x, bounds.y + origin.y),
-                |renderer| {
-                    renderer.with_layer(bounds, |renderer| {
-                        draw_pane(
-                            pane,
-                            renderer,
-                            default_style,
-                            layout,
-                            pane_cursor,
-                            viewport,
-                        );
-                    });
-                },
-            );
+            let translation = cursor_position
+                - Point::new(bounds.x + origin.x, bounds.y + origin.y);
+
+            renderer.with_translation(translation, |renderer| {
+                renderer.with_layer(bounds, |renderer| {
+                    draw_pane(
+                        pane,
+                        renderer,
+                        default_style,
+                        layout,
+                        pane_cursor,
+                        viewport,
+                    );
+                });
+            });
         }
     }
 

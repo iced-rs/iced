@@ -1,5 +1,5 @@
 use crate::core::alignment;
-use crate::core::{Rectangle, Size};
+use crate::core::{Rectangle, Size, Transformation};
 use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
@@ -109,7 +109,9 @@ impl Pipeline {
 
                     Some(Allocation::Cache(key))
                 }
-                Text::Raw(text) => text.buffer.upgrade().map(Allocation::Raw),
+                Text::Raw { raw, .. } => {
+                    raw.buffer.upgrade().map(Allocation::Raw)
+                }
             })
             .collect();
 
@@ -124,11 +126,13 @@ impl Pipeline {
                     vertical_alignment,
                     color,
                     clip_bounds,
+                    transformation,
                 ) = match section {
                     Text::Paragraph {
                         position,
                         color,
                         clip_bounds,
+                        transformation,
                         ..
                     } => {
                         use crate::core::text::Paragraph as _;
@@ -145,12 +149,14 @@ impl Pipeline {
                             paragraph.vertical_alignment(),
                             *color,
                             *clip_bounds,
+                            *transformation,
                         )
                     }
                     Text::Editor {
                         position,
                         color,
                         clip_bounds,
+                        transformation,
                         ..
                     } => {
                         use crate::core::text::Editor as _;
@@ -167,6 +173,7 @@ impl Pipeline {
                             alignment::Vertical::Top,
                             *color,
                             *clip_bounds,
+                            *transformation,
                         )
                     }
                     Text::Cached(text) => {
@@ -186,9 +193,13 @@ impl Pipeline {
                             text.vertical_alignment,
                             text.color,
                             text.clip_bounds,
+                            Transformation::IDENTITY,
                         )
                     }
-                    Text::Raw(text) => {
+                    Text::Raw {
+                        raw,
+                        transformation,
+                    } => {
                         let Some(Allocation::Raw(buffer)) = allocation else {
                             return None;
                         };
@@ -198,18 +209,19 @@ impl Pipeline {
                         (
                             buffer.as_ref(),
                             Rectangle::new(
-                                text.position,
+                                raw.position,
                                 Size::new(width, height),
                             ),
                             alignment::Horizontal::Left,
                             alignment::Vertical::Top,
-                            text.color,
-                            text.clip_bounds,
+                            raw.color,
+                            raw.clip_bounds,
+                            *transformation,
                         )
                     }
                 };
 
-                let bounds = bounds * scale_factor;
+                let bounds = bounds * transformation * scale_factor;
 
                 let left = match horizontal_alignment {
                     alignment::Horizontal::Left => bounds.x,
@@ -227,14 +239,15 @@ impl Pipeline {
                     alignment::Vertical::Bottom => bounds.y - bounds.height,
                 };
 
-                let clip_bounds =
-                    layer_bounds.intersection(&(clip_bounds * scale_factor))?;
+                let clip_bounds = layer_bounds.intersection(
+                    &(clip_bounds * transformation * scale_factor),
+                )?;
 
                 Some(glyphon::TextArea {
                     buffer,
                     left,
                     top,
-                    scale: scale_factor,
+                    scale: scale_factor * transformation.scale_factor(),
                     bounds: glyphon::TextBounds {
                         left: clip_bounds.x as i32,
                         top: clip_bounds.y as i32,

@@ -1,8 +1,8 @@
 //! Draw meshes of triangles.
 mod msaa;
 
-use crate::core::Size;
-use crate::graphics::{Antialiasing, Transformation};
+use crate::core::{Size, Transformation};
+use crate::graphics::Antialiasing;
 use crate::layer::mesh::{self, Mesh};
 use crate::Buffer;
 
@@ -98,12 +98,10 @@ impl Layer {
         let mut index_offset = 0;
 
         for mesh in meshes {
-            let origin = mesh.origin();
             let indices = mesh.indices();
 
-            let uniforms = Uniforms::new(
-                transformation * Transformation::translate(origin.x, origin.y),
-            );
+            let uniforms =
+                Uniforms::new(transformation * mesh.transformation());
 
             index_offset +=
                 self.index_buffer.write(queue, index_offset, indices);

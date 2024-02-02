@@ -12,7 +12,9 @@ pub use text::Text;
 
 use crate::core;
 use crate::core::alignment;
-use crate::core::{Color, Font, Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{
+    Color, Font, Pixels, Point, Rectangle, Size, Transformation, Vector,
+};
 use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::Viewport;
@@ -104,7 +106,7 @@ impl<'a> Layer<'a> {
         for primitive in primitives {
             Self::process_primitive(
                 &mut layers,
-                Vector::new(0.0, 0.0),
+                Transformation::IDENTITY,
                 primitive,
                 0,
             );
@@ -115,7 +117,7 @@ impl<'a> Layer<'a> {
 
     fn process_primitive(
         layers: &mut Vec<Self>,
-        translation: Vector,
+        transformation: Transformation,
         primitive: &'a Primitive,
         current_layer: usize,
     ) {
@@ -130,9 +132,10 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Paragraph {
                     paragraph: paragraph.clone(),
-                    position: *position + translation,
+                    position: *position,
                     color: *color,
-                    clip_bounds: *clip_bounds + translation,
+                    clip_bounds: *clip_bounds,
+                    transformation,
                 });
             }
             Primitive::Editor {
@@ -145,9 +148,10 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Editor {
                     editor: editor.clone(),
-                    position: *position + translation,
+                    position: *position,
                     color: *color,
-                    clip_bounds: *clip_bounds + translation,
+                    clip_bounds: *clip_bounds,
+                    transformation,
                 });
             }
             Primitive::Text {
@@ -166,31 +170,24 @@ impl<'a> Layer<'a> {
 
                 layer.text.push(Text::Cached(text::Cached {
                     content,
-                    bounds: *bounds + translation,
-                    size: *size,
+                    bounds: *bounds + transformation.translation(),
+                    size: *size * transformation.scale_factor(),
                     line_height: *line_height,
                     color: *color,
                     font: *font,
                     horizontal_alignment: *horizontal_alignment,
                     vertical_alignment: *vertical_alignment,
                     shaping: *shaping,
-                    clip_bounds: *clip_bounds + translation,
+                    clip_bounds: *clip_bounds * transformation,
                 }));
             }
-            graphics::Primitive::RawText(graphics::text::Raw {
-                buffer,
-                position,
-                color,
-                clip_bounds,
-            }) => {
+            graphics::Primitive::RawText(raw) => {
                 let layer = &mut layers[current_layer];
 
-                layer.text.push(Text::Raw(graphics::text::Raw {
-                    buffer: buffer.clone(),
-                    position: *position + translation,
-                    color: *color,
-                    clip_bounds: *clip_bounds + translation,
-                }));
+                layer.text.push(Text::Raw {
+                    raw: raw.clone(),
+                    transformation,
+                });
             }
             Primitive::Quad {
                 bounds,
@@ -199,12 +196,10 @@ impl<'a> Layer<'a> {
                 shadow,
             } => {
                 let layer = &mut layers[current_layer];
+                let bounds = *bounds * transformation;
 
                 let quad = Quad {
-                    position: [
-                        bounds.x + translation.x,
-                        bounds.y + translation.y,
-                    ],
+                    position: [bounds.x, bounds.y],
                     size: [bounds.width, bounds.height],
                     border_color: color::pack(border.color),
                     border_radius: border.radius.into(),
@@ -226,7 +221,7 @@ impl<'a> Layer<'a> {
                 layer.images.push(Image::Raster {
                     handle: handle.clone(),
                     filter_method: *filter_method,
-                    bounds: *bounds + translation,
+                    bounds: *bounds * transformation,
                 });
             }
             Primitive::Svg {
@@ -239,7 +234,7 @@ impl<'a> Layer<'a> {
                 layer.images.push(Image::Vector {
                     handle: handle.clone(),
                     color: *color,
-                    bounds: *bounds + translation,
+                    bounds: *bounds * transformation,
                 });
             }
             Primitive::Group { primitives } => {
@@ -247,7 +242,7 @@ impl<'a> Layer<'a> {
                 for primitive in primitives {
                     Self::process_primitive(
                         layers,
-                        translation,
+                        transformation,
                         primitive,
                         current_layer,
                     );
@@ -255,7 +250,7 @@ impl<'a> Layer<'a> {
             }
             Primitive::Clip { bounds, content } => {
                 let layer = &mut layers[current_layer];
-                let translated_bounds = *bounds + translation;
+                let translated_bounds = *bounds * transformation;
 
                 // Only draw visible content
                 if let Some(clip_bounds) =
@@ -266,19 +261,19 @@ impl<'a> Layer<'a> {
 
                     Self::process_primitive(
                         layers,
-                        translation,
+                        transformation,
                         content,
                         layers.len() - 1,
                     );
                 }
             }
-            Primitive::Translate {
-                translation: new_translation,
+            Primitive::Transform {
+                transformation: new_transformation,
                 content,
             } => {
                 Self::process_primitive(
                     layers,
-                    translation + *new_translation,
+                    transformation * *new_transformation,
                     content,
                     current_layer,
                 );
@@ -286,7 +281,7 @@ impl<'a> Layer<'a> {
             Primitive::Cache { content } => {
                 Self::process_primitive(
                     layers,
-                    translation,
+                    transformation,
                     content,
                     current_layer,
                 );
@@ -296,20 +291,15 @@ impl<'a> Layer<'a> {
                     graphics::Mesh::Solid { buffers, size } => {
                         let layer = &mut layers[current_layer];
 
-                        let bounds = Rectangle::new(
-                            Point::new(translation.x, translation.y),
-                            *size,
-                        );
+                        let bounds =
+                            Rectangle::with_size(*size) * transformation;
 
                         // Only draw visible content
                         if let Some(clip_bounds) =
                             layer.bounds.intersection(&bounds)
                         {
                             layer.meshes.push(Mesh::Solid {
-                                origin: Point::new(
-                                    translation.x,
-                                    translation.y,
-                                ),
+                                transformation,
                                 buffers,
                                 clip_bounds,
                             });
@@ -318,20 +308,15 @@ impl<'a> Layer<'a> {
                     graphics::Mesh::Gradient { buffers, size } => {
                         let layer = &mut layers[current_layer];
 
-                        let bounds = Rectangle::new(
-                            Point::new(translation.x, translation.y),
-                            *size,
-                        );
+                        let bounds =
+                            Rectangle::with_size(*size) * transformation;
 
                         // Only draw visible content
                         if let Some(clip_bounds) =
                             layer.bounds.intersection(&bounds)
                         {
                             layer.meshes.push(Mesh::Gradient {
-                                origin: Point::new(
-                                    translation.x,
-                                    translation.y,
-                                ),
+                                transformation,
                                 buffers,
                                 clip_bounds,
                             });
@@ -340,7 +325,7 @@ impl<'a> Layer<'a> {
                 },
                 primitive::Custom::Pipeline(pipeline) => {
                     let layer = &mut layers[current_layer];
-                    let bounds = pipeline.bounds + translation;
+                    let bounds = pipeline.bounds * transformation;
 
                     if let Some(clip_bounds) =
                         layer.bounds.intersection(&bounds)

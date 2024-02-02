@@ -1,6 +1,8 @@
 use crate::core::alignment;
 use crate::core::text::{LineHeight, Shaping};
-use crate::core::{Color, Font, Pixels, Point, Rectangle, Size};
+use crate::core::{
+    Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+};
 use crate::graphics::text::cache::{self, Cache};
 use crate::graphics::text::editor;
 use crate::graphics::text::font_system;
@@ -42,6 +44,7 @@ impl Pipeline {
         scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
+        transformation: Transformation,
     ) {
         use crate::core::text::Paragraph as _;
 
@@ -62,6 +65,7 @@ impl Pipeline {
             scale_factor,
             pixels,
             clip_mask,
+            transformation,
         );
     }
 
@@ -73,6 +77,7 @@ impl Pipeline {
         scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
+        transformation: Transformation,
     ) {
         use crate::core::text::Editor as _;
 
@@ -93,6 +98,7 @@ impl Pipeline {
             scale_factor,
             pixels,
             clip_mask,
+            transformation,
         );
     }
 
@@ -110,6 +116,7 @@ impl Pipeline {
         scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
+        transformation: Transformation,
     ) {
         let line_height = f32::from(line_height.to_absolute(size));
 
@@ -145,6 +152,7 @@ impl Pipeline {
             scale_factor,
             pixels,
             clip_mask,
+            transformation,
         );
     }
 
@@ -156,6 +164,7 @@ impl Pipeline {
         scale_factor: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         clip_mask: Option<&tiny_skia::Mask>,
+        transformation: Transformation,
     ) {
         let mut font_system = font_system().write().expect("Write font system");
 
@@ -172,6 +181,7 @@ impl Pipeline {
             scale_factor,
             pixels,
             clip_mask,
+            transformation,
         );
     }
 
@@ -192,8 +202,9 @@ fn draw(
     scale_factor: f32,
     pixels: &mut tiny_skia::PixmapMut<'_>,
     clip_mask: Option<&tiny_skia::Mask>,
+    transformation: Transformation,
 ) {
-    let bounds = bounds * scale_factor;
+    let bounds = bounds * transformation * scale_factor;
 
     let x = match horizontal_alignment {
         alignment::Horizontal::Left => bounds.x,
@@ -211,7 +222,8 @@ fn draw(
 
     for run in buffer.layout_runs() {
         for glyph in run.glyphs {
-            let physical_glyph = glyph.physical((x, y), scale_factor);
+            let physical_glyph = glyph
+                .physical((x, y), scale_factor * transformation.scale_factor());
 
             if let Some((buffer, placement)) = glyph_cache.allocate(
                 physical_glyph.cache_key,
@@ -229,7 +241,10 @@ fn draw(
                 pixels.draw_pixmap(
                     physical_glyph.x + placement.left,
                     physical_glyph.y - placement.top
-                        + (run.line_y * scale_factor).round() as i32,
+                        + (run.line_y
+                            * scale_factor
+                            * transformation.scale_factor())
+                        .round() as i32,
                     pixmap,
                     &tiny_skia::PixmapPaint::default(),
                     tiny_skia::Transform::identity(),

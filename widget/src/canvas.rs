@@ -15,7 +15,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Length, Rectangle, Shell, Size, Vector, Widget,
+    Clipboard, Element, Length, Rectangle, Shell, Size, Transformation, Widget,
 };
 use crate::graphics::geometry;
 
@@ -207,8 +207,8 @@ where
 
         let state = tree.state.downcast_ref::<P::State>();
 
-        renderer.with_translation(
-            Vector::new(bounds.x, bounds.y),
+        renderer.with_transformation(
+            Transformation::translate(bounds.x, bounds.y),
             |renderer| {
                 renderer.draw(
                     self.program.draw(state, renderer, theme, bounds, cursor),

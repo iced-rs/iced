@@ -49,6 +49,7 @@ mod rectangle;
 mod shadow;
 mod shell;
 mod size;
+mod transformation;
 mod vector;
 
 pub use alignment::Alignment;
@@ -75,6 +76,7 @@ pub use shadow::Shadow;
 pub use shell::Shell;
 pub use size::Size;
 pub use text::Text;
+pub use transformation::Transformation;
 pub use vector::Vector;
 pub use widget::Widget;
 

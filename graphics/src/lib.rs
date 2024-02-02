@@ -19,7 +19,6 @@
 mod antialiasing;
 mod error;
 mod primitive;
-mod transformation;
 mod viewport;
 
 pub mod backend;
@@ -46,7 +45,6 @@ pub use gradient::Gradient;
 pub use mesh::Mesh;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
-pub use transformation::Transformation;
 pub use viewport::Viewport;
 
 pub use iced_core as core;

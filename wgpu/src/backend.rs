@@ -1,7 +1,7 @@
-use crate::core::{Color, Size};
+use crate::core::{Color, Size, Transformation};
 use crate::graphics::backend;
 use crate::graphics::color;
-use crate::graphics::{Transformation, Viewport};
+use crate::graphics::Viewport;
 use crate::primitive::pipeline;
 use crate::primitive::{self, Primitive};
 use crate::quad;
@@ -147,8 +147,8 @@ impl Backend {
             }
 
             if !layer.meshes.is_empty() {
-                let scaled = transformation
-                    * Transformation::scale(scale_factor, scale_factor);
+                let scaled =
+                    transformation * Transformation::scale(scale_factor);
 
                 self.triangle_pipeline.prepare(
                     device,
@@ -161,8 +161,8 @@ impl Backend {
             #[cfg(any(feature = "image", feature = "svg"))]
             {
                 if !layer.images.is_empty() {
-                    let scaled = transformation
-                        * Transformation::scale(scale_factor, scale_factor);
+                    let scaled =
+                        transformation * Transformation::scale(scale_factor);
 
                     self.image_pipeline.prepare(
                         device,

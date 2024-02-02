@@ -6,7 +6,7 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::text::Text;
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Vector,
+    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 use crate::text;
 use crate::Primitive;
@@ -73,20 +73,20 @@ impl<B: Backend> Renderer<B> {
     }
 
     /// Starts recording a translation.
-    pub fn start_translation(&mut self) -> Vec<Primitive<B::Primitive>> {
+    pub fn start_transformation(&mut self) -> Vec<Primitive<B::Primitive>> {
         std::mem::take(&mut self.primitives)
     }
 
     /// Ends the recording of a translation.
-    pub fn end_translation(
+    pub fn end_transformation(
         &mut self,
         primitives: Vec<Primitive<B::Primitive>>,
-        translation: Vector,
+        transformation: Transformation,
     ) {
         let layer = std::mem::replace(&mut self.primitives, primitives);
 
         self.primitives
-            .push(Primitive::group(layer).translate(translation));
+            .push(Primitive::group(layer).transform(transformation));
     }
 }
 
@@ -99,16 +99,16 @@ impl<B: Backend> iced_core::Renderer for Renderer<B> {
         self.end_layer(current, bounds);
     }
 
-    fn with_translation(
+    fn with_transformation(
         &mut self,
-        translation: Vector,
+        transformation: Transformation,
         f: impl FnOnce(&mut Self),
     ) {
-        let current = self.start_translation();
+        let current = self.start_transformation();
 
         f(self);
 
-        self.end_translation(current, translation);
+        self.end_transformation(current, transformation);
     }
 
     fn fill_quad(

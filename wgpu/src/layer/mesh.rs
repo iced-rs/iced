@@ -1,5 +1,5 @@
 //! A collection of triangle primitives.
-use crate::core::{Point, Rectangle};
+use crate::core::{Rectangle, Transformation};
 use crate::graphics::mesh;
 
 /// A mesh of triangles.
@@ -7,8 +7,8 @@ use crate::graphics::mesh;
 pub enum Mesh<'a> {
     /// A mesh of triangles with a solid color.
     Solid {
-        /// The origin of the vertices of the [`Mesh`].
-        origin: Point,
+        /// The [`Transformation`] for the vertices of the [`Mesh`].
+        transformation: Transformation,
 
         /// The vertex and index buffers of the [`Mesh`].
         buffers: &'a mesh::Indexed<mesh::SolidVertex2D>,
@@ -18,8 +18,8 @@ pub enum Mesh<'a> {
     },
     /// A mesh of triangles with a gradient color.
     Gradient {
-        /// The origin of the vertices of the [`Mesh`].
-        origin: Point,
+        /// The [`Transformation`] for the vertices of the [`Mesh`].
+        transformation: Transformation,
 
         /// The vertex and index buffers of the [`Mesh`].
         buffers: &'a mesh::Indexed<mesh::GradientVertex2D>,
@@ -31,11 +31,10 @@ pub enum Mesh<'a> {
 
 impl Mesh<'_> {
     /// Returns the origin of the [`Mesh`].
-    pub fn origin(&self) -> Point {
+    pub fn transformation(&self) -> Transformation {
         match self {
-            Self::Solid { origin, .. } | Self::Gradient { origin, .. } => {
-                *origin
-            }
+            Self::Solid { transformation, .. }
+            | Self::Gradient { transformation, .. } => *transformation,
         }
     }
 

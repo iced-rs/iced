@@ -1,6 +1,6 @@
 //! Build and draw geometry.
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -435,7 +435,7 @@ impl Frame {
     pub fn clip(&mut self, frame: Frame, at: Point) {
         let size = frame.size();
         let primitives = frame.into_primitives();
-        let translation = Vector::new(at.x, at.y);
+        let transformation = Transformation::translate(at.x, at.y);
 
         let (text, meshes) = primitives
             .into_iter()
@@ -443,12 +443,12 @@ impl Frame {
 
         self.primitives.push(Primitive::Group {
             primitives: vec![
-                Primitive::Translate {
-                    translation,
+                Primitive::Transform {
+                    transformation,
                     content: Box::new(Primitive::Group { primitives: meshes }),
                 },
-                Primitive::Translate {
-                    translation,
+                Primitive::Transform {
+                    transformation,
                     content: Box::new(Primitive::Clip {
                         bounds: Rectangle::with_size(size),
                         content: Box::new(Primitive::Group {

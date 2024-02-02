@@ -12,6 +12,7 @@ keywords.workspace = true
 
 [dependencies]
 bitflags.workspace = true
+glam.workspace = true
 log.workspace = true
 num-traits.workspace = true
 smol_str.workspace = true

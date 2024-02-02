@@ -119,11 +119,12 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
                     });
             });
 
-        let translation = Vector::new(bounds.x, bounds.y);
-
-        renderer.with_translation(translation, |renderer| {
-            renderer.draw(vec![geometry]);
-        });
+        renderer.with_translation(
+            bounds.position() - Point::ORIGIN,
+            |renderer| {
+                renderer.draw(vec![geometry]);
+            },
+        );
     }
 }
 

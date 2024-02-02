@@ -1,5 +1,5 @@
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Vector};
+use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
@@ -181,8 +181,8 @@ impl Frame {
     }
 
     pub fn clip(&mut self, frame: Self, at: Point) {
-        self.primitives.push(Primitive::Translate {
-            translation: Vector::new(at.x, at.y),
+        self.primitives.push(Primitive::Transform {
+            transformation: Transformation::translate(at.x, at.y),
             content: Box::new(frame.into_primitive()),
         });
     }
