@@ -5,7 +5,9 @@ use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
-use crate::core::{Clipboard, Element, Layout, Point, Rectangle, Shell, Size};
+use crate::core::{
+    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+};
 use crate::pane_grid::{Draggable, TitleBar};
 
 /// The content of a [`Pane`].
@@ -330,6 +332,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         if let Some(title_bar) = self.title_bar.as_mut() {
             let mut children = layout.children();
@@ -339,13 +342,18 @@ where
             let body_state = states.next().unwrap();
             let title_bar_state = states.next().unwrap();
 
-            match title_bar.overlay(title_bar_state, title_bar_layout, renderer)
-            {
+            match title_bar.overlay(
+                title_bar_state,
+                title_bar_layout,
+                renderer,
+                translation,
+            ) {
                 Some(overlay) => Some(overlay),
                 None => self.body.as_widget_mut().overlay(
                     body_state,
                     children.next()?,
                     renderer,
+                    translation,
                 ),
             }
         } else {
@@ -353,6 +361,7 @@ where
                 &mut tree.children[0],
                 layout,
                 renderer,
+                translation,
             )
         }
     }

@@ -1,6 +1,7 @@
 use iced::executor;
 use iced::font::{self, Font};
-use iced::widget::{checkbox, column, container, text};
+use iced::theme;
+use iced::widget::{checkbox, column, container, row, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
 const ICON_FONT: Font = Font::with_name("icons");
@@ -11,14 +12,16 @@ pub fn main() -> iced::Result {
 
 #[derive(Default)]
 struct Example {
-    default_checkbox: bool,
-    custom_checkbox: bool,
+    default: bool,
+    styled: bool,
+    custom: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    DefaultChecked(bool),
-    CustomChecked(bool),
+    DefaultToggled(bool),
+    CustomToggled(bool),
+    StyledToggled(bool),
     FontLoaded(Result<(), font::Error>),
 }
 
@@ -42,8 +45,15 @@ impl Application for Example {
 
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
-            Message::DefaultChecked(value) => self.default_checkbox = value,
-            Message::CustomChecked(value) => self.custom_checkbox = value,
+            Message::DefaultToggled(default) => {
+                self.default = default;
+            }
+            Message::StyledToggled(styled) => {
+                self.styled = styled;
+            }
+            Message::CustomToggled(custom) => {
+                self.custom = custom;
+            }
             Message::FontLoaded(_) => (),
         }
 
@@ -51,19 +61,35 @@ impl Application for Example {
     }
 
     fn view(&self) -> Element<Message> {
-        let default_checkbox =
-            checkbox("Default", self.default_checkbox, Message::DefaultChecked);
-        let custom_checkbox =
-            checkbox("Custom", self.custom_checkbox, Message::CustomChecked)
-                .icon(checkbox::Icon {
-                    font: ICON_FONT,
-                    code_point: '\u{e901}',
-                    size: None,
-                    line_height: text::LineHeight::Relative(1.0),
-                    shaping: text::Shaping::Basic,
-                });
+        let default_checkbox = checkbox("Default", self.default)
+            .on_toggle(Message::DefaultToggled);
 
-        let content = column![default_checkbox, custom_checkbox].spacing(22);
+        let styled_checkbox = |label, style| {
+            checkbox(label, self.styled)
+                .on_toggle_maybe(self.default.then_some(Message::StyledToggled))
+                .style(style)
+        };
+
+        let checkboxes = row![
+            styled_checkbox("Primary", theme::Checkbox::Primary),
+            styled_checkbox("Secondary", theme::Checkbox::Secondary),
+            styled_checkbox("Success", theme::Checkbox::Success),
+            styled_checkbox("Danger", theme::Checkbox::Danger),
+        ]
+        .spacing(20);
+
+        let custom_checkbox = checkbox("Custom", self.custom)
+            .on_toggle(Message::CustomToggled)
+            .icon(checkbox::Icon {
+                font: ICON_FONT,
+                code_point: '\u{e901}',
+                size: None,
+                line_height: text::LineHeight::Relative(1.0),
+                shaping: text::Shaping::Basic,
+            });
+
+        let content =
+            column![default_checkbox, checkboxes, custom_checkbox].spacing(20);
 
         container(content)
             .width(Length::Fill)

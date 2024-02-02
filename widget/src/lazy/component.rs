@@ -462,6 +462,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
         let tree = tree
@@ -486,6 +487,7 @@ where
                                     &mut tree.children[0],
                                     layout,
                                     renderer,
+                                    translation,
                                 )
                                 .map(|overlay| {
                                     RefCell::new(Nested::new(overlay))
@@ -497,18 +499,9 @@ where
             .build(),
         ));
 
-        let has_overlay = overlay.0.as_ref().unwrap().with_overlay(|overlay| {
-            overlay.as_ref().map(|nested| nested.borrow().position())
-        });
-
-        has_overlay.map(|position| {
-            overlay::Element::new(
-                position,
-                Box::new(OverlayInstance {
-                    overlay: Some(overlay),
-                }),
-            )
-        })
+        Some(overlay::Element::new(Box::new(OverlayInstance {
+            overlay: Some(overlay),
+        })))
     }
 }
 
@@ -582,17 +575,9 @@ where
     Renderer: core::Renderer,
     S: 'static + Default,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        translation: Vector,
-    ) -> layout::Node {
-        self.with_overlay_maybe(|overlay| {
-            overlay.layout(renderer, bounds, position, translation)
-        })
-        .unwrap_or_default()
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        self.with_overlay_maybe(|overlay| overlay.layout(renderer, bounds))
+            .unwrap_or_default()
     }
 
     fn draw(

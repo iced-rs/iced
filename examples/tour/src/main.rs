@@ -554,11 +554,13 @@ impl<'a> Step {
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(checkbox(
-                "Use nearest interpolation",
-                filter_method == image::FilterMethod::Nearest,
-                StepMessage::ImageUseNearestToggled,
-            ))
+            .push(
+                checkbox(
+                    "Use nearest interpolation",
+                    filter_method == image::FilterMethod::Nearest,
+                )
+                .on_toggle(StepMessage::ImageUseNearestToggled),
+            )
             .align_items(Alignment::Center)
     }
 
@@ -616,16 +618,14 @@ impl<'a> Step {
             } else {
                 text_input
             })
-            .push(checkbox(
-                "Enable password mode",
-                is_secure,
-                StepMessage::ToggleSecureInput,
-            ))
-            .push(checkbox(
-                "Show icon",
-                is_showing_icon,
-                StepMessage::ToggleTextInputIcon,
-            ))
+            .push(
+                checkbox("Enable password mode", is_secure)
+                    .on_toggle(StepMessage::ToggleSecureInput),
+            )
+            .push(
+                checkbox("Show icon", is_showing_icon)
+                    .on_toggle(StepMessage::ToggleTextInputIcon),
+            )
             .push(
                 "A text input produces a message every time it changes. It is \
                  very easy to keep track of its contents:",
@@ -658,7 +658,8 @@ impl<'a> Step {
                         .horizontal_alignment(alignment::Horizontal::Center),
                 )
             } else {
-                checkbox("Explain layout", debug, StepMessage::DebugToggled)
+                checkbox("Explain layout", debug)
+                    .on_toggle(StepMessage::DebugToggled)
                     .into()
             })
             .push("Feel free to go back and take a look.")

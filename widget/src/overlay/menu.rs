@@ -134,10 +134,11 @@ where
         position: Point,
         target_height: f32,
     ) -> overlay::Element<'a, Message, Theme, Renderer> {
-        overlay::Element::new(
+        overlay::Element::new(Box::new(Overlay::new(
             position,
-            Box::new(Overlay::new(self, target_height)),
-        )
+            self,
+            target_height,
+        )))
     }
 }
 
@@ -167,6 +168,7 @@ where
     Theme: StyleSheet + container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
+    position: Point,
     state: &'a mut Tree,
     container: Container<'a, Message, Theme, Renderer>,
     width: f32,
@@ -181,6 +183,7 @@ where
     Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(
+        position: Point,
         menu: Menu<'a, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
@@ -218,6 +221,7 @@ where
         state.tree.diff(&container as &dyn Widget<_, _, _>);
 
         Self {
+            position,
             state: &mut state.tree,
             container,
             width,
@@ -234,20 +238,15 @@ where
     Theme: StyleSheet + container::StyleSheet,
     Renderer: text::Renderer,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        _translation: Vector,
-    ) -> layout::Node {
-        let space_below = bounds.height - (position.y + self.target_height);
-        let space_above = position.y;
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
+        let space_below =
+            bounds.height - (self.position.y + self.target_height);
+        let space_above = self.position.y;
 
         let limits = layout::Limits::new(
             Size::ZERO,
             Size::new(
-                bounds.width - position.x,
+                bounds.width - self.position.x,
                 if space_below > space_above {
                     space_below
                 } else {
@@ -261,9 +260,9 @@ where
         let size = node.size();
 
         node.move_to(if space_below > space_above {
-            position + Vector::new(0.0, self.target_height)
+            self.position + Vector::new(0.0, self.target_height)
         } else {
-            position - Vector::new(0.0, size.height)
+            self.position - Vector::new(0.0, size.height)
         })
     }
 

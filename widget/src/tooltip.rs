@@ -221,25 +221,23 @@ where
             children.next().unwrap(),
             layout,
             renderer,
+            translation,
         );
 
         let tooltip = if let State::Hovered { cursor_position } = *state {
-            Some(overlay::Element::new(
-                layout.position(),
-                Box::new(Overlay {
-                    position: layout.position() + translation,
-                    tooltip: &self.tooltip,
-                    state: children.next().unwrap(),
-                    cursor_position,
-                    content_bounds: layout.bounds(),
-                    snap_within_viewport: self.snap_within_viewport,
-                    positioning: self.position,
-                    gap: self.gap,
-                    padding: self.padding,
-                    style: &self.style,
-                }),
-            ))
-        } else {
+            Some(overlay::Element::new(Box::new(Overlay {
+                position: layout.position() + translation,
+                tooltip: &self.tooltip,
+                state: children.next().unwrap(),
+                cursor_position,
+                content_bounds: layout.bounds(),
+                snap_within_viewport: self.snap_within_viewport,
+                positioning: self.position,
+                gap: self.gap,
+                padding: self.padding,
+                style: &self.style,
+            })))
+=        } else {
             None
         };
 
@@ -318,13 +316,7 @@ where
     Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
 {
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        _translation: Vector,
-    ) -> layout::Node {
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
         let text_layout = Widget::<Message, Theme, Renderer>::layout(

@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
+    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size, Vector,
 };
 
 /// The title bar of a [`Pane`].
@@ -405,6 +405,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let mut children = layout.children();
         let padded = children.next()?;
@@ -422,7 +423,7 @@ where
 
         content
             .as_widget_mut()
-            .overlay(title_state, title_layout, renderer)
+            .overlay(title_state, title_layout, renderer, translation)
             .or_else(move || {
                 controls.as_mut().and_then(|controls| {
                     let controls_layout = children.next()?;
@@ -431,6 +432,7 @@ where
                         controls_state,
                         controls_layout,
                         renderer,
+                        translation,
                     )
                 })
             })

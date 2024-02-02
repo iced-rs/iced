@@ -308,6 +308,10 @@ where
         self.widget.size()
     }
 
+    fn size_hint(&self) -> Size<Length> {
+        self.widget.size_hint()
+    }
+
     fn layout(
         &self,
         tree: &mut Tree,
@@ -442,11 +446,12 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, B, Theme, Renderer>> {
         let mapper = &self.mapper;
 
         self.widget
-            .overlay(tree, layout, renderer)
+            .overlay(tree, layout, renderer, translation)
             .map(move |overlay| overlay.map(mapper))
     }
 }
@@ -475,6 +480,10 @@ where
 {
     fn size(&self) -> Size<Length> {
         self.element.widget.size()
+    }
+
+    fn size_hint(&self) -> Size<Length> {
+        self.element.widget.size_hint()
     }
 
     fn tag(&self) -> tree::Tag {
@@ -588,7 +597,10 @@ where
         state: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        self.element.widget.overlay(state, layout, renderer)
+        self.element
+            .widget
+            .overlay(state, layout, renderer, translation)
     }
 }

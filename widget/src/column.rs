@@ -7,7 +7,7 @@ use crate::core::renderer;
 use crate::core::widget::{Operation, Tree};
 use crate::core::{
     Alignment, Clipboard, Element, Layout, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Widget,
+    Shell, Size, Vector, Widget,
 };
 
 /// A container that distributes its contents vertically.
@@ -259,8 +259,15 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
-        overlay::from_children(&mut self.children, tree, layout, renderer)
+        overlay::from_children(
+            &mut self.children,
+            tree,
+            layout,
+            renderer,
+            translation,
+        )
     }
 }
 

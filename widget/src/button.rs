@@ -11,7 +11,7 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
-    Shell, Size, Widget,
+    Shell, Size, Vector, Widget,
 };
 
 pub use crate::style::button::{Appearance, StyleSheet};
@@ -271,11 +271,13 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.content.as_widget_mut().overlay(
             &mut tree.children[0],
             layout.children().next().unwrap(),
             renderer,
+            translation,
         )
     }
 }

@@ -24,13 +24,7 @@ where
     /// user interface.
     ///
     /// [`Node`]: layout::Node
-    fn layout(
-        &mut self,
-        renderer: &Renderer,
-        bounds: Size,
-        position: Point,
-        translation: Vector,
-    ) -> layout::Node;
+    fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node;
 
     /// Draws the [`Overlay`] using the associated `Renderer`.
     fn draw(
@@ -120,6 +114,7 @@ pub fn from_children<'a, Message, Theme, Renderer>(
     tree: &'a mut Tree,
     layout: Layout<'_>,
     renderer: &Renderer,
+    translation: Vector,
 ) -> Option<Element<'a, Message, Theme, Renderer>>
 where
     Renderer: crate::Renderer,
@@ -129,7 +124,9 @@ where
         .zip(&mut tree.children)
         .zip(layout.children())
         .filter_map(|((child, state), layout)| {
-            child.as_widget_mut().overlay(state, layout, renderer)
+            child
+                .as_widget_mut()
+                .overlay(state, layout, renderer, translation)
         })
         .collect::<Vec<_>>();
 

@@ -9,8 +9,8 @@ use iced::time::Instant;
 use iced::widget::canvas;
 use iced::window::{self, RedrawRequest};
 use iced::{
-    Background, Color, Element, Event, Length, Rectangle, Renderer, Size,
-    Vector,
+    Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
+    Size, Vector,
 };
 
 use super::easing::{self, Easing};
@@ -18,8 +18,8 @@ use super::easing::{self, Easing};
 use std::f32::consts::PI;
 use std::time::Duration;
 
-const MIN_RADIANS: f32 = PI / 8.0;
-const WRAP_RADIANS: f32 = 2.0 * PI - PI / 4.0;
+const MIN_ANGLE: Radians = Radians(PI / 8.0);
+const WRAP_ANGLE: Radians = Radians(2.0 * PI - PI / 4.0);
 const BASE_ROTATION_SPEED: u32 = u32::MAX / 80;
 
 #[allow(missing_debug_implementations)]
@@ -139,7 +139,8 @@ impl Animation {
                 progress: 0.0,
                 rotation: rotation.wrapping_add(
                     BASE_ROTATION_SPEED.wrapping_add(
-                        ((WRAP_RADIANS / (2.0 * PI)) * u32::MAX as f32) as u32,
+                        (f64::from(WRAP_ANGLE / (2.0 * Radians::PI)) * f64::MAX)
+                            as u32,
                     ),
                 ),
                 last: now,
@@ -318,7 +319,7 @@ where
 
             let mut builder = canvas::path::Builder::new();
 
-            let start = state.animation.rotation() * 2.0 * PI;
+            let start = Radians(state.animation.rotation() * 2.0 * PI);
 
             match state.animation {
                 Animation::Expanding { progress, .. } => {
@@ -327,8 +328,8 @@ where
                         radius: track_radius,
                         start_angle: start,
                         end_angle: start
-                            + MIN_RADIANS
-                            + WRAP_RADIANS * (self.easing.y_at_x(progress)),
+                            + MIN_ANGLE
+                            + WRAP_ANGLE * (self.easing.y_at_x(progress)),
                     });
                 }
                 Animation::Contracting { progress, .. } => {
@@ -336,8 +337,8 @@ where
                         center: frame.center(),
                         radius: track_radius,
                         start_angle: start
-                            + WRAP_RADIANS * (self.easing.y_at_x(progress)),
-                        end_angle: start + MIN_RADIANS + WRAP_RADIANS,
+                            + WRAP_ANGLE * (self.easing.y_at_x(progress)),
+                        end_angle: start + MIN_ANGLE + WRAP_ANGLE,
                     });
                 }
             }

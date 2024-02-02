@@ -15,7 +15,7 @@ use crate::layout::{self, Layout};
 use crate::mouse;
 use crate::overlay;
 use crate::renderer;
-use crate::{Clipboard, Length, Rectangle, Shell, Size};
+use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
 
 /// A component that displays information and allows interaction.
 ///
@@ -146,6 +146,7 @@ where
         _state: &'a mut Tree,
         _layout: Layout<'_>,
         _renderer: &Renderer,
+        _translation: Vector,
     ) -> Option<overlay::Element<'a, Message, Theme, Renderer>> {
         None
     }

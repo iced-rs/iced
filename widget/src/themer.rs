@@ -141,6 +141,7 @@ where
         tree: &'b mut Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, AnyTheme, Renderer>> {
         struct Overlay<'a, Message, Theme, Renderer> {
             theme: &'a Theme,
@@ -157,14 +158,8 @@ where
                 &mut self,
                 renderer: &Renderer,
                 bounds: Size,
-                position: Point,
-                translation: Vector,
             ) -> layout::Node {
-                self.content.layout(
-                    renderer,
-                    bounds,
-                    translation + (position - Point::ORIGIN),
-                )
+                self.content.layout(renderer, bounds)
             }
 
             fn draw(
@@ -233,22 +228,18 @@ where
                         theme: self.theme,
                         content,
                     })
-                    .map(|overlay| {
-                        overlay::Element::new(Point::ORIGIN, Box::new(overlay))
-                    })
+                    .map(|overlay| overlay::Element::new(Box::new(overlay)))
             }
         }
 
         self.content
             .as_widget_mut()
-            .overlay(tree, layout, renderer)
+            .overlay(tree, layout, renderer, translation)
             .map(|content| Overlay {
                 theme: &self.theme,
                 content,
             })
-            .map(|overlay| {
-                overlay::Element::new(Point::ORIGIN, Box::new(overlay))
-            })
+            .map(|overlay| overlay::Element::new(Box::new(overlay)))
     }
 }
 
