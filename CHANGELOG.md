@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Explicit text caching. [#2058](https://github.com/iced-rs/iced/pull/2058)
 - Gradients in Oklab color space. [#2055](https://github.com/iced-rs/iced/pull/2055)
 - `Themer` widget. [#2209](https://github.com/iced-rs/iced/pull/2209)
+- `Transform` primitive. [#2120](https://github.com/iced-rs/iced/pull/2120)
 - Cut functionality for `TextEditor`. [#2215](https://github.com/iced-rs/iced/pull/2215)
 - Disabled support for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
 - `skip_taskbar` window setting for Windows. [#2211](https://github.com/iced-rs/iced/pull/2211)
@@ -82,6 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inline format args for ease of reading. [#2089](https://github.com/iced-rs/iced/pull/2089)
 - Stuck scrolling in `Scrollable` with touch events. [#1940](https://github.com/iced-rs/iced/pull/1940)
 - Incorrect unit in `system::Information`. [#2223](https://github.com/iced-rs/iced/pull/2223)
+- `size_hint` not being called from `element::Map`. [#2224](https://github.com/iced-rs/iced/pull/2224)
+- `size_hint` not being called from `element::Explain`. [#2225](https://github.com/iced-rs/iced/pull/2225)
 
 Many thanks to...
 
