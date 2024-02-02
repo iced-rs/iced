@@ -211,6 +211,7 @@ where
         tree: &'b mut widget::Tree,
         layout: Layout<'_>,
         renderer: &Renderer,
+        translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_ref::<State>();
 
@@ -226,12 +227,13 @@ where
             Some(overlay::Element::new(
                 layout.position(),
                 Box::new(Overlay {
+                    position: layout.position() + translation,
                     tooltip: &self.tooltip,
                     state: children.next().unwrap(),
                     cursor_position,
                     content_bounds: layout.bounds(),
                     snap_within_viewport: self.snap_within_viewport,
-                    position: self.position,
+                    positioning: self.position,
                     gap: self.gap,
                     padding: self.padding,
                     style: &self.style,
@@ -297,12 +299,13 @@ where
     Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
 {
+    position: Point,
     tooltip: &'b Element<'a, Message, Theme, Renderer>,
     state: &'b mut widget::Tree,
     cursor_position: Point,
     content_bounds: Rectangle,
     snap_within_viewport: bool,
-    position: Position,
+    positioning: Position,
     gap: f32,
     padding: f32,
     style: &'b <Theme as container::StyleSheet>::Style,
@@ -338,37 +341,44 @@ where
         );
 
         let text_bounds = text_layout.bounds();
-        let x_center =
-            position.x + (self.content_bounds.width - text_bounds.width) / 2.0;
-        let y_center = position.y
+        let x_center = self.position.x
+            + (self.content_bounds.width - text_bounds.width) / 2.0;
+        let y_center = self.position.y
             + (self.content_bounds.height - text_bounds.height) / 2.0;
 
         let mut tooltip_bounds = {
-            let offset = match self.position {
+            let offset = match self.positioning {
                 Position::Top => Vector::new(
                     x_center,
-                    position.y - text_bounds.height - self.gap - self.padding,
+                    self.position.y
+                        - text_bounds.height
+                        - self.gap
+                        - self.padding,
                 ),
                 Position::Bottom => Vector::new(
                     x_center,
-                    position.y
+                    self.position.y
                         + self.content_bounds.height
                         + self.gap
                         + self.padding,
                 ),
                 Position::Left => Vector::new(
-                    position.x - text_bounds.width - self.gap - self.padding,
+                    self.position.x
+                        - text_bounds.width
+                        - self.gap
+                        - self.padding,
                     y_center,
                 ),
                 Position::Right => Vector::new(
-                    position.x
+                    self.position.x
                         + self.content_bounds.width
                         + self.gap
                         + self.padding,
                     y_center,
                 ),
                 Position::FollowCursor => {
-                    let translation = position - self.content_bounds.position();
+                    let translation =
+                        self.position - self.content_bounds.position();
 
                     Vector::new(
                         self.cursor_position.x,
