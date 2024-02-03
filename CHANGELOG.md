@@ -104,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Missing feature flag docs for `time::every`. [#2188](https://github.com/iced-rs/iced/pull/2188)
 - Event loop not being resumed on Windows while resizing. [#2214](https://github.com/iced-rs/iced/pull/2214)
 - Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
+- Outdated documentation leading to a dead link. [#2232](https://github.com/iced-rs/iced/pull/2232)
 
 Many thanks to...
 
@@ -135,6 +136,7 @@ Many thanks to...
 - @jim-ec
 - @joshuamegnauth54
 - @jpttrssn
+- @julianbraha
 - @Koranir
 - @lufte
 - @matze
