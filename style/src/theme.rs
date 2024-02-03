@@ -62,6 +62,18 @@ pub enum Theme {
     TokyoNightStorm,
     /// The built-in Tokyo Night Light variant.
     TokyoNightLight,
+    /// The built-in Kanagawa Wave variant.
+    KanagawaWave,
+    /// The built-in Kanagawa Dragon variant.
+    KanagawaDragon,
+    /// The built-in Kanagawa Lotus variant.
+    KanagawaLotus,
+    /// The built-in Moonfly variant.
+    Moonfly,
+    /// The built-in Nightfly variant.
+    Nightfly,
+    /// The built-in Oxocarbon variant.
+    Oxocarbon,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Arc<Custom>),
 }
@@ -84,6 +96,12 @@ impl Theme {
         Self::TokyoNight,
         Self::TokyoNightStorm,
         Self::TokyoNightLight,
+        Self::KanagawaWave,
+        Self::KanagawaDragon,
+        Self::KanagawaLotus,
+        Self::Moonfly,
+        Self::Nightfly,
+        Self::Oxocarbon,
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
@@ -119,6 +137,12 @@ impl Theme {
             Self::TokyoNight => Palette::TOKYO_NIGHT,
             Self::TokyoNightStorm => Palette::TOKYO_NIGHT_STORM,
             Self::TokyoNightLight => Palette::TOKYO_NIGHT_LIGHT,
+            Self::KanagawaWave => Palette::KANAGAWA_WAVE,
+            Self::KanagawaDragon => Palette::KANAGAWA_DRAGON,
+            Self::KanagawaLotus => Palette::KANAGAWA_LOTUS,
+            Self::Moonfly => Palette::MOONFLY,
+            Self::Nightfly => Palette::NIGHTFLY,
+            Self::Oxocarbon => Palette::OXOCARBON,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -143,6 +167,12 @@ impl Theme {
             Self::TokyoNight => &palette::EXTENDED_TOKYO_NIGHT,
             Self::TokyoNightStorm => &palette::EXTENDED_TOKYO_NIGHT_STORM,
             Self::TokyoNightLight => &palette::EXTENDED_TOKYO_NIGHT_LIGHT,
+            Self::KanagawaWave => &palette::EXTENDED_KANAGAWA_WAVE,
+            Self::KanagawaDragon => &palette::EXTENDED_KANAGAWA_DRAGON,
+            Self::KanagawaLotus => &palette::EXTENDED_KANAGAWA_LOTUS,
+            Self::Moonfly => &palette::EXTENDED_MOONFLY,
+            Self::Nightfly => &palette::EXTENDED_NIGHTFLY,
+            Self::Oxocarbon => &palette::EXTENDED_OXOCARBON,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -166,6 +196,12 @@ impl fmt::Display for Theme {
             Self::TokyoNight => write!(f, "Tokyo Night"),
             Self::TokyoNightStorm => write!(f, "Tokyo Night Storm"),
             Self::TokyoNightLight => write!(f, "Tokyo Night Light"),
+            Self::KanagawaWave => write!(f, "Kanagawa Wave"),
+            Self::KanagawaDragon => write!(f, "Kanagawa Dragon"),
+            Self::KanagawaLotus => write!(f, "Kanagawa Lotus"),
+            Self::Moonfly => write!(f, "Moonfly"),
+            Self::Nightfly => write!(f, "Nightfly"),
+            Self::Oxocarbon => write!(f, "Oxocarbon"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }

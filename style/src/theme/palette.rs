@@ -210,6 +210,72 @@ impl Palette {
         success: color!(0x485e30),    // Green
         danger: color!(0x8c4351),     // Red
     };
+
+    /// The built-in Kanagawa Wave variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/rebelot/kanagawa.nvim
+    pub const KANAGAWA_WAVE: Self = Self {
+        background: color!(0x363646), // Sumi Ink 3
+        text: color!(0xCD7BA),        // Fuji White
+        primary: color!(0x2D4F67),    // Wave Blue 2
+        success: color!(0x76946A),    // Autumn Green
+        danger: color!(0xC34043),     // Autumn Red
+    };
+
+    /// The built-in Kanagawa Dragon variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/rebelot/kanagawa.nvim
+    pub const KANAGAWA_DRAGON: Self = Self {
+        background: color!(0x181616), // Dragon Black 3
+        text: color!(0xc5c9c5),       // Dragon White
+        primary: color!(0x223249),    // Wave Blue 1
+        success: color!(0x8a9a7b),    // Dragon Green 2
+        danger: color!(0xc4746e),     // Dragon Red
+    };
+
+    /// The built-in Kanagawa Lotus variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/rebelot/kanagawa.nvim
+    pub const KANAGAWA_LOTUS: Self = Self {
+        background: color!(0xf2ecbc), // Lotus White 3
+        text: color!(0x545464),       // Lotus Ink 1
+        primary: color!(0xc9cbd1),    // Lotus Violet 3
+        success: color!(0x6f894e),    // Lotus Green
+        danger: color!(0xc84053),     // Lotus Red
+    };
+
+    /// The built-in Moonfly variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/bluz71/vim-moonfly-colors
+    pub const MOONFLY: Self = Self {
+        background: color!(0x080808), // Background
+        text: color!(0xbdbdbd),       // Foreground
+        primary: color!(0x80a0ff),    // Blue (normal)
+        success: color!(0x8cc85f),    // Green (normal)
+        danger: color!(0xff5454),     // Red (normal)
+    };
+
+    /// The built-in Nightfly variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/bluz71/vim-nightfly-colors
+    pub const NIGHTFLY: Self = Self {
+        background: color!(0x011627), // Background
+        text: color!(0xbdc1c6),       // Foreground
+        primary: color!(0x82aaff),    // Blue (normal)
+        success: color!(0xa1cd5e),    // Green (normal)
+        danger: color!(0xfc514e),     // Red (normal)
+    };
+
+    /// The built-in Oxocarbon variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/nyoom-engineering/oxocarbon.nvim
+    pub const OXOCARBON: Self = Self {
+        background: color!(0x232323),
+        text: color!(0xd0d0d0),
+        primary: color!(0x00b4ff),
+        success: color!(0x00c15a),
+        danger: color!(0xf62d0f),
+    };
 }
 
 /// An extended set of colors generated from a [`Palette`].
@@ -288,6 +354,30 @@ pub static EXTENDED_TOKYO_NIGHT_STORM: Lazy<Extended> =
 /// The built-in Tokyo Night variant of an [`Extended`] palette.
 pub static EXTENDED_TOKYO_NIGHT_LIGHT: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
+
+/// The built-in Kanagawa Wave variant of an [`Extended`] palette.
+pub static EXTENDED_KANAGAWA_WAVE: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::KANAGAWA_WAVE));
+
+/// The built-in Kanagawa Dragon variant of an [`Extended`] palette.
+pub static EXTENDED_KANAGAWA_DRAGON: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::KANAGAWA_DRAGON));
+
+/// The built-in Kanagawa Lotus variant of an [`Extended`] palette.
+pub static EXTENDED_KANAGAWA_LOTUS: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::KANAGAWA_LOTUS));
+
+/// The built-in Moonfly variant of an [`Extended`] palette.
+pub static EXTENDED_MOONFLY: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::MOONFLY));
+
+/// The built-in Nightfly variant of an [`Extended`] palette.
+pub static EXTENDED_NIGHTFLY: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::NIGHTFLY));
+
+/// The built-in Oxocarbon variant of an [`Extended`] palette.
+pub static EXTENDED_OXOCARBON: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::OXOCARBON));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].
