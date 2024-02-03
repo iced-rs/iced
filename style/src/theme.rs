@@ -25,6 +25,7 @@ use crate::core::{Background, Border, Color, Shadow, Vector};
 
 use std::fmt;
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// A built-in theme.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -34,13 +35,34 @@ pub enum Theme {
     Light,
     /// The built-in dark variant.
     Dark,
+    /// The built-in Dracula variant.
+    Dracula,
+    /// The built-in Nord variant.
+    Nord,
+    /// The built-in Solarized Light variant.
+    SolarizedLight,
+    /// The built-in Solarized Dark variant.
+    SolarizedDark,
+    /// The built-in Gruvbox Light variant.
+    GruvboxLight,
+    /// The built-in Gruvbox Dark variant.
+    GruvboxDark,
     /// A [`Theme`] that uses a [`Custom`] palette.
-    Custom(Box<Custom>),
+    Custom(Arc<Custom>),
 }
 
 impl Theme {
     /// A list with all the defined themes.
-    pub const ALL: &'static [Self] = &[Self::Light, Self::Dark];
+    pub const ALL: &'static [Self] = &[
+        Self::Light,
+        Self::Dark,
+        Self::Dracula,
+        Self::Nord,
+        Self::SolarizedLight,
+        Self::SolarizedDark,
+        Self::GruvboxLight,
+        Self::GruvboxDark,
+    ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
     pub fn custom(name: String, palette: Palette) -> Self {
@@ -54,7 +76,7 @@ impl Theme {
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
-        Self::Custom(Box::new(Custom::with_fn(name, palette, generate)))
+        Self::Custom(Arc::new(Custom::with_fn(name, palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].
@@ -62,6 +84,12 @@ impl Theme {
         match self {
             Self::Light => Palette::LIGHT,
             Self::Dark => Palette::DARK,
+            Self::Dracula => Palette::DRACULA,
+            Self::Nord => Palette::NORD,
+            Self::SolarizedLight => Palette::SOLARIZED_LIGHT,
+            Self::SolarizedDark => Palette::SOLARIZED_DARK,
+            Self::GruvboxLight => Palette::GRUVBOX_LIGHT,
+            Self::GruvboxDark => Palette::GRUVBOX_DARK,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -71,6 +99,12 @@ impl Theme {
         match self {
             Self::Light => &palette::EXTENDED_LIGHT,
             Self::Dark => &palette::EXTENDED_DARK,
+            Self::Dracula => &palette::EXTENDED_DRACULA,
+            Self::Nord => &palette::EXTENDED_NORD,
+            Self::SolarizedLight => &palette::EXTENDED_SOLARIZED_LIGHT,
+            Self::SolarizedDark => &palette::EXTENDED_SOLARIZED_DARK,
+            Self::GruvboxLight => &palette::EXTENDED_GRUVBOX_LIGHT,
+            Self::GruvboxDark => &palette::EXTENDED_GRUVBOX_DARK,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -81,6 +115,12 @@ impl fmt::Display for Theme {
         match self {
             Self::Light => write!(f, "Light"),
             Self::Dark => write!(f, "Dark"),
+            Self::Dracula => write!(f, "Dracula"),
+            Self::Nord => write!(f, "Nord"),
+            Self::SolarizedLight => write!(f, "Solarized Light"),
+            Self::SolarizedDark => write!(f, "Solarized Dark"),
+            Self::GruvboxLight => write!(f, "Gruvbox Light"),
+            Self::GruvboxDark => write!(f, "Gruvbox Dark"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }
