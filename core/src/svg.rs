@@ -50,6 +50,15 @@ impl Handle {
     }
 }
 
+impl<T> From<T> for Handle
+where
+    T: Into<PathBuf>,
+{
+    fn from(path: T) -> Handle {
+        Handle::from_path(path.into())
+    }
+}
+
 impl Hash for Handle {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
