@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Texture filtering options for `Image`. [#1894](https://github.com/iced-rs/iced/pull/1894)
 - `default` and `shift_step` methods for `slider` widgets. [#2100](https://github.com/iced-rs/iced/pull/2100)
 - `Custom` variant to `command::Action`. [#2146](https://github.com/iced-rs/iced/pull/2146)
+- Mouse movement events for `MouseArea`. [#2147](https://github.com/iced-rs/iced/pull/2147)
 
 ### Changed
 - Enable WebGPU backend in `wgpu` by default instead of WebGL. [#2068](https://github.com/iced-rs/iced/pull/2068)
