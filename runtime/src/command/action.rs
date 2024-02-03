@@ -1,12 +1,11 @@
 use crate::clipboard;
 use crate::core::widget;
 use crate::font;
+use crate::futures::MaybeSend;
 use crate::system;
 use crate::window;
 
-use iced_futures::MaybeSend;
 use std::any::Any;
-
 use std::borrow::Cow;
 use std::fmt;
 
