@@ -48,6 +48,14 @@ pub enum Theme {
     GruvboxLight,
     /// The built-in Gruvbox Dark variant.
     GruvboxDark,
+    /// The built-in Catppuccin Latte variant.
+    CatppuccinLatte,
+    /// The built-in Catppuccin Frappé variant.
+    CatppuccinFrappe,
+    /// The built-in Catppuccin Macchiato variant.
+    CatppuccinMacchiato,
+    /// The built-in Catppuccin Mocha variant.
+    CatppuccinMocha,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Arc<Custom>),
 }
@@ -63,6 +71,10 @@ impl Theme {
         Self::SolarizedDark,
         Self::GruvboxLight,
         Self::GruvboxDark,
+        Self::CatppuccinLatte,
+        Self::CatppuccinFrappe,
+        Self::CatppuccinMacchiato,
+        Self::CatppuccinMocha,
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
@@ -91,6 +103,10 @@ impl Theme {
             Self::SolarizedDark => Palette::SOLARIZED_DARK,
             Self::GruvboxLight => Palette::GRUVBOX_LIGHT,
             Self::GruvboxDark => Palette::GRUVBOX_DARK,
+            Self::CatppuccinLatte => Palette::CATPPUCCIN_LATTE,
+            Self::CatppuccinFrappe => Palette::CATPPUCCIN_FRAPPE,
+            Self::CatppuccinMacchiato => Palette::CATPPUCCIN_MACCHIATO,
+            Self::CatppuccinMocha => Palette::CATPPUCCIN_MOCHA,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -106,6 +122,12 @@ impl Theme {
             Self::SolarizedDark => &palette::EXTENDED_SOLARIZED_DARK,
             Self::GruvboxLight => &palette::EXTENDED_GRUVBOX_LIGHT,
             Self::GruvboxDark => &palette::EXTENDED_GRUVBOX_DARK,
+            Self::CatppuccinLatte => &palette::EXTENDED_CATPPUCCIN_LATTE,
+            Self::CatppuccinFrappe => &palette::EXTENDED_CATPPUCCIN_FRAPPE,
+            Self::CatppuccinMacchiato => {
+                &palette::EXTENDED_CATPPUCCIN_MACCHIATO
+            }
+            Self::CatppuccinMocha => &palette::EXTENDED_CATPPUCCIN_MOCHA,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -122,6 +144,10 @@ impl fmt::Display for Theme {
             Self::SolarizedDark => write!(f, "Solarized Dark"),
             Self::GruvboxLight => write!(f, "Gruvbox Light"),
             Self::GruvboxDark => write!(f, "Gruvbox Dark"),
+            Self::CatppuccinLatte => write!(f, "Catppuccin Latte"),
+            Self::CatppuccinFrappe => write!(f, "Catppuccin Frappé"),
+            Self::CatppuccinMacchiato => write!(f, "Catppuccin Macchiato"),
+            Self::CatppuccinMocha => write!(f, "Catppuccin Mocha"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }

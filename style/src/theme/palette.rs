@@ -133,6 +133,50 @@ impl Palette {
         success: color!(0x98971a),    // dark GREEN_2
         danger: color!(0xcc241d),     // dark RED_1
     };
+
+    /// The built-in Catppuccin Latte variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/catppuccin/catppuccin
+    pub const CATPPUCCIN_LATTE: Self = Self {
+        background: color!(0xeff1f5), // Base
+        text: color!(0x4c4f69),       // Text
+        primary: color!(0x1e66f5),    // Blue
+        success: color!(0x40a02b),    // Green
+        danger: color!(0xd20f39),     // Red
+    };
+
+    /// The built-in Catppuccin Frappé variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/catppuccin/catppuccin
+    pub const CATPPUCCIN_FRAPPE: Self = Self {
+        background: color!(0x303446), // Base
+        text: color!(0xc6d0f5),       // Text
+        primary: color!(0x8caaee),    // Blue
+        success: color!(0xa6d189),    // Green
+        danger: color!(0xe78284),     // Red
+    };
+
+    /// The built-in Catppuccin Macchiato variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/catppuccin/catppuccin
+    pub const CATPPUCCIN_MACCHIATO: Self = Self {
+        background: color!(0x24273a), // Base
+        text: color!(0xcad3f5),       // Text
+        primary: color!(0x8aadf4),    // Blue
+        success: color!(0xa6da95),    // Green
+        danger: color!(0xed8796),     // Red
+    };
+
+    /// The built-in Catppuccin Mocha variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/catppuccin/catppuccin
+    pub const CATPPUCCIN_MOCHA: Self = Self {
+        background: color!(0x1e1e2e), // Base
+        text: color!(0xcdd6f4),       // Text
+        primary: color!(0x89b4fa),    // Blue
+        success: color!(0xa6e3a1),    // Green
+        danger: color!(0xf38ba8),     // Red
+    };
 }
 
 /// An extended set of colors generated from a [`Palette`].
@@ -183,6 +227,22 @@ pub static EXTENDED_GRUVBOX_LIGHT: Lazy<Extended> =
 /// The built-in Gruvbox Dark variant of an [`Extended`] palette.
 pub static EXTENDED_GRUVBOX_DARK: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::GRUVBOX_DARK));
+
+/// The built-in Catppuccin Latte variant of an [`Extended`] palette.
+pub static EXTENDED_CATPPUCCIN_LATTE: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_LATTE));
+
+/// The built-in Catppuccin Frappé variant of an [`Extended`] palette.
+pub static EXTENDED_CATPPUCCIN_FRAPPE: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_FRAPPE));
+
+/// The built-in Catppuccin Macchiato variant of an [`Extended`] palette.
+pub static EXTENDED_CATPPUCCIN_MACCHIATO: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MACCHIATO));
+
+/// The built-in Catppuccin Mocha variant of an [`Extended`] palette.
+pub static EXTENDED_CATPPUCCIN_MOCHA: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].
