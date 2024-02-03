@@ -179,23 +179,18 @@ impl From<[f32; 4]> for Color {
 #[macro_export]
 macro_rules! color {
     ($r:expr, $g:expr, $b:expr) => {
-        $crate::Color::from_rgb8($r, $g, $b)
+        color!($r, $g, $b, 1.0)
     };
     ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        $crate::Color::from_rgba8($r, $g, $b, $a)
+        $crate::Color {
+            r: $r as f32 / 255.0,
+            g: $g as f32 / 255.0,
+            b: $b as f32 / 255.0,
+            a: $a,
+        }
     };
     ($hex:expr) => {{
-        let hex = $hex as u32;
-        let r = (hex & 0xff0000) >> 16;
-        let g = (hex & 0xff00) >> 8;
-        let b = (hex & 0xff);
-
-        $crate::Color {
-            r: r as f32 / 255.0,
-            g: g as f32 / 255.0,
-            b: b as f32 / 255.0,
-            a: 1.0,
-        }
+        color!($hex, 1.0)
     }};
     ($hex:expr, $a:expr) => {{
         let hex = $hex as u32;
@@ -203,7 +198,7 @@ macro_rules! color {
         let g = (hex & 0xff00) >> 8;
         let b = (hex & 0xff);
 
-        $crate::Color::from_rgba8(r as u8, g as u8, b as u8, $a)
+        color!(r, g, b, $a)
     }};
 }
 
