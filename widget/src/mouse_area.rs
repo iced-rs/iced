@@ -29,7 +29,7 @@ pub struct MouseArea<
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
     on_mouse_enter: Option<Message>,
-    on_mouse_move: Option<Box<dyn FnMut(Point) -> Message>>,
+    on_mouse_move: Option<Box<dyn Fn(Point) -> Message>>,
     on_mouse_exit: Option<Message>,
 }
 
@@ -87,7 +87,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
     #[must_use]
     pub fn on_mouse_move<F>(mut self, build_message: F) -> Self
     where
-        F: FnMut(Point) -> Message + 'static,
+        F: Fn(Point) -> Message + 'static,
     {
         self.on_mouse_move = Some(Box::new(build_message));
         self
@@ -104,7 +104,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 /// Local state of the [`MouseArea`].
 #[derive(Default)]
 struct State {
-    mouse_in_area: bool,
+    is_hovered: bool,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -203,7 +203,7 @@ where
             return event::Status::Captured;
         }
 
-        update(self, tree, &event, layout, cursor, shell)
+        update(self, tree, event, layout, cursor, shell)
     }
 
     fn mouse_interaction(
@@ -279,16 +279,39 @@ where
 fn update<Message: Clone, Theme, Renderer>(
     widget: &mut MouseArea<'_, Message, Theme, Renderer>,
     tree: &mut Tree,
-    event: &Event,
+    event: Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
-    if let Event::Mouse(mouse::Event::CursorMoved { position })
-    | Event::Touch(touch::Event::FingerMoved { id: _, position }) = event
+    if let Event::Mouse(mouse::Event::CursorMoved { .. })
+    | Event::Touch(touch::Event::FingerMoved { .. }) = event
     {
         let state: &mut State = tree.state.downcast_mut();
-        handle_mouse_move(widget, state, shell, *position, layout.bounds());
+
+        let was_hovered = state.is_hovered;
+        state.is_hovered = cursor.is_over(layout.bounds());
+
+        match (
+            widget.on_mouse_enter.as_ref(),
+            widget.on_mouse_move.as_ref(),
+            widget.on_mouse_exit.as_ref(),
+        ) {
+            (Some(on_mouse_enter), _, _)
+                if state.is_hovered && !was_hovered =>
+            {
+                shell.publish(on_mouse_enter.clone());
+            }
+            (_, Some(on_mouse_move), _) if state.is_hovered => {
+                if let Some(position) = cursor.position_in(layout.bounds()) {
+                    shell.publish(on_mouse_move(position));
+                }
+            }
+            (_, _, Some(on_mouse_exit)) if !state.is_hovered && was_hovered => {
+                shell.publish(on_mouse_exit.clone());
+            }
+            _ => {}
+        }
     }
 
     if !cursor.is_over(layout.bounds()) {
@@ -359,35 +382,4 @@ fn update<Message: Clone, Theme, Renderer>(
     }
 
     event::Status::Ignored
-}
-
-fn handle_mouse_move<Message: Clone, Theme, Renderer>(
-    widget: &mut MouseArea<'_, Message, Theme, Renderer>,
-    state: &mut State,
-    shell: &mut Shell<'_, Message>,
-    position: Point,
-    area_bounds: Rectangle,
-) {
-    let mouse_in_area = area_bounds.contains(position);
-
-    match (
-        widget.on_mouse_enter.as_mut(),
-        widget.on_mouse_move.as_mut(),
-        widget.on_mouse_exit.as_mut(),
-    ) {
-        (Some(enter_msg), _, _) if mouse_in_area && !state.mouse_in_area => {
-            shell.publish(enter_msg.clone());
-        }
-        (_, Some(build_move_msg), _)
-            if mouse_in_area && state.mouse_in_area =>
-        {
-            shell.publish(build_move_msg(position));
-        }
-        (_, _, Some(exit_msg)) if !mouse_in_area && state.mouse_in_area => {
-            shell.publish(exit_msg.clone());
-        }
-        _ => {}
-    }
-
-    state.mouse_in_area = mouse_in_area;
 }
