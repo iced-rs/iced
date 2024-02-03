@@ -409,7 +409,9 @@ where
             Update::Scroll(mut lines) => {
                 lines += state.partial_scroll;
                 state.partial_scroll = lines.fract();
-                shell.publish(on_edit(Action::Scroll { lines: lines as i32 }))
+                shell.publish(on_edit(Action::Scroll {
+                    lines: lines as i32,
+                }))
             }
             Update::Unfocus => {
                 state.is_focused = false;
