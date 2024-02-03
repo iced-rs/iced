@@ -45,8 +45,8 @@ pub enum Action<T> {
         tagger: Box<dyn Fn(Result<(), font::Error>) -> T>,
     },
 
-    /// Pass PlatformSpecific action, for some special platform
-    PlatformSpecific(Box<dyn Any>)
+    /// A custom action supported by a specific runtime.
+    Custom(Box<dyn Any>),
 }
 
 impl<T> Action<T> {
@@ -76,7 +76,7 @@ impl<T> Action<T> {
                 bytes,
                 tagger: Box::new(move |result| f(tagger(result))),
             },
-            Self::PlatformSpecific(special) => Action::PlatformSpecific(special)
+            Self::Custom(custom) => Action::Custom(custom),
         }
     }
 }
@@ -95,7 +95,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),
-            Self::PlatformSpecific(_) => write!(f, "Action::PlatformSpecific")
+            Self::Custom(_) => write!(f, "Action::Custom"),
         }
     }
 }
