@@ -35,17 +35,17 @@ pub enum Theme {
     Light,
     /// The built-in dark variant.
     Dark,
-    /// The built-in dracula variant.
+    /// The built-in Dracula variant.
     Dracula,
-    /// The built-in nord variant.
+    /// The built-in Nord variant.
     Nord,
-    /// The built-in solarized light variant.
+    /// The built-in Solarized Light variant.
     SolarizedLight,
-    /// The built-in solarized dark variant.
+    /// The built-in Solarized Dark variant.
     SolarizedDark,
-    /// The built-in gruvbox light variant.
+    /// The built-in Gruvbox Light variant.
     GruvboxLight,
-    /// The built-in gruvbox dark variant.
+    /// The built-in Gruvbox Dark variant.
     GruvboxDark,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Arc<Custom>),
