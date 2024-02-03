@@ -25,6 +25,7 @@ use crate::core::{Background, Border, Color, Shadow, Vector};
 
 use std::fmt;
 use std::rc::Rc;
+use std::sync::Arc;
 
 /// A built-in theme.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -47,12 +48,21 @@ pub enum Theme {
     /// The built-in gruvbox dark variant.
     GruvboxDark,
     /// A [`Theme`] that uses a [`Custom`] palette.
-    Custom(Box<Custom>),
+    Custom(Arc<Custom>),
 }
 
 impl Theme {
     /// A list with all the defined themes.
-    pub const ALL: &'static [Self] = &[Self::Light, Self::Dark];
+    pub const ALL: &'static [Self] = &[
+        Self::Light,
+        Self::Dark,
+        Self::Dracula,
+        Self::Nord,
+        Self::SolarizedLight,
+        Self::SolarizedDark,
+        Self::GruvboxLight,
+        Self::GruvboxDark,
+    ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
     pub fn custom(name: String, palette: Palette) -> Self {
@@ -66,7 +76,7 @@ impl Theme {
         palette: Palette,
         generate: impl FnOnce(Palette) -> palette::Extended,
     ) -> Self {
-        Self::Custom(Box::new(Custom::with_fn(name, palette, generate)))
+        Self::Custom(Arc::new(Custom::with_fn(name, palette, generate)))
     }
 
     /// Returns the [`Palette`] of the [`Theme`].

@@ -1,10 +1,9 @@
-use iced::theme::{self, Theme};
 use iced::widget::{
-    button, checkbox, column, container, horizontal_rule, progress_bar, radio,
-    row, scrollable, slider, text, text_input, toggler, vertical_rule,
-    vertical_space,
+    button, checkbox, column, container, horizontal_rule, pick_list,
+    progress_bar, row, scrollable, slider, text, text_input, toggler,
+    vertical_rule, vertical_space,
 };
-use iced::{Alignment, Color, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Styling::run(Settings::default())
@@ -19,22 +18,9 @@ struct Styling {
     toggler_value: bool,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-enum ThemeType {
-    Light,
-    Dark,
-    Nord,
-    GruvboxLight,
-    GruvboxDark,
-    Dracula,
-    SolarizedLight,
-    SolarizedDark,
-    Custom,
-}
-
 #[derive(Debug, Clone)]
 enum Message {
-    ThemeChanged(ThemeType),
+    ThemeChanged(Theme),
     InputChanged(String),
     ButtonPressed,
     SliderChanged(f32),
@@ -56,26 +42,7 @@ impl Sandbox for Styling {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => {
-                self.theme = match theme {
-                    ThemeType::Light => Theme::Light,
-                    ThemeType::Dark => Theme::Dark,
-                    ThemeType::Nord => Theme::Nord,
-                    ThemeType::GruvboxLight => Theme::GruvboxLight,
-                    ThemeType::GruvboxDark => Theme::GruvboxDark,
-                    ThemeType::Dracula => Theme::Dracula,
-                    ThemeType::SolarizedLight => Theme::SolarizedLight,
-                    ThemeType::SolarizedDark => Theme::SolarizedDark,
-                    ThemeType::Custom => Theme::custom(
-                        String::from("Custom"),
-                        theme::Palette {
-                            background: Color::from_rgb(1.0, 0.9, 1.0),
-                            text: Color::BLACK,
-                            primary: Color::from_rgb(0.5, 0.5, 0.0),
-                            success: Color::from_rgb(0.0, 1.0, 0.0),
-                            danger: Color::from_rgb(1.0, 0.0, 0.0),
-                        },
-                    ),
-                }
+                self.theme = theme;
             }
             Message::InputChanged(value) => self.input_value = value,
             Message::ButtonPressed => {}
@@ -86,39 +53,16 @@ impl Sandbox for Styling {
     }
 
     fn view(&self) -> Element<Message> {
-        let choose_theme = [
-            ThemeType::Light,
-            ThemeType::Dark,
-            ThemeType::Nord,
-            ThemeType::Dracula,
-            ThemeType::SolarizedLight,
-            ThemeType::SolarizedDark,
-            ThemeType::GruvboxLight,
-            ThemeType::GruvboxDark,
-            ThemeType::Custom,
+        let choose_theme = column![
+            text("Theme:"),
+            pick_list(
+                Theme::ALL,
+                Some(self.theme.clone()),
+                Message::ThemeChanged
+            )
+            .width(Length::Fill),
         ]
-        .iter()
-        .fold(
-            column![text("Choose a theme:")].spacing(10),
-            |column, theme| {
-                column.push(radio(
-                    format!("{theme:?}"),
-                    *theme,
-                    Some(match self.theme {
-                        Theme::Light => ThemeType::Light,
-                        Theme::Dark => ThemeType::Dark,
-                        Theme::Dracula => ThemeType::Dracula,
-                        Theme::Nord => ThemeType::Nord,
-                        Theme::SolarizedLight => ThemeType::SolarizedLight,
-                        Theme::SolarizedDark => ThemeType::SolarizedDark,
-                        Theme::GruvboxLight => ThemeType::GruvboxLight,
-                        Theme::GruvboxDark => ThemeType::GruvboxDark,
-                        Theme::Custom { .. } => ThemeType::Custom,
-                    }),
-                    Message::ThemeChanged,
-                ))
-            },
-        );
+        .spacing(10);
 
         let text_input = text_input("Type something...", &self.input_value)
             .on_input(Message::InputChanged)
