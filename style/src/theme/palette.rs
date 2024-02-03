@@ -68,8 +68,9 @@ impl Palette {
         ),
     };
 
-    /// The built-in dracula variant of a [`Palette`].
-    /// theme source: https://draculatheme.com
+    /// The built-in Dracula variant of a [`Palette`].
+    ///
+    /// Source: https://draculatheme.com
     pub const DRACULA: Self = Self {
         background: color!(0x282A36), // BACKGROUND
         text: color!(0xf8f8f2),       // FOREGROUND
@@ -78,8 +79,9 @@ impl Palette {
         danger: color!(0xff5555),     // RED
     };
 
-    /// The built-in nord variant of a [`Palette`].
-    /// theme source: https://www.nordtheme.com/docs/colors-and-palettes
+    /// The built-in Nord variant of a [`Palette`].
+    ///
+    /// Source: https://www.nordtheme.com/docs/colors-and-palettes
     pub const NORD: Self = Self {
         background: color!(0x2e3440), // nord0
         text: color!(0xeceff4),       // nord6
@@ -88,8 +90,9 @@ impl Palette {
         danger: color!(0xbf616a),     // nord11
     };
 
-    /// The built-in solarized light variant of a [`Palette`].
-    /// light variant of https://ethanschoonover.com/solarized
+    /// The built-in Solarized Light variant of a [`Palette`].
+    ///
+    /// Source: https://ethanschoonover.com/solarized
     pub const SOLARIZED_LIGHT: Self = Self {
         background: color!(0xfdf6e3), // base3
         text: color!(0x657b83),       // base00
@@ -98,8 +101,9 @@ impl Palette {
         danger: color!(0xdc322f),     // red
     };
 
-    /// The built-in solarized dark variant of a [`Palette`].
-    /// dark variant of https://ethanschoonover.com/solarized
+    /// The built-in Solarized Dark variant of a [`Palette`].
+    ///
+    /// Source: https://ethanschoonover.com/solarized
     pub const SOLARIZED_DARK: Self = Self {
         background: color!(0x002b36), // base03
         text: color!(0x839496),       // base0
@@ -108,8 +112,9 @@ impl Palette {
         danger: color!(0xdc322f),     // red
     };
 
-    /// The built-in gruvbox light variant of a [`Palette`].
-    /// light variant of https://github.com/morhetz/gruvbox
+    /// The built-in Gruvbox Light variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/morhetz/gruvbox
     pub const GRUVBOX_LIGHT: Self = Self {
         background: color!(0xfbf1c7), // light BG_0
         text: color!(0x282828),       // light FG0_29
@@ -118,8 +123,9 @@ impl Palette {
         danger: color!(0xcc241d),     // light RED_1
     };
 
-    /// The built-in gruvbox dark variant of a [`Palette`].
-    /// dark variant of https://github.com/morhetz/gruvbox
+    /// The built-in Gruvbox Dark variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/morhetz/gruvbox
     pub const GRUVBOX_DARK: Self = Self {
         background: color!(0x282828), // dark BG_0
         text: color!(0xfbf1c7),       // dark FG0_29
@@ -154,27 +160,27 @@ pub static EXTENDED_LIGHT: Lazy<Extended> =
 pub static EXTENDED_DARK: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::DARK));
 
-/// The built-in dracula variant of an [`Extended`] palette.
+/// The built-in Dracula variant of an [`Extended`] palette.
 pub static EXTENDED_DRACULA: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::DRACULA));
 
-/// The built-in nord variant of an [`Extended`] palette.
+/// The built-in Nord variant of an [`Extended`] palette.
 pub static EXTENDED_NORD: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::NORD));
 
-/// The built-in solarized light variant of an [`Extended`] palette.
+/// The built-in Solarized Light variant of an [`Extended`] palette.
 pub static EXTENDED_SOLARIZED_LIGHT: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::SOLARIZED_LIGHT));
 
-/// The built-in solarized dark variant of an [`Extended`] palette.
+/// The built-in Solarized Dark variant of an [`Extended`] palette.
 pub static EXTENDED_SOLARIZED_DARK: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::SOLARIZED_DARK));
 
-/// The built-in gruvbox light variant of an [`Extended`] palette.
+/// The built-in Gruvbox Light variant of an [`Extended`] palette.
 pub static EXTENDED_GRUVBOX_LIGHT: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::GRUVBOX_LIGHT));
 
-/// The built-in gruvbox dark variant of an [`Extended`] palette.
+/// The built-in Gruvbox Dark variant of an [`Extended`] palette.
 pub static EXTENDED_GRUVBOX_DARK: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::GRUVBOX_DARK));
 
