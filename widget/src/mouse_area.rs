@@ -1,5 +1,7 @@
 //! A container for capturing mouse events.
 
+use iced_renderer::core::Point;
+
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -26,6 +28,9 @@ pub struct MouseArea<
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
+    on_mouse_enter: Option<Message>,
+    on_mouse_move: Option<Box<dyn Fn(Point) -> Message>>,
+    on_mouse_exit: Option<Message>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -70,12 +75,36 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self.on_middle_release = Some(message);
         self
     }
+
+    /// The message to emit when the mouse enters the area.
+    #[must_use]
+    pub fn on_mouse_enter(mut self, message: Message) -> Self {
+        self.on_mouse_enter = Some(message);
+        self
+    }
+
+    /// The message to emit when the mouse moves in the area.
+    #[must_use]
+    pub fn on_mouse_move<F>(mut self, build_message: F) -> Self
+    where
+        F: Fn(Point) -> Message + 'static,
+    {
+        self.on_mouse_move = Some(Box::new(build_message));
+        self
+    }
+
+    /// The message to emit when the mouse exits the area.
+    #[must_use]
+    pub fn on_mouse_exit(mut self, message: Message) -> Self {
+        self.on_mouse_exit = Some(message);
+        self
+    }
 }
 
 /// Local state of the [`MouseArea`].
 #[derive(Default)]
 struct State {
-    // TODO: Support on_mouse_enter and on_mouse_exit
+    is_hovered: bool,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -91,6 +120,9 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
+            on_mouse_enter: None,
+            on_mouse_move: None,
+            on_mouse_exit: None,
         }
     }
 }
@@ -171,7 +203,7 @@ where
             return event::Status::Captured;
         }
 
-        update(self, &event, layout, cursor, shell)
+        update(self, tree, event, layout, cursor, shell)
     }
 
     fn mouse_interaction(
@@ -246,11 +278,42 @@ where
 /// accordingly.
 fn update<Message: Clone, Theme, Renderer>(
     widget: &mut MouseArea<'_, Message, Theme, Renderer>,
-    event: &Event,
+    tree: &mut Tree,
+    event: Event,
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
 ) -> event::Status {
+    if let Event::Mouse(mouse::Event::CursorMoved { .. })
+    | Event::Touch(touch::Event::FingerMoved { .. }) = event
+    {
+        let state: &mut State = tree.state.downcast_mut();
+
+        let was_hovered = state.is_hovered;
+        state.is_hovered = cursor.is_over(layout.bounds());
+
+        match (
+            widget.on_mouse_enter.as_ref(),
+            widget.on_mouse_move.as_ref(),
+            widget.on_mouse_exit.as_ref(),
+        ) {
+            (Some(on_mouse_enter), _, _)
+                if state.is_hovered && !was_hovered =>
+            {
+                shell.publish(on_mouse_enter.clone());
+            }
+            (_, Some(on_mouse_move), _) if state.is_hovered => {
+                if let Some(position) = cursor.position_in(layout.bounds()) {
+                    shell.publish(on_mouse_move(position));
+                }
+            }
+            (_, _, Some(on_mouse_exit)) if !state.is_hovered && was_hovered => {
+                shell.publish(on_mouse_exit.clone());
+            }
+            _ => {}
+        }
+    }
+
     if !cursor.is_over(layout.bounds()) {
         return event::Status::Ignored;
     }
