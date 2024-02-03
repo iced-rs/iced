@@ -56,6 +56,12 @@ pub enum Theme {
     CatppuccinMacchiato,
     /// The built-in Catppuccin Mocha variant.
     CatppuccinMocha,
+    /// The built-in Tokyo Night variant.
+    TokyoNight,
+    /// The built-in Tokyo Night Storm variant.
+    TokyoNightStorm,
+    /// The built-in Tokyo Night Light variant.
+    TokyoNightLight,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Arc<Custom>),
 }
@@ -75,6 +81,9 @@ impl Theme {
         Self::CatppuccinFrappe,
         Self::CatppuccinMacchiato,
         Self::CatppuccinMocha,
+        Self::TokyoNight,
+        Self::TokyoNightStorm,
+        Self::TokyoNightLight,
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
@@ -107,6 +116,9 @@ impl Theme {
             Self::CatppuccinFrappe => Palette::CATPPUCCIN_FRAPPE,
             Self::CatppuccinMacchiato => Palette::CATPPUCCIN_MACCHIATO,
             Self::CatppuccinMocha => Palette::CATPPUCCIN_MOCHA,
+            Self::TokyoNight => Palette::TOKYO_NIGHT,
+            Self::TokyoNightStorm => Palette::TOKYO_NIGHT_STORM,
+            Self::TokyoNightLight => Palette::TOKYO_NIGHT_LIGHT,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -128,6 +140,9 @@ impl Theme {
                 &palette::EXTENDED_CATPPUCCIN_MACCHIATO
             }
             Self::CatppuccinMocha => &palette::EXTENDED_CATPPUCCIN_MOCHA,
+            Self::TokyoNight => &palette::EXTENDED_TOKYO_NIGHT,
+            Self::TokyoNightStorm => &palette::EXTENDED_TOKYO_NIGHT_STORM,
+            Self::TokyoNightLight => &palette::EXTENDED_TOKYO_NIGHT_LIGHT,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -148,6 +163,9 @@ impl fmt::Display for Theme {
             Self::CatppuccinFrappe => write!(f, "Catppuccin Frappé"),
             Self::CatppuccinMacchiato => write!(f, "Catppuccin Macchiato"),
             Self::CatppuccinMocha => write!(f, "Catppuccin Mocha"),
+            Self::TokyoNight => write!(f, "Tokyo Night"),
+            Self::TokyoNightStorm => write!(f, "Tokyo Night Storm"),
+            Self::TokyoNightLight => write!(f, "Tokyo Night Light"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }

@@ -177,6 +177,39 @@ impl Palette {
         success: color!(0xa6e3a1),    // Green
         danger: color!(0xf38ba8),     // Red
     };
+
+    /// The built-in Tokyo Night variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    pub const TOKYO_NIGHT: Self = Self {
+        background: color!(0x1a1b26), // Background (Night)
+        text: color!(0x9aa5ce),       // Text
+        primary: color!(0x2ac3de),    // Blue
+        success: color!(0x9ece6a),    // Green
+        danger: color!(0xf7768e),     // Red
+    };
+
+    /// The built-in Tokyo Night Storm variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    pub const TOKYO_NIGHT_STORM: Self = Self {
+        background: color!(0x24283b), // Background (Storm)
+        text: color!(0x9aa5ce),       // Text
+        primary: color!(0x2ac3de),    // Blue
+        success: color!(0x9ece6a),    // Green
+        danger: color!(0xf7768e),     // Red
+    };
+
+    /// The built-in Tokyo Night Light variant of a [`Palette`].
+    ///
+    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    pub const TOKYO_NIGHT_LIGHT: Self = Self {
+        background: color!(0xd5d6db), // Background
+        text: color!(0x565a6e),       // Text
+        primary: color!(0x166775),    // Blue
+        success: color!(0x485e30),    // Green
+        danger: color!(0x8c4351),     // Red
+    };
 }
 
 /// An extended set of colors generated from a [`Palette`].
@@ -243,6 +276,18 @@ pub static EXTENDED_CATPPUCCIN_MACCHIATO: Lazy<Extended> =
 /// The built-in Catppuccin Mocha variant of an [`Extended`] palette.
 pub static EXTENDED_CATPPUCCIN_MOCHA: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::CATPPUCCIN_MOCHA));
+
+/// The built-in Tokyo Night variant of an [`Extended`] palette.
+pub static EXTENDED_TOKYO_NIGHT: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT));
+
+/// The built-in Tokyo Night Storm variant of an [`Extended`] palette.
+pub static EXTENDED_TOKYO_NIGHT_STORM: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_STORM));
+
+/// The built-in Tokyo Night variant of an [`Extended`] palette.
+pub static EXTENDED_TOKYO_NIGHT_LIGHT: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::TOKYO_NIGHT_LIGHT));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].
