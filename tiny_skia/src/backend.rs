@@ -456,16 +456,13 @@ impl Backend {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
-
                 self.text_pipeline.draw_paragraph(
                     paragraph,
                     *position,
                     *color,
                     scale_factor,
                     pixels,
-                    clip_mask,
+                    Some(clip_mask),
                     transformation,
                 );
             }
@@ -482,16 +479,13 @@ impl Backend {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
-
                 self.text_pipeline.draw_editor(
                     editor,
                     *position,
                     *color,
                     scale_factor,
                     pixels,
-                    clip_mask,
+                    Some(clip_mask),
                     transformation,
                 );
             }
@@ -514,9 +508,6 @@ impl Backend {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
-
                 self.text_pipeline.draw_cached(
                     content,
                     *bounds,
@@ -529,7 +520,7 @@ impl Backend {
                     *shaping,
                     scale_factor,
                     pixels,
-                    clip_mask,
+                    Some(clip_mask),
                     transformation,
                 );
             }
@@ -550,16 +541,13 @@ impl Backend {
                     return;
                 }
 
-                let clip_mask = (!physical_bounds.is_within(&clip_bounds))
-                    .then_some(clip_mask as &_);
-
                 self.text_pipeline.draw_raw(
                     &buffer,
                     *position,
                     *color,
                     scale_factor,
                     pixels,
-                    clip_mask,
+                    Some(clip_mask),
                     transformation,
                 );
             }
