@@ -289,6 +289,7 @@ struct State<Highlighter: text::Highlighter> {
     is_focused: bool,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
+    partial_scroll: f32,
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
@@ -310,6 +311,7 @@ where
             is_focused: false,
             last_click: None,
             drag_click: None,
+            partial_scroll: 0.0,
             highlighter: RefCell::new(Highlighter::new(
                 &self.highlighter_settings,
             )),
@@ -403,6 +405,14 @@ where
                 state.drag_click = Some(click.kind());
 
                 shell.publish(on_edit(action));
+            }
+            Update::Scroll(lines) => {
+                let lines = lines + state.partial_scroll;
+                state.partial_scroll = lines.fract();
+
+                shell.publish(on_edit(Action::Scroll {
+                    lines: lines as i32,
+                }));
             }
             Update::Unfocus => {
                 state.is_focused = false;
@@ -577,6 +587,7 @@ where
 
 enum Update {
     Click(mouse::Click),
+    Scroll(f32),
     Unfocus,
     Release,
     Action(Action),
@@ -630,21 +641,16 @@ impl Update {
                 mouse::Event::WheelScrolled { delta }
                     if cursor.is_over(bounds) =>
                 {
-                    action(Action::Scroll {
-                        lines: match delta {
-                            mouse::ScrollDelta::Lines { y, .. } => {
-                                if y.abs() > 0.0 {
-                                    (y.signum() * -(y.abs() * 4.0).max(1.0))
-                                        as i32
-                                } else {
-                                    0
-                                }
+                    Some(Update::Scroll(match delta {
+                        mouse::ScrollDelta::Lines { y, .. } => {
+                            if y.abs() > 0.0 {
+                                y.signum() * -(y.abs() * 4.0).max(1.0)
+                            } else {
+                                0.0
                             }
-                            mouse::ScrollDelta::Pixels { y, .. } => {
-                                (-y / 4.0) as i32
-                            }
-                        },
-                    })
+                        }
+                        mouse::ScrollDelta::Pixels { y, .. } => -y / 4.0,
+                    }))
                 }
                 _ => None,
             },

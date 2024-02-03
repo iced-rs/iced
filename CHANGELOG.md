@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Incorrect unit in `system::Information`. [#2223](https://github.com/iced-rs/iced/pull/2223)
 - `size_hint` not being called from `element::Map`. [#2224](https://github.com/iced-rs/iced/pull/2224)
 - `size_hint` not being called from `element::Explain`. [#2225](https://github.com/iced-rs/iced/pull/2225)
+- Slow touch scrolling for `TextEditor` widget. [#2140](https://github.com/iced-rs/iced/pull/2140)
 
 Many thanks to...
 
@@ -93,6 +94,7 @@ Many thanks to...
 - @arslee07
 - @AustinMReppert
 - @avsaase
+- @blazra
 - @brianch
 - @bungoboingo
 - @Calastrophe
