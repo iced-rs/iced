@@ -1,11 +1,11 @@
 use crate::clipboard;
 use crate::core::widget;
 use crate::font;
+use crate::futures::MaybeSend;
 use crate::system;
 use crate::window;
 
-use iced_futures::MaybeSend;
-
+use std::any::Any;
 use std::borrow::Cow;
 use std::fmt;
 
@@ -43,6 +43,9 @@ pub enum Action<T> {
         /// The message to produce when the font has been loaded.
         tagger: Box<dyn Fn(Result<(), font::Error>) -> T>,
     },
+
+    /// A custom action supported by a specific runtime.
+    Custom(Box<dyn Any>),
 }
 
 impl<T> Action<T> {
@@ -72,6 +75,7 @@ impl<T> Action<T> {
                 bytes,
                 tagger: Box::new(move |result| f(tagger(result))),
             },
+            Self::Custom(custom) => Action::Custom(custom),
         }
     }
 }
@@ -90,6 +94,7 @@ impl<T> fmt::Debug for Action<T> {
             Self::System(action) => write!(f, "Action::System({action:?})"),
             Self::Widget(_action) => write!(f, "Action::Widget"),
             Self::LoadFont { .. } => write!(f, "Action::LoadFont"),
+            Self::Custom(_) => write!(f, "Action::Custom"),
         }
     }
 }
