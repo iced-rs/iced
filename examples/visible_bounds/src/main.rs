@@ -25,7 +25,7 @@ struct Example {
 enum Message {
     MouseMoved(Point),
     WindowResized,
-    Scrolled(scrollable::Viewport),
+    Scrolled,
     OuterBoundsFetched(Option<Rectangle>),
     InnerBoundsFetched(Option<Rectangle>),
 }
@@ -58,14 +58,12 @@ impl Application for Example {
 
                 Command::none()
             }
-            Message::Scrolled(_) | Message::WindowResized => {
-                Command::batch(vec![
-                    container::visible_bounds(OUTER_CONTAINER.clone())
-                        .map(Message::OuterBoundsFetched),
-                    container::visible_bounds(INNER_CONTAINER.clone())
-                        .map(Message::InnerBoundsFetched),
-                ])
-            }
+            Message::Scrolled | Message::WindowResized => Command::batch(vec![
+                container::visible_bounds(OUTER_CONTAINER.clone())
+                    .map(Message::OuterBoundsFetched),
+                container::visible_bounds(INNER_CONTAINER.clone())
+                    .map(Message::InnerBoundsFetched),
+            ]),
             Message::OuterBoundsFetched(outer_bounds) => {
                 self.outer_bounds = outer_bounds;
 
@@ -147,13 +145,13 @@ impl Application for Example {
                         ]
                         .padding(20)
                     )
-                    .on_scroll(Message::Scrolled)
+                    .on_scroll(|_| Message::Scrolled)
                     .width(Length::Fill)
                     .height(300),
                 ]
                 .padding(20)
             )
-            .on_scroll(Message::Scrolled)
+            .on_scroll(|_| Message::Scrolled)
             .width(Length::Fill)
             .height(300),
         ]

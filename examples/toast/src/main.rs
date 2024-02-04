@@ -332,7 +332,7 @@ mod toast {
         }
 
         fn tag(&self) -> widget::tree::Tag {
-            struct Marker(Vec<Instant>);
+            struct Marker;
             widget::tree::Tag::of::<Marker>()
         }
 

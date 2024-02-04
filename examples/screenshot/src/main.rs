@@ -228,8 +228,8 @@ impl Application for Example {
         if let Some(png_result) = &self.saved_png_path {
             let msg = match png_result {
                 Ok(path) => format!("Png saved as: {path:?}!"),
-                Err(msg) => {
-                    format!("Png could not be saved due to:\n{msg:?}")
+                Err(PngError(error)) => {
+                    format!("Png could not be saved due to:\n{}", error)
                 }
             };
 
@@ -283,7 +283,7 @@ async fn save_to_png(screenshot: Screenshot) -> Result<String, PngError> {
             ColorType::Rgba8,
         )
         .map(|_| path)
-        .map_err(|err| PngError(format!("{err:?}")))
+        .map_err(|error| PngError(error.to_string()))
     })
     .await
     .expect("Blocking task to finish")

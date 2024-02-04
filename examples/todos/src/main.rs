@@ -152,7 +152,7 @@ impl Application for Todos {
                             Command::none()
                         }
                     }
-                    Message::Saved(_) => {
+                    Message::Saved(_result) => {
                         state.saving = false;
                         saved = true;
 
