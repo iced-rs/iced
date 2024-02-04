@@ -15,7 +15,7 @@ use iced::window;
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
 };
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
