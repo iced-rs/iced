@@ -43,7 +43,7 @@ struct GameOfLife {
 #[derive(Debug, Clone)]
 enum Message {
     Grid(grid::Message, usize),
-    Tick(Instant),
+    Tick,
     TogglePlayback,
     ToggleGrid(bool),
     Next,
@@ -79,7 +79,7 @@ impl Application for GameOfLife {
                     self.grid.update(message);
                 }
             }
-            Message::Tick(_) | Message::Next => {
+            Message::Tick | Message::Next => {
                 self.queued_ticks = (self.queued_ticks + 1).min(self.speed);
 
                 if let Some(task) = self.grid.tick(self.queued_ticks) {
@@ -125,7 +125,7 @@ impl Application for GameOfLife {
     fn subscription(&self) -> Subscription<Message> {
         if self.is_playing {
             time::every(Duration::from_millis(1000 / self.speed as u64))
-                .map(Message::Tick)
+                .map(|_| Message::Tick)
         } else {
             Subscription::none()
         }
