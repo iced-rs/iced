@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Custom` variant to `command::Action`. [#2146](https://github.com/iced-rs/iced/pull/2146)
 - Mouse movement events for `MouseArea`. [#2147](https://github.com/iced-rs/iced/pull/2147)
 - Dracula, Nord, Solarized, and Gruvbox variants for `Theme`. [#2170](https://github.com/iced-rs/iced/pull/2170)
+- `From<T> where T: Into<PathBuf>` for `svg::Handle`. [#2235](https://github.com/iced-rs/iced/pull/2235)
 
 ### Changed
 - Enable WebGPU backend in `wgpu` by default instead of WebGL. [#2068](https://github.com/iced-rs/iced/pull/2068)
@@ -108,6 +109,7 @@ Many thanks to...
 - @Decodetalkers
 - @derezzedex
 - @dtzxporter
+- @fogarecious
 - @GyulyVGC
 - @hicaru
 - @ids1024
