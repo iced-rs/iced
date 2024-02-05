@@ -89,14 +89,22 @@ impl<Message> Subscription<Message> {
     }
 
     /// Transforms the [`Subscription`] output with the given function.
-    pub fn map<A>(
-        mut self,
-        f: impl Fn(Message) -> A + MaybeSend + Clone + 'static,
-    ) -> Subscription<A>
+    ///
+    /// # Panics
+    /// The closure provided must be a non-capturing closure. The method
+    /// will panic in debug mode otherwise.
+    pub fn map<F, A>(mut self, f: F) -> Subscription<A>
     where
         Message: 'static,
+        F: Fn(Message) -> A + MaybeSend + Clone + 'static,
         A: 'static,
     {
+        debug_assert!(
+            std::mem::size_of::<F>() == 0,
+            "the closure {} provided in `Subscription::map` is capturing",
+            std::any::type_name::<F>(),
+        );
+
         Subscription {
             recipes: self
                 .recipes
