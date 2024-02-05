@@ -34,7 +34,9 @@ pub struct PickList<
     Theme: StyleSheet,
     Renderer: text::Renderer,
 {
-    on_selected: Box<dyn Fn(T) -> Message + 'a>,
+    on_select: Box<dyn Fn(T) -> Message + 'a>,
+    on_open: Option<Message>,
+    on_close: Option<Message>,
     options: Cow<'a, [T]>,
     placeholder: Option<String>,
     selected: Option<T>,
@@ -53,6 +55,7 @@ impl<'a, T: 'a, Message, Theme, Renderer>
 where
     T: ToString + PartialEq,
     [T]: ToOwned<Owned = Vec<T>>,
+    Message: Clone,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -68,10 +71,12 @@ where
     pub fn new(
         options: impl Into<Cow<'a, [T]>>,
         selected: Option<T>,
-        on_selected: impl Fn(T) -> Message + 'a,
+        on_select: impl Fn(T) -> Message + 'a,
     ) -> Self {
         Self {
-            on_selected: Box::new(on_selected),
+            on_select: Box::new(on_select),
+            on_open: None,
+            on_close: None,
             options: options.into(),
             placeholder: None,
             selected,
@@ -137,6 +142,18 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the [`PickList`] is opened.
+    pub fn on_open(mut self, on_open: Message) -> Self {
+        self.on_open = Some(on_open);
+        self
+    }
+
+    /// Sets the message that will be produced when the [`PickList`] is closed.
+    pub fn on_close(mut self, on_close: Message) -> Self {
+        self.on_close = Some(on_close);
+        self
+    }
+
     /// Sets the style of the [`PickList`].
     pub fn style(
         mut self,
@@ -152,7 +169,7 @@ impl<'a, T: 'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'a,
+    Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -212,7 +229,9 @@ where
             layout,
             cursor,
             shell,
-            self.on_selected.as_ref(),
+            self.on_select.as_ref(),
+            self.on_open.as_ref(),
+            self.on_close.as_ref(),
             self.selected.as_ref(),
             &self.options,
             || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
@@ -278,7 +297,7 @@ where
             self.text_shaping,
             self.font.unwrap_or_else(|| renderer.default_font()),
             &self.options,
-            &self.on_selected,
+            &self.on_select,
             self.style.clone(),
         )
     }
@@ -290,7 +309,7 @@ impl<'a, T: 'a, Message, Theme, Renderer>
 where
     T: Clone + ToString + PartialEq + 'static,
     [T]: ToOwned<Owned = Vec<T>>,
-    Message: 'a,
+    Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
@@ -473,7 +492,9 @@ pub fn update<'a, T, P, Message>(
     layout: Layout<'_>,
     cursor: mouse::Cursor,
     shell: &mut Shell<'_, Message>,
-    on_selected: &dyn Fn(T) -> Message,
+    on_select: &dyn Fn(T) -> Message,
+    on_open: Option<&Message>,
+    on_close: Option<&Message>,
     selected: Option<&T>,
     options: &[T],
     state: impl FnOnce() -> &'a mut State<P>,
@@ -481,6 +502,7 @@ pub fn update<'a, T, P, Message>(
 where
     T: PartialEq + Clone + 'a,
     P: text::Paragraph + 'a,
+    Message: Clone,
 {
     match event {
         Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
@@ -492,11 +514,19 @@ where
                 // bounds or on the drop-down, either way we close the overlay.
                 state.is_open = false;
 
+                if let Some(on_close) = on_close {
+                    shell.publish(on_close.clone());
+                }
+
                 event::Status::Captured
             } else if cursor.is_over(layout.bounds()) {
                 state.is_open = true;
                 state.hovered_option =
                     options.iter().position(|option| Some(option) == selected);
+
+                if let Some(on_open) = on_open {
+                    shell.publish(on_open.clone());
+                }
 
                 event::Status::Captured
             } else {
@@ -538,7 +568,7 @@ where
                 };
 
                 if let Some(next_option) = next_option {
-                    shell.publish((on_selected)(next_option.clone()));
+                    shell.publish((on_select)(next_option.clone()));
                 }
 
                 event::Status::Captured
