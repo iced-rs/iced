@@ -1188,6 +1188,20 @@ impl Scrollable {
 impl scrollable::StyleSheet for Theme {
     type Style = Scrollable;
 
+    fn appearance(&self, style: &Self::Style) -> scrollable::Appearance {
+        match style {
+            Scrollable::Default => {
+                let palette = self.extended_palette();
+
+                scrollable::Appearance {
+                    background: None,
+                    gap: Some(palette.background.weak.color.into()),
+                }
+            }
+            Scrollable::Custom(custom) => custom.appearance(self),
+        }
+    }
+
     fn active(&self, style: &Self::Style) -> scrollable::Scrollbar {
         match style {
             Scrollable::Default => {

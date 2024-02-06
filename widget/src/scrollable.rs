@@ -15,7 +15,9 @@ use crate::core::{
 };
 use crate::runtime::Command;
 
-pub use crate::style::scrollable::{Scrollbar, Scroller, StyleSheet};
+pub use crate::style::scrollable::{
+    Appearance, Scrollbar, Scroller, StyleSheet,
+};
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// A widget that can vertically display an infinite amount of content with a
@@ -878,6 +880,19 @@ pub fn draw<Theme, Renderer>(
         _ => mouse::Cursor::Unavailable,
     };
 
+    // Draw background.
+    let appearence = theme.appearance(style);
+
+    if let Some(background) = appearence.background {
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                ..Default::default()
+            },
+            background,
+        );
+    }
+
     // Draw inner content
     if scrollbars.active() {
         renderer.with_layer(bounds, |renderer| {
@@ -970,6 +985,26 @@ pub fn draw<Theme, Renderer>(
                     };
 
                     draw_scrollbar(renderer, style, &scrollbar);
+                }
+
+                //draw filler quad
+                if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
+                    let background = appearence.gap.or(appearence.background);
+
+                    if let Some(background) = background {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: Rectangle {
+                                    x: y.bounds.x,
+                                    y: x.bounds.y,
+                                    width: y.bounds.width,
+                                    height: x.bounds.height,
+                                },
+                                ..renderer::Quad::default()
+                            },
+                            background,
+                        );
+                    }
                 }
             },
         );

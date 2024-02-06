@@ -1,6 +1,6 @@
 use iced::executor;
 use iced::theme;
-use iced::widget::scrollable::{Properties, Scrollbar, Scroller};
+use iced::widget::scrollable::{Appearance, Properties, Scrollbar, Scroller};
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
@@ -354,6 +354,10 @@ struct ScrollbarCustomStyle;
 
 impl scrollable::StyleSheet for ScrollbarCustomStyle {
     type Style = Theme;
+
+    fn appearance(&self, style: &Self::Style) -> Appearance {
+        style.appearance(&theme::Scrollable::Default)
+    }
 
     fn active(&self, style: &Self::Style) -> Scrollbar {
         style.active(&theme::Scrollable::Default)
