@@ -783,6 +783,16 @@ pub fn run_command<A, C, E>(
                         .send_event(tag(window.id().into()))
                         .expect("Send message to event loop");
                 }
+                window::Action::RunWithHandle(_id, tag) => {
+                    use window::raw_window_handle::HasWindowHandle;
+
+                    if let Ok(handle) = window.window_handle() {
+                        proxy
+                            .send_event(tag(&handle))
+                            .expect("Send message to event loop");
+                    }
+                }
+
                 window::Action::Screenshot(_id, tag) => {
                     let bytes = compositor.screenshot(
                         renderer,

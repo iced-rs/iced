@@ -15,6 +15,10 @@ use crate::core::{Point, Size};
 use crate::futures::event;
 use crate::futures::Subscription;
 
+pub use raw_window_handle;
+
+use raw_window_handle::WindowHandle;
+
 /// Subscribes to the frames of the window of the running application.
 ///
 /// The resulting [`Subscription`] will produce items at a rate equal to the
@@ -168,6 +172,19 @@ pub fn fetch_id<Message>(
 /// Changes the [`Icon`] of the window.
 pub fn change_icon<Message>(id: Id, icon: Icon) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeIcon(id, icon)))
+}
+
+/// Runs the given callback with the native window handle for the window with the given id.
+///
+/// Note that if the window closes before this call is processed the callback will not be run.
+pub fn run_with_handle<Message>(
+    id: Id,
+    f: impl FnOnce(&WindowHandle<'_>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::RunWithHandle(
+        id,
+        Box::new(f),
+    )))
 }
 
 /// Captures a [`Screenshot`] from the window.

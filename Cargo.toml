@@ -156,7 +156,7 @@ xxhash-rust = { version = "0.8", features = ["xxh3"] }
 unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
-web-sys = "0.3"
+web-sys = "=0.3.67"
 web-time = "0.2"
 wgpu = "0.19"
 winapi = "0.3"
