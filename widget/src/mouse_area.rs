@@ -79,14 +79,14 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse enters the area.
     #[must_use]
-    pub fn on_mouse_enter(mut self, message: Message) -> Self {
+    pub fn on_enter(mut self, message: Message) -> Self {
         self.on_mouse_enter = Some(message);
         self
     }
 
     /// The message to emit when the mouse moves in the area.
     #[must_use]
-    pub fn on_mouse_move<F>(mut self, build_message: F) -> Self
+    pub fn on_move<F>(mut self, build_message: F) -> Self
     where
         F: Fn(Point) -> Message + 'static,
     {
@@ -96,17 +96,14 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse exits the area.
     #[must_use]
-    pub fn on_mouse_exit(mut self, message: Message) -> Self {
+    pub fn on_exit(mut self, message: Message) -> Self {
         self.on_mouse_exit = Some(message);
         self
     }
 
     /// The [`mouse::Interaction`] to use when hovering the area.
     #[must_use]
-    pub fn mouse_interaction(
-        mut self,
-        interaction: mouse::Interaction,
-    ) -> Self {
+    pub fn interaction(mut self, interaction: mouse::Interaction) -> Self {
         self.interaction = Some(interaction);
         self
     }
