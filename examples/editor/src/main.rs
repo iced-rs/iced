@@ -191,6 +191,7 @@ impl Application for Editor {
         column![
             controls,
             text_editor(&self.content)
+                .height(Length::Fill)
                 .on_action(Message::ActionPerformed)
                 .highlight::<Highlighter>(
                     highlighter::Settings {

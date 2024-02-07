@@ -470,6 +470,12 @@ impl editor::Editor for Editor {
         self.internal().bounds
     }
 
+    fn min_bounds(&self) -> Size {
+        let internal = self.internal();
+
+        text::measure(internal.editor.buffer())
+    }
+
     fn update(
         &mut self,
         new_bounds: Size,

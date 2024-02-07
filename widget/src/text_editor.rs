@@ -64,7 +64,7 @@ where
             text_size: None,
             line_height: LineHeight::default(),
             width: Length::Fill,
-            height: Length::Fill,
+            height: Length::Shrink,
             padding: Padding::new(5.0),
             style: Default::default(),
             on_edit: None,
@@ -83,6 +83,12 @@ where
     Theme: StyleSheet,
     Renderer: text::Renderer,
 {
+    /// Sets the height of the [`TextEditor`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
+        self
+    }
+
     /// Sets the message that should be produced when some action is performed in
     /// the [`TextEditor`].
     ///
@@ -137,17 +143,6 @@ where
     /// Sets the style of the [`TextEditor`].
     pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
-        self
-    }
-
-    /// Choose whether or not to shrink the size of the editor to its contents.
-    pub fn shrink_to_content(mut self, shrink: bool) -> Self {
-        if shrink {
-            self.height = Length::Shrink;
-        } else {
-            self.height = Length::Fill;
-        }
-
         self
     }
 }
@@ -363,6 +358,8 @@ where
             state.highlighter_settings = self.highlighter_settings.clone();
         }
 
+        let limits = limits.height(self.height);
+
         internal.editor.update(
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
@@ -371,16 +368,20 @@ where
             state.highlighter.borrow_mut().deref_mut(),
         );
 
-        if self.height == Length::Fill {
-            layout::Node::new(limits.max())
-        } else {
-            let lines_height = self
-                .line_height
-                .to_absolute(self.text_size.unwrap_or(renderer.default_size()))
-                .0
-                * internal.editor.line_count() as f32;
-            let height = lines_height + self.padding.top + self.padding.bottom;
-            layout::Node::new(limits.max_height(height).max())
+        match self.height {
+            Length::Fill | Length::FillPortion(_) | Length::Fixed(_) => {
+                layout::Node::new(limits.max())
+            }
+            Length::Shrink => {
+                let min_bounds = internal.editor.min_bounds();
+
+                layout::Node::new(
+                    limits
+                        .height(min_bounds.height)
+                        .max()
+                        .expand(Size::new(0.0, self.padding.vertical())),
+                )
+            }
         }
     }
 
