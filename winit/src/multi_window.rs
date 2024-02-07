@@ -22,8 +22,6 @@ use crate::runtime::Debug;
 use crate::style::application::StyleSheet;
 use crate::{Clipboard, Error, Proxy, Settings};
 
-use winit::raw_window_handle::HasWindowHandle;
-
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
@@ -1000,7 +998,7 @@ fn run_command<A, C, E>(
 
                         proxy
                             .send_event(tag(mode))
-                            .expect("Event loop doesn't exist.");
+                            .expect("Send message to event loop");
                     }
                 }
                 window::Action::ToggleMaximize(id) => {
@@ -1036,17 +1034,19 @@ fn run_command<A, C, E>(
                     if let Some(window) = window_manager.get_mut(id) {
                         proxy
                             .send_event(tag(window.raw.id().into()))
-                            .expect("Event loop doesn't exist.");
+                            .expect("Send message to event loop");
                     }
                 }
-                window::Action::FetchNativeHandle(id, tag) => {
-                    if let Some(window) = window_manager.get_mut(id) {
+                window::Action::RunWithHandle(id, tag) => {
+                    use window::raw_window_handle::HasWindowHandle;
+
+                    if let Some(handle) = window_manager
+                        .get_mut(id)
+                        .and_then(|window| window.raw.window_handle().ok())
+                    {
                         proxy
-                            .send_event(tag(&window
-                                .raw
-                                .window_handle()
-                                .expect("Missing window handle.")))
-                            .expect("Event loop doesn't exist.");
+                            .send_event(tag(&handle))
+                            .expect("Send message to event loop");
                     }
                 }
                 window::Action::Screenshot(id, tag) => {

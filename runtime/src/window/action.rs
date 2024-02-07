@@ -99,7 +99,7 @@ pub enum Action<T> {
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Id, Icon),
     /// Requests access to the windows native handle.
-    FetchNativeHandle(Id, Box<dyn FnOnce(&WindowHandle<'_>) -> T + 'static>),
+    RunWithHandle(Id, Box<dyn FnOnce(&WindowHandle<'_>) -> T + 'static>),
     /// Screenshot the viewport of the window.
     Screenshot(Id, Box<dyn FnOnce(Screenshot) -> T + 'static>),
 }
@@ -145,8 +145,8 @@ impl<T> Action<T> {
                 Action::FetchId(id, Box::new(move |s| f(o(s))))
             }
             Self::ChangeIcon(id, icon) => Action::ChangeIcon(id, icon),
-            Self::FetchNativeHandle(id, o) => {
-                Action::FetchNativeHandle(id, Box::new(move |s| f(o(s))))
+            Self::RunWithHandle(id, o) => {
+                Action::RunWithHandle(id, Box::new(move |s| f(o(s))))
             }
             Self::Screenshot(id, tag) => Action::Screenshot(
                 id,
@@ -204,8 +204,8 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeIcon(id, _icon) => {
                 write!(f, "Action::ChangeIcon({id:?})")
             }
-            Self::FetchNativeHandle(id, _) => {
-                write!(f, "Action::RequestNativeHandle({id:?})")
+            Self::RunWithHandle(id, _) => {
+                write!(f, "Action::RunWithHandle({id:?})")
             }
             Self::Screenshot(id, _) => write!(f, "Action::Screenshot({id:?})"),
         }
