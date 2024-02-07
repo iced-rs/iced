@@ -64,7 +64,7 @@ where
             text_size: None,
             line_height: LineHeight::default(),
             width: Length::Fill,
-            height: Length::Fill,
+            height: Length::Shrink,
             padding: Padding::new(5.0),
             style: Default::default(),
             on_edit: None,
@@ -83,6 +83,12 @@ where
     Theme: StyleSheet,
     Renderer: text::Renderer,
 {
+    /// Sets the height of the [`TextEditor`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
+        self
+    }
+
     /// Sets the message that should be produced when some action is performed in
     /// the [`TextEditor`].
     ///
@@ -352,6 +358,8 @@ where
             state.highlighter_settings = self.highlighter_settings.clone();
         }
 
+        let limits = limits.height(self.height);
+
         internal.editor.update(
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
@@ -360,7 +368,21 @@ where
             state.highlighter.borrow_mut().deref_mut(),
         );
 
-        layout::Node::new(limits.max())
+        match self.height {
+            Length::Fill | Length::FillPortion(_) | Length::Fixed(_) => {
+                layout::Node::new(limits.max())
+            }
+            Length::Shrink => {
+                let min_bounds = internal.editor.min_bounds();
+
+                layout::Node::new(
+                    limits
+                        .height(min_bounds.height)
+                        .max()
+                        .expand(Size::new(0.0, self.padding.vertical())),
+                )
+            }
+        }
     }
 
     fn on_event(

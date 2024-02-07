@@ -36,6 +36,10 @@ pub trait Editor: Sized + Default {
     /// Returns the current boundaries of the [`Editor`].
     fn bounds(&self) -> Size;
 
+    /// Returns the minimum boundaries to fit the current contents of
+    /// the [`Editor`].
+    fn min_bounds(&self) -> Size;
+
     /// Updates the [`Editor`] with some new attributes.
     fn update(
         &mut self,

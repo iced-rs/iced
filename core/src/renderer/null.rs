@@ -150,6 +150,10 @@ impl text::Editor for () {
         Size::ZERO
     }
 
+    fn min_bounds(&self) -> Size {
+        Size::ZERO
+    }
+
     fn update(
         &mut self,
         _new_bounds: Size,
