@@ -98,7 +98,7 @@ pub enum Action<T> {
     /// - **X11:** Has no universal guidelines for icon sizes, so you're at the whims of the WM. That
     ///   said, it's usually in the same ballpark as on Windows.
     ChangeIcon(Id, Icon),
-    /// Requests access to the windows native handle.
+    /// Runs the closure with the native window handle of the window with the given [`Id`].
     RunWithHandle(Id, Box<dyn FnOnce(&WindowHandle<'_>) -> T + 'static>),
     /// Screenshot the viewport of the window.
     Screenshot(Id, Box<dyn FnOnce(Screenshot) -> T + 'static>),
