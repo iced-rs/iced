@@ -136,6 +136,7 @@ Many thanks to...
 - @tarkah
 - @tzemanovic
 - @varbhat
+- @VAWVAW
 - @william-shere
 
 ## [0.10.0] - 2023-07-28
