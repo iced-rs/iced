@@ -213,26 +213,54 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    let _ = event_loop.run(move |event, event_loop| {
-        if event_loop.exiting() {
-            return;
-        }
+    let process_event =
+        move |event, event_loop: &winit::event_loop::EventLoopWindowTarget<_>| {
+            if event_loop.exiting() {
+                return;
+            }
 
-        event_sender.start_send(event).expect("Send event");
+            event_sender.start_send(event).expect("Send event");
 
-        let poll = instance.as_mut().poll(&mut context);
+            let poll = instance.as_mut().poll(&mut context);
 
-        match poll {
-            task::Poll::Pending => {
-                if let Ok(Some(flow)) = control_receiver.try_next() {
-                    event_loop.set_control_flow(flow);
+            match poll {
+                task::Poll::Pending => {
+                    if let Ok(Some(flow)) = control_receiver.try_next() {
+                        event_loop.set_control_flow(flow);
+                    }
+                }
+                task::Poll::Ready(_) => {
+                    event_loop.exit();
                 }
             }
-            task::Poll::Ready(_) => {
-                event_loop.exit();
-            }
         };
-    });
+
+    #[cfg(not(target_os = "windows"))]
+    let _ = event_loop.run(process_event);
+
+    // TODO: Remove when unnecessary
+    // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+    // since the event loop does not resume during resize interaction.
+    // More details: https://github.com/rust-windowing/winit/issues/3272
+    #[cfg(target_os = "windows")]
+    {
+        let mut process_event = process_event;
+
+        let _ = event_loop.run(move |event, event_loop| {
+            if matches!(
+                event,
+                winit::event::Event::WindowEvent {
+                    event: winit::event::WindowEvent::Resized(_),
+                    ..
+                }
+            ) {
+                process_event(event, event_loop);
+                process_event(winit::event::Event::AboutToWait, event_loop);
+            } else {
+                process_event(event, event_loop);
+            }
+        });
+    }
 
     Ok(())
 }
