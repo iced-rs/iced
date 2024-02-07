@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Assert dimensions of quads are normal in `iced_tiny_skia`. [#2082](https://github.com/iced-rs/iced/pull/2082)
 - Remove `position` from `overlay::Element`. [#2226](https://github.com/iced-rs/iced/pull/2226)
 - Add a capacity limit to the `GlyphCache` in `iced_tiny_skia`. [#2210](https://github.com/iced-rs/iced/pull/2210)
+- Use pointer equality to speed up `PartialEq` implementation of `image::Bytes`. [#2220](https://github.com/iced-rs/iced/pull/2220)
 
 ### Fixed
 - Clipping of `TextInput` selection. [#2199](https://github.com/iced-rs/iced/pull/2199)
@@ -115,6 +116,7 @@ Many thanks to...
 - @Davidster
 - @Decodetalkers
 - @derezzedex
+- @DoomDuck
 - @dtzxporter
 - @fogarecious
 - @GyulyVGC
