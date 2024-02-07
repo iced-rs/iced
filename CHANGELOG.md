@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `interaction` method for `MouseArea`. [#2207](https://github.com/iced-rs/iced/pull/2207)
 - `hovered` styling for `Svg` widget. [#2163](https://github.com/iced-rs/iced/pull/2163)
 - Customizable style for `TextEditor`. [#2159](https://github.com/iced-rs/iced/pull/2159)
+- Border width styling for `Toggler`. [#2219](https://github.com/iced-rs/iced/pull/2219)
 - `RawText` variant for `Primitive` in `iced_graphics`. [#2158](https://github.com/iced-rs/iced/pull/2158)
 - `Stream` support for `Command`. [#2150](https://github.com/iced-rs/iced/pull/2150)
 - Access to bounds/content bounds from a `Scrollable` viewport. [#2072](https://github.com/iced-rs/iced/pull/2072)

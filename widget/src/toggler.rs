@@ -315,8 +315,8 @@ where
                 bounds: toggler_background_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: 1.0,
-                    color: style.background_border.unwrap_or(style.background),
+                    width: style.background_border_width,
+                    color: style.background_border_color,
                 },
                 ..renderer::Quad::default()
             },
@@ -340,8 +340,8 @@ where
                 bounds: toggler_foreground_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: 1.0,
-                    color: style.foreground_border.unwrap_or(style.foreground),
+                    width: style.foreground_border_width,
+                    color: style.foreground_border_color,
                 },
                 ..renderer::Quad::default()
             },
