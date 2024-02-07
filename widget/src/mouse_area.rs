@@ -28,9 +28,10 @@ pub struct MouseArea<
     on_right_release: Option<Message>,
     on_middle_press: Option<Message>,
     on_middle_release: Option<Message>,
-    on_mouse_enter: Option<Message>,
-    on_mouse_move: Option<Box<dyn Fn(Point) -> Message>>,
-    on_mouse_exit: Option<Message>,
+    on_enter: Option<Message>,
+    on_move: Option<Box<dyn Fn(Point) -> Message>>,
+    on_exit: Option<Message>,
+    interaction: Option<mouse::Interaction>,
 }
 
 impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
@@ -78,25 +79,32 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
 
     /// The message to emit when the mouse enters the area.
     #[must_use]
-    pub fn on_mouse_enter(mut self, message: Message) -> Self {
-        self.on_mouse_enter = Some(message);
+    pub fn on_enter(mut self, message: Message) -> Self {
+        self.on_enter = Some(message);
         self
     }
 
     /// The message to emit when the mouse moves in the area.
     #[must_use]
-    pub fn on_mouse_move<F>(mut self, build_message: F) -> Self
+    pub fn on_move<F>(mut self, build_message: F) -> Self
     where
         F: Fn(Point) -> Message + 'static,
     {
-        self.on_mouse_move = Some(Box::new(build_message));
+        self.on_move = Some(Box::new(build_message));
         self
     }
 
     /// The message to emit when the mouse exits the area.
     #[must_use]
-    pub fn on_mouse_exit(mut self, message: Message) -> Self {
-        self.on_mouse_exit = Some(message);
+    pub fn on_exit(mut self, message: Message) -> Self {
+        self.on_exit = Some(message);
+        self
+    }
+
+    /// The [`mouse::Interaction`] to use when hovering the area.
+    #[must_use]
+    pub fn interaction(mut self, interaction: mouse::Interaction) -> Self {
+        self.interaction = Some(interaction);
         self
     }
 }
@@ -120,9 +128,10 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
             on_right_release: None,
             on_middle_press: None,
             on_middle_release: None,
-            on_mouse_enter: None,
-            on_mouse_move: None,
-            on_mouse_exit: None,
+            on_enter: None,
+            on_move: None,
+            on_exit: None,
+            interaction: None,
         }
     }
 }
@@ -214,13 +223,22 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.content.as_widget().mouse_interaction(
+        let content_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
             cursor,
             viewport,
             renderer,
-        )
+        );
+
+        match (self.interaction, content_interaction) {
+            (Some(interaction), mouse::Interaction::Idle)
+                if cursor.is_over(layout.bounds()) =>
+            {
+                interaction
+            }
+            _ => content_interaction,
+        }
     }
 
     fn draw(
@@ -293,22 +311,20 @@ fn update<Message: Clone, Theme, Renderer>(
         state.is_hovered = cursor.is_over(layout.bounds());
 
         match (
-            widget.on_mouse_enter.as_ref(),
-            widget.on_mouse_move.as_ref(),
-            widget.on_mouse_exit.as_ref(),
+            widget.on_enter.as_ref(),
+            widget.on_move.as_ref(),
+            widget.on_exit.as_ref(),
         ) {
-            (Some(on_mouse_enter), _, _)
-                if state.is_hovered && !was_hovered =>
-            {
-                shell.publish(on_mouse_enter.clone());
+            (Some(on_enter), _, _) if state.is_hovered && !was_hovered => {
+                shell.publish(on_enter.clone());
             }
-            (_, Some(on_mouse_move), _) if state.is_hovered => {
+            (_, Some(on_move), _) if state.is_hovered => {
                 if let Some(position) = cursor.position_in(layout.bounds()) {
-                    shell.publish(on_mouse_move(position));
+                    shell.publish(on_move(position));
                 }
             }
-            (_, _, Some(on_mouse_exit)) if !state.is_hovered && was_hovered => {
-                shell.publish(on_mouse_exit.clone());
+            (_, _, Some(on_exit)) if !state.is_hovered && was_hovered => {
+                shell.publish(on_exit.clone());
             }
             _ => {}
         }
