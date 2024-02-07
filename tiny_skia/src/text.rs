@@ -273,6 +273,7 @@ struct GlyphCache {
 
 impl GlyphCache {
     const TRIM_INTERVAL: usize = 300;
+    const CAPACITY_LIMIT: usize = 16 * 1024;
 
     fn new() -> Self {
         GlyphCache::default()
@@ -359,11 +360,16 @@ impl GlyphCache {
     }
 
     pub fn trim(&mut self) {
-        if self.trim_count > Self::TRIM_INTERVAL {
+        if self.trim_count > Self::TRIM_INTERVAL
+            || self.recently_used.len() >= Self::CAPACITY_LIMIT
+        {
             self.entries
                 .retain(|key, _| self.recently_used.contains(key));
 
             self.recently_used.clear();
+
+            self.entries.shrink_to(Self::CAPACITY_LIMIT);
+            self.recently_used.shrink_to(Self::CAPACITY_LIMIT);
 
             self.trim_count = 0;
         } else {
