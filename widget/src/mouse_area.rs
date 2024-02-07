@@ -101,7 +101,7 @@ impl<'a, Message, Theme, Renderer> MouseArea<'a, Message, Theme, Renderer> {
         self
     }
 
-    /// The version of the cursor to use when hovering.
+    /// The [`mouse::Interaction`] to use when hovering the area.
     #[must_use]
     pub fn mouse_interaction(
         mut self,
@@ -226,21 +226,22 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        if !cursor.is_over(layout.bounds()) {
-            return mouse::Interaction::default();
-        }
-
-        if let Some(interaction) = self.interaction {
-            return interaction;
-        }
-
-        self.content.as_widget().mouse_interaction(
+        let content_interaction = self.content.as_widget().mouse_interaction(
             &tree.children[0],
             layout,
             cursor,
             viewport,
             renderer,
-        )
+        );
+
+        match (self.interaction, content_interaction) {
+            (Some(interaction), mouse::Interaction::Idle)
+                if cursor.is_over(layout.bounds()) =>
+            {
+                interaction
+            }
+            _ => content_interaction,
+        }
     }
 
     fn draw(
