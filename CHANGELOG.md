@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Use `Radians` for angle fields in `Arc` and `arc::Elliptical`. [#2027](https://github.com/iced-rs/iced/pull/2027)
 - Assert dimensions of quads are normal in `iced_tiny_skia`. [#2082](https://github.com/iced-rs/iced/pull/2082)
 - Remove `position` from `overlay::Element`. [#2226](https://github.com/iced-rs/iced/pull/2226)
+- Add a capacity limit to the `GlyphCache` in `iced_tiny_skia`. [#2210](https://github.com/iced-rs/iced/pull/2210)
 
 ### Fixed
 - Clipping of `TextInput` selection. [#2199](https://github.com/iced-rs/iced/pull/2199)
@@ -126,6 +127,7 @@ Many thanks to...
 - @lufte
 - @matze
 - @MichalLebeda
+- @MoSal
 - @MrAntix
 - @nicksenger
 - @Nisatru
