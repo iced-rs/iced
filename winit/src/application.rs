@@ -715,6 +715,18 @@ pub fn run_command<A, C, E>(
                     clipboard.write(contents);
                 }
             },
+            command::Action::ClipboardPrimary(action) => match action {
+                clipboard::Action::Read(tag) => {
+                    let message = tag(clipboard.read_primary());
+
+                    proxy
+                        .send_event(message)
+                        .expect("Send message to event loop");
+                }
+                clipboard::Action::Write(contents) => {
+                    clipboard.write_primary(contents);
+                }
+            },
             command::Action::Window(action) => match action {
                 window::Action::Close(_id) => {
                     *should_exit = true;

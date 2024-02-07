@@ -51,3 +51,17 @@ pub fn read<Message>(
 pub fn write<Message>(contents: String) -> Command<Message> {
     Command::single(command::Action::Clipboard(Action::Write(contents)))
 }
+
+/// Read the current contents of primary.
+pub fn read_primary<Message>(
+    f: impl Fn(Option<String>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::ClipboardPrimary(Action::Read(Box::new(
+        f,
+    ))))
+}
+
+/// Write the given contents to primary.
+pub fn write_primary<Message>(contents: String) -> Command<Message> {
+    Command::single(command::Action::ClipboardPrimary(Action::Write(contents)))
+}

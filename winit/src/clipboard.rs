@@ -52,6 +52,32 @@ impl Clipboard {
             State::Unavailable => {}
         }
     }
+
+    /// Reads the current content of primary as text.
+    pub fn read_primary(&self) -> Option<String> {
+        match &self.state {
+            State::Connected(clipboard) => {
+                clipboard.read_primary().and_then(|r| r.ok())
+            }
+            State::Unavailable => None,
+        }
+    }
+
+    /// Writes the given text contents to primary.
+    pub fn write_primary(&mut self, contents: String) {
+        match &mut self.state {
+            State::Connected(clipboard) => {
+                match clipboard.write_primary(contents) {
+                    Some(Ok(())) => {}
+                    Some(Err(error)) => {
+                        log::warn!("error writing to primary: {error}");
+                    }
+                    None => {}
+                }
+            }
+            State::Unavailable => {}
+        }
+    }
 }
 
 impl crate::core::Clipboard for Clipboard {
@@ -61,5 +87,13 @@ impl crate::core::Clipboard for Clipboard {
 
     fn write(&mut self, contents: String) {
         self.write(contents);
+    }
+
+    fn read_primary(&self) -> Option<String> {
+        self.read_primary()
+    }
+
+    fn write_primary(&mut self, contents: String) {
+        self.write_primary(contents);
     }
 }
