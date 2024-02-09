@@ -123,7 +123,8 @@ where
     Button::new(content)
 }
 
-/// Creates a new [`Tooltip`] with the provided content, tooltip element, and [`tooltip::Position`].
+/// Creates a new [`Tooltip`] for the provided content with the given
+/// [`Element`] and [`tooltip::Position`].
 ///
 /// [`Tooltip`]: crate::Tooltip
 /// [`tooltip::Position`]: crate::tooltip::Position
