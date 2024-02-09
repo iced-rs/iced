@@ -2,7 +2,7 @@
 use crate::core::Color;
 
 /// The appearance of a QR code.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Appearance {
     /// The color of the QR code data cells
     pub cell: Color,

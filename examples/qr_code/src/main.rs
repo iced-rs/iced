@@ -9,7 +9,7 @@ pub fn main() -> iced::Result {
 #[derive(Default)]
 struct QRGenerator {
     data: String,
-    qr_code: Option<qr_code::State>,
+    qr_code: Option<qr_code::Data>,
     theme: Theme,
 }
 
@@ -38,17 +38,13 @@ impl Sandbox for QRGenerator {
                 self.qr_code = if data.is_empty() {
                     None
                 } else {
-                    qr_code::State::new(&data).ok()
+                    qr_code::Data::new(&data).ok()
                 };
 
                 self.data = data;
             }
             Message::ThemeChanged(theme) => {
                 self.theme = theme;
-
-                if self.qr_code.is_some() {
-                    self.qr_code = qr_code::State::new(&self.data).ok();
-                }
             }
         }
     }

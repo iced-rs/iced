@@ -3,15 +3,17 @@ use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
-use crate::core::widget::Tree;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
+
+use std::cell::RefCell;
 use thiserror::Error;
 
-pub use crate::style::qr_code::StyleSheet;
+pub use crate::style::qr_code::{Appearance, StyleSheet};
 
 const DEFAULT_CELL_SIZE: u16 = 4;
 const QUIET_ZONE: usize = 2;
@@ -23,7 +25,7 @@ pub struct QRCode<'a, Theme = crate::Theme>
 where
     Theme: StyleSheet,
 {
-    state: &'a State,
+    data: &'a Data,
     cell_size: u16,
     style: Theme::Style,
 }
@@ -32,11 +34,11 @@ impl<'a, Theme> QRCode<'a, Theme>
 where
     Theme: StyleSheet,
 {
-    /// Creates a new [`QRCode`] with the provided [`State`].
-    pub fn new(state: &'a State) -> Self {
+    /// Creates a new [`QRCode`] with the provided [`Data`].
+    pub fn new(data: &'a Data) -> Self {
         Self {
+            data,
             cell_size: DEFAULT_CELL_SIZE,
-            state,
             style: Default::default(),
         }
     }
@@ -58,6 +60,14 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
 where
     Theme: StyleSheet,
 {
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::default())
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -71,7 +81,7 @@ where
         _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
-        let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
+        let side_length = (self.data.width + 2 * QUIET_ZONE) as f32
             * f32::from(self.cell_size);
 
         layout::Node::new(Size::new(side_length, side_length))
@@ -79,7 +89,7 @@ where
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
         _style: &renderer::Style,
@@ -87,47 +97,52 @@ where
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let bounds = layout.bounds();
-        let side_length = self.state.width + 2 * QUIET_ZONE;
+        let state = tree.state.downcast_ref::<State>();
 
-        let style = theme.appearance(&self.style);
+        let bounds = layout.bounds();
+        let side_length = self.data.width + 2 * QUIET_ZONE;
+
+        let appearance = theme.appearance(&self.style);
+        let mut last_appearance = state.last_appearance.borrow_mut();
+
+        if Some(appearance) != *last_appearance {
+            self.data.cache.clear();
+
+            *last_appearance = Some(appearance);
+        }
 
         // Reuse cache if possible
-        let geometry =
-            self.state.cache.draw(renderer, bounds.size(), |frame| {
-                // Scale units to cell size
-                frame.scale(self.cell_size);
+        let geometry = self.data.cache.draw(renderer, bounds.size(), |frame| {
+            // Scale units to cell size
+            frame.scale(self.cell_size);
 
-                // Draw background
-                frame.fill_rectangle(
-                    Point::ORIGIN,
-                    Size::new(side_length as f32, side_length as f32),
-                    style.background,
-                );
+            // Draw background
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                Size::new(side_length as f32, side_length as f32),
+                appearance.background,
+            );
 
-                // Avoid drawing on the quiet zone
-                frame.translate(Vector::new(
-                    QUIET_ZONE as f32,
-                    QUIET_ZONE as f32,
-                ));
+            // Avoid drawing on the quiet zone
+            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
 
-                // Draw contents
-                self.state
-                    .contents
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, value)| **value == qrcode::Color::Dark)
-                    .for_each(|(index, _)| {
-                        let row = index / self.state.width;
-                        let column = index % self.state.width;
+            // Draw contents
+            self.data
+                .contents
+                .iter()
+                .enumerate()
+                .filter(|(_, value)| **value == qrcode::Color::Dark)
+                .for_each(|(index, _)| {
+                    let row = index / self.data.width;
+                    let column = index % self.data.width;
 
-                        frame.fill_rectangle(
-                            Point::new(column as f32, row as f32),
-                            Size::UNIT,
-                            style.cell,
-                        );
-                    });
-            });
+                    frame.fill_rectangle(
+                        Point::new(column as f32, row as f32),
+                        Size::UNIT,
+                        appearance.cell,
+                    );
+                });
+        });
 
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
@@ -148,17 +163,17 @@ where
     }
 }
 
-/// The state of a [`QRCode`].
+/// The data of a [`QRCode`].
 ///
-/// It stores the data that will be displayed.
+/// It stores the contents that will be displayed.
 #[derive(Debug)]
-pub struct State {
+pub struct Data {
     contents: Vec<qrcode::Color>,
     width: usize,
     cache: canvas::Cache,
 }
 
-impl State {
+impl Data {
     /// Creates a new [`State`] with the provided data.
     ///
     /// This method uses an [`ErrorCorrection::Medium`] and chooses the smallest
@@ -309,4 +324,9 @@ impl From<qrcode::types::QrError> for Error {
             QrError::InvalidCharacter => Error::InvalidCharacter,
         }
     }
+}
+
+#[derive(Default)]
+struct State {
+    last_appearance: RefCell<Option<Appearance>>,
 }
