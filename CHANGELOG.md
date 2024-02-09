@@ -103,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Subscription::map` using unreliable function pointer hash to identify mappers. [#2237](https://github.com/iced-rs/iced/pull/2237)
 - Missing feature flag docs for `time::every`. [#2188](https://github.com/iced-rs/iced/pull/2188)
 - Event loop not being resumed on Windows while resizing. [#2214](https://github.com/iced-rs/iced/pull/2214)
+- Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
 
 Many thanks to...
 
@@ -134,6 +135,7 @@ Many thanks to...
 - @jim-ec
 - @joshuamegnauth54
 - @jpttrssn
+- @Koranir
 - @lufte
 - @matze
 - @MichalLebeda
