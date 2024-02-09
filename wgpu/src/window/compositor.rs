@@ -15,6 +15,7 @@ pub struct Compositor {
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
+    alpha_mode: wgpu::CompositeAlphaMode,
 }
 
 impl Compositor {
@@ -61,25 +62,48 @@ impl Compositor {
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let format = compatible_surface.as_ref().and_then(|surface| {
-            let capabilities = surface.get_capabilities(&adapter);
+        let (format, alpha_mode) =
+            compatible_surface.as_ref().and_then(|surface| {
+                let capabilities = surface.get_capabilities(&adapter);
 
-            let mut formats = capabilities.formats.iter().copied();
+                let mut formats = capabilities.formats.iter().copied();
 
-            let format = if color::GAMMA_CORRECTION {
-                formats.find(wgpu::TextureFormat::is_srgb)
-            } else {
-                formats.find(|format| !wgpu::TextureFormat::is_srgb(format))
-            };
+                log::info!("Available formats: {formats:#?}");
 
-            format.or_else(|| {
-                log::warn!("No format found!");
+                let format = if color::GAMMA_CORRECTION {
+                    formats.find(wgpu::TextureFormat::is_srgb)
+                } else {
+                    formats.find(|format| !wgpu::TextureFormat::is_srgb(format))
+                };
 
-                capabilities.formats.first().copied()
-            })
-        })?;
+                let format = format.or_else(|| {
+                    log::warn!("No format found!");
 
-        log::info!("Selected format: {format:?}");
+                    capabilities.formats.first().copied()
+                });
+
+                let alpha_modes = capabilities.alpha_modes;
+
+                log::info!("Available alpha modes: {alpha_modes:#?}");
+
+                let preferred_alpha = if alpha_modes
+                    .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
+                {
+                    wgpu::CompositeAlphaMode::PostMultiplied
+                } else if alpha_modes
+                    .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
+                {
+                    wgpu::CompositeAlphaMode::PreMultiplied
+                } else {
+                    wgpu::CompositeAlphaMode::Auto
+                };
+
+                format.zip(Some(preferred_alpha))
+            })?;
+
+        log::info!(
+            "Selected format: {format:?} with alpha mode: {alpha_mode:?}"
+        );
 
         #[cfg(target_arch = "wasm32")]
         let limits = [wgpu::Limits::downlevel_webgl2_defaults()
@@ -120,6 +144,7 @@ impl Compositor {
             device,
             queue,
             format,
+            alpha_mode,
         })
     }
 
@@ -249,7 +274,7 @@ impl graphics::Compositor for Compositor {
                 present_mode: self.settings.present_mode,
                 width,
                 height,
-                alpha_mode: wgpu::CompositeAlphaMode::Auto,
+                alpha_mode: self.alpha_mode,
                 view_formats: vec![],
                 desired_maximum_frame_latency: 2,
             },

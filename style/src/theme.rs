@@ -172,6 +172,15 @@ pub enum Application {
     Custom(Box<dyn application::StyleSheet<Style = Theme>>),
 }
 
+impl Application {
+    /// Creates a custom [`Application`] style.
+    pub fn custom(
+        custom: impl application::StyleSheet<Style = Theme> + 'static,
+    ) -> Self {
+        Self::Custom(Box::new(custom))
+    }
+}
+
 impl application::StyleSheet for Theme {
     type Style = Application;
 
@@ -193,14 +202,6 @@ impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
         (self)(style)
-    }
-}
-
-impl<T: Fn(&Theme) -> application::Appearance + 'static> From<T>
-    for Application
-{
-    fn from(f: T) -> Self {
-        Self::Custom(Box::new(f))
     }
 }
 
