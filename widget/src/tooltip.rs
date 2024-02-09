@@ -319,8 +319,7 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let text_layout = Widget::<Message, Theme, Renderer>::layout(
-            self.tooltip.as_widget(),
+        let text_layout = self.tooltip.as_widget().layout(
             self.state,
             renderer,
             &layout::Limits::new(
@@ -430,8 +429,7 @@ where
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };
 
-        Widget::<Message, Theme, Renderer>::draw(
-            self.tooltip.as_widget(),
+        self.tooltip.as_widget().draw(
             self.state,
             renderer,
             theme,
