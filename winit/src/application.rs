@@ -250,7 +250,8 @@ where
             if matches!(
                 event,
                 winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(_),
+                    event: winit::event::WindowEvent::Resized(_)
+                        | winit::event::WindowEvent::Moved(_),
                     ..
                 }
             ) {
