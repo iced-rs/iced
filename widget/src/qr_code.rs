@@ -174,7 +174,7 @@ pub struct Data {
 }
 
 impl Data {
-    /// Creates a new [`State`] with the provided data.
+    /// Creates a new [`Data`] with the provided data.
     ///
     /// This method uses an [`ErrorCorrection::Medium`] and chooses the smallest
     /// size to display the data.
@@ -184,7 +184,7 @@ impl Data {
         Ok(Self::build(encoded))
     }
 
-    /// Creates a new [`State`] with the provided [`ErrorCorrection`].
+    /// Creates a new [`Data`] with the provided [`ErrorCorrection`].
     pub fn with_error_correction(
         data: impl AsRef<[u8]>,
         error_correction: ErrorCorrection,
@@ -197,7 +197,7 @@ impl Data {
         Ok(Self::build(encoded))
     }
 
-    /// Creates a new [`State`] with the provided [`Version`] and
+    /// Creates a new [`Data`] with the provided [`Version`] and
     /// [`ErrorCorrection`].
     pub fn with_version(
         data: impl AsRef<[u8]>,
@@ -276,7 +276,7 @@ impl From<ErrorCorrection> for qrcode::EcLevel {
     }
 }
 
-/// An error that occurred when building a [`State`] for a [`QRCode`].
+/// An error that occurred when building a [`Data`] for a [`QRCode`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
     /// The data is too long to encode in a QR code for the chosen [`Version`].
