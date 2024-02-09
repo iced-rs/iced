@@ -1,4 +1,5 @@
-use iced::theme::Palette;
+use iced::application;
+use iced::theme::{self, Theme};
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
@@ -22,7 +23,7 @@ struct Gradient {
     start: Color,
     end: Color,
     angle: Radians,
-    transparent_window: bool,
+    transparent: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -30,7 +31,7 @@ enum Message {
     StartChanged(Color),
     EndChanged(Color),
     AngleChanged(Radians),
-    SetTransparent(bool),
+    TransparentToggled(bool),
 }
 
 impl Sandbox for Gradient {
@@ -41,7 +42,7 @@ impl Sandbox for Gradient {
             start: Color::WHITE,
             end: Color::new(0.0, 0.0, 1.0, 1.0),
             angle: Radians(0.0),
-            transparent_window: false,
+            transparent: false,
         }
     }
 
@@ -54,8 +55,8 @@ impl Sandbox for Gradient {
             Message::StartChanged(color) => self.start = color,
             Message::EndChanged(color) => self.end = color,
             Message::AngleChanged(angle) => self.angle = angle,
-            Message::SetTransparent(transparent) => {
-                self.transparent_window = transparent;
+            Message::TransparentToggled(transparent) => {
+                self.transparent = transparent;
             }
         }
     }
@@ -65,7 +66,7 @@ impl Sandbox for Gradient {
             start,
             end,
             angle,
-            transparent_window,
+            transparent,
         } = *self;
 
         let gradient_box = container(horizontal_space(Length::Fill))
@@ -93,8 +94,8 @@ impl Sandbox for Gradient {
         .align_items(Alignment::Center);
 
         let transparency_toggle = iced::widget::Container::new(
-            checkbox("Transparent window", transparent_window)
-                .on_toggle(Message::SetTransparent),
+            checkbox("Transparent window", transparent)
+                .on_toggle(Message::TransparentToggled),
         )
         .padding(8);
 
@@ -108,17 +109,16 @@ impl Sandbox for Gradient {
         .into()
     }
 
-    fn theme(&self) -> iced::Theme {
-        if self.transparent_window {
-            iced::Theme::custom(
-                String::new(),
-                Palette {
-                    background: Color::TRANSPARENT,
-                    ..iced::Theme::default().palette()
-                },
-            )
+    fn style(&self) -> theme::Application {
+        if self.transparent {
+            theme::Application::custom(|theme: &Theme| {
+                application::Appearance {
+                    background_color: Color::TRANSPARENT,
+                    text_color: theme.palette().text,
+                }
+            })
         } else {
-            iced::Theme::default()
+            theme::Application::Default
         }
     }
 }
