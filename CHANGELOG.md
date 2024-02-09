@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `hovered` styling for `Svg` widget. [#2163](https://github.com/iced-rs/iced/pull/2163)
 - `height` method for `TextEditor`. [#2221](https://github.com/iced-rs/iced/pull/2221)
 - Customizable style for `TextEditor`. [#2159](https://github.com/iced-rs/iced/pull/2159)
+- Customizable style for `QRCode`. [#2229](https://github.com/iced-rs/iced/pull/2229)
 - Border width styling for `Toggler`. [#2219](https://github.com/iced-rs/iced/pull/2219)
 - `RawText` variant for `Primitive` in `iced_graphics`. [#2158](https://github.com/iced-rs/iced/pull/2158)
 - `Stream` support for `Command`. [#2150](https://github.com/iced-rs/iced/pull/2150)
@@ -116,6 +117,7 @@ Many thanks to...
 - @Calastrophe
 - @casperstorm
 - @cfrenette
+- @clarkmoody
 - @Davidster
 - @Decodetalkers
 - @derezzedex
