@@ -123,20 +123,21 @@ where
     Button::new(content)
 }
 
-/// Creates a new [`Tooltip`] with the provided content, tooltip text, and [`tooltip::Position`].
+/// Creates a new [`Tooltip`] for the provided content with the given
+/// [`Element`] and [`tooltip::Position`].
 ///
 /// [`Tooltip`]: crate::Tooltip
 /// [`tooltip::Position`]: crate::tooltip::Position
 pub fn tooltip<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    tooltip: impl ToString,
+    tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
     position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
     Theme: container::StyleSheet + text::StyleSheet,
     Renderer: core::text::Renderer,
 {
-    Tooltip::new(content, tooltip.to_string(), position)
+    Tooltip::new(content, tooltip, position)
 }
 
 /// Creates a new [`Text`] widget with the provided content.
