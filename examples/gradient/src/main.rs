@@ -9,6 +9,8 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
+    tracing_subscriber::fmt::init();
+
     Gradient::run(Settings {
         window: window::Settings {
             transparent: true,

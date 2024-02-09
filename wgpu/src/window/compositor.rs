@@ -68,6 +68,8 @@ impl Compositor {
 
                 let mut formats = capabilities.formats.iter().copied();
 
+                log::info!("Available formats: {formats:#?}");
+
                 let format = if color::GAMMA_CORRECTION {
                     formats.find(wgpu::TextureFormat::is_srgb)
                 } else {
@@ -80,12 +82,15 @@ impl Compositor {
                     capabilities.formats.first().copied()
                 });
 
-                let alphas = capabilities.alpha_modes;
-                let preferred_alpha = if alphas
+                let alpha_modes = capabilities.alpha_modes;
+
+                log::info!("Available alpha modes: {alpha_modes:#?}");
+
+                let preferred_alpha = if alpha_modes
                     .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
                 {
                     wgpu::CompositeAlphaMode::PostMultiplied
-                } else if alphas
+                } else if alpha_modes
                     .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
                 {
                     wgpu::CompositeAlphaMode::PreMultiplied
