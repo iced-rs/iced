@@ -319,7 +319,7 @@ where
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
         let viewport = Rectangle::with_size(bounds);
 
-        let text_layout = self.tooltip.as_widget().layout(
+        let tooltip_layout = self.tooltip.as_widget().layout(
             self.state,
             renderer,
             &layout::Limits::new(
@@ -331,7 +331,7 @@ where
             .shrink(Padding::new(self.padding)),
         );
 
-        let text_bounds = text_layout.bounds();
+        let text_bounds = tooltip_layout.bounds();
         let x_center = self.position.x
             + (self.content_bounds.width - text_bounds.width) / 2.0;
         let y_center = self.position.y
@@ -408,7 +408,8 @@ where
 
         layout::Node::with_children(
             tooltip_bounds.size(),
-            vec![text_layout.translate(Vector::new(self.padding, self.padding))],
+            vec![tooltip_layout
+                .translate(Vector::new(self.padding, self.padding))],
         )
         .translate(Vector::new(tooltip_bounds.x, tooltip_bounds.y))
     }
