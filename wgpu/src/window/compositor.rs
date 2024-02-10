@@ -90,10 +90,6 @@ impl Compositor {
                     .contains(&wgpu::CompositeAlphaMode::PostMultiplied)
                 {
                     wgpu::CompositeAlphaMode::PostMultiplied
-                } else if alpha_modes
-                    .contains(&wgpu::CompositeAlphaMode::PreMultiplied)
-                {
-                    wgpu::CompositeAlphaMode::PreMultiplied
                 } else {
                     wgpu::CompositeAlphaMode::Auto
                 };
