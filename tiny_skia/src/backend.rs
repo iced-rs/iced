@@ -1,11 +1,9 @@
-use tiny_skia::Size;
-
 use crate::core::{
-    Background, Color, Gradient, Rectangle, Transformation, Vector,
+    Background, Color, Gradient, Rectangle, Size, Transformation, Vector,
 };
 use crate::graphics::backend;
 use crate::graphics::text;
-use crate::graphics::Viewport;
+use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
 
 use std::borrow::Cow;
@@ -219,31 +217,34 @@ impl Backend {
                             (x..x + width).map(move |x| (x as f32, y as f32))
                         })
                         .filter_map(|(x, y)| {
-                            Size::from_wh(half_width, half_height).map(|size| {
-                                let shadow_distance = rounded_box_sdf(
-                                    Vector::new(
-                                        x - physical_bounds.position().x
-                                            - (shadow.offset.x * scale_factor)
-                                            - half_width,
-                                        y - physical_bounds.position().y
-                                            - (shadow.offset.y * scale_factor)
-                                            - half_height,
-                                    ),
-                                    size,
-                                    &radii,
-                                );
-                                let shadow_alpha = 1.0
-                                    - smoothstep(
-                                        -shadow.blur_radius * scale_factor,
-                                        shadow.blur_radius * scale_factor,
-                                        shadow_distance,
+                            tiny_skia::Size::from_wh(half_width, half_height)
+                                .map(|size| {
+                                    let shadow_distance = rounded_box_sdf(
+                                        Vector::new(
+                                            x - physical_bounds.position().x
+                                                - (shadow.offset.x
+                                                    * scale_factor)
+                                                - half_width,
+                                            y - physical_bounds.position().y
+                                                - (shadow.offset.y
+                                                    * scale_factor)
+                                                - half_height,
+                                        ),
+                                        size,
+                                        &radii,
                                     );
+                                    let shadow_alpha = 1.0
+                                        - smoothstep(
+                                            -shadow.blur_radius * scale_factor,
+                                            shadow.blur_radius * scale_factor,
+                                            shadow_distance,
+                                        );
 
-                                let mut color = into_color(shadow.color);
-                                color.apply_opacity(shadow_alpha);
+                                    let mut color = into_color(shadow.color);
+                                    color.apply_opacity(shadow_alpha);
 
-                                color.to_color_u8().premultiply()
-                            })
+                                    color.to_color_u8().premultiply()
+                                })
                         })
                         .collect();
 
@@ -447,10 +448,12 @@ impl Backend {
                 paragraph,
                 position,
                 color,
-                clip_bounds: text_clip_bounds,
+                clip_bounds: _, // TODO: Support text clip bounds
             } => {
                 let physical_bounds =
-                    *text_clip_bounds * transformation * scale_factor;
+                    Rectangle::new(*position, paragraph.min_bounds)
+                        * transformation
+                        * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -473,10 +476,11 @@ impl Backend {
                 editor,
                 position,
                 color,
-                clip_bounds: text_clip_bounds,
+                clip_bounds: _, // TODO: Support text clip bounds
             } => {
-                let physical_bounds =
-                    (*text_clip_bounds * transformation) * scale_factor;
+                let physical_bounds = Rectangle::new(*position, editor.bounds)
+                    * transformation
+                    * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -505,10 +509,10 @@ impl Backend {
                 horizontal_alignment,
                 vertical_alignment,
                 shaping,
-                clip_bounds: text_clip_bounds,
+                clip_bounds: _, // TODO: Support text clip bounds
             } => {
                 let physical_bounds =
-                    *text_clip_bounds * transformation * scale_factor;
+                    primitive.bounds() * transformation * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -537,14 +541,18 @@ impl Backend {
                 buffer,
                 position,
                 color,
-                clip_bounds: text_clip_bounds,
+                clip_bounds: _, // TODO: Support text clip bounds
             }) => {
                 let Some(buffer) = buffer.upgrade() else {
                     return;
                 };
 
+                let (width, height) = buffer.size();
+
                 let physical_bounds =
-                    *text_clip_bounds * transformation * scale_factor;
+                    Rectangle::new(*position, Size::new(width, height))
+                        * transformation
+                        * scale_factor;
 
                 if !clip_bounds.intersects(&physical_bounds) {
                     return;
@@ -963,7 +971,11 @@ fn smoothstep(a: f32, b: f32, x: f32) -> f32 {
     x * x * (3.0 - 2.0 * x)
 }
 
-fn rounded_box_sdf(to_center: Vector, size: Size, radii: &[f32]) -> f32 {
+fn rounded_box_sdf(
+    to_center: Vector,
+    size: tiny_skia::Size,
+    radii: &[f32],
+) -> f32 {
     let radius = match (to_center.x > 0.0, to_center.y > 0.0) {
         (true, true) => radii[2],
         (true, false) => radii[1],
