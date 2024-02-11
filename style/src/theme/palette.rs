@@ -68,9 +68,9 @@ impl Palette {
         ),
     };
 
-    /// The built-in Dracula variant of a [`Palette`].
+    /// The built-in [Dracula] variant of a [`Palette`].
     ///
-    /// Source: https://draculatheme.com
+    /// [Dracula]: https://draculatheme.com
     pub const DRACULA: Self = Self {
         background: color!(0x282A36), // BACKGROUND
         text: color!(0xf8f8f2),       // FOREGROUND
@@ -79,9 +79,9 @@ impl Palette {
         danger: color!(0xff5555),     // RED
     };
 
-    /// The built-in Nord variant of a [`Palette`].
+    /// The built-in [Nord] variant of a [`Palette`].
     ///
-    /// Source: https://www.nordtheme.com/docs/colors-and-palettes
+    /// [Nord]: https://www.nordtheme.com/docs/colors-and-palettes
     pub const NORD: Self = Self {
         background: color!(0x2e3440), // nord0
         text: color!(0xeceff4),       // nord6
@@ -90,9 +90,9 @@ impl Palette {
         danger: color!(0xbf616a),     // nord11
     };
 
-    /// The built-in Solarized Light variant of a [`Palette`].
+    /// The built-in [Solarized] Light variant of a [`Palette`].
     ///
-    /// Source: https://ethanschoonover.com/solarized
+    /// [Solarized]: https://ethanschoonover.com/solarized
     pub const SOLARIZED_LIGHT: Self = Self {
         background: color!(0xfdf6e3), // base3
         text: color!(0x657b83),       // base00
@@ -101,9 +101,9 @@ impl Palette {
         danger: color!(0xdc322f),     // red
     };
 
-    /// The built-in Solarized Dark variant of a [`Palette`].
+    /// The built-in [Solarized] Dark variant of a [`Palette`].
     ///
-    /// Source: https://ethanschoonover.com/solarized
+    /// [Solarized]: https://ethanschoonover.com/solarized
     pub const SOLARIZED_DARK: Self = Self {
         background: color!(0x002b36), // base03
         text: color!(0x839496),       // base0
@@ -112,9 +112,9 @@ impl Palette {
         danger: color!(0xdc322f),     // red
     };
 
-    /// The built-in Gruvbox Light variant of a [`Palette`].
+    /// The built-in [Gruvbox] Light variant of a [`Palette`].
     ///
-    /// Source: https://github.com/morhetz/gruvbox
+    /// [Gruvbox]: https://github.com/morhetz/gruvbox
     pub const GRUVBOX_LIGHT: Self = Self {
         background: color!(0xfbf1c7), // light BG_0
         text: color!(0x282828),       // light FG0_29
@@ -123,9 +123,9 @@ impl Palette {
         danger: color!(0xcc241d),     // light RED_1
     };
 
-    /// The built-in Gruvbox Dark variant of a [`Palette`].
+    /// The built-in [Gruvbox] Dark variant of a [`Palette`].
     ///
-    /// Source: https://github.com/morhetz/gruvbox
+    /// [Gruvbox]: https://github.com/morhetz/gruvbox
     pub const GRUVBOX_DARK: Self = Self {
         background: color!(0x282828), // dark BG_0
         text: color!(0xfbf1c7),       // dark FG0_29
@@ -134,9 +134,9 @@ impl Palette {
         danger: color!(0xcc241d),     // dark RED_1
     };
 
-    /// The built-in Catppuccin Latte variant of a [`Palette`].
+    /// The built-in [Catppuccin] Latte variant of a [`Palette`].
     ///
-    /// Source: https://github.com/catppuccin/catppuccin
+    /// [Catppuccin]: https://github.com/catppuccin/catppuccin
     pub const CATPPUCCIN_LATTE: Self = Self {
         background: color!(0xeff1f5), // Base
         text: color!(0x4c4f69),       // Text
@@ -145,9 +145,9 @@ impl Palette {
         danger: color!(0xd20f39),     // Red
     };
 
-    /// The built-in Catppuccin Frappé variant of a [`Palette`].
+    /// The built-in [Catppuccin] Frappé variant of a [`Palette`].
     ///
-    /// Source: https://github.com/catppuccin/catppuccin
+    /// [Catppuccin]: https://github.com/catppuccin/catppuccin
     pub const CATPPUCCIN_FRAPPE: Self = Self {
         background: color!(0x303446), // Base
         text: color!(0xc6d0f5),       // Text
@@ -156,9 +156,9 @@ impl Palette {
         danger: color!(0xe78284),     // Red
     };
 
-    /// The built-in Catppuccin Macchiato variant of a [`Palette`].
+    /// The built-in [Catppuccin] Macchiato variant of a [`Palette`].
     ///
-    /// Source: https://github.com/catppuccin/catppuccin
+    /// [Catppuccin]: https://github.com/catppuccin/catppuccin
     pub const CATPPUCCIN_MACCHIATO: Self = Self {
         background: color!(0x24273a), // Base
         text: color!(0xcad3f5),       // Text
@@ -167,9 +167,9 @@ impl Palette {
         danger: color!(0xed8796),     // Red
     };
 
-    /// The built-in Catppuccin Mocha variant of a [`Palette`].
+    /// The built-in [Catppuccin] Mocha variant of a [`Palette`].
     ///
-    /// Source: https://github.com/catppuccin/catppuccin
+    /// [Catppuccin]: https://github.com/catppuccin/catppuccin
     pub const CATPPUCCIN_MOCHA: Self = Self {
         background: color!(0x1e1e2e), // Base
         text: color!(0xcdd6f4),       // Text
@@ -178,9 +178,9 @@ impl Palette {
         danger: color!(0xf38ba8),     // Red
     };
 
-    /// The built-in Tokyo Night variant of a [`Palette`].
+    /// The built-in [Tokyo Night] variant of a [`Palette`].
     ///
-    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    /// [Tokyo Night]: https://github.com/enkia/tokyo-night-vscode-theme
     pub const TOKYO_NIGHT: Self = Self {
         background: color!(0x1a1b26), // Background (Night)
         text: color!(0x9aa5ce),       // Text
@@ -189,9 +189,9 @@ impl Palette {
         danger: color!(0xf7768e),     // Red
     };
 
-    /// The built-in Tokyo Night Storm variant of a [`Palette`].
+    /// The built-in [Tokyo Night] Storm variant of a [`Palette`].
     ///
-    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    /// [Tokyo Night]: https://github.com/enkia/tokyo-night-vscode-theme
     pub const TOKYO_NIGHT_STORM: Self = Self {
         background: color!(0x24283b), // Background (Storm)
         text: color!(0x9aa5ce),       // Text
@@ -200,9 +200,9 @@ impl Palette {
         danger: color!(0xf7768e),     // Red
     };
 
-    /// The built-in Tokyo Night Light variant of a [`Palette`].
+    /// The built-in [Tokyo Night] Light variant of a [`Palette`].
     ///
-    /// Source: https://github.com/enkia/tokyo-night-vscode-theme
+    /// [Tokyo Night]: https://github.com/enkia/tokyo-night-vscode-theme
     pub const TOKYO_NIGHT_LIGHT: Self = Self {
         background: color!(0xd5d6db), // Background
         text: color!(0x565a6e),       // Text
@@ -211,9 +211,9 @@ impl Palette {
         danger: color!(0x8c4351),     // Red
     };
 
-    /// The built-in Kanagawa Wave variant of a [`Palette`].
+    /// The built-in [Kanagawa] Wave variant of a [`Palette`].
     ///
-    /// Source: https://github.com/rebelot/kanagawa.nvim
+    /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_WAVE: Self = Self {
         background: color!(0x363646), // Sumi Ink 3
         text: color!(0xCD7BA),        // Fuji White
@@ -222,9 +222,9 @@ impl Palette {
         danger: color!(0xC34043),     // Autumn Red
     };
 
-    /// The built-in Kanagawa Dragon variant of a [`Palette`].
+    /// The built-in [Kanagawa] Dragon variant of a [`Palette`].
     ///
-    /// Source: https://github.com/rebelot/kanagawa.nvim
+    /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_DRAGON: Self = Self {
         background: color!(0x181616), // Dragon Black 3
         text: color!(0xc5c9c5),       // Dragon White
@@ -233,9 +233,9 @@ impl Palette {
         danger: color!(0xc4746e),     // Dragon Red
     };
 
-    /// The built-in Kanagawa Lotus variant of a [`Palette`].
+    /// The built-in [Kanagawa] Lotus variant of a [`Palette`].
     ///
-    /// Source: https://github.com/rebelot/kanagawa.nvim
+    /// [Kanagawa]: https://github.com/rebelot/kanagawa.nvim
     pub const KANAGAWA_LOTUS: Self = Self {
         background: color!(0xf2ecbc), // Lotus White 3
         text: color!(0x545464),       // Lotus Ink 1
@@ -244,9 +244,9 @@ impl Palette {
         danger: color!(0xc84053),     // Lotus Red
     };
 
-    /// The built-in Moonfly variant of a [`Palette`].
+    /// The built-in [Moonfly] variant of a [`Palette`].
     ///
-    /// Source: https://github.com/bluz71/vim-moonfly-colors
+    /// [Moonfly]: https://github.com/bluz71/vim-moonfly-colors
     pub const MOONFLY: Self = Self {
         background: color!(0x080808), // Background
         text: color!(0xbdbdbd),       // Foreground
@@ -255,9 +255,9 @@ impl Palette {
         danger: color!(0xff5454),     // Red (normal)
     };
 
-    /// The built-in Nightfly variant of a [`Palette`].
+    /// The built-in [Nightfly] variant of a [`Palette`].
     ///
-    /// Source: https://github.com/bluz71/vim-nightfly-colors
+    /// [Nightfly]: https://github.com/bluz71/vim-nightfly-colors
     pub const NIGHTFLY: Self = Self {
         background: color!(0x011627), // Background
         text: color!(0xbdc1c6),       // Foreground
@@ -266,9 +266,9 @@ impl Palette {
         danger: color!(0xfc514e),     // Red (normal)
     };
 
-    /// The built-in Oxocarbon variant of a [`Palette`].
+    /// The built-in [Oxocarbon] variant of a [`Palette`].
     ///
-    /// Source: https://github.com/nyoom-engineering/oxocarbon.nvim
+    /// [Oxocarbon]: https://github.com/nyoom-engineering/oxocarbon.nvim
     pub const OXOCARBON: Self = Self {
         background: color!(0x232323),
         text: color!(0xd0d0d0),
