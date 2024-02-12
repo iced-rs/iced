@@ -7,7 +7,7 @@ jobs:
     - uses: hecrj/setup-rust-action@v1
     - uses: actions/checkout@master
     - name: Check standalone `iced_widget` crate
-      run: cargo check --package iced_widget --features image,svg,canvas
+      run: cargo check --package iced_widget --features svg,canvas
 
   wasm:
     runs-on: ubuntu-latest
