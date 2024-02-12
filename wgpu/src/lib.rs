@@ -40,6 +40,7 @@ pub mod geometry;
 mod backend;
 mod buffer;
 mod color;
+mod image;
 mod quad;
 mod text;
 mod triangle;
@@ -55,9 +56,6 @@ pub use backend::Backend;
 pub use layer::Layer;
 pub use primitive::Primitive;
 pub use settings::Settings;
-
-#[cfg(any(feature = "image", feature = "svg"))]
-mod image;
 
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///

@@ -16,7 +16,6 @@ all-features = true
 
 [features]
 geometry = ["iced_graphics/geometry", "lyon"]
-image = ["iced_graphics/image"]
 svg = ["resvg/text"]
 web-colors = ["iced_graphics/web-colors"]
 webgl = ["wgpu/webgl"]

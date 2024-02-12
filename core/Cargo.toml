@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[features]
+image = []
+
 [dependencies]
 bitflags.workspace = true
 glam.workspace = true

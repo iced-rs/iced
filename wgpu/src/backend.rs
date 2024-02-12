@@ -2,6 +2,7 @@ use crate::core::{Color, Size, Transformation};
 use crate::graphics::backend;
 use crate::graphics::color;
 use crate::graphics::Viewport;
+use crate::image;
 use crate::primitive::pipeline;
 use crate::primitive::{self, Primitive};
 use crate::quad;
@@ -11,9 +12,6 @@ use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
 use tracing::info_span;
-
-#[cfg(any(feature = "image", feature = "svg"))]
-use crate::image;
 
 use std::borrow::Cow;
 
@@ -26,10 +24,8 @@ pub struct Backend {
     quad_pipeline: quad::Pipeline,
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
-    pipeline_storage: pipeline::Storage,
-
-    #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
+    pipeline_storage: pipeline::Storage,
 }
 
 impl Backend {
@@ -44,18 +40,14 @@ impl Backend {
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
-
-        #[cfg(any(feature = "image", feature = "svg"))]
         let image_pipeline = image::Pipeline::new(device, format);
 
         Self {
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
-            pipeline_storage: pipeline::Storage::default(),
-
-            #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
+            pipeline_storage: pipeline::Storage::default(),
         }
     }
 
@@ -113,8 +105,6 @@ impl Backend {
         self.quad_pipeline.end_frame();
         self.text_pipeline.end_frame();
         self.triangle_pipeline.end_frame();
-
-        #[cfg(any(feature = "image", feature = "svg"))]
         self.image_pipeline.end_frame();
     }
 
@@ -158,21 +148,18 @@ impl Backend {
                 );
             }
 
-            #[cfg(any(feature = "image", feature = "svg"))]
-            {
-                if !layer.images.is_empty() {
-                    let scaled =
-                        transformation * Transformation::scale(scale_factor);
+            if !layer.images.is_empty() {
+                let scaled =
+                    transformation * Transformation::scale(scale_factor);
 
-                    self.image_pipeline.prepare(
-                        device,
-                        queue,
-                        _encoder,
-                        &layer.images,
-                        scaled,
-                        scale_factor,
-                    );
-                }
+                self.image_pipeline.prepare(
+                    device,
+                    queue,
+                    _encoder,
+                    &layer.images,
+                    scaled,
+                    scale_factor,
+                );
             }
 
             if !layer.text.is_empty() {
@@ -216,7 +203,6 @@ impl Backend {
 
         let mut quad_layer = 0;
         let mut triangle_layer = 0;
-        #[cfg(any(feature = "image", feature = "svg"))]
         let mut image_layer = 0;
         let mut text_layer = 0;
 
@@ -303,17 +289,14 @@ impl Backend {
                 ));
             }
 
-            #[cfg(any(feature = "image", feature = "svg"))]
-            {
-                if !layer.images.is_empty() {
-                    self.image_pipeline.render(
-                        image_layer,
-                        bounds,
-                        &mut render_pass,
-                    );
+            if !layer.images.is_empty() {
+                self.image_pipeline.render(
+                    image_layer,
+                    bounds,
+                    &mut render_pass,
+                );
 
-                    image_layer += 1;
-                }
+                image_layer += 1;
             }
 
             if !layer.text.is_empty() {
@@ -377,7 +360,6 @@ impl backend::Text for Backend {
     }
 }
 
-#[cfg(feature = "image")]
 impl backend::Image for Backend {
     fn dimensions(&self, handle: &crate::core::image::Handle) -> Size<u32> {
         self.image_pipeline.dimensions(handle)

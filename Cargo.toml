@@ -21,8 +21,6 @@ maintenance = { status = "actively-developed" }
 default = ["wgpu"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
-# Enables the `Image` widget
-image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
@@ -31,6 +29,8 @@ canvas = ["iced_widget/canvas"]
 qr_code = ["iced_widget/qr_code"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
+# Enables image load support
+image = ["iced_core/image", "image/default"]
 # Enables a debug view in native platforms (press F12)
 debug = ["iced_winit/debug"]
 # Enables `tokio` as the `executor::Default` on native platforms
@@ -68,7 +68,6 @@ iced_highlighter.optional = true
 thiserror.workspace = true
 
 image.workspace = true
-image.optional = true
 
 [profile.release-opt]
 inherits = "release"
@@ -129,7 +128,7 @@ glam = "0.25"
 glyphon = "0.5"
 guillotiere = "0.6"
 half = "2.2"
-image = "0.24"
+image = { version = "0.24", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"

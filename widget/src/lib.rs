@@ -25,6 +25,7 @@ pub mod button;
 pub mod checkbox;
 pub mod combo_box;
 pub mod container;
+pub mod image;
 pub mod keyed;
 pub mod overlay;
 pub mod pane_grid;
@@ -65,6 +66,8 @@ pub use column::Column;
 pub use combo_box::ComboBox;
 #[doc(no_inline)]
 pub use container::Container;
+#[doc(no_inline)]
+pub use image::Image;
 #[doc(no_inline)]
 pub use mouse_area::MouseArea;
 #[doc(no_inline)]
@@ -113,13 +116,6 @@ pub mod svg;
 #[cfg(feature = "svg")]
 #[doc(no_inline)]
 pub use svg::Svg;
-
-#[cfg(feature = "image")]
-pub mod image;
-
-#[cfg(feature = "image")]
-#[doc(no_inline)]
-pub use image::Image;
 
 #[cfg(feature = "canvas")]
 pub mod canvas;

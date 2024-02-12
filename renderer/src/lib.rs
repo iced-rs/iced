@@ -212,7 +212,6 @@ impl text::Renderer for Renderer {
     }
 }
 
-#[cfg(feature = "image")]
 impl crate::core::image::Renderer for Renderer {
     type Handle = crate::core::image::Handle;
 

@@ -5,11 +5,9 @@ pub mod window;
 
 mod backend;
 mod primitive;
+mod raster;
 mod settings;
 mod text;
-
-#[cfg(feature = "image")]
-mod raster;
 
 #[cfg(feature = "svg")]
 mod vector;

@@ -11,7 +11,6 @@ categories.workspace = true
 keywords.workspace = true
 
 [features]
-image = ["iced_graphics/image"]
 svg = ["resvg"]
 geometry = ["iced_graphics/geometry"]
 

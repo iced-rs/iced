@@ -16,7 +16,6 @@ all-features = true
 
 [features]
 geometry = ["lyon_path"]
-image = ["dep:image", "kamadak-exif"]
 web-colors = []
 
 [dependencies]
@@ -34,12 +33,8 @@ rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
 xxhash-rust.workspace = true
-
 image.workspace = true
-image.optional = true
-
 kamadak-exif.workspace = true
-kamadak-exif.optional = true
 
 lyon_path.workspace = true
 lyon_path.optional = true
