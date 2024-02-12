@@ -3,13 +3,17 @@ use crate::canvas;
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
-use crate::core::widget::Tree;
+use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
 };
 use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
+
+use std::cell::RefCell;
 use thiserror::Error;
+
+pub use crate::style::qr_code::{Appearance, StyleSheet};
 
 const DEFAULT_CELL_SIZE: u16 = 4;
 const QUIET_ZONE: usize = 2;
@@ -17,29 +21,26 @@ const QUIET_ZONE: usize = 2;
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
 #[derive(Debug)]
-pub struct QRCode<'a> {
-    state: &'a State,
-    dark: Color,
-    light: Color,
+pub struct QRCode<'a, Theme = crate::Theme>
+where
+    Theme: StyleSheet,
+{
+    data: &'a Data,
     cell_size: u16,
+    style: Theme::Style,
 }
 
-impl<'a> QRCode<'a> {
-    /// Creates a new [`QRCode`] with the provided [`State`].
-    pub fn new(state: &'a State) -> Self {
+impl<'a, Theme> QRCode<'a, Theme>
+where
+    Theme: StyleSheet,
+{
+    /// Creates a new [`QRCode`] with the provided [`Data`].
+    pub fn new(data: &'a Data) -> Self {
         Self {
+            data,
             cell_size: DEFAULT_CELL_SIZE,
-            dark: Color::BLACK,
-            light: Color::WHITE,
-            state,
+            style: Default::default(),
         }
-    }
-
-    /// Sets both the dark and light [`Color`]s of the [`QRCode`].
-    pub fn color(mut self, dark: Color, light: Color) -> Self {
-        self.dark = dark;
-        self.light = light;
-        self
     }
 
     /// Sets the size of the squares of the grid cell of the [`QRCode`].
@@ -47,9 +48,26 @@ impl<'a> QRCode<'a> {
         self.cell_size = cell_size;
         self
     }
+
+    /// Sets the style of the [`QRCode`].
+    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+        self.style = style.into();
+        self
+    }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+where
+    Theme: StyleSheet,
+{
+    fn tag(&self) -> tree::Tag {
+        tree::Tag::of::<State>()
+    }
+
+    fn state(&self) -> tree::State {
+        tree::State::new(State::default())
+    }
+
     fn size(&self) -> Size<Length> {
         Size {
             width: Length::Shrink,
@@ -63,7 +81,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
         _renderer: &Renderer,
         _limits: &layout::Limits,
     ) -> layout::Node {
-        let side_length = (self.state.width + 2 * QUIET_ZONE) as f32
+        let side_length = (self.data.width + 2 * QUIET_ZONE) as f32
             * f32::from(self.cell_size);
 
         layout::Node::new(Size::new(side_length, side_length))
@@ -71,53 +89,60 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
 
     fn draw(
         &self,
-        _state: &Tree,
+        tree: &Tree,
         renderer: &mut Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         _style: &renderer::Style,
         layout: Layout<'_>,
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+        let state = tree.state.downcast_ref::<State>();
+
         let bounds = layout.bounds();
-        let side_length = self.state.width + 2 * QUIET_ZONE;
+        let side_length = self.data.width + 2 * QUIET_ZONE;
+
+        let appearance = theme.appearance(&self.style);
+        let mut last_appearance = state.last_appearance.borrow_mut();
+
+        if Some(appearance) != *last_appearance {
+            self.data.cache.clear();
+
+            *last_appearance = Some(appearance);
+        }
 
         // Reuse cache if possible
-        let geometry =
-            self.state.cache.draw(renderer, bounds.size(), |frame| {
-                // Scale units to cell size
-                frame.scale(self.cell_size);
+        let geometry = self.data.cache.draw(renderer, bounds.size(), |frame| {
+            // Scale units to cell size
+            frame.scale(self.cell_size);
 
-                // Draw background
-                frame.fill_rectangle(
-                    Point::ORIGIN,
-                    Size::new(side_length as f32, side_length as f32),
-                    self.light,
-                );
+            // Draw background
+            frame.fill_rectangle(
+                Point::ORIGIN,
+                Size::new(side_length as f32, side_length as f32),
+                appearance.background,
+            );
 
-                // Avoid drawing on the quiet zone
-                frame.translate(Vector::new(
-                    QUIET_ZONE as f32,
-                    QUIET_ZONE as f32,
-                ));
+            // Avoid drawing on the quiet zone
+            frame.translate(Vector::new(QUIET_ZONE as f32, QUIET_ZONE as f32));
 
-                // Draw contents
-                self.state
-                    .contents
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, value)| **value == qrcode::Color::Dark)
-                    .for_each(|(index, _)| {
-                        let row = index / self.state.width;
-                        let column = index % self.state.width;
+            // Draw contents
+            self.data
+                .contents
+                .iter()
+                .enumerate()
+                .filter(|(_, value)| **value == qrcode::Color::Dark)
+                .for_each(|(index, _)| {
+                    let row = index / self.data.width;
+                    let column = index % self.data.width;
 
-                        frame.fill_rectangle(
-                            Point::new(column as f32, row as f32),
-                            Size::UNIT,
-                            self.dark,
-                        );
-                    });
-            });
+                    frame.fill_rectangle(
+                        Point::new(column as f32, row as f32),
+                        Size::UNIT,
+                        appearance.cell,
+                    );
+                });
+        });
 
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
@@ -128,26 +153,28 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a> {
     }
 }
 
-impl<'a, Message, Theme> From<QRCode<'a>>
+impl<'a, Message, Theme> From<QRCode<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
+where
+    Theme: StyleSheet + 'a,
 {
-    fn from(qr_code: QRCode<'a>) -> Self {
+    fn from(qr_code: QRCode<'a, Theme>) -> Self {
         Self::new(qr_code)
     }
 }
 
-/// The state of a [`QRCode`].
+/// The data of a [`QRCode`].
 ///
-/// It stores the data that will be displayed.
+/// It stores the contents that will be displayed.
 #[derive(Debug)]
-pub struct State {
+pub struct Data {
     contents: Vec<qrcode::Color>,
     width: usize,
     cache: canvas::Cache,
 }
 
-impl State {
-    /// Creates a new [`State`] with the provided data.
+impl Data {
+    /// Creates a new [`Data`] with the provided data.
     ///
     /// This method uses an [`ErrorCorrection::Medium`] and chooses the smallest
     /// size to display the data.
@@ -157,7 +184,7 @@ impl State {
         Ok(Self::build(encoded))
     }
 
-    /// Creates a new [`State`] with the provided [`ErrorCorrection`].
+    /// Creates a new [`Data`] with the provided [`ErrorCorrection`].
     pub fn with_error_correction(
         data: impl AsRef<[u8]>,
         error_correction: ErrorCorrection,
@@ -170,7 +197,7 @@ impl State {
         Ok(Self::build(encoded))
     }
 
-    /// Creates a new [`State`] with the provided [`Version`] and
+    /// Creates a new [`Data`] with the provided [`Version`] and
     /// [`ErrorCorrection`].
     pub fn with_version(
         data: impl AsRef<[u8]>,
@@ -249,7 +276,7 @@ impl From<ErrorCorrection> for qrcode::EcLevel {
     }
 }
 
-/// An error that occurred when building a [`State`] for a [`QRCode`].
+/// An error that occurred when building a [`Data`] for a [`QRCode`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum Error {
     /// The data is too long to encode in a QR code for the chosen [`Version`].
@@ -297,4 +324,9 @@ impl From<qrcode::types::QrError> for Error {
             QrError::InvalidCharacter => Error::InvalidCharacter,
         }
     }
+}
+
+#[derive(Default)]
+struct State {
+    last_appearance: RefCell<Option<Appearance>>,
 }

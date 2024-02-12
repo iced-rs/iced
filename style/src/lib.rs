@@ -24,6 +24,7 @@ pub mod menu;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
+pub mod qr_code;
 pub mod radio;
 pub mod rule;
 pub mod scrollable;

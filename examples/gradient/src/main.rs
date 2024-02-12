@@ -1,11 +1,23 @@
-use iced::gradient;
-use iced::widget::{column, container, horizontal_space, row, slider, text};
+use iced::application;
+use iced::theme::{self, Theme};
+use iced::widget::{
+    checkbox, column, container, horizontal_space, row, slider, text,
+};
+use iced::{gradient, window};
 use iced::{
     Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
 };
 
 pub fn main() -> iced::Result {
-    Gradient::run(Settings::default())
+    tracing_subscriber::fmt::init();
+
+    Gradient::run(Settings {
+        window: window::Settings {
+            transparent: true,
+            ..Default::default()
+        },
+        ..Default::default()
+    })
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -13,6 +25,7 @@ struct Gradient {
     start: Color,
     end: Color,
     angle: Radians,
+    transparent: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -20,6 +33,7 @@ enum Message {
     StartChanged(Color),
     EndChanged(Color),
     AngleChanged(Radians),
+    TransparentToggled(bool),
 }
 
 impl Sandbox for Gradient {
@@ -30,6 +44,7 @@ impl Sandbox for Gradient {
             start: Color::WHITE,
             end: Color::new(0.0, 0.0, 1.0, 1.0),
             angle: Radians(0.0),
+            transparent: false,
         }
     }
 
@@ -42,11 +57,19 @@ impl Sandbox for Gradient {
             Message::StartChanged(color) => self.start = color,
             Message::EndChanged(color) => self.end = color,
             Message::AngleChanged(angle) => self.angle = angle,
+            Message::TransparentToggled(transparent) => {
+                self.transparent = transparent;
+            }
         }
     }
 
     fn view(&self) -> Element<Message> {
-        let Self { start, end, angle } = *self;
+        let Self {
+            start,
+            end,
+            angle,
+            transparent,
+        } = *self;
 
         let gradient_box = container(horizontal_space(Length::Fill))
             .width(Length::Fill)
@@ -72,13 +95,33 @@ impl Sandbox for Gradient {
         .padding(8)
         .align_items(Alignment::Center);
 
+        let transparency_toggle = iced::widget::Container::new(
+            checkbox("Transparent window", transparent)
+                .on_toggle(Message::TransparentToggled),
+        )
+        .padding(8);
+
         column![
             color_picker("Start", self.start).map(Message::StartChanged),
             color_picker("End", self.end).map(Message::EndChanged),
             angle_picker,
-            gradient_box
+            transparency_toggle,
+            gradient_box,
         ]
         .into()
+    }
+
+    fn style(&self) -> theme::Application {
+        if self.transparent {
+            theme::Application::custom(|theme: &Theme| {
+                application::Appearance {
+                    background_color: Color::TRANSPARENT,
+                    text_color: theme.palette().text,
+                }
+            })
+        } else {
+            theme::Application::Default
+        }
     }
 }
 
@@ -90,6 +133,8 @@ fn color_picker(label: &str, color: Color) -> Element<'_, Color> {
         slider(0.0..=1.0, color.g, move |g| { Color { g, ..color } })
             .step(0.01),
         slider(0.0..=1.0, color.b, move |b| { Color { b, ..color } })
+            .step(0.01),
+        slider(0.0..=1.0, color.a, move |a| { Color { a, ..color } })
             .step(0.01),
     ]
     .spacing(8)

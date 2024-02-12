@@ -88,7 +88,7 @@ impl Application for SolarSystem {
             }
         }
 
-        theme::Application::from(dark_background as fn(&Theme) -> _)
+        theme::Application::custom(dark_background)
     }
 
     fn subscription(&self) -> Subscription<Message> {

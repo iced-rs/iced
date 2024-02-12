@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/crates/l/iced_wgpu.svg)](https://github.com/iced-rs/iced/blob/master/LICENSE)
 [![Discord Server](https://img.shields.io/discord/628993209984614400?label=&labelColor=6A7EC2&logo=discord&logoColor=ffffff&color=7389D8)](https://discord.gg/3xZJ65GAhd)
 
-`iced_wgpu` is a [`wgpu`] renderer for [`iced_native`]. For now, it is the default renderer of Iced on [native platforms].
+`iced_wgpu` is a [`wgpu`] renderer for [`iced_runtime`]. For now, it is the default renderer of Iced on [native platforms].
 
 [`wgpu`] supports most modern graphics backends: Vulkan, Metal, and DX12 (OpenGL and WebGL are still WIP). Additionally, it will support the incoming [WebGPU API].
 
@@ -20,7 +20,7 @@ Currently, `iced_wgpu` supports the following primitives:
 </p>
 
 [documentation]: https://docs.rs/iced_wgpu
-[`iced_native`]: ../native
+[`iced_runtime`]: ../runtime
 [`wgpu`]: https://github.com/gfx-rs/wgpu
 [native platforms]: https://github.com/gfx-rs/wgpu#supported-platforms
 [WebGPU API]: https://gpuweb.github.io/gpuweb/

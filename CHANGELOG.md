@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `hovered` styling for `Svg` widget. [#2163](https://github.com/iced-rs/iced/pull/2163)
 - `height` method for `TextEditor`. [#2221](https://github.com/iced-rs/iced/pull/2221)
 - Customizable style for `TextEditor`. [#2159](https://github.com/iced-rs/iced/pull/2159)
+- Customizable style for `QRCode`. [#2229](https://github.com/iced-rs/iced/pull/2229)
 - Border width styling for `Toggler`. [#2219](https://github.com/iced-rs/iced/pull/2219)
 - `RawText` variant for `Primitive` in `iced_graphics`. [#2158](https://github.com/iced-rs/iced/pull/2158)
 - `Stream` support for `Command`. [#2150](https://github.com/iced-rs/iced/pull/2150)
@@ -38,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Custom` variant to `command::Action`. [#2146](https://github.com/iced-rs/iced/pull/2146)
 - Mouse movement events for `MouseArea`. [#2147](https://github.com/iced-rs/iced/pull/2147)
 - Dracula, Nord, Solarized, and Gruvbox variants for `Theme`. [#2170](https://github.com/iced-rs/iced/pull/2170)
+- Catppuccin, Tokyo Night, Kanagawa, Moonfly, Nightfly and Oxocarbon variants for `Theme`. [#2233](https://github.com/iced-rs/iced/pull/2233)
+
 - `From<T> where T: Into<PathBuf>` for `svg::Handle`. [#2235](https://github.com/iced-rs/iced/pull/2235)
 - `on_open` and `on_close` handlers for `PickList`. [#2174](https://github.com/iced-rs/iced/pull/2174)
 - Support for generic `Element` in `Tooltip`. [#2228](https://github.com/iced-rs/iced/pull/2228)
@@ -102,6 +105,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Subscription::map` using unreliable function pointer hash to identify mappers. [#2237](https://github.com/iced-rs/iced/pull/2237)
 - Missing feature flag docs for `time::every`. [#2188](https://github.com/iced-rs/iced/pull/2188)
 - Event loop not being resumed on Windows while resizing. [#2214](https://github.com/iced-rs/iced/pull/2214)
+- Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
+- Outdated documentation leading to a dead link. [#2232](https://github.com/iced-rs/iced/pull/2232)
 
 Many thanks to...
 
@@ -116,6 +121,7 @@ Many thanks to...
 - @Calastrophe
 - @casperstorm
 - @cfrenette
+- @clarkmoody
 - @Davidster
 - @Decodetalkers
 - @derezzedex
@@ -132,6 +138,8 @@ Many thanks to...
 - @jim-ec
 - @joshuamegnauth54
 - @jpttrssn
+- @julianbraha
+- @Koranir
 - @lufte
 - @matze
 - @MichalLebeda
