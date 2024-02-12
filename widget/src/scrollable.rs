@@ -1,4 +1,5 @@
 //! Navigate an endless amount of content with a scrollbar.
+use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -880,18 +881,23 @@ pub fn draw<Theme, Renderer>(
         _ => mouse::Cursor::Unavailable,
     };
 
-    // Draw background.
-    let appearence = theme.appearance(style);
+    let appearance = if state.y_scroller_grabbed_at.is_some()
+        || state.x_scroller_grabbed_at.is_some()
+    {
+        theme.dragging(style)
+    } else if cursor_over_scrollable.is_some() {
+        theme.hovered(style, mouse_over_y_scrollbar || mouse_over_x_scrollbar)
+    } else {
+        theme.active(style)
+    };
 
-    if let Some(background) = appearence.background {
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                ..Default::default()
-            },
-            background,
-        );
-    }
+    let idle_scrollbar = theme.active(style).scrollbar;
+
+    container::draw_background(
+        renderer,
+        &appearance.container,
+        layout.bounds(),
+    );
 
     // Draw inner content
     if scrollbars.active() {
@@ -917,7 +923,6 @@ pub fn draw<Theme, Renderer>(
             |renderer: &mut Renderer,
              style: Scrollbar,
              scrollbar: &internals::Scrollbar| {
-                //track
                 if scrollbar.bounds.width > 0.0
                     && scrollbar.bounds.height > 0.0
                     && (style.background.is_some()
@@ -936,7 +941,6 @@ pub fn draw<Theme, Renderer>(
                     );
                 }
 
-                //thumb
                 if scrollbar.scroller.bounds.width > 0.0
                     && scrollbar.scroller.bounds.height > 0.0
                     && (style.scroller.color != Color::TRANSPARENT
@@ -961,35 +965,37 @@ pub fn draw<Theme, Renderer>(
                 ..bounds
             },
             |renderer| {
-                //draw y scrollbar
                 if let Some(scrollbar) = scrollbars.y {
-                    let style = if state.y_scroller_grabbed_at.is_some() {
-                        theme.dragging(style)
-                    } else if cursor_over_scrollable.is_some() {
-                        theme.hovered(style, mouse_over_y_scrollbar)
-                    } else {
-                        theme.active(style)
-                    };
-
-                    draw_scrollbar(renderer, style, &scrollbar);
+                    draw_scrollbar(
+                        renderer,
+                        if mouse_over_y_scrollbar
+                            || state.y_scroller_grabbed_at.is_some()
+                        {
+                            appearance.scrollbar
+                        } else {
+                            idle_scrollbar
+                        },
+                        &scrollbar,
+                    );
                 }
 
-                //draw x scrollbar
                 if let Some(scrollbar) = scrollbars.x {
-                    let style = if state.x_scroller_grabbed_at.is_some() {
-                        theme.dragging_horizontal(style)
-                    } else if cursor_over_scrollable.is_some() {
-                        theme.hovered_horizontal(style, mouse_over_x_scrollbar)
-                    } else {
-                        theme.active_horizontal(style)
-                    };
-
-                    draw_scrollbar(renderer, style, &scrollbar);
+                    draw_scrollbar(
+                        renderer,
+                        if mouse_over_x_scrollbar
+                            || state.x_scroller_grabbed_at.is_some()
+                        {
+                            appearance.scrollbar
+                        } else {
+                            idle_scrollbar
+                        },
+                        &scrollbar,
+                    );
                 }
 
-                //draw filler quad
                 if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                    let background = appearence.gap.or(appearence.background);
+                    let background =
+                        appearance.gap.or(appearance.container.background);
 
                     if let Some(background) = background {
                         renderer.fill_quad(
