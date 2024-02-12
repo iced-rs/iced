@@ -1188,18 +1188,22 @@ impl Scrollable {
 impl scrollable::StyleSheet for Theme {
     type Style = Scrollable;
 
-    fn active(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn active(&self, style: &Self::Style) -> scrollable::Appearance {
         match style {
             Scrollable::Default => {
                 let palette = self.extended_palette();
 
-                scrollable::Scrollbar {
-                    background: Some(palette.background.weak.color.into()),
-                    border: Border::with_radius(2),
-                    scroller: scrollable::Scroller {
-                        color: palette.background.strong.color,
+                scrollable::Appearance {
+                    container: container::Appearance::default(),
+                    scrollbar: scrollable::Scrollbar {
+                        background: Some(palette.background.weak.color.into()),
                         border: Border::with_radius(2),
+                        scroller: scrollable::Scroller {
+                            color: palette.background.strong.color,
+                            border: Border::with_radius(2),
+                        },
                     },
+                    gap: None,
                 }
             }
             Scrollable::Custom(custom) => custom.active(self),
@@ -1210,19 +1214,24 @@ impl scrollable::StyleSheet for Theme {
         &self,
         style: &Self::Style,
         is_mouse_over_scrollbar: bool,
-    ) -> scrollable::Scrollbar {
+    ) -> scrollable::Appearance {
         match style {
             Scrollable::Default => {
                 if is_mouse_over_scrollbar {
                     let palette = self.extended_palette();
 
-                    scrollable::Scrollbar {
-                        background: Some(palette.background.weak.color.into()),
-                        border: Border::with_radius(2),
-                        scroller: scrollable::Scroller {
-                            color: palette.primary.strong.color,
+                    scrollable::Appearance {
+                        scrollbar: scrollable::Scrollbar {
+                            background: Some(
+                                palette.background.weak.color.into(),
+                            ),
                             border: Border::with_radius(2),
+                            scroller: scrollable::Scroller {
+                                color: palette.primary.strong.color,
+                                border: Border::with_radius(2),
+                            },
                         },
+                        ..self.active(style)
                     }
                 } else {
                     self.active(style)
@@ -1234,40 +1243,10 @@ impl scrollable::StyleSheet for Theme {
         }
     }
 
-    fn dragging(&self, style: &Self::Style) -> scrollable::Scrollbar {
+    fn dragging(&self, style: &Self::Style) -> scrollable::Appearance {
         match style {
             Scrollable::Default => self.hovered(style, true),
             Scrollable::Custom(custom) => custom.dragging(self),
-        }
-    }
-
-    fn active_horizontal(&self, style: &Self::Style) -> scrollable::Scrollbar {
-        match style {
-            Scrollable::Default => self.active(style),
-            Scrollable::Custom(custom) => custom.active_horizontal(self),
-        }
-    }
-
-    fn hovered_horizontal(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> scrollable::Scrollbar {
-        match style {
-            Scrollable::Default => self.hovered(style, is_mouse_over_scrollbar),
-            Scrollable::Custom(custom) => {
-                custom.hovered_horizontal(self, is_mouse_over_scrollbar)
-            }
-        }
-    }
-
-    fn dragging_horizontal(
-        &self,
-        style: &Self::Style,
-    ) -> scrollable::Scrollbar {
-        match style {
-            Scrollable::Default => self.hovered_horizontal(style, true),
-            Scrollable::Custom(custom) => custom.dragging_horizontal(self),
         }
     }
 }

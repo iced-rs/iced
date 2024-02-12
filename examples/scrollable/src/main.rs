@@ -1,13 +1,11 @@
 use iced::executor;
-use iced::theme;
-use iced::widget::scrollable::{Properties, Scrollbar, Scroller};
+use iced::widget::scrollable::Properties;
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space,
 };
 use iced::{
-    Alignment, Application, Border, Color, Command, Element, Length, Settings,
-    Theme,
+    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
 };
 
 use once_cell::sync::Lazy;
@@ -263,7 +261,6 @@ impl Application for ScrollableDemo {
                         .scroller_width(self.scroller_width)
                         .alignment(self.alignment),
                 ))
-                .style(theme::Scrollable::custom(ScrollbarCustomStyle))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
                 Direction::Multi => scrollable(
@@ -311,9 +308,6 @@ impl Application for ScrollableDemo {
                         vertical: properties,
                     }
                 })
-                .style(theme::Scrollable::Custom(Box::new(
-                    ScrollbarCustomStyle,
-                )))
                 .id(SCROLLABLE_ID.clone())
                 .on_scroll(Message::Scrolled),
             });
@@ -347,45 +341,6 @@ impl Application for ScrollableDemo {
 
     fn theme(&self) -> Self::Theme {
         Theme::Dark
-    }
-}
-
-struct ScrollbarCustomStyle;
-
-impl scrollable::StyleSheet for ScrollbarCustomStyle {
-    type Style = Theme;
-
-    fn active(&self, style: &Self::Style) -> Scrollbar {
-        style.active(&theme::Scrollable::Default)
-    }
-
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> Scrollbar {
-        style.hovered(&theme::Scrollable::Default, is_mouse_over_scrollbar)
-    }
-
-    fn hovered_horizontal(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> Scrollbar {
-        if is_mouse_over_scrollbar {
-            Scrollbar {
-                background: style
-                    .active(&theme::Scrollable::default())
-                    .background,
-                border: Border::with_radius(2),
-                scroller: Scroller {
-                    color: Color::from_rgb8(250, 85, 134),
-                    border: Border::with_radius(2),
-                },
-            }
-        } else {
-            self.active(style)
-        }
     }
 }
 
