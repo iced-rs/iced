@@ -807,7 +807,7 @@ pub fn run_command<A, C, E>(
                 window::Action::ChangeLevel(_id, level) => {
                     window.set_window_level(conversion::window_level(level));
                 }
-                window::Action::ShowWindowMenu(_id) => {
+                window::Action::ShowSystemMenu(_id) => {
                     if let mouse::Cursor::Available(point) = state.cursor() {
                         window.show_window_menu(winit::dpi::LogicalPosition {
                             x: point.x,

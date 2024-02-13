@@ -1059,7 +1059,7 @@ fn run_command<A, C, E>(
                             .set_window_level(conversion::window_level(level));
                     }
                 }
-                window::Action::ShowWindowMenu(id) => {
+                window::Action::ShowSystemMenu(id) => {
                     if let Some(window) = window_manager.get_mut(id) {
                         if let mouse::Cursor::Available(point) =
                             window.state.cursor()

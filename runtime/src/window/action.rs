@@ -81,11 +81,11 @@ pub enum Action<T> {
     GainFocus(Id),
     /// Change the window [`Level`].
     ChangeLevel(Id, Level),
-    /// Show window menu at cursor position.
+    /// Show the system menu at cursor position.
     ///
     /// ## Platform-specific
     /// Android / iOS / macOS / Orbital / Web / X11: Unsupported.
-    ShowWindowMenu(Id),
+    ShowSystemMenu(Id),
     /// Fetch the raw identifier unique to the window.
     FetchId(Id, Box<dyn FnOnce(u64) -> T + 'static>),
     /// Change the window [`Icon`].
@@ -146,7 +146,7 @@ impl<T> Action<T> {
             }
             Self::GainFocus(id) => Action::GainFocus(id),
             Self::ChangeLevel(id, level) => Action::ChangeLevel(id, level),
-            Self::ShowWindowMenu(id) => Action::ShowWindowMenu(id),
+            Self::ShowSystemMenu(id) => Action::ShowSystemMenu(id),
             Self::FetchId(id, o) => {
                 Action::FetchId(id, Box::new(move |s| f(o(s))))
             }
@@ -206,8 +206,8 @@ impl<T> fmt::Debug for Action<T> {
             Self::ChangeLevel(id, level) => {
                 write!(f, "Action::ChangeLevel({id:?}, {level:?})")
             }
-            Self::ShowWindowMenu(id) => {
-                write!(f, "Action::ShowWindowMenu({id:?})")
+            Self::ShowSystemMenu(id) => {
+                write!(f, "Action::ShowSystemMenu({id:?})")
             }
             Self::FetchId(id, _) => write!(f, "Action::FetchId({id:?})"),
             Self::ChangeIcon(id, _icon) => {
