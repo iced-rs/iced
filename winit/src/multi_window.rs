@@ -6,6 +6,7 @@ pub use state::State;
 
 use crate::conversion;
 use crate::core;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::window;
@@ -1056,6 +1057,20 @@ fn run_command<A, C, E>(
                         window
                             .raw
                             .set_window_level(conversion::window_level(level));
+                    }
+                }
+                window::Action::ShowSystemMenu(id) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        if let mouse::Cursor::Available(point) =
+                            window.state.cursor()
+                        {
+                            window.raw.show_window_menu(
+                                winit::dpi::LogicalPosition {
+                                    x: point.x,
+                                    y: point.y,
+                                },
+                            );
+                        }
                     }
                 }
                 window::Action::FetchId(id, tag) => {
