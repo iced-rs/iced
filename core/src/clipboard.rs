@@ -4,16 +4,21 @@
 /// applications.
 pub trait Clipboard {
     /// Reads the current content of the [`Clipboard`] as text.
-    fn read(&self) -> Option<String>;
+    fn read(&self, kind: Kind) -> Option<String>;
 
     /// Writes the given text contents to the [`Clipboard`].
-    fn write(&mut self, contents: String);
+    fn write(&mut self, kind: Kind, contents: String);
+}
 
-    /// Reads the current content of Primary as text.
-    fn read_primary(&self) -> Option<String>;
-
-    /// Writes the given text contents to Primary.
-    fn write_primary(&mut self, contents: String);
+/// The kind of [`Clipboard`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Kind {
+    /// The standard clipboard.
+    Standard,
+    /// The primary clipboard.
+    ///
+    /// Normally only present in X11 and Wayland.
+    Primary,
 }
 
 /// A null implementation of the [`Clipboard`] trait.
@@ -21,15 +26,9 @@ pub trait Clipboard {
 pub struct Null;
 
 impl Clipboard for Null {
-    fn read(&self) -> Option<String> {
+    fn read(&self, _kind: Kind) -> Option<String> {
         None
     }
 
-    fn write(&mut self, _contents: String) {}
-
-    fn read_primary(&self) -> Option<String> {
-        None
-    }
-
-    fn write_primary(&mut self, _contents: String) {}
+    fn write(&mut self, _kind: Kind, _contents: String) {}
 }

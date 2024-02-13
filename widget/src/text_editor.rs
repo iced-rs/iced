@@ -1,4 +1,5 @@
 //! Display a multi-line text input for text editing.
+use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -10,7 +11,7 @@ use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Element, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
 };
 
 use std::cell::RefCell;
@@ -448,17 +449,19 @@ where
             }
             Update::Copy => {
                 if let Some(selection) = self.content.selection() {
-                    clipboard.write(selection);
+                    clipboard.write(clipboard::Kind::Standard, selection);
                 }
             }
             Update::Cut => {
                 if let Some(selection) = self.content.selection() {
-                    clipboard.write(selection.clone());
+                    clipboard.write(clipboard::Kind::Standard, selection);
                     shell.publish(on_edit(Action::Edit(Edit::Delete)));
                 }
             }
             Update::Paste => {
-                if let Some(contents) = clipboard.read() {
+                if let Some(contents) =
+                    clipboard.read(clipboard::Kind::Standard)
+                {
                     shell.publish(on_edit(Action::Edit(Edit::Paste(
                         Arc::new(contents),
                     ))));

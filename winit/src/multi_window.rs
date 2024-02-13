@@ -876,27 +876,15 @@ fn run_command<A, C, E>(
                 runtime.run(Box::pin(stream));
             }
             command::Action::Clipboard(action) => match action {
-                clipboard::Action::Read(tag) => {
-                    let message = tag(clipboard.read());
+                clipboard::Action::Read(tag, kind) => {
+                    let message = tag(clipboard.read(kind));
 
                     proxy
                         .send_event(message)
                         .expect("Send message to event loop");
                 }
-                clipboard::Action::Write(contents) => {
-                    clipboard.write(contents);
-                }
-            },
-            command::Action::ClipboardPrimary(action) => match action {
-                clipboard::Action::Read(tag) => {
-                    let message = tag(clipboard.read_primary());
-
-                    proxy
-                        .send_event(message)
-                        .expect("Send message to event loop");
-                }
-                clipboard::Action::Write(contents) => {
-                    clipboard.write_primary(contents);
+                clipboard::Action::Write(contents, kind) => {
+                    clipboard.write(kind, contents);
                 }
             },
             command::Action::Window(action) => match action {
