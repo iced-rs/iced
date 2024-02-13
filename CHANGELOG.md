@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Themer` widget. [#2209](https://github.com/iced-rs/iced/pull/2209)
 - `Transform` primitive. [#2120](https://github.com/iced-rs/iced/pull/2120)
 - Cut functionality for `TextEditor`. [#2215](https://github.com/iced-rs/iced/pull/2215)
-- Disabled support for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
+- Primary clipboard support. [#2240](https://github.com/iced-rs/iced/pull/2240)
+- Disabled state for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
 - `skip_taskbar` window setting for Windows. [#2211](https://github.com/iced-rs/iced/pull/2211)
 - `fetch_maximized` and `fetch_minimized` commands in `window`. [#2189](https://github.com/iced-rs/iced/pull/2189)
 - `run_with_handle` command in `window`. [#2200](https://github.com/iced-rs/iced/pull/2200)
@@ -150,6 +151,7 @@ Many thanks to...
 - @nyurik
 - @Remmirad
 - @ripytide
+- @snaggen
 - @Tahinli
 - @tarkah
 - @tzemanovic
