@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `skip_taskbar` window setting for Windows. [#2211](https://github.com/iced-rs/iced/pull/2211)
 - `fetch_maximized` and `fetch_minimized` commands in `window`. [#2189](https://github.com/iced-rs/iced/pull/2189)
 - `run_with_handle` command in `window`. [#2200](https://github.com/iced-rs/iced/pull/2200)
+- `show_system_menu` command in `window`. [#2243](https://github.com/iced-rs/iced/pull/2243)
 - `text_shaping` method for `Tooltip`. [#2172](https://github.com/iced-rs/iced/pull/2172)
 - `interaction` method for `MouseArea`. [#2207](https://github.com/iced-rs/iced/pull/2207)
 - `hovered` styling for `Svg` widget. [#2163](https://github.com/iced-rs/iced/pull/2163)
