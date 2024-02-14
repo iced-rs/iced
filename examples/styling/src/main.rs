@@ -55,12 +55,8 @@ impl Sandbox for Styling {
     fn view(&self) -> Element<Message> {
         let choose_theme = column![
             text("Theme:"),
-            pick_list(
-                Theme::ALL,
-                Some(self.theme.clone()),
-                Message::ThemeChanged
-            )
-            .width(Length::Fill),
+            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
+                .width(Length::Fill),
         ]
         .spacing(10);
 

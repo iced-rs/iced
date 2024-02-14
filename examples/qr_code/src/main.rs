@@ -60,11 +60,7 @@ impl Sandbox for QRGenerator {
 
         let choose_theme = row![
             text("Theme:"),
-            pick_list(
-                Theme::ALL,
-                Some(self.theme.clone()),
-                Message::ThemeChanged,
-            )
+            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged,)
         ]
         .spacing(10)
         .align_items(Alignment::Center);
