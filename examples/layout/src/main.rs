@@ -88,11 +88,7 @@ impl Application for Layout {
             horizontal_space(Length::Fill),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(
-                Theme::ALL,
-                Some(self.theme.clone()),
-                Message::ThemeSelected
-            ),
+            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
         ]
         .spacing(20)
         .align_items(Alignment::Center);

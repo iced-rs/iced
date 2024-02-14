@@ -22,7 +22,7 @@ use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::{Column, MouseArea, Row, Space, Themer, VerticalSlider};
 
-use std::borrow::Cow;
+use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
@@ -264,14 +264,15 @@ where
 /// Creates a new [`PickList`].
 ///
 /// [`PickList`]: crate::PickList
-pub fn pick_list<'a, Message, Theme, Renderer, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
+pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
+    options: L,
+    selected: Option<V>,
     on_selected: impl Fn(T) -> Message + 'a,
-) -> PickList<'a, T, Message, Theme, Renderer>
+) -> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: ToString + PartialEq + Clone + 'a,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
     Message: Clone,
     Renderer: core::text::Renderer,
     Theme: pick_list::StyleSheet
