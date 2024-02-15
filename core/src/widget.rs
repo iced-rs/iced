@@ -33,12 +33,12 @@ use crate::{Clipboard, Length, Rectangle, Shell, Size, Vector};
 /// - [`geometry`], a custom widget showcasing how to draw geometry with the
 /// `Mesh2D` primitive in [`iced_wgpu`].
 ///
-/// [examples]: https://github.com/iced-rs/iced/tree/0.10/examples
-/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.10/examples/bezier_tool
-/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.10/examples/custom_widget
-/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.10/examples/geometry
+/// [examples]: https://github.com/iced-rs/iced/tree/0.12/examples
+/// [`bezier_tool`]: https://github.com/iced-rs/iced/tree/0.12/examples/bezier_tool
+/// [`custom_widget`]: https://github.com/iced-rs/iced/tree/0.12/examples/custom_widget
+/// [`geometry`]: https://github.com/iced-rs/iced/tree/0.12/examples/geometry
 /// [`lyon`]: https://github.com/nical/lyon
-/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.10/wgpu
+/// [`iced_wgpu`]: https://github.com/iced-rs/iced/tree/0.12/wgpu
 pub trait Widget<Message, Theme, Renderer>
 where
     Renderer: crate::Renderer,
