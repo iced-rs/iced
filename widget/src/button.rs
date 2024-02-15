@@ -61,6 +61,7 @@ where
     width: Length,
     height: Length,
     padding: Padding,
+    clip: bool,
     style: Theme::Style,
 }
 
@@ -82,6 +83,7 @@ where
             width: size.width.fluid(),
             height: size.height.fluid(),
             padding: Padding::new(5.0),
+            clip: false,
             style: Theme::Style::default(),
         }
     }
@@ -124,6 +126,13 @@ where
     /// Sets the style variant of this [`Button`].
     pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets whether the contents of the [`Button`] should be clipped on
+    /// overflow.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
         self
     }
 }
@@ -227,7 +236,7 @@ where
         _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
@@ -242,6 +251,12 @@ where
             || tree.state.downcast_ref::<State>(),
         );
 
+        let viewport = if self.clip {
+            bounds.intersection(viewport).unwrap_or(*viewport)
+        } else {
+            *viewport
+        };
+
         self.content.as_widget().draw(
             &tree.children[0],
             renderer,
@@ -251,7 +266,7 @@ where
             },
             content_layout,
             cursor,
-            &bounds,
+            &viewport,
         );
     }
 

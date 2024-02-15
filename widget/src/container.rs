@@ -37,6 +37,7 @@ pub struct Container<
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
     style: Theme::Style,
+    clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
 }
 
@@ -63,6 +64,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             style: Default::default(),
+            clip: false,
             content,
         }
     }
@@ -130,6 +132,13 @@ where
     /// Sets the style of the [`Container`].
     pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
         self.style = style.into();
+        self
+    }
+
+    /// Sets whether the contents of the [`Container`] should be clipped on
+    /// overflow.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
         self
     }
 }
@@ -255,7 +264,7 @@ where
     ) {
         let style = theme.appearance(&self.style);
 
-        if let Some(viewport) = layout.bounds().intersection(viewport) {
+        if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
             draw_background(renderer, &style, layout.bounds());
 
             self.content.as_widget().draw(
@@ -269,7 +278,11 @@ where
                 },
                 layout.children().next().unwrap(),
                 cursor,
-                &viewport,
+                if self.clip {
+                    &clipped_viewport
+                } else {
+                    viewport
+                },
             );
         }
     }
