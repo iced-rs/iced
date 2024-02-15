@@ -1,5 +1,6 @@
-use iced::widget::qr_code::{self, QRCode};
-use iced::widget::{column, container, pick_list, row, text, text_input};
+use iced::widget::{
+    column, container, pick_list, qr_code, row, text, text_input,
+};
 use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
 
 pub fn main() -> iced::Result {
@@ -65,14 +66,15 @@ impl Sandbox for QRGenerator {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        let mut content = column![title, input, choose_theme]
+        let content = column![title, input, choose_theme]
+            .push_maybe(
+                self.qr_code
+                    .as_ref()
+                    .map(|data| qr_code(data).cell_size(10)),
+            )
             .width(700)
             .spacing(20)
             .align_items(Alignment::Center);
-
-        if let Some(qr_code) = self.qr_code.as_ref() {
-            content = content.push(QRCode::new(qr_code).cell_size(10));
-        }
 
         container(content)
             .width(Length::Fill)

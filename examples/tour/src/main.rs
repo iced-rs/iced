@@ -56,22 +56,18 @@ impl Sandbox for Tour {
     fn view(&self) -> Element<Message> {
         let Tour { steps, .. } = self;
 
-        let mut controls = row![];
-
-        if steps.has_previous() {
-            controls = controls.push(
+        let controls = row![]
+            .push_maybe(steps.has_previous().then(|| {
                 button("Back")
                     .on_press(Message::BackPressed)
-                    .style(theme::Button::Secondary),
+                    .style(theme::Button::Secondary)
+            }))
+            .push(horizontal_space())
+            .push_maybe(
+                steps
+                    .can_continue()
+                    .then(|| button("Next").on_press(Message::NextPressed)),
             );
-        }
-
-        controls = controls.push(horizontal_space());
-
-        if steps.can_continue() {
-            controls =
-                controls.push(button("Next").on_press(Message::NextPressed));
-        }
 
         let content: Element<_> = column![
             steps.view(self.debug).map(Message::StepMessage),

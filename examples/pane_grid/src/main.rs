@@ -276,7 +276,7 @@ fn view_content<'a>(
         .on_press(message)
     };
 
-    let mut controls = column![
+    let controls = column![
         button(
             "Split horizontally",
             Message::Split(pane_grid::Axis::Horizontal, pane),
@@ -286,15 +286,16 @@ fn view_content<'a>(
             Message::Split(pane_grid::Axis::Vertical, pane),
         )
     ]
-    .spacing(5)
-    .max_width(160);
-
-    if total_panes > 1 && !is_pinned {
-        controls = controls.push(
+    .push_maybe(if total_panes > 1 && !is_pinned {
+        Some(
             button("Close", Message::Close(pane))
                 .style(theme::Button::Destructive),
-        );
-    }
+        )
+    } else {
+        None
+    })
+    .spacing(5)
+    .max_width(160);
 
     let content = column![
         text(format!("{}x{}", size.width, size.height)).size(24),
@@ -317,31 +318,31 @@ fn view_controls<'a>(
     is_pinned: bool,
     is_maximized: bool,
 ) -> Element<'a, Message> {
-    let mut row = row![].spacing(5);
+    let row = row![].spacing(5).push_maybe(if total_panes > 1 {
+        let (content, message) = if is_maximized {
+            ("Restore", Message::Restore)
+        } else {
+            ("Maximize", Message::Maximize(pane))
+        };
 
-    if total_panes > 1 {
-        let toggle = {
-            let (content, message) = if is_maximized {
-                ("Restore", Message::Restore)
-            } else {
-                ("Maximize", Message::Maximize(pane))
-            };
+        Some(
             button(text(content).size(14))
                 .style(theme::Button::Secondary)
                 .padding(3)
-                .on_press(message)
-        };
+                .on_press(message),
+        )
+    } else {
+        None
+    });
 
-        row = row.push(toggle);
-    }
-
-    let mut close = button(text("Close").size(14))
+    let close = button(text("Close").size(14))
         .style(theme::Button::Destructive)
-        .padding(3);
-
-    if total_panes > 1 && !is_pinned {
-        close = close.on_press(Message::Close(pane));
-    }
+        .padding(3)
+        .on_press_maybe(if total_panes > 1 && !is_pinned {
+            Some(Message::Close(pane))
+        } else {
+            None
+        });
 
     row.push(close).into()
 }
