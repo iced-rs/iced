@@ -157,7 +157,7 @@ impl Application for App {
                             text_input("", &self.password)
                                 .on_input(Message::Password)
                                 .on_submit(Message::Submit)
-                                .password()
+                                .secure(true)
                                 .padding(5),
                         ]
                         .spacing(5),

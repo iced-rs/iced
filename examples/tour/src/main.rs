@@ -613,11 +613,7 @@ impl<'a> Step {
 
         Self::container("Text input")
             .push("Use a text input to ask for different kinds of information.")
-            .push(if is_secure {
-                text_input.password()
-            } else {
-                text_input
-            })
+            .push(text_input.secure(is_secure))
             .push(
                 checkbox("Enable password mode", is_secure)
                     .on_toggle(StepMessage::ToggleSecureInput),

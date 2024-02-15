@@ -122,8 +122,8 @@ where
     }
 
     /// Converts the [`TextInput`] into a secure password input.
-    pub fn password(mut self) -> Self {
-        self.is_secure = true;
+    pub fn secure(mut self, is_secure: bool) -> Self {
+        self.is_secure = is_secure;
         self
     }
 
@@ -991,9 +991,9 @@ where
                 }
 
                 return event::Status::Captured;
-            } else {
-                state.is_pasting = None;
             }
+
+            state.is_pasting = None;
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
             let state = state();
