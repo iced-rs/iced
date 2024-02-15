@@ -124,6 +124,19 @@ where
         self.children.push(child);
         self
     }
+
+    /// Adds an element to the [`Column`], if `Some`.
+    pub fn push_maybe(
+        self,
+        key: Key,
+        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
+    ) -> Self {
+        if let Some(child) = child {
+            self.push(key, child)
+        } else {
+            self
+        }
+    }
 }
 
 impl<'a, Key, Message, Renderer> Default for Column<'a, Key, Message, Renderer>

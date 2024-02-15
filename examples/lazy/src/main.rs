@@ -186,7 +186,7 @@ impl Sandbox for App {
                 row![
                     text(&item.name)
                         .style(theme::Text::Color(item.color.into())),
-                    horizontal_space(Length::Fill),
+                    horizontal_space(),
                     pick_list(Color::ALL, Some(item.color), move |color| {
                         Message::ItemColorChanged(item.clone(), color)
                     }),

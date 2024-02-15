@@ -50,7 +50,7 @@ where
             content: RefCell::new(Content {
                 size: Size::ZERO,
                 layout: None,
-                element: Element::new(horizontal_space(0)),
+                element: Element::new(horizontal_space().width(0)),
             }),
         }
     }

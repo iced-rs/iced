@@ -76,7 +76,7 @@ impl Sandbox for Styling {
 
         let scrollable = scrollable(column![
             "Scroll me!",
-            vertical_space(800),
+            vertical_space().height(800),
             "You did it!"
         ])
         .width(Length::Fill)

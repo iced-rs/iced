@@ -81,7 +81,7 @@ impl Application for Example {
         let data_row = |label, value, color| {
             row![
                 text(label),
-                horizontal_space(Length::Fill),
+                horizontal_space(),
                 text(value).font(Font::MONOSPACE).size(14).style(color),
             ]
             .height(40)
@@ -127,21 +127,21 @@ impl Application for Example {
             scrollable(
                 column![
                     text("Scroll me!"),
-                    vertical_space(400),
+                    vertical_space().height(400),
                     container(text("I am the outer container!"))
                         .id(OUTER_CONTAINER.clone())
                         .padding(40)
                         .style(theme::Container::Box),
-                    vertical_space(400),
+                    vertical_space().height(400),
                     scrollable(
                         column![
                             text("Scroll me!"),
-                            vertical_space(400),
+                            vertical_space().height(400),
                             container(text("I am the inner container!"))
                                 .id(INNER_CONTAINER.clone())
                                 .padding(40)
                                 .style(theme::Container::Box),
-                            vertical_space(400)
+                            vertical_space().height(400),
                         ]
                         .padding(20)
                     )

@@ -111,13 +111,9 @@ impl Application for App {
     fn view(&self) -> Element<Message> {
         let content = container(
             column![
-                row![
-                    text("Top Left"),
-                    horizontal_space(Length::Fill),
-                    text("Top Right")
-                ]
-                .align_items(Alignment::Start)
-                .height(Length::Fill),
+                row![text("Top Left"), horizontal_space(), text("Top Right")]
+                    .align_items(Alignment::Start)
+                    .height(Length::Fill),
                 container(
                     button(text("Show Modal")).on_press(Message::ShowModal)
                 )
@@ -127,7 +123,7 @@ impl Application for App {
                 .height(Length::Fill),
                 row![
                     text("Bottom Left"),
-                    horizontal_space(Length::Fill),
+                    horizontal_space(),
                     text("Bottom Right")
                 ]
                 .align_items(Alignment::End)
@@ -157,7 +153,7 @@ impl Application for App {
                             text_input("", &self.password)
                                 .on_input(Message::Password)
                                 .on_submit(Message::Submit)
-                                .password()
+                                .secure(true)
                                 .padding(5),
                         ]
                         .spacing(5),

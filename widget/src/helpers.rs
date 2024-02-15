@@ -305,15 +305,15 @@ where
 /// Creates a new horizontal [`Space`] with the given [`Length`].
 ///
 /// [`Space`]: crate::Space
-pub fn horizontal_space(width: impl Into<Length>) -> Space {
-    Space::with_width(width)
+pub fn horizontal_space() -> Space {
+    Space::with_width(Length::Fill)
 }
 
 /// Creates a new vertical [`Space`] with the given [`Length`].
 ///
 /// [`Space`]: crate::Space
-pub fn vertical_space(height: impl Into<Length>) -> Space {
-    Space::with_height(height)
+pub fn vertical_space() -> Space {
+    Space::with_height(Length::Fill)
 }
 
 /// Creates a horizontal [`Rule`] with the given height.
@@ -385,6 +385,18 @@ where
     P: crate::canvas::Program<Message, Theme, Renderer>,
 {
     crate::Canvas::new(program)
+}
+
+/// Creates a new [`QRCode`] widget from the given [`Data`].
+///
+/// [`QRCode`]: crate::QRCode
+/// [`Data`]: crate::qr_code::Data
+#[cfg(feature = "qr_code")]
+pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
+where
+    Theme: crate::qr_code::StyleSheet,
+{
+    crate::QRCode::new(data)
 }
 
 /// Creates a new [`Shader`].

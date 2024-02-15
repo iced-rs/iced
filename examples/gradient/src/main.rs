@@ -71,7 +71,7 @@ impl Sandbox for Gradient {
             transparent,
         } = *self;
 
-        let gradient_box = container(horizontal_space(Length::Fill))
+        let gradient_box = container(horizontal_space())
             .width(Length::Fill)
             .height(Length::Fill)
             .style(move |_: &_| {

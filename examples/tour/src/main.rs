@@ -56,22 +56,18 @@ impl Sandbox for Tour {
     fn view(&self) -> Element<Message> {
         let Tour { steps, .. } = self;
 
-        let mut controls = row![];
-
-        if steps.has_previous() {
-            controls = controls.push(
+        let controls = row![]
+            .push_maybe(steps.has_previous().then(|| {
                 button("Back")
                     .on_press(Message::BackPressed)
-                    .style(theme::Button::Secondary),
+                    .style(theme::Button::Secondary)
+            }))
+            .push(horizontal_space())
+            .push_maybe(
+                steps
+                    .can_continue()
+                    .then(|| button("Next").on_press(Message::NextPressed)),
             );
-        }
-
-        controls = controls.push(horizontal_space(Length::Fill));
-
-        if steps.can_continue() {
-            controls =
-                controls.push(button("Next").on_press(Message::NextPressed));
-        }
 
         let content: Element<_> = column![
             steps.view(self.debug).map(Message::StepMessage),
@@ -574,14 +570,14 @@ impl<'a> Step {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(vertical_space(4096))
+            .push(vertical_space().height(4096))
             .push(
                 text("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(vertical_space(4096))
+            .push(vertical_space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
             .push(
                 text("You made it!")
@@ -613,11 +609,7 @@ impl<'a> Step {
 
         Self::container("Text input")
             .push("Use a text input to ask for different kinds of information.")
-            .push(if is_secure {
-                text_input.password()
-            } else {
-                text_input
-            })
+            .push(text_input.secure(is_secure))
             .push(
                 checkbox("Enable password mode", is_secure)
                     .on_toggle(StepMessage::ToggleSecureInput),
