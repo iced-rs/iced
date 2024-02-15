@@ -389,7 +389,7 @@ where
 
 /// Creates a new [`QRCode`] widget from the given [`Data`].
 ///
-/// [`Svg`]: crate::QRCode
+/// [`QRCode`]: crate::QRCode
 /// [`Data`]: crate::qr_code::Data
 #[cfg(feature = "qr_code")]
 pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
