@@ -1,6 +1,6 @@
 //! A renderer-agnostic native GUI runtime.
 //!
-//! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/raw/improvement/update-ecosystem-and-roadmap/docs/graphs/native.png)
+//! ![The native path of the Iced ecosystem](https://github.com/iced-rs/iced/blob/master/docs/graphs/native.png?raw=true)
 //!
 //! `iced_runtime` takes [`iced_core`] and builds a native runtime on top of it.
 //!
