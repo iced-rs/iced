@@ -64,7 +64,7 @@ impl Sandbox for VectorialText {
             column![
                 row![
                     text(label),
-                    horizontal_space(Length::Fill),
+                    horizontal_space(),
                     text(format!("{:.2}", value))
                 ],
                 slider(range, value, message).step(0.01)

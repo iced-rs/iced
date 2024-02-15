@@ -66,7 +66,7 @@ impl Sandbox for Tour {
             );
         }
 
-        controls = controls.push(horizontal_space(Length::Fill));
+        controls = controls.push(horizontal_space());
 
         if steps.can_continue() {
             controls =
@@ -574,14 +574,14 @@ impl<'a> Step {
                 text("Tip: You can use the scrollbar to scroll down faster!")
                     .size(16),
             )
-            .push(vertical_space(4096))
+            .push(vertical_space().height(4096))
             .push(
                 text("You are halfway there!")
                     .width(Length::Fill)
                     .size(30)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )
-            .push(vertical_space(4096))
+            .push(vertical_space().height(4096))
             .push(ferris(300, image::FilterMethod::Linear))
             .push(
                 text("You made it!")

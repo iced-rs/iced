@@ -68,7 +68,7 @@ impl Sandbox for Example {
             text(&self.text),
             "What is your language?",
             combo_box,
-            vertical_space(150),
+            vertical_space().height(150),
         ]
         .width(Length::Fill)
         .align_items(Alignment::Center)

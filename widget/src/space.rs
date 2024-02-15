@@ -39,6 +39,18 @@ impl Space {
             height: height.into(),
         }
     }
+
+    /// Sets the width of the [`Space`].
+    pub fn width(mut self, width: impl Into<Length>) -> Self {
+        self.width = width.into();
+        self
+    }
+
+    /// Sets the height of the [`Space`].
+    pub fn height(mut self, height: impl Into<Length>) -> Self {
+        self.height = height.into();
+        self
+    }
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Space

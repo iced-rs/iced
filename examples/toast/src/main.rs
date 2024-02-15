@@ -274,7 +274,7 @@ mod toast {
                         container(
                             row![
                                 text(toast.title.as_str()),
-                                horizontal_space(Length::Fill),
+                                horizontal_space(),
                                 button("X")
                                     .on_press((on_close)(index))
                                     .padding(3),
