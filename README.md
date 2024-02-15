@@ -28,7 +28,7 @@ Inspired by [Elm].
 
 * Simple, easy-to-use, batteries-included API
 * Type-safe, reactive programming model
-* [Cross-platform support] (Windows, macOS, Linux, and [the Web])
+* [Cross-platform support] (Windows, macOS, Linux, and the Web)
 * Responsive layout
 * Built-in widgets (including [text inputs], [scrollables], and more!)
 * Custom widget support (create your own!)
@@ -46,7 +46,6 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 [check out the issues], and [feel free to contribute!]
 
 [Cross-platform support]: https://raw.githubusercontent.com/iced-rs/iced/master/docs/images/todos_desktop.jpg
-[the Web]: https://github.com/iced-rs/iced_web
 [text inputs]: https://iced.rs/examples/text_input.mp4
 [scrollables]: https://iced.rs/examples/scrollable.mp4
 [Debug overlay with performance metrics]: https://iced.rs/examples/debug.mp4
@@ -69,7 +68,7 @@ __Iced is currently experimental software.__ [Take a look at the roadmap],
 Add `iced` as a dependency in your `Cargo.toml`:
 
 ```toml
-iced = "0.10"
+iced = "0.12"
 ```
 
 If your project is using a Rust edition older than 2021, then you will need to
