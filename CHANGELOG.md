@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PaneGrid` click interaction on the top edge. [#2168](https://github.com/iced-rs/iced/pull/2168)
 - `iced_wgpu` not rendering text in SVGs. [#2161](https://github.com/iced-rs/iced/pull/2161)
 - Text clipping. [#2154](https://github.com/iced-rs/iced/pull/2154)
+- Text transparency in `iced_tiny_skia`. [#2250](https://github.com/iced-rs/iced/pull/2250)
 - Layout invalidation when `Tooltip` changes `overlay`. [#2143](https://github.com/iced-rs/iced/pull/2143)
 - `Overlay` composition. [#2142](https://github.com/iced-rs/iced/pull/2142)
 - Incorrect GIF for the `progress_bar` example. [#2141](https://github.com/iced-rs/iced/pull/2141)
