@@ -80,7 +80,7 @@ where
         self
     }
 
-    /// Sets whether the contents of the [`Column`] should be clipped on
+    /// Sets whether the contents of the [`Row`] should be clipped on
     /// overflow.
     pub fn clip(mut self, clip: bool) -> Self {
         self.clip = clip;

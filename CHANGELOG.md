@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for generic `Element` in `Tooltip`. [#2228](https://github.com/iced-rs/iced/pull/2228)
 - Container and `gap` styling for `Scrollable`. [#2239](https://github.com/iced-rs/iced/pull/2239)
 - Use `Borrow` for both `options` and `selected` in PickList. [#2251](https://github.com/iced-rs/iced/pull/2251)
-- `clip` property for `Container`, `Column`, and `Row`. #[2252](https://github.com/iced-rs/iced/pull/2252)
+- `clip` property for `Container`, `Column`, `Row`, and `Button`. #[2252](https://github.com/iced-rs/iced/pull/2252)
 
 ### Changed
 - Enable WebGPU backend in `wgpu` by default instead of WebGL. [#2068](https://github.com/iced-rs/iced/pull/2068)
