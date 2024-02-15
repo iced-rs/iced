@@ -20,6 +20,7 @@ pub struct Column<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
     height: Length,
     max_width: f32,
     align_items: Alignment,
+    clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -36,6 +37,7 @@ where
             height: Length::Shrink,
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
+            clip: false,
             children: Vec::new(),
         }
     }
@@ -84,6 +86,13 @@ where
     /// Sets the horizontal alignment of the contents of the [`Column`] .
     pub fn align_items(mut self, align: Alignment) -> Self {
         self.align_items = align;
+        self
+    }
+
+    /// Sets whether the contents of the [`Column`] should be clipped on
+    /// overflow.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
         self
     }
 
@@ -240,7 +249,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        if let Some(viewport) = layout.bounds().intersection(viewport) {
+        if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
             for ((child, state), layout) in self
                 .children
                 .iter()
@@ -248,7 +257,17 @@ where
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, &viewport,
+                    state,
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor,
+                    if self.clip {
+                        &clipped_viewport
+                    } else {
+                        viewport
+                    },
                 );
             }
         }
