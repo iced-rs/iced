@@ -24,10 +24,14 @@ pub struct Atlas {
 
 impl Atlas {
     pub fn new(device: &wgpu::Device) -> Self {
+        // We start with 2 layers, to help wgpu figure out that this texture is `GL_TEXTURE_2D_ARRAY` rather
+        // than `GL_TEXTURE_2D`
+        // https://github.com/gfx-rs/wgpu/blob/004e3efe84a320d9331371ed31fa50baa2414911/wgpu-hal/src/gles/mod.rs#L371
+        let layers = vec![Layer::Empty, Layer::Empty];
         let extent = wgpu::Extent3d {
             width: SIZE,
             height: SIZE,
-            depth_or_array_layers: 1,
+            depth_or_array_layers: layers.len() as u32,
         };
 
         let texture = device.create_texture(&wgpu::TextureDescriptor {
@@ -55,7 +59,7 @@ impl Atlas {
         Atlas {
             texture,
             texture_view,
-            layers: vec![Layer::Empty],
+            layers,
         }
     }
 
