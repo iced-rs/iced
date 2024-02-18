@@ -64,6 +64,38 @@ impl Padding {
         }
     }
 
+    /// Create a top Padding
+    pub const fn top(padding: f32) -> Self {
+        Self {
+            top: padding,
+            ..Padding::ZERO
+        }
+    }
+
+    /// Create a bottom Padding
+    pub const fn bottom(padding: f32) -> Self {
+        Self {
+            bottom: padding,
+            ..Padding::ZERO
+        }
+    }
+
+    /// Create a right Padding
+    pub const fn right(padding: f32) -> Self {
+        Self {
+            right: padding,
+            ..Padding::ZERO
+        }
+    }
+
+    /// Create a left Padding
+    pub const fn left(padding: f32) -> Self {
+        Self {
+            left: padding,
+            ..Padding::ZERO
+        }
+    }
+
     /// Returns the total amount of vertical [`Padding`].
     pub fn vertical(self) -> f32 {
         self.top + self.bottom
