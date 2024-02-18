@@ -74,7 +74,7 @@ impl Application for Example {
 
     fn view(&self) -> Element<Message> {
         let downloads =
-            Column::with_children(self.downloads.iter().map(Download::view))
+            Column::with_children(self.downloads.iter().map(Download::view).collect())
                 .push(
                     button("Add another download")
                         .on_press(Message::Add)
