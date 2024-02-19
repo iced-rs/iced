@@ -43,7 +43,7 @@ where
     pub fn with_children(
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        children.into_iter().fold(Self::new(), Self::push)
+        Self::new().extend(children)
     }
 
     /// Sets the horizontal spacing _between_ elements.
@@ -117,6 +117,14 @@ where
         } else {
             self
         }
+    }
+
+    /// Extends the [`Row`] with the given children.
+    pub fn extend(
+        self,
+        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        children.into_iter().fold(self, Self::push)
     }
 }
 
