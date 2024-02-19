@@ -116,6 +116,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
 - Outdated documentation leading to a dead link. [#2232](https://github.com/iced-rs/iced/pull/2232)
 
+## Patched
+- Black images when using OpenGL backend in `iced_wgpu`. [#2259](https://github.com/iced-rs/iced/pull/2259)
+
 Many thanks to...
 
 - @akshayr-mecha
@@ -156,6 +159,7 @@ Many thanks to...
 - @nicksenger
 - @Nisatru
 - @nyurik
+- @PolyMeilex
 - @Remmirad
 - @ripytide
 - @snaggen
