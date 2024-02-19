@@ -302,16 +302,18 @@ where
     ComboBox::new(state, placeholder, selection, on_selected)
 }
 
-/// Creates a new horizontal [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// horizontal space.
 ///
-/// [`Space`]: crate::Space
+/// This can be useful to separate widgets in a [`Row`].
 pub fn horizontal_space() -> Space {
     Space::with_width(Length::Fill)
 }
 
-/// Creates a new vertical [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// vertical space.
 ///
-/// [`Space`]: crate::Space
+/// This can be useful to separate widgets in a [`Column`].
 pub fn vertical_space() -> Space {
     Space::with_height(Length::Fill)
 }
