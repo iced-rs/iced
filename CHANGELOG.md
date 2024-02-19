@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `extend` and `from_vec` methods for `Column` and `Row`. [#2264](https://github.com/iced-rs/iced/pull/2264)
+
+### Fixed
+- Black images when using OpenGL backend in `iced_wgpu`. [#2259](https://github.com/iced-rs/iced/pull/2259)
+
+Many thanks to...
+
+- @PolyMeilex
 
 ## [0.12.0] - 2024-02-15
 ### Added
@@ -116,9 +125,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
 - Outdated documentation leading to a dead link. [#2232](https://github.com/iced-rs/iced/pull/2232)
 
-## Patched
-- Black images when using OpenGL backend in `iced_wgpu`. [#2259](https://github.com/iced-rs/iced/pull/2259)
-- `extend` and `from_vec` methods for `Column` and `Row`. [#2264](https://github.com/iced-rs/iced/pull/2264)
 
 Many thanks to...
 
@@ -160,7 +166,6 @@ Many thanks to...
 - @nicksenger
 - @Nisatru
 - @nyurik
-- @PolyMeilex
 - @Remmirad
 - @ripytide
 - @snaggen
