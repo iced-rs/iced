@@ -563,7 +563,7 @@ pub enum Container {
     Transparent,
     /// A simple box.
     Box,
-    /// A simple box.
+    /// A colored box.
     Colored(Color),
     /// A custom style.
     Custom(Box<dyn container::StyleSheet<Style = Theme>>),
