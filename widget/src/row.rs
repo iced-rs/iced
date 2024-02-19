@@ -28,15 +28,7 @@ where
 {
     /// Creates an empty [`Row`].
     pub fn new() -> Self {
-        Row {
-            spacing: 0.0,
-            padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            align_items: Alignment::Start,
-            clip: false,
-            children: Vec::new(),
-        }
+        Self::from_vec(Vec::new())
     }
 
     /// Creates a [`Row`] with the given elements.
@@ -44,6 +36,27 @@ where
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         Self::new().extend(children)
+    }
+
+    /// Creates a [`Row`] from an already allocated [`Vec`].
+    ///
+    /// Keep in mind that the [`Row`] will not inspect the [`Vec`], which means
+    /// it won't automatically adapt to the sizing strategy of its contents.
+    ///
+    /// If any of the children have a [`Length::Fill`] strategy, you will need to
+    /// call [`Row::width`] or [`Row::height`] accordingly.
+    pub fn from_vec(
+        children: Vec<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self {
+            spacing: 0.0,
+            padding: Padding::ZERO,
+            width: Length::Shrink,
+            height: Length::Shrink,
+            align_items: Alignment::Start,
+            clip: false,
+            children,
+        }
     }
 
     /// Sets the horizontal spacing _between_ elements.
