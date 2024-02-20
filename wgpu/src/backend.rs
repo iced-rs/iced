@@ -41,7 +41,11 @@ impl Backend {
         let quad_pipeline = quad::Pipeline::new(device, format);
         let triangle_pipeline =
             triangle::Pipeline::new(device, format, settings.antialiasing);
-        let image_pipeline = image::Pipeline::new(device, format);
+        let image_pipeline = {
+            let backend = _adapter.get_info().backend;
+
+            image::Pipeline::new(device, format, backend)
+        };
 
         Self {
             quad_pipeline,
