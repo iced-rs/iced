@@ -257,7 +257,9 @@ impl graphics::Compositor for Compositor {
             .create_surface(window)
             .expect("Create surface");
 
-        self.configure_surface(&mut surface, width, height);
+        if width > 0 && height > 0 {
+            self.configure_surface(&mut surface, width, height);
+        }
 
         surface
     }
