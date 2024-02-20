@@ -159,6 +159,10 @@ where
         use winit::platform::web::WindowExtWebSys;
 
         let canvas = window.canvas().expect("Get window canvas");
+        let _ = canvas.set_attribute(
+            "style",
+            "display: block; width: 100%; height: 100%",
+        );
 
         let window = web_sys::window().unwrap();
         let document = window.document().unwrap();
