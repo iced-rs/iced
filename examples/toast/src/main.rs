@@ -111,11 +111,10 @@ impl Application for App {
             column![text(title).size(14), content].spacing(5)
         };
 
-        let mut add_toast = button("Add Toast");
-
-        if !self.editing.body.is_empty() && !self.editing.title.is_empty() {
-            add_toast = add_toast.on_press(Message::Add);
-        }
+        let add_toast = button("Add Toast").on_press_maybe(
+            (!self.editing.body.is_empty() && !self.editing.title.is_empty())
+                .then_some(Message::Add),
+        );
 
         let content = container(
             column![
@@ -274,7 +273,7 @@ mod toast {
                         container(
                             row![
                                 text(toast.title.as_str()),
-                                horizontal_space(Length::Fill),
+                                horizontal_space(),
                                 button("X")
                                     .on_press((on_close)(index))
                                     .padding(3),

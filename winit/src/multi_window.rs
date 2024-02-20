@@ -6,6 +6,7 @@ pub use state::State;
 
 use crate::conversion;
 use crate::core;
+use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::window;
@@ -211,7 +212,7 @@ where
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
 
-    let _ = event_loop.run(move |event, event_loop| {
+    let process_event = move |event, event_loop: &winit::event_loop::EventLoopWindowTarget<_>| {
         if event_loop.exiting() {
             return;
         }
@@ -280,7 +281,35 @@ where
                 }
             };
         }
-    });
+    };
+
+    #[cfg(not(target_os = "windows"))]
+    let _ = event_loop.run(process_event);
+
+    // TODO: Remove when unnecessary
+    // On Windows, we emulate an `AboutToWait` event after every `Resized` event
+    // since the event loop does not resume during resize interaction.
+    // More details: https://github.com/rust-windowing/winit/issues/3272
+    #[cfg(target_os = "windows")]
+    {
+        let mut process_event = process_event;
+
+        let _ = event_loop.run(move |event, event_loop| {
+            if matches!(
+                event,
+                winit::event::Event::WindowEvent {
+                    event: winit::event::WindowEvent::Resized(_)
+                        | winit::event::WindowEvent::Moved(_),
+                    ..
+                }
+            ) {
+                process_event(event, event_loop);
+                process_event(winit::event::Event::AboutToWait, event_loop);
+            } else {
+                process_event(event, event_loop);
+            }
+        });
+    }
 
     Ok(())
 }
@@ -876,15 +905,15 @@ fn run_command<A, C, E>(
                 runtime.run(Box::pin(stream));
             }
             command::Action::Clipboard(action) => match action {
-                clipboard::Action::Read(tag) => {
-                    let message = tag(clipboard.read());
+                clipboard::Action::Read(tag, kind) => {
+                    let message = tag(clipboard.read(kind));
 
                     proxy
                         .send_event(message)
                         .expect("Send message to event loop");
                 }
-                clipboard::Action::Write(contents) => {
-                    clipboard.write(contents);
+                clipboard::Action::Write(contents, kind) => {
+                    clipboard.write(kind, contents);
                 }
             },
             command::Action::Window(action) => match action {
@@ -1028,6 +1057,20 @@ fn run_command<A, C, E>(
                         window
                             .raw
                             .set_window_level(conversion::window_level(level));
+                    }
+                }
+                window::Action::ShowSystemMenu(id) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        if let mouse::Cursor::Available(point) =
+                            window.state.cursor()
+                        {
+                            window.raw.show_window_menu(
+                                winit::dpi::LogicalPosition {
+                                    x: point.x,
+                                    y: point.y,
+                                },
+                            );
+                        }
                     }
                 }
                 window::Action::FetchId(id, tag) => {

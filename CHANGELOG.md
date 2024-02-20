@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `extend` and `from_vec` methods for `Column` and `Row`. [#2264](https://github.com/iced-rs/iced/pull/2264)
+
+### Fixed
+- Black images when using OpenGL backend in `iced_wgpu`. [#2259](https://github.com/iced-rs/iced/pull/2259)
+- Documentation for `horizontal_space` and `vertical_space` helpers. [#2265](https://github.com/iced-rs/iced/pull/2265)
+
+Many thanks to...
+
+- @PolyMeilex
+- @rizzen-yazston
+
+## [0.12.0] - 2024-02-15
+### Added
 - Multi-window support. [#1964](https://github.com/iced-rs/iced/pull/1964)
 - `TextEditor` widget (or multi-line text input). [#2123](https://github.com/iced-rs/iced/pull/2123)
 - `Shader` widget. [#2085](https://github.com/iced-rs/iced/pull/2085)
@@ -17,10 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Themer` widget. [#2209](https://github.com/iced-rs/iced/pull/2209)
 - `Transform` primitive. [#2120](https://github.com/iced-rs/iced/pull/2120)
 - Cut functionality for `TextEditor`. [#2215](https://github.com/iced-rs/iced/pull/2215)
-- Disabled support for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
+- Primary clipboard support. [#2240](https://github.com/iced-rs/iced/pull/2240)
+- Disabled state for `Checkbox`. [#2109](https://github.com/iced-rs/iced/pull/2109)
 - `skip_taskbar` window setting for Windows. [#2211](https://github.com/iced-rs/iced/pull/2211)
 - `fetch_maximized` and `fetch_minimized` commands in `window`. [#2189](https://github.com/iced-rs/iced/pull/2189)
 - `run_with_handle` command in `window`. [#2200](https://github.com/iced-rs/iced/pull/2200)
+- `show_system_menu` command in `window`. [#2243](https://github.com/iced-rs/iced/pull/2243)
 - `text_shaping` method for `Tooltip`. [#2172](https://github.com/iced-rs/iced/pull/2172)
 - `interaction` method for `MouseArea`. [#2207](https://github.com/iced-rs/iced/pull/2207)
 - `hovered` styling for `Svg` widget. [#2163](https://github.com/iced-rs/iced/pull/2163)
@@ -44,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `on_open` and `on_close` handlers for `PickList`. [#2174](https://github.com/iced-rs/iced/pull/2174)
 - Support for generic `Element` in `Tooltip`. [#2228](https://github.com/iced-rs/iced/pull/2228)
 - Container and `gap` styling for `Scrollable`. [#2239](https://github.com/iced-rs/iced/pull/2239)
+- Use `Borrow` for both `options` and `selected` in PickList. [#2251](https://github.com/iced-rs/iced/pull/2251)
+- `clip` property for `Container`, `Column`, `Row`, and `Button`. #[2252](https://github.com/iced-rs/iced/pull/2252)
 
 ### Changed
 - Enable WebGPU backend in `wgpu` by default instead of WebGL. [#2068](https://github.com/iced-rs/iced/pull/2068)
@@ -67,6 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a capacity limit to the `GlyphCache` in `iced_tiny_skia`. [#2210](https://github.com/iced-rs/iced/pull/2210)
 - Use pointer equality to speed up `PartialEq` implementation of `image::Bytes`. [#2220](https://github.com/iced-rs/iced/pull/2220)
 - Update `bitflags`, `glam`, `kurbo`, `ouroboros`, `qrcode`, and `sysinfo` dependencies. [#2227](https://github.com/iced-rs/iced/pull/2227)
+- Improve some widget ergonomics. [#2253](https://github.com/iced-rs/iced/pull/2253)
 
 ### Fixed
 - Clipping of `TextInput` selection. [#2199](https://github.com/iced-rs/iced/pull/2199)
@@ -75,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PaneGrid` click interaction on the top edge. [#2168](https://github.com/iced-rs/iced/pull/2168)
 - `iced_wgpu` not rendering text in SVGs. [#2161](https://github.com/iced-rs/iced/pull/2161)
 - Text clipping. [#2154](https://github.com/iced-rs/iced/pull/2154)
+- Text transparency in `iced_tiny_skia`. [#2250](https://github.com/iced-rs/iced/pull/2250)
 - Layout invalidation when `Tooltip` changes `overlay`. [#2143](https://github.com/iced-rs/iced/pull/2143)
 - `Overlay` composition. [#2142](https://github.com/iced-rs/iced/pull/2142)
 - Incorrect GIF for the `progress_bar` example. [#2141](https://github.com/iced-rs/iced/pull/2141)
@@ -107,6 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Event loop not being resumed on Windows while resizing. [#2214](https://github.com/iced-rs/iced/pull/2214)
 - Alpha mode misconfiguration in `iced_wgpu`. [#2231](https://github.com/iced-rs/iced/pull/2231)
 - Outdated documentation leading to a dead link. [#2232](https://github.com/iced-rs/iced/pull/2232)
+
 
 Many thanks to...
 
@@ -150,6 +170,7 @@ Many thanks to...
 - @nyurik
 - @Remmirad
 - @ripytide
+- @snaggen
 - @Tahinli
 - @tarkah
 - @tzemanovic
@@ -733,7 +754,8 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/iced-rs/iced/compare/0.10.0...0.12.0
 [0.10.0]: https://github.com/iced-rs/iced/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/iced-rs/iced/compare/0.8.0...0.9.0
 [0.8.0]: https://github.com/iced-rs/iced/compare/0.7.0...0.8.0

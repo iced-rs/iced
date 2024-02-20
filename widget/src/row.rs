@@ -18,6 +18,7 @@ pub struct Row<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer> {
     width: Length,
     height: Length,
     align_items: Alignment,
+    clip: bool,
     children: Vec<Element<'a, Message, Theme, Renderer>>,
 }
 
@@ -27,21 +28,35 @@ where
 {
     /// Creates an empty [`Row`].
     pub fn new() -> Self {
-        Row {
-            spacing: 0.0,
-            padding: Padding::ZERO,
-            width: Length::Shrink,
-            height: Length::Shrink,
-            align_items: Alignment::Start,
-            children: Vec::new(),
-        }
+        Self::from_vec(Vec::new())
     }
 
     /// Creates a [`Row`] with the given elements.
     pub fn with_children(
         children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
-        children.into_iter().fold(Self::new(), Self::push)
+        Self::new().extend(children)
+    }
+
+    /// Creates a [`Row`] from an already allocated [`Vec`].
+    ///
+    /// Keep in mind that the [`Row`] will not inspect the [`Vec`], which means
+    /// it won't automatically adapt to the sizing strategy of its contents.
+    ///
+    /// If any of the children have a [`Length::Fill`] strategy, you will need to
+    /// call [`Row::width`] or [`Row::height`] accordingly.
+    pub fn from_vec(
+        children: Vec<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self {
+            spacing: 0.0,
+            padding: Padding::ZERO,
+            width: Length::Shrink,
+            height: Length::Shrink,
+            align_items: Alignment::Start,
+            clip: false,
+            children,
+        }
     }
 
     /// Sets the horizontal spacing _between_ elements.
@@ -78,6 +93,13 @@ where
         self
     }
 
+    /// Sets whether the contents of the [`Row`] should be clipped on
+    /// overflow.
+    pub fn clip(mut self, clip: bool) -> Self {
+        self.clip = clip;
+        self
+    }
+
     /// Adds an [`Element`] to the [`Row`].
     pub fn push(
         mut self,
@@ -96,6 +118,26 @@ where
 
         self.children.push(child);
         self
+    }
+
+    /// Adds an element to the [`Row`], if `Some`.
+    pub fn push_maybe(
+        self,
+        child: Option<impl Into<Element<'a, Message, Theme, Renderer>>>,
+    ) -> Self {
+        if let Some(child) = child {
+            self.push(child)
+        } else {
+            self
+        }
+    }
+
+    /// Extends the [`Row`] with the given children.
+    pub fn extend(
+        self,
+        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        children.into_iter().fold(self, Self::push)
     }
 }
 
@@ -229,7 +271,7 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        if let Some(viewport) = layout.bounds().intersection(viewport) {
+        if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
             for ((child, state), layout) in self
                 .children
                 .iter()
@@ -237,7 +279,17 @@ where
                 .zip(layout.children())
             {
                 child.as_widget().draw(
-                    state, renderer, theme, style, layout, cursor, &viewport,
+                    state,
+                    renderer,
+                    theme,
+                    style,
+                    layout,
+                    cursor,
+                    if self.clip {
+                        &clipped_viewport
+                    } else {
+                        viewport
+                    },
                 );
             }
         }

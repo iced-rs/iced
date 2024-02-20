@@ -31,6 +31,7 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(
+        _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         settings: Settings,

@@ -183,58 +183,60 @@ impl Application for Example {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        let mut crop_controls =
+        let crop_controls =
             column![crop_origin_controls, crop_dimension_controls]
+                .push_maybe(
+                    self.crop_error
+                        .as_ref()
+                        .map(|error| text(format!("Crop error! \n{error}"))),
+                )
                 .spacing(10)
                 .align_items(Alignment::Center);
 
-        if let Some(crop_error) = &self.crop_error {
-            crop_controls =
-                crop_controls.push(text(format!("Crop error! \n{crop_error}")));
-        }
+        let controls = {
+            let save_result =
+                self.saved_png_path.as_ref().map(
+                    |png_result| match png_result {
+                        Ok(path) => format!("Png saved as: {path:?}!"),
+                        Err(PngError(error)) => {
+                            format!("Png could not be saved due to:\n{}", error)
+                        }
+                    },
+                );
 
-        let mut controls = column![
             column![
-                button(centered_text("Screenshot!"))
+                column![
+                    button(centered_text("Screenshot!"))
+                        .padding([10, 20, 10, 20])
+                        .width(Length::Fill)
+                        .on_press(Message::Screenshot),
+                    if !self.png_saving {
+                        button(centered_text("Save as png")).on_press_maybe(
+                            self.screenshot.is_some().then(|| Message::Png),
+                        )
+                    } else {
+                        button(centered_text("Saving..."))
+                            .style(theme::Button::Secondary)
+                    }
+                    .style(theme::Button::Secondary)
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill)
-                    .on_press(Message::Screenshot),
-                if !self.png_saving {
-                    button(centered_text("Save as png")).on_press_maybe(
-                        self.screenshot.is_some().then(|| Message::Png),
-                    )
-                } else {
-                    button(centered_text("Saving..."))
-                        .style(theme::Button::Secondary)
-                }
-                .style(theme::Button::Secondary)
-                .padding([10, 20, 10, 20])
-                .width(Length::Fill)
+                ]
+                .spacing(10),
+                column![
+                    crop_controls,
+                    button(centered_text("Crop"))
+                        .on_press(Message::Crop)
+                        .style(theme::Button::Destructive)
+                        .padding([10, 20, 10, 20])
+                        .width(Length::Fill),
+                ]
+                .spacing(10)
+                .align_items(Alignment::Center),
             ]
-            .spacing(10),
-            column![
-                crop_controls,
-                button(centered_text("Crop"))
-                    .on_press(Message::Crop)
-                    .style(theme::Button::Destructive)
-                    .padding([10, 20, 10, 20])
-                    .width(Length::Fill),
-            ]
-            .spacing(10)
-            .align_items(Alignment::Center),
-        ]
-        .spacing(40);
-
-        if let Some(png_result) = &self.saved_png_path {
-            let msg = match png_result {
-                Ok(path) => format!("Png saved as: {path:?}!"),
-                Err(PngError(error)) => {
-                    format!("Png could not be saved due to:\n{}", error)
-                }
-            };
-
-            controls = controls.push(text(msg));
-        }
+            .push_maybe(save_result.map(text))
+            .spacing(40)
+        };
 
         let side_content = container(controls)
             .align_x(alignment::Horizontal::Center)

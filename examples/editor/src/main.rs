@@ -155,7 +155,7 @@ impl Application for Editor {
                 "Save file",
                 self.is_dirty.then_some(Message::SaveFile)
             ),
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             pick_list(
                 highlighter::Theme::ALL,
                 Some(self.theme),
@@ -179,7 +179,7 @@ impl Application for Editor {
             } else {
                 String::from("New file")
             }),
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             text({
                 let (line, column) = self.content.cursor_position();
 

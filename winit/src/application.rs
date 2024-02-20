@@ -250,7 +250,8 @@ where
             if matches!(
                 event,
                 winit::event::Event::WindowEvent {
-                    event: winit::event::WindowEvent::Resized(_),
+                    event: winit::event::WindowEvent::Resized(_)
+                        | winit::event::WindowEvent::Moved(_),
                     ..
                 }
             ) {
@@ -704,15 +705,15 @@ pub fn run_command<A, C, E>(
                 runtime.run(stream);
             }
             command::Action::Clipboard(action) => match action {
-                clipboard::Action::Read(tag) => {
-                    let message = tag(clipboard.read());
+                clipboard::Action::Read(tag, kind) => {
+                    let message = tag(clipboard.read(kind));
 
                     proxy
                         .send_event(message)
                         .expect("Send message to event loop");
                 }
-                clipboard::Action::Write(contents) => {
-                    clipboard.write(contents);
+                clipboard::Action::Write(contents, kind) => {
+                    clipboard.write(kind, contents);
                 }
             },
             command::Action::Window(action) => match action {
@@ -805,6 +806,14 @@ pub fn run_command<A, C, E>(
                 }
                 window::Action::ChangeLevel(_id, level) => {
                     window.set_window_level(conversion::window_level(level));
+                }
+                window::Action::ShowSystemMenu(_id) => {
+                    if let mouse::Cursor::Available(point) = state.cursor() {
+                        window.show_window_menu(winit::dpi::LogicalPosition {
+                            x: point.x,
+                            y: point.y,
+                        });
+                    }
                 }
                 window::Action::FetchId(_id, tag) => {
                     proxy

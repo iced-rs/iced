@@ -216,9 +216,9 @@ impl Application for ScrollableDemo {
                     column![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        vertical_space(1200),
+                        vertical_space().height(1200),
                         text("Middle!"),
-                        vertical_space(1200),
+                        vertical_space().height(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -241,9 +241,9 @@ impl Application for ScrollableDemo {
                     row![
                         scroll_to_end_button(),
                         text("Beginning!"),
-                        horizontal_space(1200),
+                        horizontal_space().width(1200),
                         text("Middle!"),
-                        horizontal_space(1200),
+                        horizontal_space().width(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
                     ]
@@ -268,25 +268,25 @@ impl Application for ScrollableDemo {
                     row![
                         column![
                             text("Let's do some scrolling!"),
-                            vertical_space(2400)
+                            vertical_space().height(2400)
                         ],
                         scroll_to_end_button(),
                         text("Horizontal - Beginning!"),
-                        horizontal_space(1200),
+                        horizontal_space().width(1200),
                         //vertical content
                         column![
                             text("Horizontal - Middle!"),
                             scroll_to_end_button(),
                             text("Vertical - Beginning!"),
-                            vertical_space(1200),
+                            vertical_space().height(1200),
                             text("Vertical - Middle!"),
-                            vertical_space(1200),
+                            vertical_space().height(1200),
                             text("Vertical - End!"),
                             scroll_to_beginning_button(),
-                            vertical_space(40),
+                            vertical_space().height(40),
                         ]
                         .spacing(40),
-                        horizontal_space(1200),
+                        horizontal_space().width(1200),
                         text("Horizontal - End!"),
                         scroll_to_beginning_button(),
                     ]

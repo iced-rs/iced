@@ -22,7 +22,7 @@ use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::{Column, MouseArea, Row, Space, Themer, VerticalSlider};
 
-use std::borrow::Cow;
+use std::borrow::Borrow;
 use std::ops::RangeInclusive;
 
 /// Creates a [`Column`] with the given children.
@@ -264,14 +264,15 @@ where
 /// Creates a new [`PickList`].
 ///
 /// [`PickList`]: crate::PickList
-pub fn pick_list<'a, Message, Theme, Renderer, T>(
-    options: impl Into<Cow<'a, [T]>>,
-    selected: Option<T>,
+pub fn pick_list<'a, T, L, V, Message, Theme, Renderer>(
+    options: L,
+    selected: Option<V>,
     on_selected: impl Fn(T) -> Message + 'a,
-) -> PickList<'a, T, Message, Theme, Renderer>
+) -> PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: ToString + PartialEq + Clone + 'a,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
     Message: Clone,
     Renderer: core::text::Renderer,
     Theme: pick_list::StyleSheet
@@ -301,18 +302,20 @@ where
     ComboBox::new(state, placeholder, selection, on_selected)
 }
 
-/// Creates a new horizontal [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// horizontal space.
 ///
-/// [`Space`]: crate::Space
-pub fn horizontal_space(width: impl Into<Length>) -> Space {
-    Space::with_width(width)
+/// This can be useful to separate widgets in a [`Row`].
+pub fn horizontal_space() -> Space {
+    Space::with_width(Length::Fill)
 }
 
-/// Creates a new vertical [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// vertical space.
 ///
-/// [`Space`]: crate::Space
-pub fn vertical_space(height: impl Into<Length>) -> Space {
-    Space::with_height(height)
+/// This can be useful to separate widgets in a [`Column`].
+pub fn vertical_space() -> Space {
+    Space::with_height(Length::Fill)
 }
 
 /// Creates a horizontal [`Rule`] with the given height.
@@ -383,6 +386,18 @@ where
     P: crate::canvas::Program<Message, Theme, Renderer>,
 {
     crate::Canvas::new(program)
+}
+
+/// Creates a new [`QRCode`] widget from the given [`Data`].
+///
+/// [`QRCode`]: crate::QRCode
+/// [`Data`]: crate::qr_code::Data
+#[cfg(feature = "qr_code")]
+pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
+where
+    Theme: crate::qr_code::StyleSheet,
+{
+    crate::QRCode::new(data)
 }
 
 /// Creates a new [`Shader`].

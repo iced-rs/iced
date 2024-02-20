@@ -12,6 +12,7 @@ pub use value::Value;
 use editor::Editor;
 
 use crate::core::alignment;
+use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -26,8 +27,8 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
-    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Element, Layout, Length, Padding, Pixels, Point, Rectangle, Shell, Size,
+    Vector, Widget,
 };
 use crate::runtime::Command;
 
@@ -121,8 +122,8 @@ where
     }
 
     /// Converts the [`TextInput`] into a secure password input.
-    pub fn password(mut self) -> Self {
-        self.is_secure = true;
+    pub fn secure(mut self, is_secure: bool) -> Self {
+        self.is_secure = is_secure;
         self
     }
 
@@ -864,8 +865,10 @@ where
                         if let Some((start, end)) =
                             state.cursor.selection(value)
                         {
-                            clipboard
-                                .write(value.select(start, end).to_string());
+                            clipboard.write(
+                                clipboard::Kind::Standard,
+                                value.select(start, end).to_string(),
+                            );
                         }
                     }
                     keyboard::Key::Character("x")
@@ -874,8 +877,10 @@ where
                         if let Some((start, end)) =
                             state.cursor.selection(value)
                         {
-                            clipboard
-                                .write(value.select(start, end).to_string());
+                            clipboard.write(
+                                clipboard::Kind::Standard,
+                                value.select(start, end).to_string(),
+                            );
                         }
 
                         let mut editor = Editor::new(value, &mut state.cursor);
@@ -894,7 +899,7 @@ where
                             Some(content) => content,
                             None => {
                                 let content: String = clipboard
-                                    .read()
+                                    .read(clipboard::Kind::Standard)
                                     .unwrap_or_default()
                                     .chars()
                                     .filter(|c| !c.is_control())
@@ -986,9 +991,9 @@ where
                 }
 
                 return event::Status::Captured;
-            } else {
-                state.is_pasting = None;
             }
+
+            state.is_pasting = None;
         }
         Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
             let state = state();

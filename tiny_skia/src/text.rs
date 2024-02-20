@@ -238,6 +238,12 @@ fn draw(
                 )
                 .expect("Create glyph pixel map");
 
+                let opacity = color.a
+                    * glyph
+                        .color_opt
+                        .map(|c| c.a() as f32 / 255.0)
+                        .unwrap_or(1.0);
+
                 pixels.draw_pixmap(
                     physical_glyph.x + placement.left,
                     physical_glyph.y - placement.top
@@ -246,7 +252,10 @@ fn draw(
                             * transformation.scale_factor())
                         .round() as i32,
                     pixmap,
-                    &tiny_skia::PixmapPaint::default(),
+                    &tiny_skia::PixmapPaint {
+                        opacity,
+                        ..tiny_skia::PixmapPaint::default()
+                    },
                     tiny_skia::Transform::identity(),
                     clip_mask,
                 );

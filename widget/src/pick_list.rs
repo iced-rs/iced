@@ -17,7 +17,7 @@ use crate::core::{
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
 
-use std::borrow::Cow;
+use std::borrow::Borrow;
 
 pub use crate::style::pick_list::{Appearance, StyleSheet};
 
@@ -26,20 +26,24 @@ pub use crate::style::pick_list::{Appearance, StyleSheet};
 pub struct PickList<
     'a,
     T,
+    L,
+    V,
     Message,
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: ToString + PartialEq + Clone,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
     Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     on_select: Box<dyn Fn(T) -> Message + 'a>,
     on_open: Option<Message>,
     on_close: Option<Message>,
-    options: Cow<'a, [T]>,
+    options: L,
     placeholder: Option<String>,
-    selected: Option<T>,
+    selected: Option<V>,
     width: Length,
     padding: Padding,
     text_size: Option<Pixels>,
@@ -50,11 +54,12 @@ pub struct PickList<
     style: Theme::Style,
 }
 
-impl<'a, T: 'a, Message, Theme, Renderer>
-    PickList<'a, T, Message, Theme, Renderer>
+impl<'a, T, L, V, Message, Theme, Renderer>
+    PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: ToString + PartialEq,
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: ToString + PartialEq + Clone,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
     Message: Clone,
     Theme: StyleSheet
         + scrollable::StyleSheet
@@ -69,15 +74,15 @@ where
     /// Creates a new [`PickList`] with the given list of options, the current
     /// selected value, and the message to produce when an option is selected.
     pub fn new(
-        options: impl Into<Cow<'a, [T]>>,
-        selected: Option<T>,
+        options: L,
+        selected: Option<V>,
         on_select: impl Fn(T) -> Message + 'a,
     ) -> Self {
         Self {
             on_select: Box::new(on_select),
             on_open: None,
             on_close: None,
-            options: options.into(),
+            options,
             placeholder: None,
             selected,
             width: Length::Shrink,
@@ -164,11 +169,12 @@ where
     }
 }
 
-impl<'a, T: 'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for PickList<'a, T, Message, Theme, Renderer>
+impl<'a, T, L, V, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for PickList<'a, T, L, V, Message, Theme, Renderer>
 where
-    T: Clone + ToString + PartialEq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: Clone + ToString + PartialEq + 'a,
+    L: Borrow<[T]>,
+    V: Borrow<T>,
     Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
@@ -209,7 +215,7 @@ where
             self.text_shaping,
             self.font,
             self.placeholder.as_deref(),
-            &self.options,
+            self.options.borrow(),
         )
     }
 
@@ -232,8 +238,8 @@ where
             self.on_select.as_ref(),
             self.on_open.as_ref(),
             self.on_close.as_ref(),
-            self.selected.as_ref(),
-            &self.options,
+            self.selected.as_ref().map(Borrow::borrow),
+            self.options.borrow(),
             || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
         )
     }
@@ -271,7 +277,7 @@ where
             self.text_shaping,
             font,
             self.placeholder.as_deref(),
-            self.selected.as_ref(),
+            self.selected.as_ref().map(Borrow::borrow),
             &self.handle,
             &self.style,
             || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
@@ -296,19 +302,20 @@ where
             self.text_size,
             self.text_shaping,
             self.font.unwrap_or_else(|| renderer.default_font()),
-            &self.options,
+            self.options.borrow(),
             &self.on_select,
             self.style.clone(),
         )
     }
 }
 
-impl<'a, T: 'a, Message, Theme, Renderer>
-    From<PickList<'a, T, Message, Theme, Renderer>>
+impl<'a, T, L, V, Message, Theme, Renderer>
+    From<PickList<'a, T, L, V, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    T: Clone + ToString + PartialEq + 'static,
-    [T]: ToOwned<Owned = Vec<T>>,
+    T: Clone + ToString + PartialEq + 'a,
+    L: Borrow<[T]> + 'a,
+    V: Borrow<T> + 'a,
     Message: Clone + 'a,
     Theme: StyleSheet
         + scrollable::StyleSheet
@@ -318,7 +325,9 @@ where
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer + 'a,
 {
-    fn from(pick_list: PickList<'a, T, Message, Theme, Renderer>) -> Self {
+    fn from(
+        pick_list: PickList<'a, T, L, V, Message, Theme, Renderer>,
+    ) -> Self {
         Self::new(pick_list)
     }
 }

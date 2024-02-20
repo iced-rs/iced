@@ -85,14 +85,10 @@ impl Application for Layout {
     fn view(&self) -> Element<Message> {
         let header = row![
             text(self.example.title).size(20).font(Font::MONOSPACE),
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             checkbox("Explain", self.explain)
                 .on_toggle(Message::ExplainToggled),
-            pick_list(
-                Theme::ALL,
-                Some(self.theme.clone()),
-                Message::ThemeSelected
-            ),
+            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeSelected),
         ]
         .spacing(20)
         .align_items(Alignment::Center);
@@ -121,7 +117,7 @@ impl Application for Layout {
                     .on_press(Message::Previous)
                     .into(),
             ),
-            Some(horizontal_space(Length::Fill).into()),
+            Some(horizontal_space().into()),
             (!self.example.is_last()).then_some(
                 button("Next →")
                     .padding([5, 10])
@@ -255,16 +251,16 @@ fn row_<'a>() -> Element<'a, Message> {
 }
 
 fn space<'a>() -> Element<'a, Message> {
-    row!["Left!", horizontal_space(Length::Fill), "Right!"].into()
+    row!["Left!", horizontal_space(), "Right!"].into()
 }
 
 fn application<'a>() -> Element<'a, Message> {
     let header = container(
         row![
             square(40),
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             "Header!",
-            horizontal_space(Length::Fill),
+            horizontal_space(),
             square(40),
         ]
         .padding(10)

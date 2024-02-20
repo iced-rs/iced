@@ -55,12 +55,8 @@ impl Sandbox for Styling {
     fn view(&self) -> Element<Message> {
         let choose_theme = column![
             text("Theme:"),
-            pick_list(
-                Theme::ALL,
-                Some(self.theme.clone()),
-                Message::ThemeChanged
-            )
-            .width(Length::Fill),
+            pick_list(Theme::ALL, Some(&self.theme), Message::ThemeChanged)
+                .width(Length::Fill),
         ]
         .spacing(10);
 
@@ -80,7 +76,7 @@ impl Sandbox for Styling {
 
         let scrollable = scrollable(column![
             "Scroll me!",
-            vertical_space(800),
+            vertical_space().height(800),
             "You did it!"
         ])
         .width(Length::Fill)

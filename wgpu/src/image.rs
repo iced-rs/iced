@@ -171,7 +171,11 @@ impl Data {
 }
 
 impl Pipeline {
-    pub fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
+    pub fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        backend: wgpu::Backend,
+    ) -> Self {
         let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             address_mode_u: wgpu::AddressMode::ClampToEdge,
             address_mode_v: wgpu::AddressMode::ClampToEdge,
@@ -313,7 +317,7 @@ impl Pipeline {
                 multiview: None,
             });
 
-        let texture_atlas = Atlas::new(device);
+        let texture_atlas = Atlas::new(device, backend);
 
         let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu::image texture atlas bind group"),
