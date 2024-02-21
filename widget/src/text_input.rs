@@ -762,6 +762,27 @@ where
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
+                if let Some(text) = text {
+                    state.is_pasting = None;
+
+                    let c = text.chars().next().unwrap_or_default();
+
+                    if !c.is_control() {
+                        let mut editor = Editor::new(value, &mut state.cursor);
+
+                        editor.insert(c);
+
+                        let message = (on_input)(editor.contents());
+                        shell.publish(message);
+
+                        focus.updated_at = Instant::now();
+
+                        update_cache(state, value);
+
+                        return event::Status::Captured;
+                    }
+                }
+
                 match key.as_ref() {
                     keyboard::Key::Named(key::Named::Enter) => {
                         if let Some(on_submit) = on_submit.clone() {
@@ -944,29 +965,7 @@ where
                     ) => {
                         return event::Status::Ignored;
                     }
-                    _ => {
-                        if let Some(text) = text {
-                            state.is_pasting = None;
-
-                            let c = text.chars().next().unwrap_or_default();
-
-                            if !c.is_control() {
-                                let mut editor =
-                                    Editor::new(value, &mut state.cursor);
-
-                                editor.insert(c);
-
-                                let message = (on_input)(editor.contents());
-                                shell.publish(message);
-
-                                focus.updated_at = Instant::now();
-
-                                update_cache(state, value);
-
-                                return event::Status::Captured;
-                            }
-                        }
-                    }
+                    _ => {}
                 }
 
                 return event::Status::Captured;
