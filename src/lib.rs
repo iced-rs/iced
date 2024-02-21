@@ -167,8 +167,8 @@
 //! // If you wish to radically change the theming of the application, use a different type
 //! // for Application::Theme and implement custom stylesheets for the widgets you use on that.
 //! let custom_button = button("-").style(theme::Button::Custom(Box::new({
-//!     struct anon_theme;
-//!     impl button::StyleSheet for anon_theme {
+//!     struct InternImpl;
+//!     impl button::StyleSheet for InternImpl{
 //!         type Style = iced::Theme;
 //!
 //!         fn active(&self, _style: &Self::Style) -> button::Appearance {
@@ -179,7 +179,7 @@
 //!             }
 //!         }
 //!     }
-//!     anon_theme
+//!     InternImpl
 //! })));
 //! // Text is easy to change the color for.
 //! let custom_text = text("foo").style(theme::Text::Color(Color::new(1.0, 1.0, 0.0, 1.0)));
