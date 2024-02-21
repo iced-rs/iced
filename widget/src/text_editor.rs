@@ -686,6 +686,14 @@ impl Update {
                     text,
                     ..
                 } if state.is_focused => {
+                    if let Some(text) = text {
+                        if let Some(c) =
+                            text.chars().filter(|c| !c.is_control()).next()
+                        {
+                            return edit(Edit::Insert(c));
+                        }
+                    }
+
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
                         if let Some(motion) = motion(named_key) {
                             let motion = if platform::is_jump_modifier_pressed(
@@ -732,13 +740,7 @@ impl Update {
                         {
                             Some(Self::Paste)
                         }
-                        _ => {
-                            let text = text?;
-
-                            edit(Edit::Insert(
-                                text.chars().next().unwrap_or_default(),
-                            ))
-                        }
+                        _ => None,
                     }
                 }
                 _ => None,
