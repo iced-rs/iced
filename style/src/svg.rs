@@ -22,5 +22,7 @@ pub trait StyleSheet {
     fn appearance(&self, style: &Self::Style) -> Appearance;
 
     /// Produces the hovered [`Appearance`] of a svg content.
-    fn hovered(&self, style: &Self::Style) -> Appearance;
+    fn hovered(&self, style: &Self::Style) -> Appearance {
+        self.appearance(style)
+    }
 }
