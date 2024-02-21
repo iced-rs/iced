@@ -99,7 +99,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.12.0"
+version = "0.12.1"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
