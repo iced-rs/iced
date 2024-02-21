@@ -687,8 +687,7 @@ impl Update {
                     ..
                 } if state.is_focused => {
                     if let Some(text) = text {
-                        if let Some(c) =
-                            text.chars().filter(|c| !c.is_control()).next()
+                        if let Some(c) = text.chars().find(|c| !c.is_control())
                         {
                             return edit(Edit::Insert(c));
                         }
