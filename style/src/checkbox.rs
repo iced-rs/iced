@@ -26,5 +26,20 @@ pub trait StyleSheet {
     fn hovered(&self, style: &Self::Style, is_checked: bool) -> Appearance;
 
     /// Produces the disabled [`Appearance`] of a checkbox.
-    fn disabled(&self, style: &Self::Style, is_checked: bool) -> Appearance;
+    fn disabled(&self, style: &Self::Style, is_checked: bool) -> Appearance {
+        let active = self.active(style, is_checked);
+
+        Appearance {
+            background: match active.background {
+                Background::Color(color) => Background::Color(Color {
+                    a: color.a * 0.5,
+                    ..color
+                }),
+                Background::Gradient(gradient) => {
+                    Background::Gradient(gradient.mul_alpha(0.5))
+                }
+            },
+            ..active
+        }
+    }
 }
