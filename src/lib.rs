@@ -142,6 +142,50 @@
 //!      __update logic__.
 //!   1. Draw the resulting user interface.
 //!
+//! # Styling
+//! In `iced`, each widget has a `StyleSheet` trait (at `widget::_::StyleSheet`) that governs how it is rendered onto the screen. This trait is implemented by the [`Theme`](Application::Theme) associated type of the [`Application`] (which is returned by [`Application::theme`]) which allows styles to be dynamically updated based on the state of the application.
+//!
+//!This, however, means that the individual widgets do not have control over much over their styling, which is why most widgets have their `StyleSheet`s include an associated `Style` generic type that _can_ be set by a widget's `style` method. This `Style` generic is passed to the `StyleSheet` implementation and used to calculate the final `Appearance`.
+//!
+//! Generally, `Style` is an enum that has a set of predefined styles and occasionally a custom style variant that can be given an arbitrary `StyleSheet` implementation for maximum flexibility, but any further than that requires a custom `Theme` to be created.
+//!
+//! For example, take the [`Button`](crate::widget::Button) widget.
+//!
+//! The [`Button`](crate::widget::Button) uses the [`button::StyleSheet`](crate::widget::button::StyleSheet) trait for its styling, which is implemented by the [default theme](crate::Theme). The default theme's implementation defines the stylesheet's [`Style`](crate::widget::button::StyleSheet::Style) as [`theme::Button`], which is what should be passed to [`Button::style`](crate::widget::Button::style) to change the theming of the button on the default theme.
+//!
+//! The default theme defines a [set of styles](crate::theme::Button) that the default theme has predefined the [`Appearance`](crate::widget::button::Appearance)-returning method implementations for, as well as a [`Custom`](crate::theme::Button::Custom) variant that takes a boxed implementor of the button [`StyleSheet`](crate::widget::button::StyleSheet).
+//!
+//! Essentially, the application's [`Theme`](Application::Theme) must implement the button's [`StyleSheet`](crate::widget::button::StyleSheet) which has a method called according to the button's state with the application's button theme's `Style` that was either defaulted or set by [`Button::style`](crate::widget::Button::style), which finally produces the [`button::Appearance`](crate::widget::button::Appearance) that the renderer uses to display the widget to the screen.
+//!
+//! The theming for the other widgets are similar, but some are a bit simpler such as [`Text`](crate::widget::Text)'s default [`Style`](crate::theme::Text) which only has the default text color or a custom [`Color`].
+//!
+//! ```rust
+//! use iced::{widget::{button, text}, theme};
+//!
+//! // To set the style of the button to a predefined 'Positive' style:
+//! let positive_button = button("+").style(theme::Button::Positive);
+//! // A button with a custom theming. Not recommended to do this unless absolutely required,
+//! // as the button will no longer have a consistent theme with the rest of the ui.
+//! // If you wish to radically change the theming of the application, use a different type
+//! // for Application::Theme and implement custom stylesheets for the widgets you use on that.
+//! let custom_button = button("-").style(theme::Button::Custom(Box::new({
+//!     struct anon_theme;
+//!     impl button::StyleSheet for anon_theme {
+//!         type Style = ();
+//!
+//!         fn active(&self, style: &Self::Style) -> button::Appearance {
+//!             button::Appearance {
+//!                 text_color: Color::new(1.0, 1.0, 0.0, 0.75),
+//!                 ..button::Appearance::default()
+//!             }
+//!         }
+//!     }
+//!     anon_theme
+//! })));
+//! // Text is easy to change the color for.
+//! let custom_text = text("foo").style(theme::Text::Color(Color::new(1.0, 1.0, 0.0, 1.0)));
+//! ```
+//!
 //! # Usage
 //! The [`Application`] and [`Sandbox`] traits should get you started quickly,
 //! streamlining all the process described above!
