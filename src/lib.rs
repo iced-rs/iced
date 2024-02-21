@@ -164,19 +164,18 @@
 //!
 //! // To set the style of the button to a predefined 'Positive' style:
 //! let positive_button = button("+").style(theme::Button::Positive);
-//! // A button with a custom theming. Not recommended to do this unless absolutely required,
-//! // as the button will no longer have a consistent theme with the rest of the ui.
 //! // If you wish to radically change the theming of the application, use a different type
 //! // for Application::Theme and implement custom stylesheets for the widgets you use on that.
 //! let custom_button = button("-").style(theme::Button::Custom(Box::new({
 //!     struct anon_theme;
 //!     impl button::StyleSheet for anon_theme {
-//!         type Style = ();
+//!         type Style = iced::Theme;
 //!
-//!         fn active(&self, style: &Self::Style) -> button::Appearance {
+//!         fn active(&self, _style: &Self::Style) -> button::Appearance {
+//!             // `match` on `style` if you want to change anything for different themes.
 //!             button::Appearance {
 //!                 text_color: Color::new(1.0, 1.0, 0.0, 0.75),
-//!                 ..button::Appearance::default()
+//!                 ..Default::default()
 //!             }
 //!         }
 //!     }
