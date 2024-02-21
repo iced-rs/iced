@@ -145,7 +145,7 @@
 //! # Styling
 //! In `iced`, each widget has a `StyleSheet` trait (at `widget::_::StyleSheet`) that governs how it is rendered onto the screen. This trait is implemented by the [`Theme`](Application::Theme) associated type of the [`Application`] (which is returned by [`Application::theme`]) which allows styles to be dynamically updated based on the state of the application.
 //!
-//! This, however, means that the individual widgets do not have control over much over their styling, which is why most widgets have their `StyleSheet`s include an associated `Style` generic type that _can_ be set by a widget's `style` method. This `Style` generic is passed to the `StyleSheet` implementation and used to calculate the final `Appearance`.
+//! This, however, means that the individual widgets do not have much constrol over their styling, which is why most widgets have their `StyleSheet`s include an associated `Style` generic type that _can_ be set by a widget's `style` method. This `Style` generic is passed to the `StyleSheet` implementation and used to calculate the final `Appearance`.
 //!
 //! Generally, `Style` is an enum that has a set of predefined styles and occasionally a custom style variant that can be given an arbitrary `StyleSheet` implementation for maximum flexibility, but any further than that requires a custom `Theme` to be created.
 //!
