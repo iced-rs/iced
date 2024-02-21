@@ -160,7 +160,7 @@
 //! The theming for the other widgets are similar, but some are a bit simpler such as [`Text`](crate::widget::Text)'s default [`Style`](crate::theme::Text) which only has the default text color or a custom [`Color`].
 //!
 //! ```rust
-//! use iced::{widget::{button, text}, theme};
+//! use iced::{widget::{button, text}, theme, Color};
 //!
 //! // To set the style of the button to a predefined 'Positive' style:
 //! let positive_button = button("+").style(theme::Button::Positive);
