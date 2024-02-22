@@ -848,7 +848,6 @@ pub fn run_command<A, C, E>(
                             .expect("Send message to event loop");
                     }
                 }
-
                 window::Action::Screenshot(_id, tag) => {
                     let bytes = compositor.screenshot(
                         renderer,
@@ -864,6 +863,12 @@ pub fn run_command<A, C, E>(
                             state.physical_size(),
                         )))
                         .expect("Send message to event loop.");
+                }
+                window::Action::DisableMousePassthrough(_id) => {
+                    let _res = window.set_cursor_hittest(false);
+                }
+                window::Action::EnableMousePassthrough(_id) => {
+                    let _res = window.set_cursor_hittest(true);
                 }
             },
             command::Action::System(action) => match action {
