@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Event, Size};
+use crate::core::{Event, Point, Size};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
@@ -774,7 +774,7 @@ pub fn run_command<A, C, E>(
                             let position = position
                                 .to_logical::<f32>(window.scale_factor());
 
-                            crate::core::Point::new(position.x, position.y)
+                            Point::new(position.x, position.y)
                         })
                         .ok();
 

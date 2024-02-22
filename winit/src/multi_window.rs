@@ -10,7 +10,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::Size;
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::{task, Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
@@ -1003,7 +1003,7 @@ fn run_command<A, C, E>(
                                     window.raw.scale_factor(),
                                 );
 
-                                crate::core::Point::new(position.x, position.y)
+                                Point::new(position.x, position.y)
                             })
                             .ok();
 
