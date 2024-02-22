@@ -674,8 +674,8 @@ impl Backend {
                 let physical_bounds = (Rectangle {
                     x: bounds.x(),
                     y: bounds.y(),
-                    width: bounds.width(),
-                    height: bounds.height(),
+                    width: bounds.width().max(1.0),
+                    height: bounds.height().max(1.0),
                 } * transformation)
                     * scale_factor;
 
