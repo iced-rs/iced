@@ -18,6 +18,7 @@ geometry = ["iced_graphics/geometry", "iced_tiny_skia/geometry", "iced_wgpu?/geo
 tracing = ["iced_wgpu?/tracing"]
 web-colors = ["iced_wgpu?/web-colors"]
 webgl = ["iced_wgpu?/webgl"]
+fira-sans = ["iced_graphics/fira-sans"]
 
 [dependencies]
 iced_graphics.workspace = true

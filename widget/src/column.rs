@@ -30,7 +30,27 @@ where
 {
     /// Creates an empty [`Column`].
     pub fn new() -> Self {
-        Column {
+        Self::from_vec(Vec::new())
+    }
+
+    /// Creates a [`Column`] with the given elements.
+    pub fn with_children(
+        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self::new().extend(children)
+    }
+
+    /// Creates a [`Column`] from an already allocated [`Vec`].
+    ///
+    /// Keep in mind that the [`Column`] will not inspect the [`Vec`], which means
+    /// it won't automatically adapt to the sizing strategy of its contents.
+    ///
+    /// If any of the children have a [`Length::Fill`] strategy, you will need to
+    /// call [`Column::width`] or [`Column::height`] accordingly.
+    pub fn from_vec(
+        children: Vec<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        Self {
             spacing: 0.0,
             padding: Padding::ZERO,
             width: Length::Shrink,
@@ -38,15 +58,8 @@ where
             max_width: f32::INFINITY,
             align_items: Alignment::Start,
             clip: false,
-            children: Vec::new(),
+            children,
         }
-    }
-
-    /// Creates a [`Column`] with the given elements.
-    pub fn with_children(
-        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
-        children.into_iter().fold(Self::new(), Self::push)
     }
 
     /// Sets the vertical spacing _between_ elements.
@@ -126,6 +139,14 @@ where
         } else {
             self
         }
+    }
+
+    /// Extends the [`Column`] with the given children.
+    pub fn extend(
+        self,
+        children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+    ) -> Self {
+        children.into_iter().fold(self, Self::push)
     }
 }
 

@@ -146,7 +146,13 @@ impl Compositor {
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
-        Backend::new(&self.device, &self.queue, self.settings, self.format)
+        Backend::new(
+            &self.adapter,
+            &self.device,
+            &self.queue,
+            self.settings,
+            self.format,
+        )
     }
 }
 
@@ -251,7 +257,9 @@ impl graphics::Compositor for Compositor {
             .create_surface(window)
             .expect("Create surface");
 
-        self.configure_surface(&mut surface, width, height);
+        if width > 0 && height > 0 {
+            self.configure_surface(&mut surface, width, height);
+        }
 
         surface
     }

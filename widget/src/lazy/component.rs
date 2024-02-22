@@ -62,6 +62,17 @@ pub trait Component<Message, Theme = crate::Theme, Renderer = crate::Renderer> {
         _operation: &mut dyn widget::Operation<Message>,
     ) {
     }
+
+    /// Returns a [`Size`] hint for laying out the [`Component`].
+    ///
+    /// This hint may be used by some widget containers to adjust their sizing strategy
+    /// during construction.
+    fn size_hint(&self) -> Size<Length> {
+        Size {
+            width: Length::Shrink,
+            height: Length::Shrink,
+        }
+    }
 }
 
 struct Tag<T>(T);
@@ -255,10 +266,12 @@ where
     }
 
     fn size_hint(&self) -> Size<Length> {
-        Size {
-            width: Length::Shrink,
-            height: Length::Shrink,
-        }
+        self.state
+            .borrow()
+            .as_ref()
+            .expect("Borrow instance state")
+            .borrow_component()
+            .size_hint()
     }
 
     fn layout(

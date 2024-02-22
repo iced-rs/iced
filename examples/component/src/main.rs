@@ -48,7 +48,7 @@ impl Sandbox for Component {
 mod numeric_input {
     use iced::alignment::{self, Alignment};
     use iced::widget::{button, component, row, text, text_input, Component};
-    use iced::{Element, Length};
+    use iced::{Element, Length, Size};
 
     pub struct NumericInput<Message> {
         value: Option<u32>,
@@ -142,6 +142,13 @@ mod numeric_input {
             .align_items(Alignment::Center)
             .spacing(10)
             .into()
+        }
+
+        fn size_hint(&self) -> Size<Length> {
+            Size {
+                width: Length::Fill,
+                height: Length::Shrink,
+            }
         }
     }
 

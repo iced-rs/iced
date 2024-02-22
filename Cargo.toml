@@ -18,7 +18,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu"]
+default = ["wgpu", "fira-sans"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `Image` widget
@@ -53,6 +53,8 @@ highlighter = ["iced_highlighter"]
 multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
 advanced = []
+# Enables embedding Fira Sans as the default font on Wasm builds
+fira-sans = ["iced_renderer/fira-sans"]
 
 [dependencies]
 iced_core.workspace = true
@@ -97,7 +99,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.12.0"
+version = "0.12.1"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"

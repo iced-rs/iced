@@ -18,6 +18,7 @@ all-features = true
 geometry = ["lyon_path"]
 image = ["dep:image", "kamadak-exif"]
 web-colors = []
+fira-sans = []
 
 [dependencies]
 iced_core.workspace = true

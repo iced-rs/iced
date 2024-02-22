@@ -195,17 +195,40 @@ pub fn window_event(
                 }))
             }
         },
-        WindowEvent::KeyboardInput {
-            event:
-                winit::event::KeyEvent {
-                    logical_key,
-                    state,
-                    text,
-                    location,
-                    ..
-                },
-            ..
-        } => Some(Event::Keyboard({
+        WindowEvent::KeyboardInput { event, .. } => Some(Event::Keyboard({
+            let logical_key = {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
+                    event.key_without_modifiers()
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    // TODO: Fix inconsistent API on Wasm
+                    event.logical_key
+                }
+            };
+
+            let text = {
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    use crate::core::SmolStr;
+                    use winit::platform::modifier_supplement::KeyEventExtModifierSupplement;
+
+                    event.text_with_all_modifiers().map(SmolStr::new)
+                }
+
+                #[cfg(target_arch = "wasm32")]
+                {
+                    // TODO: Fix inconsistent API on Wasm
+                    event.text
+                }
+            };
+
+            let winit::event::KeyEvent {
+                state, location, ..
+            } = event;
             let key = key(logical_key);
             let modifiers = self::modifiers(modifiers);
 
