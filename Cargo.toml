@@ -112,9 +112,9 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 iced = { version = "0.12", path = "." }
 iced_core = { version = "0.12", path = "core" }
 iced_futures = { version = "0.12", path = "futures" }
-iced_graphics = { version = "0.12", path = "graphics" }
+iced_graphics = { version = "0.12.1", path = "graphics" }
 iced_highlighter = { version = "0.12", path = "highlighter" }
-iced_renderer = { version = "0.12", path = "renderer" }
+iced_renderer = { version = "0.12.1", path = "renderer" }
 iced_runtime = { version = "0.12", path = "runtime" }
 iced_style = { version = "0.12", path = "style" }
 iced_tiny_skia = { version = "0.12", path = "tiny_skia" }
