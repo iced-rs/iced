@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Default `disabled` style for `checkbox` and `hovered` style for `Svg`. [#2273](https://github.com/iced-rs/iced/pull/2273)
 - `From<u16>` and `From<i32>` implementations for `border::Radius`. [#2274](https://github.com/iced-rs/iced/pull/2274)
 - `size_hint` method for `Component` trait. [#2275](https://github.com/iced-rs/iced/pull/2275)
+- `fetch_position` command in `window` module. [#2280](https://github.com/iced-rs/iced/pull/2280)
 
 ### Fixed
 - Black images when using OpenGL backend in `iced_wgpu`. [#2259](https://github.com/iced-rs/iced/pull/2259)
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Many thanks to...
 
+- @n1ght-hunter
 - @PolyMeilex
 - @rizzen-yazston
 - @wash2
