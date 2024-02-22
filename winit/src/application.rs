@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Event, Size};
+use crate::core::{Event, Point, Size};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
@@ -766,6 +766,21 @@ pub fn run_command<A, C, E>(
                 }
                 window::Action::Minimize(_id, minimized) => {
                     window.set_minimized(minimized);
+                }
+                window::Action::FetchPosition(_id, callback) => {
+                    let position = window
+                        .inner_position()
+                        .map(|position| {
+                            let position = position
+                                .to_logical::<f32>(window.scale_factor());
+
+                            Point::new(position.x, position.y)
+                        })
+                        .ok();
+
+                    proxy
+                        .send_event(callback(position))
+                        .expect("Send message to event loop");
                 }
                 window::Action::Move(_id, position) => {
                     window.set_outer_position(winit::dpi::LogicalPosition {

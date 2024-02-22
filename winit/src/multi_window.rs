@@ -10,7 +10,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::Size;
+use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::{task, Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
@@ -991,6 +991,25 @@ fn run_command<A, C, E>(
                 window::Action::Minimize(id, minimized) => {
                     if let Some(window) = window_manager.get_mut(id) {
                         window.raw.set_minimized(minimized);
+                    }
+                }
+                window::Action::FetchPosition(id, callback) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let position = window
+                            .raw
+                            .inner_position()
+                            .map(|position| {
+                                let position = position.to_logical::<f32>(
+                                    window.raw.scale_factor(),
+                                );
+
+                                Point::new(position.x, position.y)
+                            })
+                            .ok();
+
+                        proxy
+                            .send_event(callback(position))
+                            .expect("Send message to event loop");
                     }
                 }
                 window::Action::Move(id, position) => {
