@@ -27,6 +27,7 @@ Many thanks to...
 - WebAssembly platform. [#2271](https://github.com/iced-rs/iced/pull/2271)
 - Decouple `Key` from `keyboard::Modifiers` and apply them to `text` in `KeyboardInput`. [#2238](https://github.com/iced-rs/iced/pull/2238)
 - Text insertion not being prioritized in `TextInput` and `TextEditor`. [#2278](https://github.com/iced-rs/iced/pull/2278)
+- `iced_tiny_skia` clipping line strokes. [#2282](https://github.com/iced-rs/iced/pull/2282)
 
 Many thanks to...
 
