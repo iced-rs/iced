@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.12.1] - 2024-02-22
 ### Added
 - `extend` and `from_vec` methods for `Column` and `Row`. [#2264](https://github.com/iced-rs/iced/pull/2264)
 - `PartialOrd`, `Ord`, and `Hash` implementations for `keyboard::Modifiers`. [#2270](https://github.com/iced-rs/iced/pull/2270)
@@ -765,7 +767,8 @@ Many thanks to...
 ### Added
 - First release! :tada:
 
-[Unreleased]: https://github.com/iced-rs/iced/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/iced-rs/iced/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/iced-rs/iced/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/iced-rs/iced/compare/0.10.0...0.12.0
 [0.10.0]: https://github.com/iced-rs/iced/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/iced-rs/iced/compare/0.8.0...0.9.0
