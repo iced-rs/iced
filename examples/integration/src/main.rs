@@ -87,7 +87,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let surface = instance.create_surface(window.clone())?;
 
-    let (format, adapter, device, queue) =
+    let (format, _adapter, device, queue) =
         futures::futures::executor::block_on(async {
             let adapter = wgpu::util::initialize_adapter_from_env_or_default(
                 &instance,
@@ -157,7 +157,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize iced
     let mut debug = Debug::new();
     let mut renderer = Renderer::new(
-        Backend::new(&adapter, &device, &queue, Settings::default(), format),
+        Backend::new(&device, &queue, Settings::default(), format),
         Font::default(),
         Pixels(16.0),
     );

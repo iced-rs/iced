@@ -34,7 +34,6 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(
-        _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         settings: Settings,
@@ -46,11 +45,7 @@ impl Backend {
             triangle::Pipeline::new(device, format, settings.antialiasing);
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        let image_pipeline = {
-            let backend = _adapter.get_info().backend;
-
-            image::Pipeline::new(device, format, backend)
-        };
+        let image_pipeline = image::Pipeline::new(device, format);
 
         Self {
             quad_pipeline,

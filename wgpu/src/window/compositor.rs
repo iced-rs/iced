@@ -146,13 +146,7 @@ impl Compositor {
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
     pub fn create_backend(&self) -> Backend {
-        Backend::new(
-            &self.adapter,
-            &self.device,
-            &self.queue,
-            self.settings,
-            self.format,
-        )
+        Backend::new(&self.device, &self.queue, self.settings, self.format)
     }
 }
 
