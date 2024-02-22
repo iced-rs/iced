@@ -38,12 +38,12 @@ pub enum Action<T> {
     FetchMinimized(Id, Box<dyn FnOnce(Option<bool>) -> T + 'static>),
     /// Set the window to minimized or back
     Minimize(Id, bool),
+    /// Fetch the current logical coordinates of the window.
+    FetchPosition(Id, Box<dyn FnOnce(Option<Point>) -> T + 'static>),
     /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
     Move(Id, Point),
-    /// Fetch the current logical coordinates of the window.
-    FetchLocation(Id, Box<dyn FnOnce(Option<Point>) -> T + 'static>),
     /// Change the [`Mode`] of the window.
     ChangeMode(Id, Mode),
     /// Fetch the current [`Mode`] of the window.
@@ -136,10 +136,10 @@ impl<T> Action<T> {
                 Action::FetchMinimized(id, Box::new(move |s| f(o(s))))
             }
             Self::Minimize(id, minimized) => Action::Minimize(id, minimized),
-            Self::Move(id, position) => Action::Move(id, position),
-            Self::FetchLocation(id, o) => {
-                Action::FetchLocation(id, Box::new(move |s| f(o(s))))
+            Self::FetchPosition(id, o) => {
+                Action::FetchPosition(id, Box::new(move |s| f(o(s))))
             }
+            Self::Move(id, position) => Action::Move(id, position),
             Self::ChangeMode(id, mode) => Action::ChangeMode(id, mode),
             Self::FetchMode(id, o) => {
                 Action::FetchMode(id, Box::new(move |s| f(o(s))))
@@ -191,11 +191,11 @@ impl<T> fmt::Debug for Action<T> {
             Self::Minimize(id, minimized) => {
                 write!(f, "Action::Minimize({id:?}, {minimized}")
             }
+            Self::FetchPosition(id, _) => {
+                write!(f, "Action::FetchPosition({id:?})")
+            }
             Self::Move(id, position) => {
                 write!(f, "Action::Move({id:?}, {position})")
-            }
-            Self::FetchLocation(id, _) => {
-                write!(f, "Action::FetchLocation({id:?})")
             }
             Self::ChangeMode(id, mode) => {
                 write!(f, "Action::SetMode({id:?}, {mode:?})")

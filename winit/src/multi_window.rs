@@ -993,6 +993,25 @@ fn run_command<A, C, E>(
                         window.raw.set_minimized(minimized);
                     }
                 }
+                window::Action::FetchPosition(id, callback) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let position = window
+                            .raw
+                            .inner_position()
+                            .map(|position| {
+                                let position = position.to_logical::<f32>(
+                                    window.raw.scale_factor(),
+                                );
+
+                                crate::core::Point::new(position.x, position.y)
+                            })
+                            .ok();
+
+                        proxy
+                            .send_event(callback(position))
+                            .expect("Send message to event loop");
+                    }
+                }
                 window::Action::Move(id, position) => {
                     if let Some(window) = window_manager.get_mut(id) {
                         window.raw.set_outer_position(
@@ -1001,24 +1020,6 @@ fn run_command<A, C, E>(
                                 y: position.y,
                             },
                         );
-                    }
-                }
-                window::Action::FetchLocation(id, callback) => {
-                    if let Some(window) = window_manager.get_mut(id) {
-                        let position = window
-                            .raw
-                            .inner_position()
-                            .map(|p| {
-                                let pos = p.to_logical::<f32>(
-                                    window.raw.scale_factor(),
-                                );
-                                crate::core::Point::new(pos.x, pos.y)
-                            })
-                            .ok();
-
-                        proxy
-                            .send_event(callback(position))
-                            .expect("Send message to event loop");
                     }
                 }
                 window::Action::ChangeMode(id, mode) => {

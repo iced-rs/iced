@@ -767,25 +767,26 @@ pub fn run_command<A, C, E>(
                 window::Action::Minimize(_id, minimized) => {
                     window.set_minimized(minimized);
                 }
-                window::Action::Move(_id, position) => {
-                    window.set_outer_position(winit::dpi::LogicalPosition {
-                        x: position.x,
-                        y: position.y,
-                    });
-                }
-                window::Action::FetchLocation(_id, callback) => {
+                window::Action::FetchPosition(_id, callback) => {
                     let position = window
                         .inner_position()
-                        .map(|p| {
-                            let pos =
-                                p.to_logical::<f32>(window.scale_factor());
-                            crate::core::Point::new(pos.x, pos.y)
+                        .map(|position| {
+                            let position = position
+                                .to_logical::<f32>(window.scale_factor());
+
+                            crate::core::Point::new(position.x, position.y)
                         })
                         .ok();
 
                     proxy
                         .send_event(callback(position))
                         .expect("Send message to event loop");
+                }
+                window::Action::Move(_id, position) => {
+                    window.set_outer_position(winit::dpi::LogicalPosition {
+                        x: position.x,
+                        y: position.y,
+                    });
                 }
                 window::Action::ChangeMode(_id, mode) => {
                     window.set_visible(conversion::visible(mode));
