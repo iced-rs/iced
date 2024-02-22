@@ -106,6 +106,17 @@ pub fn move_to<Message>(id: Id, position: Point) -> Command<Message> {
     Command::single(command::Action::Window(Action::Move(id, position)))
 }
 
+/// Fetches the window's location in logical coordinates.
+pub fn fetch_location<Message>(
+    id: Id,
+    f: impl FnOnce(Option<Point>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchLocation(
+        id,
+        Box::new(f),
+    )))
+}
+
 /// Changes the [`Mode`] of the window.
 pub fn change_mode<Message>(id: Id, mode: Mode) -> Command<Message> {
     Command::single(command::Action::Window(Action::ChangeMode(id, mode)))

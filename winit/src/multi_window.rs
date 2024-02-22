@@ -1003,6 +1003,24 @@ fn run_command<A, C, E>(
                         );
                     }
                 }
+                window::Action::FetchLocation(id, callback) => {
+                    if let Some(window) = window_manager.get_mut(id) {
+                        let position = window
+                            .raw
+                            .inner_position()
+                            .map(|p| {
+                                let pos = p.to_logical::<f32>(
+                                    window.raw.scale_factor(),
+                                );
+                                crate::core::Point::new(pos.x, pos.y)
+                            })
+                            .ok();
+
+                        proxy
+                            .send_event(callback(position))
+                            .expect("Send message to event loop");
+                    }
+                }
                 window::Action::ChangeMode(id, mode) => {
                     if let Some(window) = window_manager.get_mut(id) {
                         window.raw.set_visible(conversion::visible(mode));

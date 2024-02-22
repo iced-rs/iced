@@ -773,6 +773,20 @@ pub fn run_command<A, C, E>(
                         y: position.y,
                     });
                 }
+                window::Action::FetchLocation(_id, callback) => {
+                    let position = window
+                        .inner_position()
+                        .map(|p| {
+                            let pos =
+                                p.to_logical::<f32>(window.scale_factor());
+                            crate::core::Point::new(pos.x, pos.y)
+                        })
+                        .ok();
+
+                    proxy
+                        .send_event(callback(position))
+                        .expect("Send message to event loop");
+                }
                 window::Action::ChangeMode(_id, mode) => {
                     window.set_visible(conversion::visible(mode));
                     window.set_fullscreen(conversion::fullscreen(
