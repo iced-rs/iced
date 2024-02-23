@@ -46,7 +46,7 @@ pub struct Padding {
 }
 
 impl Padding {
-    /// Padding of zero
+    /// [`Padding`] of zero
     pub const ZERO: Padding = Padding {
         top: 0.0,
         right: 0.0,
@@ -54,7 +54,7 @@ impl Padding {
         left: 0.0,
     };
 
-    /// Create a Padding that is equal on all sides
+    /// Create a [`Padding`] that is equal on all sides
     pub const fn new(padding: f32) -> Padding {
         Padding {
             top: padding,
@@ -64,36 +64,60 @@ impl Padding {
         }
     }
 
-    /// Create a top Padding
-    pub const fn top(padding: f32) -> Self {
+    /// Creates a top [`Padding`].
+    pub const fn with_top(padding: f32) -> Self {
         Self {
             top: padding,
             ..Padding::ZERO
         }
     }
 
-    /// Create a bottom Padding
-    pub const fn bottom(padding: f32) -> Self {
+    /// Creates a bottom [`Padding`].
+    pub const fn with_bottom(padding: f32) -> Self {
         Self {
             bottom: padding,
             ..Padding::ZERO
         }
     }
 
-    /// Create a right Padding
-    pub const fn right(padding: f32) -> Self {
+    /// Creates a right [`Padding`].
+    pub const fn with_right(padding: f32) -> Self {
         Self {
             right: padding,
             ..Padding::ZERO
         }
     }
 
-    /// Create a left Padding
-    pub const fn left(padding: f32) -> Self {
+    /// Creates a left [`Padding`].
+    pub const fn with_left(padding: f32) -> Self {
         Self {
             left: padding,
             ..Padding::ZERO
         }
+    }
+
+    /// Changes the top [`Padding`].
+    pub const fn top(mut self, padding: f32) -> Self {
+        self.top = padding;
+        self
+    }
+
+    /// Changes the bottom [`Padding`].
+    pub const fn bottom(mut self, padding: f32) -> Self {
+        self.bottom = padding;
+        self
+    }
+
+    /// Changes the right [`Padding`].
+    pub const fn right(mut self, padding: f32) -> Self {
+        self.right = padding;
+        self
+    }
+
+    /// Changes the left [`Padding`].
+    pub const fn left(mut self, padding: f32) -> Self {
+        self.left = padding;
+        self
     }
 
     /// Returns the total amount of vertical [`Padding`].
