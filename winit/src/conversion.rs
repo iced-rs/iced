@@ -88,8 +88,9 @@ pub fn window_settings(
         window_builder = window_builder
             .with_skip_taskbar(settings.platform_specific.skip_taskbar);
 
-        window_builder = window_builder
-            .with_undecorated_shadow(settings.platform_specific.undecorated_shadow);
+        window_builder = window_builder.with_undecorated_shadow(
+            settings.platform_specific.undecorated_shadow,
+        );
     }
 
     #[cfg(target_os = "macos")]
