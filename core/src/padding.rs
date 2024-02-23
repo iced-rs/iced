@@ -64,6 +64,24 @@ impl Padding {
         }
     }
 
+    /// Creates a [`Padding`] with equal spacing on the right and left sides.
+    pub fn with_horizontal(padding: f32) -> Self {
+        Self {
+            left: padding,
+            right: padding,
+            ..Padding::ZERO
+        }
+    }
+
+    /// Creates a [`Padding`] with equal spacing on the top and bottom sides.
+    pub fn with_vertical(padding: f32) -> Self {
+        Self {
+            top: padding,
+            bottom: padding,
+            ..Padding::ZERO
+        }
+    }
+
     /// Creates a top [`Padding`].
     pub const fn with_top(padding: f32) -> Self {
         Self {
