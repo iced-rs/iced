@@ -99,7 +99,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.12.1"
+version = "0.13.0-dev"
 authors = ["Héctor Ramón Jiménez <hector@hecrj.dev>"]
 edition = "2021"
 license = "MIT"
@@ -109,18 +109,18 @@ categories = ["gui"]
 keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 
 [workspace.dependencies]
-iced = { version = "0.12", path = "." }
-iced_core = { version = "0.12", path = "core" }
-iced_futures = { version = "0.12", path = "futures" }
-iced_graphics = { version = "0.12", path = "graphics" }
-iced_highlighter = { version = "0.12", path = "highlighter" }
-iced_renderer = { version = "0.12", path = "renderer" }
-iced_runtime = { version = "0.12", path = "runtime" }
-iced_style = { version = "0.12", path = "style" }
-iced_tiny_skia = { version = "0.12", path = "tiny_skia" }
-iced_wgpu = { version = "0.12", path = "wgpu" }
-iced_widget = { version = "0.12", path = "widget" }
-iced_winit = { version = "0.12", path = "winit" }
+iced = { version = "0.13.0-dev", path = "." }
+iced_core = { version = "0.13.0-dev", path = "core" }
+iced_futures = { version = "0.13.0-dev", path = "futures" }
+iced_graphics = { version = "0.13.0-dev", path = "graphics" }
+iced_highlighter = { version = "0.13.0-dev", path = "highlighter" }
+iced_renderer = { version = "0.13.0-dev", path = "renderer" }
+iced_runtime = { version = "0.13.0-dev", path = "runtime" }
+iced_style = { version = "0.13.0-dev", path = "style" }
+iced_tiny_skia = { version = "0.13.0-dev", path = "tiny_skia" }
+iced_wgpu = { version = "0.13.0-dev", path = "wgpu" }
+iced_widget = { version = "0.13.0-dev", path = "widget" }
+iced_winit = { version = "0.13.0-dev", path = "winit" }
 
 async-std = "1.0"
 bitflags = "2.0"
