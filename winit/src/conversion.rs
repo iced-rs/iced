@@ -842,5 +842,5 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
 
 // See: https://en.wikipedia.org/wiki/Private_Use_Areas
 fn is_private_use(c: char) -> bool {
-    c >= '\u{E000}' && c <= '\u{F8FF}'
+    ('\u{E000}'..='\u{F8FF}').contains(&c)
 }
