@@ -11,13 +11,14 @@ use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Event, Point, Size};
+use crate::debug;
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
-use crate::runtime::{Command, Debug};
+use crate::runtime::Command;
 use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -111,8 +112,7 @@ where
     use futures::Future;
     use winit::event_loop::EventLoopBuilder;
 
-    let mut debug = Debug::new();
-    debug.startup_started();
+    let boot_timer = debug::boot_time();
 
     let event_loop = EventLoopBuilder::with_user_event()
         .build()
@@ -206,13 +206,13 @@ where
         renderer,
         runtime,
         proxy,
-        debug,
         event_receiver,
         control_sender,
         init_command,
         window,
         should_be_visible,
         exit_on_close_request,
+        boot_timer,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
@@ -276,7 +276,6 @@ async fn run_instance<A, E, C>(
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
-    mut debug: Debug,
     mut event_receiver: mpsc::UnboundedReceiver<
         winit::event::Event<A::Message>,
     >,
@@ -285,6 +284,7 @@ async fn run_instance<A, E, C>(
     window: Arc<winit::window::Window>,
     should_be_visible: bool,
     exit_on_close_request: bool,
+    boot_timer: debug::Timer,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -324,25 +324,22 @@ async fn run_instance<A, E, C>(
         &mut clipboard,
         &mut should_exit,
         &mut proxy,
-        &mut debug,
         &window,
     );
     runtime.track(application.subscription().into_recipes());
+    boot_timer.finish();
 
     let mut user_interface = ManuallyDrop::new(build_user_interface(
         &application,
         cache,
         &mut renderer,
         state.logical_size(),
-        &mut debug,
     ));
 
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
     let mut redraw_pending = false;
-
-    debug.startup_finished();
 
     while let Some(event) = event_receiver.next().await {
         match event {
@@ -382,12 +379,12 @@ async fn run_instance<A, E, C>(
                 if viewport_version != current_viewport_version {
                     let logical_size = state.logical_size();
 
-                    debug.layout_started();
+                    let layout_timer = debug::layout_time();
                     user_interface = ManuallyDrop::new(
                         ManuallyDrop::into_inner(user_interface)
                             .relayout(logical_size, &mut renderer),
                     );
-                    debug.layout_finished();
+                    layout_timer.finish();
 
                     compositor.configure_surface(
                         &mut surface,
@@ -434,7 +431,7 @@ async fn run_instance<A, E, C>(
 
                 runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
-                debug.draw_started();
+                let draw_timer = debug::draw_time();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
                     state.theme(),
@@ -444,7 +441,7 @@ async fn run_instance<A, E, C>(
                     state.cursor(),
                 );
                 redraw_pending = false;
-                debug.draw_finished();
+                draw_timer.finish();
 
                 if new_mouse_interaction != mouse_interaction {
                     window.set_cursor_icon(conversion::mouse_interaction(
@@ -454,19 +451,15 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                debug.render_started();
+                let render_timer = debug::render_time();
                 match compositor.present(
                     &mut renderer,
                     &mut surface,
                     state.viewport(),
                     state.background_color(),
-                    &debug.overlay(),
                 ) {
                     Ok(()) => {
-                        debug.render_finished();
-
-                        // TODO: Handle animations!
-                        // Maybe we can use `ControlFlow::WaitUntil` for this.
+                        render_timer.finish();
                     }
                     Err(error) => match error {
                         // This is an unrecoverable error.
@@ -474,8 +467,6 @@ async fn run_instance<A, E, C>(
                             panic!("{error:?}");
                         }
                         _ => {
-                            debug.render_finished();
-
                             // Try rendering again next frame.
                             window.request_redraw();
                         }
@@ -492,7 +483,7 @@ async fn run_instance<A, E, C>(
                     break;
                 }
 
-                state.update(&window, &window_event, &mut debug);
+                state.update(&window, &window_event);
 
                 if let Some(event) = conversion::window_event(
                     window::Id::MAIN,
@@ -508,8 +499,7 @@ async fn run_instance<A, E, C>(
                     continue;
                 }
 
-                debug.event_processing_started();
-
+                let interact_timer = debug::interact_time();
                 let (interface_state, statuses) = user_interface.update(
                     &events,
                     state.cursor(),
@@ -517,8 +507,7 @@ async fn run_instance<A, E, C>(
                     &mut clipboard,
                     &mut messages,
                 );
-
-                debug.event_processing_finished();
+                interact_timer.finish();
 
                 for (event, status) in
                     events.drain(..).zip(statuses.into_iter())
@@ -547,7 +536,6 @@ async fn run_instance<A, E, C>(
                         &mut clipboard,
                         &mut should_exit,
                         &mut proxy,
-                        &mut debug,
                         &mut messages,
                         &window,
                     );
@@ -557,7 +545,6 @@ async fn run_instance<A, E, C>(
                         cache,
                         &mut renderer,
                         state.logical_size(),
-                        &mut debug,
                     ));
 
                     if should_exit {
@@ -609,18 +596,17 @@ pub fn build_user_interface<'a, A: Application>(
     cache: user_interface::Cache,
     renderer: &mut A::Renderer,
     size: Size,
-    debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
     A::Theme: StyleSheet,
 {
-    debug.view_started();
+    let view_timer = debug::view_time();
     let view = application.view();
-    debug.view_finished();
+    view_timer.finish();
 
-    debug.layout_started();
+    let layout_timer = debug::layout_time();
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    debug.layout_finished();
+    layout_timer.finish();
 
     user_interface
 }
@@ -638,7 +624,6 @@ pub fn update<A: Application, C, E: Executor>(
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
-    debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
 ) where
@@ -646,11 +631,11 @@ pub fn update<A: Application, C, E: Executor>(
     A::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
-        debug.log_message(&message);
+        debug::log_message(&message);
 
-        debug.update_started();
+        let update_timer = debug::update_time();
         let command = runtime.enter(|| application.update(message));
-        debug.update_finished();
+        update_timer.finish();
 
         run_command(
             application,
@@ -664,7 +649,6 @@ pub fn update<A: Application, C, E: Executor>(
             clipboard,
             should_exit,
             proxy,
-            debug,
             window,
         );
     }
@@ -688,7 +672,6 @@ pub fn run_command<A, C, E>(
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
-    debug: &mut Debug,
     window: &winit::window::Window,
 ) where
     A: Application,
@@ -855,7 +838,6 @@ pub fn run_command<A, C, E>(
                         surface,
                         state.viewport(),
                         state.background_color(),
-                        &debug.overlay(),
                     );
 
                     proxy
@@ -895,7 +877,6 @@ pub fn run_command<A, C, E>(
                     current_cache,
                     renderer,
                     state.logical_size(),
-                    debug,
                 );
 
                 while let Some(mut operation) = current_operation.take() {

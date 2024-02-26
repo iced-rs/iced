@@ -3,8 +3,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::{Clipboard, Size};
+use crate::debug;
 use crate::user_interface::{self, UserInterface};
-use crate::{Command, Debug, Program};
+use crate::{Command, Program};
 
 /// The execution state of a [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -30,14 +31,12 @@ where
         mut program: P,
         bounds: Size,
         renderer: &mut P::Renderer,
-        debug: &mut Debug,
     ) -> Self {
         let user_interface = build_user_interface(
             &mut program,
             user_interface::Cache::default(),
             renderer,
             bounds,
-            debug,
         );
 
         let cache = Some(user_interface.into_cache());
@@ -94,17 +93,15 @@ where
         theme: &P::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
-        debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
             renderer,
             bounds,
-            debug,
         );
 
-        debug.event_processing_started();
+        let interact_timer = debug::interact_time();
         let mut messages = Vec::new();
 
         let (_, event_statuses) = user_interface.update(
@@ -127,13 +124,13 @@ where
 
         self.queued_events.clear();
         messages.append(&mut self.queued_messages);
-        debug.event_processing_finished();
+        drop(interact_timer);
 
         let command = if messages.is_empty() {
-            debug.draw_started();
+            let draw_timer = debug::draw_time();
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
-            debug.draw_finished();
+            drop(draw_timer);
 
             self.cache = Some(user_interface.into_cache());
 
@@ -145,11 +142,11 @@ where
 
             let commands =
                 Command::batch(messages.into_iter().map(|message| {
-                    debug.log_message(&message);
+                    debug::log_message(&message);
 
-                    debug.update_started();
+                    let update_timer = debug::update_time();
                     let command = self.program.update(message);
-                    debug.update_finished();
+                    drop(update_timer);
 
                     command
                 }));
@@ -159,13 +156,12 @@ where
                 temp_cache,
                 renderer,
                 bounds,
-                debug,
             );
 
-            debug.draw_started();
+            let draw_timer = debug::draw_time();
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
-            debug.draw_finished();
+            drop(draw_timer);
 
             self.cache = Some(user_interface.into_cache());
 
@@ -181,14 +177,12 @@ where
         renderer: &mut P::Renderer,
         operations: impl Iterator<Item = Box<dyn Operation<P::Message>>>,
         bounds: Size,
-        debug: &mut Debug,
     ) {
         let mut user_interface = build_user_interface(
             &mut self.program,
             self.cache.take().unwrap(),
             renderer,
             bounds,
-            debug,
         );
 
         for operation in operations {
@@ -218,15 +212,14 @@ fn build_user_interface<'a, P: Program>(
     cache: user_interface::Cache,
     renderer: &mut P::Renderer,
     size: Size,
-    debug: &mut Debug,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer> {
-    debug.view_started();
+    let view_timer = debug::view_time();
     let view = program.view();
-    debug.view_finished();
+    drop(view_timer);
 
-    debug.layout_started();
+    let layout_timer = debug::layout_time();
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    debug.layout_finished();
+    drop(layout_timer);
 
     user_interface
 }

@@ -1,6 +1,6 @@
 [package]
-name = "iced_runtime"
-description = "A renderer-agnostic runtime for iced"
+name = "iced_debug"
+description = "A pluggable API for debugging iced applications"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
@@ -11,14 +11,13 @@ categories.workspace = true
 keywords.workspace = true
 
 [features]
-multi-window = []
+enable = ["iced_sentinel", "once_cell"]
 
 [dependencies]
 iced_core.workspace = true
-iced_debug.workspace = true
 
-iced_futures.workspace = true
-iced_futures.features = ["thread-pool"]
+iced_sentinel.workspace = true
+iced_sentinel.optional = true
 
-thiserror.workspace = true
-raw-window-handle.workspace = true
+once_cell.workspace = true
+once_cell.optional = true

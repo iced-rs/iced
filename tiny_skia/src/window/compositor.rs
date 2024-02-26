@@ -95,43 +95,27 @@ impl crate::graphics::Compositor for Compositor {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Result<(), compositor::SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
-            present(
-                backend,
-                surface,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
+            present(backend, surface, primitives, viewport, background_color)
         })
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
         renderer.with_primitives(|backend, primitives| {
-            screenshot(
-                surface,
-                backend,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
+            screenshot(surface, backend, primitives, viewport, background_color)
         })
     }
 }
@@ -147,13 +131,12 @@ pub fn new<W: compositor::Window>(
     Compositor { context, settings }
 }
 
-pub fn present<T: AsRef<str>>(
+pub fn present(
     backend: &mut Backend,
     surface: &mut Surface,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
     let scale_factor = viewport.scale_factor() as f32;
@@ -206,19 +189,17 @@ pub fn present<T: AsRef<str>>(
         viewport,
         &damage,
         background_color,
-        overlay,
     );
 
     buffer.present().map_err(|_| compositor::SurfaceError::Lost)
 }
 
-pub fn screenshot<T: AsRef<str>>(
+pub fn screenshot(
     surface: &mut Surface,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Vec<u8> {
     let size = viewport.physical_size();
 
@@ -240,7 +221,6 @@ pub fn screenshot<T: AsRef<str>>(
             size.height as f32,
         ))],
         background_color,
-        overlay,
     );
 
     offscreen_buffer.iter().fold(

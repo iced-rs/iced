@@ -67,7 +67,7 @@ impl Backend {
     ///
     /// The text provided as overlay will be rendered on top of the primitives.
     /// This is useful for rendering debug information.
-    pub fn present<T: AsRef<str>>(
+    pub fn present(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
@@ -77,7 +77,6 @@ impl Backend {
         frame: &wgpu::TextureView,
         primitives: &[Primitive],
         viewport: &Viewport,
-        overlay_text: &[T],
     ) {
         log::debug!("Drawing");
         #[cfg(feature = "tracing")]
@@ -87,11 +86,7 @@ impl Backend {
         let scale_factor = viewport.scale_factor() as f32;
         let transformation = viewport.projection();
 
-        let mut layers = Layer::generate(primitives, viewport);
-
-        if !overlay_text.is_empty() {
-            layers.push(Layer::overlay(overlay_text, viewport));
-        }
+        let layers = Layer::generate(primitives, viewport);
 
         self.prepare(
             device,

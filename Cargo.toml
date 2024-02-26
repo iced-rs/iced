@@ -32,7 +32,7 @@ qr_code = ["iced_widget/qr_code"]
 # Enables lazy widgets
 lazy = ["iced_widget/lazy"]
 # Enables a debug view in native platforms (press F12)
-debug = ["iced_winit/debug"]
+debug = ["iced_debug/enable"]
 # Enables `tokio` as the `executor::Default` on native platforms
 tokio = ["iced_futures/tokio"]
 # Enables `async-std` as the `executor::Default` on native platforms
@@ -58,6 +58,7 @@ fira-sans = ["iced_renderer/fira-sans"]
 
 [dependencies]
 iced_core.workspace = true
+iced_debug.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_widget.workspace = true
@@ -85,11 +86,13 @@ strip = "debuginfo"
 [workspace]
 members = [
     "core",
+    "debug",
     "futures",
     "graphics",
     "highlighter",
     "renderer",
     "runtime",
+    "sentinel",
     "style",
     "tiny_skia",
     "wgpu",
@@ -111,11 +114,13 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 [workspace.dependencies]
 iced = { version = "0.13.0-dev", path = "." }
 iced_core = { version = "0.13.0-dev", path = "core" }
+iced_debug = { version = "0.13.0-dev", path = "debug" }
 iced_futures = { version = "0.13.0-dev", path = "futures" }
 iced_graphics = { version = "0.13.0-dev", path = "graphics" }
 iced_highlighter = { version = "0.13.0-dev", path = "highlighter" }
 iced_renderer = { version = "0.13.0-dev", path = "renderer" }
 iced_runtime = { version = "0.13.0-dev", path = "runtime" }
+iced_sentinel = { version = "0.13.0-dev", path = "sentinel" }
 iced_style = { version = "0.13.0-dev", path = "style" }
 iced_tiny_skia = { version = "0.13.0-dev", path = "tiny_skia" }
 iced_wgpu = { version = "0.13.0-dev", path = "wgpu" }
@@ -145,6 +150,9 @@ qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
 resvg = "0.36"
 rustc-hash = "1.0"
+serde = "1.0"
+serde_json = "1.0"
+semver = "1.0"
 smol = "1.0"
 smol_str = "0.2"
 softbuffer = "0.4"

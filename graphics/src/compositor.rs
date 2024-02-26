@@ -55,26 +55,24 @@ pub trait Compositor: Sized {
     ///
     /// [`Renderer`]: Self::Renderer
     /// [`Surface`]: Self::Surface
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Result<(), SurfaceError>;
 
     /// Screenshots the current [`Renderer`] primitives to an offscreen texture, and returns the bytes of
     /// the texture ordered as `RGBA` in the `sRGB` color space.
     ///
     /// [`Renderer`]: Self::Renderer
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8>;
 }
 

@@ -172,14 +172,13 @@ pub fn new<W: compositor::Window>(
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
-pub fn present<T: AsRef<str>>(
+pub fn present(
     compositor: &mut Compositor,
     backend: &mut Backend,
     surface: &mut wgpu::Surface<'static>,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
     match surface.get_current_texture() {
         Ok(frame) => {
@@ -202,7 +201,6 @@ pub fn present<T: AsRef<str>>(
                 view,
                 primitives,
                 viewport,
-                overlay,
             );
 
             // Submit work
@@ -294,13 +292,12 @@ impl graphics::Compositor for Compositor {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Result<(), compositor::SurfaceError> {
         renderer.with_primitives(|backend, primitives| {
             present(
@@ -310,28 +307,19 @@ impl graphics::Compositor for Compositor {
                 primitives,
                 viewport,
                 background_color,
-                overlay,
             )
         })
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         _surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
         renderer.with_primitives(|backend, primitives| {
-            screenshot(
-                self,
-                backend,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
+            screenshot(self, backend, primitives, viewport, background_color)
         })
     }
 }
@@ -339,13 +327,12 @@ impl graphics::Compositor for Compositor {
 /// Renders the current surface to an offscreen buffer.
 ///
 /// Returns RGBA bytes of the texture data.
-pub fn screenshot<T: AsRef<str>>(
+pub fn screenshot(
     compositor: &Compositor,
     backend: &mut Backend,
     primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
-    overlay: &[T],
 ) -> Vec<u8> {
     let mut encoder = compositor.device.create_command_encoder(
         &wgpu::CommandEncoderDescriptor {
@@ -385,7 +372,6 @@ pub fn screenshot<T: AsRef<str>>(
         &view,
         primitives,
         viewport,
-        overlay,
     );
 
     let texture = crate::color::convert(

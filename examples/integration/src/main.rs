@@ -13,7 +13,6 @@ use iced_winit::core::window;
 use iced_winit::core::{Color, Font, Pixels, Size};
 use iced_winit::futures;
 use iced_winit::runtime::program;
-use iced_winit::runtime::Debug;
 use iced_winit::style::Theme;
 use iced_winit::winit;
 use iced_winit::Clipboard;
@@ -155,19 +154,14 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let controls = Controls::new();
 
     // Initialize iced
-    let mut debug = Debug::new();
     let mut renderer = Renderer::new(
         Backend::new(&adapter, &device, &queue, Settings::default(), format),
         Font::default(),
         Pixels(16.0),
     );
 
-    let mut state = program::State::new(
-        controls,
-        viewport.logical_size(),
-        &mut renderer,
-        &mut debug,
-    );
+    let mut state =
+        program::State::new(controls, viewport.logical_size(), &mut renderer);
 
     // Run event loop
     event_loop.run(move |event, window_target| {
@@ -239,7 +233,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 &view,
                                 primitive,
                                 &viewport,
-                                &debug.overlay(),
                             );
                         });
 
@@ -315,7 +308,6 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     text_color: Color::WHITE,
                 },
                 &mut clipboard,
-                &mut debug,
             );
 
             // and request a redraw

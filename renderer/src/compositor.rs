@@ -101,13 +101,12 @@ impl crate::graphics::Compositor for Compositor {
         }
     }
 
-    fn present<T: AsRef<str>>(
+    fn present(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Result<(), SurfaceError> {
         match (self, renderer, surface) {
             (
@@ -121,7 +120,6 @@ impl crate::graphics::Compositor for Compositor {
                     primitives,
                     viewport,
                     background_color,
-                    overlay,
                 )
             }),
             #[cfg(feature = "wgpu")]
@@ -137,7 +135,6 @@ impl crate::graphics::Compositor for Compositor {
                     primitives,
                     viewport,
                     background_color,
-                    overlay,
                 )
             }),
             #[allow(unreachable_patterns)]
@@ -148,13 +145,12 @@ impl crate::graphics::Compositor for Compositor {
         }
     }
 
-    fn screenshot<T: AsRef<str>>(
+    fn screenshot(
         &mut self,
         renderer: &mut Self::Renderer,
         surface: &mut Self::Surface,
         viewport: &Viewport,
         background_color: Color,
-        overlay: &[T],
     ) -> Vec<u8> {
         match (self, renderer, surface) {
             (
@@ -168,7 +164,6 @@ impl crate::graphics::Compositor for Compositor {
                     primitives,
                     viewport,
                     background_color,
-                    overlay,
                 )
             }),
             #[cfg(feature = "wgpu")]
@@ -183,7 +178,6 @@ impl crate::graphics::Compositor for Compositor {
                     primitives,
                     viewport,
                     background_color,
-                    overlay,
                 )
             }),
             #[allow(unreachable_patterns)]

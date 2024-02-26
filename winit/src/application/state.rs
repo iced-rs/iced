@@ -3,7 +3,6 @@ use crate::conversion;
 use crate::core::mouse;
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
-use crate::runtime::Debug;
 use crate::Application;
 
 use std::marker::PhantomData;
@@ -122,12 +121,7 @@ where
 
     /// Processes the provided window event and updates the [`State`]
     /// accordingly.
-    pub fn update(
-        &mut self,
-        window: &Window,
-        event: &WindowEvent,
-        _debug: &mut Debug,
-    ) {
+    pub fn update(&mut self, window: &Window, event: &WindowEvent) {
         match event {
             WindowEvent::Resized(new_size) => {
                 let size = Size::new(new_size.width, new_size.height);
@@ -176,7 +170,7 @@ where
                         ..
                     },
                 ..
-            } => _debug.toggle(),
+            } => crate::debug::open_axe(),
             _ => {}
         }
     }

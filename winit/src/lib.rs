@@ -29,6 +29,7 @@
 pub use iced_graphics as graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
+pub use iced_runtime::debug;
 pub use iced_runtime::futures;
 pub use iced_style as style;
 pub use winit;

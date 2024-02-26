@@ -11,6 +11,7 @@ use crate::core::renderer;
 use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Point, Size};
+use crate::debug;
 use crate::futures::futures::channel::mpsc;
 use crate::futures::futures::{task, Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
@@ -19,7 +20,6 @@ use crate::multi_window::window_manager::WindowManager;
 use crate::runtime::command::{self, Command};
 use crate::runtime::multi_window::Program;
 use crate::runtime::user_interface::{self, UserInterface};
-use crate::runtime::Debug;
 use crate::style::application::StyleSheet;
 use crate::{Clipboard, Error, Proxy, Settings};
 
@@ -112,8 +112,7 @@ where
 {
     use winit::event_loop::EventLoopBuilder;
 
-    let mut debug = Debug::new();
-    debug.startup_started();
+    let boot_timer = debug::boot_time();
 
     let event_loop = EventLoopBuilder::with_user_event()
         .build()
@@ -202,12 +201,12 @@ where
         compositor,
         runtime,
         proxy,
-        debug,
         event_receiver,
         control_sender,
         init_command,
         window_manager,
         should_main_be_visible,
+        boot_timer,
     ));
 
     let mut context = task::Context::from_waker(task::noop_waker_ref());
@@ -339,12 +338,12 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
     mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
-    mut debug: Debug,
     mut event_receiver: mpsc::UnboundedReceiver<Event<A::Message>>,
     mut control_sender: mpsc::UnboundedSender<Control>,
     init_command: Command<A::Message>,
     mut window_manager: WindowManager<A, C>,
     should_main_window_be_visible: bool,
+    boot_timer: debug::Timer,
 ) where
     A: Application + 'static,
     E: Executor + 'static,
@@ -377,15 +376,6 @@ async fn run_instance<A, E, C>(
     };
 
     let mut ui_caches = HashMap::new();
-    let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
-        &application,
-        &mut debug,
-        &mut window_manager,
-        HashMap::from_iter([(
-            window::Id::MAIN,
-            user_interface::Cache::default(),
-        )]),
-    ));
 
     run_command(
         &application,
@@ -395,16 +385,23 @@ async fn run_instance<A, E, C>(
         &mut clipboard,
         &mut control_sender,
         &mut proxy,
-        &mut debug,
         &mut window_manager,
         &mut ui_caches,
     );
 
     runtime.track(application.subscription().into_recipes());
+    boot_timer.finish();
+
+    let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
+        &application,
+        &mut window_manager,
+        HashMap::from_iter([(
+            window::Id::MAIN,
+            user_interface::Cache::default(),
+        )]),
+    ));
 
     let mut messages = Vec::new();
-
-    debug.startup_finished();
 
     'main: while let Some(event) = event_receiver.next().await {
         match event {
@@ -430,7 +427,6 @@ async fn run_instance<A, E, C>(
                         user_interface::Cache::default(),
                         &mut window.renderer,
                         logical_size,
-                        &mut debug,
                         id,
                     ),
                 );
@@ -513,7 +509,7 @@ async fn run_instance<A, E, C>(
                             &mut messages,
                         );
 
-                        debug.draw_started();
+                        let draw_timer = debug::draw_time();
                         let new_mouse_interaction = ui.draw(
                             &mut window.renderer,
                             window.state.theme(),
@@ -522,7 +518,7 @@ async fn run_instance<A, E, C>(
                             },
                             cursor,
                         );
-                        debug.draw_finished();
+                        draw_timer.finish();
 
                         if new_mouse_interaction != window.mouse_interaction {
                             window.raw.set_cursor_icon(
@@ -569,7 +565,7 @@ async fn run_instance<A, E, C>(
                         {
                             let logical_size = window.state.logical_size();
 
-                            debug.layout_started();
+                            let layout_time = debug::layout_time();
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
@@ -578,9 +574,9 @@ async fn run_instance<A, E, C>(
                                 id,
                                 ui.relayout(logical_size, &mut window.renderer),
                             );
-                            debug.layout_finished();
+                            layout_time.finish();
 
-                            debug.draw_started();
+                            let draw_time = debug::draw_time();
                             let new_mouse_interaction = user_interfaces
                                 .get_mut(&id)
                                 .expect("Get user interface")
@@ -592,7 +588,7 @@ async fn run_instance<A, E, C>(
                                     },
                                     window.state.cursor(),
                                 );
-                            debug.draw_finished();
+                            draw_time.finish();
 
                             if new_mouse_interaction != window.mouse_interaction
                             {
@@ -616,16 +612,15 @@ async fn run_instance<A, E, C>(
                                 window.state.viewport_version();
                         }
 
-                        debug.render_started();
+                        let render_time = debug::render_time();
                         match compositor.present(
                             &mut window.renderer,
                             &mut window.surface,
                             window.state.viewport(),
                             window.state.background_color(),
-                            &debug.overlay(),
                         ) {
                             Ok(()) => {
-                                debug.render_finished();
+                                render_time.finish();
 
                                 // TODO: Handle animations!
                                 // Maybe we can use `ControlFlow::WaitUntil` for this.
@@ -636,8 +631,6 @@ async fn run_instance<A, E, C>(
                                     panic!("{:?}", error);
                                 }
                                 _ => {
-                                    debug.render_finished();
-
                                     log::error!(
                                         "Error {error:?} when \
                                         presenting surface."
@@ -681,11 +674,7 @@ async fn run_instance<A, E, C>(
                                 break 'main;
                             }
                         } else {
-                            window.state.update(
-                                &window.raw,
-                                &window_event,
-                                &mut debug,
-                            );
+                            window.state.update(&window.raw, &window_event);
 
                             if let Some(event) = conversion::window_event(
                                 id,
@@ -702,7 +691,7 @@ async fn run_instance<A, E, C>(
                             continue;
                         }
 
-                        debug.event_processing_started();
+                        let interact_time = debug::interact_time();
                         let mut uis_stale = false;
 
                         for (id, window) in window_manager.iter_mut() {
@@ -749,8 +738,7 @@ async fn run_instance<A, E, C>(
                                 runtime.broadcast(event, status);
                             }
                         }
-
-                        debug.event_processing_finished();
+                        interact_time.finish();
 
                         // TODO mw application update returns which window IDs to update
                         if !messages.is_empty() || uis_stale {
@@ -770,7 +758,6 @@ async fn run_instance<A, E, C>(
                                 &mut clipboard,
                                 &mut control_sender,
                                 &mut proxy,
-                                &mut debug,
                                 &mut messages,
                                 &mut window_manager,
                                 &mut cached_interfaces,
@@ -794,7 +781,6 @@ async fn run_instance<A, E, C>(
                             user_interfaces =
                                 ManuallyDrop::new(build_user_interfaces(
                                     &application,
-                                    &mut debug,
                                     &mut window_manager,
                                     cached_interfaces,
                                 ));
@@ -815,19 +801,18 @@ fn build_user_interface<'a, A: Application>(
     cache: user_interface::Cache,
     renderer: &mut A::Renderer,
     size: Size,
-    debug: &mut Debug,
     id: window::Id,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
     A::Theme: StyleSheet,
 {
-    debug.view_started();
+    let view_timer = debug::view_time();
     let view = application.view(id);
-    debug.view_finished();
+    view_timer.finish();
 
-    debug.layout_started();
+    let layout_timer = debug::layout_time();
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    debug.layout_finished();
+    layout_timer.finish();
 
     user_interface
 }
@@ -841,7 +826,6 @@ fn update<A: Application, C, E: Executor>(
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
-    debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window_manager: &mut WindowManager<A, C>,
     ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
@@ -850,11 +834,11 @@ fn update<A: Application, C, E: Executor>(
     A::Theme: StyleSheet,
 {
     for message in messages.drain(..) {
-        debug.log_message(&message);
-        debug.update_started();
+        debug::log_message(&message);
 
+        let update_timer = debug::update_time();
         let command = runtime.enter(|| application.update(message));
-        debug.update_finished();
+        update_timer.finish();
 
         run_command(
             application,
@@ -864,7 +848,6 @@ fn update<A: Application, C, E: Executor>(
             clipboard,
             control_sender,
             proxy,
-            debug,
             window_manager,
             ui_caches,
         );
@@ -883,7 +866,6 @@ fn run_command<A, C, E>(
     clipboard: &mut Clipboard,
     control_sender: &mut mpsc::UnboundedSender<Control>,
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
-    debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
     ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
 ) where
@@ -1118,7 +1100,6 @@ fn run_command<A, C, E>(
                             &mut window.surface,
                             window.state.viewport(),
                             window.state.background_color(),
-                            &debug.overlay(),
                         );
 
                         proxy
@@ -1155,7 +1136,6 @@ fn run_command<A, C, E>(
 
                 let mut uis = build_user_interfaces(
                     application,
-                    debug,
                     window_manager,
                     std::mem::take(ui_caches),
                 );
@@ -1211,7 +1191,6 @@ fn run_command<A, C, E>(
 /// Build the user interface for every window.
 pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
     application: &'a A,
-    debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
     mut cached_user_interfaces: HashMap<window::Id, user_interface::Cache>,
 ) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
@@ -1231,7 +1210,6 @@ where
                     cache,
                     &mut window.renderer,
                     window.state.logical_size(),
-                    debug,
                     id,
                 ),
             ))

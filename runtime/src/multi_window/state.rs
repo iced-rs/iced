@@ -4,8 +4,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::{Clipboard, Size};
+use crate::debug;
 use crate::user_interface::{self, UserInterface};
-use crate::{Command, Debug, Program};
+use crate::{Command, Program};
 
 /// The execution state of a multi-window [`Program`]. It leverages caching, event
 /// processing, and rendering primitive storage.
@@ -27,18 +28,12 @@ where
 {
     /// Creates a new [`State`] with the provided [`Program`], initializing its
     /// primitive with the given logical bounds and renderer.
-    pub fn new(
-        program: P,
-        bounds: Size,
-        renderer: &mut P::Renderer,
-        debug: &mut Debug,
-    ) -> Self {
+    pub fn new(program: P, bounds: Size, renderer: &mut P::Renderer) -> Self {
         let user_interface = build_user_interface(
             &program,
             user_interface::Cache::default(),
             renderer,
             bounds,
-            debug,
         );
 
         let caches = Some(vec![user_interface.into_cache()]);
@@ -95,17 +90,15 @@ where
         theme: &P::Theme,
         style: &renderer::Style,
         clipboard: &mut dyn Clipboard,
-        debug: &mut Debug,
     ) -> (Vec<Event>, Option<Command<P::Message>>) {
         let mut user_interfaces = build_user_interfaces(
             &self.program,
             self.caches.take().unwrap(),
             renderer,
             bounds,
-            debug,
         );
 
-        debug.event_processing_started();
+        let interact_timer = debug::interact_time();
         let mut messages = Vec::new();
 
         let uncaptured_events = user_interfaces.iter_mut().fold(
@@ -135,17 +128,15 @@ where
 
         self.queued_events.clear();
         messages.append(&mut self.queued_messages);
-        debug.event_processing_finished();
+        drop(interact_timer);
 
         let commands = if messages.is_empty() {
-            debug.draw_started();
-
+            let draw_timer = debug::draw_time();
             for ui in &mut user_interfaces {
                 self.mouse_interaction =
                     ui.draw(renderer, theme, style, cursor);
             }
-
-            debug.draw_finished();
+            drop(draw_timer);
 
             self.caches = Some(
                 user_interfaces
@@ -164,11 +155,11 @@ where
             drop(user_interfaces);
 
             let commands = Command::batch(messages.into_iter().map(|msg| {
-                debug.log_message(&msg);
+                debug::log_message(&msg);
 
-                debug.update_started();
+                let update_timer = debug::update_time();
                 let command = self.program.update(msg);
-                debug.update_finished();
+                drop(update_timer);
 
                 command
             }));
@@ -178,15 +169,14 @@ where
                 temp_caches,
                 renderer,
                 bounds,
-                debug,
             );
 
-            debug.draw_started();
+            let draw_timer = debug::draw_time();
             for ui in &mut user_interfaces {
                 self.mouse_interaction =
                     ui.draw(renderer, theme, style, cursor);
             }
-            debug.draw_finished();
+            drop(draw_timer);
 
             self.caches = Some(
                 user_interfaces
@@ -207,14 +197,12 @@ where
         renderer: &mut P::Renderer,
         operations: impl Iterator<Item = Box<dyn Operation<P::Message>>>,
         bounds: Size,
-        debug: &mut Debug,
     ) {
         let mut user_interfaces = build_user_interfaces(
             &self.program,
             self.caches.take().unwrap(),
             renderer,
             bounds,
-            debug,
         );
 
         for operation in operations {
@@ -251,13 +239,10 @@ fn build_user_interfaces<'a, P: Program>(
     mut caches: Vec<user_interface::Cache>,
     renderer: &mut P::Renderer,
     size: Size,
-    debug: &mut Debug,
 ) -> Vec<UserInterface<'a, P::Message, P::Theme, P::Renderer>> {
     caches
         .drain(..)
-        .map(|cache| {
-            build_user_interface(program, cache, renderer, size, debug)
-        })
+        .map(|cache| build_user_interface(program, cache, renderer, size))
         .collect()
 }
 
@@ -266,15 +251,14 @@ fn build_user_interface<'a, P: Program>(
     cache: user_interface::Cache,
     renderer: &mut P::Renderer,
     size: Size,
-    debug: &mut Debug,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer> {
-    debug.view_started();
+    let view_timer = debug::view_time();
     let view = program.view();
-    debug.view_finished();
+    drop(view_timer);
 
-    debug.layout_started();
+    let layout_timer = debug::layout_time();
     let user_interface = UserInterface::build(view, size, cache, renderer);
-    debug.layout_finished();
+    drop(layout_timer);
 
     user_interface
 }
