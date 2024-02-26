@@ -224,7 +224,7 @@ pub fn window_event(
                     // TODO: Fix inconsistent API on Wasm
                     event.text
                 }
-            };
+            }.filter(|text| !text.as_str().chars().any(is_private_use));
 
             let winit::event::KeyEvent {
                 state, location, ..
@@ -838,4 +838,9 @@ pub fn icon(icon: window::Icon) -> Option<winit::window::Icon> {
     let (pixels, size) = icon.into_raw();
 
     winit::window::Icon::from_rgba(pixels, size.width, size.height).ok()
+}
+
+// See: https://en.wikipedia.org/wiki/Private_Use_Areas
+fn is_private_use(c: char) -> bool {
+    ('\u{E000}'..='\u{F8FF}').contains(&c)
 }
