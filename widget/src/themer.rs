@@ -1,3 +1,4 @@
+use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -6,8 +7,8 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
-    Widget,
+    Background, Clipboard, Element, Layout, Length, Point, Rectangle, Shell,
+    Size, Vector, Widget,
 };
 use crate::style::application;
 
@@ -24,6 +25,7 @@ where
     content: Element<'a, Message, Theme, Renderer>,
     theme: Theme,
     style: Theme::Style,
+    show_background: bool,
 }
 
 impl<'a, Message, Theme, Renderer> Themer<'a, Message, Theme, Renderer>
@@ -41,7 +43,14 @@ where
             content: content.into(),
             theme,
             style: Theme::Style::default(),
+            show_background: false,
         }
+    }
+
+    /// Sets whether to draw the background color of the `Theme`.
+    pub fn background(mut self, background: bool) -> Self {
+        self.show_background = background;
+        self
     }
 }
 
@@ -132,6 +141,19 @@ where
         viewport: &Rectangle,
     ) {
         let appearance = self.theme.appearance(&self.style);
+
+        if self.show_background {
+            container::draw_background(
+                renderer,
+                &container::Appearance {
+                    background: Some(Background::Color(
+                        appearance.background_color,
+                    )),
+                    ..container::Appearance::default()
+                },
+                layout.bounds(),
+            );
+        }
 
         self.content.as_widget().draw(
             tree,
