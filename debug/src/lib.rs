@@ -44,7 +44,6 @@ mod internal {
 
     use iced_sentinel::client::{self, Client};
     use iced_sentinel::timing::{self, Timing};
-    use iced_sentinel::Report;
 
     use once_cell::sync::Lazy;
     use std::sync::{Mutex, MutexGuard};
@@ -96,10 +95,10 @@ mod internal {
 
     impl Timer {
         pub fn finish(self) {
-            lock().sentinel.report(Report::Timing(Timing {
+            lock().sentinel.report_timing(Timing {
                 stage: self.stage,
                 duration: self.start.elapsed(),
-            }));
+            });
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::{Input, Report, SOCKET_ADDRESS};
+use crate::{Input, Timing, SOCKET_ADDRESS};
 
 use tokio::io::{self, AsyncWriteExt};
 use tokio::net;
@@ -11,8 +11,8 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn report(&mut self, report: Report) {
-        let _ = self.sender.try_send(Input::Reported(report));
+    pub fn report_timing(&mut self, timing: Timing) {
+        let _ = self.sender.try_send(Input::TimingMeasured(timing));
     }
 }
 

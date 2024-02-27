@@ -17,19 +17,14 @@ pub const SOCKET_ADDRESS: &str = "127.0.0.1:9167";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Input {
     Connected(Version),
-    Reported(Report),
+    TimingMeasured(Timing),
 }
 
 #[derive(Debug, Clone)]
 pub enum Event {
     Connected(Version),
     Disconnected,
-    Reported(Report),
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Report {
-    Timing(Timing),
+    TimingMeasured(Timing),
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -89,8 +84,8 @@ async fn receive(
                                 Input::Connected(version) => {
                                     Event::Connected(version)
                                 }
-                                Input::Reported(report) => {
-                                    Event::Reported(report)
+                                Input::TimingMeasured(timing) => {
+                                    Event::TimingMeasured(timing)
                                 }
                             },
                         ))
