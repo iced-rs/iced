@@ -57,7 +57,13 @@ mod internal {
     use std::sync::{Mutex, MutexGuard};
 
     pub fn theme_changed(palette: theme::Palette) {
-        lock().sentinel.report_theme_change(palette);
+        let mut debug = lock();
+
+        if debug.last_palette.as_ref() != Some(&palette) {
+            debug.sentinel.report_theme_change(palette);
+
+            debug.last_palette = Some(palette);
+        }
     }
 
     pub fn boot_time() -> Timer {
@@ -117,12 +123,14 @@ mod internal {
     #[derive(Debug)]
     struct Debug {
         sentinel: Client,
+        last_palette: Option<theme::Palette>,
     }
 
     fn lock() -> MutexGuard<'static, Debug> {
         static DEBUG: Lazy<Mutex<Debug>> = Lazy::new(|| {
             Mutex::new(Debug {
                 sentinel: client::connect(),
+                last_palette: None,
             })
         });
 
