@@ -1,3 +1,4 @@
+use crate::style::theme;
 use crate::{Input, Timing, SOCKET_ADDRESS};
 
 use tokio::io::{self, AsyncWriteExt};
@@ -11,6 +12,10 @@ pub struct Client {
 }
 
 impl Client {
+    pub fn report_theme_change(&mut self, palette: theme::Palette) {
+        let _ = self.sender.try_send(Input::ThemeChanged(palette));
+    }
+
     pub fn report_timing(&mut self, timing: Timing) {
         let _ = self.sender.try_send(Input::TimingMeasured(timing));
     }

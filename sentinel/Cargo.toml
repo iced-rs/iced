@@ -12,6 +12,10 @@ keywords.workspace = true
 
 [dependencies]
 iced_core.workspace = true
+
+iced_style.workspace = true
+iced_style.features = ["serde"]
+
 serde_json.workspace = true
 futures.workspace = true
 log.workspace = true

@@ -1,5 +1,6 @@
 //! Change the appearance of an application.
-use iced_core::Color;
+use crate::core::Color;
+use crate::theme;
 
 /// A set of rules that dictate the style of an application.
 pub trait StyleSheet {
@@ -10,6 +11,17 @@ pub trait StyleSheet {
     ///
     /// [`Style`]: Self::Style
     fn appearance(&self, style: &Self::Style) -> Appearance;
+
+    /// Returns the [`theme::Palette`] of the application, if any.
+    ///
+    /// This may be used by other parts of the `iced` runtime to
+    /// try to match the style of your application.
+    ///
+    /// For instance, the Iced Axe uses this [`theme::Palette`] to
+    /// automatically style itself using your application's colors.
+    fn palette(&self) -> Option<theme::Palette> {
+        None
+    }
 }
 
 /// The appearance of an application.

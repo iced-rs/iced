@@ -1,10 +1,17 @@
 pub use iced_core as core;
+pub use iced_style as style;
+
+use crate::style::theme;
 
 pub use internal::Timer;
 
 pub fn open_axe() {}
 
 pub fn log_message(_message: &impl std::fmt::Debug) {}
+
+pub fn theme_changed(palette: theme::Palette) {
+    internal::theme_changed(palette);
+}
 
 pub fn boot_time() -> Timer {
     internal::boot_time()
@@ -41,12 +48,17 @@ pub fn time(name: impl AsRef<str>) -> Timer {
 #[cfg(feature = "enable")]
 mod internal {
     use crate::core::time::Instant;
+    use crate::style::theme;
 
     use iced_sentinel::client::{self, Client};
     use iced_sentinel::timing::{self, Timing};
 
     use once_cell::sync::Lazy;
     use std::sync::{Mutex, MutexGuard};
+
+    pub fn theme_changed(palette: theme::Palette) {
+        lock().sentinel.report_theme_change(palette);
+    }
 
     pub fn boot_time() -> Timer {
         timer(timing::Stage::Boot)
@@ -120,6 +132,10 @@ mod internal {
 
 #[cfg(not(feature = "enable"))]
 mod internal {
+    use crate::style::theme;
+
+    pub fn theme_changed(_palette: theme::Palette) {}
+
     pub fn boot_time() -> Timer {
         Timer
     }

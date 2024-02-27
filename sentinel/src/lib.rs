@@ -1,8 +1,10 @@
 pub use iced_core as core;
+pub use iced_style as style;
 
 pub mod client;
 pub mod timing;
 
+use crate::style::theme;
 use crate::timing::Timing;
 
 use futures::future;
@@ -18,6 +20,7 @@ pub const SOCKET_ADDRESS: &str = "127.0.0.1:9167";
 pub enum Input {
     Connected(Version),
     TimingMeasured(Timing),
+    ThemeChanged(theme::Palette),
 }
 
 #[derive(Debug, Clone)]
@@ -25,6 +28,7 @@ pub enum Event {
     Connected(Version),
     Disconnected,
     TimingMeasured(Timing),
+    ThemeChanged(theme::Palette),
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -86,6 +90,9 @@ async fn receive(
                                 }
                                 Input::TimingMeasured(timing) => {
                                     Event::TimingMeasured(timing)
+                                }
+                                Input::ThemeChanged(palette) => {
+                                    Event::ThemeChanged(palette)
                                 }
                             },
                         ))

@@ -2,6 +2,7 @@ use crate::application::{self, StyleSheet as _};
 use crate::conversion;
 use crate::core::mouse;
 use crate::core::{Color, Size};
+use crate::debug;
 use crate::graphics::Viewport;
 use crate::Application;
 
@@ -36,6 +37,8 @@ where
         let scale_factor = application.scale_factor();
         let theme = application.theme();
         let appearance = theme.appearance(&application.style());
+
+        let _ = theme.palette().map(debug::theme_changed);
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -211,5 +214,7 @@ where
         // Update theme and appearance
         self.theme = application.theme();
         self.appearance = self.theme.appearance(&application.style());
+
+        let _ = self.theme.palette().map(debug::theme_changed);
     }
 }
