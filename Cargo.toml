@@ -110,7 +110,7 @@ keywords = ["gui", "ui", "graphics", "interface", "widgets"]
 
 [workspace.dependencies]
 iced = { version = "0.12", path = "." }
-iced_core = { version = "0.12", path = "core" }
+iced_core = { version = "0.12.2", path = "core" }
 iced_futures = { version = "0.12", path = "futures" }
 iced_graphics = { version = "0.12.1", path = "graphics" }
 iced_highlighter = { version = "0.12", path = "highlighter" }
