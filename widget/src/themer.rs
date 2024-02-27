@@ -9,6 +9,7 @@ use crate::core::{
     Clipboard, Element, Layout, Length, Point, Rectangle, Shell, Size, Vector,
     Widget,
 };
+use crate::style::application;
 
 /// A widget that applies any `Theme` to its contents.
 ///
@@ -18,14 +19,17 @@ use crate::core::{
 pub struct Themer<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
+    Theme: application::StyleSheet,
 {
     content: Element<'a, Message, Theme, Renderer>,
     theme: Theme,
+    style: Theme::Style,
 }
 
 impl<'a, Message, Theme, Renderer> Themer<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
+    Theme: application::StyleSheet,
 {
     /// Creates an empty [`Themer`] that applies the given `Theme`
     /// to the provided `content`.
@@ -34,8 +38,9 @@ where
         T: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Self {
-            theme,
             content: content.into(),
+            theme,
+            style: Theme::Style::default(),
         }
     }
 }
@@ -44,6 +49,7 @@ impl<'a, AnyTheme, Message, Theme, Renderer> Widget<Message, AnyTheme, Renderer>
     for Themer<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
+    Theme: application::StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         self.content.as_widget().tag()
@@ -120,16 +126,20 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         _theme: &AnyTheme,
-        renderer_style: &renderer::Style,
+        _style: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
+        let appearance = self.theme.appearance(&self.style);
+
         self.content.as_widget().draw(
             tree,
             renderer,
             &self.theme,
-            renderer_style,
+            &renderer::Style {
+                text_color: appearance.text_color,
+            },
             layout,
             cursor,
             viewport,
@@ -248,7 +258,7 @@ impl<'a, AnyTheme, Message, Theme, Renderer>
     for Element<'a, Message, AnyTheme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: 'a + application::StyleSheet,
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(
