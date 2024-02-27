@@ -11,7 +11,7 @@ use futures::future;
 use futures::stream::{self, Stream, StreamExt};
 use semver::Version;
 use serde::{Deserialize, Serialize};
-use tokio::io::{self, AsyncBufReadExt, BufStream};
+use tokio::io::{self, AsyncReadExt, BufStream};
 use tokio::net;
 
 pub const SOCKET_ADDRESS: &str = "127.0.0.1:9167";
@@ -74,33 +74,34 @@ async fn connect() -> Result<net::TcpStream, io::Error> {
 async fn receive(
     mut stream: BufStream<net::TcpStream>,
 ) -> Result<(BufStream<net::TcpStream>, Event), io::Error> {
-    let mut input = String::new();
+    let mut bytes = Vec::new();
 
     loop {
-        match stream.read_line(&mut input).await? {
-            0 => return Ok((stream, Event::Disconnected)),
-            n => {
-                match serde_json::from_str(&input[..n]) {
-                    Ok(input) => {
-                        return Ok((
-                            stream,
-                            match dbg!(input) {
-                                Input::Connected(version) => {
-                                    Event::Connected(version)
-                                }
-                                Input::TimingMeasured(timing) => {
-                                    Event::TimingMeasured(timing)
-                                }
-                                Input::ThemeChanged(palette) => {
-                                    Event::ThemeChanged(palette)
-                                }
-                            },
-                        ))
-                    }
-                    Err(_) => {
-                        // TODO: Log decoding error
-                    }
-                }
+        let size = stream.read_u64().await? as usize;
+
+        if bytes.len() < size {
+            bytes.resize(size, 0);
+        }
+
+        let _n = stream.read_exact(&mut bytes[..size]).await?;
+
+        match bincode::deserialize(&bytes) {
+            Ok(input) => {
+                return Ok((
+                    stream,
+                    match dbg!(input) {
+                        Input::Connected(version) => Event::Connected(version),
+                        Input::TimingMeasured(timing) => {
+                            Event::TimingMeasured(timing)
+                        }
+                        Input::ThemeChanged(palette) => {
+                            Event::ThemeChanged(palette)
+                        }
+                    },
+                ));
+            }
+            Err(_) => {
+                // TODO: Log decoding error
             }
         }
     }

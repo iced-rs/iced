@@ -69,16 +69,11 @@ async fn send(
     stream: &mut io::BufStream<net::TcpStream>,
     input: Input,
 ) -> Result<(), io::Error> {
-    stream
-        .write_all(
-            format!(
-                "{}\n",
-                serde_json::to_string(&input).expect("Serialize input message")
-            )
-            .as_bytes(),
-        )
-        .await?;
+    let bytes = bincode::serialize(&input).expect("Encode input message");
+    let size = bytes.len() as u64;
 
+    stream.write_all(&size.to_be_bytes()).await?;
+    stream.write_all(&bytes).await?;
     stream.flush().await?;
 
     Ok(())
