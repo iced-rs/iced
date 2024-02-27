@@ -1,5 +1,6 @@
 pub use iced_core as core;
 pub use iced_style as style;
+pub use semver::Version;
 
 pub mod client;
 pub mod timing;
@@ -9,7 +10,6 @@ use crate::timing::Timing;
 
 use futures::future;
 use futures::stream::{self, Stream, StreamExt};
-use semver::Version;
 use serde::{Deserialize, Serialize};
 use tokio::io::{self, AsyncReadExt, BufStream};
 use tokio::net;
