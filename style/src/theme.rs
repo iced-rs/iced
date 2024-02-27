@@ -275,6 +275,10 @@ impl application::StyleSheet for Theme {
             Application::Custom(custom) => custom.appearance(self),
         }
     }
+
+    fn palette(&self) -> Option<Palette> {
+        Some(self.palette())
+    }
 }
 
 impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
