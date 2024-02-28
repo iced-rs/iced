@@ -762,12 +762,92 @@ where
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
+                match key.as_ref() {
+                    keyboard::Key::Character("c")
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        if let Some((start, end)) =
+                            state.cursor.selection(value)
+                        {
+                            clipboard.write(
+                                clipboard::Kind::Standard,
+                                value.select(start, end).to_string(),
+                            );
+                        }
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::Key::Character("x")
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        if let Some((start, end)) =
+                            state.cursor.selection(value)
+                        {
+                            clipboard.write(
+                                clipboard::Kind::Standard,
+                                value.select(start, end).to_string(),
+                            );
+                        }
+
+                        let mut editor = Editor::new(value, &mut state.cursor);
+                        editor.delete();
+
+                        let message = (on_input)(editor.contents());
+                        shell.publish(message);
+
+                        update_cache(state, value);
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::Key::Character("v")
+                        if state.keyboard_modifiers.command()
+                            && !state.keyboard_modifiers.alt() =>
+                    {
+                        let content = match state.is_pasting.take() {
+                            Some(content) => content,
+                            None => {
+                                let content: String = clipboard
+                                    .read(clipboard::Kind::Standard)
+                                    .unwrap_or_default()
+                                    .chars()
+                                    .filter(|c| !c.is_control())
+                                    .collect();
+
+                                Value::new(&content)
+                            }
+                        };
+
+                        let mut editor = Editor::new(value, &mut state.cursor);
+
+                        editor.paste(content.clone());
+
+                        let message = if let Some(paste) = &on_paste {
+                            (paste)(editor.contents())
+                        } else {
+                            (on_input)(editor.contents())
+                        };
+                        shell.publish(message);
+
+                        state.is_pasting = Some(content);
+
+                        update_cache(state, value);
+
+                        return event::Status::Captured;
+                    }
+                    keyboard::Key::Character("a")
+                        if state.keyboard_modifiers.command() =>
+                    {
+                        state.cursor.select_all(value);
+                    }
+                    _ => {}
+                }
+
                 if let Some(text) = text {
                     state.is_pasting = None;
 
-                    let c = text.chars().next().unwrap_or_default();
-
-                    if !c.is_control() {
+                    if let Some(c) =
+                        text.chars().next().filter(|c| !c.is_control())
+                    {
                         let mut editor = Editor::new(value, &mut state.cursor);
 
                         editor.insert(c);
@@ -879,76 +959,6 @@ where
                         } else {
                             state.cursor.move_to(value.len());
                         }
-                    }
-                    keyboard::Key::Character("c")
-                        if state.keyboard_modifiers.command() =>
-                    {
-                        if let Some((start, end)) =
-                            state.cursor.selection(value)
-                        {
-                            clipboard.write(
-                                clipboard::Kind::Standard,
-                                value.select(start, end).to_string(),
-                            );
-                        }
-                    }
-                    keyboard::Key::Character("x")
-                        if state.keyboard_modifiers.command() =>
-                    {
-                        if let Some((start, end)) =
-                            state.cursor.selection(value)
-                        {
-                            clipboard.write(
-                                clipboard::Kind::Standard,
-                                value.select(start, end).to_string(),
-                            );
-                        }
-
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.delete();
-
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
-
-                        update_cache(state, value);
-                    }
-                    keyboard::Key::Character("v")
-                        if state.keyboard_modifiers.command()
-                            && !state.keyboard_modifiers.alt() =>
-                    {
-                        let content = match state.is_pasting.take() {
-                            Some(content) => content,
-                            None => {
-                                let content: String = clipboard
-                                    .read(clipboard::Kind::Standard)
-                                    .unwrap_or_default()
-                                    .chars()
-                                    .filter(|c| !c.is_control())
-                                    .collect();
-
-                                Value::new(&content)
-                            }
-                        };
-
-                        let mut editor = Editor::new(value, &mut state.cursor);
-
-                        editor.paste(content.clone());
-
-                        let message = if let Some(paste) = &on_paste {
-                            (paste)(editor.contents())
-                        } else {
-                            (on_input)(editor.contents())
-                        };
-                        shell.publish(message);
-
-                        state.is_pasting = Some(content);
-
-                        update_cache(state, value);
-                    }
-                    keyboard::Key::Character("a")
-                        if state.keyboard_modifiers.command() =>
-                    {
-                        state.cursor.select_all(value);
                     }
                     keyboard::Key::Named(key::Named::Escape) => {
                         state.is_focused = None;
