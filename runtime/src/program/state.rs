@@ -2,6 +2,7 @@ use crate::core::event::{self, Event};
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::operation::{self, Operation};
+use crate::core::window;
 use crate::core::{Clipboard, Size};
 use crate::debug;
 use crate::user_interface::{self, UserInterface};
@@ -101,7 +102,7 @@ where
             bounds,
         );
 
-        let interact_timer = debug::interact_time();
+        let interact_timer = debug::interact_time(window::Id::MAIN);
         let mut messages = Vec::new();
 
         let (_, event_statuses) = user_interface.update(
@@ -127,7 +128,7 @@ where
         drop(interact_timer);
 
         let command = if messages.is_empty() {
-            let draw_timer = debug::draw_time();
+            let draw_timer = debug::draw_time(window::Id::MAIN);
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
             drop(draw_timer);
@@ -158,7 +159,7 @@ where
                 bounds,
             );
 
-            let draw_timer = debug::draw_time();
+            let draw_timer = debug::draw_time(window::Id::MAIN);
             self.mouse_interaction =
                 user_interface.draw(renderer, theme, style, cursor);
             drop(draw_timer);
@@ -213,11 +214,11 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer> {
-    let view_timer = debug::view_time();
+    let view_timer = debug::view_time(window::Id::MAIN);
     let view = program.view();
     drop(view_timer);
 
-    let layout_timer = debug::layout_time();
+    let layout_timer = debug::layout_time(window::Id::MAIN);
     let user_interface = UserInterface::build(view, size, cache, renderer);
     drop(layout_timer);
 

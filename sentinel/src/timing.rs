@@ -1,4 +1,5 @@
 use crate::core::time::Duration;
+use crate::core::window;
 
 use serde::{Deserialize, Serialize};
 
@@ -16,10 +17,10 @@ pub struct Timing {
 pub enum Stage {
     Boot,
     Update,
-    View,
-    Layout,
-    Interact,
-    Draw,
-    Render,
-    Custom(String),
+    View(window::Id),
+    Layout(window::Id),
+    Interact(window::Id),
+    Draw(window::Id),
+    Render(window::Id),
+    Custom(window::Id, String),
 }

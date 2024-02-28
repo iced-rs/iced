@@ -1,6 +1,7 @@
 pub use iced_core as core;
 pub use iced_style as style;
 
+use crate::core::window;
 use crate::style::theme;
 
 pub use internal::Timer;
@@ -21,33 +22,34 @@ pub fn update_time() -> Timer {
     internal::update_time()
 }
 
-pub fn view_time() -> Timer {
-    internal::view_time()
+pub fn view_time(window: window::Id) -> Timer {
+    internal::view_time(window)
 }
 
-pub fn layout_time() -> Timer {
-    internal::layout_time()
+pub fn layout_time(window: window::Id) -> Timer {
+    internal::layout_time(window)
 }
 
-pub fn interact_time() -> Timer {
-    internal::interact_time()
+pub fn interact_time(window: window::Id) -> Timer {
+    internal::interact_time(window)
 }
 
-pub fn draw_time() -> Timer {
-    internal::draw_time()
+pub fn draw_time(window: window::Id) -> Timer {
+    internal::draw_time(window)
 }
 
-pub fn render_time() -> Timer {
-    internal::render_time()
+pub fn render_time(window: window::Id) -> Timer {
+    internal::render_time(window)
 }
 
-pub fn time(name: impl AsRef<str>) -> Timer {
-    internal::time(name)
+pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
+    internal::time(window, name)
 }
 
 #[cfg(feature = "enable")]
 mod internal {
     use crate::core::time::Instant;
+    use crate::core::window;
     use crate::style::theme;
 
     use iced_sentinel::client::{self, Client};
@@ -74,28 +76,28 @@ mod internal {
         timer(timing::Stage::Update)
     }
 
-    pub fn view_time() -> Timer {
-        timer(timing::Stage::View)
+    pub fn view_time(window: window::Id) -> Timer {
+        timer(timing::Stage::View(window))
     }
 
-    pub fn layout_time() -> Timer {
-        timer(timing::Stage::Layout)
+    pub fn layout_time(window: window::Id) -> Timer {
+        timer(timing::Stage::Layout(window))
     }
 
-    pub fn interact_time() -> Timer {
-        timer(timing::Stage::Interact)
+    pub fn interact_time(window: window::Id) -> Timer {
+        timer(timing::Stage::Interact(window))
     }
 
-    pub fn draw_time() -> Timer {
-        timer(timing::Stage::Draw)
+    pub fn draw_time(window: window::Id) -> Timer {
+        timer(timing::Stage::Draw(window))
     }
 
-    pub fn render_time() -> Timer {
-        timer(timing::Stage::Render)
+    pub fn render_time(window: window::Id) -> Timer {
+        timer(timing::Stage::Render(window))
     }
 
-    pub fn time(name: impl AsRef<str>) -> Timer {
-        timer(timing::Stage::Custom(name.as_ref().to_owned()))
+    pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
+        timer(timing::Stage::Custom(window, name.as_ref().to_owned()))
     }
 
     fn timer(stage: timing::Stage) -> Timer {
@@ -140,6 +142,7 @@ mod internal {
 
 #[cfg(not(feature = "enable"))]
 mod internal {
+    use crate::core::window;
     use crate::style::theme;
 
     pub fn theme_changed(_palette: theme::Palette) {}
@@ -152,27 +155,27 @@ mod internal {
         Timer
     }
 
-    pub fn view_time() -> Timer {
+    pub fn view_time(_window: window::Id) -> Timer {
         Timer
     }
 
-    pub fn layout_time() -> Timer {
+    pub fn layout_time(_window: window::Id) -> Timer {
         Timer
     }
 
-    pub fn interact_time() -> Timer {
+    pub fn interact_time(_window: window::Id) -> Timer {
         Timer
     }
 
-    pub fn draw_time() -> Timer {
+    pub fn draw_time(_window: window::Id) -> Timer {
         Timer
     }
 
-    pub fn render_time() -> Timer {
+    pub fn render_time(_window: window::Id) -> Timer {
         Timer
     }
 
-    pub fn time(_name: impl AsRef<str>) -> Timer {
+    pub fn time(_window: window::Id, _name: impl AsRef<str>) -> Timer {
         Timer
     }
 

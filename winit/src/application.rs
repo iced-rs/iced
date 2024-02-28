@@ -379,7 +379,7 @@ async fn run_instance<A, E, C>(
                 if viewport_version != current_viewport_version {
                     let logical_size = state.logical_size();
 
-                    let layout_timer = debug::layout_time();
+                    let layout_timer = debug::layout_time(window::Id::MAIN);
                     user_interface = ManuallyDrop::new(
                         ManuallyDrop::into_inner(user_interface)
                             .relayout(logical_size, &mut renderer),
@@ -431,7 +431,7 @@ async fn run_instance<A, E, C>(
 
                 runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
-                let draw_timer = debug::draw_time();
+                let draw_timer = debug::draw_time(window::Id::MAIN);
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
                     state.theme(),
@@ -451,7 +451,7 @@ async fn run_instance<A, E, C>(
                     mouse_interaction = new_mouse_interaction;
                 }
 
-                let render_timer = debug::render_time();
+                let render_timer = debug::render_time(window::Id::MAIN);
                 match compositor.present(
                     &mut renderer,
                     &mut surface,
@@ -499,7 +499,7 @@ async fn run_instance<A, E, C>(
                     continue;
                 }
 
-                let interact_timer = debug::interact_time();
+                let interact_timer = debug::interact_time(window::Id::MAIN);
                 let (interface_state, statuses) = user_interface.update(
                     &events,
                     state.cursor(),
@@ -600,11 +600,11 @@ pub fn build_user_interface<'a, A: Application>(
 where
     A::Theme: StyleSheet,
 {
-    let view_timer = debug::view_time();
+    let view_timer = debug::view_time(window::Id::MAIN);
     let view = application.view();
     view_timer.finish();
 
-    let layout_timer = debug::layout_time();
+    let layout_timer = debug::layout_time(window::Id::MAIN);
     let user_interface = UserInterface::build(view, size, cache, renderer);
     layout_timer.finish();
 

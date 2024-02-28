@@ -509,7 +509,7 @@ async fn run_instance<A, E, C>(
                             &mut messages,
                         );
 
-                        let draw_timer = debug::draw_time();
+                        let draw_timer = debug::draw_time(id);
                         let new_mouse_interaction = ui.draw(
                             &mut window.renderer,
                             window.state.theme(),
@@ -565,7 +565,7 @@ async fn run_instance<A, E, C>(
                         {
                             let logical_size = window.state.logical_size();
 
-                            let layout_time = debug::layout_time();
+                            let layout_time = debug::layout_time(id);
                             let ui = user_interfaces
                                 .remove(&id)
                                 .expect("Remove user interface");
@@ -576,7 +576,7 @@ async fn run_instance<A, E, C>(
                             );
                             layout_time.finish();
 
-                            let draw_time = debug::draw_time();
+                            let draw_time = debug::draw_time(id);
                             let new_mouse_interaction = user_interfaces
                                 .get_mut(&id)
                                 .expect("Get user interface")
@@ -612,7 +612,7 @@ async fn run_instance<A, E, C>(
                                 window.state.viewport_version();
                         }
 
-                        let render_time = debug::render_time();
+                        let render_time = debug::render_time(id);
                         match compositor.present(
                             &mut window.renderer,
                             &mut window.surface,
@@ -691,10 +691,10 @@ async fn run_instance<A, E, C>(
                             continue;
                         }
 
-                        let interact_time = debug::interact_time();
                         let mut uis_stale = false;
 
                         for (id, window) in window_manager.iter_mut() {
+                            let interact_time = debug::interact_time(id);
                             let mut window_events = vec![];
 
                             events.retain(|(window_id, event)| {
@@ -737,8 +737,8 @@ async fn run_instance<A, E, C>(
                             {
                                 runtime.broadcast(event, status);
                             }
+                            interact_time.finish();
                         }
-                        interact_time.finish();
 
                         // TODO mw application update returns which window IDs to update
                         if !messages.is_empty() || uis_stale {
@@ -806,11 +806,11 @@ fn build_user_interface<'a, A: Application>(
 where
     A::Theme: StyleSheet,
 {
-    let view_timer = debug::view_time();
+    let view_timer = debug::view_time(id);
     let view = application.view(id);
     view_timer.finish();
 
-    let layout_timer = debug::layout_time();
+    let layout_timer = debug::layout_time(id);
     let user_interface = UserInterface::build(view, size, cache, renderer);
     layout_timer.finish();
 

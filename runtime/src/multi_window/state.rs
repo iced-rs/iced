@@ -98,12 +98,12 @@ where
             bounds,
         );
 
-        let interact_timer = debug::interact_time();
         let mut messages = Vec::new();
 
         let uncaptured_events = user_interfaces.iter_mut().fold(
             vec![],
             |mut uncaptured_events, ui| {
+                let interact_timer = debug::interact_time();
                 let (_, event_statuses) = ui.update(
                     &self.queued_events,
                     cursor,
@@ -111,6 +111,7 @@ where
                     clipboard,
                     &mut messages,
                 );
+                interact_timer.finish();
 
                 uncaptured_events.extend(
                     self.queued_events
@@ -128,7 +129,6 @@ where
 
         self.queued_events.clear();
         messages.append(&mut self.queued_messages);
-        drop(interact_timer);
 
         let commands = if messages.is_empty() {
             let draw_timer = debug::draw_time();
