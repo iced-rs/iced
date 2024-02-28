@@ -1,5 +1,5 @@
 //! Listen and react to time.
-pub use iced_core::time::{Duration, Instant};
+pub use iced_core::time::{Duration, Instant, SystemTime};
 
 #[allow(unused_imports)]
 #[cfg_attr(
