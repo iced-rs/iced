@@ -838,6 +838,8 @@ where
                         if state.keyboard_modifiers.command() =>
                     {
                         state.cursor.select_all(value);
+
+                        return event::Status::Captured;
                     }
                     _ => {}
                 }
