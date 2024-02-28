@@ -8,6 +8,7 @@ use crate::core::widget::operation;
 use crate::core::{Element, Length, Pixels};
 use crate::keyed;
 use crate::overlay;
+use crate::pane_grid::{self, PaneGrid};
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
@@ -429,7 +430,7 @@ where
     Command::widget(operation::focusable::focus_next())
 }
 
-/// A container intercepting mouse events.
+/// Creates a new [`MouseArea`].
 pub fn mouse_area<'a, Message, Theme, Renderer>(
     widget: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> MouseArea<'a, Message, Theme, Renderer>
@@ -439,7 +440,7 @@ where
     MouseArea::new(widget)
 }
 
-/// A widget that applies any `Theme` to its contents.
+/// Creates a new [`Themer`].
 pub fn themer<'a, Message, Theme, Renderer>(
     theme: Theme,
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -449,4 +450,20 @@ where
     Theme: application::StyleSheet,
 {
     Themer::new(theme, content)
+}
+
+/// Creates a new [`PaneGrid`].
+pub fn pane_grid<'a, T, Message, Theme, Renderer>(
+    state: &'a pane_grid::State<T>,
+    view: impl Fn(
+        pane_grid::Pane,
+        &'a T,
+        bool,
+    ) -> pane_grid::Content<'a, Message, Theme, Renderer>,
+) -> PaneGrid<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+    Theme: pane_grid::StyleSheet + container::StyleSheet,
+{
+    PaneGrid::new(state, view)
 }
