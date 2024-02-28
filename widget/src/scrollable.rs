@@ -166,6 +166,7 @@ pub struct Properties {
     margin: f32,
     scroller_width: f32,
     alignment: Alignment,
+    show_always: bool,
 }
 
 impl Default for Properties {
@@ -175,6 +176,7 @@ impl Default for Properties {
             margin: 0.0,
             scroller_width: 10.0,
             alignment: Alignment::Start,
+            show_always: false,
         }
     }
 }
@@ -206,6 +208,12 @@ impl Properties {
     /// Sets the alignment of the [`Scrollable`] .
     pub fn alignment(mut self, alignment: Alignment) -> Self {
         self.alignment = alignment;
+        self
+    }
+
+    /// Sets whether or not to show the scrollbar when not overflowing.
+    pub fn show_always(mut self, show_always: bool) -> Self {
+        self.show_always = show_always;
         self
     }
 }
@@ -908,6 +916,7 @@ pub fn draw<Theme, Renderer>(
     };
 
     let idle_scrollbar = theme.active(style).scrollbar;
+    let disabled_scrollbar = theme.disabled(style).scrollbar;
 
     container::draw_background(
         renderer,
@@ -984,7 +993,9 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_y_scrollbar
+                        if scrollbar.disabled {
+                            disabled_scrollbar
+                        } else if mouse_over_y_scrollbar
                             || state.y_scroller_grabbed_at.is_some()
                         {
                             appearance.scrollbar
@@ -998,7 +1009,9 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_x_scrollbar
+                        if scrollbar.disabled {
+                            disabled_scrollbar
+                        } else if mouse_over_x_scrollbar
                             || state.x_scroller_grabbed_at.is_some()
                         {
                             appearance.scrollbar
@@ -1376,13 +1389,23 @@ impl Scrollbars {
 
         let show_scrollbar_x = direction
             .horizontal()
-            .filter(|_| content_bounds.width > bounds.width);
+            .filter(|properties| {
+                properties.show_always || content_bounds.width > bounds.width
+            })
+            .map(|properties| {
+                (properties, content_bounds.width <= bounds.width)
+            });
 
         let show_scrollbar_y = direction
             .vertical()
-            .filter(|_| content_bounds.height > bounds.height);
+            .filter(|properties| {
+                properties.show_always || content_bounds.height > bounds.height
+            })
+            .map(|properties| {
+                (properties, content_bounds.height <= bounds.height)
+            });
 
-        let y_scrollbar = if let Some(vertical) = show_scrollbar_y {
+        let y_scrollbar = if let Some((vertical, disabled)) = show_scrollbar_y {
             let Properties {
                 width,
                 margin,
@@ -1393,7 +1416,7 @@ impl Scrollbars {
             // Adjust the height of the vertical scrollbar if the horizontal scrollbar
             // is present
             let x_scrollbar_height = show_scrollbar_x
-                .map_or(0.0, |h| h.width.max(h.scroller_width) + h.margin);
+                .map_or(0.0, |(h, _)| h.width.max(h.scroller_width) + h.margin);
 
             let total_scrollbar_width =
                 width.max(scroller_width) + 2.0 * margin;
@@ -1416,7 +1439,8 @@ impl Scrollbars {
                 height: (bounds.height - x_scrollbar_height).max(0.0),
             };
 
-            let ratio = bounds.height / content_bounds.height;
+            let ratio =
+                bounds.height / content_bounds.height.max(bounds.height);
             // min height for easier grabbing with super tall content
             let scroller_height = (scrollbar_bounds.height * ratio).max(2.0);
             let scroller_offset =
@@ -1438,12 +1462,14 @@ impl Scrollbars {
                     bounds: scroller_bounds,
                 },
                 alignment: vertical.alignment,
+                disabled,
             })
         } else {
             None
         };
 
-        let x_scrollbar = if let Some(horizontal) = show_scrollbar_x {
+        let x_scrollbar = if let Some((horizontal, disabled)) = show_scrollbar_x
+        {
             let Properties {
                 width,
                 margin,
@@ -1477,7 +1503,7 @@ impl Scrollbars {
                 height: width,
             };
 
-            let ratio = bounds.width / content_bounds.width;
+            let ratio = bounds.width / content_bounds.width.max(bounds.width);
             // min width for easier grabbing with extra wide content
             let scroller_length = (scrollbar_bounds.width * ratio).max(2.0);
             let scroller_offset =
@@ -1499,6 +1525,7 @@ impl Scrollbars {
                     bounds: scroller_bounds,
                 },
                 alignment: horizontal.alignment,
+                disabled,
             })
         } else {
             None
@@ -1573,6 +1600,7 @@ pub(super) mod internals {
         pub bounds: Rectangle,
         pub scroller: Scroller,
         pub alignment: Alignment,
+        pub disabled: bool,
     }
 
     impl Scrollbar {

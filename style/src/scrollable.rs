@@ -52,4 +52,29 @@ pub trait StyleSheet {
     fn dragging(&self, style: &Self::Style) -> Appearance {
         self.hovered(style, true)
     }
+
+    /// Produces the [`Appearance`] of a scrollable when it is disabled.
+    fn disabled(&self, style: &Self::Style) -> Appearance {
+        let active = self.active(style);
+
+        Appearance {
+            scrollbar: Scrollbar {
+                scroller: Scroller {
+                    color: Color {
+                        a: active.scrollbar.scroller.color.a * 0.5,
+                        ..active.scrollbar.scroller.color
+                    },
+                    border: Border {
+                        color: Color {
+                            a: active.scrollbar.scroller.border.color.a * 0.5,
+                            ..active.scrollbar.scroller.border.color
+                        },
+                        ..active.scrollbar.scroller.border
+                    },
+                },
+                ..active.scrollbar
+            },
+            ..active
+        }
+    }
 }

@@ -1249,6 +1249,34 @@ impl scrollable::StyleSheet for Theme {
             Scrollable::Custom(custom) => custom.dragging(self),
         }
     }
+
+    fn disabled(&self, style: &Self::Style) -> scrollable::Appearance {
+        if let Scrollable::Custom(custom) = style {
+            return custom.disabled(self);
+        }
+
+        let active = self.active(style);
+
+        scrollable::Appearance {
+            scrollbar: scrollable::Scrollbar {
+                scroller: scrollable::Scroller {
+                    color: Color {
+                        a: active.scrollbar.scroller.color.a * 0.5,
+                        ..active.scrollbar.scroller.color
+                    },
+                    border: Border {
+                        color: Color {
+                            a: active.scrollbar.scroller.border.color.a * 0.5,
+                            ..active.scrollbar.scroller.border.color
+                        },
+                        ..active.scrollbar.scroller.border
+                    },
+                },
+                ..active.scrollbar
+            },
+            ..active
+        }
+    }
 }
 
 /// The style of text.
