@@ -46,9 +46,6 @@ use crate::core::{
     Vector, Widget,
 };
 
-const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
-const THICKNESS_RATIO: f32 = 25.0;
-
 /// A collection of panes distributed using either vertical or horizontal splits
 /// to completely fill the space available.
 ///
@@ -535,6 +532,8 @@ pub fn update<'a, Message, T: Draggable>(
     on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: &Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
 ) -> event::Status {
+    const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
+
     let mut event_status = event::Status::Ignored;
 
     match event {
@@ -576,7 +575,6 @@ pub fn update<'a, Message, T: Draggable>(
                                 shell,
                                 contents,
                                 on_click,
-                                on_drag,
                             );
                         }
                     }
@@ -588,7 +586,6 @@ pub fn update<'a, Message, T: Draggable>(
                             shell,
                             contents,
                             on_click,
-                            on_drag,
                         );
                     }
                 }
@@ -597,44 +594,38 @@ pub fn update<'a, Message, T: Draggable>(
         Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
         | Event::Touch(touch::Event::FingerLifted { .. })
         | Event::Touch(touch::Event::FingerLost { .. }) => {
-            if let Some((pane, origin)) = action.picked_pane() {
+            if let Some((pane, _)) = action.picked_pane() {
                 if let Some(on_drag) = on_drag {
                     if let Some(cursor_position) = cursor.position() {
-                        if cursor_position.distance(origin)
-                            > DRAG_DEADBAND_DISTANCE
+                        let event = if let Some(edge) =
+                            in_edge(layout, cursor_position)
                         {
-                            let event = if let Some(edge) =
-                                in_edge(layout, cursor_position)
-                            {
-                                DragEvent::Dropped {
-                                    pane,
-                                    target: Target::Edge(edge),
-                                }
-                            } else {
-                                let dropped_region = contents
-                                    .zip(layout.children())
-                                    .find_map(|(target, layout)| {
-                                        layout_region(layout, cursor_position)
-                                            .map(|region| (target, region))
-                                    });
+                            DragEvent::Dropped {
+                                pane,
+                                target: Target::Edge(edge),
+                            }
+                        } else {
+                            let dropped_region = contents
+                                .zip(layout.children())
+                                .find_map(|(target, layout)| {
+                                    layout_region(layout, cursor_position)
+                                        .map(|region| (target, region))
+                                });
 
-                                match dropped_region {
-                                    Some(((target, _), region))
-                                        if pane != target =>
-                                    {
-                                        DragEvent::Dropped {
-                                            pane,
-                                            target: Target::Pane(
-                                                target, region,
-                                            ),
-                                        }
+                            match dropped_region {
+                                Some(((target, _), region))
+                                    if pane != target =>
+                                {
+                                    DragEvent::Dropped {
+                                        pane,
+                                        target: Target::Pane(target, region),
                                     }
-                                    _ => DragEvent::Canceled { pane },
                                 }
-                            };
+                                _ => DragEvent::Canceled { pane },
+                            }
+                        };
 
-                            shell.publish(on_drag(event));
-                        }
+                        shell.publish(on_drag(event));
                     }
                 }
 
@@ -647,7 +638,49 @@ pub fn update<'a, Message, T: Draggable>(
         }
         Event::Mouse(mouse::Event::CursorMoved { .. })
         | Event::Touch(touch::Event::FingerMoved { .. }) => {
-            if let Some((_, on_resize)) = on_resize {
+            if let Some((_, origin)) = action.clicked_pane() {
+                if let Some(on_drag) = &on_drag {
+                    let bounds = layout.bounds();
+
+                    if let Some(cursor_position) = cursor.position_over(bounds)
+                    {
+                        let mut clicked_region = contents
+                            .zip(layout.children())
+                            .filter(|(_, layout)| {
+                                layout.bounds().contains(cursor_position)
+                            });
+
+                        if let Some(((pane, content), layout)) =
+                            clicked_region.next()
+                        {
+                            if content
+                                .can_be_dragged_at(layout, cursor_position)
+                            {
+                                let pane_position = layout.position();
+
+                                let new_origin = cursor_position
+                                    - Vector::new(
+                                        pane_position.x,
+                                        pane_position.y,
+                                    );
+
+                                if new_origin.distance(origin)
+                                    > DRAG_DEADBAND_DISTANCE
+                                {
+                                    *action = state::Action::Dragging {
+                                        pane,
+                                        origin,
+                                    };
+
+                                    shell.publish(on_drag(DragEvent::Picked {
+                                        pane,
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if let Some((_, on_resize)) = on_resize {
                 if let Some((split, _)) = action.picked_split() {
                     let bounds = layout.bounds();
 
@@ -722,7 +755,6 @@ fn click_pane<'a, Message, T>(
     shell: &mut Shell<'_, Message>,
     contents: impl Iterator<Item = (Pane, T)>,
     on_click: &Option<Box<dyn Fn(Pane) -> Message + 'a>>,
-    on_drag: &Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
 ) where
     T: Draggable,
 {
@@ -730,21 +762,15 @@ fn click_pane<'a, Message, T>(
         .zip(layout.children())
         .filter(|(_, layout)| layout.bounds().contains(cursor_position));
 
-    if let Some(((pane, content), layout)) = clicked_region.next() {
+    if let Some(((pane, _), layout)) = clicked_region.next() {
         if let Some(on_click) = &on_click {
             shell.publish(on_click(pane));
         }
 
-        if let Some(on_drag) = &on_drag {
-            if content.can_be_dragged_at(layout, cursor_position) {
-                *action = state::Action::Dragging {
-                    pane,
-                    origin: cursor_position,
-                };
-
-                shell.publish(on_drag(DragEvent::Picked { pane }));
-            }
-        }
+        let pane_position = layout.position();
+        let origin =
+            cursor_position - Vector::new(pane_position.x, pane_position.y);
+        *action = state::Action::Clicking { pane, origin };
     }
 }
 
@@ -757,7 +783,7 @@ pub fn mouse_interaction(
     spacing: f32,
     resize_leeway: Option<f32>,
 ) -> Option<mouse::Interaction> {
-    if action.picked_pane().is_some() {
+    if action.clicked_pane().is_some() || action.picked_pane().is_some() {
         return Some(mouse::Interaction::Grabbing);
     }
 
@@ -815,13 +841,7 @@ pub fn draw<Theme, Renderer, T>(
     Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
-    let picked_pane = action.picked_pane().filter(|(_, origin)| {
-        cursor
-            .position()
-            .map(|position| position.distance(*origin))
-            .unwrap_or_default()
-            > DRAG_DEADBAND_DISTANCE
-    });
+    let picked_pane = action.picked_pane();
 
     let picked_split = action
         .picked_split()
@@ -942,7 +962,8 @@ pub fn draw<Theme, Renderer, T>(
         if let Some(cursor_position) = cursor.position() {
             let bounds = layout.bounds();
 
-            let translation = cursor_position - Point::new(origin.x, origin.y);
+            let translation = cursor_position
+                - Point::new(bounds.x + origin.x, bounds.y + origin.y);
 
             renderer.with_translation(translation, |renderer| {
                 renderer.with_layer(bounds, |renderer| {
@@ -998,6 +1019,8 @@ pub fn draw<Theme, Renderer, T>(
         }
     }
 }
+
+const THICKNESS_RATIO: f32 = 25.0;
 
 fn in_edge(layout: Layout<'_>, cursor: Point) -> Option<Edge> {
     let bounds = layout.bounds();
