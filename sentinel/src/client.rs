@@ -46,18 +46,20 @@ async fn run(mut receiver: mpsc::Receiver<Input>) {
                     &mut stream,
                     Input::Connected {
                         at: SystemTime::now(),
-                        version,
+                        version: version.clone(),
                     },
                 )
                 .await;
 
                 while let Some(input) = receiver.recv().await {
-                    if send(&mut stream, input).await.is_err() {
-                        break;
+                    match send(&mut stream, input).await {
+                        Ok(()) => {}
+                        Err(error) => {
+                            log::warn!("Error sending message to sentinel server: {error}");
+                            break;
+                        }
                     }
                 }
-
-                break;
             }
             Err(_) => {
                 time::sleep(time::Duration::from_secs(2)).await;

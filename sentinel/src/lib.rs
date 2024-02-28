@@ -75,7 +75,7 @@ pub fn run() -> impl Stream<Item = Event> {
             },
             State::Connected(stream) => match receive(stream).await {
                 Ok((stream, input)) => {
-                    let event = match dbg!(input) {
+                    let event = match input {
                         Input::Connected { at, version } => {
                             Event::Connected { at, version }
                         }
