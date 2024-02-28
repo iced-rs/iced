@@ -15,6 +15,7 @@ use crate::rule::{self, Rule};
 use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
+use crate::style::application;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
@@ -445,6 +446,7 @@ pub fn themer<'a, Message, Theme, Renderer>(
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    Theme: application::StyleSheet,
 {
     Themer::new(theme, content)
 }

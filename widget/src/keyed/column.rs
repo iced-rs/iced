@@ -110,15 +110,10 @@ where
         child: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
         let child = child.into();
-        let size = child.as_widget().size_hint();
+        let child_size = child.as_widget().size_hint();
 
-        if size.width.is_fill() {
-            self.width = Length::Fill;
-        }
-
-        if size.height.is_fill() {
-            self.height = Length::Fill;
-        }
+        self.width = self.width.enclose(child_size.width);
+        self.height = self.height.enclose(child_size.height);
 
         self.keys.push(key);
         self.children.push(child);
