@@ -1,4 +1,4 @@
-use crate::core::time::Duration;
+use crate::core::time::{Duration, SystemTime};
 use crate::core::window;
 
 use serde::{Deserialize, Serialize};
@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 )]
 pub struct Timing {
     pub stage: Stage,
+    pub start: SystemTime,
     pub duration: Duration,
 }
 

@@ -2,3 +2,4 @@
 
 pub use web_time::Duration;
 pub use web_time::Instant;
+pub use web_time::SystemTime;

@@ -1,3 +1,4 @@
+use crate::core::time::SystemTime;
 use crate::style::theme;
 use crate::{Input, Timing, SOCKET_ADDRESS};
 
@@ -13,7 +14,10 @@ pub struct Client {
 
 impl Client {
     pub fn report_theme_change(&mut self, palette: theme::Palette) {
-        let _ = self.sender.try_send(Input::ThemeChanged(palette));
+        let _ = self.sender.try_send(Input::ThemeChanged {
+            at: SystemTime::now(),
+            palette,
+        });
     }
 
     pub fn report_timing(&mut self, timing: Timing) {
@@ -38,7 +42,14 @@ async fn run(mut receiver: mpsc::Receiver<Input>) {
     loop {
         match _connect().await {
             Ok(mut stream) => {
-                let _ = send(&mut stream, Input::Connected(version)).await;
+                let _ = send(
+                    &mut stream,
+                    Input::Connected {
+                        at: SystemTime::now(),
+                        version,
+                    },
+                )
+                .await;
 
                 while let Some(input) = receiver.recv().await {
                     if send(&mut stream, input).await.is_err() {

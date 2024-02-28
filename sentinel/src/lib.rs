@@ -5,6 +5,7 @@ pub use semver::Version;
 pub mod client;
 pub mod timing;
 
+use crate::core::time::SystemTime;
 use crate::style::theme;
 use crate::timing::Timing;
 
@@ -18,17 +19,42 @@ pub const SOCKET_ADDRESS: &str = "127.0.0.1:9167";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Input {
-    Connected(Version),
+    Connected {
+        at: SystemTime,
+        version: Version,
+    },
+    ThemeChanged {
+        at: SystemTime,
+        palette: theme::Palette,
+    },
     TimingMeasured(Timing),
-    ThemeChanged(theme::Palette),
 }
 
 #[derive(Debug, Clone)]
 pub enum Event {
-    Connected(Version),
-    Disconnected,
+    Connected {
+        at: SystemTime,
+        version: Version,
+    },
+    Disconnected {
+        at: SystemTime,
+    },
+    ThemeChanged {
+        at: SystemTime,
+        palette: theme::Palette,
+    },
     TimingMeasured(Timing),
-    ThemeChanged(theme::Palette),
+}
+
+impl Event {
+    pub fn at(&self) -> SystemTime {
+        match self {
+            Self::Connected { at, .. }
+            | Self::Disconnected { at }
+            | Self::ThemeChanged { at, .. } => *at,
+            Self::TimingMeasured(timing) => timing.start,
+        }
+    }
 }
 
 pub fn run() -> impl Stream<Item = Event> {
@@ -48,12 +74,27 @@ pub fn run() -> impl Stream<Item = Event> {
                 Err(_error) => Some((None, State::Disconnected)),
             },
             State::Connected(stream) => match receive(stream).await {
-                Ok((_, Event::Disconnected)) | Err(_) => {
-                    Some((Some(Event::Disconnected), State::Disconnected))
+                Ok((stream, input)) => {
+                    let event = match dbg!(input) {
+                        Input::Connected { at, version } => {
+                            Event::Connected { at, version }
+                        }
+                        Input::TimingMeasured(timing) => {
+                            Event::TimingMeasured(timing)
+                        }
+                        Input::ThemeChanged { at, palette } => {
+                            Event::ThemeChanged { at, palette }
+                        }
+                    };
+
+                    Some((Some(event), State::Connected(stream)))
                 }
-                Ok((stream, message)) => {
-                    Some((Some(message), State::Connected(stream)))
-                }
+                Err(_) => Some((
+                    Some(Event::Disconnected {
+                        at: SystemTime::now(),
+                    }),
+                    State::Disconnected,
+                )),
             },
         }
     })
@@ -73,7 +114,7 @@ async fn connect() -> Result<net::TcpStream, io::Error> {
 
 async fn receive(
     mut stream: BufStream<net::TcpStream>,
-) -> Result<(BufStream<net::TcpStream>, Event), io::Error> {
+) -> Result<(BufStream<net::TcpStream>, Input), io::Error> {
     let mut bytes = Vec::new();
 
     loop {
@@ -87,21 +128,10 @@ async fn receive(
 
         match bincode::deserialize(&bytes) {
             Ok(input) => {
-                return Ok((
-                    stream,
-                    match dbg!(input) {
-                        Input::Connected(version) => Event::Connected(version),
-                        Input::TimingMeasured(timing) => {
-                            Event::TimingMeasured(timing)
-                        }
-                        Input::ThemeChanged(palette) => {
-                            Event::ThemeChanged(palette)
-                        }
-                    },
-                ));
+                return Ok((stream, input));
             }
             Err(_) => {
-                // TODO: Log decoding error
+                log::warn!("Error decoding sentinel message");
             }
         }
     }

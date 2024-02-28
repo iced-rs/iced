@@ -48,7 +48,7 @@ pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
 
 #[cfg(feature = "enable")]
 mod internal {
-    use crate::core::time::Instant;
+    use crate::core::time::{Instant, SystemTime};
     use crate::core::window;
     use crate::style::theme;
 
@@ -104,6 +104,7 @@ mod internal {
         Timer {
             stage,
             start: Instant::now(),
+            start_system_time: SystemTime::now(),
         }
     }
 
@@ -111,12 +112,14 @@ mod internal {
     pub struct Timer {
         stage: timing::Stage,
         start: Instant,
+        start_system_time: SystemTime,
     }
 
     impl Timer {
         pub fn finish(self) {
             lock().sentinel.report_timing(Timing {
                 stage: self.stage,
+                start: self.start_system_time,
                 duration: self.start.elapsed(),
             });
         }
