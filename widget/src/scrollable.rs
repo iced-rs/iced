@@ -907,7 +907,15 @@ pub fn draw<Theme, Renderer>(
         theme.active(style)
     };
 
-    let idle_scrollbar = theme.active(style).scrollbar;
+    let scrollbar_style = |is_dragging: bool, mouse_over_scrollbar: bool| {
+        if is_dragging {
+            theme.dragging(style).scrollbar
+        } else if cursor_over_scrollable.is_some() {
+            theme.hovered(style, mouse_over_scrollbar).scrollbar
+        } else {
+            theme.active(style).scrollbar
+        }
+    };
 
     container::draw_background(
         renderer,
@@ -984,13 +992,10 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_y_scrollbar
-                            || state.y_scroller_grabbed_at.is_some()
-                        {
-                            appearance.scrollbar
-                        } else {
-                            idle_scrollbar
-                        },
+                        scrollbar_style(
+                            state.y_scroller_grabbed_at.is_some(),
+                            mouse_over_y_scrollbar,
+                        ),
                         &scrollbar,
                     );
                 }
@@ -998,13 +1003,10 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_x_scrollbar
-                            || state.x_scroller_grabbed_at.is_some()
-                        {
-                            appearance.scrollbar
-                        } else {
-                            idle_scrollbar
-                        },
+                        scrollbar_style(
+                            state.x_scroller_grabbed_at.is_some(),
+                            mouse_over_x_scrollbar,
+                        ),
                         &scrollbar,
                     );
                 }
