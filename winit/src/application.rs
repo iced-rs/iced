@@ -499,21 +499,29 @@ async fn run_instance<A, E, C>(
                     continue;
                 }
 
-                let interact_timer = debug::interact_time(window::Id::MAIN);
-                let (interface_state, statuses) = user_interface.update(
-                    &events,
-                    state.cursor(),
-                    &mut renderer,
-                    &mut clipboard,
-                    &mut messages,
-                );
-                interact_timer.finish();
+                let interface_state = if events.is_empty() {
+                    user_interface::State::Updated {
+                        redraw_request: None,
+                    }
+                } else {
+                    let interact_timer = debug::interact_time(window::Id::MAIN);
+                    let (interface_state, statuses) = user_interface.update(
+                        &events,
+                        state.cursor(),
+                        &mut renderer,
+                        &mut clipboard,
+                        &mut messages,
+                    );
 
-                for (event, status) in
-                    events.drain(..).zip(statuses.into_iter())
-                {
-                    runtime.broadcast(event, status);
-                }
+                    for (event, status) in
+                        events.drain(..).zip(statuses.into_iter())
+                    {
+                        runtime.broadcast(event, status);
+                    }
+                    interact_timer.finish();
+
+                    interface_state
+                };
 
                 if !messages.is_empty()
                     || matches!(
