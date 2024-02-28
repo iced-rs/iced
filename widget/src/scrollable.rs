@@ -47,16 +47,38 @@ where
     Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
-    /// Creates a new [`Scrollable`].
+    /// Creates a new vertical [`Scrollable`].
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self {
+        Self::with_direction(content, Direction::default())
+    }
+
+    /// Creates a new [`Scrollable`] with the given [`Direction`].
+    pub fn with_direction(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        direction: Direction,
+    ) -> Self {
+        let content = content.into();
+
+        debug_assert!(
+            direction.vertical().is_none()
+                || !content.as_widget().size_hint().height.is_fill(),
+            "scrollable content must not fill its vertical scrolling axis"
+        );
+
+        debug_assert!(
+            direction.horizontal().is_none()
+                || !content.as_widget().size_hint().width.is_fill(),
+            "scrollable content must not fill its horizontal scrolling axis"
+        );
+
         Scrollable {
             id: None,
             width: Length::Shrink,
             height: Length::Shrink,
-            direction: Direction::default(),
-            content: content.into(),
+            direction,
+            content,
             on_scroll: None,
             style: Default::default(),
         }
@@ -77,12 +99,6 @@ where
     /// Sets the height of the [`Scrollable`].
     pub fn height(mut self, height: impl Into<Length>) -> Self {
         self.height = height.into();
-        self
-    }
-
-    /// Sets the [`Direction`] of the [`Scrollable`] .
-    pub fn direction(mut self, direction: Direction) -> Self {
-        self.direction = direction;
         self
     }
 
@@ -891,7 +907,15 @@ pub fn draw<Theme, Renderer>(
         theme.active(style)
     };
 
-    let idle_scrollbar = theme.active(style).scrollbar;
+    let scrollbar_style = |is_dragging: bool, mouse_over_scrollbar: bool| {
+        if is_dragging {
+            theme.dragging(style).scrollbar
+        } else if cursor_over_scrollable.is_some() {
+            theme.hovered(style, mouse_over_scrollbar).scrollbar
+        } else {
+            theme.active(style).scrollbar
+        }
+    };
 
     container::draw_background(
         renderer,
@@ -968,13 +992,10 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.y {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_y_scrollbar
-                            || state.y_scroller_grabbed_at.is_some()
-                        {
-                            appearance.scrollbar
-                        } else {
-                            idle_scrollbar
-                        },
+                        scrollbar_style(
+                            state.y_scroller_grabbed_at.is_some(),
+                            mouse_over_y_scrollbar,
+                        ),
                         &scrollbar,
                     );
                 }
@@ -982,13 +1003,10 @@ pub fn draw<Theme, Renderer>(
                 if let Some(scrollbar) = scrollbars.x {
                     draw_scrollbar(
                         renderer,
-                        if mouse_over_x_scrollbar
-                            || state.x_scroller_grabbed_at.is_some()
-                        {
-                            appearance.scrollbar
-                        } else {
-                            idle_scrollbar
-                        },
+                        scrollbar_style(
+                            state.x_scroller_grabbed_at.is_some(),
+                            mouse_over_x_scrollbar,
+                        ),
                         &scrollbar,
                     );
                 }

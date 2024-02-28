@@ -101,6 +101,17 @@ pub fn minimize<Message>(id: Id, minimized: bool) -> Command<Message> {
     Command::single(command::Action::Window(Action::Minimize(id, minimized)))
 }
 
+/// Fetches the current window position in logical coordinates.
+pub fn fetch_position<Message>(
+    id: Id,
+    f: impl FnOnce(Option<Point>) -> Message + 'static,
+) -> Command<Message> {
+    Command::single(command::Action::Window(Action::FetchPosition(
+        id,
+        Box::new(f),
+    )))
+}
+
 /// Moves the window to the given logical coordinates.
 pub fn move_to<Message>(id: Id, position: Point) -> Command<Message> {
     Command::single(command::Action::Window(Action::Move(id, position)))

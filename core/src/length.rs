@@ -48,10 +48,19 @@ impl Length {
     /// Specifically:
     /// - [`Length::Shrink`] if [`Length::Shrink`] or [`Length::Fixed`].
     /// - [`Length::Fill`] otherwise.
-    pub fn fluid(&self) -> Length {
+    pub fn fluid(&self) -> Self {
         match self {
             Length::Fill | Length::FillPortion(_) => Length::Fill,
             Length::Shrink | Length::Fixed(_) => Length::Shrink,
+        }
+    }
+
+    /// Adapts the [`Length`] so it can contain the other [`Length`] and
+    /// match its fluidity.
+    pub fn enclose(self, other: Length) -> Self {
+        match (self, other) {
+            (Length::Shrink, Length::Fill | Length::FillPortion(_)) => other,
+            _ => self,
         }
     }
 }

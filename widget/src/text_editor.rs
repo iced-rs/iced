@@ -686,6 +686,44 @@ impl Update {
                     text,
                     ..
                 } if state.is_focused => {
+                    match key.as_ref() {
+                        keyboard::Key::Named(key::Named::Enter) => {
+                            return edit(Edit::Enter);
+                        }
+                        keyboard::Key::Named(key::Named::Backspace) => {
+                            return edit(Edit::Backspace);
+                        }
+                        keyboard::Key::Named(key::Named::Delete) => {
+                            return edit(Edit::Delete);
+                        }
+                        keyboard::Key::Named(key::Named::Escape) => {
+                            return Some(Self::Unfocus);
+                        }
+                        keyboard::Key::Character("c")
+                            if modifiers.command() =>
+                        {
+                            return Some(Self::Copy);
+                        }
+                        keyboard::Key::Character("x")
+                            if modifiers.command() =>
+                        {
+                            return Some(Self::Cut);
+                        }
+                        keyboard::Key::Character("v")
+                            if modifiers.command() && !modifiers.alt() =>
+                        {
+                            return Some(Self::Paste);
+                        }
+                        _ => {}
+                    }
+
+                    if let Some(text) = text {
+                        if let Some(c) = text.chars().find(|c| !c.is_control())
+                        {
+                            return edit(Edit::Insert(c));
+                        }
+                    }
+
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
                         if let Some(motion) = motion(named_key) {
                             let motion = if platform::is_jump_modifier_pressed(
@@ -704,42 +742,7 @@ impl Update {
                         }
                     }
 
-                    match key.as_ref() {
-                        keyboard::Key::Named(key::Named::Enter) => {
-                            edit(Edit::Enter)
-                        }
-                        keyboard::Key::Named(key::Named::Backspace) => {
-                            edit(Edit::Backspace)
-                        }
-                        keyboard::Key::Named(key::Named::Delete) => {
-                            edit(Edit::Delete)
-                        }
-                        keyboard::Key::Named(key::Named::Escape) => {
-                            Some(Self::Unfocus)
-                        }
-                        keyboard::Key::Character("c")
-                            if modifiers.command() =>
-                        {
-                            Some(Self::Copy)
-                        }
-                        keyboard::Key::Character("x")
-                            if modifiers.command() =>
-                        {
-                            Some(Self::Cut)
-                        }
-                        keyboard::Key::Character("v")
-                            if modifiers.command() && !modifiers.alt() =>
-                        {
-                            Some(Self::Paste)
-                        }
-                        _ => {
-                            let text = text?;
-
-                            edit(Edit::Insert(
-                                text.chars().next().unwrap_or_default(),
-                            ))
-                        }
-                    }
+                    None
                 }
                 _ => None,
             },

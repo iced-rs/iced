@@ -15,6 +15,7 @@ use crate::rule::{self, Rule};
 use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
+use crate::style::application;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
@@ -302,16 +303,18 @@ where
     ComboBox::new(state, placeholder, selection, on_selected)
 }
 
-/// Creates a new horizontal [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// horizontal space.
 ///
-/// [`Space`]: crate::Space
+/// This can be useful to separate widgets in a [`Row`].
 pub fn horizontal_space() -> Space {
     Space::with_width(Length::Fill)
 }
 
-/// Creates a new vertical [`Space`] with the given [`Length`].
+/// Creates a new [`Space`] widget that fills the available
+/// vertical space.
 ///
-/// [`Space`]: crate::Space
+/// This can be useful to separate widgets in a [`Column`].
 pub fn vertical_space() -> Space {
     Space::with_height(Length::Fill)
 }
@@ -443,6 +446,7 @@ pub fn themer<'a, Message, Theme, Renderer>(
 ) -> Themer<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
+    Theme: application::StyleSheet,
 {
     Themer::new(theme, content)
 }

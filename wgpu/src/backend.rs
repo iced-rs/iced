@@ -27,7 +27,6 @@ pub struct Backend {
     text_pipeline: text::Pipeline,
     triangle_pipeline: triangle::Pipeline,
     pipeline_storage: pipeline::Storage,
-
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
 }
@@ -35,6 +34,7 @@ pub struct Backend {
 impl Backend {
     /// Creates a new [`Backend`].
     pub fn new(
+        _adapter: &wgpu::Adapter,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         settings: Settings,
@@ -46,7 +46,11 @@ impl Backend {
             triangle::Pipeline::new(device, format, settings.antialiasing);
 
         #[cfg(any(feature = "image", feature = "svg"))]
-        let image_pipeline = image::Pipeline::new(device, format);
+        let image_pipeline = {
+            let backend = _adapter.get_info().backend;
+
+            image::Pipeline::new(device, format, backend)
+        };
 
         Self {
             quad_pipeline,

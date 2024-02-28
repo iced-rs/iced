@@ -87,7 +87,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     let surface = instance.create_surface(window.clone())?;
 
-    let (format, (device, queue)) =
+    let (format, adapter, device, queue) =
         futures::futures::executor::block_on(async {
             let adapter = wgpu::util::initialize_adapter_from_env_or_default(
                 &instance,
@@ -107,6 +107,19 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             let capabilities = surface.get_capabilities(&adapter);
 
+            let (device, queue) = adapter
+                .request_device(
+                    &wgpu::DeviceDescriptor {
+                        label: None,
+                        required_features: adapter_features
+                            & wgpu::Features::default(),
+                        required_limits: needed_limits,
+                    },
+                    None,
+                )
+                .await
+                .expect("Request device");
+
             (
                 capabilities
                     .formats
@@ -115,18 +128,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .find(wgpu::TextureFormat::is_srgb)
                     .or_else(|| capabilities.formats.first().copied())
                     .expect("Get preferred format"),
-                adapter
-                    .request_device(
-                        &wgpu::DeviceDescriptor {
-                            label: None,
-                            required_features: adapter_features
-                                & wgpu::Features::default(),
-                            required_limits: needed_limits,
-                        },
-                        None,
-                    )
-                    .await
-                    .expect("Request device"),
+                adapter,
+                device,
+                queue,
             )
         });
 
@@ -153,7 +157,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize iced
     let mut debug = Debug::new();
     let mut renderer = Renderer::new(
-        Backend::new(&device, &queue, Settings::default(), format),
+        Backend::new(&adapter, &device, &queue, Settings::default(), format),
         Font::default(),
         Pixels(16.0),
     );

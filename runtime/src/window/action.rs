@@ -38,6 +38,8 @@ pub enum Action<T> {
     FetchMinimized(Id, Box<dyn FnOnce(Option<bool>) -> T + 'static>),
     /// Set the window to minimized or back
     Minimize(Id, bool),
+    /// Fetch the current logical coordinates of the window.
+    FetchPosition(Id, Box<dyn FnOnce(Option<Point>) -> T + 'static>),
     /// Move the window to the given logical coordinates.
     ///
     /// Unsupported on Wayland.
@@ -134,6 +136,9 @@ impl<T> Action<T> {
                 Action::FetchMinimized(id, Box::new(move |s| f(o(s))))
             }
             Self::Minimize(id, minimized) => Action::Minimize(id, minimized),
+            Self::FetchPosition(id, o) => {
+                Action::FetchPosition(id, Box::new(move |s| f(o(s))))
+            }
             Self::Move(id, position) => Action::Move(id, position),
             Self::ChangeMode(id, mode) => Action::ChangeMode(id, mode),
             Self::FetchMode(id, o) => {
@@ -185,6 +190,9 @@ impl<T> fmt::Debug for Action<T> {
             }
             Self::Minimize(id, minimized) => {
                 write!(f, "Action::Minimize({id:?}, {minimized}")
+            }
+            Self::FetchPosition(id, _) => {
+                write!(f, "Action::FetchPosition({id:?})")
             }
             Self::Move(id, position) => {
                 write!(f, "Action::Move({id:?}, {position})")
