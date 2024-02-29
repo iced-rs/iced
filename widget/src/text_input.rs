@@ -274,18 +274,6 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-
-        // Unfocus text input if it becomes disabled
-        if self.on_input.is_none() {
-            state.last_click = None;
-            state.is_focused = None;
-            state.is_pasting = None;
-            state.is_dragging = false;
-        }
-    }
-
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
@@ -1139,7 +1127,8 @@ pub fn draw<Theme, Renderer>(
                     .as_millis()
                     / CURSOR_BLINK_INTERVAL_MILLIS)
                     % 2
-                    == 0;
+                    == 0
+                    && !is_disabled;
 
                 let cursor = if is_cursor_visible {
                     Some((
