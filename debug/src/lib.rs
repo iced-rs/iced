@@ -46,6 +46,10 @@ pub fn time(window: window::Id, name: impl AsRef<str>) -> Timer {
     internal::time(window, name)
 }
 
+pub fn skip_next_timing() {
+    internal::skip_next_timing();
+}
+
 #[cfg(feature = "enable")]
 mod internal {
     use crate::core::time::{Instant, SystemTime};
@@ -100,6 +104,10 @@ mod internal {
         timer(timing::Stage::Custom(window, name.as_ref().to_owned()))
     }
 
+    pub fn skip_next_timing() {
+        lock().skip_next_timing = true;
+    }
+
     fn timer(stage: timing::Stage) -> Timer {
         Timer {
             stage,
@@ -117,7 +125,14 @@ mod internal {
 
     impl Timer {
         pub fn finish(self) {
-            lock().sentinel.report_timing(Timing {
+            let mut debug = lock();
+
+            if debug.skip_next_timing {
+                debug.skip_next_timing = false;
+                return;
+            }
+
+            debug.sentinel.report_timing(Timing {
                 stage: self.stage,
                 start: self.start_system_time,
                 duration: self.start.elapsed(),
@@ -129,6 +144,7 @@ mod internal {
     struct Debug {
         sentinel: Client,
         last_palette: Option<theme::Palette>,
+        skip_next_timing: bool,
     }
 
     fn lock() -> MutexGuard<'static, Debug> {
@@ -136,6 +152,7 @@ mod internal {
             Mutex::new(Debug {
                 sentinel: client::connect(),
                 last_palette: None,
+                skip_next_timing: false,
             })
         });
 
@@ -181,6 +198,8 @@ mod internal {
     pub fn time(_window: window::Id, _name: impl AsRef<str>) -> Timer {
         Timer
     }
+
+    pub fn skip_next_timing() {}
 
     #[derive(Debug)]
     pub struct Timer;
