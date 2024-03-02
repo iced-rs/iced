@@ -7,7 +7,14 @@ use crate::core::{Border, Element, Layout, Length, Rectangle, Size, Widget};
 
 use std::ops::RangeInclusive;
 
+use iced_style::core::renderer::Quad;
+use iced_style::core::Background;
+use iced_style::core::Color;
 pub use iced_style::progress_bar::{Appearance, StyleSheet};
+
+use self::progress::get_progress_rect;
+
+mod progress;
 
 /// A bar that displays progress.
 ///
@@ -28,8 +35,11 @@ where
 {
     range: RangeInclusive<f32>,
     value: f32,
-    width: Length,
-    height: Option<Length>,
+    buffer: f32,
+    vertical: bool,
+    reverse: bool,
+    length: Length,
+    size: Option<Length>,
     style: Theme::Style,
 }
 
@@ -48,22 +58,53 @@ where
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self {
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
+            buffer: *range.start(),
+            vertical: false,
+            reverse: false,
             range,
-            width: Length::Fill,
-            height: None,
+            length: Length::Fill,
+            size: None,
             style: Default::default(),
         }
     }
 
+    /// Sets the buffer of the [`ProgressBar`].
+    pub fn buffer(mut self, buffer: f32) -> Self {
+        self.buffer = buffer;
+        self
+    }
+
+    /// Sets the vertical orientation of the [`ProgressBar`]. With [`bool`] value
+    pub fn vertical_f(mut self, vertical: bool) -> Self {
+        self.vertical = vertical;
+        self
+    }
+
+    /// Sets the vertical orientation of the [`ProgressBar`].
+    pub fn vertical(self) -> Self {
+        self.vertical_f(true)
+    }
+
+    /// Sets the reverse value rendering of the [`ProgressBar`]. With [`bool`] value
+    pub fn reverse_f(mut self, reverse: bool) -> Self {
+        self.reverse = reverse;
+        self
+    }
+
+    /// Sets the reverse value rendering of the [`ProgressBar`].
+    pub fn reverse(self) -> Self {
+        self.reverse_f(true)
+    }
+
     /// Sets the width of the [`ProgressBar`].
-    pub fn width(mut self, width: impl Into<Length>) -> Self {
-        self.width = width.into();
+    pub fn length(mut self, width: impl Into<Length>) -> Self {
+        self.length = width.into();
         self
     }
 
     /// Sets the height of the [`ProgressBar`].
-    pub fn height(mut self, height: impl Into<Length>) -> Self {
-        self.height = Some(height.into());
+    pub fn size(mut self, height: impl Into<Length>) -> Self {
+        self.size = Some(height.into());
         self
     }
 
@@ -81,9 +122,19 @@ where
     Theme: StyleSheet,
 {
     fn size(&self) -> Size<Length> {
-        Size {
-            width: self.width,
-            height: self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
+        let ln = self.length;
+        let sz = self.size.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT));
+
+        if self.vertical {
+            Size {
+                width: sz,
+                height: ln,
+            }
+        } else {
+            Size {
+                width: ln,
+                height: sz,
+            }
         }
     }
 
@@ -93,11 +144,13 @@ where
         _renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout::atomic(
-            limits,
-            self.width,
-            self.height.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT)),
-        )
+        let size = self.size.unwrap_or(Length::Fixed(Self::DEFAULT_HEIGHT));
+
+        if self.vertical {
+            layout::atomic(limits, size, self.length)
+        } else {
+            layout::atomic(limits, self.length, size)
+        }
     }
 
     fn draw(
@@ -111,36 +164,50 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let (range_start, range_end) = self.range.clone().into_inner();
-
-        let active_progress_width = if range_start >= range_end {
-            0.0
-        } else {
-            bounds.width * (self.value - range_start)
-                / (range_end - range_start)
-        };
-
         let style = theme.appearance(&self.style);
 
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds: Rectangle { ..bounds },
-                border: Border::with_radius(style.border_radius),
-                ..renderer::Quad::default()
-            },
-            style.background,
-        );
-
-        if active_progress_width > 0.0 {
+        let mut render_bar = |bounds, bkg: Background| {
             renderer.fill_quad(
-                renderer::Quad {
-                    bounds: Rectangle {
-                        width: active_progress_width,
-                        ..bounds
+                Quad {
+                    bounds,
+                    border: Border {
+                        color: Color::TRANSPARENT,
+                        width: 0.,
+                        radius: style.border_radius,
                     },
-                    border: Border::with_radius(style.border_radius),
-                    ..renderer::Quad::default()
+                    ..Default::default()
                 },
+                bkg,
+            )
+        };
+
+        //фон
+        render_bar(bounds, style.background);
+
+        //буфер
+        if self.buffer > *self.range.start() {
+            render_bar(
+                get_progress_rect(
+                    bounds,
+                    self.buffer,
+                    self.range.clone(),
+                    self.vertical,
+                    self.reverse,
+                ),
+                style.buffer,
+            );
+        }
+
+        //значение
+        if self.value > *self.range.start() {
+            render_bar(
+                get_progress_rect(
+                    bounds,
+                    self.value,
+                    self.range.clone(),
+                    self.vertical,
+                    self.reverse,
+                ),
                 style.bar,
             );
         }

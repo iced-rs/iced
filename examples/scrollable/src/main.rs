@@ -348,6 +348,7 @@ fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
     progress_bar::Appearance {
         background: theme.extended_palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
+        buffer: Color::from_rgba8(85, 250, 134, 0.5).into(),
         border_radius: 0.0.into(),
     }
 }
