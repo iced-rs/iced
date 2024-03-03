@@ -4,11 +4,11 @@ use iced::mouse;
 use iced::theme;
 use iced::widget::{
     button, canvas, checkbox, column, container, horizontal_space, pick_list,
-    row, scrollable, text, vertical_rule,
+    row, scrollable, text,
 };
 use iced::{
-    color, Alignment, Application, Color, Command, Element, Font, Length,
-    Point, Rectangle, Renderer, Settings, Subscription, Theme,
+    color, Alignment, Application, Command, Element, Font, Length, Point,
+    Rectangle, Renderer, Settings, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -167,10 +167,6 @@ impl Example {
             title: "Application",
             view: application,
         },
-        Self {
-            title: "Nested Quotes",
-            view: nested_quotes,
-        },
     ];
 
     fn is_first(self) -> bool {
@@ -302,38 +298,6 @@ fn application<'a>() -> Element<'a, Message> {
     .padding(10);
 
     column![header, row![sidebar, content]].into()
-}
-
-fn nested_quotes<'a>() -> Element<'a, Message> {
-    (1..5)
-        .fold(column![text("Original text")].padding(10), |quotes, i| {
-            column![
-                container(
-                    row![vertical_rule(2), quotes].height(Length::Shrink)
-                )
-                .style(|theme: &Theme| {
-                    let palette = theme.extended_palette();
-
-                    container::Appearance::default().with_background(
-                        if palette.is_dark {
-                            Color {
-                                a: 0.01,
-                                ..Color::WHITE
-                            }
-                        } else {
-                            Color {
-                                a: 0.08,
-                                ..Color::BLACK
-                            }
-                        },
-                    )
-                }),
-                text(format!("Reply {i}"))
-            ]
-            .spacing(10)
-            .padding(10)
-        })
-        .into()
 }
 
 fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
