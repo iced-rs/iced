@@ -36,7 +36,7 @@ pub fn get_progress_rect(
 ) -> Rectangle {
     let bar_size = get_progress_offset(bounds, value, range, vertical);
 
-    let bar_rect = match (vertical, reverse) {
+    match (vertical, reverse) {
         (false, false) => Rectangle {
             x: bounds.x,
             y: bounds.y,
@@ -61,7 +61,5 @@ pub fn get_progress_rect(
             width: bounds.width,
             height: bar_size,
         },
-    };
-
-    bar_rect
+    }
 }

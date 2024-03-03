@@ -178,7 +178,7 @@ where
                     ..Default::default()
                 },
                 bkg,
-            )
+            );
         };
 
         //фон
