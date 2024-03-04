@@ -118,7 +118,7 @@ pub fn button<'a, Message, Theme, Renderer>(
 ) -> Button<'a, Message, Theme, Renderer>
 where
     Renderer: core::Renderer,
-    Theme: button::StyleSheet,
+    Theme: button::Style,
 {
     Button::new(content)
 }

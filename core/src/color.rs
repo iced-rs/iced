@@ -151,6 +151,14 @@ impl Color {
     pub fn inverse(self) -> Color {
         Color::new(1.0f32 - self.r, 1.0f32 - self.g, 1.0f32 - self.b, self.a)
     }
+
+    /// Transparentizes the [`Color`] by the given factor.
+    pub fn transparentize(self, factor: f32) -> Color {
+        Self {
+            a: self.a * factor,
+            ..self
+        }
+    }
 }
 
 impl From<[f32; 3]> for Color {

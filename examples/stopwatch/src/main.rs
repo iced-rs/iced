@@ -1,11 +1,11 @@
 use iced::alignment;
 use iced::executor;
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{button, column, container, row, text};
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Theme,
 };
 
 use std::time::{Duration, Instant};
@@ -136,7 +136,7 @@ impl Application for Stopwatch {
         };
 
         let reset_button = button("Reset")
-            .style(theme::Button::Destructive)
+            .style(button::destructive)
             .on_press(Message::Reset);
 
         let controls = row![toggle_button, reset_button].spacing(20);

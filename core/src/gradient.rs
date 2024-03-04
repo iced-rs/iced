@@ -13,11 +13,11 @@ pub enum Gradient {
 
 impl Gradient {
     /// Adjust the opacity of the gradient by a multiplier applied to each color stop.
-    pub fn mul_alpha(mut self, alpha_multiplier: f32) -> Self {
+    pub fn transparentize(mut self, factor: f32) -> Self {
         match &mut self {
             Gradient::Linear(linear) => {
                 for stop in linear.stops.iter_mut().flatten() {
-                    stop.color.a *= alpha_multiplier;
+                    stop.color.a *= factor;
                 }
             }
         }

@@ -1,14 +1,14 @@
 use iced::alignment::{self, Alignment};
 use iced::font::{self, Font};
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::{
     self, button, checkbox, column, container, keyed_column, row, scrollable,
     text, text_input, Text,
 };
 use iced::window;
-use iced::{Application, Element};
-use iced::{Command, Length, Settings, Size, Subscription};
+use iced::{
+    Application, Command, Element, Length, Settings, Size, Subscription, Theme,
+};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -362,7 +362,7 @@ impl Task {
                     button(edit_icon())
                         .on_press(TaskMessage::Edit)
                         .padding(10)
-                        .style(theme::Button::Text),
+                        .style(button::text),
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -385,7 +385,7 @@ impl Task {
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
-                    .style(theme::Button::Destructive)
+                    .style(button::destructive)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -402,9 +402,9 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
         let label = text(label);
 
         let button = button(label).style(if filter == current_filter {
-            theme::Button::Primary
+            button::primary
         } else {
-            theme::Button::Text
+            button::text
         });
 
         button.on_press(Message::FilterChanged(filter)).padding(8)

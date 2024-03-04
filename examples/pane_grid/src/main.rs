@@ -1,13 +1,13 @@
 use iced::alignment::{self, Alignment};
 use iced::executor;
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
     button, column, container, responsive, row, scrollable, text,
 };
 use iced::{
     Application, Color, Command, Element, Length, Settings, Size, Subscription,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -287,10 +287,7 @@ fn view_content<'a>(
         )
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(
-            button("Close", Message::Close(pane))
-                .style(theme::Button::Destructive),
-        )
+        Some(button("Close", Message::Close(pane)).style(button::destructive))
     } else {
         None
     })
@@ -327,7 +324,7 @@ fn view_controls<'a>(
 
         Some(
             button(text(content).size(14))
-                .style(theme::Button::Secondary)
+                .style(button::secondary)
                 .padding(3)
                 .on_press(message),
         )
@@ -336,7 +333,7 @@ fn view_controls<'a>(
     });
 
     let close = button(text("Close").size(14))
-        .style(theme::Button::Destructive)
+        .style(button::destructive)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
             Some(Message::Close(pane))

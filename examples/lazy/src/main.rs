@@ -1,4 +1,3 @@
-use iced::theme;
 use iced::widget::{
     button, column, horizontal_space, lazy, pick_list, row, scrollable, text,
     text_input,
@@ -181,7 +180,7 @@ impl Sandbox for App {
             column(items.into_iter().map(|item| {
                 let button = button("Delete")
                     .on_press(Message::DeleteItem(item.clone()))
-                    .style(theme::Button::Destructive);
+                    .style(button::destructive);
 
                 row![
                     text(&item.name).color(item.color),

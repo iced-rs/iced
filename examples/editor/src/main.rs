@@ -290,7 +290,7 @@ fn action<'a, Message: Clone + 'a>(
         .style(theme::Container::Box)
         .into()
     } else {
-        action.style(theme::Button::Secondary).into()
+        action.style(button::secondary).into()
     }
 }
 

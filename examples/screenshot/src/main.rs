@@ -216,9 +216,9 @@ impl Application for Example {
                         )
                     } else {
                         button(centered_text("Saving..."))
-                            .style(theme::Button::Secondary)
+                            .style(button::secondary)
                     }
-                    .style(theme::Button::Secondary)
+                    .style(button::secondary)
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill)
                 ]
@@ -227,7 +227,7 @@ impl Application for Example {
                     crop_controls,
                     button(centered_text("Crop"))
                         .on_press(Message::Crop)
-                        .style(theme::Button::Destructive)
+                        .style(button::destructive)
                         .padding([10, 20, 10, 20])
                         .width(Length::Fill),
                 ]

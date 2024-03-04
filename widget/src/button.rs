@@ -10,11 +10,11 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
+    Rectangle, Shadow, Shell, Size, Vector, Widget,
 };
-
-pub use crate::style::button::{Appearance, StyleSheet};
+use crate::style::theme::palette;
+use crate::style::Theme;
 
 /// A generic widget that produces a message when pressed.
 ///
@@ -53,7 +53,7 @@ pub use crate::style::button::{Appearance, StyleSheet};
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    Theme: StyleSheet,
+    Theme: Style,
     Renderer: crate::core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
@@ -62,12 +62,12 @@ where
     height: Length,
     padding: Padding,
     clip: bool,
-    style: Theme::Style,
+    style: fn(&Theme, Status) -> Appearance,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
+    Theme: Style,
     Renderer: crate::core::Renderer,
 {
     /// Creates a new [`Button`] with the given content.
@@ -84,7 +84,7 @@ where
             height: size.height.fluid(),
             padding: Padding::new(5.0),
             clip: false,
-            style: Theme::Style::default(),
+            style: Theme::DEFAULT,
         }
     }
 
@@ -124,7 +124,7 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
         self.style = style.into();
         self
     }
@@ -137,11 +137,16 @@ where
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct State {
+    is_pressed: bool,
+}
+
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
-    Theme: StyleSheet,
+    Theme: Style,
     Renderer: 'a + crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -149,7 +154,7 @@ where
     }
 
     fn state(&self) -> tree::State {
-        tree::State::new(State::new())
+        tree::State::new(State::default())
     }
 
     fn children(&self) -> Vec<Tree> {
@@ -173,13 +178,19 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(limits, self.width, self.height, self.padding, |limits| {
-            self.content.as_widget().layout(
-                &mut tree.children[0],
-                renderer,
-                limits,
-            )
-        })
+        layout::padded(
+            limits,
+            self.width,
+            self.height,
+            self.padding,
+            |limits| {
+                self.content.as_widget().layout(
+                    &mut tree.children[0],
+                    renderer,
+                    limits,
+                )
+            },
+        )
     }
 
     fn operate(
@@ -223,9 +234,48 @@ where
             return event::Status::Captured;
         }
 
-        update(event, layout, cursor, shell, &self.on_press, || {
-            tree.state.downcast_mut::<State>()
-        })
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                if self.on_press.is_some() {
+                    let bounds = layout.bounds();
+
+                    if cursor.is_over(bounds) {
+                        let state = tree.state.downcast_mut::<State>();
+
+                        state.is_pressed = true;
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerLifted { .. }) => {
+                if let Some(on_press) = self.on_press.clone() {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    if state.is_pressed {
+                        state.is_pressed = false;
+
+                        let bounds = layout.bounds();
+
+                        if cursor.is_over(bounds) {
+                            shell.publish(on_press);
+                        }
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
+            Event::Touch(touch::Event::FingerLost { .. }) => {
+                let state = tree.state.downcast_mut::<State>();
+
+                state.is_pressed = false;
+            }
+            _ => {}
+        }
+
+        event::Status::Ignored
     }
 
     fn draw(
@@ -240,16 +290,39 @@ where
     ) {
         let bounds = layout.bounds();
         let content_layout = layout.children().next().unwrap();
+        let is_mouse_over = cursor.is_over(bounds);
 
-        let styling = draw(
-            renderer,
-            bounds,
-            cursor,
-            self.on_press.is_some(),
-            theme,
-            &self.style,
-            || tree.state.downcast_ref::<State>(),
-        );
+        let status = if self.on_press.is_none() {
+            Status::Disabled
+        } else if is_mouse_over {
+            let state = tree.state.downcast_ref::<State>();
+
+            if state.is_pressed {
+                Status::Pressed
+            } else {
+                Status::Hovered
+            }
+        } else {
+            Status::Active
+        };
+
+        let styling = (self.style)(theme, status);
+
+        if styling.background.is_some()
+            || styling.border.width > 0.0
+            || styling.shadow.color.a > 0.0
+        {
+            renderer.fill_quad(
+                renderer::Quad {
+                    bounds,
+                    border: styling.border,
+                    shadow: styling.shadow,
+                },
+                styling
+                    .background
+                    .unwrap_or(Background::Color(Color::TRANSPARENT)),
+            );
+        }
 
         let viewport = if self.clip {
             bounds.intersection(viewport).unwrap_or(*viewport)
@@ -278,7 +351,13 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor, self.on_press.is_some())
+        let is_mouse_over = cursor.is_over(layout.bounds());
+
+        if is_mouse_over && self.on_press.is_some() {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
     }
 
     fn overlay<'b>(
@@ -301,7 +380,7 @@ impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
-    Theme: StyleSheet + 'a,
+    Theme: Style + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
@@ -309,143 +388,150 @@ where
     }
 }
 
-/// The local state of a [`Button`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct State {
-    is_pressed: bool,
+/// The possible status of a [`Button`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Button`] can be pressed.
+    Active,
+    /// The [`Button`] can be pressed and it is being hovered.
+    Hovered,
+    /// The [`Button`] is being pressed.
+    Pressed,
+    /// The [`Button`] cannot be pressed.
+    Disabled,
 }
 
-impl State {
-    /// Creates a new [`State`].
-    pub fn new() -> State {
-        State::default()
+/// The appearance of a button.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The amount of offset to apply to the shadow of the button.
+    pub shadow_offset: Vector,
+    /// The [`Background`] of the button.
+    pub background: Option<Background>,
+    /// The text [`Color`] of the button.
+    pub text_color: Color,
+    /// The [`Border`] of the buton.
+    pub border: Border,
+    /// The [`Shadow`] of the butoon.
+    pub shadow: Shadow,
+}
+
+impl std::default::Default for Appearance {
+    fn default() -> Self {
+        Self {
+            shadow_offset: Vector::default(),
+            background: None,
+            text_color: Color::BLACK,
+            border: Border::default(),
+            shadow: Shadow::default(),
+        }
     }
 }
 
-/// Processes the given [`Event`] and updates the [`State`] of a [`Button`]
-/// accordingly.
-pub fn update<'a, Message: Clone>(
-    event: Event,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    shell: &mut Shell<'_, Message>,
-    on_press: &Option<Message>,
-    state: impl FnOnce() -> &'a mut State,
-) -> event::Status {
-    match event {
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            if on_press.is_some() {
-                let bounds = layout.bounds();
-
-                if cursor.is_over(bounds) {
-                    let state = state();
-
-                    state.is_pressed = true;
-
-                    return event::Status::Captured;
-                }
-            }
-        }
-        Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerLifted { .. }) => {
-            if let Some(on_press) = on_press.clone() {
-                let state = state();
-
-                if state.is_pressed {
-                    state.is_pressed = false;
-
-                    let bounds = layout.bounds();
-
-                    if cursor.is_over(bounds) {
-                        shell.publish(on_press);
-                    }
-
-                    return event::Status::Captured;
-                }
-            }
-        }
-        Event::Touch(touch::Event::FingerLost { .. }) => {
-            let state = state();
-
-            state.is_pressed = false;
-        }
-        _ => {}
-    }
-
-    event::Status::Ignored
+/// The default style of a [`Button`] for a given theme.
+pub trait Style {
+    /// The default style.
+    const DEFAULT: fn(&Self, Status) -> Appearance;
 }
 
-/// Draws a [`Button`].
-pub fn draw<'a, Theme, Renderer: crate::core::Renderer>(
-    renderer: &mut Renderer,
-    bounds: Rectangle,
-    cursor: mouse::Cursor,
-    is_enabled: bool,
-    theme: &Theme,
-    style: &Theme::Style,
-    state: impl FnOnce() -> &'a State,
-) -> Appearance
-where
-    Theme: StyleSheet,
-{
-    let is_mouse_over = cursor.is_over(bounds);
+impl Style for Theme {
+    const DEFAULT: fn(&Self, Status) -> Appearance = primary;
+}
 
-    let styling = if !is_enabled {
-        theme.disabled(style)
-    } else if is_mouse_over {
-        let state = state();
+/// A primary button; denoting a main action.
+pub fn primary(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+    let base = styled(palette.primary.strong);
 
-        if state.is_pressed {
-            theme.pressed(style)
-        } else {
-            theme.hovered(style)
-        }
-    } else {
-        theme.active(style)
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Appearance {
+            background: Some(Background::Color(palette.primary.base.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A secondary button; denoting a complementary action.
+pub fn secondary(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+    let base = styled(palette.secondary.base);
+
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Appearance {
+            background: Some(Background::Color(palette.secondary.strong.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A positive button; denoting a good outcome.
+pub fn positive(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+    let base = styled(palette.success.base);
+
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Appearance {
+            background: Some(Background::Color(palette.success.strong.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A destructive button; denoting a dangerous action.
+pub fn destructive(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+    let base = styled(palette.danger.base);
+
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Appearance {
+            background: Some(Background::Color(palette.danger.strong.color)),
+            ..base
+        },
+        Status::Disabled => disabled(base),
+    }
+}
+
+/// A text button; useful for links.
+pub fn text(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let base = Appearance {
+        text_color: palette.background.base.text,
+        ..Appearance::default()
     };
 
-    if styling.background.is_some()
-        || styling.border.width > 0.0
-        || styling.shadow.color.a > 0.0
-    {
-        renderer.fill_quad(
-            renderer::Quad {
-                bounds,
-                border: styling.border,
-                shadow: styling.shadow,
-            },
-            styling
-                .background
-                .unwrap_or(Background::Color(Color::TRANSPARENT)),
-        );
+    match status {
+        Status::Active | Status::Pressed => base,
+        Status::Hovered => Appearance {
+            text_color: palette.background.base.text.transparentize(0.8),
+            ..base
+        },
+        Status::Disabled => disabled(base),
     }
-
-    styling
 }
 
-/// Computes the layout of a [`Button`].
-pub fn layout(
-    limits: &layout::Limits,
-    width: Length,
-    height: Length,
-    padding: Padding,
-    layout_content: impl FnOnce(&layout::Limits) -> layout::Node,
-) -> layout::Node {
-    layout::padded(limits, width, height, padding, layout_content)
+fn styled(pair: palette::Pair) -> Appearance {
+    Appearance {
+        background: Some(Background::Color(pair.color)),
+        text_color: pair.text,
+        border: Border::with_radius(2),
+        ..Appearance::default()
+    }
 }
 
-/// Returns the [`mouse::Interaction`] of a [`Button`].
-pub fn mouse_interaction(
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    is_enabled: bool,
-) -> mouse::Interaction {
-    let is_mouse_over = cursor.is_over(layout.bounds());
-
-    if is_mouse_over && is_enabled {
-        mouse::Interaction::Pointer
-    } else {
-        mouse::Interaction::default()
+fn disabled(appearance: Appearance) -> Appearance {
+    Appearance {
+        background: appearance
+            .background
+            .map(|background| background.transparentize(0.5)),
+        text_color: appearance.text_color.transparentize(0.5),
+        ..appearance
     }
 }

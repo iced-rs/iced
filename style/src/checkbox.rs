@@ -30,15 +30,7 @@ pub trait StyleSheet {
         let active = self.active(style, is_checked);
 
         Appearance {
-            background: match active.background {
-                Background::Color(color) => Background::Color(Color {
-                    a: color.a * 0.5,
-                    ..color
-                }),
-                Background::Gradient(gradient) => {
-                    Background::Gradient(gradient.mul_alpha(0.5))
-                }
-            },
+            background: active.background.transparentize(0.5),
             ..active
         }
     }

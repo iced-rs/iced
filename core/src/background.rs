@@ -11,6 +11,19 @@ pub enum Background {
     // TODO: Add image variant
 }
 
+impl Background {
+    /// Increases the translucency of the [`Background`]
+    /// by the given factor.
+    pub fn transparentize(self, factor: f32) -> Self {
+        match self {
+            Self::Color(color) => Self::Color(color.transparentize(factor)),
+            Self::Gradient(gradient) => {
+                Self::Gradient(gradient.transparentize(factor))
+            }
+        }
+    }
+}
+
 impl From<Color> for Background {
     fn from(color: Color) -> Self {
         Background::Color(color)
