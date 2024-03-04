@@ -1203,32 +1203,7 @@ impl scrollable::StyleSheet for Theme {
     }
 }
 
-/// The style of text.
-#[derive(Clone, Copy, Default)]
-pub enum Text {
-    /// The default style.
-    #[default]
-    Default,
-    /// Colored text.
-    Color(Color),
-}
-
-impl From<Color> for Text {
-    fn from(color: Color) -> Self {
-        Text::Color(color)
-    }
-}
-
-impl text::StyleSheet for Theme {
-    type Style = Text;
-
-    fn appearance(&self, style: Self::Style) -> text::Appearance {
-        match style {
-            Text::Default => text::Appearance::default(),
-            Text::Color(c) => text::Appearance { color: Some(c) },
-        }
-    }
-}
+impl text::StyleSheet for Theme {}
 
 /// The style of a text input.
 #[derive(Default)]

@@ -8,7 +8,7 @@ use iced::widget::{
 };
 use iced::window;
 use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Size, Subscription};
+use iced::{Command, Length, Settings, Size, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -209,7 +209,7 @@ impl Application for Todos {
                 let title = text("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .style(Color::from([0.5, 0.5, 0.5]))
+                    .color([0.5, 0.5, 0.5])
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -467,7 +467,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .style(Color::from([0.7, 0.7, 0.7])),
+            .color([0.7, 0.7, 0.7]),
     )
     .height(200)
     .center_y()

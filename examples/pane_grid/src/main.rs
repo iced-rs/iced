@@ -162,7 +162,7 @@ impl Application for Example {
             let title = row![
                 pin_button,
                 "Pane",
-                text(pane.id.to_string()).style(if is_focused {
+                text(pane.id.to_string()).color(if is_focused {
                     PANE_ID_COLOR_FOCUSED
                 } else {
                     PANE_ID_COLOR_UNFOCUSED

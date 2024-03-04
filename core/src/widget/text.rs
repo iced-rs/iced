@@ -29,7 +29,7 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
@@ -49,7 +49,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::Basic,
-            style: Default::default(),
+            style: Style::Themed(Theme::default()),
         }
     }
 
@@ -74,8 +74,20 @@ where
     }
 
     /// Sets the style of the [`Text`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
+        self.style = Style::Themed(style);
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`].
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
+        self.style = Style::Colored(Some(color.into()));
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`].
+    pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
+        self.style = Style::Colored(color.map(Into::into));
         self
     }
 
@@ -175,14 +187,12 @@ where
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
-        draw(
-            renderer,
-            style,
-            layout,
-            state,
-            theme.appearance(self.style.clone()),
-            viewport,
-        );
+        let appearance = match self.style {
+            Style::Themed(f) => f(theme),
+            Style::Colored(color) => Appearance { color },
+        };
+
+        draw(renderer, style, layout, state, appearance, viewport);
     }
 }
 
@@ -298,7 +308,7 @@ where
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
             font: self.font,
-            style: self.style.clone(),
+            style: self.style,
             shaping: self.shaping,
         }
     }
@@ -327,11 +337,18 @@ where
 
 /// The style sheet of some text.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default + Clone;
+    /// Returns the default styling strategy for [`Text`].
+    fn default() -> fn(&Self) -> Appearance {
+        |_| Appearance::default()
+    }
+}
 
-    /// Produces the [`Appearance`] of some text.
-    fn appearance(&self, style: Self::Style) -> Appearance;
+impl StyleSheet for Color {
+    fn default() -> fn(&Self) -> Appearance {
+        |color| Appearance {
+            color: Some(*color),
+        }
+    }
 }
 
 /// The apperance of some text.
@@ -342,3 +359,17 @@ pub struct Appearance {
     /// The default, `None`, means using the inherited color.
     pub color: Option<Color>,
 }
+
+#[derive(Debug)]
+enum Style<Theme> {
+    Themed(fn(&Theme) -> Appearance),
+    Colored(Option<Color>),
+}
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}

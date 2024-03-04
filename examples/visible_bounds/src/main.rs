@@ -82,7 +82,10 @@ impl Application for Example {
             row![
                 text(label),
                 horizontal_space(),
-                text(value).font(Font::MONOSPACE).size(14).style(color),
+                text(value)
+                    .font(Font::MONOSPACE)
+                    .size(14)
+                    .color_maybe(color),
             ]
             .height(40)
             .align_items(Alignment::Center)
@@ -102,13 +105,12 @@ impl Application for Example {
                     })
                     .unwrap_or_default()
                 {
-                    Color {
+                    Some(Color {
                         g: 1.0,
                         ..Color::BLACK
-                    }
-                    .into()
+                    })
                 } else {
-                    theme::Text::Default
+                    None
                 },
             )
         };
@@ -120,7 +122,7 @@ impl Application for Example {
                     Some(Point { x, y }) => format!("({x}, {y})"),
                     None => "unknown".to_string(),
                 },
-                theme::Text::Default,
+                None,
             ),
             view_bounds("Outer container", self.outer_bounds),
             view_bounds("Inner container", self.inner_bounds),

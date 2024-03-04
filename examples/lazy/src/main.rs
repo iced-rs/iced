@@ -184,8 +184,7 @@ impl Sandbox for App {
                     .style(theme::Button::Destructive);
 
                 row![
-                    text(&item.name)
-                        .style(theme::Text::Color(item.color.into())),
+                    text(&item.name).color(item.color),
                     horizontal_space(),
                     pick_list(Color::ALL, Some(item.color), move |color| {
                         Message::ItemColorChanged(item.clone(), color)

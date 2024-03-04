@@ -1,8 +1,6 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
-use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
-};
+use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
 
 pub fn main() -> iced::Result {
     Pokedex::run(Settings::default())
@@ -116,7 +114,7 @@ impl Pokemon {
                     text(&self.name).size(30).width(Length::Fill),
                     text(format!("#{}", self.number))
                         .size(20)
-                        .style(Color::from([0.5, 0.5, 0.5])),
+                        .color([0.5, 0.5, 0.5]),
                 ]
                 .align_items(Alignment::Center)
                 .spacing(20),

@@ -39,7 +39,7 @@ pub struct Checkbox<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet + crate::text::StyleSheet,
+    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     is_checked: bool,

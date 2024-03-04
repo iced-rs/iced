@@ -474,7 +474,7 @@ impl<'a> Step {
 
         let color_section = column![
             "And its color:",
-            text(format!("{color:?}")).style(color),
+            text(format!("{color:?}")).color(color),
             color_sliders,
         ]
         .padding(20)

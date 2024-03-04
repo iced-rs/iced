@@ -20,7 +20,7 @@ pub struct Tooltip<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::StyleSheet,
     Renderer: text::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
@@ -34,7 +34,7 @@ pub struct Tooltip<
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
+    Theme: container::StyleSheet,
     Renderer: text::Renderer,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
