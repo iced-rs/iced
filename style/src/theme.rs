@@ -608,88 +608,40 @@ impl<T: Fn(&Theme) -> container::Appearance> container::StyleSheet for T {
     }
 }
 
-/// The style of a slider.
-#[derive(Default)]
-pub enum Slider {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn slider::StyleSheet<Style = Theme>>),
+impl slider::StyleSheet for Theme {
+    fn default() -> fn(&Self, slider::Status) -> slider::Appearance {
+        slider
+    }
 }
 
-impl slider::StyleSheet for Theme {
-    type Style = Slider;
+pub fn slider(theme: &Theme, status: slider::Status) -> slider::Appearance {
+    let palette = theme.extended_palette();
 
-    fn active(&self, style: &Self::Style) -> slider::Appearance {
-        match style {
-            Slider::Default => {
-                let palette = self.extended_palette();
+    let handle = slider::Handle {
+        shape: slider::HandleShape::Rectangle {
+            width: 8,
+            border_radius: 4.0.into(),
+        },
+        color: Color::WHITE,
+        border_color: Color::WHITE,
+        border_width: 1.0,
+    };
 
-                let handle = slider::Handle {
-                    shape: slider::HandleShape::Rectangle {
-                        width: 8,
-                        border_radius: 4.0.into(),
-                    },
-                    color: Color::WHITE,
-                    border_color: Color::WHITE,
-                    border_width: 1.0,
-                };
-
-                slider::Appearance {
-                    rail: slider::Rail {
-                        colors: (
-                            palette.primary.base.color,
-                            palette.secondary.base.color,
-                        ),
-                        width: 4.0,
-                        border_radius: 2.0.into(),
-                    },
-                    handle: slider::Handle {
-                        color: palette.background.base.color,
-                        border_color: palette.primary.base.color,
-                        ..handle
-                    },
-                }
-            }
-            Slider::Custom(custom) => custom.active(self),
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style) -> slider::Appearance {
-        match style {
-            Slider::Default => {
-                let active = self.active(style);
-                let palette = self.extended_palette();
-
-                slider::Appearance {
-                    handle: slider::Handle {
-                        color: palette.primary.weak.color,
-                        ..active.handle
-                    },
-                    ..active
-                }
-            }
-            Slider::Custom(custom) => custom.hovered(self),
-        }
-    }
-
-    fn dragging(&self, style: &Self::Style) -> slider::Appearance {
-        match style {
-            Slider::Default => {
-                let active = self.active(style);
-                let palette = self.extended_palette();
-
-                slider::Appearance {
-                    handle: slider::Handle {
-                        color: palette.primary.base.color,
-                        ..active.handle
-                    },
-                    ..active
-                }
-            }
-            Slider::Custom(custom) => custom.dragging(self),
-        }
+    slider::Appearance {
+        rail: slider::Rail {
+            colors: (palette.primary.base.color, palette.secondary.base.color),
+            width: 4.0,
+            border_radius: 2.0.into(),
+        },
+        handle: slider::Handle {
+            color: match status {
+                slider::Status::Active => palette.background.base.color,
+                slider::Status::Hovered => palette.primary.weak.color,
+                slider::Status::Dragging => palette.primary.base.color,
+            },
+            border_color: palette.primary.base.color,
+            ..handle
+        },
     }
 }
 

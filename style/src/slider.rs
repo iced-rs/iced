@@ -1,6 +1,6 @@
 //! Change the apperance of a slider.
 use crate::core::border;
-use crate::core::Color;
+use crate::core::{Color, Pixels};
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
@@ -9,6 +9,17 @@ pub struct Appearance {
     pub rail: Rail,
     /// The appearance of the [`Handle`] of the slider.
     pub handle: Handle,
+}
+
+impl Appearance {
+    /// Changes the [`HandleShape`] of the [`Appearance`] to a circle
+    /// with the given radius.
+    pub fn with_circular_handle(mut self, radius: impl Into<Pixels>) -> Self {
+        self.handle.shape = HandleShape::Circle {
+            radius: radius.into().0,
+        };
+        self
+    }
 }
 
 /// The appearance of a slider rail
@@ -54,15 +65,11 @@ pub enum HandleShape {
 
 /// A set of rules that dictate the style of a slider.
 pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default;
+    fn default() -> fn(&Self, Status) -> Appearance;
+}
 
-    /// Produces the style of an active slider.
-    fn active(&self, style: &Self::Style) -> Appearance;
-
-    /// Produces the style of an hovered slider.
-    fn hovered(&self, style: &Self::Style) -> Appearance;
-
-    /// Produces the style of a slider that is being dragged.
-    fn dragging(&self, style: &Self::Style) -> Appearance;
+pub enum Status {
+    Active,
+    Hovered,
+    Dragging,
 }

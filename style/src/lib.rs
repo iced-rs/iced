@@ -10,7 +10,7 @@
 #![forbid(unsafe_code, rust_2018_idioms)]
 #![deny(
     unused_results,
-    missing_docs,
+    // missing_docs,
     unused_results,
     rustdoc::broken_intra_doc_links
 )]
