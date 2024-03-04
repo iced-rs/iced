@@ -15,7 +15,6 @@ use crate::rule::{self, Rule};
 use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
-use crate::style::application;
 use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
@@ -440,13 +439,13 @@ where
 }
 
 /// A widget that applies any `Theme` to its contents.
-pub fn themer<'a, Message, Theme, Renderer>(
-    theme: Theme,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Themer<'a, Message, Theme, Renderer>
+pub fn themer<'a, Message, OldTheme, NewTheme, F, Renderer>(
+    to_theme: F,
+    content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
+) -> Themer<'a, Message, OldTheme, NewTheme, F, Renderer>
 where
+    F: Fn(&OldTheme) -> NewTheme,
     Renderer: core::Renderer,
-    Theme: application::StyleSheet,
 {
-    Themer::new(theme, content)
+    Themer::new(to_theme, content)
 }
