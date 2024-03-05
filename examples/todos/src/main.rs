@@ -355,6 +355,7 @@ impl Task {
                 let checkbox = checkbox(&self.description, self.completed)
                     .on_toggle(TaskMessage::Completed)
                     .width(Length::Fill)
+                    .size(17)
                     .text_shaping(text::Shaping::Advanced);
 
                 row![

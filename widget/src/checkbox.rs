@@ -62,7 +62,7 @@ where
     Theme: Style,
 {
     /// The default size of a [`Checkbox`].
-    const DEFAULT_SIZE: f32 = 20.0;
+    const DEFAULT_SIZE: f32 = 15.0;
 
     /// The default spacing of a [`Checkbox`].
     const DEFAULT_SPACING: f32 = 10.0;
@@ -91,7 +91,7 @@ where
                 line_height: text::LineHeight::default(),
                 shaping: text::Shaping::Basic,
             },
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 
@@ -426,11 +426,11 @@ pub struct Appearance {
 /// A set of rules that dictate the style of a checkbox.
 pub trait Style {
     /// The supported style of the [`StyleSheet`].
-    fn default() -> fn(&Self, Status) -> Appearance;
+    fn style() -> fn(&Self, Status) -> Appearance;
 }
 
 impl Style for Theme {
-    fn default() -> fn(&Self, Status) -> Appearance {
+    fn style() -> fn(&Self, Status) -> Appearance {
         primary
     }
 }
