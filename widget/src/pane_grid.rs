@@ -32,7 +32,6 @@ pub use title_bar::TitleBar;
 
 pub use crate::style::pane_grid::{Appearance, Line, StyleSheet};
 
-use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -105,7 +104,7 @@ pub struct PaneGrid<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     contents: Contents<'a, Content<'a, Message, Theme, Renderer>>,
@@ -120,7 +119,7 @@ pub struct PaneGrid<
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
@@ -240,7 +239,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PaneGrid<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<state::Action>()
@@ -470,7 +469,7 @@ impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + 'a,
+    Theme: StyleSheet + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(

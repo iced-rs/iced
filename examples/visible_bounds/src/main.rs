@@ -1,14 +1,13 @@
 use iced::event::{self, Event};
 use iced::executor;
 use iced::mouse;
-use iced::theme::{self, Theme};
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
 };
 use iced::window;
 use iced::{
     Alignment, Application, Color, Command, Element, Font, Length, Point,
-    Rectangle, Settings, Subscription,
+    Rectangle, Settings, Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -133,7 +132,7 @@ impl Application for Example {
                     container(text("I am the outer container!"))
                         .id(OUTER_CONTAINER.clone())
                         .padding(40)
-                        .style(theme::Container::Box),
+                        .style(container::box_),
                     vertical_space().height(400),
                     scrollable(
                         column![
@@ -142,7 +141,7 @@ impl Application for Example {
                             container(text("I am the inner container!"))
                                 .id(INNER_CONTAINER.clone())
                                 .padding(40)
-                                .style(theme::Container::Box),
+                                .style(container::box_),
                             vertical_space().height(400),
                         ]
                         .padding(20)

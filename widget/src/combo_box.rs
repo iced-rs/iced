@@ -299,7 +299,7 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
-    Theme: container::StyleSheet
+    Theme: container::Style
         + text_input::StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet,
@@ -719,7 +719,7 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
-    Theme: container::StyleSheet
+    Theme: container::Style
         + text_input::StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet

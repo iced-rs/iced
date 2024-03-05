@@ -47,7 +47,7 @@ impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: StyleSheet + container::Style + scrollable::StyleSheet + 'a,
     Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
@@ -165,7 +165,7 @@ impl Default for State {
 
 struct Overlay<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet + container::Style,
     Renderer: crate::core::Renderer,
 {
     position: Point,
@@ -179,7 +179,7 @@ where
 impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: StyleSheet + container::Style + scrollable::StyleSheet + 'a,
     Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(
@@ -235,7 +235,7 @@ impl<'a, Message, Theme, Renderer>
     crate::core::Overlay<Message, Theme, Renderer>
     for Overlay<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
+    Theme: StyleSheet + container::Style,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {

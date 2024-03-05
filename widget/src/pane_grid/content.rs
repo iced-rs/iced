@@ -20,25 +20,26 @@ pub struct Content<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
     body: Element<'a, Message, Theme, Renderer>,
-    style: Theme::Style,
+    style: fn(&Theme, container::Status) -> container::Appearance,
 }
 
 impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
+    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self
+    where
+        Theme: container::Style,
+    {
         Self {
             title_bar: None,
             body: body.into(),
-            style: Default::default(),
+            style: Theme::default(),
         }
     }
 
@@ -52,15 +53,17 @@ where
     }
 
     /// Sets the style of the [`Content`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: fn(&Theme, container::Status) -> container::Appearance,
+    ) -> Self {
+        self.style = style;
         self
     }
 }
 
 impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     pub(super) fn state(&self) -> Tree {
@@ -104,7 +107,15 @@ where
         let bounds = layout.bounds();
 
         {
-            let style = theme.appearance(&self.style);
+            let style = {
+                let status = if cursor.is_over(bounds) {
+                    container::Status::Hovered
+                } else {
+                    container::Status::Idle
+                };
+
+                (self.style)(theme, status)
+            };
 
             container::draw_background(renderer, &style, bounds);
         }
@@ -370,7 +381,6 @@ where
 impl<'a, Message, Theme, Renderer> Draggable
     for &Content<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     fn can_be_dragged_at(
@@ -393,7 +403,7 @@ impl<'a, T, Message, Theme, Renderer> From<T>
     for Content<'a, Message, Theme, Renderer>
 where
     T: Into<Element<'a, Message, Theme, Renderer>>,
-    Theme: container::StyleSheet,
+    Theme: container::Style,
     Renderer: crate::core::Renderer,
 {
     fn from(element: T) -> Self {

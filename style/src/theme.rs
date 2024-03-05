@@ -20,7 +20,7 @@ use crate::text_editor;
 use crate::text_input;
 use crate::toggler;
 
-use crate::core::{Background, Border, Color, Shadow};
+use crate::core::{Background, Border, Color};
 
 use std::fmt;
 use std::rc::Rc;
@@ -279,59 +279,6 @@ impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
-        (self)(style)
-    }
-}
-
-/// The style of a container.
-#[derive(Default)]
-pub enum Container {
-    /// No style.
-    #[default]
-    Transparent,
-    /// A simple box.
-    Box,
-    /// A custom style.
-    Custom(Box<dyn container::StyleSheet<Style = Theme>>),
-}
-
-impl From<container::Appearance> for Container {
-    fn from(appearance: container::Appearance) -> Self {
-        Self::Custom(Box::new(move |_: &_| appearance))
-    }
-}
-
-impl<T: Fn(&Theme) -> container::Appearance + 'static> From<T> for Container {
-    fn from(f: T) -> Self {
-        Self::Custom(Box::new(f))
-    }
-}
-
-impl container::StyleSheet for Theme {
-    type Style = Container;
-
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
-        match style {
-            Container::Transparent => container::Appearance::default(),
-            Container::Box => {
-                let palette = self.extended_palette();
-
-                container::Appearance {
-                    text_color: None,
-                    background: Some(palette.background.weak.color.into()),
-                    border: Border::with_radius(2),
-                    shadow: Shadow::default(),
-                }
-            }
-            Container::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl<T: Fn(&Theme) -> container::Appearance> container::StyleSheet for T {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> container::Appearance {
         (self)(style)
     }
 }

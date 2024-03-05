@@ -1,14 +1,13 @@
 use iced::executor;
 use iced::highlighter::{self, Highlighter};
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::{
     button, column, container, horizontal_space, pick_list, row, text,
     text_editor, tooltip,
 };
 use iced::{
     Alignment, Application, Command, Element, Font, Length, Settings,
-    Subscription,
+    Subscription, Theme,
 };
 
 use std::ffi;
@@ -287,7 +286,7 @@ fn action<'a, Message: Clone + 'a>(
             label,
             tooltip::Position::FollowCursor,
         )
-        .style(theme::Container::Box)
+        .style(container::box_)
         .into()
     } else {
         action.style(button::secondary).into()

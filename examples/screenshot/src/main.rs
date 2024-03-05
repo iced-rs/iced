@@ -1,7 +1,6 @@
 use iced::alignment;
 use iced::executor;
 use iced::keyboard;
-use iced::theme;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
@@ -149,7 +148,7 @@ impl Application for Example {
 
         let image = container(image)
             .padding(10)
-            .style(theme::Container::Box)
+            .style(container::box_)
             .width(Length::FillPortion(2))
             .height(Length::Fill)
             .center_x()

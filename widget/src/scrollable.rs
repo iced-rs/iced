@@ -1,5 +1,5 @@
 //! Navigate an endless amount of content with a scrollbar.
-use crate::container;
+// use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -917,11 +917,11 @@ pub fn draw<Theme, Renderer>(
         }
     };
 
-    container::draw_background(
-        renderer,
-        &appearance.container,
-        layout.bounds(),
-    );
+    // container::draw_background(
+    //     renderer,
+    //     &appearance.container,
+    //     layout.bounds(),
+    // );
 
     // Draw inner content
     if scrollbars.active() {

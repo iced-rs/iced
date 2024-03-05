@@ -19,24 +19,23 @@ pub struct TitleBar<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
     controls: Option<Element<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: Theme::Style,
+    style: fn(&Theme, container::Status) -> container::Appearance,
 }
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new<E>(content: E) -> Self
     where
+        Theme: container::Style,
         E: Into<Element<'a, Message, Theme, Renderer>>,
     {
         Self {
@@ -44,7 +43,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Default::default(),
+            style: Theme::default(),
         }
     }
 
@@ -64,8 +63,11 @@ where
     }
 
     /// Sets the style of the [`TitleBar`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: fn(&Theme, container::Status) -> container::Appearance,
+    ) -> Self {
+        self.style = style;
         self
     }
 
@@ -85,7 +87,6 @@ where
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     pub(super) fn state(&self) -> Tree {
@@ -128,7 +129,17 @@ where
         show_controls: bool,
     ) {
         let bounds = layout.bounds();
-        let style = theme.appearance(&self.style);
+
+        let style = {
+            let status = if cursor.is_over(bounds) {
+                container::Status::Hovered
+            } else {
+                container::Status::Idle
+            };
+
+            (self.style)(theme, status)
+        };
+
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),
         };

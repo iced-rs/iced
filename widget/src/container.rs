@@ -8,12 +8,11 @@ use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Padding, Pixels,
-    Point, Rectangle, Shell, Size, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shadow, Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
-
-pub use iced_style::container::{Appearance, StyleSheet};
+use crate::style::Theme;
 
 /// An element decorating some content.
 ///
@@ -25,7 +24,6 @@ pub struct Container<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     id: Option<Id>,
@@ -36,19 +34,19 @@ pub struct Container<
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: Theme::Style,
+    style: fn(&Theme, Status) -> Appearance,
     clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
 }
 
 impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     /// Creates an empty [`Container`].
     pub fn new<T>(content: T) -> Self
     where
+        Theme: Style,
         T: Into<Element<'a, Message, Theme, Renderer>>,
     {
         let content = content.into();
@@ -63,7 +61,7 @@ where
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style: Default::default(),
+            style: Theme::default(),
             clip: false,
             content,
         }
@@ -130,8 +128,8 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
+        self.style = style;
         self
     }
 
@@ -146,7 +144,6 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Container<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -262,10 +259,18 @@ where
         cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let style = theme.appearance(&self.style);
+        let bounds = layout.bounds();
 
-        if let Some(clipped_viewport) = layout.bounds().intersection(viewport) {
-            draw_background(renderer, &style, layout.bounds());
+        let status = if cursor.is_over(bounds) {
+            Status::Hovered
+        } else {
+            Status::Idle
+        };
+
+        let style = (self.style)(theme, status);
+
+        if let Some(clipped_viewport) = bounds.intersection(viewport) {
+            draw_background(renderer, &style, bounds);
 
             self.content.as_widget().draw(
                 tree,
@@ -307,7 +312,7 @@ impl<'a, Message, Theme, Renderer> From<Container<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a + StyleSheet,
+    Theme: 'a,
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(
@@ -481,4 +486,87 @@ pub fn visible_bounds(id: Id) -> Command<Option<Rectangle>> {
         scrollables: Vec::new(),
         bounds: None,
     })
+}
+
+/// The appearance of a container.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct Appearance {
+    /// The text [`Color`] of the container.
+    pub text_color: Option<Color>,
+    /// The [`Background`] of the container.
+    pub background: Option<Background>,
+    /// The [`Border`] of the container.
+    pub border: Border,
+    /// The [`Shadow`] of the container.
+    pub shadow: Shadow,
+}
+
+impl Appearance {
+    /// Derives a new [`Appearance`] with a border of the given [`Color`] and
+    /// `width`.
+    pub fn with_border(
+        self,
+        color: impl Into<Color>,
+        width: impl Into<Pixels>,
+    ) -> Self {
+        Self {
+            border: Border {
+                color: color.into(),
+                width: width.into().0,
+                ..Border::default()
+            },
+            ..self
+        }
+    }
+
+    /// Derives a new [`Appearance`] with the given [`Background`].
+    pub fn with_background(self, background: impl Into<Background>) -> Self {
+        Self {
+            background: Some(background.into()),
+            ..self
+        }
+    }
+}
+
+/// The possible status of a [`Container`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Container`] is idle.
+    Idle,
+    /// The [`Container`] is being hovered.
+    Hovered,
+}
+
+/// The style of a [`Container`] for a theme.
+pub trait Style {
+    /// The default style of a [`Container`].
+    fn default() -> fn(&Self, Status) -> Appearance;
+}
+
+impl Style for Theme {
+    fn default() -> fn(&Self, Status) -> Appearance {
+        transparent
+    }
+}
+
+impl Style for Appearance {
+    fn default() -> fn(&Self, Status) -> Appearance {
+        |appearance, _status| *appearance
+    }
+}
+
+/// A transparent [`Container`].
+pub fn transparent(_theme: &Theme, _status: Status) -> Appearance {
+    <Appearance as Default>::default()
+}
+
+/// A rounded [`Container`] with a background.
+pub fn box_(theme: &Theme, _status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background: Some(palette.background.weak.color.into()),
+        border: Border::with_radius(2),
+        ..<Appearance as Default>::default()
+    }
 }

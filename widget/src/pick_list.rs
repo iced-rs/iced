@@ -64,7 +64,7 @@ where
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet,
+        + container::Style,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer,
 {
@@ -179,7 +179,7 @@ where
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet,
+        + container::Style,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer + 'a,
 {
@@ -320,7 +320,7 @@ where
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet
+        + container::Style
         + 'a,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer + 'a,
@@ -630,7 +630,7 @@ where
     Theme: StyleSheet
         + scrollable::StyleSheet
         + menu::StyleSheet
-        + container::StyleSheet
+        + container::Style
         + 'a,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer + 'a,

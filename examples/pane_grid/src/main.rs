@@ -348,7 +348,10 @@ mod style {
     use iced::widget::container;
     use iced::{Border, Theme};
 
-    pub fn title_bar_active(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_active(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -358,7 +361,10 @@ mod style {
         }
     }
 
-    pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_focused(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -368,7 +374,10 @@ mod style {
         }
     }
 
-    pub fn pane_active(theme: &Theme) -> container::Appearance {
+    pub fn pane_active(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -382,7 +391,10 @@ mod style {
         }
     }
 
-    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+    pub fn pane_focused(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {

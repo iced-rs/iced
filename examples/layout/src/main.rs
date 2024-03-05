@@ -1,7 +1,6 @@
 use iced::executor;
 use iced::keyboard;
 use iced::mouse;
-use iced::theme;
 use iced::widget::{
     button, canvas, checkbox, column, container, horizontal_space, pick_list,
     row, scrollable, text,
@@ -98,7 +97,7 @@ impl Application for Layout {
         } else {
             self.example.view()
         })
-        .style(|theme: &Theme| {
+        .style(|theme, _status| {
             let palette = theme.extended_palette();
 
             container::Appearance::default()
@@ -262,7 +261,7 @@ fn application<'a>() -> Element<'a, Message> {
         .padding(10)
         .align_items(Alignment::Center),
     )
-    .style(|theme: &Theme| {
+    .style(|theme, _status| {
         let palette = theme.extended_palette();
 
         container::Appearance::default()
@@ -276,7 +275,7 @@ fn application<'a>() -> Element<'a, Message> {
             .width(200)
             .align_items(Alignment::Center),
     )
-    .style(theme::Container::Box)
+    .style(container::box_)
     .height(Length::Fill)
     .center_y();
 
