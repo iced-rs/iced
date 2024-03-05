@@ -15,7 +15,6 @@ use crate::rule;
 use crate::slider;
 use crate::svg;
 use crate::text_editor;
-use crate::text_input;
 use crate::toggler;
 
 use crate::core::{Background, Border, Color};
@@ -792,130 +791,6 @@ impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
 }
 
 impl text::StyleSheet for Theme {}
-
-/// The style of a text input.
-#[derive(Default)]
-pub enum TextInput {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn text_input::StyleSheet<Style = Theme>>),
-}
-
-impl text_input::StyleSheet for Theme {
-    type Style = TextInput;
-
-    fn active(&self, style: &Self::Style) -> text_input::Appearance {
-        if let TextInput::Custom(custom) = style {
-            return custom.active(self);
-        }
-
-        let palette = self.extended_palette();
-
-        text_input::Appearance {
-            background: palette.background.base.color.into(),
-            border: Border {
-                radius: 2.0.into(),
-                width: 1.0,
-                color: palette.background.strong.color,
-            },
-            icon_color: palette.background.weak.text,
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style) -> text_input::Appearance {
-        if let TextInput::Custom(custom) = style {
-            return custom.hovered(self);
-        }
-
-        let palette = self.extended_palette();
-
-        text_input::Appearance {
-            background: palette.background.base.color.into(),
-            border: Border {
-                radius: 2.0.into(),
-                width: 1.0,
-                color: palette.background.base.text,
-            },
-            icon_color: palette.background.weak.text,
-        }
-    }
-
-    fn focused(&self, style: &Self::Style) -> text_input::Appearance {
-        if let TextInput::Custom(custom) = style {
-            return custom.focused(self);
-        }
-
-        let palette = self.extended_palette();
-
-        text_input::Appearance {
-            background: palette.background.base.color.into(),
-            border: Border {
-                radius: 2.0.into(),
-                width: 1.0,
-                color: palette.primary.strong.color,
-            },
-            icon_color: palette.background.weak.text,
-        }
-    }
-
-    fn placeholder_color(&self, style: &Self::Style) -> Color {
-        if let TextInput::Custom(custom) = style {
-            return custom.placeholder_color(self);
-        }
-
-        let palette = self.extended_palette();
-
-        palette.background.strong.color
-    }
-
-    fn value_color(&self, style: &Self::Style) -> Color {
-        if let TextInput::Custom(custom) = style {
-            return custom.value_color(self);
-        }
-
-        let palette = self.extended_palette();
-
-        palette.background.base.text
-    }
-
-    fn selection_color(&self, style: &Self::Style) -> Color {
-        if let TextInput::Custom(custom) = style {
-            return custom.selection_color(self);
-        }
-
-        let palette = self.extended_palette();
-
-        palette.primary.weak.color
-    }
-
-    fn disabled(&self, style: &Self::Style) -> text_input::Appearance {
-        if let TextInput::Custom(custom) = style {
-            return custom.disabled(self);
-        }
-
-        let palette = self.extended_palette();
-
-        text_input::Appearance {
-            background: palette.background.weak.color.into(),
-            border: Border {
-                radius: 2.0.into(),
-                width: 1.0,
-                color: palette.background.strong.color,
-            },
-            icon_color: palette.background.strong.color,
-        }
-    }
-
-    fn disabled_color(&self, style: &Self::Style) -> Color {
-        if let TextInput::Custom(custom) = style {
-            return custom.disabled_color(self);
-        }
-
-        self.placeholder_color(style)
-    }
-}
 
 /// The style of a text input.
 #[derive(Default)]

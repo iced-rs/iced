@@ -32,7 +32,7 @@ pub struct ComboBox<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: text_input::StyleSheet + menu::StyleSheet,
+    Theme: text_input::Style + menu::StyleSheet,
     Renderer: text::Renderer,
 {
     state: &'a State<T>,
@@ -51,7 +51,7 @@ pub struct ComboBox<
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::StyleSheet + menu::StyleSheet,
+    Theme: text_input::Style + menu::StyleSheet,
     Renderer: text::Renderer,
 {
     /// Creates a new [`ComboBox`] with the given list of options, a placeholder,
@@ -121,20 +121,17 @@ where
     // TODO: Define its own `StyleSheet` trait
     pub fn style<S>(mut self, style: S) -> Self
     where
-        S: Into<<Theme as text_input::StyleSheet>::Style>
-            + Into<<Theme as menu::StyleSheet>::Style>
-            + Clone,
+        S: Into<<Theme as menu::StyleSheet>::Style>,
     {
-        self.menu_style = style.clone().into();
-        self.text_input = self.text_input.style(style);
+        self.menu_style = style.into();
         self
     }
 
     /// Sets the style of the [`TextInput`] of the [`ComboBox`].
-    pub fn text_input_style<S>(mut self, style: S) -> Self
-    where
-        S: Into<<Theme as text_input::StyleSheet>::Style> + Clone,
-    {
+    pub fn text_input_style(
+        mut self,
+        style: fn(&Theme, text_input::Status) -> text_input::Appearance,
+    ) -> Self {
         self.text_input = self.text_input.style(style);
         self
     }
@@ -300,8 +297,8 @@ where
     T: Display + Clone + 'static,
     Message: Clone,
     Theme: container::Style
-        + text_input::StyleSheet
-        + scrollable::Tradition
+        + text_input::Style
+        + scrollable::Style
         + menu::StyleSheet,
     Renderer: text::Renderer,
 {
@@ -720,8 +717,8 @@ where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
     Theme: container::Style
-        + text_input::StyleSheet
-        + scrollable::Tradition
+        + text_input::Style
+        + scrollable::Style
         + menu::StyleSheet
         + 'a,
     Renderer: text::Renderer + 'a,

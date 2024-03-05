@@ -47,7 +47,7 @@ impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + container::Style + scrollable::Tradition + 'a,
+    Theme: StyleSheet + container::Style + scrollable::Style + 'a,
     Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
@@ -179,7 +179,7 @@ where
 impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::Style + scrollable::Tradition + 'a,
+    Theme: StyleSheet + container::Style + scrollable::Style + 'a,
     Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(

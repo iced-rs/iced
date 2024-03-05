@@ -49,7 +49,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: Tradition,
+        Theme: Style,
     {
         Self::with_direction(content, Direction::default())
     }
@@ -60,7 +60,7 @@ where
         direction: Direction,
     ) -> Self
     where
-        Theme: Tradition,
+        Theme: Style,
     {
         let content = content.into();
 
@@ -83,7 +83,7 @@ where
             direction,
             content,
             on_scroll: None,
-            style: Theme::tradition(),
+            style: Theme::style(),
         }
     }
 
@@ -1653,14 +1653,14 @@ pub struct Scroller {
     pub border: Border,
 }
 
-/// The definition of the traditional style of a [`Scrollable`].
-pub trait Tradition {
-    /// Returns the traditional style of a [`Scrollable`].
-    fn tradition() -> fn(&Self, Status) -> Appearance;
+/// The definition of the default style of a [`Scrollable`].
+pub trait Style {
+    /// Returns the default style of a [`Scrollable`].
+    fn style() -> fn(&Self, Status) -> Appearance;
 }
 
-impl Tradition for Theme {
-    fn tradition() -> fn(&Self, Status) -> Appearance {
+impl Style for Theme {
+    fn style() -> fn(&Self, Status) -> Appearance {
         default
     }
 }

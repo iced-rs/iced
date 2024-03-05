@@ -104,7 +104,7 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: scrollable::Tradition,
+    Theme: scrollable::Style,
     Renderer: core::Renderer,
 {
     Scrollable::new(content)
@@ -209,7 +209,7 @@ pub fn text_input<'a, Message, Theme, Renderer>(
 ) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_input::StyleSheet,
+    Theme: text_input::Style,
     Renderer: core::text::Renderer,
 {
     TextInput::new(placeholder, value)
@@ -276,7 +276,7 @@ where
     Message: Clone,
     Renderer: core::text::Renderer,
     Theme: pick_list::StyleSheet
-        + scrollable::Tradition
+        + scrollable::Style
         + overlay::menu::StyleSheet
         + container::Style,
     <Theme as overlay::menu::StyleSheet>::Style:
@@ -296,7 +296,7 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::StyleSheet + overlay::menu::StyleSheet,
+    Theme: text_input::Style + overlay::menu::StyleSheet,
     Renderer: core::text::Renderer,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
