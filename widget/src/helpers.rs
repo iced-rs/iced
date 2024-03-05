@@ -161,7 +161,7 @@ pub fn checkbox<'a, Message, Theme, Renderer>(
     is_checked: bool,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
-    Theme: checkbox::StyleSheet + text::StyleSheet,
+    Theme: checkbox::Style,
     Renderer: core::text::Renderer,
 {
     Checkbox::new(label, is_checked)
