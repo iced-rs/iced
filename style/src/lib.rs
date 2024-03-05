@@ -21,7 +21,6 @@ pub mod menu;
 pub mod pane_grid;
 pub mod pick_list;
 pub mod progress_bar;
-pub mod radio;
 pub mod rule;
 pub mod svg;
 pub mod text_editor;

@@ -179,7 +179,7 @@ pub fn radio<Message, Theme, Renderer, V>(
 ) -> Radio<Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: radio::StyleSheet,
+    Theme: radio::Style,
     Renderer: core::text::Renderer,
     V: Copy + Eq,
 {

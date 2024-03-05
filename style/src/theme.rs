@@ -9,7 +9,6 @@ use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
 use crate::progress_bar;
-use crate::radio;
 use crate::rule;
 use crate::svg;
 use crate::text_editor;
@@ -377,61 +376,6 @@ impl pick_list::StyleSheet for Theme {
                 }
             }
             PickList::Custom(custom, _) => custom.hovered(self),
-        }
-    }
-}
-
-/// The style of a radio button.
-#[derive(Default)]
-pub enum Radio {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn radio::StyleSheet<Style = Theme>>),
-}
-
-impl radio::StyleSheet for Theme {
-    type Style = Radio;
-
-    fn active(
-        &self,
-        style: &Self::Style,
-        is_selected: bool,
-    ) -> radio::Appearance {
-        match style {
-            Radio::Default => {
-                let palette = self.extended_palette();
-
-                radio::Appearance {
-                    background: Color::TRANSPARENT.into(),
-                    dot_color: palette.primary.strong.color,
-                    border_width: 1.0,
-                    border_color: palette.primary.strong.color,
-                    text_color: None,
-                }
-            }
-            Radio::Custom(custom) => custom.active(self, is_selected),
-        }
-    }
-
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_selected: bool,
-    ) -> radio::Appearance {
-        match style {
-            Radio::Default => {
-                let active = self.active(style, is_selected);
-                let palette = self.extended_palette();
-
-                radio::Appearance {
-                    dot_color: palette.primary.strong.color,
-                    background: palette.primary.weak.color.into(),
-                    ..active
-                }
-            }
-            Radio::Custom(custom) => custom.hovered(self, is_selected),
         }
     }
 }
