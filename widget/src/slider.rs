@@ -1,6 +1,7 @@
 //! Display an interactive selector of a single value from a range of values.
 //!
 //! A [`Slider`] has some local [`State`].
+use crate::core::border;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -10,15 +11,12 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Border, Clipboard, Element, Layout, Length, Pixels, Point, Rectangle,
-    Shell, Size, Widget,
+    Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    Rectangle, Shell, Size, Widget,
 };
+use crate::style::Theme;
 
 use std::ops::RangeInclusive;
-
-pub use iced_style::slider::{
-    Appearance, Handle, HandleShape, Rail, Status, StyleSheet,
-};
 
 /// An horizontal bar and a handle that selects a single value from a range of
 /// values.
@@ -45,10 +43,7 @@ pub use iced_style::slider::{
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Theme = crate::Theme>
-where
-    Theme: StyleSheet,
-{
+pub struct Slider<'a, T, Message, Theme = crate::Theme> {
     range: RangeInclusive<T>,
     step: T,
     shift_step: Option<T>,
@@ -65,7 +60,6 @@ impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + PartialOrd,
     Message: Clone,
-    Theme: StyleSheet,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: f32 = 22.0;
@@ -80,6 +74,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
+        Theme: Style,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -104,7 +99,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 
@@ -165,7 +160,6 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -359,7 +353,7 @@ where
         let style = (self.style)(
             theme,
             if state.is_dragging {
-                Status::Dragging
+                Status::Dragged
             } else if is_mouse_over {
                 Status::Hovered
             } else {
@@ -468,7 +462,7 @@ impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(
@@ -482,4 +476,120 @@ where
 struct State {
     is_dragging: bool,
     keyboard_modifiers: keyboard::Modifiers,
+}
+
+/// The possible status of a [`Slider`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Slider`] can be interacted with.
+    Active,
+    /// The [`Slider`] is being hovered.
+    Hovered,
+    /// The [`Slider`] is being dragged.
+    Dragged,
+}
+
+/// The appearance of a slider.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The colors of the rail of the slider.
+    pub rail: Rail,
+    /// The appearance of the [`Handle`] of the slider.
+    pub handle: Handle,
+}
+
+impl Appearance {
+    /// Changes the [`HandleShape`] of the [`Appearance`] to a circle
+    /// with the given radius.
+    pub fn with_circular_handle(mut self, radius: impl Into<Pixels>) -> Self {
+        self.handle.shape = HandleShape::Circle {
+            radius: radius.into().0,
+        };
+        self
+    }
+}
+
+/// The appearance of a slider rail
+#[derive(Debug, Clone, Copy)]
+pub struct Rail {
+    /// The colors of the rail of the slider.
+    pub colors: (Color, Color),
+    /// The width of the stroke of a slider rail.
+    pub width: f32,
+    /// The border radius of the corners of the rail.
+    pub border_radius: border::Radius,
+}
+
+/// The appearance of the handle of a slider.
+#[derive(Debug, Clone, Copy)]
+pub struct Handle {
+    /// The shape of the handle.
+    pub shape: HandleShape,
+    /// The [`Color`] of the handle.
+    pub color: Color,
+    /// The border width of the handle.
+    pub border_width: f32,
+    /// The border [`Color`] of the handle.
+    pub border_color: Color,
+}
+
+/// The shape of the handle of a slider.
+#[derive(Debug, Clone, Copy)]
+pub enum HandleShape {
+    /// A circular handle.
+    Circle {
+        /// The radius of the circle.
+        radius: f32,
+    },
+    /// A rectangular shape.
+    Rectangle {
+        /// The width of the rectangle.
+        width: u16,
+        /// The border radius of the corners of the rectangle.
+        border_radius: border::Radius,
+    },
+}
+
+/// The definiton of the default style of a [`TextInput`].
+pub trait Style {
+    /// Returns the default style of a [`TextInput`].
+    fn style() -> fn(&Self, Status) -> Appearance;
+}
+
+impl Style for Theme {
+    fn style() -> fn(&Self, Status) -> Appearance {
+        default
+    }
+}
+
+/// The default style of a [`Slider`].
+pub fn default(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let handle = Handle {
+        shape: HandleShape::Rectangle {
+            width: 8,
+            border_radius: 4.0.into(),
+        },
+        color: Color::WHITE,
+        border_color: Color::WHITE,
+        border_width: 1.0,
+    };
+
+    Appearance {
+        rail: Rail {
+            colors: (palette.primary.base.color, palette.secondary.base.color),
+            width: 4.0,
+            border_radius: 2.0.into(),
+        },
+        handle: Handle {
+            color: match status {
+                Status::Active => palette.background.base.color,
+                Status::Hovered => palette.primary.weak.color,
+                Status::Dragged => palette.primary.base.color,
+            },
+            border_color: palette.primary.base.color,
+            ..handle
+        },
+    }
 }

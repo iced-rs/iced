@@ -3,8 +3,8 @@
 //! A [`VerticalSlider`] has some local [`State`].
 use std::ops::RangeInclusive;
 
-pub use crate::style::slider::{
-    Appearance, Handle, HandleShape, Status, StyleSheet,
+pub use crate::slider::{
+    default, Appearance, Handle, HandleShape, Status, Style,
 };
 
 use crate::core;
@@ -44,10 +44,7 @@ use crate::core::{
 /// VerticalSlider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>
-where
-    Theme: StyleSheet,
-{
+pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme> {
     range: RangeInclusive<T>,
     step: T,
     shift_step: Option<T>,
@@ -64,7 +61,6 @@ impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: StyleSheet,
 {
     /// The default width of a [`VerticalSlider`].
     pub const DEFAULT_WIDTH: f32 = 22.0;
@@ -79,6 +75,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
+        Theme: Style,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -103,7 +100,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 
@@ -167,7 +164,6 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
-    Theme: StyleSheet,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -364,7 +360,7 @@ where
         let style = (self.style)(
             theme,
             if state.is_dragging {
-                Status::Dragging
+                Status::Dragged
             } else if is_mouse_over {
                 Status::Hovered
             } else {
@@ -474,7 +470,7 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: core::Renderer + 'a,
 {
     fn from(

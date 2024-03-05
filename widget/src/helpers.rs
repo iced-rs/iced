@@ -20,7 +20,8 @@ use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
-use crate::{Column, MouseArea, Row, Space, Themer, VerticalSlider};
+use crate::vertical_slider::{self, VerticalSlider};
+use crate::{Column, MouseArea, Row, Space, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -240,7 +241,7 @@ pub fn slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: slider::StyleSheet,
+    Theme: slider::Style,
 {
     Slider::new(range, value, on_change)
 }
@@ -256,7 +257,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: slider::StyleSheet,
+    Theme: vertical_slider::Style,
 {
     VerticalSlider::new(range, value, on_change)
 }

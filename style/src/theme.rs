@@ -11,7 +11,6 @@ use crate::pick_list;
 use crate::progress_bar;
 use crate::radio;
 use crate::rule;
-use crate::slider;
 use crate::svg;
 use crate::text_editor;
 use crate::toggler;
@@ -276,43 +275,6 @@ impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
         (self)(style)
-    }
-}
-
-impl slider::StyleSheet for Theme {
-    fn default() -> fn(&Self, slider::Status) -> slider::Appearance {
-        slider
-    }
-}
-
-pub fn slider(theme: &Theme, status: slider::Status) -> slider::Appearance {
-    let palette = theme.extended_palette();
-
-    let handle = slider::Handle {
-        shape: slider::HandleShape::Rectangle {
-            width: 8,
-            border_radius: 4.0.into(),
-        },
-        color: Color::WHITE,
-        border_color: Color::WHITE,
-        border_width: 1.0,
-    };
-
-    slider::Appearance {
-        rail: slider::Rail {
-            colors: (palette.primary.base.color, palette.secondary.base.color),
-            width: 4.0,
-            border_radius: 2.0.into(),
-        },
-        handle: slider::Handle {
-            color: match status {
-                slider::Status::Active => palette.background.base.color,
-                slider::Status::Hovered => palette.primary.weak.color,
-                slider::Status::Dragging => palette.primary.base.color,
-            },
-            border_color: palette.primary.base.color,
-            ..handle
-        },
     }
 }
 
