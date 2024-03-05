@@ -351,7 +351,7 @@ pub fn progress_bar<Theme>(
     value: f32,
 ) -> ProgressBar<Theme>
 where
-    Theme: progress_bar::StyleSheet,
+    Theme: progress_bar::Style,
 {
     ProgressBar::new(range, value)
 }

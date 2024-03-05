@@ -8,7 +8,6 @@ use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
-use crate::progress_bar;
 use crate::rule;
 use crate::svg;
 use crate::text_editor;
@@ -509,61 +508,6 @@ impl pane_grid::StyleSheet for Theme {
             }
             PaneGrid::Custom(custom) => custom.hovered_split(self),
         }
-    }
-}
-
-/// The style of a progress bar.
-#[derive(Default)]
-pub enum ProgressBar {
-    /// The primary style.
-    #[default]
-    Primary,
-    /// The success style.
-    Success,
-    /// The danger style.
-    Danger,
-    /// A custom style.
-    Custom(Box<dyn progress_bar::StyleSheet<Style = Theme>>),
-}
-
-impl<T: Fn(&Theme) -> progress_bar::Appearance + 'static> From<T>
-    for ProgressBar
-{
-    fn from(f: T) -> Self {
-        Self::Custom(Box::new(f))
-    }
-}
-
-impl progress_bar::StyleSheet for Theme {
-    type Style = ProgressBar;
-
-    fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
-        if let ProgressBar::Custom(custom) = style {
-            return custom.appearance(self);
-        }
-
-        let palette = self.extended_palette();
-
-        let from_palette = |bar: Color| progress_bar::Appearance {
-            background: palette.background.strong.color.into(),
-            bar: bar.into(),
-            border_radius: 2.0.into(),
-        };
-
-        match style {
-            ProgressBar::Primary => from_palette(palette.primary.base.color),
-            ProgressBar::Success => from_palette(palette.success.base.color),
-            ProgressBar::Danger => from_palette(palette.danger.base.color),
-            ProgressBar::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl<T: Fn(&Theme) -> progress_bar::Appearance> progress_bar::StyleSheet for T {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
-        (self)(style)
     }
 }
 
