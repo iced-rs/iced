@@ -62,7 +62,7 @@ where
     V: Borrow<T> + 'a,
     Message: Clone,
     Theme: StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet
         + container::Style,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
@@ -177,7 +177,7 @@ where
     V: Borrow<T>,
     Message: Clone + 'a,
     Theme: StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet
         + container::Style,
     <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
@@ -318,7 +318,7 @@ where
     V: Borrow<T> + 'a,
     Message: Clone + 'a,
     Theme: StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet
         + container::Style
         + 'a,
@@ -628,7 +628,7 @@ where
     T: Clone + ToString,
     Message: 'a,
     Theme: StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet
         + container::Style
         + 'a,

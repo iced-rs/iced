@@ -4,7 +4,6 @@ pub mod palette;
 pub use palette::Palette;
 
 use crate::application;
-use crate::container;
 use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
@@ -13,7 +12,6 @@ use crate::progress_bar;
 use crate::qr_code;
 use crate::radio;
 use crate::rule;
-use crate::scrollable;
 use crate::slider;
 use crate::svg;
 use crate::text_editor;
@@ -790,91 +788,6 @@ impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
 
     fn hovered(&self, style: &Self::Style) -> svg::Appearance {
         self.appearance(style)
-    }
-}
-
-/// The style of a scrollable.
-#[derive(Default)]
-pub enum Scrollable {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn scrollable::StyleSheet<Style = Theme>>),
-}
-
-impl Scrollable {
-    /// Creates a custom [`Scrollable`] theme.
-    pub fn custom<T: scrollable::StyleSheet<Style = Theme> + 'static>(
-        style: T,
-    ) -> Self {
-        Self::Custom(Box::new(style))
-    }
-}
-
-impl scrollable::StyleSheet for Theme {
-    type Style = Scrollable;
-
-    fn active(&self, style: &Self::Style) -> scrollable::Appearance {
-        match style {
-            Scrollable::Default => {
-                let palette = self.extended_palette();
-
-                scrollable::Appearance {
-                    container: container::Appearance::default(),
-                    scrollbar: scrollable::Scrollbar {
-                        background: Some(palette.background.weak.color.into()),
-                        border: Border::with_radius(2),
-                        scroller: scrollable::Scroller {
-                            color: palette.background.strong.color,
-                            border: Border::with_radius(2),
-                        },
-                    },
-                    gap: None,
-                }
-            }
-            Scrollable::Custom(custom) => custom.active(self),
-        }
-    }
-
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_mouse_over_scrollbar: bool,
-    ) -> scrollable::Appearance {
-        match style {
-            Scrollable::Default => {
-                if is_mouse_over_scrollbar {
-                    let palette = self.extended_palette();
-
-                    scrollable::Appearance {
-                        scrollbar: scrollable::Scrollbar {
-                            background: Some(
-                                palette.background.weak.color.into(),
-                            ),
-                            border: Border::with_radius(2),
-                            scroller: scrollable::Scroller {
-                                color: palette.primary.strong.color,
-                                border: Border::with_radius(2),
-                            },
-                        },
-                        ..self.active(style)
-                    }
-                } else {
-                    self.active(style)
-                }
-            }
-            Scrollable::Custom(custom) => {
-                custom.hovered(self, is_mouse_over_scrollbar)
-            }
-        }
-    }
-
-    fn dragging(&self, style: &Self::Style) -> scrollable::Appearance {
-        match style {
-            Scrollable::Default => self.hovered(style, true),
-            Scrollable::Custom(custom) => custom.dragging(self),
-        }
     }
 }
 

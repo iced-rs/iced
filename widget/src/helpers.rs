@@ -104,7 +104,7 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: scrollable::StyleSheet,
+    Theme: scrollable::Tradition,
     Renderer: core::Renderer,
 {
     Scrollable::new(content)
@@ -276,7 +276,7 @@ where
     Message: Clone,
     Renderer: core::text::Renderer,
     Theme: pick_list::StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + overlay::menu::StyleSheet
         + container::Style,
     <Theme as overlay::menu::StyleSheet>::Style:

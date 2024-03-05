@@ -301,7 +301,7 @@ where
     Message: Clone,
     Theme: container::Style
         + text_input::StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet,
     Renderer: text::Renderer,
 {
@@ -721,7 +721,7 @@ where
     Message: Clone + 'a,
     Theme: container::Style
         + text_input::StyleSheet
-        + scrollable::StyleSheet
+        + scrollable::Tradition
         + menu::StyleSheet
         + 'a,
     Renderer: text::Renderer + 'a,

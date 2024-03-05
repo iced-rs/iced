@@ -1,5 +1,6 @@
 //! Navigate an endless amount of content with a scrollbar.
 // use crate::container;
+use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::layout;
@@ -11,14 +12,12 @@ use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
+    Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::runtime::Command;
+use crate::style::Theme;
 
-pub use crate::style::scrollable::{
-    Appearance, Scrollbar, Scroller, StyleSheet,
-};
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 
 /// A widget that can vertically display an infinite amount of content with a
@@ -30,7 +29,6 @@ pub struct Scrollable<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     id: Option<Id>,
@@ -39,18 +37,20 @@ pub struct Scrollable<
     direction: Direction,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
-    style: Theme::Style,
+    style: fn(&Theme, Status) -> Appearance,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    ) -> Self
+    where
+        Theme: Tradition,
+    {
         Self::with_direction(content, Direction::default())
     }
 
@@ -58,7 +58,10 @@ where
     pub fn with_direction(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         direction: Direction,
-    ) -> Self {
+    ) -> Self
+    where
+        Theme: Tradition,
+    {
         let content = content.into();
 
         debug_assert!(
@@ -80,7 +83,7 @@ where
             direction,
             content,
             on_scroll: None,
-            style: Default::default(),
+            style: Theme::tradition(),
         }
     }
 
@@ -111,8 +114,8 @@ where
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
+        self.style = style;
         self
     }
 }
@@ -223,7 +226,6 @@ pub enum Alignment {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -352,26 +354,181 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        draw(
-            tree.state.downcast_ref::<State>(),
+        let state = tree.state.downcast_ref::<State>();
+
+        let bounds = layout.bounds();
+        let content_layout = layout.children().next().unwrap();
+        let content_bounds = content_layout.bounds();
+
+        let scrollbars =
+            Scrollbars::new(state, self.direction, bounds, content_bounds);
+
+        let cursor_over_scrollable = cursor.position_over(bounds);
+        let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
+            scrollbars.is_mouse_over(cursor);
+
+        let translation =
+            state.translation(self.direction, bounds, content_bounds);
+
+        let cursor = match cursor_over_scrollable {
+            Some(cursor_position)
+                if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
+            {
+                mouse::Cursor::Available(cursor_position + translation)
+            }
+            _ => mouse::Cursor::Unavailable,
+        };
+
+        let status = if state.y_scroller_grabbed_at.is_some()
+            || state.x_scroller_grabbed_at.is_some()
+        {
+            Status::Dragged {
+                is_horizontal_scrollbar_dragged: state
+                    .x_scroller_grabbed_at
+                    .is_some(),
+                is_vertical_scrollbar_dragged: state
+                    .y_scroller_grabbed_at
+                    .is_some(),
+            }
+        } else if cursor_over_scrollable.is_some() {
+            Status::Hovered {
+                is_horizontal_scrollbar_hovered: mouse_over_x_scrollbar,
+                is_vertical_scrollbar_hovered: mouse_over_y_scrollbar,
+            }
+        } else {
+            Status::Active
+        };
+
+        let appearance = (self.style)(theme, status);
+
+        container::draw_background(
             renderer,
-            theme,
-            layout,
-            cursor,
-            self.direction,
-            &self.style,
-            |renderer, layout, cursor, viewport| {
-                self.content.as_widget().draw(
-                    &tree.children[0],
-                    renderer,
-                    theme,
-                    style,
-                    layout,
-                    cursor,
-                    viewport,
-                );
-            },
+            &appearance.container,
+            layout.bounds(),
         );
+
+        // Draw inner content
+        if scrollbars.active() {
+            renderer.with_layer(bounds, |renderer| {
+                renderer.with_translation(
+                    Vector::new(-translation.x, -translation.y),
+                    |renderer| {
+                        self.content.as_widget().draw(
+                            &tree.children[0],
+                            renderer,
+                            theme,
+                            style,
+                            content_layout,
+                            cursor,
+                            &Rectangle {
+                                y: bounds.y + translation.y,
+                                x: bounds.x + translation.x,
+                                ..bounds
+                            },
+                        );
+                    },
+                );
+            });
+
+            let draw_scrollbar =
+                |renderer: &mut Renderer,
+                 style: Scrollbar,
+                 scrollbar: &internals::Scrollbar| {
+                    if scrollbar.bounds.width > 0.0
+                        && scrollbar.bounds.height > 0.0
+                        && (style.background.is_some()
+                            || (style.border.color != Color::TRANSPARENT
+                                && style.border.width > 0.0))
+                    {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scrollbar.bounds,
+                                border: style.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.background.unwrap_or(Background::Color(
+                                Color::TRANSPARENT,
+                            )),
+                        );
+                    }
+
+                    if scrollbar.scroller.bounds.width > 0.0
+                        && scrollbar.scroller.bounds.height > 0.0
+                        && (style.scroller.color != Color::TRANSPARENT
+                            || (style.scroller.border.color
+                                != Color::TRANSPARENT
+                                && style.scroller.border.width > 0.0))
+                    {
+                        renderer.fill_quad(
+                            renderer::Quad {
+                                bounds: scrollbar.scroller.bounds,
+                                border: style.scroller.border,
+                                ..renderer::Quad::default()
+                            },
+                            style.scroller.color,
+                        );
+                    }
+                };
+
+            renderer.with_layer(
+                Rectangle {
+                    width: bounds.width + 2.0,
+                    height: bounds.height + 2.0,
+                    ..bounds
+                },
+                |renderer| {
+                    if let Some(scrollbar) = scrollbars.y {
+                        draw_scrollbar(
+                            renderer,
+                            appearance.vertical_scrollbar,
+                            &scrollbar,
+                        );
+                    }
+
+                    if let Some(scrollbar) = scrollbars.x {
+                        draw_scrollbar(
+                            renderer,
+                            appearance.horizontal_scrollbar,
+                            &scrollbar,
+                        );
+                    }
+
+                    if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
+                        let background =
+                            appearance.gap.or(appearance.container.background);
+
+                        if let Some(background) = background {
+                            renderer.fill_quad(
+                                renderer::Quad {
+                                    bounds: Rectangle {
+                                        x: y.bounds.x,
+                                        y: x.bounds.y,
+                                        width: y.bounds.width,
+                                        height: x.bounds.height,
+                                    },
+                                    ..renderer::Quad::default()
+                                },
+                                background,
+                            );
+                        }
+                    }
+                },
+            );
+        } else {
+            self.content.as_widget().draw(
+                &tree.children[0],
+                renderer,
+                theme,
+                style,
+                content_layout,
+                cursor,
+                &Rectangle {
+                    x: bounds.x + translation.x,
+                    y: bounds.y + translation.y,
+                    ..bounds
+                },
+            );
+        }
     }
 
     fn mouse_interaction(
@@ -430,7 +587,7 @@ impl<'a, Message, Theme, Renderer>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(
@@ -859,190 +1016,6 @@ pub fn mouse_interaction(
                 ..bounds
             },
         )
-    }
-}
-
-/// Draws a [`Scrollable`].
-pub fn draw<Theme, Renderer>(
-    state: &State,
-    renderer: &mut Renderer,
-    theme: &Theme,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    direction: Direction,
-    style: &Theme::Style,
-    draw_content: impl FnOnce(&mut Renderer, Layout<'_>, mouse::Cursor, &Rectangle),
-) where
-    Theme: StyleSheet,
-    Renderer: crate::core::Renderer,
-{
-    let bounds = layout.bounds();
-    let content_layout = layout.children().next().unwrap();
-    let content_bounds = content_layout.bounds();
-
-    let scrollbars = Scrollbars::new(state, direction, bounds, content_bounds);
-
-    let cursor_over_scrollable = cursor.position_over(bounds);
-    let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
-        scrollbars.is_mouse_over(cursor);
-
-    let translation = state.translation(direction, bounds, content_bounds);
-
-    let cursor = match cursor_over_scrollable {
-        Some(cursor_position)
-            if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
-        {
-            mouse::Cursor::Available(cursor_position + translation)
-        }
-        _ => mouse::Cursor::Unavailable,
-    };
-
-    let appearance = if state.y_scroller_grabbed_at.is_some()
-        || state.x_scroller_grabbed_at.is_some()
-    {
-        theme.dragging(style)
-    } else if cursor_over_scrollable.is_some() {
-        theme.hovered(style, mouse_over_y_scrollbar || mouse_over_x_scrollbar)
-    } else {
-        theme.active(style)
-    };
-
-    let scrollbar_style = |is_dragging: bool, mouse_over_scrollbar: bool| {
-        if is_dragging {
-            theme.dragging(style).scrollbar
-        } else if cursor_over_scrollable.is_some() {
-            theme.hovered(style, mouse_over_scrollbar).scrollbar
-        } else {
-            theme.active(style).scrollbar
-        }
-    };
-
-    // container::draw_background(
-    //     renderer,
-    //     &appearance.container,
-    //     layout.bounds(),
-    // );
-
-    // Draw inner content
-    if scrollbars.active() {
-        renderer.with_layer(bounds, |renderer| {
-            renderer.with_translation(
-                Vector::new(-translation.x, -translation.y),
-                |renderer| {
-                    draw_content(
-                        renderer,
-                        content_layout,
-                        cursor,
-                        &Rectangle {
-                            y: bounds.y + translation.y,
-                            x: bounds.x + translation.x,
-                            ..bounds
-                        },
-                    );
-                },
-            );
-        });
-
-        let draw_scrollbar =
-            |renderer: &mut Renderer,
-             style: Scrollbar,
-             scrollbar: &internals::Scrollbar| {
-                if scrollbar.bounds.width > 0.0
-                    && scrollbar.bounds.height > 0.0
-                    && (style.background.is_some()
-                        || (style.border.color != Color::TRANSPARENT
-                            && style.border.width > 0.0))
-                {
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: scrollbar.bounds,
-                            border: style.border,
-                            ..renderer::Quad::default()
-                        },
-                        style
-                            .background
-                            .unwrap_or(Background::Color(Color::TRANSPARENT)),
-                    );
-                }
-
-                if scrollbar.scroller.bounds.width > 0.0
-                    && scrollbar.scroller.bounds.height > 0.0
-                    && (style.scroller.color != Color::TRANSPARENT
-                        || (style.scroller.border.color != Color::TRANSPARENT
-                            && style.scroller.border.width > 0.0))
-                {
-                    renderer.fill_quad(
-                        renderer::Quad {
-                            bounds: scrollbar.scroller.bounds,
-                            border: style.scroller.border,
-                            ..renderer::Quad::default()
-                        },
-                        style.scroller.color,
-                    );
-                }
-            };
-
-        renderer.with_layer(
-            Rectangle {
-                width: bounds.width + 2.0,
-                height: bounds.height + 2.0,
-                ..bounds
-            },
-            |renderer| {
-                if let Some(scrollbar) = scrollbars.y {
-                    draw_scrollbar(
-                        renderer,
-                        scrollbar_style(
-                            state.y_scroller_grabbed_at.is_some(),
-                            mouse_over_y_scrollbar,
-                        ),
-                        &scrollbar,
-                    );
-                }
-
-                if let Some(scrollbar) = scrollbars.x {
-                    draw_scrollbar(
-                        renderer,
-                        scrollbar_style(
-                            state.x_scroller_grabbed_at.is_some(),
-                            mouse_over_x_scrollbar,
-                        ),
-                        &scrollbar,
-                    );
-                }
-
-                if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
-                    let background =
-                        appearance.gap.or(appearance.container.background);
-
-                    if let Some(background) = background {
-                        renderer.fill_quad(
-                            renderer::Quad {
-                                bounds: Rectangle {
-                                    x: y.bounds.x,
-                                    y: x.bounds.y,
-                                    width: y.bounds.width,
-                                    height: x.bounds.height,
-                                },
-                                ..renderer::Quad::default()
-                            },
-                            background,
-                        );
-                    }
-                }
-            },
-        );
-    } else {
-        draw_content(
-            renderer,
-            content_layout,
-            cursor,
-            &Rectangle {
-                x: bounds.x + translation.x,
-                y: bounds.y + translation.y,
-                ..bounds
-            },
-        );
     }
 }
 
@@ -1623,5 +1596,147 @@ pub(super) mod internals {
     pub struct Scroller {
         /// The bounds of the [`Scroller`].
         pub bounds: Rectangle,
+    }
+}
+
+/// The possible status of a [`Scrollable`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Scrollable`] can be interacted with.
+    Active,
+    /// The [`Scrollable`] is being hovered.
+    Hovered {
+        /// Indicates if the horizontal scrollbar is being hovered.
+        is_horizontal_scrollbar_hovered: bool,
+        /// Indicates if the vertical scrollbar is being hovered.
+        is_vertical_scrollbar_hovered: bool,
+    },
+    /// The [`Scrollable`] is being dragged.
+    Dragged {
+        /// Indicates if the horizontal scrollbar is being dragged.
+        is_horizontal_scrollbar_dragged: bool,
+        /// Indicates if the vertical scrollbar is being dragged.
+        is_vertical_scrollbar_dragged: bool,
+    },
+}
+
+/// The appearance of a scrolable.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The [`container::Appearance`] of a scrollable.
+    pub container: container::Appearance,
+    /// The vertical [`Scrollbar`] appearance.
+    pub vertical_scrollbar: Scrollbar,
+    /// The horizontal [`Scrollbar`] appearance.
+    pub horizontal_scrollbar: Scrollbar,
+    /// The [`Background`] of the gap between a horizontal and vertical scrollbar.
+    pub gap: Option<Background>,
+}
+
+/// The appearance of the scrollbar of a scrollable.
+#[derive(Debug, Clone, Copy)]
+pub struct Scrollbar {
+    /// The [`Background`] of a scrollbar.
+    pub background: Option<Background>,
+    /// The [`Border`] of a scrollbar.
+    pub border: Border,
+    /// The appearance of the [`Scroller`] of a scrollbar.
+    pub scroller: Scroller,
+}
+
+/// The appearance of the scroller of a scrollable.
+#[derive(Debug, Clone, Copy)]
+pub struct Scroller {
+    /// The [`Color`] of the scroller.
+    pub color: Color,
+    /// The [`Border`] of the scroller.
+    pub border: Border,
+}
+
+/// The definition of the traditional style of a [`Scrollable`].
+pub trait Tradition {
+    /// Returns the traditional style of a [`Scrollable`].
+    fn tradition() -> fn(&Self, Status) -> Appearance;
+}
+
+impl Tradition for Theme {
+    fn tradition() -> fn(&Self, Status) -> Appearance {
+        default
+    }
+}
+
+fn default(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let scrollbar = Scrollbar {
+        background: Some(palette.background.weak.color.into()),
+        border: Border::with_radius(2),
+        scroller: Scroller {
+            color: palette.background.strong.color,
+            border: Border::with_radius(2),
+        },
+    };
+
+    match status {
+        Status::Active => Appearance {
+            container: container::Appearance::default(),
+            vertical_scrollbar: scrollbar,
+            horizontal_scrollbar: scrollbar,
+            gap: None,
+        },
+        Status::Hovered {
+            is_horizontal_scrollbar_hovered,
+            is_vertical_scrollbar_hovered,
+        } => {
+            let hovered_scrollbar = Scrollbar {
+                scroller: Scroller {
+                    color: palette.primary.strong.color,
+                    ..scrollbar.scroller
+                },
+                ..scrollbar
+            };
+
+            Appearance {
+                container: container::Appearance::default(),
+                vertical_scrollbar: if is_vertical_scrollbar_hovered {
+                    hovered_scrollbar
+                } else {
+                    scrollbar
+                },
+                horizontal_scrollbar: if is_horizontal_scrollbar_hovered {
+                    hovered_scrollbar
+                } else {
+                    scrollbar
+                },
+                gap: None,
+            }
+        }
+        Status::Dragged {
+            is_horizontal_scrollbar_dragged,
+            is_vertical_scrollbar_dragged,
+        } => {
+            let dragged_scrollbar = Scrollbar {
+                scroller: Scroller {
+                    color: palette.primary.base.color,
+                    ..scrollbar.scroller
+                },
+                ..scrollbar
+            };
+
+            Appearance {
+                container: container::Appearance::default(),
+                vertical_scrollbar: if is_vertical_scrollbar_dragged {
+                    dragged_scrollbar
+                } else {
+                    scrollbar
+                },
+                horizontal_scrollbar: if is_horizontal_scrollbar_dragged {
+                    dragged_scrollbar
+                } else {
+                    scrollbar
+                },
+                gap: None,
+            }
+        }
     }
 }
