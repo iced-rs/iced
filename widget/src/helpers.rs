@@ -324,7 +324,7 @@ pub fn vertical_space() -> Space {
 /// [`Rule`]: crate::Rule
 pub fn horizontal_rule<Theme>(height: impl Into<Pixels>) -> Rule<Theme>
 where
-    Theme: rule::StyleSheet,
+    Theme: rule::Style,
 {
     Rule::horizontal(height)
 }
@@ -334,7 +334,7 @@ where
 /// [`Rule`]: crate::Rule
 pub fn vertical_rule<Theme>(width: impl Into<Pixels>) -> Rule<Theme>
 where
-    Theme: rule::StyleSheet,
+    Theme: rule::Style,
 {
     Rule::vertical(width)
 }

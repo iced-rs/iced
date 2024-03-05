@@ -8,7 +8,6 @@ use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
-use crate::rule;
 use crate::svg;
 use crate::text_editor;
 use crate::toggler;
@@ -508,48 +507,6 @@ impl pane_grid::StyleSheet for Theme {
             }
             PaneGrid::Custom(custom) => custom.hovered_split(self),
         }
-    }
-}
-
-/// The style of a rule.
-#[derive(Default)]
-pub enum Rule {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn rule::StyleSheet<Style = Theme>>),
-}
-
-impl<T: Fn(&Theme) -> rule::Appearance + 'static> From<T> for Rule {
-    fn from(f: T) -> Self {
-        Self::Custom(Box::new(f))
-    }
-}
-
-impl rule::StyleSheet for Theme {
-    type Style = Rule;
-
-    fn appearance(&self, style: &Self::Style) -> rule::Appearance {
-        let palette = self.extended_palette();
-
-        match style {
-            Rule::Default => rule::Appearance {
-                color: palette.background.strong.color,
-                width: 1,
-                radius: 0.0.into(),
-                fill_mode: rule::FillMode::Full,
-            },
-            Rule::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl<T: Fn(&Theme) -> rule::Appearance> rule::StyleSheet for T {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> rule::Appearance {
-        (self)(style)
     }
 }
 

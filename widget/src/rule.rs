@@ -1,53 +1,53 @@
 //! Display a horizontal or vertical rule for dividing content.
+use crate::core::border::{self, Border};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Border, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
 };
-
-pub use crate::style::rule::{Appearance, FillMode, StyleSheet};
+use crate::style::Theme;
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule<Theme = crate::Theme>
-where
-    Theme: StyleSheet,
-{
+pub struct Rule<Theme = crate::Theme> {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style: Theme::Style,
+    style: fn(&Theme) -> Appearance,
 }
 
-impl<Theme> Rule<Theme>
-where
-    Theme: StyleSheet,
-{
+impl<Theme> Rule<Theme> {
     /// Creates a horizontal [`Rule`] with the given height.
-    pub fn horizontal(height: impl Into<Pixels>) -> Self {
+    pub fn horizontal(height: impl Into<Pixels>) -> Self
+    where
+        Theme: Style,
+    {
         Rule {
             width: Length::Fill,
             height: Length::Fixed(height.into().0),
             is_horizontal: true,
-            style: Default::default(),
+            style: Theme::style(),
         }
     }
 
     /// Creates a vertical [`Rule`] with the given width.
-    pub fn vertical(width: impl Into<Pixels>) -> Self {
+    pub fn vertical(width: impl Into<Pixels>) -> Self
+    where
+        Theme: Style,
+    {
         Rule {
             width: Length::Fixed(width.into().0),
             height: Length::Fill,
             is_horizontal: false,
-            style: Default::default(),
+            style: Theme::style(),
         }
     }
 
     /// Sets the style of the [`Rule`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
+        self.style = style;
         self
     }
 }
@@ -55,7 +55,6 @@ where
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<Theme>
 where
     Renderer: crate::core::Renderer,
-    Theme: StyleSheet,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -84,34 +83,35 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let style = theme.appearance(&self.style);
+        let appearance = (self.style)(theme);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)
-                - (style.width as f32 / 2.0))
+                - (appearance.width as f32 / 2.0))
                 .round();
 
-            let (offset, line_width) = style.fill_mode.fill(bounds.width);
+            let (offset, line_width) = appearance.fill_mode.fill(bounds.width);
             let line_x = bounds.x + offset;
 
             Rectangle {
                 x: line_x,
                 y: line_y,
                 width: line_width,
-                height: style.width as f32,
+                height: appearance.width as f32,
             }
         } else {
             let line_x = (bounds.x + (bounds.width / 2.0)
-                - (style.width as f32 / 2.0))
+                - (appearance.width as f32 / 2.0))
                 .round();
 
-            let (offset, line_height) = style.fill_mode.fill(bounds.height);
+            let (offset, line_height) =
+                appearance.fill_mode.fill(bounds.height);
             let line_y = bounds.y + offset;
 
             Rectangle {
                 x: line_x,
                 y: line_y,
-                width: style.width as f32,
+                width: appearance.width as f32,
                 height: line_height,
             }
         };
@@ -119,10 +119,10 @@ where
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: Border::with_radius(style.radius),
+                border: Border::with_radius(appearance.radius),
                 ..renderer::Quad::default()
             },
-            style.color,
+            appearance.color,
         );
     }
 }
@@ -131,10 +131,111 @@ impl<'a, Message, Theme, Renderer> From<Rule<Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(rule: Rule<Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(rule)
+    }
+}
+
+/// The appearance of a rule.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The color of the rule.
+    pub color: Color,
+    /// The width (thickness) of the rule line.
+    pub width: u16,
+    /// The radius of the line corners.
+    pub radius: border::Radius,
+    /// The [`FillMode`] of the rule.
+    pub fill_mode: FillMode,
+}
+
+/// The fill mode of a rule.
+#[derive(Debug, Clone, Copy)]
+pub enum FillMode {
+    /// Fill the whole length of the container.
+    Full,
+    /// Fill a percent of the length of the container. The rule
+    /// will be centered in that container.
+    ///
+    /// The range is `[0.0, 100.0]`.
+    Percent(f32),
+    /// Uniform offset from each end, length units.
+    Padded(u16),
+    /// Different offset on each end of the rule, length units.
+    /// First = top or left.
+    AsymmetricPadding(u16, u16),
+}
+
+impl FillMode {
+    /// Return the starting offset and length of the rule.
+    ///
+    /// * `space` - The space to fill.
+    ///
+    /// # Returns
+    ///
+    /// * (`starting_offset`, `length`)
+    pub fn fill(&self, space: f32) -> (f32, f32) {
+        match *self {
+            FillMode::Full => (0.0, space),
+            FillMode::Percent(percent) => {
+                if percent >= 100.0 {
+                    (0.0, space)
+                } else {
+                    let percent_width = (space * percent / 100.0).round();
+
+                    (((space - percent_width) / 2.0).round(), percent_width)
+                }
+            }
+            FillMode::Padded(padding) => {
+                if padding == 0 {
+                    (0.0, space)
+                } else {
+                    let padding = padding as f32;
+                    let mut line_width = space - (padding * 2.0);
+                    if line_width < 0.0 {
+                        line_width = 0.0;
+                    }
+
+                    (padding, line_width)
+                }
+            }
+            FillMode::AsymmetricPadding(first_pad, second_pad) => {
+                let first_pad = first_pad as f32;
+                let second_pad = second_pad as f32;
+                let mut line_width = space - first_pad - second_pad;
+                if line_width < 0.0 {
+                    line_width = 0.0;
+                }
+
+                (first_pad, line_width)
+            }
+        }
+    }
+}
+
+/// The definiton of the default style of a [`Rule`].
+pub trait Style {
+    /// Returns the default style of a [`Rule`].
+    fn style() -> fn(&Self) -> Appearance;
+}
+
+impl Style for Theme {
+    fn style() -> fn(&Self) -> Appearance {
+        default
+    }
+}
+
+/// The default styling of a [`Rule`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        color: palette.background.strong.color,
+        width: 1,
+        radius: 0.0.into(),
+        fill_mode: FillMode::Full,
     }
 }
