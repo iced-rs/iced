@@ -396,7 +396,7 @@ where
 #[cfg(feature = "qr_code")]
 pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
 where
-    Theme: crate::qr_code::StyleSheet,
+    Theme: crate::qr_code::Style,
 {
     crate::QRCode::new(data)
 }

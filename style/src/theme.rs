@@ -9,7 +9,6 @@ use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
 use crate::progress_bar;
-use crate::qr_code;
 use crate::radio;
 use crate::rule;
 use crate::slider;
@@ -658,46 +657,6 @@ impl<T: Fn(&Theme) -> progress_bar::Appearance> progress_bar::StyleSheet for T {
     type Style = Theme;
 
     fn appearance(&self, style: &Self::Style) -> progress_bar::Appearance {
-        (self)(style)
-    }
-}
-
-/// The style of a QR Code.
-#[derive(Default)]
-pub enum QRCode {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn qr_code::StyleSheet<Style = Theme>>),
-}
-
-impl<T: Fn(&Theme) -> qr_code::Appearance + 'static> From<T> for QRCode {
-    fn from(f: T) -> Self {
-        Self::Custom(Box::new(f))
-    }
-}
-
-impl qr_code::StyleSheet for Theme {
-    type Style = QRCode;
-
-    fn appearance(&self, style: &Self::Style) -> qr_code::Appearance {
-        let palette = self.palette();
-
-        match style {
-            QRCode::Default => qr_code::Appearance {
-                cell: palette.text,
-                background: palette.background,
-            },
-            QRCode::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl<T: Fn(&Theme) -> qr_code::Appearance> qr_code::StyleSheet for T {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> qr_code::Appearance {
         (self)(style)
     }
 }
