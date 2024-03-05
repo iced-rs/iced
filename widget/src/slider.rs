@@ -62,7 +62,7 @@ where
     Message: Clone,
 {
     /// The default height of a [`Slider`].
-    pub const DEFAULT_HEIGHT: f32 = 22.0;
+    pub const DEFAULT_HEIGHT: f32 = 15.0;
 
     /// Creates a new [`Slider`].
     ///
@@ -566,30 +566,23 @@ impl Style for Theme {
 pub fn default(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
 
-    let handle = Handle {
-        shape: HandleShape::Rectangle {
-            width: 8,
-            border_radius: 4.0.into(),
-        },
-        color: Color::WHITE,
-        border_color: Color::WHITE,
-        border_width: 1.0,
+    let color = match status {
+        Status::Active => palette.primary.strong.color,
+        Status::Hovered => palette.primary.base.color,
+        Status::Dragged => palette.primary.strong.color,
     };
 
     Appearance {
         rail: Rail {
-            colors: (palette.primary.base.color, palette.secondary.base.color),
-            width: 4.0,
-            border_radius: 2.0.into(),
+            colors: (color, palette.secondary.base.color),
+            width: 6.0,
+            border_radius: 3.0.into(),
         },
         handle: Handle {
-            color: match status {
-                Status::Active => palette.background.base.color,
-                Status::Hovered => palette.primary.weak.color,
-                Status::Dragged => palette.primary.base.color,
-            },
-            border_color: palette.primary.base.color,
-            ..handle
+            shape: HandleShape::Circle { radius: 7.0 },
+            color,
+            border_color: Color::TRANSPARENT,
+            border_width: 0.0,
         },
     }
 }

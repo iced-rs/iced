@@ -185,7 +185,10 @@ impl Style for Theme {
 pub fn primary(theme: &Theme) -> Appearance {
     let palette = theme.extended_palette();
 
-    styled(palette.background.strong.color, palette.primary.base.color)
+    styled(
+        palette.background.strong.color,
+        palette.primary.strong.color,
+    )
 }
 
 /// The secondary style of a [`ProgressBar`].
