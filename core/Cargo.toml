@@ -15,12 +15,12 @@ bitflags.workspace = true
 glam.workspace = true
 log.workspace = true
 num-traits.workspace = true
+once_cell.workspace = true
+palette.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
 xxhash-rust.workspace = true
-palette.workspace = true
-once_cell.workspace = true
 
 [target.'cfg(windows)'.dependencies]
 raw-window-handle.workspace = true
