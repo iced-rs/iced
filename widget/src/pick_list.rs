@@ -1,5 +1,4 @@
 //! Display a dropdown list of selectable values.
-use crate::container;
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
@@ -15,7 +14,6 @@ use crate::core::{
     Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
-use crate::scrollable;
 use crate::style::Theme;
 
 use std::borrow::Borrow;
@@ -169,7 +167,6 @@ where
     L: Borrow<[T]>,
     V: Borrow<T>,
     Message: Clone + 'a,
-    Theme: scrollable::Style + container::Style,
     Renderer: text::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
@@ -426,7 +423,7 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone + 'a,
-    Theme: scrollable::Style + container::Style + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(

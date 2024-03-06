@@ -53,7 +53,7 @@ pub struct Slider<'a, T, Message, Theme = crate::Theme> {
     on_release: Option<Message>,
     width: Length,
     height: f32,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
@@ -74,7 +74,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -99,7 +99,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -136,7 +136,7 @@ where
 
     /// Sets the style of the [`Slider`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 
@@ -350,7 +350,7 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let style = (self.style)(
+        let style = (self.style.0)(
             theme,
             if state.is_dragging {
                 Status::Dragged
@@ -550,15 +550,27 @@ pub enum HandleShape {
     },
 }
 
-/// The definiton of the default style of a [`TextInput`].
-pub trait Style {
-    /// Returns the default style of a [`TextInput`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`Slider`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(pub(crate) fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

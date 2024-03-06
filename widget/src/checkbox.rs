@@ -53,13 +53,12 @@ pub struct Checkbox<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: Style,
 {
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: f32 = 15.0;
@@ -72,7 +71,10 @@ where
     /// It expects:
     ///   * the label of the [`Checkbox`]
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
-    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
+    pub fn new(label: impl Into<String>, is_checked: bool) -> Self
+    where
+        Style<Theme>: Default,
+    {
         Checkbox {
             is_checked,
             on_toggle: None,
@@ -91,7 +93,7 @@ where
                 line_height: text::LineHeight::default(),
                 shaping: text::Shaping::Basic,
             },
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -175,7 +177,7 @@ where
 
     /// Sets the style of the [`Checkbox`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+        self.style = Style(style);
         self
     }
 }
@@ -301,7 +303,7 @@ where
             Status::Active { is_checked }
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         {
             let layout = children.next().unwrap();
@@ -423,15 +425,27 @@ pub struct Appearance {
     pub text_color: Option<Color>,
 }
 
-/// A set of rules that dictate the style of a checkbox.
-pub trait Style {
-    /// The supported style of the [`StyleSheet`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`Checkbox`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        primary
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(primary)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

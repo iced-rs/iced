@@ -81,7 +81,7 @@ impl<Theme> Svg<Theme> {
     /// Sets the style variant of this [`Svg`].
     #[must_use]
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+        self.style = Style(style);
         self
     }
 }

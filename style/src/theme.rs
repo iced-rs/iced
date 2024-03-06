@@ -4,7 +4,6 @@ pub mod palette;
 pub use palette::Palette;
 
 use crate::application;
-use crate::core::widget::text;
 
 use std::fmt;
 use std::sync::Arc;
@@ -265,5 +264,3 @@ impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
         (self)(style)
     }
 }
-
-impl text::StyleSheet for Theme {}

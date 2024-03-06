@@ -77,7 +77,7 @@ pub struct TextInput<
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -88,15 +88,22 @@ where
     Message: Clone,
     Renderer: text::Renderer,
 {
-    /// Creates a new [`TextInput`].
-    ///
-    /// It expects:
-    /// - a placeholder,
-    /// - the current value
+    /// Creates a new [`TextInput`] with the given placeholder and
+    /// its current value.
     pub fn new(placeholder: &str, value: &str) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
+        Self::with_style(placeholder, value, Style::default().0)
+    }
+
+    /// Creates a new [`TextInput`] with the given placeholder,
+    /// its current value, and its style.
+    pub fn with_style(
+        placeholder: &str,
+        value: &str,
+        style: fn(&Theme, Status) -> Appearance,
+    ) -> Self {
         TextInput {
             id: None,
             placeholder: String::from(placeholder),
@@ -111,7 +118,7 @@ where
             on_paste: None,
             on_submit: None,
             icon: None,
-            style: Theme::style(),
+            style: style.into(),
         }
     }
 
@@ -199,7 +206,7 @@ where
 
     /// Sets the style of the [`TextInput`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 
@@ -337,7 +344,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -1406,15 +1413,27 @@ pub struct Appearance {
     pub selection: Color,
 }
 
-/// The definiton of the default style of a [`TextInput`].
-pub trait Style {
-    /// Returns the default style of a [`TextInput`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`TextInput`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

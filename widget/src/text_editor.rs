@@ -42,7 +42,7 @@ pub struct TextEditor<
     width: Length,
     height: Length,
     padding: Padding,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
@@ -59,7 +59,7 @@ where
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Self {
             content,
@@ -69,7 +69,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: Theme::style(),
+            style: Style::default(),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -144,7 +144,7 @@ where
 
     /// Sets the style of the [`TextEditor`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -506,7 +506,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -809,15 +809,27 @@ pub struct Appearance {
     pub selection: Color,
 }
 
-/// The definiton of the default style of a [`TextInput`].
-pub trait Style {
-    /// Returns the default style of a [`TextInput`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`TextEditor`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

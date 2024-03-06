@@ -46,7 +46,7 @@ impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: container::Style + scrollable::Style + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
@@ -197,7 +197,7 @@ where
 impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: container::Style + scrollable::Style + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(
@@ -223,20 +223,24 @@ where
             style,
         } = menu;
 
-        let container = Container::new(
-            Scrollable::new(List {
-                options,
-                hovered_option,
-                on_selected,
-                on_option_hovered,
-                font,
-                text_size,
-                text_line_height,
-                text_shaping,
-                padding,
-                style: style.menu,
-            })
-            .style(style.scrollable),
+        let container = Container::with_style(
+            Scrollable::with_direction_and_style(
+                List {
+                    options,
+                    hovered_option,
+                    on_selected,
+                    on_option_hovered,
+                    font,
+                    text_size,
+                    text_line_height,
+                    text_shaping,
+                    padding,
+                    style: style.menu,
+                },
+                scrollable::Direction::default(),
+                style.scrollable,
+            ),
+            container::transparent,
         );
 
         state.tree.diff(&container as &dyn Widget<_, _, _>);

@@ -53,7 +53,6 @@ use crate::style::Theme;
 #[allow(missing_debug_implementations)]
 pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
-    Theme: Style,
     Renderer: crate::core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
@@ -62,18 +61,20 @@ where
     height: Length,
     padding: Padding,
     clip: bool,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
-    Theme: Style,
     Renderer: crate::core::Renderer,
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self {
+    ) -> Self
+    where
+        Style<Theme>: Default,
+    {
         let content = content.into();
         let size = content.as_widget().size_hint();
 
@@ -84,7 +85,7 @@ where
             height: size.height.fluid(),
             padding: Padding::new(5.0),
             clip: false,
-            style: Theme::DEFAULT,
+            style: Style::default(),
         }
     }
 
@@ -125,7 +126,7 @@ where
 
     /// Sets the style variant of this [`Button`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+        self.style = Style(style);
         self
     }
 
@@ -146,7 +147,6 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Button<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
-    Theme: Style,
     Renderer: 'a + crate::core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -306,7 +306,7 @@ where
             Status::Active
         };
 
-        let styling = (self.style)(theme, status);
+        let styling = (self.style.0)(theme, status);
 
         if styling.background.is_some()
             || styling.border.width > 0.0
@@ -380,7 +380,7 @@ impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
-    Theme: Style + 'a,
+    Theme: 'a,
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
@@ -428,14 +428,28 @@ impl std::default::Default for Appearance {
     }
 }
 
-/// The default style of a [`Button`] for a given theme.
-pub trait Style {
-    /// The default style.
-    const DEFAULT: fn(&Self, Status) -> Appearance;
+/// The style of a [`Button`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    const DEFAULT: fn(&Self, Status) -> Appearance = primary;
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(primary)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
+    }
 }
 
 /// A primary button; denoting a main action.

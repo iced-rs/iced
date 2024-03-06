@@ -28,7 +28,7 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
-    style: fn(&Theme, container::Status) -> container::Appearance,
+    style: container::Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
@@ -47,7 +47,7 @@ where
         position: Position,
     ) -> Self
     where
-        Theme: container::Style,
+        container::Style<Theme>: Default,
     {
         Tooltip {
             content: content.into(),
@@ -56,7 +56,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: Theme::style(),
+            style: container::Style::default(),
         }
     }
 
@@ -83,7 +83,7 @@ where
         mut self,
         style: fn(&Theme, container::Status) -> container::Appearance,
     ) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -309,7 +309,7 @@ where
     positioning: Position,
     gap: f32,
     padding: f32,
-    style: fn(&Theme, container::Status) -> container::Appearance,
+    style: container::Style<Theme>,
 }
 
 impl<'a, 'b, Message, Theme, Renderer>
@@ -424,7 +424,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = (self.style)(theme, container::Status::Idle);
+        let style = self.style.resolve(theme, container::Status::Idle);
 
         container::draw_background(renderer, &style, layout.bounds());
 

@@ -23,19 +23,19 @@ const QUIET_ZONE: usize = 2;
 pub struct QRCode<'a, Theme = crate::Theme> {
     data: &'a Data,
     cell_size: u16,
-    style: fn(&Theme) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Theme> QRCode<'a, Theme> {
     /// Creates a new [`QRCode`] with the provided [`Data`].
     pub fn new(data: &'a Data) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -47,7 +47,7 @@ impl<'a, Theme> QRCode<'a, Theme> {
 
     /// Sets the style of the [`QRCode`].
     pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -97,7 +97,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         let bounds = layout.bounds();
         let side_length = self.data.width + 2 * QUIET_ZONE;
 
-        let appearance = (self.style)(theme);
+        let appearance = (self.style.0)(theme);
         let mut last_appearance = state.last_appearance.borrow_mut();
 
         if Some(appearance) != *last_appearance {
@@ -335,15 +335,27 @@ pub struct Appearance {
     pub background: Color,
 }
 
-/// The definiton of the default style of a [`QRCode`].
-pub trait Style {
-    /// Returns the default style of a [`QRCode`].
-    fn style() -> fn(&Self) -> Appearance;
+/// The style of a [`QRCode`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

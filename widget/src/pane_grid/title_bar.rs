@@ -25,7 +25,7 @@ pub struct TitleBar<
     controls: Option<Element<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: fn(&Theme, container::Status) -> container::Appearance,
+    style: container::Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
@@ -33,17 +33,18 @@ where
     Renderer: crate::core::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
-    pub fn new<E>(content: E) -> Self
+    pub fn new(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self
     where
-        Theme: container::Style,
-        E: Into<Element<'a, Message, Theme, Renderer>>,
+        container::Style<Theme>: Default,
     {
         Self {
             content: content.into(),
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Theme::style(),
+            style: container::Style::default(),
         }
     }
 
@@ -67,7 +68,7 @@ where
         mut self,
         style: fn(&Theme, container::Status) -> container::Appearance,
     ) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 
@@ -137,7 +138,7 @@ where
                 container::Status::Idle
             };
 
-            (self.style)(theme, status)
+            self.style.resolve(theme, status)
         };
 
         let inherited_style = renderer::Style {

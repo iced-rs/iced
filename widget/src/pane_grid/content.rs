@@ -24,7 +24,7 @@ pub struct Content<
 {
     title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
     body: Element<'a, Message, Theme, Renderer>,
-    style: fn(&Theme, container::Status) -> container::Appearance,
+    style: container::Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
@@ -34,12 +34,12 @@ where
     /// Creates a new [`Content`] with the provided body.
     pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self
     where
-        Theme: container::Style,
+        container::Style<Theme>: Default,
     {
         Self {
             title_bar: None,
             body: body.into(),
-            style: Theme::style(),
+            style: container::Style::default(),
         }
     }
 
@@ -57,7 +57,7 @@ where
         mut self,
         style: fn(&Theme, container::Status) -> container::Appearance,
     ) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -114,7 +114,7 @@ where
                     container::Status::Idle
                 };
 
-                (self.style)(theme, status)
+                self.style.resolve(theme, status)
             };
 
             container::draw_background(renderer, &style, bounds);
@@ -403,8 +403,8 @@ impl<'a, T, Message, Theme, Renderer> From<T>
     for Content<'a, Message, Theme, Renderer>
 where
     T: Into<Element<'a, Message, Theme, Renderer>>,
-    Theme: container::Style,
     Renderer: crate::core::Renderer,
+    container::Style<Theme>: Default,
 {
     fn from(element: T) -> Self {
         Self::new(element)

@@ -50,7 +50,7 @@ pub struct Toggler<
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -74,7 +74,7 @@ where
         f: F,
     ) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
@@ -89,7 +89,7 @@ where
             text_shaping: text::Shaping::Basic,
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -301,7 +301,7 @@ where
             }
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
@@ -399,15 +399,27 @@ pub struct Appearance {
     pub foreground_border_color: Color,
 }
 
-/// The definiton of the default style of a [`Toggler`].
-pub trait Style {
-    /// Returns the default style of a [`Toggler`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`Toggler`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

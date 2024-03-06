@@ -1,5 +1,4 @@
 //! Display a dropdown list of searchable and selectable options.
-use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key;
@@ -14,7 +13,6 @@ use crate::core::{
     Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Vector,
 };
 use crate::overlay::menu;
-use crate::scrollable;
 use crate::style::Theme;
 use crate::text::LineHeight;
 use crate::text_input::{self, TextInput};
@@ -65,14 +63,16 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self
     where
-        Theme: text_input::Style,
         Style<Theme>: Default,
     {
         let style = Style::<Theme>::default();
 
-        let text_input = TextInput::new(placeholder, &state.value())
-            .on_input(TextInputEvent::TextChanged)
-            .style(style.text_input);
+        let text_input = TextInput::with_style(
+            placeholder,
+            &state.value(),
+            style.text_input,
+        )
+        .on_input(TextInputEvent::TextChanged);
 
         let selection = selection.map(T::to_string).unwrap_or_default();
 
@@ -294,7 +294,6 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
-    Theme: scrollable::Style + container::Style,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -711,7 +710,7 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
-    Theme: scrollable::Style + container::Style + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(combo_box: ComboBox<'a, T, Message, Theme, Renderer>) -> Self {

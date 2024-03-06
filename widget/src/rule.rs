@@ -15,39 +15,39 @@ pub struct Rule<Theme = crate::Theme> {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style: fn(&Theme) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<Theme> Rule<Theme> {
     /// Creates a horizontal [`Rule`] with the given height.
     pub fn horizontal(height: impl Into<Pixels>) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Rule {
             width: Length::Fill,
             height: Length::Fixed(height.into().0),
             is_horizontal: true,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
     /// Creates a vertical [`Rule`] with the given width.
     pub fn vertical(width: impl Into<Pixels>) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Rule {
             width: Length::Fixed(width.into().0),
             height: Length::Fill,
             is_horizontal: false,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
     /// Sets the style of the [`Rule`].
     pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+        self.style = Style(style);
         self
     }
 }
@@ -83,7 +83,7 @@ where
         _viewport: &Rectangle,
     ) {
         let bounds = layout.bounds();
-        let appearance = (self.style)(theme);
+        let appearance = (self.style.0)(theme);
 
         let bounds = if self.is_horizontal {
             let line_y = (bounds.y + (bounds.height / 2.0)
@@ -216,15 +216,27 @@ impl FillMode {
     }
 }
 
-/// The definiton of the default style of a [`Rule`].
-pub trait Style {
-    /// Returns the default style of a [`Rule`].
-    fn style() -> fn(&Self) -> Appearance;
+/// The style of a [`Rule`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

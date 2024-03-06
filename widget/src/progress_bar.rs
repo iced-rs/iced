@@ -28,7 +28,7 @@ pub struct ProgressBar<Theme = crate::Theme> {
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: fn(&Theme) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<Theme> ProgressBar<Theme> {
@@ -42,14 +42,14 @@ impl<Theme> ProgressBar<Theme> {
     ///   * the current value of the [`ProgressBar`]
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -67,7 +67,7 @@ impl<Theme> ProgressBar<Theme> {
 
     /// Sets the style of the [`ProgressBar`].
     pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -117,7 +117,7 @@ where
                 / (range_end - range_start)
         };
 
-        let appearance = (self.style)(theme);
+        let appearance = (self.style.0)(theme);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -169,15 +169,27 @@ pub struct Appearance {
     pub border: Border,
 }
 
-/// The definiton of the default style of a [`ProgressBar`].
-pub trait Style {
-    /// Returns the default style of a [`ProgressBar`].
-    fn style() -> fn(&Self) -> Appearance;
+/// The style of a [`ProgressBar`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self) -> Appearance {
-        primary
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(primary)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

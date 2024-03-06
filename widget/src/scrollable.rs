@@ -37,7 +37,7 @@ pub struct Scrollable<
     direction: Direction,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -49,7 +49,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Self::with_direction(content, Direction::default())
     }
@@ -60,8 +60,17 @@ where
         direction: Direction,
     ) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
+        Self::with_direction_and_style(content, direction, Style::default().0)
+    }
+
+    /// Creates a new [`Scrollable`] with the given [`Direction`] and style.
+    pub fn with_direction_and_style(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        direction: Direction,
+        style: fn(&Theme, Status) -> Appearance,
+    ) -> Self {
         let content = content.into();
 
         debug_assert!(
@@ -83,7 +92,7 @@ where
             direction,
             content,
             on_scroll: None,
-            style: Theme::style(),
+            style: style.into(),
         }
     }
 
@@ -115,7 +124,7 @@ where
 
     /// Sets the style of the [`Scrollable`] .
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+        self.style = style.into();
         self
     }
 }
@@ -399,7 +408,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         container::draw_background(
             renderer,
@@ -1653,15 +1662,27 @@ pub struct Scroller {
     pub border: Border,
 }
 
-/// The definition of the default style of a [`Scrollable`].
-pub trait Style {
-    /// Returns the default style of a [`Scrollable`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`Scrollable`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

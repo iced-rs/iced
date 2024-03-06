@@ -34,21 +34,30 @@ pub struct Container<
     max_height: f32,
     horizontal_alignment: alignment::Horizontal,
     vertical_alignment: alignment::Vertical,
-    style: fn(&Theme, Status) -> Appearance,
     clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    /// Creates an empty [`Container`].
-    pub fn new<T>(content: T) -> Self
+    /// Creates a [`Container`] with the given content.
+    pub fn new(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+    ) -> Self
     where
-        Theme: Style,
-        T: Into<Element<'a, Message, Theme, Renderer>>,
+        Style<Theme>: Default,
     {
+        Self::with_style(content, Style::default().0)
+    }
+
+    /// Creates a [`Container`] with the given content and style.
+    pub fn with_style(
+        content: impl Into<Element<'a, Message, Theme, Renderer>>,
+        style: fn(&Theme, Status) -> Appearance,
+    ) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
 
@@ -61,9 +70,9 @@ where
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style: Theme::style(),
             clip: false,
             content,
+            style: Style(style),
         }
     }
 
@@ -129,7 +138,7 @@ where
 
     /// Sets the style of the [`Container`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+        self.style = Style(style);
         self
     }
 
@@ -267,7 +276,7 @@ where
             Status::Idle
         };
 
-        let style = (self.style)(theme, status);
+        let style = (self.style.0)(theme, status);
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             draw_background(renderer, &style, bounds);
@@ -537,26 +546,46 @@ pub enum Status {
     Hovered,
 }
 
-/// The style of a [`Container`] for a theme.
-pub trait Style {
-    /// The default style of a [`Container`].
-    fn style() -> fn(&Self, Status) -> Appearance;
-}
+/// The style of a [`Container`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        transparent
+impl<Theme> Style<Theme> {
+    /// Resolves the [`Style`] with the given `Theme` and [`Status`] to
+    /// produce an [`Appearance`].
+    pub fn resolve(self, theme: &Theme, status: Status) -> Appearance {
+        (self.0)(theme, status)
     }
 }
 
-impl Style for Appearance {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        |appearance, _status| *appearance
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(transparent)
+    }
+}
+
+impl Default for Style<Appearance> {
+    fn default() -> Self {
+        Style(|appearance, _status| *appearance)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 
 /// A transparent [`Container`].
-pub fn transparent(_theme: &Theme, _status: Status) -> Appearance {
+pub fn transparent<Theme>(_theme: &Theme, _status: Status) -> Appearance {
     Appearance::default()
 }
 

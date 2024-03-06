@@ -82,7 +82,7 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<Message, Theme, Renderer> Radio<Message, Theme, Renderer>
@@ -111,7 +111,7 @@ where
         f: F,
     ) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
     {
@@ -126,7 +126,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -177,7 +177,7 @@ where
 
     /// Sets the style of the [`Radio`] button.
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+        self.style = Style(style);
         self
     }
 }
@@ -298,7 +298,7 @@ where
             Status::Active { is_selected }
         };
 
-        let appearance = (self.style)(theme, status);
+        let appearance = (self.style.0)(theme, status);
 
         {
             let layout = children.next().unwrap();
@@ -398,15 +398,27 @@ pub struct Appearance {
     pub text_color: Option<Color>,
 }
 
-/// The definiton of the default style of a [`Radio`] button.
-pub trait Style {
-    /// Returns the default style of a [`Radio`] button.
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of a [`Radio`] button.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

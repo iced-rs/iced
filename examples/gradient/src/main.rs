@@ -84,7 +84,7 @@ impl Sandbox for Gradient {
         };
 
         let gradient_box = themer(
-            move |_| appearance,
+            appearance,
             container(horizontal_space())
                 .width(Length::Fill)
                 .height(Length::Fill),

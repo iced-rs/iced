@@ -112,7 +112,7 @@ pub struct PaneGrid<
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: fn(&Theme) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
@@ -128,7 +128,7 @@ where
         view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
     ) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         let contents = if let Some((pane, pane_state)) =
             state.maximized.and_then(|pane| {
@@ -160,7 +160,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -221,7 +221,7 @@ where
 
     /// Sets the style of the [`PaneGrid`].
     pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+        self.style = Style(style);
         self
     }
 
@@ -679,7 +679,7 @@ where
             None
         };
 
-        let appearance = (self.style)(theme);
+        let appearance = (self.style.0)(theme);
 
         for ((id, (content, tree)), pane_layout) in
             contents.zip(layout.children())
@@ -1147,15 +1147,27 @@ pub struct Line {
     pub width: f32,
 }
 
-/// The definiton of the default style of a [`PaneGrid`].
-pub trait Style {
-    /// Returns the default style of a [`PaneGrid`].
-    fn style() -> fn(&Self) -> Appearance;
+/// The style of a [`PaneGrid`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self) -> Appearance {
-        default
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style(f)
     }
 }
 

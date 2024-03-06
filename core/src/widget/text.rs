@@ -17,7 +17,6 @@ pub use text::{LineHeight, Shaping};
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     content: Cow<'a, str>,
@@ -34,7 +33,6 @@ where
 
 impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
@@ -49,7 +47,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::Basic,
-            style: Style::Themed(Theme::default()),
+            style: Style::default(),
         }
     }
 
@@ -135,7 +133,6 @@ pub struct State<P: Paragraph>(P);
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -283,7 +280,7 @@ pub fn draw<Renderer>(
 impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -295,7 +292,6 @@ where
 
 impl<'a, Theme, Renderer> Clone for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn clone(&self) -> Self {
@@ -316,7 +312,6 @@ where
 
 impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
@@ -327,27 +322,11 @@ where
 impl<'a, Message, Theme, Renderer> From<&'a str>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(content: &'a str) -> Self {
         Text::from(content).into()
-    }
-}
-
-/// The style sheet of some text.
-pub trait StyleSheet {
-    /// Returns the default styling strategy for [`Text`].
-    fn default() -> fn(&Self) -> Appearance {
-        |_| Appearance::default()
-    }
-}
-
-impl StyleSheet for Color {
-    fn default() -> fn(&Self) -> Appearance {
-        |color| Appearance {
-            color: Some(*color),
-        }
     }
 }
 
@@ -373,3 +352,15 @@ impl<Theme> Clone for Style<Theme> {
 }
 
 impl<Theme> Copy for Style<Theme> {}
+
+impl<Theme> Default for Style<Theme> {
+    fn default() -> Self {
+        Style::Colored(None)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style::Themed(f)
+    }
+}
