@@ -8,7 +8,6 @@ use crate::core::widget::text;
 use crate::menu;
 use crate::pane_grid;
 use crate::pick_list;
-use crate::svg;
 use crate::text_editor;
 
 use crate::core::{Background, Border, Color};
@@ -437,52 +436,6 @@ impl pane_grid::StyleSheet for Theme {
             }
             PaneGrid::Custom(custom) => custom.hovered_split(self),
         }
-    }
-}
-
-/**
- * Svg
- */
-#[derive(Default)]
-pub enum Svg {
-    /// No filtering to the rendered SVG.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn svg::StyleSheet<Style = Theme>>),
-}
-
-impl Svg {
-    /// Creates a custom [`Svg`] style.
-    pub fn custom_fn(f: fn(&Theme) -> svg::Appearance) -> Self {
-        Self::Custom(Box::new(f))
-    }
-}
-
-impl svg::StyleSheet for Theme {
-    type Style = Svg;
-
-    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
-        match style {
-            Svg::Default => svg::Appearance::default(),
-            Svg::Custom(custom) => custom.appearance(self),
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style) -> svg::Appearance {
-        self.appearance(style)
-    }
-}
-
-impl svg::StyleSheet for fn(&Theme) -> svg::Appearance {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> svg::Appearance {
-        (self)(style)
-    }
-
-    fn hovered(&self, style: &Self::Style) -> svg::Appearance {
-        self.appearance(style)
     }
 }
 
