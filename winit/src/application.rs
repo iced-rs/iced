@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Event, Point, Size};
+use crate::core::{Color, Event, Point, Size};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
@@ -18,7 +18,7 @@ use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
-use crate::style::application::{Appearance, StyleSheet};
+use crate::style::Theme;
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
@@ -39,7 +39,7 @@ use std::sync::Arc;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    Self::Theme: StyleSheet,
+    Style<Self::Theme>: Default,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -64,8 +64,8 @@ where
     fn theme(&self) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        Default::default()
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        Style::default().resolve(theme)
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -95,6 +95,58 @@ where
     }
 }
 
+/// The appearance of an application.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appearance {
+    /// The background [`Color`] of the application.
+    pub background_color: Color,
+
+    /// The default text [`Color`] of the application.
+    pub text_color: Color,
+}
+
+/// The style of an [`Application`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(pub fn(&Theme) -> Appearance);
+
+impl<Theme> Style<Theme> {
+    /// Resolves the [`Style`] with the given `Theme` to produce
+    /// an [`Appearance`].
+    pub fn resolve(self, theme: &Theme) -> Appearance {
+        (self.0)(theme)
+    }
+}
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style(f)
+    }
+}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(default)
+    }
+}
+
+/// The default style of an [`Application`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background_color: palette.background.base.color,
+        text_color: palette.background.base.text,
+    }
+}
+
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
 pub fn run<A, E, C>(
@@ -105,7 +157,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    Style<A::Theme>: Default,
 {
     use futures::task;
     use futures::Future;
@@ -289,7 +341,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    Style<A::Theme>: Default,
 {
     use futures::stream::StreamExt;
     use winit::event;
@@ -612,7 +664,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    A::Theme: StyleSheet,
+    Style<A::Theme>: Default,
 {
     debug.view_started();
     let view = application.view();
@@ -643,7 +695,7 @@ pub fn update<A: Application, C, E: Executor>(
     window: &winit::window::Window,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    Style<A::Theme>: Default,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -694,7 +746,7 @@ pub fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    Style<A::Theme>: Default,
 {
     use crate::runtime::command;
     use crate::runtime::system;

@@ -1,7 +1,9 @@
 //! Build interactive cross-platform applications.
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use crate::style::application::{Appearance, StyleSheet};
+use crate::shell::application;
+
+pub use application::{default, Appearance, Style};
 
 /// An interactive cross-platform application.
 ///
@@ -91,7 +93,10 @@ pub use crate::style::application::{Appearance, StyleSheet};
 ///     }
 /// }
 /// ```
-pub trait Application: Sized {
+pub trait Application: Sized
+where
+    Style<Self::Theme>: Default,
+{
     /// The [`Executor`] that will run commands and subscriptions.
     ///
     /// The [default executor] can be a good starting point!
@@ -104,7 +109,7 @@ pub trait Application: Sized {
     type Message: std::fmt::Debug + Send;
 
     /// The theme of your [`Application`].
-    type Theme: Default + StyleSheet;
+    type Theme: Default;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -151,8 +156,8 @@ pub trait Application: Sized {
     /// Returns the current `Style` of the [`Theme`].
     ///
     /// [`Theme`]: Self::Theme
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        <Self::Theme as StyleSheet>::Style::default()
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        Style::default().resolve(theme)
     }
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -213,11 +218,15 @@ pub trait Application: Sized {
     }
 }
 
-struct Instance<A: Application>(A);
+struct Instance<A>(A)
+where
+    A: Application,
+    application::Style<A::Theme>: Default;
 
 impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
+    application::Style<A::Theme>: Default,
 {
     type Message = A::Message;
     type Theme = A::Theme;
@@ -232,9 +241,10 @@ where
     }
 }
 
-impl<A> crate::shell::Application for Instance<A>
+impl<A> application::Application for Instance<A>
 where
     A: Application,
+    application::Style<A::Theme>: Default,
 {
     type Flags = A::Flags;
 
@@ -252,8 +262,8 @@ where
         self.0.theme()
     }
 
-    fn style(&self) -> <A::Theme as StyleSheet>::Style {
-        self.0.style()
+    fn style(&self, theme: &A::Theme) -> Appearance {
+        self.0.style(theme)
     }
 
     fn subscription(&self) -> Subscription<Self::Message> {

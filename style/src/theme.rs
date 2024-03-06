@@ -3,8 +3,6 @@ pub mod palette;
 
 pub use palette::Palette;
 
-use crate::application;
-
 use std::fmt;
 use std::sync::Arc;
 
@@ -219,48 +217,5 @@ impl Custom {
 impl fmt::Display for Custom {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.name)
-    }
-}
-
-/// The style of an application.
-#[derive(Default)]
-pub enum Application {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn application::StyleSheet<Style = Theme>>),
-}
-
-impl Application {
-    /// Creates a custom [`Application`] style.
-    pub fn custom(
-        custom: impl application::StyleSheet<Style = Theme> + 'static,
-    ) -> Self {
-        Self::Custom(Box::new(custom))
-    }
-}
-
-impl application::StyleSheet for Theme {
-    type Style = Application;
-
-    fn appearance(&self, style: &Self::Style) -> application::Appearance {
-        let palette = self.extended_palette();
-
-        match style {
-            Application::Default => application::Appearance {
-                background_color: palette.background.base.color,
-                text_color: palette.background.base.text,
-            },
-            Application::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
-    type Style = Theme;
-
-    fn appearance(&self, style: &Self::Style) -> application::Appearance {
-        (self)(style)
     }
 }

@@ -2,18 +2,16 @@ use crate::conversion;
 use crate::core::{mouse, window};
 use crate::core::{Color, Size};
 use crate::graphics::Viewport;
-use crate::multi_window::Application;
-use crate::style::application;
+use crate::multi_window::{self, Application};
 use std::fmt::{Debug, Formatter};
 
-use iced_style::application::StyleSheet;
 use winit::event::{Touch, WindowEvent};
 use winit::window::Window;
 
 /// The state of a multi-windowed [`Application`].
 pub struct State<A: Application>
 where
-    A::Theme: application::StyleSheet,
+    multi_window::Style<A::Theme>: Default,
 {
     title: String,
     scale_factor: f64,
@@ -22,12 +20,12 @@ where
     cursor_position: Option<winit::dpi::PhysicalPosition<f64>>,
     modifiers: winit::keyboard::ModifiersState,
     theme: A::Theme,
-    appearance: application::Appearance,
+    appearance: multi_window::Appearance,
 }
 
 impl<A: Application> Debug for State<A>
 where
-    A::Theme: application::StyleSheet,
+    multi_window::Style<A::Theme>: Default,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("multi_window::State")
@@ -43,7 +41,7 @@ where
 
 impl<A: Application> State<A>
 where
-    A::Theme: application::StyleSheet,
+    multi_window::Style<A::Theme>: Default,
 {
     /// Creates a new [`State`] for the provided [`Application`]'s `window`.
     pub fn new(
@@ -54,7 +52,7 @@ where
         let title = application.title(window_id);
         let scale_factor = application.scale_factor(window_id);
         let theme = application.theme(window_id);
-        let appearance = theme.appearance(&application.style());
+        let appearance = application.style(&theme);
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -236,6 +234,6 @@ where
 
         // Update theme and appearance
         self.theme = application.theme(window_id);
-        self.appearance = self.theme.appearance(&application.style());
+        self.appearance = application.style(&self.theme);
     }
 }

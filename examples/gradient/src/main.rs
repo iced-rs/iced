@@ -1,11 +1,11 @@
 use iced::application;
-use iced::theme::{self, Theme};
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text, themer,
 };
 use iced::{gradient, window};
 use iced::{
     Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -115,16 +115,14 @@ impl Sandbox for Gradient {
         .into()
     }
 
-    fn style(&self) -> theme::Application {
+    fn style(&self, theme: &Theme) -> application::Appearance {
         if self.transparent {
-            theme::Application::custom(|theme: &Theme| {
-                application::Appearance {
-                    background_color: Color::TRANSPARENT,
-                    text_color: theme.palette().text,
-                }
-            })
+            application::Appearance {
+                background_color: Color::TRANSPARENT,
+                text_color: theme.palette().text,
+            }
         } else {
-            theme::Application::Default
+            application::default(theme)
         }
     }
 }
