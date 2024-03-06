@@ -6,10 +6,9 @@ pub use palette::Palette;
 use crate::application;
 use crate::core::widget::text;
 use crate::menu;
-use crate::pane_grid;
 use crate::pick_list;
 
-use crate::core::{Background, Border, Color};
+use crate::core::Border;
 
 use std::fmt;
 use std::rc::Rc;
@@ -371,69 +370,6 @@ impl pick_list::StyleSheet for Theme {
                 }
             }
             PickList::Custom(custom, _) => custom.hovered(self),
-        }
-    }
-}
-
-/// The style of a pane grid.
-#[derive(Default)]
-pub enum PaneGrid {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn pane_grid::StyleSheet<Style = Theme>>),
-}
-
-impl pane_grid::StyleSheet for Theme {
-    type Style = PaneGrid;
-
-    fn hovered_region(&self, style: &Self::Style) -> pane_grid::Appearance {
-        match style {
-            PaneGrid::Default => {
-                let palette = self.extended_palette();
-
-                pane_grid::Appearance {
-                    background: Background::Color(Color {
-                        a: 0.5,
-                        ..palette.primary.base.color
-                    }),
-                    border: Border {
-                        width: 2.0,
-                        color: palette.primary.strong.color,
-                        radius: 0.0.into(),
-                    },
-                }
-            }
-            PaneGrid::Custom(custom) => custom.hovered_region(self),
-        }
-    }
-
-    fn picked_split(&self, style: &Self::Style) -> Option<pane_grid::Line> {
-        match style {
-            PaneGrid::Default => {
-                let palette = self.extended_palette();
-
-                Some(pane_grid::Line {
-                    color: palette.primary.strong.color,
-                    width: 2.0,
-                })
-            }
-            PaneGrid::Custom(custom) => custom.picked_split(self),
-        }
-    }
-
-    fn hovered_split(&self, style: &Self::Style) -> Option<pane_grid::Line> {
-        match style {
-            PaneGrid::Default => {
-                let palette = self.extended_palette();
-
-                Some(pane_grid::Line {
-                    color: palette.primary.base.color,
-                    width: 2.0,
-                })
-            }
-            PaneGrid::Custom(custom) => custom.hovered_split(self),
         }
     }
 }
