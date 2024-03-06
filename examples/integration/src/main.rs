@@ -10,11 +10,10 @@ use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
 use iced_winit::core::window;
-use iced_winit::core::{Color, Font, Pixels, Size};
+use iced_winit::core::{Color, Font, Pixels, Size, Theme};
 use iced_winit::futures;
 use iced_winit::runtime::program;
 use iced_winit::runtime::Debug;
-use iced_winit::style::Theme;
 use iced_winit::winit;
 use iced_winit::Clipboard;
 

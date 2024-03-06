@@ -5,10 +5,10 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Color, Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
+    Widget,
 };
 use crate::graphics::geometry::Renderer as _;
-use crate::style::Theme;
 use crate::Renderer;
 
 use std::cell::RefCell;

@@ -12,9 +12,8 @@ use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
     Background, Border, Color, Element, Length, Padding, Pixels, Rectangle,
-    Shell, Size, Vector,
+    Shell, Size, Theme, Vector,
 };
-use crate::style::Theme;
 
 use std::cell::RefCell;
 use std::fmt;

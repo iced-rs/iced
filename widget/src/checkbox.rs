@@ -5,23 +5,21 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Widget,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-use crate::style::theme::palette;
-use crate::style::Theme;
 
 /// A box that can be checked.
 ///
 /// # Example
 ///
 /// ```no_run
-/// # type Checkbox<'a, Message> =
-/// #     iced_widget::Checkbox<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Checkbox<'a, Message> = iced_widget::Checkbox<'a, Message>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),

@@ -11,11 +11,10 @@ use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
     Background, Border, Clipboard, Color, Length, Padding, Pixels, Point,
-    Rectangle, Size, Vector,
+    Rectangle, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
-use crate::style::Theme;
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]

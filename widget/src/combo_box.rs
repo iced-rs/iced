@@ -10,10 +10,9 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Vector,
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
 };
 use crate::overlay::menu;
-use crate::style::Theme;
 use crate::text::LineHeight;
 use crate::text_input::{self, TextInput};
 

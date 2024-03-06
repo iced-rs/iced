@@ -1,9 +1,8 @@
 use iced_wgpu::Renderer;
 use iced_widget::{column, container, row, slider, text, text_input};
 use iced_winit::core::alignment;
-use iced_winit::core::{Color, Element, Length};
+use iced_winit::core::{Color, Element, Length, Theme};
 use iced_winit::runtime::{Command, Program};
-use iced_winit::style::Theme;
 
 pub struct Controls {
     background_color: Color,

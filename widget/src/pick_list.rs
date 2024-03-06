@@ -11,10 +11,9 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
-use crate::style::Theme;
 
 use std::borrow::Borrow;
 

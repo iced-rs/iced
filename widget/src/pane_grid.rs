@@ -40,9 +40,8 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Point, Rectangle, Shell, Size, Vector, Widget,
+    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
-use crate::style::Theme;
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
 const THICKNESS_RATIO: f32 = 25.0;
@@ -71,8 +70,7 @@ const THICKNESS_RATIO: f32 = 25.0;
 /// ```no_run
 /// # use iced_widget::{pane_grid, text};
 /// #
-/// # type PaneGrid<'a, Message> =
-/// #     iced_widget::PaneGrid<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type PaneGrid<'a, Message> = iced_widget::PaneGrid<'a, Message>;
 /// #
 /// enum PaneState {
 ///     SomePane,

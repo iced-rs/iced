@@ -4,9 +4,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Background, Border, Element, Layout, Length, Rectangle, Size, Widget,
+    Background, Border, Element, Layout, Length, Rectangle, Size, Theme, Widget,
 };
-use crate::style::Theme;
 
 use std::ops::RangeInclusive;
 
@@ -14,7 +13,7 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type ProgressBar = iced_widget::ProgressBar<iced_widget::style::Theme>;
+/// # type ProgressBar = iced_widget::ProgressBar;
 /// #
 /// let value = 50.0;
 ///

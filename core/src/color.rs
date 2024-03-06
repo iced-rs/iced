@@ -1,4 +1,3 @@
-#[cfg(feature = "palette")]
 use palette::rgb::{Srgb, Srgba};
 
 /// A color in the `sRGB` color space.
@@ -210,7 +209,6 @@ macro_rules! color {
     }};
 }
 
-#[cfg(feature = "palette")]
 /// Converts from palette's `Rgba` type to a [`Color`].
 impl From<Srgba> for Color {
     fn from(rgba: Srgba) -> Self {
@@ -218,7 +216,6 @@ impl From<Srgba> for Color {
     }
 }
 
-#[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Rgba` type.
 impl From<Color> for Srgba {
     fn from(c: Color) -> Self {
@@ -226,7 +223,6 @@ impl From<Color> for Srgba {
     }
 }
 
-#[cfg(feature = "palette")]
 /// Converts from palette's `Rgb` type to a [`Color`].
 impl From<Srgb> for Color {
     fn from(rgb: Srgb) -> Self {
@@ -234,7 +230,6 @@ impl From<Srgb> for Color {
     }
 }
 
-#[cfg(feature = "palette")]
 /// Converts from [`Color`] to palette's `Rgb` type.
 impl From<Color> for Srgb {
     fn from(c: Color) -> Self {
@@ -242,7 +237,6 @@ impl From<Color> for Srgb {
     }
 }
 
-#[cfg(feature = "palette")]
 #[cfg(test)]
 mod tests {
     use super::*;

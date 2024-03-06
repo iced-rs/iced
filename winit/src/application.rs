@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Color, Event, Point, Size};
+use crate::core::{Color, Event, Point, Size, Theme};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
@@ -18,7 +18,6 @@ use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
-use crate::style::Theme;
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;

@@ -28,17 +28,15 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::window;
 use crate::core::{
     Background, Border, Color, Element, Layout, Length, Padding, Pixels, Point,
-    Rectangle, Shell, Size, Vector, Widget,
+    Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::Command;
-use crate::style::Theme;
 
 /// A field that can be filled with text.
 ///
 /// # Example
 /// ```no_run
-/// # pub type TextInput<'a, Message> =
-/// #     iced_widget::TextInput<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # pub type TextInput<'a, Message> = iced_widget::TextInput<'a, Message>;
 /// #
 /// #[derive(Debug, Clone)]
 /// enum Message {

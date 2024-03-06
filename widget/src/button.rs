@@ -6,21 +6,19 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::Operation;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Rectangle, Shadow, Shell, Size, Vector, Widget,
+    Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
-use crate::style::theme::palette;
-use crate::style::Theme;
 
 /// A generic widget that produces a message when pressed.
 ///
 /// ```no_run
-/// # type Button<'a, Message> =
-/// #     iced_widget::Button<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {
@@ -34,8 +32,7 @@ use crate::style::Theme;
 /// be disabled:
 ///
 /// ```
-/// # type Button<'a, Message> =
-/// #     iced_widget::Button<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Button<'a, Message> = iced_widget::Button<'a, Message>;
 /// #
 /// #[derive(Clone)]
 /// enum Message {

@@ -9,10 +9,9 @@ use crate::core::widget::tree::{self, Tree};
 use crate::core::widget::{self, Operation};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
-    Pixels, Point, Rectangle, Shadow, Shell, Size, Vector, Widget,
+    Pixels, Point, Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::Command;
-use crate::style::Theme;
 
 /// An element decorating some content.
 ///

@@ -13,10 +13,9 @@ use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Point, Rectangle, Shell, Size, Vector, Widget,
+    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::Command;
-use crate::style::Theme;
 
 pub use operation::scrollable::{AbsoluteOffset, RelativeOffset};
 

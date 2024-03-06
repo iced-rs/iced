@@ -31,8 +31,7 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # type VerticalSlider<'a, T, Message> =
-/// #     iced_widget::VerticalSlider<'a, T, Message, iced_widget::style::Theme>;
+/// # type VerticalSlider<'a, T, Message> = iced_widget::VerticalSlider<'a, T, Message>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {

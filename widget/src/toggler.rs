@@ -10,17 +10,15 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Widget,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-use crate::style::Theme;
 
 /// A toggler widget.
 ///
 /// # Example
 ///
 /// ```no_run
-/// # type Toggler<'a, Message> =
-/// #     iced_widget::Toggler<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Toggler<'a, Message> = iced_widget::Toggler<'a, Message>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),

@@ -5,9 +5,9 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
+    Color, ContentFit, Element, Layout, Length, Rectangle, Size, Theme, Vector,
+    Widget,
 };
-use crate::style::Theme;
 
 use std::path::PathBuf;
 

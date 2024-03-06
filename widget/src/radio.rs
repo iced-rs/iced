@@ -10,16 +10,15 @@ use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Rectangle, Shell, Size, Widget,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-use crate::style::Theme;
 
 /// A circular button representing a choice.
 ///
 /// # Example
 /// ```no_run
 /// # type Radio<Message> =
-/// #     iced_widget::Radio<Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// #     iced_widget::Radio<Message, iced_widget::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// # use iced_widget::column;
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]

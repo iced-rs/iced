@@ -12,9 +12,8 @@ use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
     Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
-    Rectangle, Shell, Size, Widget,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-use crate::style::Theme;
 
 use std::ops::RangeInclusive;
 
@@ -28,8 +27,7 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type Slider<'a, T, Message> =
-/// #     iced_widget::Slider<'a, Message, T, iced_widget::style::Theme>;
+/// # type Slider<'a, T, Message> = iced_widget::Slider<'a, Message, T>;
 /// #
 /// #[derive(Clone)]
 /// pub enum Message {

@@ -5,9 +5,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, Element, Layout, Length, Pixels, Rectangle, Size, Widget,
+    Color, Element, Layout, Length, Pixels, Rectangle, Size, Theme, Widget,
 };
-use crate::style::Theme;
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
