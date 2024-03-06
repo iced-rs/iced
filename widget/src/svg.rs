@@ -25,21 +25,21 @@ pub struct Svg<Theme = crate::Theme> {
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: fn(&Theme, Status) -> Appearance,
+    style: Style<Theme>,
 }
 
 impl<Theme> Svg<Theme> {
     /// Creates a new [`Svg`] from the given [`Handle`].
     pub fn new(handle: impl Into<Handle>) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Theme::style(),
+            style: Style::default(),
         }
     }
 
@@ -48,7 +48,7 @@ impl<Theme> Svg<Theme> {
     #[must_use]
     pub fn from_path(path: impl Into<PathBuf>) -> Self
     where
-        Theme: Style,
+        Style<Theme>: Default,
     {
         Self::new(Handle::from_path(path))
     }
@@ -163,7 +163,7 @@ where
                 Status::Idle
             };
 
-            let appearance = (self.style)(theme, status);
+            let appearance = (self.style.0)(theme, status);
 
             renderer.draw(
                 self.handle.clone(),
@@ -213,14 +213,26 @@ pub struct Appearance {
     pub color: Option<Color>,
 }
 
-/// The definiton of the default style of an [`Svg`].
-pub trait Style {
-    /// Returns the default style of an [`Svg`].
-    fn style() -> fn(&Self, Status) -> Appearance;
+/// The style of an [`Svg`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
 }
 
-impl Style for Theme {
-    fn style() -> fn(&Self, Status) -> Appearance {
-        |_, _| Appearance::default()
+impl<Theme> Copy for Style<Theme> {}
+
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Style(|_, _| Appearance::default())
+    }
+}
+
+impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
+        Style(f)
     }
 }
