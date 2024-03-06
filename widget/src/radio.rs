@@ -367,7 +367,7 @@ where
     }
 }
 
-/// The possible status of a [`TextInput`].
+/// The possible status of a [`Radio`] button.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
     /// The [`Radio`] button can be interacted with.

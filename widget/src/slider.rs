@@ -1,6 +1,4 @@
 //! Display an interactive selector of a single value from a range of values.
-//!
-//! A [`Slider`] has some local [`State`].
 use crate::core::border;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;

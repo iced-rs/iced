@@ -778,16 +778,16 @@ mod platform {
     }
 }
 
-/// The possible status of a [`TextInput`].
+/// The possible status of a [`TextEditor`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
-    /// The [`TextInput`] can be interacted with.
+    /// The [`TextEditor`] can be interacted with.
     Active,
-    /// The [`TextInput`] is being hovered.
+    /// The [`TextEditor`] is being hovered.
     Hovered,
-    /// The [`TextInput`] is focused.
+    /// The [`TextEditor`] is focused.
     Focused,
-    /// The [`TextInput`] cannot be interacted with.
+    /// The [`TextEditor`] cannot be interacted with.
     Disabled,
 }
 
@@ -832,7 +832,7 @@ impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
     }
 }
 
-/// The default style of a [`TextInput`].
+/// The default style of a [`TextEditor`].
 pub fn default(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
 

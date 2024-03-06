@@ -1,6 +1,4 @@
 //! Display an interactive selector of a single value from a range of values.
-//!
-//! A [`VerticalSlider`] has some local [`State`].
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{

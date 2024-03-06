@@ -1,6 +1,4 @@
 //! Allow your users to perform actions by pressing a button.
-//!
-//! A [`Button`] has some local [`State`].
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;

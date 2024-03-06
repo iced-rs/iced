@@ -120,9 +120,7 @@ pub trait Sandbox {
         Theme::default()
     }
 
-    /// Returns the current style variant of [`theme::Application`].
-    ///
-    /// By default, it returns [`theme::Application::default`].
+    /// Returns the current [`application::Appearance`].
     fn style(&self, theme: &Theme) -> application::Appearance {
         crate::shell::application::default(theme)
     }
