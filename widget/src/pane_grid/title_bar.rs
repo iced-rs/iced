@@ -43,7 +43,7 @@ where
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 

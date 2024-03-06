@@ -7,7 +7,6 @@ use crate::core;
 use crate::core::widget::operation;
 use crate::core::{Element, Length, Pixels};
 use crate::keyed;
-use crate::overlay;
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
@@ -276,12 +275,7 @@ where
     V: Borrow<T> + 'a,
     Message: Clone,
     Renderer: core::text::Renderer,
-    Theme: pick_list::StyleSheet
-        + scrollable::Style
-        + overlay::menu::StyleSheet
-        + container::Style,
-    <Theme as overlay::menu::StyleSheet>::Style:
-        From<<Theme as pick_list::StyleSheet>::Style>,
+    pick_list::Style<Theme>: Default,
 {
     PickList::new(options, selected, on_selected)
 }
@@ -297,8 +291,9 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::Style + overlay::menu::StyleSheet,
+    Theme: text_input::Style,
     Renderer: core::text::Renderer,
+    combo_box::Style<Theme>: Default,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
 }

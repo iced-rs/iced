@@ -17,8 +17,6 @@
 pub use iced_core as core;
 
 pub mod application;
-pub mod menu;
-pub mod pick_list;
 pub mod theme;
 
 pub use theme::Theme;

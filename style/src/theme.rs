@@ -5,13 +5,8 @@ pub use palette::Palette;
 
 use crate::application;
 use crate::core::widget::text;
-use crate::menu;
-use crate::pick_list;
-
-use crate::core::Border;
 
 use std::fmt;
-use std::rc::Rc;
 use std::sync::Arc;
 
 /// A built-in theme.
@@ -268,109 +263,6 @@ impl<T: Fn(&Theme) -> application::Appearance> application::StyleSheet for T {
 
     fn appearance(&self, style: &Self::Style) -> application::Appearance {
         (self)(style)
-    }
-}
-
-/// The style of a menu.
-#[derive(Clone, Default)]
-pub enum Menu {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Rc<dyn menu::StyleSheet<Style = Theme>>),
-}
-
-impl menu::StyleSheet for Theme {
-    type Style = Menu;
-
-    fn appearance(&self, style: &Self::Style) -> menu::Appearance {
-        match style {
-            Menu::Default => {
-                let palette = self.extended_palette();
-
-                menu::Appearance {
-                    text_color: palette.background.weak.text,
-                    background: palette.background.weak.color.into(),
-                    border: Border {
-                        width: 1.0,
-                        radius: 0.0.into(),
-                        color: palette.background.strong.color,
-                    },
-                    selected_text_color: palette.primary.strong.text,
-                    selected_background: palette.primary.strong.color.into(),
-                }
-            }
-            Menu::Custom(custom) => custom.appearance(self),
-        }
-    }
-}
-
-impl From<PickList> for Menu {
-    fn from(pick_list: PickList) -> Self {
-        match pick_list {
-            PickList::Default => Self::Default,
-            PickList::Custom(_, menu) => Self::Custom(menu),
-        }
-    }
-}
-
-/// The style of a pick list.
-#[derive(Clone, Default)]
-pub enum PickList {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(
-        Rc<dyn pick_list::StyleSheet<Style = Theme>>,
-        Rc<dyn menu::StyleSheet<Style = Theme>>,
-    ),
-}
-
-impl pick_list::StyleSheet for Theme {
-    type Style = PickList;
-
-    fn active(&self, style: &Self::Style) -> pick_list::Appearance {
-        match style {
-            PickList::Default => {
-                let palette = self.extended_palette();
-
-                pick_list::Appearance {
-                    text_color: palette.background.weak.text,
-                    background: palette.background.weak.color.into(),
-                    placeholder_color: palette.background.strong.color,
-                    handle_color: palette.background.weak.text,
-                    border: Border {
-                        radius: 2.0.into(),
-                        width: 1.0,
-                        color: palette.background.strong.color,
-                    },
-                }
-            }
-            PickList::Custom(custom, _) => custom.active(self),
-        }
-    }
-
-    fn hovered(&self, style: &Self::Style) -> pick_list::Appearance {
-        match style {
-            PickList::Default => {
-                let palette = self.extended_palette();
-
-                pick_list::Appearance {
-                    text_color: palette.background.weak.text,
-                    background: palette.background.weak.color.into(),
-                    placeholder_color: palette.background.strong.color,
-                    handle_color: palette.background.weak.text,
-                    border: Border {
-                        radius: 2.0.into(),
-                        width: 1.0,
-                        color: palette.primary.strong.color,
-                    },
-                }
-            }
-            PickList::Custom(custom, _) => custom.hovered(self),
-        }
     }
 }
 

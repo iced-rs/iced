@@ -61,7 +61,7 @@ where
             max_height: f32::INFINITY,
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
-            style: Theme::default(),
+            style: Theme::style(),
             clip: false,
             content,
         }
@@ -540,24 +540,24 @@ pub enum Status {
 /// The style of a [`Container`] for a theme.
 pub trait Style {
     /// The default style of a [`Container`].
-    fn default() -> fn(&Self, Status) -> Appearance;
+    fn style() -> fn(&Self, Status) -> Appearance;
 }
 
 impl Style for Theme {
-    fn default() -> fn(&Self, Status) -> Appearance {
+    fn style() -> fn(&Self, Status) -> Appearance {
         transparent
     }
 }
 
 impl Style for Appearance {
-    fn default() -> fn(&Self, Status) -> Appearance {
+    fn style() -> fn(&Self, Status) -> Appearance {
         |appearance, _status| *appearance
     }
 }
 
 /// A transparent [`Container`].
 pub fn transparent(_theme: &Theme, _status: Status) -> Appearance {
-    <Appearance as Default>::default()
+    Appearance::default()
 }
 
 /// A rounded [`Container`] with a background.
@@ -567,6 +567,21 @@ pub fn box_(theme: &Theme, _status: Status) -> Appearance {
     Appearance {
         background: Some(palette.background.weak.color.into()),
         border: Border::with_radius(2),
-        ..<Appearance as Default>::default()
+        ..Appearance::default()
+    }
+}
+
+/// A bordered [`Container`] with a background.
+pub fn bordered_box(theme: &Theme, _status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background: Some(palette.background.weak.color.into()),
+        border: Border {
+            width: 1.0,
+            radius: 0.0.into(),
+            color: palette.background.strong.color,
+        },
+        ..Appearance::default()
     }
 }

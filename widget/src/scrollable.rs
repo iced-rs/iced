@@ -1665,7 +1665,8 @@ impl Style for Theme {
     }
 }
 
-fn default(theme: &Theme, status: Status) -> Appearance {
+/// The default style of a [`Scrollable`].
+pub fn default(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
 
     let scrollbar = Scrollbar {

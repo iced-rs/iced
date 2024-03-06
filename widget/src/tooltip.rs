@@ -56,7 +56,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 

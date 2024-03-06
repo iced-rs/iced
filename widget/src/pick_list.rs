@@ -11,15 +11,14 @@ use crate::core::text::{self, Paragraph as _, Text};
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Padding, Pixels, Point, Rectangle,
-    Shell, Size, Vector, Widget,
+    Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
+    Pixels, Point, Rectangle, Shell, Size, Vector, Widget,
 };
 use crate::overlay::menu::{self, Menu};
 use crate::scrollable;
+use crate::style::Theme;
 
 use std::borrow::Borrow;
-
-pub use crate::style::pick_list::{Appearance, StyleSheet};
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
@@ -35,7 +34,6 @@ pub struct PickList<
     T: ToString + PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     on_select: Box<dyn Fn(T) -> Message + 'a>,
@@ -51,7 +49,7 @@ pub struct PickList<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -61,8 +59,6 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
-    Theme: StyleSheet + scrollable::Style + menu::StyleSheet + container::Style,
-    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
     Renderer: text::Renderer,
 {
     /// The default padding of a [`PickList`].
@@ -74,7 +70,10 @@ where
         options: L,
         selected: Option<V>,
         on_select: impl Fn(T) -> Message + 'a,
-    ) -> Self {
+    ) -> Self
+    where
+        Style<Theme>: Default,
+    {
         Self {
             on_select: Box::new(on_select),
             on_open: None,
@@ -89,7 +88,7 @@ where
             text_shaping: text::Shaping::Basic,
             font: None,
             handle: Handle::default(),
-            style: Default::default(),
+            style: Style::default(),
         }
     }
 
@@ -157,10 +156,7 @@ where
     }
 
     /// Sets the style of the [`PickList`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
         self.style = style.into();
         self
     }
@@ -173,8 +169,7 @@ where
     L: Borrow<[T]>,
     V: Borrow<T>,
     Message: Clone + 'a,
-    Theme: StyleSheet + scrollable::Style + menu::StyleSheet + container::Style,
-    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Theme: scrollable::Style + container::Style,
     Renderer: text::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
@@ -260,23 +255,124 @@ where
         viewport: &Rectangle,
     ) {
         let font = self.font.unwrap_or_else(|| renderer.default_font());
-        draw(
-            renderer,
-            theme,
-            layout,
-            cursor,
-            self.padding,
-            self.text_size,
-            self.text_line_height,
-            self.text_shaping,
-            font,
-            self.placeholder.as_deref(),
-            self.selected.as_ref().map(Borrow::borrow),
-            &self.handle,
-            &self.style,
-            || tree.state.downcast_ref::<State<Renderer::Paragraph>>(),
-            viewport,
+        let selected = self.selected.as_ref().map(Borrow::borrow);
+        let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
+
+        let bounds = layout.bounds();
+        let is_mouse_over = cursor.is_over(bounds);
+        let is_selected = selected.is_some();
+
+        let status = if state.is_open {
+            Status::Opened
+        } else if is_mouse_over {
+            Status::Hovered
+        } else {
+            Status::Active
+        };
+
+        let appearance = (self.style.pick_list)(theme, status);
+
+        renderer.fill_quad(
+            renderer::Quad {
+                bounds,
+                border: appearance.border,
+                ..renderer::Quad::default()
+            },
+            appearance.background,
         );
+
+        let handle = match &self.handle {
+            Handle::Arrow { size } => Some((
+                Renderer::ICON_FONT,
+                Renderer::ARROW_DOWN_ICON,
+                *size,
+                text::LineHeight::default(),
+                text::Shaping::Basic,
+            )),
+            Handle::Static(Icon {
+                font,
+                code_point,
+                size,
+                line_height,
+                shaping,
+            }) => Some((*font, *code_point, *size, *line_height, *shaping)),
+            Handle::Dynamic { open, closed } => {
+                if state.is_open {
+                    Some((
+                        open.font,
+                        open.code_point,
+                        open.size,
+                        open.line_height,
+                        open.shaping,
+                    ))
+                } else {
+                    Some((
+                        closed.font,
+                        closed.code_point,
+                        closed.size,
+                        closed.line_height,
+                        closed.shaping,
+                    ))
+                }
+            }
+            Handle::None => None,
+        };
+
+        if let Some((font, code_point, size, line_height, shaping)) = handle {
+            let size = size.unwrap_or_else(|| renderer.default_size());
+
+            renderer.fill_text(
+                Text {
+                    content: &code_point.to_string(),
+                    size,
+                    line_height,
+                    font,
+                    bounds: Size::new(
+                        bounds.width,
+                        f32::from(line_height.to_absolute(size)),
+                    ),
+                    horizontal_alignment: alignment::Horizontal::Right,
+                    vertical_alignment: alignment::Vertical::Center,
+                    shaping,
+                },
+                Point::new(
+                    bounds.x + bounds.width - self.padding.horizontal(),
+                    bounds.center_y(),
+                ),
+                appearance.handle_color,
+                *viewport,
+            );
+        }
+
+        let label = selected.map(ToString::to_string);
+
+        if let Some(label) = label.as_deref().or(self.placeholder.as_deref()) {
+            let text_size =
+                self.text_size.unwrap_or_else(|| renderer.default_size());
+
+            renderer.fill_text(
+                Text {
+                    content: label,
+                    size: text_size,
+                    line_height: self.text_line_height,
+                    font,
+                    bounds: Size::new(
+                        bounds.width - self.padding.horizontal(),
+                        f32::from(self.text_line_height.to_absolute(text_size)),
+                    ),
+                    horizontal_alignment: alignment::Horizontal::Left,
+                    vertical_alignment: alignment::Vertical::Center,
+                    shaping: self.text_shaping,
+                },
+                Point::new(bounds.x + self.padding.left, bounds.center_y()),
+                if is_selected {
+                    appearance.text_color
+                } else {
+                    appearance.placeholder_color
+                },
+                *viewport,
+            );
+        }
     }
 
     fn overlay<'b>(
@@ -287,19 +383,38 @@ where
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+        let font = self.font.unwrap_or_else(|| renderer.default_font());
 
-        overlay(
-            layout,
-            translation,
-            state,
-            self.padding,
-            self.text_size,
-            self.text_shaping,
-            self.font.unwrap_or_else(|| renderer.default_font()),
-            self.options.borrow(),
-            &self.on_select,
-            self.style.clone(),
-        )
+        if state.is_open {
+            let bounds = layout.bounds();
+
+            let on_select = &self.on_select;
+
+            let mut menu = Menu::with_style(
+                &mut state.menu,
+                self.options.borrow(),
+                &mut state.hovered_option,
+                |option| {
+                    state.is_open = false;
+
+                    (on_select)(option)
+                },
+                None,
+                self.style.menu,
+            )
+            .width(bounds.width)
+            .padding(self.padding)
+            .font(font)
+            .text_shaping(self.text_shaping);
+
+            if let Some(text_size) = self.text_size {
+                menu = menu.text_size(text_size);
+            }
+
+            Some(menu.overlay(layout.position() + translation, bounds.height))
+        } else {
+            None
+        }
     }
 }
 
@@ -311,12 +426,7 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone + 'a,
-    Theme: StyleSheet
-        + scrollable::Style
-        + menu::StyleSheet
-        + container::Style
-        + 'a,
-    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
+    Theme: scrollable::Style + container::Style + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -605,190 +715,83 @@ pub fn mouse_interaction(
     }
 }
 
-/// Returns the current overlay of a [`PickList`].
-pub fn overlay<'a, T, Message, Theme, Renderer>(
-    layout: Layout<'_>,
-    translation: Vector,
-    state: &'a mut State<Renderer::Paragraph>,
-    padding: Padding,
-    text_size: Option<Pixels>,
-    text_shaping: text::Shaping,
-    font: Renderer::Font,
-    options: &'a [T],
-    on_selected: &'a dyn Fn(T) -> Message,
-    style: <Theme as StyleSheet>::Style,
-) -> Option<overlay::Element<'a, Message, Theme, Renderer>>
-where
-    T: Clone + ToString,
-    Message: 'a,
-    Theme: StyleSheet
-        + scrollable::Style
-        + menu::StyleSheet
-        + container::Style
-        + 'a,
-    <Theme as menu::StyleSheet>::Style: From<<Theme as StyleSheet>::Style>,
-    Renderer: text::Renderer + 'a,
-{
-    if state.is_open {
-        let bounds = layout.bounds();
+/// The possible status of a [`PickList`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`PickList`] can be interacted with.
+    Active,
+    /// The [`PickList`] is being hovered.
+    Hovered,
+    /// The [`PickList`] is open.
+    Opened,
+}
 
-        let mut menu = Menu::new(
-            &mut state.menu,
-            options,
-            &mut state.hovered_option,
-            |option| {
-                state.is_open = false;
+/// The appearance of a pick list.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The text [`Color`] of the pick list.
+    pub text_color: Color,
+    /// The placeholder [`Color`] of the pick list.
+    pub placeholder_color: Color,
+    /// The handle [`Color`] of the pick list.
+    pub handle_color: Color,
+    /// The [`Background`] of the pick list.
+    pub background: Background,
+    /// The [`Border`] of the pick list.
+    pub border: Border,
+}
 
-                (on_selected)(option)
-            },
-            None,
-        )
-        .width(bounds.width)
-        .padding(padding)
-        .font(font)
-        .text_shaping(text_shaping)
-        .style(style);
+/// The different styles of a [`PickList`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme> {
+    /// The style of the [`PickList`] itself.
+    pub pick_list: fn(&Theme, Status) -> Appearance,
 
-        if let Some(text_size) = text_size {
-            menu = menu.text_size(text_size);
-        }
+    /// The style of the [`Menu`] of the pick list.
+    pub menu: menu::Style<Theme>,
+}
 
-        Some(menu.overlay(layout.position() + translation, bounds.height))
-    } else {
-        None
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
     }
 }
 
-/// Draws a [`PickList`].
-pub fn draw<'a, T, Theme, Renderer>(
-    renderer: &mut Renderer,
-    theme: &Theme,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    padding: Padding,
-    text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
-    font: Renderer::Font,
-    placeholder: Option<&str>,
-    selected: Option<&T>,
-    handle: &Handle<Renderer::Font>,
-    style: &Theme::Style,
-    state: impl FnOnce() -> &'a State<Renderer::Paragraph>,
-    viewport: &Rectangle,
-) where
-    Renderer: text::Renderer,
-    Theme: StyleSheet,
-    T: ToString + 'a,
-{
-    let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(bounds);
-    let is_selected = selected.is_some();
+impl<Theme> Copy for Style<Theme> {}
 
-    let style = if is_mouse_over {
-        theme.hovered(style)
-    } else {
-        theme.active(style)
-    };
-
-    renderer.fill_quad(
-        renderer::Quad {
-            bounds,
-            border: style.border,
-            ..renderer::Quad::default()
-        },
-        style.background,
-    );
-
-    let handle = match handle {
-        Handle::Arrow { size } => Some((
-            Renderer::ICON_FONT,
-            Renderer::ARROW_DOWN_ICON,
-            *size,
-            text::LineHeight::default(),
-            text::Shaping::Basic,
-        )),
-        Handle::Static(Icon {
-            font,
-            code_point,
-            size,
-            line_height,
-            shaping,
-        }) => Some((*font, *code_point, *size, *line_height, *shaping)),
-        Handle::Dynamic { open, closed } => {
-            if state().is_open {
-                Some((
-                    open.font,
-                    open.code_point,
-                    open.size,
-                    open.line_height,
-                    open.shaping,
-                ))
-            } else {
-                Some((
-                    closed.font,
-                    closed.code_point,
-                    closed.size,
-                    closed.line_height,
-                    closed.shaping,
-                ))
-            }
+impl Default for Style<Theme> {
+    fn default() -> Self {
+        Self {
+            pick_list: default,
+            menu: menu::Style::default(),
         }
-        Handle::None => None,
+    }
+}
+
+/// The default style of a [`PickList`].
+pub fn default(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let active = Appearance {
+        text_color: palette.background.weak.text,
+        background: palette.background.weak.color.into(),
+        placeholder_color: palette.background.strong.color,
+        handle_color: palette.background.weak.text,
+        border: Border {
+            radius: 2.0.into(),
+            width: 1.0,
+            color: palette.background.strong.color,
+        },
     };
 
-    if let Some((font, code_point, size, line_height, shaping)) = handle {
-        let size = size.unwrap_or_else(|| renderer.default_size());
-
-        renderer.fill_text(
-            Text {
-                content: &code_point.to_string(),
-                size,
-                line_height,
-                font,
-                bounds: Size::new(
-                    bounds.width,
-                    f32::from(line_height.to_absolute(size)),
-                ),
-                horizontal_alignment: alignment::Horizontal::Right,
-                vertical_alignment: alignment::Vertical::Center,
-                shaping,
+    match status {
+        Status::Active => active,
+        Status::Hovered | Status::Opened => Appearance {
+            border: Border {
+                color: palette.primary.strong.color,
+                ..active.border
             },
-            Point::new(
-                bounds.x + bounds.width - padding.horizontal(),
-                bounds.center_y(),
-            ),
-            style.handle_color,
-            *viewport,
-        );
-    }
-
-    let label = selected.map(ToString::to_string);
-
-    if let Some(label) = label.as_deref().or(placeholder) {
-        let text_size = text_size.unwrap_or_else(|| renderer.default_size());
-
-        renderer.fill_text(
-            Text {
-                content: label,
-                size: text_size,
-                line_height: text_line_height,
-                font,
-                bounds: Size::new(
-                    bounds.width - padding.horizontal(),
-                    f32::from(text_line_height.to_absolute(text_size)),
-                ),
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Center,
-                shaping: text_shaping,
-            },
-            Point::new(bounds.x + padding.left, bounds.center_y()),
-            if is_selected {
-                style.text_color
-            } else {
-                style.placeholder_color
-            },
-            *viewport,
-        );
+            ..active
+        },
     }
 }

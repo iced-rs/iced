@@ -39,7 +39,7 @@ where
         Self {
             title_bar: None,
             body: body.into(),
-            style: Theme::default(),
+            style: Theme::style(),
         }
     }
 
