@@ -23,6 +23,5 @@ pub mod pick_list;
 pub mod svg;
 pub mod text_editor;
 pub mod theme;
-pub mod toggler;
 
 pub use theme::Theme;

@@ -196,7 +196,7 @@ pub fn toggler<'a, Message, Theme, Renderer>(
 ) -> Toggler<'a, Message, Theme, Renderer>
 where
     Renderer: core::text::Renderer,
-    Theme: toggler::StyleSheet,
+    Theme: toggler::Style,
 {
     Toggler::new(label, is_checked, f)
 }

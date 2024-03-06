@@ -10,7 +10,6 @@ use crate::pane_grid;
 use crate::pick_list;
 use crate::svg;
 use crate::text_editor;
-use crate::toggler;
 
 use crate::core::{Background, Border, Color};
 
@@ -374,75 +373,6 @@ impl pick_list::StyleSheet for Theme {
                 }
             }
             PickList::Custom(custom, _) => custom.hovered(self),
-        }
-    }
-}
-
-/// The style of a toggler.
-#[derive(Default)]
-pub enum Toggler {
-    /// The default style.
-    #[default]
-    Default,
-    /// A custom style.
-    Custom(Box<dyn toggler::StyleSheet<Style = Theme>>),
-}
-
-impl toggler::StyleSheet for Theme {
-    type Style = Toggler;
-
-    fn active(
-        &self,
-        style: &Self::Style,
-        is_active: bool,
-    ) -> toggler::Appearance {
-        match style {
-            Toggler::Default => {
-                let palette = self.extended_palette();
-
-                toggler::Appearance {
-                    background: if is_active {
-                        palette.primary.strong.color
-                    } else {
-                        palette.background.strong.color
-                    },
-                    background_border_width: 0.0,
-                    background_border_color: Color::TRANSPARENT,
-                    foreground: if is_active {
-                        palette.primary.strong.text
-                    } else {
-                        palette.background.base.color
-                    },
-                    foreground_border_width: 0.0,
-                    foreground_border_color: Color::TRANSPARENT,
-                }
-            }
-            Toggler::Custom(custom) => custom.active(self, is_active),
-        }
-    }
-
-    fn hovered(
-        &self,
-        style: &Self::Style,
-        is_active: bool,
-    ) -> toggler::Appearance {
-        match style {
-            Toggler::Default => {
-                let palette = self.extended_palette();
-
-                toggler::Appearance {
-                    foreground: if is_active {
-                        Color {
-                            a: 0.5,
-                            ..palette.primary.strong.text
-                        }
-                    } else {
-                        palette.background.weak.color
-                    },
-                    ..self.active(style, is_active)
-                }
-            }
-            Toggler::Custom(custom) => custom.hovered(self, is_active),
         }
     }
 }
