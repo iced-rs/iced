@@ -224,7 +224,7 @@ pub fn text_editor<Message, Theme, Renderer>(
 ) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_editor::StyleSheet,
+    Theme: text_editor::Style,
     Renderer: core::text::Renderer,
 {
     TextEditor::new(content)
