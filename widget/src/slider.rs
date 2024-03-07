@@ -580,8 +580,8 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
     Appearance {
         rail: Rail {
             colors: (color, palette.secondary.base.color),
-            width: 6.0,
-            border_radius: 3.0.into(),
+            width: 4.0,
+            border_radius: 2.0.into(),
         },
         handle: Handle {
             shape: HandleShape::Circle { radius: 7.0 },
