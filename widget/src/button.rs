@@ -454,6 +454,12 @@ impl DefaultStyle for Appearance {
     }
 }
 
+impl DefaultStyle for Color {
+    fn default_style() -> Style<Self> {
+        |color, _status| Appearance::with_background(*color)
+    }
+}
+
 /// A primary button; denoting a main action.
 pub fn primary(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
