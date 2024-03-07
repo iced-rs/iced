@@ -766,10 +766,10 @@ where
 #[derive(Debug, PartialEq, Eq)]
 pub struct Style<Theme> {
     /// The style of the [`TextInput`] of the [`ComboBox`].
-    text_input: fn(&Theme, text_input::Status) -> text_input::Appearance,
+    pub text_input: fn(&Theme, text_input::Status) -> text_input::Appearance,
 
     /// The style of the [`Menu`] of the [`ComboBox`].
-    menu: menu::Style<Theme>,
+    pub menu: menu::Style<Theme>,
 }
 
 impl Style<Theme> {

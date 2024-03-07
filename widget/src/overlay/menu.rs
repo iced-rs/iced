@@ -602,9 +602,9 @@ pub struct Appearance {
 #[derive(Debug, PartialEq, Eq)]
 pub struct Style<Theme> {
     /// The style of the list of the [`Menu`].
-    list: fn(&Theme) -> Appearance,
+    pub list: fn(&Theme) -> Appearance,
     /// The style of the [`Scrollable`] of the [`Menu`].
-    scrollable: fn(&Theme, scrollable::Status) -> scrollable::Appearance,
+    pub scrollable: fn(&Theme, scrollable::Status) -> scrollable::Appearance,
 }
 
 impl Style<Theme> {
