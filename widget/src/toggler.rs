@@ -56,7 +56,7 @@ where
     Renderer: text::Renderer,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: f32 = 20.0;
+    pub const DEFAULT_SIZE: f32 = 16.0;
 
     /// Creates a new [`Toggler`].
     ///

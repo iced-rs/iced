@@ -59,10 +59,10 @@ where
     Renderer: text::Renderer,
 {
     /// The default size of a [`Checkbox`].
-    const DEFAULT_SIZE: f32 = 15.0;
+    const DEFAULT_SIZE: f32 = 16.0;
 
     /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: f32 = 10.0;
+    const DEFAULT_SPACING: f32 = 8.0;
 
     /// Creates a new [`Checkbox`].
     ///

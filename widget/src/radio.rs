@@ -90,10 +90,10 @@ where
     Renderer: text::Renderer,
 {
     /// The default size of a [`Radio`] button.
-    pub const DEFAULT_SIZE: f32 = 15.0;
+    pub const DEFAULT_SIZE: f32 = 16.0;
 
     /// The default spacing of a [`Radio`] button.
-    pub const DEFAULT_SPACING: f32 = 10.0;
+    pub const DEFAULT_SPACING: f32 = 8.0;
 
     /// Creates a new [`Radio`] button.
     ///
