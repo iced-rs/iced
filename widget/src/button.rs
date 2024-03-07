@@ -411,6 +411,16 @@ pub struct Appearance {
     pub shadow: Shadow,
 }
 
+impl Appearance {
+    /// Creates an [`Appearance`] with the given [`Background`].
+    pub fn with_background(background: impl Into<Background>) -> Self {
+        Self {
+            background: Some(background.into()),
+            ..Self::default()
+        }
+    }
+}
+
 impl std::default::Default for Appearance {
     fn default() -> Self {
         Self {
