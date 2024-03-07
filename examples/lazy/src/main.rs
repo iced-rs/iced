@@ -180,7 +180,7 @@ impl Sandbox for App {
             column(items.into_iter().map(|item| {
                 let button = button("Delete")
                     .on_press(Message::DeleteItem(item.clone()))
-                    .style(button::destructive);
+                    .style(button::danger);
 
                 row![
                     text(&item.name).color(item.color),

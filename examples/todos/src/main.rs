@@ -386,7 +386,7 @@ impl Task {
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
-                    .style(button::destructive)
+                    .style(button::danger)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)

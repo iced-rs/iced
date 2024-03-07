@@ -477,8 +477,8 @@ pub fn secondary(theme: &Theme, status: Status) -> Appearance {
     }
 }
 
-/// A positive button; denoting a good outcome.
-pub fn positive(theme: &Theme, status: Status) -> Appearance {
+/// A success button; denoting a good outcome.
+pub fn success(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
     let base = styled(palette.success.base);
 
@@ -492,8 +492,8 @@ pub fn positive(theme: &Theme, status: Status) -> Appearance {
     }
 }
 
-/// A destructive button; denoting a dangerous action.
-pub fn destructive(theme: &Theme, status: Status) -> Appearance {
+/// A danger button; denoting a destructive action.
+pub fn danger(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
     let base = styled(palette.danger.base);
 

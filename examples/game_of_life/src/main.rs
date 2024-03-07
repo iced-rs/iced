@@ -195,7 +195,7 @@ fn view_controls<'a>(
             .text_size(16),
         button("Clear")
             .on_press(Message::Clear)
-            .style(button::destructive),
+            .style(button::danger),
     ]
     .padding(10)
     .spacing(20)

@@ -287,7 +287,7 @@ fn view_content<'a>(
         )
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(button("Close", Message::Close(pane)).style(button::destructive))
+        Some(button("Close", Message::Close(pane)).style(button::danger))
     } else {
         None
     })
@@ -333,7 +333,7 @@ fn view_controls<'a>(
     });
 
     let close = button(text("Close").size(14))
-        .style(button::destructive)
+        .style(button::danger)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
             Some(Message::Close(pane))

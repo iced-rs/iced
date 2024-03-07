@@ -226,7 +226,7 @@ impl Application for Example {
                     crop_controls,
                     button(centered_text("Crop"))
                         .on_press(Message::Crop)
-                        .style(button::destructive)
+                        .style(button::danger)
                         .padding([10, 20, 10, 20])
                         .width(Length::Fill),
                 ]

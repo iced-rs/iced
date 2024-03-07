@@ -136,7 +136,7 @@ impl Application for Stopwatch {
         };
 
         let reset_button = button("Reset")
-            .style(button::destructive)
+            .style(button::danger)
             .on_press(Message::Reset);
 
         let controls = row![toggle_button, reset_button].spacing(20);
