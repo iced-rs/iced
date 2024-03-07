@@ -2,7 +2,7 @@
 use crate::window;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use crate::application::{default, Appearance, Style};
+pub use crate::application::{Appearance, DefaultStyle};
 
 /// An interactive cross-platform multi-window application.
 ///
@@ -67,7 +67,7 @@ pub use crate::application::{default, Appearance, Style};
 /// [`Sandbox`]: crate::Sandbox
 pub trait Application: Sized
 where
-    Style<Self::Theme>: Default,
+    Self::Theme: DefaultStyle,
 {
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -133,7 +133,7 @@ where
     ///
     /// [`Theme`]: Self::Theme
     fn style(&self, theme: &Self::Theme) -> Appearance {
-        Style::default().resolve(theme)
+        Self::Theme::default_style(theme)
     }
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -198,12 +198,12 @@ where
 struct Instance<A>(A)
 where
     A: Application,
-    Style<A::Theme>: Default;
+    A::Theme: DefaultStyle;
 
 impl<A> crate::runtime::multi_window::Program for Instance<A>
 where
     A: Application,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     type Message = A::Message;
     type Theme = A::Theme;
@@ -224,7 +224,7 @@ where
 impl<A> crate::shell::multi_window::Application for Instance<A>
 where
     A: Application,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     type Flags = A::Flags;
 

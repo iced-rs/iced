@@ -3,7 +3,7 @@ use crate::{Command, Element, Executor, Settings, Subscription};
 
 use crate::shell::application;
 
-pub use application::{default, Appearance, Style};
+pub use application::{default, Appearance, DefaultStyle};
 
 /// An interactive cross-platform application.
 ///
@@ -95,7 +95,7 @@ pub use application::{default, Appearance, Style};
 /// ```
 pub trait Application: Sized
 where
-    Style<Self::Theme>: Default,
+    Self::Theme: DefaultStyle,
 {
     /// The [`Executor`] that will run commands and subscriptions.
     ///
@@ -153,11 +153,9 @@ where
         Self::Theme::default()
     }
 
-    /// Returns the current `Style` of the [`Theme`].
-    ///
-    /// [`Theme`]: Self::Theme
+    /// Returns the current [`Appearance`] of the [`Application`].
     fn style(&self, theme: &Self::Theme) -> Appearance {
-        Style::default().resolve(theme)
+        theme.default_style()
     }
 
     /// Returns the event [`Subscription`] for the current state of the
@@ -221,12 +219,12 @@ where
 struct Instance<A>(A)
 where
     A: Application,
-    application::Style<A::Theme>: Default;
+    A::Theme: DefaultStyle;
 
 impl<A> crate::runtime::Program for Instance<A>
 where
     A: Application,
-    application::Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     type Message = A::Message;
     type Theme = A::Theme;
@@ -244,7 +242,7 @@ where
 impl<A> application::Application for Instance<A>
 where
     A: Application,
-    application::Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     type Flags = A::Flags;
 

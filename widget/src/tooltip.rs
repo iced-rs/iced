@@ -47,7 +47,7 @@ where
         position: Position,
     ) -> Self
     where
-        container::Style<Theme>: Default,
+        Theme: container::DefaultStyle,
     {
         Tooltip {
             content: content.into(),
@@ -56,7 +56,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: container::Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -424,7 +424,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = self.style.resolve(theme, container::Status::Idle);
+        let style = (self.style)(theme, container::Status::Idle);
 
         container::draw_background(renderer, &style, layout.bounds());
 

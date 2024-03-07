@@ -58,8 +58,8 @@ pub fn container<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Container<'a, Message, Theme, Renderer>
 where
+    Theme: container::DefaultStyle,
     Renderer: core::Renderer,
-    container::Style<Theme>: Default,
 {
     Container::new(content)
 }
@@ -104,8 +104,8 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
+    Theme: scrollable::DefaultStyle,
     Renderer: core::Renderer,
-    scrollable::Style<Theme>: Default,
 {
     Scrollable::new(content)
 }
@@ -117,8 +117,8 @@ pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>
 where
+    Theme: button::DefaultStyle,
     Renderer: core::Renderer,
-    button::Style<Theme>: Default,
 {
     Button::new(content)
 }
@@ -134,8 +134,8 @@ pub fn tooltip<'a, Message, Theme, Renderer>(
     position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
+    Theme: container::DefaultStyle,
     Renderer: core::text::Renderer,
-    container::Style<Theme>: Default,
 {
     Tooltip::new(content, tooltip, position)
 }
@@ -160,8 +160,8 @@ pub fn checkbox<'a, Message, Theme, Renderer>(
     is_checked: bool,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
+    Theme: checkbox::DefaultStyle,
     Renderer: core::text::Renderer,
-    checkbox::Style<Theme>: Default,
 {
     Checkbox::new(label, is_checked)
 }
@@ -177,9 +177,9 @@ pub fn radio<Message, Theme, Renderer, V>(
 ) -> Radio<Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: radio::DefaultStyle,
     Renderer: core::text::Renderer,
     V: Copy + Eq,
-    radio::Style<Theme>: Default,
 {
     Radio::new(label, value, selected, on_click)
 }
@@ -193,8 +193,8 @@ pub fn toggler<'a, Message, Theme, Renderer>(
     f: impl Fn(bool) -> Message + 'a,
 ) -> Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: toggler::DefaultStyle,
     Renderer: core::text::Renderer,
-    toggler::Style<Theme>: Default,
 {
     Toggler::new(label, is_checked, f)
 }
@@ -208,8 +208,8 @@ pub fn text_input<'a, Message, Theme, Renderer>(
 ) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: text_input::DefaultStyle,
     Renderer: core::text::Renderer,
-    text_input::Style<Theme>: Default,
 {
     TextInput::new(placeholder, value)
 }
@@ -222,8 +222,8 @@ pub fn text_editor<Message, Theme, Renderer>(
 ) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: text_editor::DefaultStyle,
     Renderer: core::text::Renderer,
-    text_editor::Style<Theme>: Default,
 {
     TextEditor::new(content)
 }
@@ -239,7 +239,7 @@ pub fn slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    slider::Style<Theme>: Default,
+    Theme: slider::DefaultStyle,
 {
     Slider::new(range, value, on_change)
 }
@@ -255,7 +255,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    vertical_slider::Style<Theme>: Default,
+    Theme: vertical_slider::DefaultStyle,
 {
     VerticalSlider::new(range, value, on_change)
 }
@@ -273,8 +273,8 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
+    Theme: pick_list::DefaultStyle,
     Renderer: core::text::Renderer,
-    pick_list::Style<Theme>: Default,
 {
     PickList::new(options, selected, on_selected)
 }
@@ -290,8 +290,8 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
+    Theme: combo_box::DefaultStyle,
     Renderer: core::text::Renderer,
-    combo_box::Style<Theme>: Default,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
 }
@@ -317,7 +317,7 @@ pub fn vertical_space() -> Space {
 /// [`Rule`]: crate::Rule
 pub fn horizontal_rule<Theme>(height: impl Into<Pixels>) -> Rule<Theme>
 where
-    rule::Style<Theme>: Default,
+    Theme: rule::DefaultStyle,
 {
     Rule::horizontal(height)
 }
@@ -327,7 +327,7 @@ where
 /// [`Rule`]: crate::Rule
 pub fn vertical_rule<Theme>(width: impl Into<Pixels>) -> Rule<Theme>
 where
-    rule::Style<Theme>: Default,
+    Theme: rule::DefaultStyle,
 {
     Rule::vertical(width)
 }
@@ -344,7 +344,7 @@ pub fn progress_bar<Theme>(
     value: f32,
 ) -> ProgressBar<Theme>
 where
-    progress_bar::Style<Theme>: Default,
+    Theme: progress_bar::DefaultStyle,
 {
     ProgressBar::new(range, value)
 }
@@ -364,7 +364,7 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 #[cfg(feature = "svg")]
 pub fn svg<Theme>(handle: impl Into<core::svg::Handle>) -> crate::Svg<Theme>
 where
-    crate::svg::Style<Theme>: Default,
+    Theme: crate::svg::DefaultStyle,
 {
     crate::Svg::new(handle)
 }
@@ -390,7 +390,7 @@ where
 #[cfg(feature = "qr_code")]
 pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
 where
-    crate::qr_code::Style<Theme>: Default,
+    Theme: crate::qr_code::DefaultStyle,
 {
     crate::QRCode::new(data)
 }

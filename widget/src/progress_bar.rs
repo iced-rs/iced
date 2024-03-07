@@ -41,14 +41,14 @@ impl<Theme> ProgressBar<Theme> {
     ///   * the current value of the [`ProgressBar`]
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -116,7 +116,7 @@ where
                 / (range_end - range_start)
         };
 
-        let appearance = (self.style.0)(theme);
+        let appearance = (self.style)(theme);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -169,26 +169,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`ProgressBar`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme) -> Appearance);
+pub type Style<Theme> = fn(&Theme) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`ProgressBar`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`ProgressBar`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        primary
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(primary)
-    }
-}
-
-impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance| *appearance
     }
 }
 

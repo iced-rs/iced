@@ -11,7 +11,7 @@ use winit::window::Window;
 /// The state of a multi-windowed [`Application`].
 pub struct State<A: Application>
 where
-    multi_window::Style<A::Theme>: Default,
+    A::Theme: multi_window::DefaultStyle,
 {
     title: String,
     scale_factor: f64,
@@ -25,7 +25,7 @@ where
 
 impl<A: Application> Debug for State<A>
 where
-    multi_window::Style<A::Theme>: Default,
+    A::Theme: multi_window::DefaultStyle,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("multi_window::State")
@@ -41,7 +41,7 @@ where
 
 impl<A: Application> State<A>
 where
-    multi_window::Style<A::Theme>: Default,
+    A::Theme: multi_window::DefaultStyle,
 {
     /// Creates a new [`State`] for the provided [`Application`]'s `window`.
     pub fn new(

@@ -37,14 +37,14 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        container::Style<Theme>: Default,
+        Theme: container::DefaultStyle,
     {
         Self {
             content: content.into(),
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: container::Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -138,7 +138,7 @@ where
                 container::Status::Idle
             };
 
-            self.style.resolve(theme, status)
+            (self.style)(theme, status)
         };
 
         let inherited_style = renderer::Style {

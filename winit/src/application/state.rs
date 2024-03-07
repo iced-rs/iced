@@ -14,7 +14,7 @@ use winit::window::Window;
 #[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
-    application::Style<A::Theme>: Default,
+    A::Theme: application::DefaultStyle,
 {
     title: String,
     scale_factor: f64,
@@ -29,7 +29,7 @@ where
 
 impl<A: Application> State<A>
 where
-    application::Style<A::Theme>: Default,
+    A::Theme: application::DefaultStyle,
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {

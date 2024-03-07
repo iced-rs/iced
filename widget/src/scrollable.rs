@@ -48,7 +48,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self::with_direction(content, Direction::default())
     }
@@ -59,9 +59,13 @@ where
         direction: Direction,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
-        Self::with_direction_and_style(content, direction, Style::default().0)
+        Self::with_direction_and_style(
+            content,
+            direction,
+            Theme::default_style(),
+        )
     }
 
     /// Creates a new [`Scrollable`] with the given [`Direction`] and style.
@@ -407,7 +411,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style.0)(theme, status);
+        let appearance = (self.style)(theme, status);
 
         container::draw_background(
             renderer,
@@ -1662,26 +1666,23 @@ pub struct Scroller {
 }
 
 /// The style of a [`Scrollable`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`Scrollable`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Scrollable`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

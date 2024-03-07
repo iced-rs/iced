@@ -2,7 +2,7 @@ use crate::core::mouse;
 use crate::core::window::Id;
 use crate::core::{Point, Size};
 use crate::graphics::Compositor;
-use crate::multi_window::{Application, State, Style};
+use crate::multi_window::{Application, DefaultStyle, State};
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -12,7 +12,7 @@ use winit::monitor::MonitorHandle;
 pub struct WindowManager<A: Application, C: Compositor>
 where
     C: Compositor<Renderer = A::Renderer>,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     aliases: BTreeMap<winit::window::WindowId, Id>,
     entries: BTreeMap<Id, Window<A, C>>,
@@ -22,7 +22,7 @@ impl<A, C> WindowManager<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     pub fn new() -> Self {
         Self {
@@ -108,7 +108,7 @@ impl<A, C> Default for WindowManager<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     fn default() -> Self {
         Self::new()
@@ -120,7 +120,7 @@ pub struct Window<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     pub raw: Arc<winit::window::Window>,
     pub state: State<A>,
@@ -135,7 +135,7 @@ impl<A, C> Window<A, C>
 where
     A: Application,
     C: Compositor<Renderer = A::Renderer>,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     pub fn position(&self) -> Option<Point> {
         self.raw

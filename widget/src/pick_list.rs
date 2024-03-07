@@ -69,7 +69,7 @@ where
         on_select: impl Fn(T) -> Message + 'a,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self {
             on_select: Box::new(on_select),
@@ -85,7 +85,7 @@ where
             text_shaping: text::Shaping::Basic,
             font: None,
             handle: Handle::default(),
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -266,7 +266,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style.pick_list)(theme, status);
+        let appearance = (self.style.field)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -737,14 +737,22 @@ pub struct Appearance {
     pub border: Border,
 }
 
-/// The different styles of a [`PickList`].
+/// The styles of the different parts of a [`PickList`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct Style<Theme> {
     /// The style of the [`PickList`] itself.
-    pub pick_list: fn(&Theme, Status) -> Appearance,
+    pub field: fn(&Theme, Status) -> Appearance,
 
     /// The style of the [`Menu`] of the pick list.
     pub menu: menu::Style<Theme>,
+}
+
+impl Style<Theme> {
+    /// The default style of a [`PickList`] with the built-in [`Theme`].
+    pub const DEFAULT: Self = Self {
+        field: default,
+        menu: menu::Style::<Theme>::DEFAULT,
+    };
 }
 
 impl<Theme> Clone for Style<Theme> {
@@ -755,16 +763,19 @@ impl<Theme> Clone for Style<Theme> {
 
 impl<Theme> Copy for Style<Theme> {}
 
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Self {
-            pick_list: default,
-            menu: menu::Style::default(),
-        }
+/// The default style of a [`PickList`].
+pub trait DefaultStyle: Sized {
+    /// Returns the default style of a [`PickList`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        Style::<Self>::DEFAULT
     }
 }
 
-/// The default style of a [`PickList`].
+/// The default style of the field of a [`PickList`].
 pub fn default(theme: &Theme, status: Status) -> Appearance {
     let palette = theme.extended_palette();
 

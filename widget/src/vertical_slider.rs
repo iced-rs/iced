@@ -2,7 +2,7 @@
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{
-    default, Appearance, Handle, HandleShape, Status, Style,
+    default, Appearance, DefaultStyle, Handle, HandleShape, Status, Style,
 };
 
 use crate::core;
@@ -72,7 +72,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -97,7 +97,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -351,7 +351,7 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let style = (self.style.0)(
+        let style = (self.style)(
             theme,
             if state.is_dragging {
                 Status::Dragged

@@ -70,7 +70,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -95,7 +95,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -346,7 +346,7 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let style = (self.style.0)(
+        let style = (self.style)(
             theme,
             if state.is_dragging {
                 Status::Dragged
@@ -547,26 +547,23 @@ pub enum HandleShape {
 }
 
 /// The style of a [`Slider`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(pub(crate) fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`Slider`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Slider`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

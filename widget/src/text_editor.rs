@@ -58,7 +58,7 @@ where
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self {
             content,
@@ -68,7 +68,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: Style::default(),
+            style: Theme::default_style(),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -505,7 +505,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style.0)(theme, status);
+        let appearance = (self.style)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -809,26 +809,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`TextEditor`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`TextEditor`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`TextEditor`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

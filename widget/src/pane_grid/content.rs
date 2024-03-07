@@ -34,12 +34,12 @@ where
     /// Creates a new [`Content`] with the provided body.
     pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self
     where
-        container::Style<Theme>: Default,
+        Theme: container::DefaultStyle,
     {
         Self {
             title_bar: None,
             body: body.into(),
-            style: container::Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -114,7 +114,7 @@ where
                     container::Status::Idle
                 };
 
-                self.style.resolve(theme, status)
+                (self.style)(theme, status)
             };
 
             container::draw_background(renderer, &style, bounds);
@@ -403,8 +403,8 @@ impl<'a, T, Message, Theme, Renderer> From<T>
     for Content<'a, Message, Theme, Renderer>
 where
     T: Into<Element<'a, Message, Theme, Renderer>>,
+    Theme: container::DefaultStyle,
     Renderer: crate::core::Renderer,
-    container::Style<Theme>: Default,
 {
     fn from(element: T) -> Self {
         Self::new(element)

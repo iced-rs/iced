@@ -47,9 +47,9 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
-        Self::with_style(content, Style::default().0)
+        Self::with_style(content, Theme::default_style())
     }
 
     /// Creates a [`Container`] with the given content and style.
@@ -71,7 +71,7 @@ where
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
             content,
-            style: Style(style),
+            style,
         }
     }
 
@@ -137,7 +137,7 @@ where
 
     /// Sets the style of the [`Container`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = Style(style);
+        self.style = style;
         self
     }
 
@@ -275,7 +275,7 @@ where
             Status::Idle
         };
 
-        let style = (self.style.0)(theme, status);
+        let style = (self.style)(theme, status);
 
         if let Some(clipped_viewport) = bounds.intersection(viewport) {
             draw_background(renderer, &style, bounds);
@@ -546,40 +546,23 @@ pub enum Status {
 }
 
 /// The style of a [`Container`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Style<Theme> {
-    /// Resolves the [`Style`] with the given `Theme` and [`Status`] to
-    /// produce an [`Appearance`].
-    pub fn resolve(self, theme: &Theme, status: Status) -> Appearance {
-        (self.0)(theme, status)
+/// The default style of a [`Container`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Container`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        transparent
     }
 }
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(transparent)
-    }
-}
-
-impl Default for Style<Appearance> {
-    fn default() -> Self {
-        Style(|appearance, _status| *appearance)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

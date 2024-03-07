@@ -38,7 +38,7 @@ use std::sync::Arc;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    Style<Self::Theme>: Default,
+    Self::Theme: DefaultStyle,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -64,7 +64,7 @@ where
 
     /// Returns the `Style` variation of the `Theme`.
     fn style(&self, theme: &Self::Theme) -> Appearance {
-        Style::default().resolve(theme)
+        theme.default_style()
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -104,39 +104,19 @@ pub struct Appearance {
     pub text_color: Color,
 }
 
-/// The style of an [`Application`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(pub fn(&Theme) -> Appearance);
-
-impl<Theme> Style<Theme> {
-    /// Resolves the [`Style`] with the given `Theme` to produce
-    /// an [`Appearance`].
-    pub fn resolve(self, theme: &Theme) -> Appearance {
-        (self.0)(theme)
-    }
-}
-
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Theme> Copy for Style<Theme> {}
-
-impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme) -> Appearance) -> Self {
-        Style(f)
-    }
-}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
 /// The default style of an [`Application`].
+pub trait DefaultStyle {
+    /// Returns the default style of an [`Application`].
+    fn default_style(&self) -> Appearance;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style(&self) -> Appearance {
+        default(self)
+    }
+}
+
+/// The default [`Appearance`] of an [`Application`] with the built-in [`Theme`].
 pub fn default(theme: &Theme) -> Appearance {
     let palette = theme.extended_palette();
 
@@ -156,7 +136,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     use futures::task;
     use futures::Future;
@@ -340,7 +320,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     use futures::stream::StreamExt;
     use winit::event;
@@ -663,7 +643,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     debug.view_started();
     let view = application.view();
@@ -694,7 +674,7 @@ pub fn update<A: Application, C, E: Executor>(
     window: &winit::window::Window,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -745,7 +725,7 @@ pub fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    Style<A::Theme>: Default,
+    A::Theme: DefaultStyle,
 {
     use crate::runtime::command;
     use crate::runtime::system;

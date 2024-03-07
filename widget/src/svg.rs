@@ -32,14 +32,14 @@ impl<Theme> Svg<Theme> {
     /// Creates a new [`Svg`] from the given [`Handle`].
     pub fn new(handle: impl Into<Handle>) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -48,7 +48,7 @@ impl<Theme> Svg<Theme> {
     #[must_use]
     pub fn from_path(path: impl Into<PathBuf>) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self::new(Handle::from_path(path))
     }
@@ -81,7 +81,7 @@ impl<Theme> Svg<Theme> {
     /// Sets the style variant of this [`Svg`].
     #[must_use]
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = Style(style);
+        self.style = style;
         self
     }
 }
@@ -163,7 +163,7 @@ where
                 Status::Idle
             };
 
-            let appearance = (self.style.0)(theme, status);
+            let appearance = (self.style)(theme, status);
 
             renderer.draw(
                 self.handle.clone(),
@@ -214,25 +214,22 @@ pub struct Appearance {
 }
 
 /// The style of an [`Svg`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of an [`Svg`].
+pub trait DefaultStyle {
+    /// Returns the default style of an [`Svg`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        |_theme, _status| Appearance::default()
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(|_, _| Appearance::default())
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }

@@ -62,9 +62,9 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
-        let style = Style::<Theme>::default();
+        let style = Theme::default_style();
 
         let text_input = TextInput::with_style(
             placeholder,
@@ -762,7 +762,7 @@ where
         .collect()
 }
 
-/// The appearance of a [`ComboBox`].
+/// The style of a [`ComboBox`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct Style<Theme> {
     /// The style of the [`TextInput`] of the [`ComboBox`].
@@ -770,6 +770,14 @@ pub struct Style<Theme> {
 
     /// The style of the [`Menu`] of the [`ComboBox`].
     menu: menu::Style<Theme>,
+}
+
+impl Style<Theme> {
+    /// The default style of a [`ComboBox`].
+    pub const DEFAULT: Self = Self {
+        text_input: text_input::default,
+        menu: menu::Style::<Theme>::DEFAULT,
+    };
 }
 
 impl<Theme> Clone for Style<Theme> {
@@ -780,16 +788,14 @@ impl<Theme> Clone for Style<Theme> {
 
 impl<Theme> Copy for Style<Theme> {}
 
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        default()
-    }
+/// The default style of a [`ComboBox`].
+pub trait DefaultStyle: Sized {
+    /// Returns the default style of a [`ComboBox`].
+    fn default_style() -> Style<Self>;
 }
 
-/// The default style of a [`ComboBox`].
-pub fn default() -> Style<Theme> {
-    Style {
-        text_input: text_input::default,
-        menu: menu::Style::default(),
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        Style::<Self>::DEFAULT
     }
 }

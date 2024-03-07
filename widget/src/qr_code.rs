@@ -30,12 +30,12 @@ impl<'a, Theme> QRCode<'a, Theme> {
     /// Creates a new [`QRCode`] with the provided [`Data`].
     pub fn new(data: &'a Data) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -97,7 +97,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         let bounds = layout.bounds();
         let side_length = self.data.width + 2 * QUIET_ZONE;
 
-        let appearance = (self.style.0)(theme);
+        let appearance = (self.style)(theme);
         let mut last_appearance = state.last_appearance.borrow_mut();
 
         if Some(appearance) != *last_appearance {
@@ -336,26 +336,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`QRCode`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme) -> Appearance);
+pub type Style<Theme> = fn(&Theme) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`QRCode`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`QRCode`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance| *appearance
     }
 }
 

@@ -68,7 +68,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         let content = content.into();
         let size = content.as_widget().size_hint();
@@ -80,7 +80,7 @@ where
             height: size.height.fluid(),
             padding: Padding::new(5.0),
             clip: false,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -121,7 +121,7 @@ where
 
     /// Sets the style variant of this [`Button`].
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = Style(style);
+        self.style = style;
         self
     }
 
@@ -301,7 +301,7 @@ where
             Status::Active
         };
 
-        let styling = (self.style.0)(theme, status);
+        let styling = (self.style)(theme, status);
 
         if styling.background.is_some()
             || styling.border.width > 0.0
@@ -424,26 +424,23 @@ impl std::default::Default for Appearance {
 }
 
 /// The style of a [`Button`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`Button`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Button`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        primary
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(primary)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

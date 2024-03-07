@@ -110,7 +110,7 @@ where
         f: F,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
     {
@@ -125,7 +125,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -176,7 +176,7 @@ where
 
     /// Sets the style of the [`Radio`] button.
     pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = Style(style);
+        self.style = style;
         self
     }
 }
@@ -297,7 +297,7 @@ where
             Status::Active { is_selected }
         };
 
-        let appearance = (self.style.0)(theme, status);
+        let appearance = (self.style)(theme, status);
 
         {
             let layout = children.next().unwrap();
@@ -398,26 +398,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`Radio`] button.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`Radio`] button.
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Radio`] button.
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 

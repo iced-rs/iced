@@ -126,7 +126,7 @@ where
         view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         let contents = if let Some((pane, pane_state)) =
             state.maximized.and_then(|pane| {
@@ -158,7 +158,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Style::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -219,7 +219,7 @@ where
 
     /// Sets the style of the [`PaneGrid`].
     pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = Style(style);
+        self.style = style;
         self
     }
 
@@ -677,7 +677,7 @@ where
             None
         };
 
-        let appearance = (self.style.0)(theme);
+        let appearance = (self.style)(theme);
 
         for ((id, (content, tree)), pane_layout) in
             contents.zip(layout.children())
@@ -1146,26 +1146,23 @@ pub struct Line {
 }
 
 /// The style of a [`PaneGrid`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme) -> Appearance);
+pub type Style<Theme> = fn(&Theme) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`PaneGrid`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`PaneGrid`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance| *appearance
     }
 }
 

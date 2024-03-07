@@ -122,7 +122,9 @@ pub trait Sandbox {
 
     /// Returns the current [`application::Appearance`].
     fn style(&self, theme: &Theme) -> application::Appearance {
-        crate::shell::application::default(theme)
+        use application::DefaultStyle;
+
+        theme.default_style()
     }
 
     /// Returns the scale factor of the [`Sandbox`].

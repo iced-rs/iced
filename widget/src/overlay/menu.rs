@@ -58,7 +58,7 @@ where
         on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
     ) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
         Self::with_style(
             state,
@@ -66,7 +66,7 @@ where
             hovered_option,
             on_selected,
             on_option_hovered,
-            Style::default(),
+            Theme::default_style(),
         )
     }
 
@@ -234,7 +234,7 @@ where
                     text_line_height,
                     text_shaping,
                     padding,
-                    style: style.menu,
+                    style: style.list,
                 },
                 scrollable::Direction::default(),
                 style.scrollable,
@@ -327,7 +327,7 @@ where
     ) {
         let bounds = layout.bounds();
 
-        let appearance = (self.style.menu)(theme);
+        let appearance = (self.style.list)(theme);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -598,13 +598,21 @@ pub struct Appearance {
     pub selected_background: Background,
 }
 
-/// The definiton of the default style of a [`Menu`].
+/// The style of the different parts of a [`Menu`].
 #[derive(Debug, PartialEq, Eq)]
 pub struct Style<Theme> {
-    /// The style of the [`Menu`].
-    menu: fn(&Theme) -> Appearance,
+    /// The style of the list of the [`Menu`].
+    list: fn(&Theme) -> Appearance,
     /// The style of the [`Scrollable`] of the [`Menu`].
     scrollable: fn(&Theme, scrollable::Status) -> scrollable::Appearance,
+}
+
+impl Style<Theme> {
+    /// The default style of a [`Menu`] with the built-in [`Theme`].
+    pub const DEFAULT: Self = Self {
+        list: default,
+        scrollable: scrollable::default,
+    };
 }
 
 impl<Theme> Clone for Style<Theme> {
@@ -615,16 +623,19 @@ impl<Theme> Clone for Style<Theme> {
 
 impl<Theme> Copy for Style<Theme> {}
 
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Self {
-            menu: default,
-            scrollable: scrollable::default,
-        }
+/// The default style of a [`Menu`].
+pub trait DefaultStyle: Sized {
+    /// Returns the default style of a [`Menu`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        Style::<Theme>::DEFAULT
     }
 }
 
-/// The default style of a [`Menu`].
+/// The default style of the list of a [`Menu`].
 pub fn default(theme: &Theme) -> Appearance {
     let palette = theme.extended_palette();
 

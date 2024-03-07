@@ -90,9 +90,9 @@ where
     /// its current value.
     pub fn new(placeholder: &str, value: &str) -> Self
     where
-        Style<Theme>: Default,
+        Theme: DefaultStyle,
     {
-        Self::with_style(placeholder, value, Style::default().0)
+        Self::with_style(placeholder, value, Theme::default_style())
     }
 
     /// Creates a new [`TextInput`] with the given placeholder,
@@ -342,7 +342,7 @@ where
             Status::Active
         };
 
-        let appearance = (self.style.0)(theme, status);
+        let appearance = (self.style)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -1412,26 +1412,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`TextInput`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme>(fn(&Theme, Status) -> Appearance);
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+/// The default style of a [`TextInput`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`TextInput`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl Default for Style<Theme> {
-    fn default() -> Self {
-        Style(default)
-    }
-}
-
-impl<Theme> From<fn(&Theme, Status) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme, Status) -> Appearance) -> Self {
-        Style(f)
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }
 
