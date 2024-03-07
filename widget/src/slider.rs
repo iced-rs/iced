@@ -58,7 +58,7 @@ where
     Message: Clone,
 {
     /// The default height of a [`Slider`].
-    pub const DEFAULT_HEIGHT: f32 = 15.0;
+    pub const DEFAULT_HEIGHT: f32 = 16.0;
 
     /// Creates a new [`Slider`].
     ///

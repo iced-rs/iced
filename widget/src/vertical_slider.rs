@@ -60,7 +60,7 @@ where
     Message: Clone,
 {
     /// The default width of a [`VerticalSlider`].
-    pub const DEFAULT_WIDTH: f32 = 22.0;
+    pub const DEFAULT_WIDTH: f32 = 16.0;
 
     /// Creates a new [`VerticalSlider`].
     ///
