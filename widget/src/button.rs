@@ -397,7 +397,7 @@ pub enum Status {
 }
 
 /// The appearance of a button.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Appearance {
     /// The amount of offset to apply to the shadow of the button.
     pub shadow_offset: Vector,
@@ -412,11 +412,11 @@ pub struct Appearance {
 }
 
 impl Appearance {
-    /// Creates an [`Appearance`] with the given [`Background`].
-    pub fn with_background(background: impl Into<Background>) -> Self {
+    /// Updates the [`Appearance`] with the given [`Background`].
+    pub fn with_background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
-            ..Self::default()
+            ..self
         }
     }
 }
@@ -456,7 +456,7 @@ impl DefaultStyle for Appearance {
 
 impl DefaultStyle for Color {
     fn default_style() -> Style<Self> {
-        |color, _status| Appearance::with_background(*color)
+        |color, _status| Appearance::default().with_background(*color)
     }
 }
 
