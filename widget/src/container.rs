@@ -1,6 +1,7 @@
 //! Decorate content and apply alignment.
 use crate::core::alignment::{self, Alignment};
 use crate::core::event::{self, Event};
+use crate::core::gradient::{self, Gradient};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
@@ -510,8 +511,7 @@ pub struct Appearance {
 }
 
 impl Appearance {
-    /// Derives a new [`Appearance`] with a border of the given [`Color`] and
-    /// `width`.
+    /// Updates the border of the [`Appearance`] with the given [`Color`] and `width`.
     pub fn with_border(
         self,
         color: impl Into<Color>,
@@ -527,7 +527,7 @@ impl Appearance {
         }
     }
 
-    /// Derives a new [`Appearance`] with the given [`Background`].
+    /// Updates the background of the [`Appearance`].
     pub fn with_background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
@@ -566,6 +566,24 @@ impl DefaultStyle for Appearance {
     }
 }
 
+impl DefaultStyle for Color {
+    fn default_style() -> Style<Self> {
+        |color, _status| Appearance::default().with_background(*color)
+    }
+}
+
+impl DefaultStyle for Gradient {
+    fn default_style() -> Style<Self> {
+        |gradient, _status| Appearance::default().with_background(*gradient)
+    }
+}
+
+impl DefaultStyle for gradient::Linear {
+    fn default_style() -> Style<Self> {
+        |gradient, _status| Appearance::default().with_background(*gradient)
+    }
+}
+
 /// A transparent [`Container`].
 pub fn transparent<Theme>(_theme: &Theme, _status: Status) -> Appearance {
     Appearance::default()
@@ -577,7 +595,7 @@ pub fn box_(theme: &Theme, _status: Status) -> Appearance {
 
     Appearance {
         background: Some(palette.background.weak.color.into()),
-        border: Border::with_radius(2),
+        border: Border::rounded(2),
         ..Appearance::default()
     }
 }

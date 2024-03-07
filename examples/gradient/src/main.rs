@@ -4,8 +4,7 @@ use iced::widget::{
 };
 use iced::{gradient, window};
 use iced::{
-    Alignment, Background, Color, Element, Length, Radians, Sandbox, Settings,
-    Theme,
+    Alignment, Color, Element, Length, Radians, Sandbox, Settings, Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -71,20 +70,12 @@ impl Sandbox for Gradient {
             transparent,
         } = *self;
 
-        let appearance = {
-            let gradient = gradient::Linear::new(angle)
-                .add_stop(0.0, start)
-                .add_stop(1.0, end)
-                .into();
-
-            container::Appearance {
-                background: Some(Background::Gradient(gradient)),
-                ..Default::default()
-            }
-        };
+        let gradient = gradient::Linear::new(angle)
+            .add_stop(0.0, start)
+            .add_stop(1.0, end);
 
         let gradient_box = themer(
-            appearance,
+            gradient,
             container(horizontal_space())
                 .width(Length::Fill)
                 .height(Length::Fill),

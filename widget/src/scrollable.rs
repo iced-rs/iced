@@ -1692,10 +1692,10 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
 
     let scrollbar = Scrollbar {
         background: Some(palette.background.weak.color.into()),
-        border: Border::with_radius(2),
+        border: Border::rounded(2),
         scroller: Scroller {
             color: palette.background.strong.color,
-            border: Border::with_radius(2),
+            border: Border::rounded(2),
         },
     };
 

@@ -134,7 +134,7 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border: Border::with_radius(appearance.border.radius),
+                    border: Border::rounded(appearance.border.radius),
                     ..renderer::Quad::default()
                 },
                 appearance.bar,
@@ -230,6 +230,6 @@ fn styled(
     Appearance {
         background: background.into(),
         bar: bar.into(),
-        border: Border::with_radius(2),
+        border: Border::rounded(2),
     }
 }

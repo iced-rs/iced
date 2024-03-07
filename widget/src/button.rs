@@ -543,7 +543,7 @@ fn styled(pair: palette::Pair) -> Appearance {
     Appearance {
         background: Some(Background::Color(pair.color)),
         text_color: pair.text,
-        border: Border::with_radius(2),
+        border: Border::rounded(2),
         ..Appearance::default()
     }
 }

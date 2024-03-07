@@ -1,5 +1,5 @@
 //! Draw lines around containers.
-use crate::Color;
+use crate::{Color, Pixels};
 
 /// A border.
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
@@ -15,11 +15,38 @@ pub struct Border {
 }
 
 impl Border {
-    /// Creates a new default [`Border`] with the given [`Radius`].
-    pub fn with_radius(radius: impl Into<Radius>) -> Self {
+    /// Creates a new default rounded [`Border`] with the given [`Radius`].
+    ///
+    /// ```
+    /// # use iced_core::Border;
+    /// #
+    /// assert_eq!(Border::rounded(10), Border::default().with_radius(10));
+    /// ```
+    pub fn rounded(radius: impl Into<Radius>) -> Self {
+        Self::default().with_radius(radius)
+    }
+
+    /// Updates the [`Color`] of the [`Border`].
+    pub fn with_color(self, color: impl Into<Color>) -> Self {
+        Self {
+            color: color.into(),
+            ..self
+        }
+    }
+
+    /// Updates the [`Radius`] of the [`Border`].
+    pub fn with_radius(self, radius: impl Into<Radius>) -> Self {
         Self {
             radius: radius.into(),
-            ..Self::default()
+            ..self
+        }
+    }
+
+    /// Updates the width of the [`Border`].
+    pub fn with_width(self, width: impl Into<Pixels>) -> Self {
+        Self {
+            width: width.into().0,
+            ..self
         }
     }
 }

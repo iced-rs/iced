@@ -328,7 +328,7 @@ where
                             width: bounds.width - dot_size,
                             height: bounds.height - dot_size,
                         },
-                        border: Border::with_radius(dot_size / 2.0),
+                        border: Border::rounded(dot_size / 2.0),
                         ..renderer::Quad::default()
                     },
                     appearance.dot_color,

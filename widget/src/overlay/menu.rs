@@ -539,7 +539,7 @@ where
                             width: bounds.width - appearance.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::with_radius(appearance.border.radius),
+                        border: Border::rounded(appearance.border.radius),
                         ..renderer::Quad::default()
                     },
                     appearance.selected_background,

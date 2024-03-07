@@ -397,7 +397,7 @@ where
                     width: style.rail.width,
                     height: offset + handle_width / 2.0,
                 },
-                border: Border::with_radius(style.rail.border_radius),
+                border: Border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.1,
@@ -411,7 +411,7 @@ where
                     width: style.rail.width,
                     height: bounds.height - offset - handle_width / 2.0,
                 },
-                border: Border::with_radius(style.rail.border_radius),
+                border: Border::rounded(style.rail.border_radius),
                 ..renderer::Quad::default()
             },
             style.rail.colors.0,
