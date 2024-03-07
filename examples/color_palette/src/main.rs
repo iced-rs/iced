@@ -3,7 +3,7 @@ use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    Color, Element, Length, Pixels, Point, Rectangle, Renderer, Sandbox,
+    Color, Element, Font, Length, Pixels, Point, Rectangle, Renderer, Sandbox,
     Settings, Size, Vector,
 };
 use palette::{
@@ -15,6 +15,7 @@ use std::ops::RangeInclusive;
 pub fn main() -> iced::Result {
     ColorPalette::run(Settings {
         antialiasing: true,
+        default_font: Font::MONOSPACE,
         ..Settings::default()
     })
 }
@@ -87,6 +88,19 @@ impl Sandbox for ColorPalette {
         .spacing(10)
         .into()
     }
+
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::custom(
+            String::from("Custom"),
+            iced::theme::Palette {
+                background: self.theme.base,
+                primary: *self.theme.lower.first().unwrap(),
+                text: *self.theme.higher.last().unwrap(),
+                success: *self.theme.lower.last().unwrap(),
+                danger: *self.theme.higher.last().unwrap(),
+            },
+        )
+    }
 }
 
 #[derive(Debug)]
@@ -150,7 +164,7 @@ impl Theme {
             .into()
     }
 
-    fn draw(&self, frame: &mut Frame) {
+    fn draw(&self, frame: &mut Frame, text_color: Color) {
         let pad = 20.0;
 
         let box_size = Size {
@@ -169,6 +183,7 @@ impl Theme {
             horizontal_alignment: alignment::Horizontal::Center,
             vertical_alignment: alignment::Vertical::Top,
             size: Pixels(15.0),
+            color: text_color,
             ..canvas::Text::default()
         };
 
@@ -246,12 +261,14 @@ impl<Message> canvas::Program<Message> for Theme {
         &self,
         _state: &Self::State,
         renderer: &Renderer,
-        _theme: &iced::Theme,
+        theme: &iced::Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
-            self.draw(frame);
+            let palette = theme.extended_palette();
+
+            self.draw(frame, palette.background.base.text);
         });
 
         vec![theme]
@@ -308,7 +325,7 @@ impl<C: ColorSpace + Copy> ColorPicker<C> {
             slider(cr1, c1, move |v| C::new(v, c2, c3)),
             slider(cr2, c2, move |v| C::new(c1, v, c3)),
             slider(cr3, c3, move |v| C::new(c1, c2, v)),
-            text(color.to_string()).width(185).size(14),
+            text(color.to_string()).width(185).size(12),
         ]
         .spacing(10)
         .align_items(Alignment::Center)
