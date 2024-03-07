@@ -399,8 +399,6 @@ pub enum Status {
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Appearance {
-    /// The amount of offset to apply to the shadow of the button.
-    pub shadow_offset: Vector,
     /// The [`Background`] of the button.
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
@@ -424,7 +422,6 @@ impl Appearance {
 impl std::default::Default for Appearance {
     fn default() -> Self {
         Self {
-            shadow_offset: Vector::default(),
             background: None,
             text_color: Color::BLACK,
             border: Border::default(),
