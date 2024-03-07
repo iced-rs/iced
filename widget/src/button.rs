@@ -63,14 +63,6 @@ impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
 {
-    /// The default [`Padding`] of a [`Button`].
-    pub const DEFAULT_PADDING: Padding = Padding {
-        top: 5.0,
-        bottom: 5.0,
-        right: 10.0,
-        left: 10.0,
-    };
-
     /// Creates a new [`Button`] with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
@@ -86,7 +78,7 @@ where
             on_press: None,
             width: size.width.fluid(),
             height: size.height.fluid(),
-            padding: Self::DEFAULT_PADDING,
+            padding: DEFAULT_PADDING,
             clip: false,
             style: Theme::default_style(),
         }
@@ -390,6 +382,14 @@ where
         Self::new(button)
     }
 }
+
+/// The default [`Padding`] of a [`Button`].
+pub(crate) const DEFAULT_PADDING: Padding = Padding {
+    top: 5.0,
+    bottom: 5.0,
+    right: 10.0,
+    left: 10.0,
+};
 
 /// The possible status of a [`Button`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
