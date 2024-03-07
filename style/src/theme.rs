@@ -1018,6 +1018,7 @@ impl progress_bar::StyleSheet for Theme {
         let from_palette = |bar: Color| progress_bar::Appearance {
             background: palette.background.strong.color.into(),
             bar: bar.into(),
+            buffer: Color { a: 0.25, ..bar }.into(),
             border_radius: 2.0.into(),
         };
 

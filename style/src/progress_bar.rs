@@ -7,8 +7,13 @@ use crate::core::Background;
 pub struct Appearance {
     /// The [`Background`] of the progress bar.
     pub background: Background,
+
     /// The [`Background`] of the bar of the progress bar.
     pub bar: Background,
+
+    /// The [`Background`] of the buffer bar of the progress bar.
+    pub buffer: Background,
+
     /// The border radius of the progress bar.
     pub border_radius: border::Radius,
 }
