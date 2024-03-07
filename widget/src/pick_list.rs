@@ -329,7 +329,7 @@ where
                     shaping,
                 },
                 Point::new(
-                    bounds.x + bounds.width - self.padding.horizontal(),
+                    bounds.x + bounds.width - self.padding.right,
                     bounds.center_y(),
                 ),
                 appearance.handle_color,
