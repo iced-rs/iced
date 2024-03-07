@@ -205,11 +205,26 @@ pub trait Application: Sized {
             ..crate::renderer::Settings::default()
         };
 
-        Ok(crate::shell::application::run::<
+        let run = crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
             crate::renderer::Compositor,
-        >(settings.into(), renderer_settings)?)
+        >(settings.into(), renderer_settings);
+
+        #[cfg(target_arch = "wasm32")]
+        {
+            use crate::futures::FutureExt;
+            use iced_futures::backend::wasm::wasm_bindgen::Executor;
+
+            Executor::new()
+                .expect("Create Wasm executor")
+                .spawn(run.map(|_| ()));
+
+            Ok(())
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        Ok(crate::futures::executor::block_on(run)?)
     }
 }
 

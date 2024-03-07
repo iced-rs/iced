@@ -12,7 +12,9 @@ use crate::core::widget::operation;
 use crate::core::window;
 use crate::core::{Point, Size};
 use crate::futures::futures::channel::mpsc;
-use crate::futures::futures::{task, Future, StreamExt};
+use crate::futures::futures::executor;
+use crate::futures::futures::task;
+use crate::futures::futures::{Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::window_manager::WindowManager;
@@ -183,7 +185,8 @@ where
         };
     }
 
-    let mut compositor = C::new(compositor_settings, main_window.clone())?;
+    let mut compositor =
+        executor::block_on(C::new(compositor_settings, main_window.clone()))?;
 
     let mut window_manager = WindowManager::new();
     let _ = window_manager.insert(

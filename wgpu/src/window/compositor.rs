@@ -6,6 +6,8 @@ use crate::graphics::compositor;
 use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
+use std::future::Future;
+
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
@@ -158,17 +160,13 @@ impl Compositor {
 
 /// Creates a [`Compositor`] and its [`Backend`] for the given [`Settings`] and
 /// window.
-pub fn new<W: compositor::Window>(
+pub async fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
 ) -> Result<Compositor, Error> {
-    let compositor = futures::executor::block_on(Compositor::request(
-        settings,
-        Some(compatible_window),
-    ))
-    .ok_or(Error::GraphicsAdapterNotFound)?;
-
-    Ok(compositor)
+    Compositor::request(settings, Some(compatible_window))
+        .await
+        .ok_or(Error::GraphicsAdapterNotFound)
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
@@ -234,7 +232,7 @@ impl graphics::Compositor for Compositor {
     fn new<W: compositor::Window>(
         settings: Self::Settings,
         compatible_window: W,
-    ) -> Result<Self, Error> {
+    ) -> impl Future<Output = Result<Self, Error>> {
         new(settings, compatible_window)
     }
 

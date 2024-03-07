@@ -6,6 +6,7 @@ use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
+use std::future::Future;
 use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
@@ -23,7 +24,7 @@ pub trait Compositor: Sized {
     fn new<W: Window + Clone>(
         settings: Self::Settings,
         compatible_window: W,
-    ) -> Result<Self, Error>;
+    ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
     fn create_renderer(&self) -> Self::Renderer;
