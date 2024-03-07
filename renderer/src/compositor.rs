@@ -4,6 +4,7 @@ use crate::graphics::{Error, Viewport};
 use crate::{Renderer, Settings};
 
 use std::env;
+use std::future::Future;
 
 pub enum Compositor {
     TinySkia(iced_tiny_skia::window::Compositor),
@@ -25,22 +26,25 @@ impl crate::graphics::Compositor for Compositor {
     fn new<W: Window + Clone>(
         settings: Self::Settings,
         compatible_window: W,
-    ) -> Result<Self, Error> {
+    ) -> impl Future<Output = Result<Self, Error>> {
         let candidates =
             Candidate::list_from_env().unwrap_or(Candidate::default_list());
 
-        let mut error = Error::GraphicsAdapterNotFound;
+        async move {
+            let mut error = Error::GraphicsAdapterNotFound;
 
-        for candidate in candidates {
-            match candidate.build(settings, compatible_window.clone()) {
-                Ok(compositor) => return Ok(compositor),
-                Err(new_error) => {
-                    error = new_error;
+            for candidate in candidates {
+                match candidate.build(settings, compatible_window.clone()).await
+                {
+                    Ok(compositor) => return Ok(compositor),
+                    Err(new_error) => {
+                        error = new_error;
+                    }
                 }
             }
-        }
 
-        Err(error)
+            Err(error)
+        }
     }
 
     fn create_renderer(&self) -> Self::Renderer {
@@ -225,7 +229,7 @@ impl Candidate {
         )
     }
 
-    fn build<W: Window>(
+    async fn build<W: Window>(
         self,
         settings: Settings,
         _compatible_window: W,
@@ -252,7 +256,8 @@ impl Candidate {
                         ..iced_wgpu::Settings::from_env()
                     },
                     _compatible_window,
-                )?;
+                )
+                .await?;
 
                 Ok(Compositor::Wgpu(compositor))
             }

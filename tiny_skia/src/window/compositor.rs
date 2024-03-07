@@ -5,6 +5,7 @@ use crate::graphics::{Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use std::collections::VecDeque;
+use std::future::{self, Future};
 use std::num::NonZeroU32;
 
 pub struct Compositor {
@@ -31,8 +32,8 @@ impl crate::graphics::Compositor for Compositor {
     fn new<W: compositor::Window>(
         settings: Self::Settings,
         compatible_window: W,
-    ) -> Result<Self, Error> {
-        Ok(new(settings, compatible_window))
+    ) -> impl Future<Output = Result<Self, Error>> {
+        future::ready(Ok(new(settings, compatible_window)))
     }
 
     fn create_renderer(&self) -> Self::Renderer {

@@ -1,4 +1,4 @@
-//! A `wasm-bindgein-futures` backend.
+//! A `wasm-bindgen-futures` backend.
 
 /// A `wasm-bindgen-futures` executor.
 #[derive(Debug)]
