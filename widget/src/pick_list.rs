@@ -16,6 +16,7 @@ use crate::core::{
 use crate::overlay::menu::{self, Menu};
 
 use std::borrow::Borrow;
+use std::f32;
 
 /// A widget for selecting a single value from a list of options.
 #[allow(missing_debug_implementations)]
@@ -186,19 +187,77 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        layout(
-            tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
-            renderer,
-            limits,
-            self.width,
-            self.padding,
-            self.text_size,
-            self.text_line_height,
-            self.text_shaping,
-            self.font,
-            self.placeholder.as_deref(),
-            self.options.borrow(),
-        )
+        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+        let font = self.font.unwrap_or_else(|| renderer.default_font());
+        let text_size =
+            self.text_size.unwrap_or_else(|| renderer.default_size());
+        let options = self.options.borrow();
+
+        state.options.resize_with(options.len(), Default::default);
+
+        let option_text = Text {
+            content: "",
+            bounds: Size::new(
+                f32::INFINITY,
+                self.text_line_height.to_absolute(text_size).into(),
+            ),
+            size: text_size,
+            line_height: self.text_line_height,
+            font,
+            horizontal_alignment: alignment::Horizontal::Left,
+            vertical_alignment: alignment::Vertical::Center,
+            shaping: self.text_shaping,
+        };
+
+        for (option, paragraph) in options.iter().zip(state.options.iter_mut())
+        {
+            let label = option.to_string();
+
+            paragraph.update(Text {
+                content: &label,
+                ..option_text
+            });
+        }
+
+        if let Some(placeholder) = &self.placeholder {
+            state.placeholder.update(Text {
+                content: placeholder,
+                ..option_text
+            });
+        }
+
+        let max_width = match self.width {
+            Length::Shrink => {
+                let labels_width =
+                    state.options.iter().fold(0.0, |width, paragraph| {
+                        f32::max(width, paragraph.min_width())
+                    });
+
+                labels_width.max(
+                    self.placeholder
+                        .as_ref()
+                        .map(|_| state.placeholder.min_width())
+                        .unwrap_or(0.0),
+                )
+            }
+            _ => 0.0,
+        };
+
+        let size = {
+            let intrinsic = Size::new(
+                max_width + text_size.0 + self.padding.left,
+                f32::from(self.text_line_height.to_absolute(text_size)),
+            );
+
+            limits
+                .width(self.width)
+                .shrink(self.padding)
+                .resolve(self.width, Length::Shrink, intrinsic)
+                .expand(self.padding)
+        };
+
+        layout::Node::new(size)
     }
 
     fn on_event(
@@ -212,18 +271,98 @@ where
         shell: &mut Shell<'_, Message>,
         _viewport: &Rectangle,
     ) -> event::Status {
-        update(
-            event,
-            layout,
-            cursor,
-            shell,
-            self.on_select.as_ref(),
-            self.on_open.as_ref(),
-            self.on_close.as_ref(),
-            self.selected.as_ref().map(Borrow::borrow),
-            self.options.borrow(),
-            || tree.state.downcast_mut::<State<Renderer::Paragraph>>(),
-        )
+        match event {
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
+            | Event::Touch(touch::Event::FingerPressed { .. }) => {
+                let state =
+                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+                if state.is_open {
+                    // Event wasn't processed by overlay, so cursor was clicked either outside its
+                    // bounds or on the drop-down, either way we close the overlay.
+                    state.is_open = false;
+
+                    if let Some(on_close) = &self.on_close {
+                        shell.publish(on_close.clone());
+                    }
+
+                    event::Status::Captured
+                } else if cursor.is_over(layout.bounds()) {
+                    let selected = self.selected.as_ref().map(Borrow::borrow);
+
+                    state.is_open = true;
+                    state.hovered_option = self
+                        .options
+                        .borrow()
+                        .iter()
+                        .position(|option| Some(option) == selected);
+
+                    if let Some(on_open) = &self.on_open {
+                        shell.publish(on_open.clone());
+                    }
+
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                }
+            }
+            Event::Mouse(mouse::Event::WheelScrolled {
+                delta: mouse::ScrollDelta::Lines { y, .. },
+            }) => {
+                let state =
+                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+                if state.keyboard_modifiers.command()
+                    && cursor.is_over(layout.bounds())
+                    && !state.is_open
+                {
+                    fn find_next<'a, T: PartialEq>(
+                        selected: &'a T,
+                        mut options: impl Iterator<Item = &'a T>,
+                    ) -> Option<&'a T> {
+                        let _ = options.find(|&option| option == selected);
+
+                        options.next()
+                    }
+
+                    let options = self.options.borrow();
+                    let selected = self.selected.as_ref().map(Borrow::borrow);
+
+                    let next_option = if y < 0.0 {
+                        if let Some(selected) = selected {
+                            find_next(selected, options.iter())
+                        } else {
+                            options.first()
+                        }
+                    } else if y > 0.0 {
+                        if let Some(selected) = selected {
+                            find_next(selected, options.iter().rev())
+                        } else {
+                            options.last()
+                        }
+                    } else {
+                        None
+                    };
+
+                    if let Some(next_option) = next_option {
+                        shell.publish((self.on_select)(next_option.clone()));
+                    }
+
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                }
+            }
+            Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
+                let state =
+                    tree.state.downcast_mut::<State<Renderer::Paragraph>>();
+
+                state.keyboard_modifiers = modifiers;
+
+                event::Status::Ignored
+            }
+            _ => event::Status::Ignored,
+        }
     }
 
     fn mouse_interaction(
@@ -234,7 +373,14 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse_interaction(layout, cursor)
+        let bounds = layout.bounds();
+        let is_mouse_over = cursor.is_over(bounds);
+
+        if is_mouse_over {
+            mouse::Interaction::Pointer
+        } else {
+            mouse::Interaction::default()
+        }
     }
 
     fn draw(
@@ -429,9 +575,8 @@ where
     }
 }
 
-/// The state of a [`PickList`].
 #[derive(Debug)]
-pub struct State<P: text::Paragraph> {
+struct State<P: text::Paragraph> {
     menu: menu::State,
     keyboard_modifiers: keyboard::Modifiers,
     is_open: bool,
@@ -502,210 +647,6 @@ pub struct Icon<Font> {
     pub line_height: text::LineHeight,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
-}
-
-/// Computes the layout of a [`PickList`].
-pub fn layout<Renderer, T>(
-    state: &mut State<Renderer::Paragraph>,
-    renderer: &Renderer,
-    limits: &layout::Limits,
-    width: Length,
-    padding: Padding,
-    text_size: Option<Pixels>,
-    text_line_height: text::LineHeight,
-    text_shaping: text::Shaping,
-    font: Option<Renderer::Font>,
-    placeholder: Option<&str>,
-    options: &[T],
-) -> layout::Node
-where
-    Renderer: text::Renderer,
-    T: ToString,
-{
-    use std::f32;
-
-    let font = font.unwrap_or_else(|| renderer.default_font());
-    let text_size = text_size.unwrap_or_else(|| renderer.default_size());
-
-    state.options.resize_with(options.len(), Default::default);
-
-    let option_text = Text {
-        content: "",
-        bounds: Size::new(
-            f32::INFINITY,
-            text_line_height.to_absolute(text_size).into(),
-        ),
-        size: text_size,
-        line_height: text_line_height,
-        font,
-        horizontal_alignment: alignment::Horizontal::Left,
-        vertical_alignment: alignment::Vertical::Center,
-        shaping: text_shaping,
-    };
-
-    for (option, paragraph) in options.iter().zip(state.options.iter_mut()) {
-        let label = option.to_string();
-
-        paragraph.update(Text {
-            content: &label,
-            ..option_text
-        });
-    }
-
-    if let Some(placeholder) = placeholder {
-        state.placeholder.update(Text {
-            content: placeholder,
-            ..option_text
-        });
-    }
-
-    let max_width = match width {
-        Length::Shrink => {
-            let labels_width =
-                state.options.iter().fold(0.0, |width, paragraph| {
-                    f32::max(width, paragraph.min_width())
-                });
-
-            labels_width.max(
-                placeholder
-                    .map(|_| state.placeholder.min_width())
-                    .unwrap_or(0.0),
-            )
-        }
-        _ => 0.0,
-    };
-
-    let size = {
-        let intrinsic = Size::new(
-            max_width + text_size.0 + padding.left,
-            f32::from(text_line_height.to_absolute(text_size)),
-        );
-
-        limits
-            .width(width)
-            .shrink(padding)
-            .resolve(width, Length::Shrink, intrinsic)
-            .expand(padding)
-    };
-
-    layout::Node::new(size)
-}
-
-/// Processes an [`Event`] and updates the [`State`] of a [`PickList`]
-/// accordingly.
-pub fn update<'a, T, P, Message>(
-    event: Event,
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-    shell: &mut Shell<'_, Message>,
-    on_select: &dyn Fn(T) -> Message,
-    on_open: Option<&Message>,
-    on_close: Option<&Message>,
-    selected: Option<&T>,
-    options: &[T],
-    state: impl FnOnce() -> &'a mut State<P>,
-) -> event::Status
-where
-    T: PartialEq + Clone + 'a,
-    P: text::Paragraph + 'a,
-    Message: Clone,
-{
-    match event {
-        Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left))
-        | Event::Touch(touch::Event::FingerPressed { .. }) => {
-            let state = state();
-
-            if state.is_open {
-                // Event wasn't processed by overlay, so cursor was clicked either outside it's
-                // bounds or on the drop-down, either way we close the overlay.
-                state.is_open = false;
-
-                if let Some(on_close) = on_close {
-                    shell.publish(on_close.clone());
-                }
-
-                event::Status::Captured
-            } else if cursor.is_over(layout.bounds()) {
-                state.is_open = true;
-                state.hovered_option =
-                    options.iter().position(|option| Some(option) == selected);
-
-                if let Some(on_open) = on_open {
-                    shell.publish(on_open.clone());
-                }
-
-                event::Status::Captured
-            } else {
-                event::Status::Ignored
-            }
-        }
-        Event::Mouse(mouse::Event::WheelScrolled {
-            delta: mouse::ScrollDelta::Lines { y, .. },
-        }) => {
-            let state = state();
-
-            if state.keyboard_modifiers.command()
-                && cursor.is_over(layout.bounds())
-                && !state.is_open
-            {
-                fn find_next<'a, T: PartialEq>(
-                    selected: &'a T,
-                    mut options: impl Iterator<Item = &'a T>,
-                ) -> Option<&'a T> {
-                    let _ = options.find(|&option| option == selected);
-
-                    options.next()
-                }
-
-                let next_option = if y < 0.0 {
-                    if let Some(selected) = selected {
-                        find_next(selected, options.iter())
-                    } else {
-                        options.first()
-                    }
-                } else if y > 0.0 {
-                    if let Some(selected) = selected {
-                        find_next(selected, options.iter().rev())
-                    } else {
-                        options.last()
-                    }
-                } else {
-                    None
-                };
-
-                if let Some(next_option) = next_option {
-                    shell.publish((on_select)(next_option.clone()));
-                }
-
-                event::Status::Captured
-            } else {
-                event::Status::Ignored
-            }
-        }
-        Event::Keyboard(keyboard::Event::ModifiersChanged(modifiers)) => {
-            let state = state();
-
-            state.keyboard_modifiers = modifiers;
-
-            event::Status::Ignored
-        }
-        _ => event::Status::Ignored,
-    }
-}
-
-/// Returns the current [`mouse::Interaction`] of a [`PickList`].
-pub fn mouse_interaction(
-    layout: Layout<'_>,
-    cursor: mouse::Cursor,
-) -> mouse::Interaction {
-    let bounds = layout.bounds();
-    let is_mouse_over = cursor.is_over(bounds);
-
-    if is_mouse_over {
-        mouse::Interaction::Pointer
-    } else {
-        mouse::Interaction::default()
-    }
 }
 
 /// The possible status of a [`PickList`].

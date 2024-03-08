@@ -717,8 +717,7 @@ where
     }
 }
 
-/// Search list of options for a given query.
-pub fn search<'a, T, A>(
+fn search<'a, T, A>(
     options: impl IntoIterator<Item = T> + 'a,
     option_matchers: impl IntoIterator<Item = &'a A> + 'a,
     query: &'a str,
@@ -745,8 +744,7 @@ where
         })
 }
 
-/// Build matchers from given list of options.
-pub fn build_matchers<'a, T>(
+fn build_matchers<'a, T>(
     options: impl IntoIterator<Item = T> + 'a,
 ) -> Vec<String>
 where
@@ -769,6 +767,8 @@ pub struct Style<Theme> {
     pub text_input: fn(&Theme, text_input::Status) -> text_input::Appearance,
 
     /// The style of the [`Menu`] of the [`ComboBox`].
+    ///
+    /// [`Menu`]: menu::Menu
     pub menu: menu::Style<Theme>,
 }
 

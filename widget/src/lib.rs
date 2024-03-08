@@ -18,6 +18,7 @@ pub use iced_runtime::core;
 mod column;
 mod mouse_area;
 mod row;
+mod space;
 mod themer;
 
 pub mod button;
@@ -33,7 +34,6 @@ pub mod radio;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
-pub mod space;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
