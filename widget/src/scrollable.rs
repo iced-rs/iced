@@ -377,7 +377,7 @@ where
             self.content.as_widget_mut().on_event(
                 &mut tree.children[0],
                 event.clone(),
-                layout,
+                content,
                 cursor,
                 renderer,
                 clipboard,
@@ -880,7 +880,7 @@ where
 
             self.content.as_widget().mouse_interaction(
                 &tree.children[0],
-                layout,
+                content_layout,
                 cursor,
                 &Rectangle {
                     y: bounds.y + translation.y,
