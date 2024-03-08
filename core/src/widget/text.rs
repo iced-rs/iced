@@ -83,7 +83,7 @@ where
         self
     }
 
-    /// Sets the [`Color`] of the [`Text`].
+    /// Sets the [`Color`] of the [`Text`], if `Some`.
     pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
         self.style = Style::Colored(color.map(Into::into));
         self
