@@ -52,7 +52,7 @@ impl Sandbox for Example {
             self.position,
         )
         .gap(10)
-        .style(container::box_);
+        .style(container::rounded_box);
 
         container(tooltip)
             .width(Length::Fill)

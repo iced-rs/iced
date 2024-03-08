@@ -271,7 +271,7 @@ mod toast {
                         container(text(toast.body.as_str()))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(container::box_),
+                            .style(container::rounded_box),
                     ])
                     .max_width(200)
                     .into()

@@ -132,7 +132,7 @@ impl Application for Example {
                     container(text("I am the outer container!"))
                         .id(OUTER_CONTAINER.clone())
                         .padding(40)
-                        .style(container::box_),
+                        .style(container::rounded_box),
                     vertical_space().height(400),
                     scrollable(
                         column![
@@ -141,7 +141,7 @@ impl Application for Example {
                             container(text("I am the inner container!"))
                                 .id(INNER_CONTAINER.clone())
                                 .padding(40)
-                                .style(container::box_),
+                                .style(container::rounded_box),
                             vertical_space().height(400),
                         ]
                         .padding(20)

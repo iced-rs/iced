@@ -286,7 +286,7 @@ fn action<'a, Message: Clone + 'a>(
             label,
             tooltip::Position::FollowCursor,
         )
-        .style(container::box_)
+        .style(container::rounded_box)
         .into()
     } else {
         action.style(button::secondary).into()

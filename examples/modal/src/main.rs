@@ -174,7 +174,7 @@ impl Application for App {
             )
             .width(300)
             .padding(10)
-            .style(container::box_);
+            .style(container::rounded_box);
 
             Modal::new(content, modal)
                 .on_blur(Message::HideModal)

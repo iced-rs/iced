@@ -590,7 +590,7 @@ pub fn transparent<Theme>(_theme: &Theme, _status: Status) -> Appearance {
 }
 
 /// A rounded [`Container`] with a background.
-pub fn box_(theme: &Theme, _status: Status) -> Appearance {
+pub fn rounded_box(theme: &Theme, _status: Status) -> Appearance {
     let palette = theme.extended_palette();
 
     Appearance {

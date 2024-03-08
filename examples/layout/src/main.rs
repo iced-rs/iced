@@ -275,7 +275,7 @@ fn application<'a>() -> Element<'a, Message> {
             .width(200)
             .align_items(Alignment::Center),
     )
-    .style(container::box_)
+    .style(container::rounded_box)
     .height(Length::Fill)
     .center_y();
 

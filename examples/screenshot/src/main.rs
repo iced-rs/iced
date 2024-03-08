@@ -148,7 +148,7 @@ impl Application for Example {
 
         let image = container(image)
             .padding(10)
-            .style(container::box_)
+            .style(container::rounded_box)
             .width(Length::FillPortion(2))
             .height(Length::Fill)
             .center_x()
