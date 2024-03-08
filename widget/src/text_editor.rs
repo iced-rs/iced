@@ -767,7 +767,7 @@ impl Update {
                     }
 
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
-                        if let Some(motion) = motion(named_key) {
+                        if let Some(motion) = motion(named_key, modifiers) {
                             let motion = if platform::is_jump_modifier_pressed(
                                 modifiers,
                             ) {
@@ -793,14 +793,26 @@ impl Update {
     }
 }
 
-fn motion(key: key::Named) -> Option<Motion> {
+fn motion(key: key::Named, modifiers: keyboard::Modifiers) -> Option<Motion> {
     match key {
-        key::Named::ArrowLeft => Some(Motion::Left),
-        key::Named::ArrowRight => Some(Motion::Right),
-        key::Named::ArrowUp => Some(Motion::Up),
-        key::Named::ArrowDown => Some(Motion::Down),
         key::Named::Home => Some(Motion::Home),
         key::Named::End => Some(Motion::End),
+        key::Named::ArrowLeft => {
+            if platform::is_macos_command_pressed(modifiers) {
+                Some(Motion::Home)
+            } else {
+                Some(Motion::Left)
+            }
+        }
+        key::Named::ArrowRight => {
+            if platform::is_macos_command_pressed(modifiers) {
+                Some(Motion::End)
+            } else {
+                Some(Motion::Right)
+            }
+        }
+        key::Named::ArrowUp => Some(Motion::Up),
+        key::Named::ArrowDown => Some(Motion::Down),
         key::Named::PageUp => Some(Motion::PageUp),
         key::Named::PageDown => Some(Motion::PageDown),
         _ => None,
@@ -815,6 +827,19 @@ mod platform {
             modifiers.alt()
         } else {
             modifiers.control()
+        }
+    }
+
+    /// Whether the command key is pressed on a macOS device.
+    ///
+    /// This is relevant for actions like ⌘ + ArrowLeft to move to the beginning of the
+    /// line where the equivalent behavior for `modifiers.command()` is instead a jump on
+    /// other platforms.
+    pub fn is_macos_command_pressed(modifiers: keyboard::Modifiers) -> bool {
+        if cfg!(target_os = "macos") {
+            modifiers.logo()
+        } else {
+            false
         }
     }
 }
