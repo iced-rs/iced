@@ -274,18 +274,6 @@ where
         tree::State::new(State::<Renderer::Paragraph>::new())
     }
 
-    fn diff(&self, tree: &mut Tree) {
-        let state = tree.state.downcast_mut::<State<Renderer::Paragraph>>();
-
-        // Unfocus text input if it becomes disabled
-        if self.on_input.is_none() {
-            state.last_click = None;
-            state.is_focused = None;
-            state.is_pasting = None;
-            state.is_dragging = false;
-        }
-    }
-
     fn size(&self) -> Size<Length> {
         Size {
             width: self.width,
@@ -629,11 +617,7 @@ where
         | Event::Touch(touch::Event::FingerPressed { .. }) => {
             let state = state();
 
-            let click_position = if on_input.is_some() {
-                cursor.position_over(layout.bounds())
-            } else {
-                None
-            };
+            let click_position = cursor.position_over(layout.bounds());
 
             state.is_focused = if click_position.is_some() {
                 state.is_focused.or_else(|| {
@@ -755,10 +739,6 @@ where
             let state = state();
 
             if let Some(focus) = &mut state.is_focused {
-                let Some(on_input) = on_input else {
-                    return event::Status::Ignored;
-                };
-
                 let modifiers = state.keyboard_modifiers;
                 focus.updated_at = Instant::now();
 
@@ -778,7 +758,8 @@ where
                         return event::Status::Captured;
                     }
                     keyboard::Key::Character("x")
-                        if state.keyboard_modifiers.command() =>
+                        if state.keyboard_modifiers.command()
+                            && on_input.is_some() =>
                     {
                         if let Some((start, end)) =
                             state.cursor.selection(value)
@@ -792,7 +773,7 @@ where
                         let mut editor = Editor::new(value, &mut state.cursor);
                         editor.delete();
 
-                        let message = (on_input)(editor.contents());
+                        let message = (on_input.unwrap())(editor.contents());
                         shell.publish(message);
 
                         update_cache(state, value);
@@ -801,7 +782,8 @@ where
                     }
                     keyboard::Key::Character("v")
                         if state.keyboard_modifiers.command()
-                            && !state.keyboard_modifiers.alt() =>
+                            && !state.keyboard_modifiers.alt()
+                            && on_input.is_some() =>
                     {
                         let content = match state.is_pasting.take() {
                             Some(content) => content,
@@ -824,7 +806,7 @@ where
                         let message = if let Some(paste) = &on_paste {
                             (paste)(editor.contents())
                         } else {
-                            (on_input)(editor.contents())
+                            (on_input.unwrap())(editor.contents())
                         };
                         shell.publish(message);
 
@@ -844,7 +826,13 @@ where
                     _ => {}
                 }
 
+                let is_enabled = on_input.is_some();
+
                 if let Some(text) = text {
+                    if !is_enabled {
+                        return event::Status::Ignored;
+                    }
+
                     state.is_pasting = None;
 
                     if let Some(c) =
@@ -854,7 +842,7 @@ where
 
                         editor.insert(c);
 
-                        let message = (on_input)(editor.contents());
+                        let message = (on_input.unwrap())(editor.contents());
                         shell.publish(message);
 
                         focus.updated_at = Instant::now();
@@ -866,7 +854,7 @@ where
                 }
 
                 match key.as_ref() {
-                    keyboard::Key::Named(key::Named::Enter) => {
+                    keyboard::Key::Named(key::Named::Enter) if is_enabled => {
                         if let Some(on_submit) = on_submit.clone() {
                             shell.publish(on_submit);
                         }
@@ -883,13 +871,17 @@ where
                             }
                         }
 
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.backspace();
+                        if is_enabled {
+                            let mut editor =
+                                Editor::new(value, &mut state.cursor);
+                            editor.backspace();
 
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
+                            let message =
+                                (on_input.unwrap())(editor.contents());
+                            shell.publish(message);
 
-                        update_cache(state, value);
+                            update_cache(state, value);
+                        }
                     }
                     keyboard::Key::Named(key::Named::Delete) => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -905,13 +897,17 @@ where
                             }
                         }
 
-                        let mut editor = Editor::new(value, &mut state.cursor);
-                        editor.delete();
+                        if is_enabled {
+                            let mut editor =
+                                Editor::new(value, &mut state.cursor);
+                            editor.delete();
 
-                        let message = (on_input)(editor.contents());
-                        shell.publish(message);
+                            let message =
+                                (on_input.unwrap())(editor.contents());
+                            shell.publish(message);
 
-                        update_cache(state, value);
+                            update_cache(state, value);
+                        }
                     }
                     keyboard::Key::Named(key::Named::ArrowLeft) => {
                         if platform::is_jump_modifier_pressed(modifiers)
@@ -934,12 +930,12 @@ where
                         {
                             if modifiers.shift() {
                                 state.cursor.select_right_by_words(value);
-                            } else {
+                            } else if is_enabled {
                                 state.cursor.move_right_by_words(value);
                             }
                         } else if modifiers.shift() {
                             state.cursor.select_right(value);
-                        } else {
+                        } else if is_enabled {
                             state.cursor.move_right(value);
                         }
                     }
@@ -948,7 +944,7 @@ where
                             state
                                 .cursor
                                 .select_range(state.cursor.start(value), 0);
-                        } else {
+                        } else if is_enabled {
                             state.cursor.move_to(0);
                         }
                     }
@@ -958,7 +954,7 @@ where
                                 state.cursor.start(value),
                                 value.len(),
                             );
-                        } else {
+                        } else if is_enabled {
                             state.cursor.move_to(value.len());
                         }
                     }
@@ -1131,7 +1127,8 @@ pub fn draw<Theme, Renderer>(
                     .as_millis()
                     / CURSOR_BLINK_INTERVAL_MILLIS)
                     % 2
-                    == 0;
+                    == 0
+                    && !is_disabled;
 
                 let cursor = if is_cursor_visible {
                     Some((
