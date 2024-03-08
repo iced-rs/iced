@@ -1118,11 +1118,11 @@ impl<'a, T> Contents<'a, T> {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Appearance {
     /// The appearance of a hovered region highlight.
-    hovered_region: Highlight,
+    pub hovered_region: Highlight,
     /// The appearance of a picked split.
-    picked_split: Line,
+    pub picked_split: Line,
     /// The appearance of a hovered split.
-    hovered_split: Line,
+    pub hovered_split: Line,
 }
 
 /// The appearance of a highlight of the [`PaneGrid`].
