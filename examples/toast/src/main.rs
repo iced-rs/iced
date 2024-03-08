@@ -209,27 +209,6 @@ mod toast {
             &[Self::Primary, Self::Secondary, Self::Success, Self::Danger];
     }
 
-    impl container::StyleSheet for Status {
-        type Style = Theme;
-
-        fn appearance(&self, theme: &Theme) -> container::Appearance {
-            let palette = theme.extended_palette();
-
-            let pair = match self {
-                Status::Primary => palette.primary.weak,
-                Status::Secondary => palette.secondary.weak,
-                Status::Success => palette.success.weak,
-                Status::Danger => palette.danger.weak,
-            };
-
-            container::Appearance {
-                background: Some(pair.color.into()),
-                text_color: pair.text.into(),
-                ..Default::default()
-            }
-        }
-    }
-
     impl fmt::Display for Status {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             match self {
@@ -282,14 +261,17 @@ mod toast {
                         )
                         .width(Length::Fill)
                         .padding(5)
-                        .style(
-                            theme::Container::Custom(Box::new(toast.status))
-                        ),
+                        .style(match toast.status {
+                            Status::Primary => primary,
+                            Status::Secondary => secondary,
+                            Status::Success => success,
+                            Status::Danger => danger,
+                        }),
                         horizontal_rule(1),
                         container(text(toast.body.as_str()))
                             .width(Length::Fill)
                             .padding(5)
-                            .style(theme::Container::Box),
+                            .style(container::box_),
                     ])
                     .max_width(200)
                     .into()
@@ -675,5 +657,49 @@ mod toast {
         fn from(manager: Manager<'a, Message>) -> Self {
             Element::new(manager)
         }
+    }
+
+    fn styled(pair: theme::palette::Pair) -> container::Appearance {
+        container::Appearance {
+            background: Some(pair.color.into()),
+            text_color: pair.text.into(),
+            ..Default::default()
+        }
+    }
+
+    fn primary(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        styled(palette.primary.weak)
+    }
+
+    fn secondary(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        styled(palette.secondary.weak)
+    }
+
+    fn success(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        styled(palette.success.weak)
+    }
+
+    fn danger(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
+        let palette = theme.extended_palette();
+
+        styled(palette.danger.weak)
     }
 }

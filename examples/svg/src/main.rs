@@ -1,4 +1,3 @@
-use iced::theme;
 use iced::widget::{checkbox, column, container, svg};
 use iced::{color, Element, Length, Sandbox, Settings};
 
@@ -43,11 +42,11 @@ impl Sandbox for Tiger {
 
         let svg = svg(handle).width(Length::Fill).height(Length::Fill).style(
             if self.apply_color_filter {
-                theme::Svg::custom_fn(|_theme| svg::Appearance {
+                |_theme, _status| svg::Appearance {
                     color: Some(color!(0x0000ff)),
-                })
+                }
             } else {
-                theme::Svg::Default
+                |_theme, _status| svg::Appearance::default()
             },
         );
 

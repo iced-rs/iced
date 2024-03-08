@@ -6,7 +6,7 @@ use iced::widget::{
     button, column, container, row, scrollable, text, text_input,
 };
 use iced::{
-    Application, Color, Command, Element, Length, Settings, Subscription, Theme,
+    color, Application, Command, Element, Length, Settings, Subscription, Theme,
 };
 use once_cell::sync::Lazy;
 
@@ -99,7 +99,7 @@ impl Application for WebSocket {
         let message_log: Element<_> = if self.messages.is_empty() {
             container(
                 text("Your messages will appear here...")
-                    .style(Color::from_rgb8(0x88, 0x88, 0x88)),
+                    .color(color!(0x888888)),
             )
             .width(Length::Fill)
             .height(Length::Fill)

@@ -1,13 +1,13 @@
 use iced::alignment::{self, Alignment};
 use iced::executor;
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
     button, column, container, responsive, row, scrollable, text,
 };
 use iced::{
     Application, Color, Command, Element, Length, Settings, Size, Subscription,
+    Theme,
 };
 
 pub fn main() -> iced::Result {
@@ -162,7 +162,7 @@ impl Application for Example {
             let title = row![
                 pin_button,
                 "Pane",
-                text(pane.id.to_string()).style(if is_focused {
+                text(pane.id.to_string()).color(if is_focused {
                     PANE_ID_COLOR_FOCUSED
                 } else {
                     PANE_ID_COLOR_UNFOCUSED
@@ -287,10 +287,7 @@ fn view_content<'a>(
         )
     ]
     .push_maybe(if total_panes > 1 && !is_pinned {
-        Some(
-            button("Close", Message::Close(pane))
-                .style(theme::Button::Destructive),
-        )
+        Some(button("Close", Message::Close(pane)).style(button::danger))
     } else {
         None
     })
@@ -327,7 +324,7 @@ fn view_controls<'a>(
 
         Some(
             button(text(content).size(14))
-                .style(theme::Button::Secondary)
+                .style(button::secondary)
                 .padding(3)
                 .on_press(message),
         )
@@ -336,7 +333,7 @@ fn view_controls<'a>(
     });
 
     let close = button(text("Close").size(14))
-        .style(theme::Button::Destructive)
+        .style(button::danger)
         .padding(3)
         .on_press_maybe(if total_panes > 1 && !is_pinned {
             Some(Message::Close(pane))
@@ -351,7 +348,10 @@ mod style {
     use iced::widget::container;
     use iced::{Border, Theme};
 
-    pub fn title_bar_active(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_active(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -361,7 +361,10 @@ mod style {
         }
     }
 
-    pub fn title_bar_focused(theme: &Theme) -> container::Appearance {
+    pub fn title_bar_focused(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -371,7 +374,10 @@ mod style {
         }
     }
 
-    pub fn pane_active(theme: &Theme) -> container::Appearance {
+    pub fn pane_active(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {
@@ -385,7 +391,10 @@ mod style {
         }
     }
 
-    pub fn pane_focused(theme: &Theme) -> container::Appearance {
+    pub fn pane_focused(
+        theme: &Theme,
+        _status: container::Status,
+    ) -> container::Appearance {
         let palette = theme.extended_palette();
 
         container::Appearance {

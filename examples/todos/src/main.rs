@@ -1,14 +1,14 @@
 use iced::alignment::{self, Alignment};
 use iced::font::{self, Font};
 use iced::keyboard;
-use iced::theme::{self, Theme};
 use iced::widget::{
     self, button, checkbox, column, container, keyed_column, row, scrollable,
     text, text_input, Text,
 };
 use iced::window;
-use iced::{Application, Element};
-use iced::{Color, Command, Length, Settings, Size, Subscription};
+use iced::{
+    Application, Command, Element, Length, Settings, Size, Subscription, Theme,
+};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -209,7 +209,7 @@ impl Application for Todos {
                 let title = text("todos")
                     .width(Length::Fill)
                     .size(100)
-                    .style(Color::from([0.5, 0.5, 0.5]))
+                    .color([0.5, 0.5, 0.5])
                     .horizontal_alignment(alignment::Horizontal::Center);
 
                 let input = text_input("What needs to be done?", input_value)
@@ -355,6 +355,7 @@ impl Task {
                 let checkbox = checkbox(&self.description, self.completed)
                     .on_toggle(TaskMessage::Completed)
                     .width(Length::Fill)
+                    .size(17)
                     .text_shaping(text::Shaping::Advanced);
 
                 row![
@@ -362,7 +363,7 @@ impl Task {
                     button(edit_icon())
                         .on_press(TaskMessage::Edit)
                         .padding(10)
-                        .style(theme::Button::Text),
+                        .style(button::text),
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -385,7 +386,7 @@ impl Task {
                     )
                     .on_press(TaskMessage::Delete)
                     .padding(10)
-                    .style(theme::Button::Destructive)
+                    .style(button::danger)
                 ]
                 .spacing(20)
                 .align_items(Alignment::Center)
@@ -402,9 +403,9 @@ fn view_controls(tasks: &[Task], current_filter: Filter) -> Element<Message> {
         let label = text(label);
 
         let button = button(label).style(if filter == current_filter {
-            theme::Button::Primary
+            button::primary
         } else {
-            theme::Button::Text
+            button::text
         });
 
         button.on_press(Message::FilterChanged(filter)).padding(8)
@@ -467,7 +468,7 @@ fn empty_message(message: &str) -> Element<'_, Message> {
             .width(Length::Fill)
             .size(25)
             .horizontal_alignment(alignment::Horizontal::Center)
-            .style(Color::from([0.7, 0.7, 0.7])),
+            .color([0.7, 0.7, 0.7]),
     )
     .height(200)
     .center_y()

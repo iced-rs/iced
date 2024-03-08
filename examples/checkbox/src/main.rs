@@ -1,6 +1,5 @@
 use iced::executor;
 use iced::font::{self, Font};
-use iced::theme;
 use iced::widget::{checkbox, column, container, row, text};
 use iced::{Application, Command, Element, Length, Settings, Theme};
 
@@ -71,10 +70,10 @@ impl Application for Example {
         };
 
         let checkboxes = row![
-            styled_checkbox("Primary", theme::Checkbox::Primary),
-            styled_checkbox("Secondary", theme::Checkbox::Secondary),
-            styled_checkbox("Success", theme::Checkbox::Success),
-            styled_checkbox("Danger", theme::Checkbox::Danger),
+            styled_checkbox("Primary", checkbox::primary),
+            styled_checkbox("Secondary", checkbox::secondary),
+            styled_checkbox("Success", checkbox::success),
+            styled_checkbox("Danger", checkbox::danger),
         ]
         .spacing(20);
 

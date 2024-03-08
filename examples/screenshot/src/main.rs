@@ -1,7 +1,6 @@
 use iced::alignment;
 use iced::executor;
 use iced::keyboard;
-use iced::theme;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
@@ -149,7 +148,7 @@ impl Application for Example {
 
         let image = container(image)
             .padding(10)
-            .style(theme::Container::Box)
+            .style(container::box_)
             .width(Length::FillPortion(2))
             .height(Length::Fill)
             .center_x()
@@ -216,9 +215,9 @@ impl Application for Example {
                         )
                     } else {
                         button(centered_text("Saving..."))
-                            .style(theme::Button::Secondary)
+                            .style(button::secondary)
                     }
-                    .style(theme::Button::Secondary)
+                    .style(button::secondary)
                     .padding([10, 20, 10, 20])
                     .width(Length::Fill)
                 ]
@@ -227,7 +226,7 @@ impl Application for Example {
                     crop_controls,
                     button(centered_text("Crop"))
                         .on_press(Message::Crop)
-                        .style(theme::Button::Destructive)
+                        .style(button::danger)
                         .padding([10, 20, 10, 20])
                         .width(Length::Fill),
                 ]

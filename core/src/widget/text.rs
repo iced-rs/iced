@@ -17,7 +17,6 @@ pub use text::{LineHeight, Shaping};
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     content: Cow<'a, str>,
@@ -29,12 +28,11 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
@@ -49,7 +47,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::Basic,
-            style: Default::default(),
+            style: Style::default(),
         }
     }
 
@@ -74,8 +72,20 @@ where
     }
 
     /// Sets the style of the [`Text`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
+        self.style = Style::Themed(style);
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`].
+    pub fn color(mut self, color: impl Into<Color>) -> Self {
+        self.style = Style::Colored(Some(color.into()));
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`], if `Some`.
+    pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
+        self.style = Style::Colored(color.map(Into::into));
         self
     }
 
@@ -123,7 +133,6 @@ pub struct State<P: Paragraph>(P);
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -175,14 +184,12 @@ where
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
 
-        draw(
-            renderer,
-            style,
-            layout,
-            state,
-            theme.appearance(self.style.clone()),
-            viewport,
-        );
+        let appearance = match self.style {
+            Style::Themed(f) => f(theme),
+            Style::Colored(color) => Appearance { color },
+        };
+
+        draw(renderer, style, layout, state, appearance, viewport);
     }
 }
 
@@ -273,7 +280,7 @@ pub fn draw<Renderer>(
 impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -285,7 +292,6 @@ where
 
 impl<'a, Theme, Renderer> Clone for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn clone(&self) -> Self {
@@ -298,7 +304,7 @@ where
             horizontal_alignment: self.horizontal_alignment,
             vertical_alignment: self.vertical_alignment,
             font: self.font,
-            style: self.style.clone(),
+            style: self.style,
             shaping: self.shaping,
         }
     }
@@ -306,7 +312,6 @@ where
 
 impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
@@ -317,21 +322,12 @@ where
 impl<'a, Message, Theme, Renderer> From<&'a str>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(content: &'a str) -> Self {
         Text::from(content).into()
     }
-}
-
-/// The style sheet of some text.
-pub trait StyleSheet {
-    /// The supported style of the [`StyleSheet`].
-    type Style: Default + Clone;
-
-    /// Produces the [`Appearance`] of some text.
-    fn appearance(&self, style: Self::Style) -> Appearance;
 }
 
 /// The apperance of some text.
@@ -341,4 +337,30 @@ pub struct Appearance {
     ///
     /// The default, `None`, means using the inherited color.
     pub color: Option<Color>,
+}
+
+#[derive(Debug)]
+enum Style<Theme> {
+    Themed(fn(&Theme) -> Appearance),
+    Colored(Option<Color>),
+}
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}
+
+impl<Theme> Default for Style<Theme> {
+    fn default() -> Self {
+        Style::Colored(None)
+    }
+}
+
+impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
+    fn from(f: fn(&Theme) -> Appearance) -> Self {
+        Style::Themed(f)
+    }
 }

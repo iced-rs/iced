@@ -24,7 +24,6 @@ multi-window = ["iced_runtime/multi-window"]
 [dependencies]
 iced_graphics.workspace = true
 iced_runtime.workspace = true
-iced_style.workspace = true
 
 log.workspace = true
 thiserror.workspace = true

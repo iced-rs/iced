@@ -5,7 +5,8 @@ use crate::core::mouse;
 use crate::core::renderer::{self, Renderer as _};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Element, Layout, Length, Point, Rectangle, Size, Vector, Widget,
+    Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
+    Widget,
 };
 use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
@@ -13,33 +14,28 @@ use crate::Renderer;
 use std::cell::RefCell;
 use thiserror::Error;
 
-pub use crate::style::qr_code::{Appearance, StyleSheet};
-
 const DEFAULT_CELL_SIZE: u16 = 4;
 const QUIET_ZONE: usize = 2;
 
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
 #[derive(Debug)]
-pub struct QRCode<'a, Theme = crate::Theme>
-where
-    Theme: StyleSheet,
-{
+pub struct QRCode<'a, Theme = crate::Theme> {
     data: &'a Data,
     cell_size: u16,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
-impl<'a, Theme> QRCode<'a, Theme>
-where
-    Theme: StyleSheet,
-{
+impl<'a, Theme> QRCode<'a, Theme> {
     /// Creates a new [`QRCode`] with the provided [`Data`].
-    pub fn new(data: &'a Data) -> Self {
+    pub fn new(data: &'a Data) -> Self
+    where
+        Theme: DefaultStyle,
+    {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
-            style: Default::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -50,15 +46,14 @@ where
     }
 
     /// Sets the style of the [`QRCode`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
         self.style = style.into();
         self
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
-where
-    Theme: StyleSheet,
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
+    for QRCode<'a, Theme>
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -102,7 +97,7 @@ where
         let bounds = layout.bounds();
         let side_length = self.data.width + 2 * QUIET_ZONE;
 
-        let appearance = theme.appearance(&self.style);
+        let appearance = (self.style)(theme);
         let mut last_appearance = state.last_appearance.borrow_mut();
 
         if Some(appearance) != *last_appearance {
@@ -156,7 +151,7 @@ where
 impl<'a, Message, Theme> From<QRCode<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
 {
     fn from(qr_code: QRCode<'a, Theme>) -> Self {
         Self::new(qr_code)
@@ -329,4 +324,44 @@ impl From<qrcode::types::QrError> for Error {
 #[derive(Default)]
 struct State {
     last_appearance: RefCell<Option<Appearance>>,
+}
+
+/// The appearance of a QR code.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appearance {
+    /// The color of the QR code data cells
+    pub cell: Color,
+    /// The color of the QR code background
+    pub background: Color,
+}
+
+/// The style of a [`QRCode`].
+pub type Style<Theme> = fn(&Theme) -> Appearance;
+
+/// The default style of a [`QRCode`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`QRCode`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
+    }
+}
+
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance| *appearance
+    }
+}
+
+/// The default style of a [`QRCode`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.palette();
+
+    Appearance {
+        cell: palette.text,
+        background: palette.background,
+    }
 }

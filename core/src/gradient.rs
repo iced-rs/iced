@@ -12,17 +12,13 @@ pub enum Gradient {
 }
 
 impl Gradient {
-    /// Adjust the opacity of the gradient by a multiplier applied to each color stop.
-    pub fn mul_alpha(mut self, alpha_multiplier: f32) -> Self {
-        match &mut self {
+    /// Scales the alpha channel of the [`Gradient`] by the given factor.
+    pub fn scale_alpha(self, factor: f32) -> Self {
+        match self {
             Gradient::Linear(linear) => {
-                for stop in linear.stops.iter_mut().flatten() {
-                    stop.color.a *= alpha_multiplier;
-                }
+                Gradient::Linear(linear.scale_alpha(factor))
             }
         }
-
-        self
     }
 }
 
@@ -96,6 +92,16 @@ impl Linear {
     ) -> Self {
         for stop in stops {
             self = self.add_stop(stop.offset, stop.color);
+        }
+
+        self
+    }
+
+    /// Scales the alpha channel of the [`Linear`] gradient by the given
+    /// factor.
+    pub fn scale_alpha(mut self, factor: f32) -> Self {
+        for stop in self.stops.iter_mut().flatten() {
+            stop.color.a *= factor;
         }
 
         self

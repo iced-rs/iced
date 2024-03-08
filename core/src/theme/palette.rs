@@ -1,5 +1,5 @@
 //! Define the colors of a theme.
-use crate::core::{color, Color};
+use crate::{color, Color};
 
 use once_cell::sync::Lazy;
 use palette::color_difference::Wcag21RelativeContrast;

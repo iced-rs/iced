@@ -10,11 +10,11 @@ use crate::core::text;
 use crate::core::time::Instant;
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Vector,
+    Clipboard, Element, Length, Padding, Rectangle, Shell, Size, Theme, Vector,
 };
 use crate::overlay::menu;
 use crate::text::LineHeight;
-use crate::{container, scrollable, text_input, TextInput};
+use crate::text_input::{self, TextInput};
 
 use std::cell::RefCell;
 use std::fmt::Display;
@@ -32,7 +32,6 @@ pub struct ComboBox<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: text_input::StyleSheet + menu::StyleSheet,
     Renderer: text::Renderer,
 {
     state: &'a State<T>,
@@ -43,7 +42,7 @@ pub struct ComboBox<
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_style: <Theme as menu::StyleSheet>::Style,
+    menu_style: menu::Style<Theme>,
     padding: Padding,
     size: Option<f32>,
 }
@@ -51,7 +50,6 @@ pub struct ComboBox<
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::StyleSheet + menu::StyleSheet,
     Renderer: text::Renderer,
 {
     /// Creates a new [`ComboBox`] with the given list of options, a placeholder,
@@ -62,9 +60,18 @@ where
         placeholder: &str,
         selection: Option<&T>,
         on_selected: impl Fn(T) -> Message + 'static,
-    ) -> Self {
-        let text_input = TextInput::new(placeholder, &state.value())
-            .on_input(TextInputEvent::TextChanged);
+    ) -> Self
+    where
+        Theme: DefaultStyle,
+    {
+        let style = Theme::default_style();
+
+        let text_input = TextInput::with_style(
+            placeholder,
+            &state.value(),
+            style.text_input,
+        )
+        .on_input(TextInputEvent::TextChanged);
 
         let selection = selection.map(T::to_string).unwrap_or_default();
 
@@ -77,7 +84,7 @@ where
             on_option_hovered: None,
             on_input: None,
             on_close: None,
-            menu_style: Default::default(),
+            menu_style: style.menu,
             padding: text_input::DEFAULT_PADDING,
             size: None,
         }
@@ -118,24 +125,11 @@ where
     }
 
     /// Sets the style of the [`ComboBox`].
-    // TODO: Define its own `StyleSheet` trait
-    pub fn style<S>(mut self, style: S) -> Self
-    where
-        S: Into<<Theme as text_input::StyleSheet>::Style>
-            + Into<<Theme as menu::StyleSheet>::Style>
-            + Clone,
-    {
-        self.menu_style = style.clone().into();
-        self.text_input = self.text_input.style(style);
-        self
-    }
+    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
+        let style = style.into();
 
-    /// Sets the style of the [`TextInput`] of the [`ComboBox`].
-    pub fn text_input_style<S>(mut self, style: S) -> Self
-    where
-        S: Into<<Theme as text_input::StyleSheet>::Style> + Clone,
-    {
-        self.text_input = self.text_input.style(style);
+        self.text_input = self.text_input.style(style.text_input);
+        self.menu_style = style.menu;
         self
     }
 
@@ -299,10 +293,6 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
-    Theme: container::StyleSheet
-        + text_input::StyleSheet
-        + scrollable::StyleSheet
-        + menu::StyleSheet,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -679,7 +669,7 @@ where
 
             self.state.sync_filtered_options(filtered_options);
 
-            let mut menu = menu::Menu::new(
+            let mut menu = menu::Menu::with_style(
                 menu,
                 &filtered_options.options,
                 hovered_option,
@@ -693,10 +683,10 @@ where
                     (self.on_selected)(x)
                 },
                 self.on_option_hovered.as_deref(),
+                self.menu_style,
             )
             .width(bounds.width)
-            .padding(self.padding)
-            .style(self.menu_style.clone());
+            .padding(self.padding);
 
             if let Some(font) = self.font {
                 menu = menu.font(font);
@@ -719,11 +709,7 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
-    Theme: container::StyleSheet
-        + text_input::StyleSheet
-        + scrollable::StyleSheet
-        + menu::StyleSheet
-        + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(combo_box: ComboBox<'a, T, Message, Theme, Renderer>) -> Self {
@@ -731,8 +717,7 @@ where
     }
 }
 
-/// Search list of options for a given query.
-pub fn search<'a, T, A>(
+fn search<'a, T, A>(
     options: impl IntoIterator<Item = T> + 'a,
     option_matchers: impl IntoIterator<Item = &'a A> + 'a,
     query: &'a str,
@@ -759,8 +744,7 @@ where
         })
 }
 
-/// Build matchers from given list of options.
-pub fn build_matchers<'a, T>(
+fn build_matchers<'a, T>(
     options: impl IntoIterator<Item = T> + 'a,
 ) -> Vec<String>
 where
@@ -774,4 +758,44 @@ where
             matcher.to_lowercase()
         })
         .collect()
+}
+
+/// The style of a [`ComboBox`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme> {
+    /// The style of the [`TextInput`] of the [`ComboBox`].
+    pub text_input: fn(&Theme, text_input::Status) -> text_input::Appearance,
+
+    /// The style of the [`Menu`] of the [`ComboBox`].
+    ///
+    /// [`Menu`]: menu::Menu
+    pub menu: menu::Style<Theme>,
+}
+
+impl Style<Theme> {
+    /// The default style of a [`ComboBox`].
+    pub const DEFAULT: Self = Self {
+        text_input: text_input::default,
+        menu: menu::Style::<Theme>::DEFAULT,
+    };
+}
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}
+
+/// The default style of a [`ComboBox`].
+pub trait DefaultStyle: Sized {
+    /// Returns the default style of a [`ComboBox`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        Style::<Self>::DEFAULT
+    }
 }

@@ -6,7 +6,6 @@ use grid::Grid;
 use preset::Preset;
 
 use iced::executor;
-use iced::theme::{self, Theme};
 use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
@@ -14,6 +13,7 @@ use iced::widget::{
 use iced::window;
 use iced::{
     Alignment, Application, Command, Element, Length, Settings, Subscription,
+    Theme,
 };
 use std::time::Duration;
 
@@ -171,7 +171,7 @@ fn view_controls<'a>(
             .on_press(Message::TogglePlayback),
         button("Next")
             .on_press(Message::Next)
-            .style(theme::Button::Secondary),
+            .style(button::secondary),
     ]
     .spacing(10);
 
@@ -185,17 +185,14 @@ fn view_controls<'a>(
     row![
         playback_controls,
         speed_controls,
-        checkbox("Grid", is_grid_enabled)
-            .on_toggle(Message::ToggleGrid)
-            .size(16)
-            .spacing(5)
-            .text_size(16),
-        pick_list(preset::ALL, Some(preset), Message::PresetPicked)
-            .padding(8)
-            .text_size(16),
-        button("Clear")
-            .on_press(Message::Clear)
-            .style(theme::Button::Destructive),
+        checkbox("Grid", is_grid_enabled).on_toggle(Message::ToggleGrid),
+        row![
+            pick_list(preset::ALL, Some(preset), Message::PresetPicked),
+            button("Clear")
+                .on_press(Message::Clear)
+                .style(button::danger)
+        ]
+        .spacing(10)
     ]
     .padding(10)
     .spacing(20)

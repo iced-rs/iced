@@ -162,7 +162,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 use iced_widget::graphics;
 use iced_widget::renderer;
-use iced_widget::style;
 use iced_winit as shell;
 use iced_winit::core;
 use iced_winit::runtime;
@@ -186,15 +185,14 @@ pub mod advanced;
 #[cfg(feature = "multi-window")]
 pub mod multi_window;
 
-pub use style::theme;
-
 pub use crate::core::alignment;
 pub use crate::core::border;
 pub use crate::core::color;
 pub use crate::core::gradient;
+pub use crate::core::theme;
 pub use crate::core::{
     Alignment, Background, Border, Color, ContentFit, Degrees, Gradient,
-    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size,
+    Length, Padding, Pixels, Point, Radians, Rectangle, Shadow, Size, Theme,
     Transformation, Vector,
 };
 
@@ -314,7 +312,6 @@ pub use renderer::Renderer;
 pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
-pub use theme::Theme;
 
 /// A generic widget.
 ///

@@ -5,22 +5,21 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Rectangle, Shell, Size, Widget,
+    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-
-pub use crate::style::checkbox::{Appearance, StyleSheet};
 
 /// A box that can be checked.
 ///
 /// # Example
 ///
 /// ```no_run
-/// # type Checkbox<'a, Message> =
-/// #     iced_widget::Checkbox<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Checkbox<'a, Message> = iced_widget::Checkbox<'a, Message>;
 /// #
 /// pub enum Message {
 ///     CheckboxToggled(bool),
@@ -39,7 +38,6 @@ pub struct Checkbox<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     is_checked: bool,
@@ -53,26 +51,28 @@ pub struct Checkbox<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
-    style: <Theme as StyleSheet>::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
-    Theme: StyleSheet + crate::text::StyleSheet,
 {
     /// The default size of a [`Checkbox`].
-    const DEFAULT_SIZE: f32 = 20.0;
+    const DEFAULT_SIZE: f32 = 16.0;
 
     /// The default spacing of a [`Checkbox`].
-    const DEFAULT_SPACING: f32 = 10.0;
+    const DEFAULT_SPACING: f32 = 8.0;
 
     /// Creates a new [`Checkbox`].
     ///
     /// It expects:
     ///   * the label of the [`Checkbox`]
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
-    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
+    pub fn new(label: impl Into<String>, is_checked: bool) -> Self
+    where
+        Theme: DefaultStyle,
+    {
         Checkbox {
             is_checked,
             on_toggle: None,
@@ -91,7 +91,7 @@ where
                 line_height: text::LineHeight::default(),
                 shaping: text::Shaping::Basic,
             },
-            style: Default::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -174,11 +174,8 @@ where
     }
 
     /// Sets the style of the [`Checkbox`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Theme as StyleSheet>::Style>,
-    ) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
+        self.style = style;
         self
     }
 }
@@ -186,7 +183,6 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Checkbox<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -293,16 +289,19 @@ where
     ) {
         let is_mouse_over = cursor.is_over(layout.bounds());
         let is_disabled = self.on_toggle.is_none();
+        let is_checked = self.is_checked;
 
         let mut children = layout.children();
 
-        let custom_style = if is_disabled {
-            theme.disabled(&self.style, self.is_checked)
+        let status = if is_disabled {
+            Status::Disabled { is_checked }
         } else if is_mouse_over {
-            theme.hovered(&self.style, self.is_checked)
+            Status::Hovered { is_checked }
         } else {
-            theme.active(&self.style, self.is_checked)
+            Status::Active { is_checked }
         };
+
+        let appearance = (self.style)(theme, status);
 
         {
             let layout = children.next().unwrap();
@@ -311,10 +310,10 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border: custom_style.border,
+                    border: appearance.border,
                     ..renderer::Quad::default()
                 },
-                custom_style.background,
+                appearance.background,
             );
 
             let Icon {
@@ -339,7 +338,7 @@ where
                         shaping: *shaping,
                     },
                     bounds.center(),
-                    custom_style.icon_color,
+                    appearance.icon_color,
                     *viewport,
                 );
             }
@@ -354,7 +353,7 @@ where
                 label_layout,
                 tree.state.downcast_ref(),
                 crate::text::Appearance {
-                    color: custom_style.text_color,
+                    color: appearance.text_color,
                 },
                 viewport,
             );
@@ -366,7 +365,7 @@ impl<'a, Message, Theme, Renderer> From<Checkbox<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a + StyleSheet + crate::text::StyleSheet,
+    Theme: 'a,
     Renderer: 'a + text::Renderer,
 {
     fn from(
@@ -389,4 +388,184 @@ pub struct Icon<Font> {
     pub line_height: text::LineHeight,
     /// The shaping strategy of the icon.
     pub shaping: text::Shaping,
+}
+
+/// The possible status of a [`Checkbox`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Checkbox`] can be interacted with.
+    Active {
+        /// Indicates if the [`Checkbox`] is currently checked.
+        is_checked: bool,
+    },
+    /// The [`Checkbox`] can be interacted with and it is being hovered.
+    Hovered {
+        /// Indicates if the [`Checkbox`] is currently checked.
+        is_checked: bool,
+    },
+    /// The [`Checkbox`] cannot be interacted with.
+    Disabled {
+        /// Indicates if the [`Checkbox`] is currently checked.
+        is_checked: bool,
+    },
+}
+
+/// The appearance of a checkbox.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The [`Background`] of the checkbox.
+    pub background: Background,
+    /// The icon [`Color`] of the checkbox.
+    pub icon_color: Color,
+    /// The [`Border`] of hte checkbox.
+    pub border: Border,
+    /// The text [`Color`] of the checkbox.
+    pub text_color: Option<Color>,
+}
+
+/// The style of a [`Checkbox`].
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+
+/// The default style of a [`Checkbox`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Checkbox`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        primary
+    }
+}
+
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
+    }
+}
+
+/// A primary checkbox; denoting a main toggle.
+pub fn primary(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    match status {
+        Status::Active { is_checked } => styled(
+            palette.primary.strong.text,
+            palette.background.base,
+            palette.primary.strong,
+            is_checked,
+        ),
+        Status::Hovered { is_checked } => styled(
+            palette.primary.strong.text,
+            palette.background.weak,
+            palette.primary.base,
+            is_checked,
+        ),
+        Status::Disabled { is_checked } => styled(
+            palette.primary.strong.text,
+            palette.background.weak,
+            palette.background.strong,
+            is_checked,
+        ),
+    }
+}
+
+/// A secondary checkbox; denoting a complementary toggle.
+pub fn secondary(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    match status {
+        Status::Active { is_checked } => styled(
+            palette.background.base.text,
+            palette.background.base,
+            palette.background.strong,
+            is_checked,
+        ),
+        Status::Hovered { is_checked } => styled(
+            palette.background.base.text,
+            palette.background.weak,
+            palette.background.strong,
+            is_checked,
+        ),
+        Status::Disabled { is_checked } => styled(
+            palette.background.strong.color,
+            palette.background.weak,
+            palette.background.weak,
+            is_checked,
+        ),
+    }
+}
+
+/// A success checkbox; denoting a positive toggle.
+pub fn success(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    match status {
+        Status::Active { is_checked } => styled(
+            palette.success.base.text,
+            palette.background.base,
+            palette.success.base,
+            is_checked,
+        ),
+        Status::Hovered { is_checked } => styled(
+            palette.success.base.text,
+            palette.background.weak,
+            palette.success.base,
+            is_checked,
+        ),
+        Status::Disabled { is_checked } => styled(
+            palette.success.base.text,
+            palette.background.weak,
+            palette.success.weak,
+            is_checked,
+        ),
+    }
+}
+
+/// A danger checkbox; denoting a negaive toggle.
+pub fn danger(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    match status {
+        Status::Active { is_checked } => styled(
+            palette.danger.base.text,
+            palette.background.base,
+            palette.danger.base,
+            is_checked,
+        ),
+        Status::Hovered { is_checked } => styled(
+            palette.danger.base.text,
+            palette.background.weak,
+            palette.danger.base,
+            is_checked,
+        ),
+        Status::Disabled { is_checked } => styled(
+            palette.danger.base.text,
+            palette.background.weak,
+            palette.danger.weak,
+            is_checked,
+        ),
+    }
+}
+
+fn styled(
+    icon_color: Color,
+    base: palette::Pair,
+    accent: palette::Pair,
+    is_checked: bool,
+) -> Appearance {
+    Appearance {
+        background: Background::Color(if is_checked {
+            accent.color
+        } else {
+            base.color
+        }),
+        icon_color,
+        border: Border {
+            radius: 2.0.into(),
+            width: 1.0,
+            color: accent.color,
+        },
+        text_color: None,
+    }
 }

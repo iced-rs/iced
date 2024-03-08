@@ -10,7 +10,7 @@ use crate::core::renderer;
 use crate::core::time::Instant;
 use crate::core::widget::operation;
 use crate::core::window;
-use crate::core::{Event, Point, Size};
+use crate::core::{Color, Event, Point, Size, Theme};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
 use crate::graphics::compositor::{self, Compositor};
@@ -18,7 +18,6 @@ use crate::runtime::clipboard;
 use crate::runtime::program::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Command, Debug};
-use crate::style::application::{Appearance, StyleSheet};
 use crate::{Clipboard, Error, Proxy, Settings};
 
 use futures::channel::mpsc;
@@ -39,7 +38,7 @@ use std::sync::Arc;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    Self::Theme: StyleSheet,
+    Self::Theme: DefaultStyle,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -64,8 +63,8 @@ where
     fn theme(&self) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        Default::default()
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        theme.default_style()
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -95,6 +94,38 @@ where
     }
 }
 
+/// The appearance of an application.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Appearance {
+    /// The background [`Color`] of the application.
+    pub background_color: Color,
+
+    /// The default text [`Color`] of the application.
+    pub text_color: Color,
+}
+
+/// The default style of an [`Application`].
+pub trait DefaultStyle {
+    /// Returns the default style of an [`Application`].
+    fn default_style(&self) -> Appearance;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style(&self) -> Appearance {
+        default(self)
+    }
+}
+
+/// The default [`Appearance`] of an [`Application`] with the built-in [`Theme`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background_color: palette.background.base.color,
+        text_color: palette.background.base.text,
+    }
+}
+
 /// Runs an [`Application`] with an executor, compositor, and the provided
 /// settings.
 pub async fn run<A, E, C>(
@@ -105,7 +136,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use futures::task;
     use futures::Future;
@@ -289,7 +320,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use futures::stream::StreamExt;
     use winit::event;
@@ -612,7 +643,7 @@ pub fn build_user_interface<'a, A: Application>(
     debug: &mut Debug,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     debug.view_started();
     let view = application.view();
@@ -643,7 +674,7 @@ pub fn update<A: Application, C, E: Executor>(
     window: &winit::window::Window,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -694,7 +725,7 @@ pub fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use crate::runtime::command;
     use crate::runtime::system;

@@ -11,7 +11,8 @@ use crate::core::text::highlighter::{self, Highlighter};
 use crate::core::text::{self, LineHeight};
 use crate::core::widget::{self, Widget};
 use crate::core::{
-    Element, Length, Padding, Pixels, Rectangle, Shell, Size, Vector,
+    Background, Border, Color, Element, Length, Padding, Pixels, Rectangle,
+    Shell, Size, Theme, Vector,
 };
 
 use std::cell::RefCell;
@@ -19,7 +20,6 @@ use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
-pub use crate::style::text_editor::{Appearance, StyleSheet};
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
@@ -32,7 +32,6 @@ pub struct TextEditor<
     Renderer = crate::Renderer,
 > where
     Highlighter: text::Highlighter,
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     content: &'a Content<Renderer>,
@@ -42,7 +41,7 @@ pub struct TextEditor<
     width: Length,
     height: Length,
     padding: Padding,
-    style: Theme::Style,
+    style: Style<Theme>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
@@ -54,11 +53,13 @@ pub struct TextEditor<
 impl<'a, Message, Theme, Renderer>
     TextEditor<'a, highlighter::PlainText, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     /// Creates new [`TextEditor`] with the given [`Content`].
-    pub fn new(content: &'a Content<Renderer>) -> Self {
+    pub fn new(content: &'a Content<Renderer>) -> Self
+    where
+        Theme: DefaultStyle,
+    {
         Self {
             content,
             font: None,
@@ -67,7 +68,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: Default::default(),
+            style: Theme::default_style(),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -81,7 +82,6 @@ impl<'a, Highlighter, Message, Theme, Renderer>
     TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     /// Sets the height of the [`TextEditor`].
@@ -142,7 +142,7 @@ where
     }
 
     /// Sets the style of the [`TextEditor`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
         self.style = style.into();
         self
     }
@@ -306,7 +306,6 @@ impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextEditor<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> widget::tree::Tag {
@@ -496,15 +495,17 @@ where
         let is_disabled = self.on_edit.is_none();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let appearance = if is_disabled {
-            theme.disabled(&self.style)
+        let status = if is_disabled {
+            Status::Disabled
         } else if state.is_focused {
-            theme.focused(&self.style)
+            Status::Focused
         } else if is_mouse_over {
-            theme.hovered(&self.style)
+            Status::Hovered
         } else {
-            theme.active(&self.style)
+            Status::Active
         };
+
+        let appearance = (self.style)(theme, status);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -551,7 +552,7 @@ where
                                 },
                                 ..renderer::Quad::default()
                             },
-                            theme.value_color(&self.style),
+                            appearance.value,
                         );
                     }
                 }
@@ -564,7 +565,7 @@ where
                                 bounds: range,
                                 ..renderer::Quad::default()
                             },
-                            theme.selection_color(&self.style),
+                            appearance.selection,
                         );
                     }
                 }
@@ -600,7 +601,7 @@ impl<'a, Highlighter, Message, Theme, Renderer>
 where
     Highlighter: text::Highlighter,
     Message: 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer,
 {
     fn from(
@@ -774,5 +775,97 @@ mod platform {
         } else {
             modifiers.control()
         }
+    }
+}
+
+/// The possible status of a [`TextEditor`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`TextEditor`] can be interacted with.
+    Active,
+    /// The [`TextEditor`] is being hovered.
+    Hovered,
+    /// The [`TextEditor`] is focused.
+    Focused,
+    /// The [`TextEditor`] cannot be interacted with.
+    Disabled,
+}
+
+/// The appearance of a text input.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The [`Background`] of the text input.
+    pub background: Background,
+    /// The [`Border`] of the text input.
+    pub border: Border,
+    /// The [`Color`] of the icon of the text input.
+    pub icon: Color,
+    /// The [`Color`] of the placeholder of the text input.
+    pub placeholder: Color,
+    /// The [`Color`] of the value of the text input.
+    pub value: Color,
+    /// The [`Color`] of the selection of the text input.
+    pub selection: Color,
+}
+
+/// The style of a [`TextEditor`].
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+
+/// The default style of a [`TextEditor`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`TextEditor`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
+    }
+}
+
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
+    }
+}
+
+/// The default style of a [`TextEditor`].
+pub fn default(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let active = Appearance {
+        background: Background::Color(palette.background.base.color),
+        border: Border {
+            radius: 2.0.into(),
+            width: 1.0,
+            color: palette.background.strong.color,
+        },
+        icon: palette.background.weak.text,
+        placeholder: palette.background.strong.color,
+        value: palette.background.base.text,
+        selection: palette.primary.weak.color,
+    };
+
+    match status {
+        Status::Active => active,
+        Status::Hovered => Appearance {
+            border: Border {
+                color: palette.background.base.text,
+                ..active.border
+            },
+            ..active
+        },
+        Status::Focused => Appearance {
+            border: Border {
+                color: palette.primary.strong.color,
+                ..active.border
+            },
+            ..active
+        },
+        Status::Disabled => Appearance {
+            background: Background::Color(palette.background.weak.color),
+            value: active.placeholder,
+            ..active
+        },
     }
 }

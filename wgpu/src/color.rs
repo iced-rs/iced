@@ -158,10 +158,3 @@ pub fn convert(
 
     texture
 }
-
-#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C)]
-struct Vertex {
-    ndc: [f32; 2],
-    uv: [f32; 2],
-}

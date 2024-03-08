@@ -3,7 +3,7 @@ use iced::mouse;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
+    Application, Command, Element, Length, Point, Rectangle, Renderer,
     Settings, Subscription, Theme, Vector,
 };
 
@@ -80,6 +80,10 @@ impl Application for Clock {
             )
         })
     }
+
+    fn theme(&self) -> Theme {
+        Theme::TokyoNight
+    }
 }
 
 impl<Message> canvas::Program<Message> for Clock {
@@ -89,16 +93,18 @@ impl<Message> canvas::Program<Message> for Clock {
         &self,
         _state: &Self::State,
         renderer: &Renderer,
-        _theme: &Theme,
+        theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
+            let palette = theme.extended_palette();
+
             let center = frame.center();
             let radius = frame.width().min(frame.height()) / 2.0;
 
             let background = Path::circle(center, radius);
-            frame.fill(&background, Color::from_rgb8(0x12, 0x93, 0xD8));
+            frame.fill(&background, palette.primary.weak.color);
 
             let short_hand =
                 Path::line(Point::ORIGIN, Point::new(0.0, -0.5 * radius));
@@ -111,7 +117,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let thin_stroke = || -> Stroke {
                 Stroke {
                     width,
-                    style: stroke::Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(palette.primary.weak.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -120,7 +126,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let wide_stroke = || -> Stroke {
                 Stroke {
                     width: width * 3.0,
-                    style: stroke::Style::Solid(Color::WHITE),
+                    style: stroke::Style::Solid(palette.primary.weak.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }

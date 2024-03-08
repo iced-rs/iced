@@ -14,11 +14,11 @@ pub use iced_renderer as renderer;
 pub use iced_renderer::graphics;
 pub use iced_runtime as runtime;
 pub use iced_runtime::core;
-pub use iced_style as style;
 
 mod column;
 mod mouse_area;
 mod row;
+mod space;
 mod themer;
 
 pub mod button;
@@ -34,7 +34,6 @@ pub mod radio;
 pub mod rule;
 pub mod scrollable;
 pub mod slider;
-pub mod space;
 pub mod text;
 pub mod text_editor;
 pub mod text_input;
@@ -135,5 +134,5 @@ pub mod qr_code;
 #[doc(no_inline)]
 pub use qr_code::QRCode;
 
+pub use crate::core::theme::{self, Theme};
 pub use renderer::Renderer;
-pub use style::theme::{self, Theme};

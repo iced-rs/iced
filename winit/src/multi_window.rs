@@ -22,8 +22,9 @@ use crate::runtime::command::{self, Command};
 use crate::runtime::multi_window::Program;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::Debug;
-use crate::style::application::StyleSheet;
 use crate::{Clipboard, Error, Proxy, Settings};
+
+pub use crate::application::{default, Appearance, DefaultStyle};
 
 use std::collections::HashMap;
 use std::mem::ManuallyDrop;
@@ -43,7 +44,7 @@ use std::time::Instant;
 /// can be toggled by pressing `F12`.
 pub trait Application: Program
 where
-    Self::Theme: StyleSheet,
+    Self::Theme: DefaultStyle,
 {
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -68,8 +69,8 @@ where
     fn theme(&self, window: window::Id) -> Self::Theme;
 
     /// Returns the `Style` variation of the `Theme`.
-    fn style(&self) -> <Self::Theme as StyleSheet>::Style {
-        Default::default()
+    fn style(&self, theme: &Self::Theme) -> Appearance {
+        theme.default_style()
     }
 
     /// Returns the event `Subscription` for the current state of the
@@ -110,7 +111,7 @@ where
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use winit::event_loop::EventLoopBuilder;
 
@@ -352,7 +353,7 @@ async fn run_instance<A, E, C>(
     A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
@@ -822,7 +823,7 @@ fn build_user_interface<'a, A: Application>(
     id: window::Id,
 ) -> UserInterface<'a, A::Message, A::Theme, A::Renderer>
 where
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     debug.view_started();
     let view = application.view(id);
@@ -850,7 +851,7 @@ fn update<A: Application, C, E: Executor>(
     ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     for message in messages.drain(..) {
         debug.log_message(&message);
@@ -893,7 +894,7 @@ fn run_command<A, C, E>(
     A: Application,
     E: Executor,
     C: Compositor<Renderer = A::Renderer> + 'static,
-    A::Theme: StyleSheet,
+    A::Theme: DefaultStyle,
 {
     use crate::runtime::clipboard;
     use crate::runtime::system;
@@ -1219,8 +1220,8 @@ pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
     mut cached_user_interfaces: HashMap<window::Id, user_interface::Cache>,
 ) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
 where
-    A::Theme: StyleSheet,
     C: Compositor<Renderer = A::Renderer>,
+    A::Theme: DefaultStyle,
 {
     cached_user_interfaces
         .drain()

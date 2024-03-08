@@ -5,7 +5,8 @@ use iced::widget::{
     scrollable, slider, text, vertical_space, Scrollable,
 };
 use iced::{
-    Alignment, Application, Color, Command, Element, Length, Settings, Theme,
+    Alignment, Application, Border, Color, Command, Element, Length, Settings,
+    Theme,
 };
 
 use once_cell::sync::Lazy;
@@ -348,6 +349,6 @@ fn progress_bar_custom_style(theme: &Theme) -> progress_bar::Appearance {
     progress_bar::Appearance {
         background: theme.extended_palette().background.strong.color.into(),
         bar: Color::from_rgb8(250, 85, 134).into(),
-        border_radius: 0.0.into(),
+        border: Border::default(),
     }
 }

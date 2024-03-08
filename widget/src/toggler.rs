@@ -9,19 +9,16 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Border, Clipboard, Element, Event, Layout, Length, Pixels, Rectangle,
-    Shell, Size, Widget,
+    Border, Clipboard, Color, Element, Event, Layout, Length, Pixels,
+    Rectangle, Shell, Size, Theme, Widget,
 };
-
-pub use crate::style::toggler::{Appearance, StyleSheet};
 
 /// A toggler widget.
 ///
 /// # Example
 ///
 /// ```no_run
-/// # type Toggler<'a, Message> =
-/// #     iced_widget::Toggler<'a, Message, iced_widget::style::Theme, iced_widget::renderer::Renderer>;
+/// # type Toggler<'a, Message> = iced_widget::Toggler<'a, Message>;
 /// #
 /// pub enum Message {
 ///     TogglerToggled(bool),
@@ -38,7 +35,6 @@ pub struct Toggler<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     is_toggled: bool,
@@ -52,16 +48,15 @@ pub struct Toggler<
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     /// The default size of a [`Toggler`].
-    pub const DEFAULT_SIZE: f32 = 20.0;
+    pub const DEFAULT_SIZE: f32 = 16.0;
 
     /// Creates a new [`Toggler`].
     ///
@@ -77,6 +72,7 @@ where
         f: F,
     ) -> Self
     where
+        Theme: DefaultStyle,
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
@@ -91,7 +87,7 @@ where
             text_shaping: text::Shaping::Basic,
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
-            style: Default::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -149,7 +145,7 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
         self.style = style.into();
         self
     }
@@ -158,7 +154,6 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -294,11 +289,17 @@ where
         let bounds = toggler_layout.bounds();
         let is_mouse_over = cursor.is_over(layout.bounds());
 
-        let style = if is_mouse_over {
-            theme.hovered(&self.style, self.is_toggled)
+        let status = if is_mouse_over {
+            Status::Hovered {
+                is_toggled: self.is_toggled,
+            }
         } else {
-            theme.active(&self.style, self.is_toggled)
+            Status::Active {
+                is_toggled: self.is_toggled,
+            }
         };
+
+        let appearance = (self.style)(theme, status);
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
@@ -315,12 +316,12 @@ where
                 bounds: toggler_background_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: style.background_border_width,
-                    color: style.background_border_color,
+                    width: appearance.background_border_width,
+                    color: appearance.background_border_color,
                 },
                 ..renderer::Quad::default()
             },
-            style.background,
+            appearance.background,
         );
 
         let toggler_foreground_bounds = Rectangle {
@@ -340,12 +341,12 @@ where
                 bounds: toggler_foreground_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: style.foreground_border_width,
-                    color: style.foreground_border_color,
+                    width: appearance.foreground_border_width,
+                    color: appearance.foreground_border_color,
                 },
                 ..renderer::Quad::default()
             },
-            style.foreground,
+            appearance.foreground,
         );
     }
 }
@@ -354,12 +355,109 @@ impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + crate::text::StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
         toggler: Toggler<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(toggler)
+    }
+}
+
+/// The possible status of a [`Toggler`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Toggler`] can be interacted with.
+    Active {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
+    /// The [`Toggler`] is being hovered.
+    Hovered {
+        /// Indicates whether the [`Toggler`] is toggled.
+        is_toggled: bool,
+    },
+}
+
+/// The appearance of a toggler.
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The background [`Color`] of the toggler.
+    pub background: Color,
+    /// The width of the background border of the toggler.
+    pub background_border_width: f32,
+    /// The [`Color`] of the background border of the toggler.
+    pub background_border_color: Color,
+    /// The foreground [`Color`] of the toggler.
+    pub foreground: Color,
+    /// The width of the foreground border of the toggler.
+    pub foreground_border_width: f32,
+    /// The [`Color`] of the foreground border of the toggler.
+    pub foreground_border_color: Color,
+}
+
+/// The style of a [`Toggler`].
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+
+/// The default style of a [`Toggler`].
+pub trait DefaultStyle {
+    /// Returns the default style of a [`Toggler`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        default
+    }
+}
+
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
+    }
+}
+
+/// The default style of a [`Toggler`].
+pub fn default(theme: &Theme, status: Status) -> Appearance {
+    let palette = theme.extended_palette();
+
+    let background = match status {
+        Status::Active { is_toggled } | Status::Hovered { is_toggled } => {
+            if is_toggled {
+                palette.primary.strong.color
+            } else {
+                palette.background.strong.color
+            }
+        }
+    };
+
+    let foreground = match status {
+        Status::Active { is_toggled } => {
+            if is_toggled {
+                palette.primary.strong.text
+            } else {
+                palette.background.base.color
+            }
+        }
+        Status::Hovered { is_toggled } => {
+            if is_toggled {
+                Color {
+                    a: 0.5,
+                    ..palette.primary.strong.text
+                }
+            } else {
+                palette.background.weak.color
+            }
+        }
+    };
+
+    Appearance {
+        background,
+        foreground,
+        foreground_border_width: 0.0,
+        foreground_border_color: Color::TRANSPARENT,
+        background_border_width: 0.0,
+        background_border_color: Color::TRANSPARENT,
     }
 }

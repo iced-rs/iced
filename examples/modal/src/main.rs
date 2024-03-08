@@ -2,7 +2,6 @@ use iced::event::{self, Event};
 use iced::executor;
 use iced::keyboard;
 use iced::keyboard::key;
-use iced::theme;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
     text_input,
@@ -175,7 +174,7 @@ impl Application for App {
             )
             .width(300)
             .padding(10)
-            .style(theme::Container::Box);
+            .style(container::box_);
 
             Modal::new(content, modal)
                 .on_blur(Message::HideModal)

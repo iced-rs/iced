@@ -1,4 +1,4 @@
-use crate::application::{self, StyleSheet as _};
+use crate::application;
 use crate::conversion;
 use crate::core::mouse;
 use crate::core::{Color, Size};
@@ -14,7 +14,7 @@ use winit::window::Window;
 #[allow(missing_debug_implementations)]
 pub struct State<A: Application>
 where
-    A::Theme: application::StyleSheet,
+    A::Theme: application::DefaultStyle,
 {
     title: String,
     scale_factor: f64,
@@ -29,14 +29,14 @@ where
 
 impl<A: Application> State<A>
 where
-    A::Theme: application::StyleSheet,
+    A::Theme: application::DefaultStyle,
 {
     /// Creates a new [`State`] for the provided [`Application`] and window.
     pub fn new(application: &A, window: &Window) -> Self {
         let title = application.title();
         let scale_factor = application.scale_factor();
         let theme = application.theme();
-        let appearance = theme.appearance(&application.style());
+        let appearance = application.style(&theme);
 
         let viewport = {
             let physical_size = window.inner_size();
@@ -216,6 +216,6 @@ where
 
         // Update theme and appearance
         self.theme = application.theme();
-        self.appearance = self.theme.appearance(&application.style());
+        self.appearance = application.style(&self.theme);
     }
 }

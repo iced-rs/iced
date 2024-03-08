@@ -5,13 +5,13 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
+    Color, ContentFit, Element, Layout, Length, Rectangle, Size, Theme, Vector,
+    Widget,
 };
 
 use std::path::PathBuf;
 
-pub use crate::style::svg::{Appearance, StyleSheet};
-pub use svg::Handle;
+pub use crate::core::svg::Handle;
 
 /// A vector graphics image.
 ///
@@ -20,36 +20,36 @@ pub use svg::Handle;
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
 #[allow(missing_debug_implementations)]
-pub struct Svg<Theme = crate::Theme>
-where
-    Theme: StyleSheet,
-{
+pub struct Svg<Theme = crate::Theme> {
     handle: Handle,
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: <Theme as StyleSheet>::Style,
+    style: Style<Theme>,
 }
 
-impl<Theme> Svg<Theme>
-where
-    Theme: StyleSheet,
-{
+impl<Theme> Svg<Theme> {
     /// Creates a new [`Svg`] from the given [`Handle`].
-    pub fn new(handle: impl Into<Handle>) -> Self {
+    pub fn new(handle: impl Into<Handle>) -> Self
+    where
+        Theme: DefaultStyle,
+    {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Default::default(),
+            style: Theme::default_style(),
         }
     }
 
     /// Creates a new [`Svg`] that will display the contents of the file at the
     /// provided path.
     #[must_use]
-    pub fn from_path(path: impl Into<PathBuf>) -> Self {
+    pub fn from_path(path: impl Into<PathBuf>) -> Self
+    where
+        Theme: DefaultStyle,
+    {
         Self::new(Handle::from_path(path))
     }
 
@@ -80,15 +80,14 @@ where
 
     /// Sets the style variant of this [`Svg`].
     #[must_use]
-    pub fn style(mut self, style: impl Into<Theme::Style>) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
+        self.style = style;
         self
     }
 }
 
 impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<Theme>
 where
-    Theme: iced_style::svg::StyleSheet,
     Renderer: svg::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -158,11 +157,13 @@ where
                 ..bounds
             };
 
-            let appearance = if is_mouse_over {
-                theme.hovered(&self.style)
+            let status = if is_mouse_over {
+                Status::Hovered
             } else {
-                theme.appearance(&self.style)
+                Status::Idle
             };
+
+            let appearance = (self.style)(theme, status);
 
             renderer.draw(
                 self.handle.clone(),
@@ -184,10 +185,51 @@ where
 impl<'a, Message, Theme, Renderer> From<Svg<Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: iced_style::svg::StyleSheet + 'a,
+    Theme: 'a,
     Renderer: svg::Renderer + 'a,
 {
     fn from(icon: Svg<Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(icon)
+    }
+}
+
+/// The possible status of an [`Svg`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Status {
+    /// The [`Svg`] is idle.
+    Idle,
+    /// The [`Svg`] is being hovered.
+    Hovered,
+}
+
+/// The appearance of an [`Svg`].
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
+pub struct Appearance {
+    /// The [`Color`] filter of an [`Svg`].
+    ///
+    /// Useful for coloring a symbolic icon.
+    ///
+    /// `None` keeps the original color.
+    pub color: Option<Color>,
+}
+
+/// The style of an [`Svg`].
+pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+
+/// The default style of an [`Svg`].
+pub trait DefaultStyle {
+    /// Returns the default style of an [`Svg`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        |_theme, _status| Appearance::default()
+    }
+}
+
+impl DefaultStyle for Appearance {
+    fn default_style() -> Style<Self> {
+        |appearance, _status| *appearance
     }
 }

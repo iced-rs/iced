@@ -1,4 +1,3 @@
-use iced::theme;
 use iced::widget::tooltip::Position;
 use iced::widget::{button, container, tooltip};
 use iced::{Element, Length, Sandbox, Settings};
@@ -53,7 +52,7 @@ impl Sandbox for Example {
             self.position,
         )
         .gap(10)
-        .style(theme::Container::Box);
+        .style(container::box_);
 
         container(tooltip)
             .width(Length::Fill)

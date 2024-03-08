@@ -10,12 +10,11 @@ use crate::core::text::{self, Text};
 use crate::core::touch;
 use crate::core::widget::Tree;
 use crate::core::{
-    Border, Clipboard, Length, Padding, Pixels, Point, Rectangle, Size, Vector,
+    Background, Border, Clipboard, Color, Length, Padding, Pixels, Point,
+    Rectangle, Size, Theme, Vector,
 };
 use crate::core::{Element, Shell, Widget};
 use crate::scrollable::{self, Scrollable};
-
-pub use iced_style::menu::{Appearance, StyleSheet};
 
 /// A list of selectable options.
 #[allow(missing_debug_implementations)]
@@ -26,7 +25,6 @@ pub struct Menu<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     state: &'a mut State,
@@ -40,14 +38,14 @@ pub struct Menu<
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options, and
@@ -58,6 +56,29 @@ where
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
         on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
+    ) -> Self
+    where
+        Theme: DefaultStyle,
+    {
+        Self::with_style(
+            state,
+            options,
+            hovered_option,
+            on_selected,
+            on_option_hovered,
+            Theme::default_style(),
+        )
+    }
+
+    /// Creates a new [`Menu`] with the given [`State`], a list of options,
+    /// the message to produced when an option is selected, and its [`Style`].
+    pub fn with_style(
+        state: &'a mut State,
+        options: &'a [T],
+        hovered_option: &'a mut Option<usize>,
+        on_selected: impl FnMut(T) -> Message + 'a,
+        on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
+        style: Style<Theme>,
     ) -> Self {
         Menu {
             state,
@@ -71,7 +92,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Default::default(),
+            style,
         }
     }
 
@@ -115,10 +136,7 @@ where
     }
 
     /// Sets the style of the [`Menu`].
-    pub fn style(
-        mut self,
-        style: impl Into<<Theme as StyleSheet>::Style>,
-    ) -> Self {
+    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
         self.style = style.into();
         self
     }
@@ -165,7 +183,6 @@ impl Default for State {
 
 struct Overlay<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
     Renderer: crate::core::Renderer,
 {
     position: Point,
@@ -173,13 +190,13 @@ where
     container: Container<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
-    style: <Theme as StyleSheet>::Style,
+    style: Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: StyleSheet + container::StyleSheet + scrollable::StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     pub fn new<T>(
@@ -205,18 +222,25 @@ where
             style,
         } = menu;
 
-        let container = Container::new(Scrollable::new(List {
-            options,
-            hovered_option,
-            on_selected,
-            on_option_hovered,
-            font,
-            text_size,
-            text_line_height,
-            text_shaping,
-            padding,
-            style: style.clone(),
-        }));
+        let container = Container::with_style(
+            Scrollable::with_direction_and_style(
+                List {
+                    options,
+                    hovered_option,
+                    on_selected,
+                    on_option_hovered,
+                    font,
+                    text_size,
+                    text_line_height,
+                    text_shaping,
+                    padding,
+                    style: style.list,
+                },
+                scrollable::Direction::default(),
+                style.scrollable,
+            ),
+            container::transparent,
+        );
 
         state.tree.diff(&container as &dyn Widget<_, _, _>);
 
@@ -235,7 +259,6 @@ impl<'a, Message, Theme, Renderer>
     crate::core::Overlay<Message, Theme, Renderer>
     for Overlay<'a, Message, Theme, Renderer>
 where
-    Theme: StyleSheet + container::StyleSheet,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -302,8 +325,9 @@ where
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
-        let appearance = StyleSheet::appearance(theme, &self.style);
         let bounds = layout.bounds();
+
+        let appearance = (self.style.list)(theme);
 
         renderer.fill_quad(
             renderer::Quad {
@@ -321,7 +345,6 @@ where
 
 struct List<'a, T, Message, Theme, Renderer>
 where
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     options: &'a [T],
@@ -333,14 +356,13 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Theme::Style,
+    style: fn(&Theme) -> Appearance,
 }
 
 impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for List<'a, T, Message, Theme, Renderer>
 where
     T: Clone + ToString,
-    Theme: StyleSheet,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -483,7 +505,7 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let appearance = theme.appearance(&self.style);
+        let appearance = (self.style)(theme);
         let bounds = layout.bounds();
 
         let text_size =
@@ -517,7 +539,7 @@ where
                             width: bounds.width - appearance.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::with_radius(appearance.border.radius),
+                        border: Border::rounded(appearance.border.radius),
                         ..renderer::Quad::default()
                     },
                     appearance.selected_background,
@@ -553,10 +575,79 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: StyleSheet + 'a,
+    Theme: 'a,
     Renderer: 'a + text::Renderer,
 {
     fn from(list: List<'a, T, Message, Theme, Renderer>) -> Self {
         Element::new(list)
+    }
+}
+
+/// The appearance of a [`Menu`].
+#[derive(Debug, Clone, Copy)]
+pub struct Appearance {
+    /// The [`Background`] of the menu.
+    pub background: Background,
+    /// The [`Border`] of the menu.
+    pub border: Border,
+    /// The text [`Color`] of the menu.
+    pub text_color: Color,
+    /// The text [`Color`] of a selected option in the menu.
+    pub selected_text_color: Color,
+    /// The background [`Color`] of a selected option in the menu.
+    pub selected_background: Background,
+}
+
+/// The style of the different parts of a [`Menu`].
+#[derive(Debug, PartialEq, Eq)]
+pub struct Style<Theme> {
+    /// The style of the list of the [`Menu`].
+    pub list: fn(&Theme) -> Appearance,
+    /// The style of the [`Scrollable`] of the [`Menu`].
+    pub scrollable: fn(&Theme, scrollable::Status) -> scrollable::Appearance,
+}
+
+impl Style<Theme> {
+    /// The default style of a [`Menu`] with the built-in [`Theme`].
+    pub const DEFAULT: Self = Self {
+        list: default,
+        scrollable: scrollable::default,
+    };
+}
+
+impl<Theme> Clone for Style<Theme> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<Theme> Copy for Style<Theme> {}
+
+/// The default style of a [`Menu`].
+pub trait DefaultStyle: Sized {
+    /// Returns the default style of a [`Menu`].
+    fn default_style() -> Style<Self>;
+}
+
+impl DefaultStyle for Theme {
+    fn default_style() -> Style<Self> {
+        Style::<Theme>::DEFAULT
+    }
+}
+
+/// The default style of the list of a [`Menu`].
+pub fn default(theme: &Theme) -> Appearance {
+    let palette = theme.extended_palette();
+
+    Appearance {
+        background: palette.background.weak.color.into(),
+        border: Border {
+            width: 1.0,
+            radius: 0.0.into(),
+            color: palette.background.strong.color,
+        },
+        text_color: palette.background.weak.text,
+        selected_text_color: palette.primary.strong.text,
+        selected_background: palette.primary.strong.color.into(),
     }
 }

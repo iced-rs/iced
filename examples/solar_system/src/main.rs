@@ -9,7 +9,6 @@
 use iced::application;
 use iced::executor;
 use iced::mouse;
-use iced::theme::{self, Theme};
 use iced::widget::canvas;
 use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
@@ -17,7 +16,7 @@ use iced::widget::canvas::Path;
 use iced::window;
 use iced::{
     Application, Color, Command, Element, Length, Point, Rectangle, Renderer,
-    Settings, Size, Subscription, Vector,
+    Settings, Size, Subscription, Theme, Vector,
 };
 
 use std::time::Instant;
@@ -80,15 +79,11 @@ impl Application for SolarSystem {
         Theme::Dark
     }
 
-    fn style(&self) -> theme::Application {
-        fn dark_background(_theme: &Theme) -> application::Appearance {
-            application::Appearance {
-                background_color: Color::BLACK,
-                text_color: Color::WHITE,
-            }
+    fn style(&self, _theme: &Theme) -> application::Appearance {
+        application::Appearance {
+            background_color: Color::BLACK,
+            text_color: Color::WHITE,
         }
-
-        theme::Application::custom(dark_background)
     }
 
     fn subscription(&self) -> Subscription<Message> {

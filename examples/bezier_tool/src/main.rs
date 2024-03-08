@@ -49,7 +49,9 @@ impl Sandbox for Example {
         column![
             text("Bezier tool example").width(Length::Shrink).size(50),
             self.bezier.view(&self.curves).map(Message::AddCurve),
-            button("Clear").padding(8).on_press(Message::Clear),
+            button("Clear")
+                .style(button::danger)
+                .on_press(Message::Clear),
         ]
         .padding(20)
         .spacing(20)

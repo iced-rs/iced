@@ -1,5 +1,5 @@
-use crate::theme::{self, Theme};
-use crate::{Application, Command, Element, Error, Settings, Subscription};
+use crate::application::{self, Application};
+use crate::{Command, Element, Error, Settings, Subscription, Theme};
 
 /// A sandboxed [`Application`].
 ///
@@ -120,11 +120,11 @@ pub trait Sandbox {
         Theme::default()
     }
 
-    /// Returns the current style variant of [`theme::Application`].
-    ///
-    /// By default, it returns [`theme::Application::default`].
-    fn style(&self) -> theme::Application {
-        theme::Application::default()
+    /// Returns the current [`application::Appearance`].
+    fn style(&self, theme: &Theme) -> application::Appearance {
+        use application::DefaultStyle;
+
+        theme.default_style()
     }
 
     /// Returns the scale factor of the [`Sandbox`].
@@ -185,8 +185,8 @@ where
         T::theme(self)
     }
 
-    fn style(&self) -> theme::Application {
-        T::style(self)
+    fn style(&self, theme: &Theme) -> application::Appearance {
+        T::style(self, theme)
     }
 
     fn subscription(&self) -> Subscription<T::Message> {

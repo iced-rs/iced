@@ -20,7 +20,6 @@ pub struct Tooltip<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
@@ -29,12 +28,11 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
-    style: <Theme as container::StyleSheet>::Style,
+    style: container::Style<Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     /// The default padding of a [`Tooltip`] drawn by this renderer.
@@ -47,7 +45,10 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         tooltip: impl Into<Element<'a, Message, Theme, Renderer>>,
         position: Position,
-    ) -> Self {
+    ) -> Self
+    where
+        Theme: container::DefaultStyle,
+    {
         Tooltip {
             content: content.into(),
             tooltip: tooltip.into(),
@@ -55,7 +56,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: Default::default(),
+            style: Theme::default_style(),
         }
     }
 
@@ -80,7 +81,7 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style: impl Into<<Theme as container::StyleSheet>::Style>,
+        style: fn(&Theme, container::Status) -> container::Appearance,
     ) -> Self {
         self.style = style.into();
         self
@@ -90,7 +91,6 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + crate::text::StyleSheet,
     Renderer: text::Renderer,
 {
     fn children(&self) -> Vec<widget::Tree> {
@@ -239,7 +239,7 @@ where
                 positioning: self.position,
                 gap: self.gap,
                 padding: self.padding,
-                style: &self.style,
+                style: self.style,
             })))
         } else {
             None
@@ -262,7 +262,7 @@ impl<'a, Message, Theme, Renderer> From<Tooltip<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: container::StyleSheet + crate::text::StyleSheet + 'a,
+    Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -298,7 +298,6 @@ enum State {
 
 struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
 {
     position: Point,
@@ -310,14 +309,13 @@ where
     positioning: Position,
     gap: f32,
     padding: f32,
-    style: &'b <Theme as container::StyleSheet>::Style,
+    style: container::Style<Theme>,
 }
 
 impl<'a, 'b, Message, Theme, Renderer>
     overlay::Overlay<Message, Theme, Renderer>
     for Overlay<'a, 'b, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + widget::text::StyleSheet,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -426,7 +424,7 @@ where
         layout: Layout<'_>,
         cursor_position: mouse::Cursor,
     ) {
-        let style = container::StyleSheet::appearance(theme, self.style);
+        let style = (self.style)(theme, container::Status::Idle);
 
         container::draw_background(renderer, &style, layout.bounds());
 

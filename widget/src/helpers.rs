@@ -7,7 +7,6 @@ use crate::core;
 use crate::core::widget::operation;
 use crate::core::{Element, Length, Pixels};
 use crate::keyed;
-use crate::overlay;
 use crate::pick_list::{self, PickList};
 use crate::progress_bar::{self, ProgressBar};
 use crate::radio::{self, Radio};
@@ -15,13 +14,13 @@ use crate::rule::{self, Rule};
 use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
-use crate::style::application;
-use crate::text::{self, Text};
+use crate::text::Text;
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
-use crate::{Column, MouseArea, Row, Space, Themer, VerticalSlider};
+use crate::vertical_slider::{self, VerticalSlider};
+use crate::{Column, MouseArea, Row, Space, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -59,7 +58,7 @@ pub fn container<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Container<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet,
+    Theme: container::DefaultStyle,
     Renderer: core::Renderer,
 {
     Container::new(content)
@@ -105,7 +104,7 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: scrollable::StyleSheet,
+    Theme: scrollable::DefaultStyle,
     Renderer: core::Renderer,
 {
     Scrollable::new(content)
@@ -118,8 +117,8 @@ pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>
 where
+    Theme: button::DefaultStyle,
     Renderer: core::Renderer,
-    Theme: button::StyleSheet,
 {
     Button::new(content)
 }
@@ -135,7 +134,7 @@ pub fn tooltip<'a, Message, Theme, Renderer>(
     position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::StyleSheet + text::StyleSheet,
+    Theme: container::DefaultStyle,
     Renderer: core::text::Renderer,
 {
     Tooltip::new(content, tooltip, position)
@@ -148,7 +147,6 @@ pub fn text<'a, Theme, Renderer>(
     text: impl ToString,
 ) -> Text<'a, Theme, Renderer>
 where
-    Theme: text::StyleSheet,
     Renderer: core::text::Renderer,
 {
     Text::new(text.to_string())
@@ -162,7 +160,7 @@ pub fn checkbox<'a, Message, Theme, Renderer>(
     is_checked: bool,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
-    Theme: checkbox::StyleSheet + text::StyleSheet,
+    Theme: checkbox::DefaultStyle,
     Renderer: core::text::Renderer,
 {
     Checkbox::new(label, is_checked)
@@ -179,7 +177,7 @@ pub fn radio<Message, Theme, Renderer, V>(
 ) -> Radio<Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: radio::StyleSheet,
+    Theme: radio::DefaultStyle,
     Renderer: core::text::Renderer,
     V: Copy + Eq,
 {
@@ -195,8 +193,8 @@ pub fn toggler<'a, Message, Theme, Renderer>(
     f: impl Fn(bool) -> Message + 'a,
 ) -> Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: toggler::DefaultStyle,
     Renderer: core::text::Renderer,
-    Theme: toggler::StyleSheet,
 {
     Toggler::new(label, is_checked, f)
 }
@@ -210,7 +208,7 @@ pub fn text_input<'a, Message, Theme, Renderer>(
 ) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_input::StyleSheet,
+    Theme: text_input::DefaultStyle,
     Renderer: core::text::Renderer,
 {
     TextInput::new(placeholder, value)
@@ -224,7 +222,7 @@ pub fn text_editor<Message, Theme, Renderer>(
 ) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_editor::StyleSheet,
+    Theme: text_editor::DefaultStyle,
     Renderer: core::text::Renderer,
 {
     TextEditor::new(content)
@@ -241,7 +239,7 @@ pub fn slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: slider::StyleSheet,
+    Theme: slider::DefaultStyle,
 {
     Slider::new(range, value, on_change)
 }
@@ -257,7 +255,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: slider::StyleSheet,
+    Theme: vertical_slider::DefaultStyle,
 {
     VerticalSlider::new(range, value, on_change)
 }
@@ -275,13 +273,8 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
+    Theme: pick_list::DefaultStyle,
     Renderer: core::text::Renderer,
-    Theme: pick_list::StyleSheet
-        + scrollable::StyleSheet
-        + overlay::menu::StyleSheet
-        + container::StyleSheet,
-    <Theme as overlay::menu::StyleSheet>::Style:
-        From<<Theme as pick_list::StyleSheet>::Style>,
 {
     PickList::new(options, selected, on_selected)
 }
@@ -297,7 +290,7 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: text_input::StyleSheet + overlay::menu::StyleSheet,
+    Theme: combo_box::DefaultStyle,
     Renderer: core::text::Renderer,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
@@ -324,7 +317,7 @@ pub fn vertical_space() -> Space {
 /// [`Rule`]: crate::Rule
 pub fn horizontal_rule<Theme>(height: impl Into<Pixels>) -> Rule<Theme>
 where
-    Theme: rule::StyleSheet,
+    Theme: rule::DefaultStyle,
 {
     Rule::horizontal(height)
 }
@@ -334,7 +327,7 @@ where
 /// [`Rule`]: crate::Rule
 pub fn vertical_rule<Theme>(width: impl Into<Pixels>) -> Rule<Theme>
 where
-    Theme: rule::StyleSheet,
+    Theme: rule::DefaultStyle,
 {
     Rule::vertical(width)
 }
@@ -351,7 +344,7 @@ pub fn progress_bar<Theme>(
     value: f32,
 ) -> ProgressBar<Theme>
 where
-    Theme: progress_bar::StyleSheet,
+    Theme: progress_bar::DefaultStyle,
 {
     ProgressBar::new(range, value)
 }
@@ -371,7 +364,7 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 #[cfg(feature = "svg")]
 pub fn svg<Theme>(handle: impl Into<core::svg::Handle>) -> crate::Svg<Theme>
 where
-    Theme: crate::svg::StyleSheet,
+    Theme: crate::svg::DefaultStyle,
 {
     crate::Svg::new(handle)
 }
@@ -397,7 +390,7 @@ where
 #[cfg(feature = "qr_code")]
 pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
 where
-    Theme: crate::qr_code::StyleSheet,
+    Theme: crate::qr_code::DefaultStyle,
 {
     crate::QRCode::new(data)
 }
@@ -440,13 +433,20 @@ where
 }
 
 /// A widget that applies any `Theme` to its contents.
-pub fn themer<'a, Message, Theme, Renderer>(
-    theme: Theme,
-    content: impl Into<Element<'a, Message, Theme, Renderer>>,
-) -> Themer<'a, Message, Theme, Renderer>
+pub fn themer<'a, Message, OldTheme, NewTheme, Renderer>(
+    new_theme: NewTheme,
+    content: impl Into<Element<'a, Message, NewTheme, Renderer>>,
+) -> Themer<
+    'a,
+    Message,
+    OldTheme,
+    NewTheme,
+    impl Fn(&OldTheme) -> NewTheme,
+    Renderer,
+>
 where
     Renderer: core::Renderer,
-    Theme: application::StyleSheet,
+    NewTheme: Clone,
 {
-    Themer::new(theme, content)
+    Themer::new(move |_| new_theme.clone(), content)
 }
