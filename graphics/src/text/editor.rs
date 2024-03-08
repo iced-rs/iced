@@ -11,6 +11,7 @@ use cosmic_text::Edit as _;
 
 use std::fmt;
 use std::sync::{self, Arc};
+use crate::text::to_wrap;
 
 /// A multi-line text editor.
 #[derive(Debug, PartialEq)]
@@ -480,6 +481,7 @@ impl editor::Editor for Editor {
         &mut self,
         new_bounds: Size,
         new_font: Font,
+        new_wrapping: text::Wrapping,
         new_size: Pixels,
         new_line_height: LineHeight,
         new_highlighter: &mut impl Highlighter,
@@ -529,6 +531,12 @@ impl editor::Editor for Editor {
                 font_system.raw(),
                 cosmic_text::Metrics::new(new_size.0, new_line_height.0),
             );
+        }
+
+        let new_wrap = to_wrap(new_wrapping);
+        if new_wrap != internal.editor.buffer().wrap() {
+            log::trace!("Updating wrapping strategy of `Editor`...");
+            internal.editor.buffer_mut().set_wrap(font_system.raw(), new_wrap);
         }
 
         if new_bounds != internal.bounds {
@@ -705,7 +713,7 @@ fn highlight_line(
     line: &cosmic_text::BufferLine,
     from: usize,
     to: usize,
-) -> impl Iterator<Item = (f32, f32)> + '_ {
+) -> impl Iterator<Item=(f32, f32)> + '_ {
     let layout = line
         .layout_opt()
         .as_ref()

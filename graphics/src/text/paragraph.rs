@@ -5,6 +5,7 @@ use crate::core::text::{Hit, LineHeight, Shaping, Text};
 use crate::core::{Font, Pixels, Point, Size};
 use crate::text;
 
+use iced_core::text::Wrapping;
 use std::fmt;
 use std::sync::{self, Arc};
 
@@ -22,6 +23,7 @@ struct Internal {
     bounds: Size,
     min_bounds: Size,
     version: text::Version,
+    wrapping: Wrapping,
 }
 
 impl Paragraph {
@@ -88,6 +90,8 @@ impl core::text::Paragraph for Paragraph {
             text::to_shaping(text.shaping),
         );
 
+        buffer.set_wrap(font_system.raw(), text::to_wrap(text.wrapping));
+
         let min_bounds = text::measure(&buffer);
 
         Self(Some(Arc::new(Internal {
@@ -100,6 +104,7 @@ impl core::text::Paragraph for Paragraph {
             bounds: text.bounds,
             min_bounds,
             version: font_system.version(),
+            wrapping: text.wrapping,
         })))
     }
 
@@ -141,6 +146,7 @@ impl core::text::Paragraph for Paragraph {
                     horizontal_alignment: internal.horizontal_alignment,
                     vertical_alignment: internal.vertical_alignment,
                     shaping: internal.shaping,
+                    wrapping: internal.wrapping,
                 });
             }
         }
@@ -159,6 +165,7 @@ impl core::text::Paragraph for Paragraph {
             || paragraph.shaping != text.shaping
             || paragraph.horizontal_alignment != text.horizontal_alignment
             || paragraph.vertical_alignment != text.vertical_alignment
+            || paragraph.wrapping != text.wrapping
         {
             core::text::Difference::Shape
         } else if paragraph.bounds != text.bounds {
@@ -247,6 +254,7 @@ impl fmt::Debug for Paragraph {
             .field("vertical_alignment", &paragraph.vertical_alignment)
             .field("bounds", &paragraph.bounds)
             .field("min_bounds", &paragraph.min_bounds)
+            .field("wrapping", &paragraph.wrapping)
             .finish()
     }
 }
@@ -261,6 +269,7 @@ impl PartialEq for Internal {
             && self.bounds == other.bounds
             && self.min_bounds == other.min_bounds
             && self.buffer.metrics() == other.buffer.metrics()
+            && self.wrapping == other.wrapping
     }
 }
 
@@ -279,6 +288,7 @@ impl Default for Internal {
             bounds: Size::ZERO,
             min_bounds: Size::ZERO,
             version: text::Version::default(),
+            wrapping: Wrapping::default(),
         }
     }
 }

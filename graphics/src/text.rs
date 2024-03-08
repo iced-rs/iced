@@ -13,6 +13,7 @@ use crate::core::font::{self, Font};
 use crate::core::text::Shaping;
 use crate::core::{Color, Point, Rectangle, Size};
 
+use iced_core::text::Wrapping;
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
 use std::sync::{Arc, RwLock, Weak};
@@ -121,6 +122,14 @@ pub fn to_attributes(font: Font) -> cosmic_text::Attrs<'static> {
         .weight(to_weight(font.weight))
         .stretch(to_stretch(font.stretch))
         .style(to_style(font.style))
+}
+
+fn to_wrap(wrapping: Wrapping) -> cosmic_text::Wrap {
+    match wrapping {
+        Wrapping::None => cosmic_text::Wrap::None,
+        Wrapping::Word => cosmic_text::Wrap::Word,
+        Wrapping::Glyph => cosmic_text::Wrap::Glyph,
+    }
 }
 
 fn to_family(family: font::Family) -> cosmic_text::Family<'static> {

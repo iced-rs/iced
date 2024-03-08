@@ -1,15 +1,13 @@
 use iced::highlighter::{self, Highlighter};
 use iced::keyboard;
-use iced::widget::{
-    button, column, container, horizontal_space, pick_list, row, text,
-    text_editor, tooltip,
-};
+use iced::widget::{button, column, container, horizontal_space, pick_list, row, text, text_editor, toggler, tooltip};
 use iced::{Alignment, Command, Element, Font, Length, Subscription, Theme};
 
 use std::ffi;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use iced::widget::text::Wrapping;
 
 pub fn main() -> iced::Result {
     iced::program("Editor - Iced", Editor::update, Editor::view)
@@ -27,6 +25,7 @@ struct Editor {
     theme: highlighter::Theme,
     is_loading: bool,
     is_dirty: bool,
+    wrap: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +37,7 @@ enum Message {
     FileOpened(Result<(PathBuf, Arc<String>), Error>),
     SaveFile,
     FileSaved(Result<PathBuf, Error>),
+    ToggleWrap(bool)
 }
 
 impl Editor {
@@ -48,6 +48,7 @@ impl Editor {
             theme: highlighter::Theme::SolarizedDark,
             is_loading: true,
             is_dirty: false,
+            wrap: true,
         }
     }
 
@@ -122,6 +123,10 @@ impl Editor {
 
                 Command::none()
             }
+            Message::ToggleWrap(enabled) => {
+                self.wrap = enabled;
+                Command::none()
+            }
         }
     }
 
@@ -148,13 +153,16 @@ impl Editor {
                 self.is_dirty.then_some(Message::SaveFile)
             ),
             horizontal_space(),
+            toggler("Word wrap".to_string(), self.wrap, Message::ToggleWrap)
+            .text_size(14)
+            .width(Length::Shrink),
             pick_list(
                 highlighter::Theme::ALL,
                 Some(self.theme),
                 Message::ThemeSelected
             )
             .text_size(14)
-            .padding([5, 10])
+            .padding([5, 10]),
         ]
         .spacing(10)
         .align_items(Alignment::Center);
@@ -184,6 +192,7 @@ impl Editor {
             controls,
             text_editor(&self.content)
                 .height(Length::Fill)
+                .wrapping(if self.wrap { Wrapping::Word } else { Wrapping::None })
                 .on_action(Message::ActionPerformed)
                 .highlight::<Highlighter>(
                     highlighter::Settings {
