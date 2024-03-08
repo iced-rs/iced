@@ -537,7 +537,7 @@ pub fn text(theme: &Theme, status: Status) -> Appearance {
     match status {
         Status::Active | Status::Pressed => base,
         Status::Hovered => Appearance {
-            text_color: palette.background.base.text.transparentize(0.8),
+            text_color: palette.background.base.text.scale_alpha(0.8),
             ..base
         },
         Status::Disabled => disabled(base),
@@ -557,8 +557,8 @@ fn disabled(appearance: Appearance) -> Appearance {
     Appearance {
         background: appearance
             .background
-            .map(|background| background.transparentize(0.5)),
-        text_color: appearance.text_color.transparentize(0.5),
+            .map(|background| background.scale_alpha(0.5)),
+        text_color: appearance.text_color.scale_alpha(0.5),
         ..appearance
     }
 }

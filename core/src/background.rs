@@ -12,13 +12,13 @@ pub enum Background {
 }
 
 impl Background {
-    /// Increases the translucency of the [`Background`]
-    /// by the given factor.
-    pub fn transparentize(self, factor: f32) -> Self {
+    /// Scales the the alpha channel of the [`Background`] by the given
+    /// factor.
+    pub fn scale_alpha(self, factor: f32) -> Self {
         match self {
-            Self::Color(color) => Self::Color(color.transparentize(factor)),
+            Self::Color(color) => Self::Color(color.scale_alpha(factor)),
             Self::Gradient(gradient) => {
-                Self::Gradient(gradient.transparentize(factor))
+                Self::Gradient(gradient.scale_alpha(factor))
             }
         }
     }
