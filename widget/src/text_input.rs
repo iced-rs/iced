@@ -869,6 +869,36 @@ where
 
                             update_cache(state, &self.value);
                         }
+                        keyboard::Key::Named(key::Named::Home)
+                        | keyboard::Key::Named(key::Named::ArrowLeft)
+                            if platform::is_macos_command_pressed(
+                                modifiers,
+                            ) =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    0,
+                                );
+                            } else {
+                                state.cursor.move_to(0);
+                            }
+                        }
+                        keyboard::Key::Named(key::Named::End)
+                        | keyboard::Key::Named(key::Named::ArrowLeft)
+                            if platform::is_macos_command_pressed(
+                                modifiers,
+                            ) =>
+                        {
+                            if modifiers.shift() {
+                                state.cursor.select_range(
+                                    state.cursor.start(&self.value),
+                                    self.value.len(),
+                                );
+                            } else {
+                                state.cursor.move_to(self.value.len());
+                            }
+                        }
                         keyboard::Key::Named(key::Named::ArrowLeft) => {
                             if platform::is_jump_modifier_pressed(modifiers)
                                 && !self.is_secure
@@ -905,26 +935,6 @@ where
                                 state.cursor.select_right(&self.value);
                             } else {
                                 state.cursor.move_right(&self.value);
-                            }
-                        }
-                        keyboard::Key::Named(key::Named::Home) => {
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    0,
-                                );
-                            } else {
-                                state.cursor.move_to(0);
-                            }
-                        }
-                        keyboard::Key::Named(key::Named::End) => {
-                            if modifiers.shift() {
-                                state.cursor.select_range(
-                                    state.cursor.start(&self.value),
-                                    self.value.len(),
-                                );
-                            } else {
-                                state.cursor.move_to(self.value.len());
                             }
                         }
                         keyboard::Key::Named(key::Named::Escape) => {
@@ -1282,6 +1292,18 @@ mod platform {
             modifiers.alt()
         } else {
             modifiers.control()
+        }
+    }
+
+    /// Whether the command key is pressed on a macOS device.
+    ///
+    /// This is relevant for actions like ⌘ + ArrowLeft to move to the beginning of the
+    /// line where the equivalent behavior for `modifiers.command()` is instead a jump.
+    pub fn is_macos_command_pressed(modifiers: keyboard::Modifiers) -> bool {
+        if cfg!(target_os = "macos") {
+            modifiers.logo()
+        } else {
+            false
         }
     }
 }
