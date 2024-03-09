@@ -81,7 +81,10 @@ mod numeric_input {
         }
     }
 
-    impl<Message> Component<Message> for NumericInput<Message> {
+    impl<Message, Theme> Component<Message, Theme> for NumericInput<Message>
+    where
+        Theme: button::DefaultStyle + text_input::DefaultStyle + 'static,
+    {
         type State = ();
         type Event = Event;
 
@@ -111,7 +114,7 @@ mod numeric_input {
             }
         }
 
-        fn view(&self, _state: &Self::State) -> Element<Event> {
+        fn view(&self, _state: &Self::State) -> Element<'_, Event, Theme> {
             let button = |label, on_press| {
                 button(
                     text(label)
@@ -152,8 +155,10 @@ mod numeric_input {
         }
     }
 
-    impl<'a, Message> From<NumericInput<Message>> for Element<'a, Message>
+    impl<'a, Message, Theme> From<NumericInput<Message>>
+        for Element<'a, Message, Theme>
     where
+        Theme: button::DefaultStyle + text_input::DefaultStyle + 'static,
         Message: 'a,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {
