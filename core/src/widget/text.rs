@@ -330,7 +330,7 @@ where
     }
 }
 
-/// The apperance of some text.
+/// The appearance of some text.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Appearance {
     /// The [`Color`] of the text.

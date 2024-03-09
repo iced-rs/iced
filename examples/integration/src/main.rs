@@ -170,7 +170,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Run event loop
     event_loop.run(move |event, window_target| {
-        // You should change this if you want to render continuosly
+        // You should change this if you want to render continuously
         window_target.set_control_flow(ControlFlow::Wait);
 
         match event {

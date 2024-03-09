@@ -14,7 +14,7 @@ cargo run --package integration_wgpu
 ```
 
 ### How to run this example with WebGL backend
-NOTE: Currently, WebGL backend is is still experimental, so expect bugs.
+NOTE: Currently, WebGL backend is still experimental, so expect bugs.
 
 ```sh
 # 0. Install prerequisites

@@ -12,7 +12,7 @@ pub enum Background {
 }
 
 impl Background {
-    /// Scales the the alpha channel of the [`Background`] by the given
+    /// Scales the alpha channel of the [`Background`] by the given
     /// factor.
     pub fn scale_alpha(self, factor: f32) -> Self {
         match self {

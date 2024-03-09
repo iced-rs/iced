@@ -126,7 +126,7 @@ where
         };
 
         // Only calculate viewport sizes if the images are constrained to a limited space.
-        // If they are Fill|Portion let them expand within their alotted space.
+        // If they are Fill|Portion let them expand within their allotted space.
         match expansion_size {
             Length::Shrink | Length::Fixed(_) => {
                 let aspect_ratio = width as f32 / height as f32;

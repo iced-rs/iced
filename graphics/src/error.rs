@@ -13,7 +13,7 @@ pub enum Error {
     #[error("a suitable graphics adapter or device could not be found")]
     GraphicsAdapterNotFound,
 
-    /// An error occured in the context's internal backend
-    #[error("an error occured in the context's internal backend")]
+    /// An error occurred in the context's internal backend
+    #[error("an error occurred in the context's internal backend")]
     BackendError(String),
 }
