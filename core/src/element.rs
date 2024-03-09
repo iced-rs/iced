@@ -94,52 +94,34 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// producing them. Let's implement our __view logic__ now:
     ///
     /// ```no_run
-    /// # mod counter {
-    /// #     #[derive(Debug, Clone, Copy)]
-    /// #     pub enum Message {}
-    /// #     pub struct Counter;
+    /// # mod iced {
+    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_core::renderer::Null>;
     /// #
-    /// #     impl Counter {
-    /// #         pub fn view(
-    /// #             &self,
-    /// #         ) -> iced_core::Element<Message, (), iced_core::renderer::Null> {
+    /// #     pub mod widget {
+    /// #         pub fn row<'a, Message>(iter: impl IntoIterator<Item = super::Element<'a, Message>>) -> super::Element<'a, Message> {
     /// #             unimplemented!()
     /// #         }
     /// #     }
     /// # }
     /// #
-    /// # mod iced {
-    /// #     pub use iced_core::renderer::Null as Renderer;
-    /// #     pub use iced_core::Element;
+    /// # mod counter {
+    /// #     #[derive(Debug, Clone, Copy)]
+    /// #     pub enum Message {}
+    /// #     pub struct Counter;
     /// #
-    /// #     pub mod widget {
-    /// #         pub struct Row<Message> {
-    /// #             _t: std::marker::PhantomData<Message>,
-    /// #         }
+    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_core::renderer::Null>;
     /// #
-    /// #         impl<Message> Row<Message> {
-    /// #             pub fn new() -> Self {
-    /// #                 unimplemented!()
-    /// #             }
-    /// #
-    /// #             pub fn spacing(mut self, _: u32) -> Self {
-    /// #                 unimplemented!()
-    /// #             }
-    /// #
-    /// #             pub fn push(
-    /// #                 mut self,
-    /// #                 _: iced_core::Element<Message, (), iced_core::renderer::Null>,
-    /// #             ) -> Self {
-    /// #                 unimplemented!()
-    /// #             }
+    /// #     impl Counter {
+    /// #         pub fn view(&self) -> Element<Message> {
+    /// #             unimplemented!()
     /// #         }
     /// #     }
     /// # }
     /// #
     /// use counter::Counter;
     ///
-    /// use iced::widget::Row;
-    /// use iced::{Element, Renderer};
+    /// use iced::widget::row;
+    /// use iced::Element;
     ///
     /// struct ManyCounters {
     ///     counters: Vec<Counter>,
@@ -151,24 +133,21 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// }
     ///
     /// impl ManyCounters {
-    ///     pub fn view(&mut self) -> Row<Message> {
-    ///         // We can quickly populate a `Row` by folding over our counters
-    ///         self.counters.iter_mut().enumerate().fold(
-    ///             Row::new().spacing(20),
-    ///             |row, (index, counter)| {
-    ///                 // We display the counter
-    ///                 let element: Element<counter::Message, _, _> =
-    ///                     counter.view().into();
-    ///
-    ///                 row.push(
+    ///     pub fn view(&self) -> Element<Message> {
+    ///         // We can quickly populate a `row` by mapping our counters
+    ///         row(
+    ///             self.counters
+    ///                 .iter()
+    ///                 .map(Counter::view)
+    ///                 .enumerate()
+    ///                 .map(|(index, counter)| {
     ///                     // Here we turn our `Element<counter::Message>` into
     ///                     // an `Element<Message>` by combining the `index` and the
     ///                     // message of the `element`.
-    ///                     element
-    ///                         .map(move |message| Message::Counter(index, message)),
-    ///                 )
-    ///             },
+    ///                     counter.map(move |message| Message::Counter(index, message))
+    ///                 }),
     ///         )
+    ///         .into()
     ///     }
     /// }
     /// ```
