@@ -538,7 +538,7 @@ where
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: position.x,
+                                    x: position.x.floor(),
                                     y: position.y,
                                     width: 1.0,
                                     height: self
