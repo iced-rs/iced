@@ -390,7 +390,8 @@ where
                         Some((
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: text_bounds.x + text_value_width,
+                                    x: (text_bounds.x + text_value_width)
+                                        .floor(),
                                     y: text_bounds.y,
                                     width: 1.0,
                                     height: text_bounds.height,
