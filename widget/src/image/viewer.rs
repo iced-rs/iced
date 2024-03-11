@@ -40,6 +40,12 @@ impl<Handle> Viewer<Handle> {
         }
     }
 
+    /// Sets the [`image::FilterMethod`] of the [`Viewer`].
+    pub fn filter_method(mut self, filter_method: image::FilterMethod) -> Self {
+        self.filter_method = filter_method;
+        self
+    }
+
     /// Sets the padding of the [`Viewer`].
     pub fn padding(mut self, padding: impl Into<Pixels>) -> Self {
         self.padding = padding.into().0;
