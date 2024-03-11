@@ -390,6 +390,21 @@ where
             )
         };
 
+        if matches!(
+            event,
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left))
+                | Event::Touch(
+                    touch::Event::FingerLifted { .. }
+                        | touch::Event::FingerLost { .. }
+                )
+        ) {
+            state.scroll_area_touched_at = None;
+            state.x_scroller_grabbed_at = None;
+            state.y_scroller_grabbed_at = None;
+
+            return event_status;
+        }
+
         if let event::Status::Captured = event_status {
             return event::Status::Captured;
         }
@@ -479,10 +494,7 @@ where
                             );
                         }
                     }
-                    touch::Event::FingerLifted { .. }
-                    | touch::Event::FingerLost { .. } => {
-                        state.scroll_area_touched_at = None;
-                    }
+                    _ => {}
                 }
 
                 event_status = event::Status::Captured;
@@ -492,15 +504,6 @@ where
 
         if let Some(scroller_grabbed_at) = state.y_scroller_grabbed_at {
             match event {
-                Event::Mouse(mouse::Event::ButtonReleased(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerLifted { .. })
-                | Event::Touch(touch::Event::FingerLost { .. }) => {
-                    state.y_scroller_grabbed_at = None;
-
-                    event_status = event::Status::Captured;
-                }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
                 | Event::Touch(touch::Event::FingerMoved { .. }) => {
                     if let Some(scrollbar) = scrollbars.y {
@@ -572,15 +575,6 @@ where
 
         if let Some(scroller_grabbed_at) = state.x_scroller_grabbed_at {
             match event {
-                Event::Mouse(mouse::Event::ButtonReleased(
-                    mouse::Button::Left,
-                ))
-                | Event::Touch(touch::Event::FingerLifted { .. })
-                | Event::Touch(touch::Event::FingerLost { .. }) => {
-                    state.x_scroller_grabbed_at = None;
-
-                    event_status = event::Status::Captured;
-                }
                 Event::Mouse(mouse::Event::CursorMoved { .. })
                 | Event::Touch(touch::Event::FingerMoved { .. }) => {
                     let Some(cursor_position) = cursor.position() else {
