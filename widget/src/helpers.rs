@@ -170,15 +170,15 @@ where
 /// Creates a new [`Radio`].
 ///
 /// [`Radio`]: crate::Radio
-pub fn radio<Message, Theme, Renderer, V>(
+pub fn radio<'a, Message, Theme, Renderer, V>(
     label: impl Into<String>,
     value: V,
     selected: Option<V>,
     on_click: impl FnOnce(V) -> Message,
-) -> Radio<Message, Theme, Renderer>
+) -> Radio<'a, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: radio::DefaultStyle,
+    Theme: radio::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
     V: Copy + Eq,
 {
