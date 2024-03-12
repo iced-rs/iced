@@ -391,9 +391,11 @@ where
 /// [`QRCode`]: crate::QRCode
 /// [`Data`]: crate::qr_code::Data
 #[cfg(feature = "qr_code")]
-pub fn qr_code<Theme>(data: &crate::qr_code::Data) -> crate::QRCode<'_, Theme>
+pub fn qr_code<'a, Theme>(
+    data: &'a crate::qr_code::Data,
+) -> crate::QRCode<'a, Theme>
 where
-    Theme: crate::qr_code::DefaultStyle,
+    Theme: crate::qr_code::DefaultStyle + 'a,
 {
     crate::QRCode::new(data)
 }

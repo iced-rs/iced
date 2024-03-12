@@ -19,23 +19,23 @@ const QUIET_ZONE: usize = 2;
 
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct QRCode<'a, Theme = crate::Theme> {
     data: &'a Data,
     cell_size: u16,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Theme> QRCode<'a, Theme> {
     /// Creates a new [`QRCode`] with the provided [`Data`].
     pub fn new(data: &'a Data) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -46,8 +46,8 @@ impl<'a, Theme> QRCode<'a, Theme> {
     }
 
     /// Sets the style of the [`QRCode`].
-    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
@@ -336,23 +336,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`QRCode`].
-pub type Style<Theme> = fn(&Theme) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
 
 /// The default style of a [`QRCode`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`QRCode`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self) -> Appearance {
+        default(self)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance| *appearance
+    fn default_style(&self) -> Appearance {
+        *self
     }
 }
 
