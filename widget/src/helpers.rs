@@ -340,12 +340,12 @@ where
 ///   * the current value of the [`ProgressBar`].
 ///
 /// [`ProgressBar`]: crate::ProgressBar
-pub fn progress_bar<Theme>(
+pub fn progress_bar<'a, Theme>(
     range: RangeInclusive<f32>,
     value: f32,
-) -> ProgressBar<Theme>
+) -> ProgressBar<'a, Theme>
 where
-    Theme: progress_bar::DefaultStyle,
+    Theme: progress_bar::DefaultStyle + 'a,
 {
     ProgressBar::new(range, value)
 }
