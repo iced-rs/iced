@@ -240,7 +240,7 @@ pub fn slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: slider::DefaultStyle,
+    Theme: slider::DefaultStyle + 'a,
 {
     Slider::new(range, value, on_change)
 }
@@ -256,7 +256,7 @@ pub fn vertical_slider<'a, T, Message, Theme>(
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
-    Theme: vertical_slider::DefaultStyle,
+    Theme: vertical_slider::DefaultStyle + 'a,
 {
     VerticalSlider::new(range, value, on_change)
 }
