@@ -117,7 +117,7 @@ pub fn button<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Button<'a, Message, Theme, Renderer>
 where
-    Theme: button::DefaultStyle,
+    Theme: button::DefaultStyle + 'a,
     Renderer: core::Renderer,
 {
     Button::new(content)
