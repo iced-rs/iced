@@ -38,7 +38,7 @@ pub struct Menu<
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Style<Theme>,
+    style: &'a Style<'a, Theme>,
 }
 
 impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
@@ -48,37 +48,15 @@ where
     Theme: 'a,
     Renderer: text::Renderer + 'a,
 {
-    /// Creates a new [`Menu`] with the given [`State`], a list of options, and
-    /// the message to produced when an option is selected.
+    /// Creates a new [`Menu`] with the given [`State`], a list of options,
+    /// the message to produced when an option is selected, and its [`Style`].
     pub fn new(
         state: &'a mut State,
         options: &'a [T],
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
         on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
-    ) -> Self
-    where
-        Theme: DefaultStyle,
-    {
-        Self::with_style(
-            state,
-            options,
-            hovered_option,
-            on_selected,
-            on_option_hovered,
-            Theme::default_style(),
-        )
-    }
-
-    /// Creates a new [`Menu`] with the given [`State`], a list of options,
-    /// the message to produced when an option is selected, and its [`Style`].
-    pub fn with_style(
-        state: &'a mut State,
-        options: &'a [T],
-        hovered_option: &'a mut Option<usize>,
-        on_selected: impl FnMut(T) -> Message + 'a,
-        on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
-        style: Style<Theme>,
+        style: &'a Style<'a, Theme>,
     ) -> Self {
         Menu {
             state,
@@ -135,12 +113,6 @@ where
         self
     }
 
-    /// Sets the style of the [`Menu`].
-    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
-        self.style = style.into();
-        self
-    }
-
     /// Turns the [`Menu`] into an overlay [`Element`] at the given target
     /// position.
     ///
@@ -190,7 +162,7 @@ where
     container: Container<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
-    style: Style<Theme>,
+    style: &'a Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
@@ -234,10 +206,10 @@ where
                     text_line_height,
                     text_shaping,
                     padding,
-                    style: style.list,
+                    style: &style.list,
                 },
                 scrollable::Direction::default(),
-                style.scrollable,
+                &style.scrollable,
             ),
             container::transparent,
         );
@@ -356,7 +328,7 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: fn(&Theme) -> Appearance,
+    style: &'a dyn Fn(&Theme) -> Appearance,
 }
 
 impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -599,39 +571,26 @@ pub struct Appearance {
 }
 
 /// The style of the different parts of a [`Menu`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme> {
+#[allow(missing_debug_implementations)]
+pub struct Style<'a, Theme> {
     /// The style of the list of the [`Menu`].
-    pub list: fn(&Theme) -> Appearance,
+    pub list: Box<dyn Fn(&Theme) -> Appearance + 'a>,
     /// The style of the [`Scrollable`] of the [`Menu`].
-    pub scrollable: fn(&Theme, scrollable::Status) -> scrollable::Appearance,
+    pub scrollable: scrollable::Style<'a, Theme>,
 }
-
-impl Style<Theme> {
-    /// The default style of a [`Menu`] with the built-in [`Theme`].
-    pub const DEFAULT: Self = Self {
-        list: default,
-        scrollable: scrollable::default,
-    };
-}
-
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Theme> Copy for Style<Theme> {}
 
 /// The default style of a [`Menu`].
 pub trait DefaultStyle: Sized {
     /// Returns the default style of a [`Menu`].
-    fn default_style() -> Style<Self>;
+    fn default_style() -> Style<'static, Self>;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        Style::<Theme>::DEFAULT
+    fn default_style() -> Style<'static, Self> {
+        Style {
+            list: Box::new(default),
+            scrollable: Box::new(scrollable::default),
+        }
     }
 }
 
