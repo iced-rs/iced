@@ -13,7 +13,7 @@ use std::ops::RangeInclusive;
 ///
 /// # Example
 /// ```no_run
-/// # type ProgressBar = iced_widget::ProgressBar;
+/// # type ProgressBar<'a> = iced_widget::ProgressBar<'a>;
 /// #
 /// let value = 50.0;
 ///
@@ -22,15 +22,15 @@ use std::ops::RangeInclusive;
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar<Theme = crate::Theme> {
+pub struct ProgressBar<'a, Theme = crate::Theme> {
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
-impl<Theme> ProgressBar<Theme> {
+impl<'a, Theme> ProgressBar<'a, Theme> {
     /// The default height of a [`ProgressBar`].
     pub const DEFAULT_HEIGHT: f32 = 30.0;
 
@@ -41,14 +41,14 @@ impl<Theme> ProgressBar<Theme> {
     ///   * the current value of the [`ProgressBar`]
     pub fn new(range: RangeInclusive<f32>, value: f32) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -65,14 +65,14 @@ impl<Theme> ProgressBar<Theme> {
     }
 
     /// Sets the style of the [`ProgressBar`].
-    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for ProgressBar<Theme>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for ProgressBar<'a, Theme>
 where
     Renderer: crate::core::Renderer,
 {
@@ -143,7 +143,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<ProgressBar<Theme>>
+impl<'a, Message, Theme, Renderer> From<ProgressBar<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
@@ -151,7 +151,7 @@ where
     Renderer: 'a + crate::core::Renderer,
 {
     fn from(
-        progress_bar: ProgressBar<Theme>,
+        progress_bar: ProgressBar<'a, Theme>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(progress_bar)
     }
@@ -169,23 +169,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`ProgressBar`].
-pub type Style<Theme> = fn(&Theme) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
 
 /// The default style of a [`ProgressBar`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`ProgressBar`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        primary
+    fn default_style(&self) -> Appearance {
+        primary(self)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance| *appearance
+    fn default_style(&self) -> Appearance {
+        *self
     }
 }
 

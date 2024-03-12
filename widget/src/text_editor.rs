@@ -41,7 +41,7 @@ pub struct TextEditor<
     width: Length,
     height: Length,
     padding: Padding,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
@@ -58,7 +58,7 @@ where
     /// Creates new [`TextEditor`] with the given [`Content`].
     pub fn new(content: &'a Content<Renderer>) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Self {
             content,
@@ -68,7 +68,7 @@ where
             width: Length::Fill,
             height: Length::Shrink,
             padding: Padding::new(5.0),
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -142,8 +142,11 @@ where
     }
 
     /// Sets the style of the [`TextEditor`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
@@ -809,23 +812,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`TextEditor`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`TextEditor`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`TextEditor`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 

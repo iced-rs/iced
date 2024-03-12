@@ -56,7 +56,7 @@ where
     height: Length,
     padding: Padding,
     clip: bool,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
@@ -68,7 +68,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         let content = content.into();
         let size = content.as_widget().size_hint();
@@ -80,7 +80,7 @@ where
             height: size.height.fluid(),
             padding: DEFAULT_PADDING,
             clip: false,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -120,8 +120,11 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 
@@ -439,29 +442,29 @@ impl std::default::Default for Appearance {
 }
 
 /// The style of a [`Button`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Button`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Button`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        primary
+    fn default_style(&self, status: Status) -> Appearance {
+        primary(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 
 impl DefaultStyle for Color {
-    fn default_style() -> Style<Self> {
-        |color, _status| Appearance::default().with_background(*color)
+    fn default_style(&self, _status: Status) -> Appearance {
+        Appearance::default().with_background(*self)
     }
 }
 

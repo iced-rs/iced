@@ -1,6 +1,6 @@
 use iced::application;
 use iced::widget::{
-    checkbox, column, container, horizontal_space, row, slider, text, themer,
+    checkbox, column, container, horizontal_space, row, slider, text,
 };
 use iced::{gradient, window};
 use iced::{
@@ -70,16 +70,16 @@ impl Sandbox for Gradient {
             transparent,
         } = *self;
 
-        let gradient = gradient::Linear::new(angle)
-            .add_stop(0.0, start)
-            .add_stop(1.0, end);
+        let gradient_box = container(horizontal_space())
+            .style(move |_theme, _status| {
+                let gradient = gradient::Linear::new(angle)
+                    .add_stop(0.0, start)
+                    .add_stop(1.0, end);
 
-        let gradient_box = themer(
-            gradient,
-            container(horizontal_space())
-                .width(Length::Fill)
-                .height(Length::Fill),
-        );
+                gradient.into()
+            })
+            .width(Length::Fill)
+            .height(Length::Fill);
 
         let angle_picker = row![
             text("Angle").width(64),

@@ -42,7 +42,7 @@ pub struct ComboBox<
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_style: menu::Style<Theme>,
+    menu_style: menu::Style<'a, Theme>,
     padding: Padding,
     size: Option<f32>,
 }
@@ -62,7 +62,7 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         let style = Theme::default_style();
 
@@ -125,7 +125,10 @@ where
     }
 
     /// Sets the style of the [`ComboBox`].
-    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
+    pub fn style(mut self, style: impl Into<Style<'a, Theme>>) -> Self
+    where
+        Theme: 'a,
+    {
         let style = style.into();
 
         self.text_input = self.text_input.style(style.text_input);
@@ -669,7 +672,7 @@ where
 
             self.state.sync_filtered_options(filtered_options);
 
-            let mut menu = menu::Menu::with_style(
+            let mut menu = menu::Menu::new(
                 menu,
                 &filtered_options.options,
                 hovered_option,
@@ -683,7 +686,7 @@ where
                     (self.on_selected)(x)
                 },
                 self.on_option_hovered.as_deref(),
-                self.menu_style,
+                &self.menu_style,
             )
             .width(bounds.width)
             .padding(self.padding);
@@ -761,41 +764,28 @@ where
 }
 
 /// The style of a [`ComboBox`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme> {
+#[allow(missing_debug_implementations)]
+pub struct Style<'a, Theme> {
     /// The style of the [`TextInput`] of the [`ComboBox`].
-    pub text_input: fn(&Theme, text_input::Status) -> text_input::Appearance,
+    pub text_input: text_input::Style<'a, Theme>,
 
     /// The style of the [`Menu`] of the [`ComboBox`].
     ///
     /// [`Menu`]: menu::Menu
-    pub menu: menu::Style<Theme>,
+    pub menu: menu::Style<'a, Theme>,
 }
-
-impl Style<Theme> {
-    /// The default style of a [`ComboBox`].
-    pub const DEFAULT: Self = Self {
-        text_input: text_input::default,
-        menu: menu::Style::<Theme>::DEFAULT,
-    };
-}
-
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Theme> Copy for Style<Theme> {}
 
 /// The default style of a [`ComboBox`].
 pub trait DefaultStyle: Sized {
     /// Returns the default style of a [`ComboBox`].
-    fn default_style() -> Style<Self>;
+    fn default_style() -> Style<'static, Self>;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        Style::<Self>::DEFAULT
+    fn default_style() -> Style<'static, Self> {
+        Style {
+            text_input: Box::new(text_input::default),
+            menu: menu::DefaultStyle::default_style(),
+        }
     }
 }

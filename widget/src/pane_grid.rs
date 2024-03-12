@@ -110,7 +110,7 @@ pub struct PaneGrid<
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
@@ -126,7 +126,7 @@ where
         view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         let contents = if let Some((pane, pane_state)) =
             state.maximized.and_then(|pane| {
@@ -158,7 +158,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -218,8 +218,8 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
+        self.style = Box::new(style);
         self
     }
 
@@ -1146,23 +1146,23 @@ pub struct Line {
 }
 
 /// The style of a [`PaneGrid`].
-pub type Style<Theme> = fn(&Theme) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
 
 /// The default style of a [`PaneGrid`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`PaneGrid`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self) -> Appearance {
+        default(self)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance| *appearance
+    fn default_style(&self) -> Appearance {
+        *self
     }
 }
 

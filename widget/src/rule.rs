@@ -10,48 +10,49 @@ use crate::core::{
 
 /// Display a horizontal or vertical rule for dividing content.
 #[allow(missing_debug_implementations)]
-pub struct Rule<Theme = crate::Theme> {
+pub struct Rule<'a, Theme = crate::Theme> {
     width: Length,
     height: Length,
     is_horizontal: bool,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
-impl<Theme> Rule<Theme> {
+impl<'a, Theme> Rule<'a, Theme> {
     /// Creates a horizontal [`Rule`] with the given height.
     pub fn horizontal(height: impl Into<Pixels>) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Rule {
             width: Length::Fill,
             height: Length::Fixed(height.into().0),
             is_horizontal: true,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
     /// Creates a vertical [`Rule`] with the given width.
     pub fn vertical(width: impl Into<Pixels>) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Rule {
             width: Length::Fixed(width.into().0),
             height: Length::Fill,
             is_horizontal: false,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
     /// Sets the style of the [`Rule`].
-    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Rule<Theme>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Rule<'a, Theme>
 where
     Renderer: crate::core::Renderer,
 {
@@ -126,14 +127,14 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Rule<Theme>>
+impl<'a, Message, Theme, Renderer> From<Rule<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
     Theme: 'a,
     Renderer: 'a + crate::core::Renderer,
 {
-    fn from(rule: Rule<Theme>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(rule: Rule<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(rule)
     }
 }
@@ -216,23 +217,23 @@ impl FillMode {
 }
 
 /// The style of a [`Rule`].
-pub type Style<Theme> = fn(&Theme) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
 
 /// The default style of a [`Rule`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Rule`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self) -> Appearance {
+        default(self)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance| *appearance
+    fn default_style(&self) -> Appearance {
+        *self
     }
 }
 

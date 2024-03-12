@@ -17,8 +17,8 @@ use crate::core::{
 ///
 /// # Example
 /// ```no_run
-/// # type Radio<Message> =
-/// #     iced_widget::Radio<Message, iced_widget::Theme, iced_widget::renderer::Renderer>;
+/// # type Radio<'a, Message> =
+/// #     iced_widget::Radio<'a, Message, iced_widget::Theme, iced_widget::renderer::Renderer>;
 /// #
 /// # use iced_widget::column;
 /// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -67,7 +67,7 @@ use crate::core::{
 /// let content = column![a, b, c, all];
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct Radio<Message, Theme = crate::Theme, Renderer = crate::Renderer>
+pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: text::Renderer,
 {
@@ -81,10 +81,10 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
-impl<Message, Theme, Renderer> Radio<Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Radio<'a, Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
@@ -110,7 +110,7 @@ where
         f: F,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
     {
@@ -125,7 +125,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -175,14 +175,17 @@ where
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for Radio<Message, Theme, Renderer>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Radio<'a, Message, Theme, Renderer>
 where
     Message: Clone,
     Renderer: text::Renderer,
@@ -353,7 +356,7 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Radio<Message, Theme, Renderer>>
+impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
@@ -361,7 +364,7 @@ where
     Renderer: 'a + text::Renderer,
 {
     fn from(
-        radio: Radio<Message, Theme, Renderer>,
+        radio: Radio<'a, Message, Theme, Renderer>,
     ) -> Element<'a, Message, Theme, Renderer> {
         Element::new(radio)
     }
@@ -398,23 +401,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`Radio`] button.
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Radio`] button.
 pub trait DefaultStyle {
     /// Returns the default style of a [`Radio`] button.
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 

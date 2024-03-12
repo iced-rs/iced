@@ -51,7 +51,7 @@ pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme> {
     on_release: Option<Message>,
     width: f32,
     height: Length,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
@@ -72,7 +72,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -97,7 +97,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -133,8 +133,11 @@ where
     }
 
     /// Sets the style of the [`VerticalSlider`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 

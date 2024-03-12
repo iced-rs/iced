@@ -63,17 +63,16 @@ impl Application for Example {
         let default_checkbox = checkbox("Default", self.default)
             .on_toggle(Message::DefaultToggled);
 
-        let styled_checkbox = |label, style| {
+        let styled_checkbox = |label| {
             checkbox(label, self.styled)
                 .on_toggle_maybe(self.default.then_some(Message::StyledToggled))
-                .style(style)
         };
 
         let checkboxes = row![
-            styled_checkbox("Primary", checkbox::primary),
-            styled_checkbox("Secondary", checkbox::secondary),
-            styled_checkbox("Success", checkbox::success),
-            styled_checkbox("Danger", checkbox::danger),
+            styled_checkbox("Primary").style(checkbox::primary),
+            styled_checkbox("Secondary").style(checkbox::secondary),
+            styled_checkbox("Success").style(checkbox::success),
+            styled_checkbox("Danger").style(checkbox::danger),
         ]
         .spacing(20);
 

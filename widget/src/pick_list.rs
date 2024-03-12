@@ -47,7 +47,7 @@ pub struct PickList<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -151,7 +151,7 @@ where
     }
 
     /// Sets the style of the [`PickList`].
-    pub fn style(mut self, style: impl Into<Style<Theme>>) -> Self {
+    pub fn style(mut self, style: impl Into<Style<'a, Theme>>) -> Self {
         self.style = style.into();
         self
     }
@@ -529,7 +529,7 @@ where
 
             let on_select = &self.on_select;
 
-            let mut menu = Menu::with_style(
+            let mut menu = Menu::new(
                 &mut state.menu,
                 self.options.borrow(),
                 &mut state.hovered_option,
@@ -539,7 +539,7 @@ where
                     (on_select)(option)
                 },
                 None,
-                self.style.menu,
+                &self.style.menu,
             )
             .width(bounds.width)
             .padding(self.padding)
@@ -676,40 +676,27 @@ pub struct Appearance {
 }
 
 /// The styles of the different parts of a [`PickList`].
-#[derive(Debug, PartialEq, Eq)]
-pub struct Style<Theme> {
+#[allow(missing_debug_implementations)]
+pub struct Style<'a, Theme> {
     /// The style of the [`PickList`] itself.
-    pub field: fn(&Theme, Status) -> Appearance,
+    pub field: Box<dyn Fn(&Theme, Status) -> Appearance + 'a>,
 
     /// The style of the [`Menu`] of the pick list.
-    pub menu: menu::Style<Theme>,
+    pub menu: menu::Style<'a, Theme>,
 }
-
-impl Style<Theme> {
-    /// The default style of a [`PickList`] with the built-in [`Theme`].
-    pub const DEFAULT: Self = Self {
-        field: default,
-        menu: menu::Style::<Theme>::DEFAULT,
-    };
-}
-
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl<Theme> Copy for Style<Theme> {}
 
 /// The default style of a [`PickList`].
 pub trait DefaultStyle: Sized {
     /// Returns the default style of a [`PickList`].
-    fn default_style() -> Style<Self>;
+    fn default_style() -> Style<'static, Self>;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        Style::<Self>::DEFAULT
+    fn default_style() -> Style<'static, Self> {
+        Style {
+            field: Box::new(default),
+            menu: menu::DefaultStyle::default_style(),
+        }
     }
 }
 

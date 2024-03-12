@@ -49,7 +49,7 @@ pub struct Slider<'a, T, Message, Theme = crate::Theme> {
     on_release: Option<Message>,
     width: Length,
     height: f32,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
@@ -70,7 +70,7 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -95,7 +95,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -131,8 +131,11 @@ where
     }
 
     /// Sets the style of the [`Slider`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 
@@ -547,23 +550,23 @@ pub enum HandleShape {
 }
 
 /// The style of a [`Slider`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Slider`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Slider`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 
