@@ -6,7 +6,8 @@ use crate::renderer;
 use crate::text::{self, Paragraph};
 use crate::widget::tree::{self, Tree};
 use crate::{
-    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Widget,
+    Color, Element, Layout, Length, Pixels, Point, Rectangle, Size, Theme,
+    Widget,
 };
 
 use std::borrow::Cow;
@@ -28,7 +29,7 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
@@ -36,7 +37,10 @@ where
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
+    pub fn new(content: impl Into<Cow<'a, str>>) -> Self
+    where
+        Theme: DefaultStyle + 'a,
+    {
         Text {
             content: content.into(),
             size: None,
@@ -47,7 +51,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::Basic,
-            style: Style::default(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -72,20 +76,21 @@ where
     }
 
     /// Sets the style of the [`Text`].
-    pub fn style(mut self, style: fn(&Theme) -> Appearance) -> Self {
-        self.style = Style::Themed(style);
+    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
+        self.style = Box::new(style);
         self
     }
 
     /// Sets the [`Color`] of the [`Text`].
-    pub fn color(mut self, color: impl Into<Color>) -> Self {
-        self.style = Style::Colored(Some(color.into()));
-        self
+    pub fn color(self, color: impl Into<Color>) -> Self {
+        self.color_maybe(Some(color))
     }
 
     /// Sets the [`Color`] of the [`Text`], if `Some`.
     pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
-        self.style = Style::Colored(color.map(Into::into));
+        let color = color.map(Into::into);
+
+        self.style = Box::new(move |_theme| Appearance { color });
         self
     }
 
@@ -183,11 +188,7 @@ where
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
-
-        let appearance = match self.style {
-            Style::Themed(f) => f(theme),
-            Style::Colored(color) => Appearance { color },
-        };
+        let appearance = (self.style)(theme);
 
         draw(renderer, style, layout, state, appearance, viewport);
     }
@@ -290,28 +291,9 @@ where
     }
 }
 
-impl<'a, Theme, Renderer> Clone for Text<'a, Theme, Renderer>
-where
-    Renderer: text::Renderer,
-{
-    fn clone(&self) -> Self {
-        Self {
-            content: self.content.clone(),
-            size: self.size,
-            line_height: self.line_height,
-            width: self.width,
-            height: self.height,
-            horizontal_alignment: self.horizontal_alignment,
-            vertical_alignment: self.vertical_alignment,
-            font: self.font,
-            style: self.style,
-            shaping: self.shaping,
-        }
-    }
-}
-
 impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
 where
+    Theme: DefaultStyle + 'a,
     Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
@@ -322,7 +304,7 @@ where
 impl<'a, Message, Theme, Renderer> From<&'a str>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: 'a,
+    Theme: DefaultStyle + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(content: &'a str) -> Self {
@@ -339,28 +321,23 @@ pub struct Appearance {
     pub color: Option<Color>,
 }
 
-#[derive(Debug)]
-enum Style<Theme> {
-    Themed(fn(&Theme) -> Appearance),
-    Colored(Option<Color>),
+/// The style of some [`Text`].
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
+
+/// The default style of some [`Text`].
+pub trait DefaultStyle {
+    /// Returns the default style of some [`Text`].
+    fn default_style(&self) -> Appearance;
 }
 
-impl<Theme> Clone for Style<Theme> {
-    fn clone(&self) -> Self {
-        *self
+impl DefaultStyle for Theme {
+    fn default_style(&self) -> Appearance {
+        Appearance::default()
     }
 }
 
-impl<Theme> Copy for Style<Theme> {}
-
-impl<Theme> Default for Style<Theme> {
-    fn default() -> Self {
-        Style::Colored(None)
-    }
-}
-
-impl<Theme> From<fn(&Theme) -> Appearance> for Style<Theme> {
-    fn from(f: fn(&Theme) -> Appearance) -> Self {
-        Style::Themed(f)
+impl DefaultStyle for Color {
+    fn default_style(&self) -> Appearance {
+        Appearance { color: Some(*self) }
     }
 }

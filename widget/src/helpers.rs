@@ -14,7 +14,7 @@ use crate::rule::{self, Rule};
 use crate::runtime::Command;
 use crate::scrollable::{self, Scrollable};
 use crate::slider::{self, Slider};
-use crate::text::Text;
+use crate::text::{self, Text};
 use crate::text_editor::{self, TextEditor};
 use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
@@ -147,6 +147,7 @@ pub fn text<'a, Theme, Renderer>(
     text: impl ToString,
 ) -> Text<'a, Theme, Renderer>
 where
+    Theme: text::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     Text::new(text.to_string())
