@@ -58,7 +58,7 @@ pub fn container<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Container<'a, Message, Theme, Renderer>
 where
-    Theme: container::DefaultStyle,
+    Theme: container::DefaultStyle + 'a,
     Renderer: core::Renderer,
 {
     Container::new(content)
@@ -134,7 +134,7 @@ pub fn tooltip<'a, Message, Theme, Renderer>(
     position: tooltip::Position,
 ) -> crate::Tooltip<'a, Message, Theme, Renderer>
 where
-    Theme: container::DefaultStyle,
+    Theme: container::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     Tooltip::new(content, tooltip, position)

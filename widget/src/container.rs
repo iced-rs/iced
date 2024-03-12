@@ -36,7 +36,7 @@ pub struct Container<
     vertical_alignment: alignment::Vertical,
     clip: bool,
     content: Element<'a, Message, Theme, Renderer>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Container<'a, Message, Theme, Renderer>
@@ -48,15 +48,15 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
-        Self::with_style(content, Theme::default_style())
+        Self::with_style(content, Theme::default_style)
     }
 
     /// Creates a [`Container`] with the given content and style.
     pub fn with_style(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        style: fn(&Theme, Status) -> Appearance,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
     ) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
@@ -71,8 +71,8 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             clip: false,
+            style: Box::new(style),
             content,
-            style,
         }
     }
 
@@ -137,8 +137,11 @@ where
     }
 
     /// Sets the style of the [`Container`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 
@@ -546,41 +549,41 @@ pub enum Status {
 }
 
 /// The style of a [`Container`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Container`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Container`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        transparent
+    fn default_style(&self, status: Status) -> Appearance {
+        transparent(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 
 impl DefaultStyle for Color {
-    fn default_style() -> Style<Self> {
-        |color, _status| Appearance::default().with_background(*color)
+    fn default_style(&self, _status: Status) -> Appearance {
+        Appearance::default().with_background(*self)
     }
 }
 
 impl DefaultStyle for Gradient {
-    fn default_style() -> Style<Self> {
-        |gradient, _status| Appearance::default().with_background(*gradient)
+    fn default_style(&self, _status: Status) -> Appearance {
+        Appearance::default().with_background(*self)
     }
 }
 
 impl DefaultStyle for gradient::Linear {
-    fn default_style() -> Style<Self> {
-        |gradient, _status| Appearance::default().with_background(*gradient)
+    fn default_style(&self, _status: Status) -> Appearance {
+        Appearance::default().with_background(*self)
     }
 }
 

@@ -25,7 +25,7 @@ pub struct TitleBar<
     controls: Option<Element<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: container::Style<Theme>,
+    style: container::Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
@@ -37,14 +37,14 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: container::DefaultStyle,
+        Theme: container::DefaultStyle + 'a,
     {
         Self {
             content: content.into(),
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -66,9 +66,9 @@ where
     /// Sets the style of the [`TitleBar`].
     pub fn style(
         mut self,
-        style: fn(&Theme, container::Status) -> container::Appearance,
+        style: impl Fn(&Theme, container::Status) -> container::Appearance + 'a,
     ) -> Self {
-        self.style = style.into();
+        self.style = Box::new(style);
         self
     }
 

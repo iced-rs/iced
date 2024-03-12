@@ -28,7 +28,7 @@ pub struct Tooltip<
     gap: f32,
     padding: f32,
     snap_within_viewport: bool,
-    style: container::Style<Theme>,
+    style: container::Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Tooltip<'a, Message, Theme, Renderer>
@@ -47,7 +47,7 @@ where
         position: Position,
     ) -> Self
     where
-        Theme: container::DefaultStyle,
+        Theme: container::DefaultStyle + 'a,
     {
         Tooltip {
             content: content.into(),
@@ -56,7 +56,7 @@ where
             gap: 0.0,
             padding: Self::DEFAULT_PADDING,
             snap_within_viewport: true,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -81,9 +81,9 @@ where
     /// Sets the style of the [`Tooltip`].
     pub fn style(
         mut self,
-        style: fn(&Theme, container::Status) -> container::Appearance,
+        style: impl Fn(&Theme, container::Status) -> container::Appearance + 'a,
     ) -> Self {
-        self.style = style.into();
+        self.style = Box::new(style);
         self
     }
 }
@@ -239,7 +239,7 @@ where
                 positioning: self.position,
                 gap: self.gap,
                 padding: self.padding,
-                style: self.style,
+                style: &self.style,
             })))
         } else {
             None
@@ -309,7 +309,8 @@ where
     positioning: Position,
     gap: f32,
     padding: f32,
-    style: container::Style<Theme>,
+    style:
+        &'b (dyn Fn(&Theme, container::Status) -> container::Appearance + 'a),
 }
 
 impl<'a, 'b, Message, Theme, Renderer>
