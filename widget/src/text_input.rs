@@ -75,7 +75,7 @@ pub struct TextInput<
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -90,9 +90,9 @@ where
     /// its current value.
     pub fn new(placeholder: &str, value: &str) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
-        Self::with_style(placeholder, value, Theme::default_style())
+        Self::with_style(placeholder, value, Theme::default_style)
     }
 
     /// Creates a new [`TextInput`] with the given placeholder,
@@ -100,7 +100,7 @@ where
     pub fn with_style(
         placeholder: &str,
         value: &str,
-        style: fn(&Theme, Status) -> Appearance,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
     ) -> Self {
         TextInput {
             id: None,
@@ -116,7 +116,7 @@ where
             on_paste: None,
             on_submit: None,
             icon: None,
-            style: style.into(),
+            style: Box::new(style),
         }
     }
 
@@ -203,8 +203,11 @@ where
     }
 
     /// Sets the style of the [`TextInput`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 
@@ -1413,23 +1416,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`TextInput`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`TextInput`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`TextInput`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 

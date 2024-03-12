@@ -209,7 +209,7 @@ pub fn text_input<'a, Message, Theme, Renderer>(
 ) -> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_input::DefaultStyle,
+    Theme: text_input::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     TextInput::new(placeholder, value)
@@ -291,7 +291,7 @@ pub fn combo_box<'a, T, Message, Theme, Renderer>(
 ) -> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
-    Theme: combo_box::DefaultStyle,
+    Theme: combo_box::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     ComboBox::new(state, placeholder, selection, on_selected)
