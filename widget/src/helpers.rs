@@ -218,12 +218,12 @@ where
 /// Creates a new [`TextEditor`].
 ///
 /// [`TextEditor`]: crate::TextEditor
-pub fn text_editor<Message, Theme, Renderer>(
-    content: &text_editor::Content<Renderer>,
-) -> TextEditor<'_, core::text::highlighter::PlainText, Message, Theme, Renderer>
+pub fn text_editor<'a, Message, Theme, Renderer>(
+    content: &'a text_editor::Content<Renderer>,
+) -> TextEditor<'a, core::text::highlighter::PlainText, Message, Theme, Renderer>
 where
     Message: Clone,
-    Theme: text_editor::DefaultStyle,
+    Theme: text_editor::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     TextEditor::new(content)
