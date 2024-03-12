@@ -539,6 +539,24 @@ impl Appearance {
     }
 }
 
+impl From<Color> for Appearance {
+    fn from(color: Color) -> Self {
+        Self::default().with_background(color)
+    }
+}
+
+impl From<Gradient> for Appearance {
+    fn from(gradient: Gradient) -> Self {
+        Self::default().with_background(gradient)
+    }
+}
+
+impl From<gradient::Linear> for Appearance {
+    fn from(gradient: gradient::Linear) -> Self {
+        Self::default().with_background(gradient)
+    }
+}
+
 /// The possible status of a [`Container`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {
@@ -571,19 +589,19 @@ impl DefaultStyle for Appearance {
 
 impl DefaultStyle for Color {
     fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default().with_background(*self)
+        Appearance::from(*self)
     }
 }
 
 impl DefaultStyle for Gradient {
     fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default().with_background(*self)
+        Appearance::from(*self)
     }
 }
 
 impl DefaultStyle for gradient::Linear {
     fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default().with_background(*self)
+        Appearance::from(*self)
     }
 }
 
