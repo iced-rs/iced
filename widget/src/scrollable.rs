@@ -36,7 +36,7 @@ pub struct Scrollable<
     direction: Direction,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
@@ -48,7 +48,7 @@ where
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Self::with_direction(content, Direction::default())
     }
@@ -59,20 +59,16 @@ where
         direction: Direction,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
-        Self::with_direction_and_style(
-            content,
-            direction,
-            Theme::default_style(),
-        )
+        Self::with_direction_and_style(content, direction, Theme::default_style)
     }
 
     /// Creates a new [`Scrollable`] with the given [`Direction`] and style.
     pub fn with_direction_and_style(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         direction: Direction,
-        style: fn(&Theme, Status) -> Appearance,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
     ) -> Self {
         let content = content.into();
 
@@ -95,7 +91,7 @@ where
             direction,
             content,
             on_scroll: None,
-            style: style.into(),
+            style: Box::new(style),
         }
     }
 
@@ -126,8 +122,11 @@ where
     }
 
     /// Sets the style of the [`Scrollable`] .
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
@@ -1603,23 +1602,23 @@ pub struct Scroller {
 }
 
 /// The style of a [`Scrollable`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Scrollable`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Scrollable`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 

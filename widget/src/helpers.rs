@@ -104,7 +104,7 @@ pub fn scrollable<'a, Message, Theme, Renderer>(
     content: impl Into<Element<'a, Message, Theme, Renderer>>,
 ) -> Scrollable<'a, Message, Theme, Renderer>
 where
-    Theme: scrollable::DefaultStyle,
+    Theme: scrollable::DefaultStyle + 'a,
     Renderer: core::Renderer,
 {
     Scrollable::new(content)
