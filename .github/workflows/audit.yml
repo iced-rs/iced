@@ -8,7 +8,7 @@ jobs:
   vulnerabilities:
     runs-on: ubuntu-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
     - name: Install cargo-audit
       run: cargo install cargo-audit
     - uses: actions/checkout@master
@@ -20,7 +20,7 @@ jobs:
   # artifacts:
   #   runs-on: ubuntu-latest
   #   steps:
-  #   - uses: hecrj/setup-rust-action@v1
+  #   - uses: hecrj/setup-rust-action@v2
   #   - name: Install cargo-outdated
   #     run: cargo install cargo-outdated
   #   - uses: actions/checkout@master

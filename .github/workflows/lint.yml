@@ -4,7 +4,7 @@ jobs:
   all:
     runs-on: macOS-latest
     steps:
-    - uses: hecrj/setup-rust-action@v1
+    - uses: hecrj/setup-rust-action@v2
       with:
         components: clippy
     - uses: actions/checkout@master
