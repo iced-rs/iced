@@ -194,7 +194,7 @@ pub fn toggler<'a, Message, Theme, Renderer>(
     f: impl Fn(bool) -> Message + 'a,
 ) -> Toggler<'a, Message, Theme, Renderer>
 where
-    Theme: toggler::DefaultStyle,
+    Theme: toggler::DefaultStyle + 'a,
     Renderer: core::text::Renderer,
 {
     Toggler::new(label, is_checked, f)

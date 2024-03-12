@@ -48,7 +48,7 @@ pub struct Toggler<
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
@@ -72,7 +72,7 @@ where
         f: F,
     ) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: 'a + DefaultStyle,
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
@@ -87,7 +87,7 @@ where
             text_shaping: text::Shaping::Basic,
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -145,8 +145,11 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style.into();
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
@@ -398,23 +401,23 @@ pub struct Appearance {
 }
 
 /// The style of a [`Toggler`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of a [`Toggler`].
 pub trait DefaultStyle {
     /// Returns the default style of a [`Toggler`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        default
+    fn default_style(&self, status: Status) -> Appearance {
+        default(self, status)
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
 
