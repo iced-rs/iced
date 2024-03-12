@@ -41,12 +41,12 @@ impl Sandbox for Tiger {
         ));
 
         let svg = svg(handle).width(Length::Fill).height(Length::Fill).style(
-            if self.apply_color_filter {
-                |_theme, _status| svg::Appearance {
-                    color: Some(color!(0x0000ff)),
-                }
-            } else {
-                |_theme, _status| svg::Appearance::default()
+            |_theme, _status| svg::Appearance {
+                color: if self.apply_color_filter {
+                    Some(color!(0x0000ff))
+                } else {
+                    None
+                },
             },
         );
 

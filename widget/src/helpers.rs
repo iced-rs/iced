@@ -362,9 +362,11 @@ pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
 /// [`Svg`]: crate::Svg
 /// [`Handle`]: crate::svg::Handle
 #[cfg(feature = "svg")]
-pub fn svg<Theme>(handle: impl Into<core::svg::Handle>) -> crate::Svg<Theme>
+pub fn svg<'a, Theme>(
+    handle: impl Into<core::svg::Handle>,
+) -> crate::Svg<'a, Theme>
 where
-    Theme: crate::svg::DefaultStyle,
+    Theme: crate::svg::DefaultStyle + 'a,
 {
     crate::Svg::new(handle)
 }

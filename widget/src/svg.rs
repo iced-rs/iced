@@ -20,26 +20,26 @@ pub use crate::core::svg::Handle;
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
 #[allow(missing_debug_implementations)]
-pub struct Svg<Theme = crate::Theme> {
+pub struct Svg<'a, Theme = crate::Theme> {
     handle: Handle,
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: Style<Theme>,
+    style: Style<'a, Theme>,
 }
 
-impl<Theme> Svg<Theme> {
+impl<'a, Theme> Svg<'a, Theme> {
     /// Creates a new [`Svg`] from the given [`Handle`].
     pub fn new(handle: impl Into<Handle>) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Theme::default_style(),
+            style: Box::new(Theme::default_style),
         }
     }
 
@@ -48,7 +48,7 @@ impl<Theme> Svg<Theme> {
     #[must_use]
     pub fn from_path(path: impl Into<PathBuf>) -> Self
     where
-        Theme: DefaultStyle,
+        Theme: DefaultStyle + 'a,
     {
         Self::new(Handle::from_path(path))
     }
@@ -80,13 +80,17 @@ impl<Theme> Svg<Theme> {
 
     /// Sets the style variant of this [`Svg`].
     #[must_use]
-    pub fn style(mut self, style: fn(&Theme, Status) -> Appearance) -> Self {
-        self.style = style;
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme, Status) -> Appearance + 'a,
+    ) -> Self {
+        self.style = Box::new(style);
         self
     }
 }
 
-impl<Message, Theme, Renderer> Widget<Message, Theme, Renderer> for Svg<Theme>
+impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for Svg<'a, Theme>
 where
     Renderer: svg::Renderer,
 {
@@ -182,13 +186,13 @@ where
     }
 }
 
-impl<'a, Message, Theme, Renderer> From<Svg<Theme>>
+impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Theme: 'a,
     Renderer: svg::Renderer + 'a,
 {
-    fn from(icon: Svg<Theme>) -> Element<'a, Message, Theme, Renderer> {
+    fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(icon)
     }
 }
@@ -214,22 +218,22 @@ pub struct Appearance {
 }
 
 /// The style of an [`Svg`].
-pub type Style<Theme> = fn(&Theme, Status) -> Appearance;
+pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
 
 /// The default style of an [`Svg`].
 pub trait DefaultStyle {
     /// Returns the default style of an [`Svg`].
-    fn default_style() -> Style<Self>;
+    fn default_style(&self, status: Status) -> Appearance;
 }
 
 impl DefaultStyle for Theme {
-    fn default_style() -> Style<Self> {
-        |_theme, _status| Appearance::default()
+    fn default_style(&self, _status: Status) -> Appearance {
+        Appearance::default()
     }
 }
 
 impl DefaultStyle for Appearance {
-    fn default_style() -> Style<Self> {
-        |appearance, _status| *appearance
+    fn default_style(&self, _status: Status) -> Appearance {
+        *self
     }
 }
