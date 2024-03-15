@@ -1,5 +1,4 @@
 //! Zoom and pan on an image.
-use iced_renderer::core::ContentFit;
 use crate::core::event::{self, Event};
 use crate::core::image;
 use crate::core::layout;
@@ -10,6 +9,7 @@ use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
     Vector, Widget,
 };
+use iced_renderer::core::ContentFit;
 
 use std::hash::Hash;
 
@@ -182,7 +182,13 @@ where
                             })
                             .clamp(self.min_scale, self.max_scale);
 
-                            let image_size = image_size(renderer, &self.handle, state, bounds.size(), self.content_fit);
+                            let image_size = image_size(
+                                renderer,
+                                &self.handle,
+                                state,
+                                bounds.size(),
+                                self.content_fit,
+                            );
 
                             let factor = state.scale / previous_scale - 1.0;
 
@@ -224,7 +230,7 @@ where
             }
             Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Left)) => {
                 let state = tree.state.downcast_mut::<State>();
-                
+
                 if state.cursor_grabbed_at.is_some() {
                     state.cursor_grabbed_at = None;
 
@@ -235,9 +241,15 @@ where
             }
             Event::Mouse(mouse::Event::CursorMoved { position }) => {
                 let state = tree.state.downcast_mut::<State>();
-                
+
                 if let Some(origin) = state.cursor_grabbed_at {
-                    let image_size = image_size(renderer, &self.handle, state, bounds.size(), self.content_fit);
+                    let image_size = image_size(
+                        renderer,
+                        &self.handle,
+                        state,
+                        bounds.size(),
+                        self.content_fit,
+                    );
                     let hidden_width = (image_size.width - bounds.width / 2.0)
                         .max(0.0)
                         .round();
@@ -308,9 +320,15 @@ where
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
 
-        let image_size = image_size(renderer, &self.handle, state, bounds.size(), self.content_fit);
+        let image_size = image_size(
+            renderer,
+            &self.handle,
+            state,
+            bounds.size(),
+            self.content_fit,
+        );
 
-        let translation = {    
+        let translation = {
             let image_top_left = Vector::new(
                 (bounds.width - image_size.width).max(0.0) / 2.0,
                 (bounds.height - image_size.height).max(0.0) / 2.0,
@@ -327,7 +345,11 @@ where
                     ..bounds
                 };
 
-                renderer.draw(self.handle.clone(), self.filter_method, drawing_bounds);
+                renderer.draw(
+                    self.handle.clone(),
+                    self.filter_method,
+                    drawing_bounds,
+                );
             });
         };
 
