@@ -1,12 +1,11 @@
 //! This example showcases an interactive `Canvas` for drawing Bézier curves.
 use iced::widget::{button, column, text};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::sandbox("Bezier Tool - Iced", Example::update, Example::view)
+        .antialiased()
+        .run()
 }
 
 #[derive(Default)]
@@ -21,17 +20,7 @@ enum Message {
     Clear,
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
-    fn new() -> Self {
-        Example::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Bezier tool - Iced")
-    }
-
+impl Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::AddCurve(curve) => {

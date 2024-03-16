@@ -1,15 +1,20 @@
 use iced::futures;
 use iced::widget::{self, column, container, image, row, text};
-use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
+use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    Pokedex::run(Settings::default())
+    iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
+        .load(Pokedex::search)
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum Pokedex {
+    #[default]
     Loading,
-    Loaded { pokemon: Pokemon },
+    Loaded {
+        pokemon: Pokemon,
+    },
     Errored,
 }
 
@@ -19,17 +24,9 @@ enum Message {
     Search,
 }
 
-impl Application for Pokedex {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = iced::executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Pokedex, Command<Message>) {
-        (
-            Pokedex::Loading,
-            Command::perform(Pokemon::search(), Message::PokemonFound),
-        )
+impl Pokedex {
+    fn search() -> Command<Message> {
+        Command::perform(Pokemon::search(), Message::PokemonFound)
     }
 
     fn title(&self) -> String {
@@ -59,7 +56,7 @@ impl Application for Pokedex {
                 _ => {
                     *self = Pokedex::Loading;
 
-                    Command::perform(Pokemon::search(), Message::PokemonFound)
+                    Self::search()
                 }
             },
         }

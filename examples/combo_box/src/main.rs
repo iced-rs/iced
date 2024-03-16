@@ -1,10 +1,10 @@
 use iced::widget::{
     column, combo_box, container, scrollable, text, vertical_space,
 };
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::run("Combo Box - Iced", Example::update, Example::view)
 }
 
 struct Example {
@@ -20,19 +20,13 @@ enum Message {
     Closed,
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
+impl Example {
     fn new() -> Self {
         Self {
             languages: combo_box::State::new(Language::ALL.to_vec()),
             selected_language: None,
             text: String::new(),
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Combo box - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -80,6 +74,12 @@ impl Sandbox for Example {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Example::new()
     }
 }
 

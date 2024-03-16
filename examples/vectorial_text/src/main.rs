@@ -3,18 +3,20 @@ use iced::mouse;
 use iced::widget::{
     canvas, checkbox, column, horizontal_space, row, slider, text,
 };
-use iced::{
-    Element, Length, Point, Rectangle, Renderer, Sandbox, Settings, Theme,
-    Vector,
-};
+use iced::{Element, Length, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
-    VectorialText::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::sandbox(
+        "Vectorial Text - Iced",
+        VectorialText::update,
+        VectorialText::view,
+    )
+    .theme(|_| Theme::Dark)
+    .antialiased()
+    .run()
 }
 
+#[derive(Default)]
 struct VectorialText {
     state: State,
 }
@@ -27,19 +29,7 @@ enum Message {
     ToggleJapanese(bool),
 }
 
-impl Sandbox for VectorialText {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self {
-            state: State::new(),
-        }
-    }
-
-    fn title(&self) -> String {
-        String::from("Vectorial Text - Iced")
-    }
-
+impl VectorialText {
     fn update(&mut self, message: Message) {
         match message {
             Message::SizeChanged(size) => {
@@ -106,10 +96,6 @@ impl Sandbox for VectorialText {
         .padding(20)
         .into()
     }
-
-    fn theme(&self) -> Theme {
-        Theme::Dark
-    }
 }
 
 struct State {
@@ -168,5 +154,11 @@ impl<Message> canvas::Program<Message> for State {
         });
 
         vec![geometry]
+    }
+}
+
+impl Default for State {
+    fn default() -> Self {
+        State::new()
     }
 }

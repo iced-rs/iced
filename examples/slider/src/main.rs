@@ -1,8 +1,8 @@
 use iced::widget::{column, container, slider, text, vertical_slider};
-use iced::{Element, Length, Sandbox, Settings};
+use iced::{Element, Length};
 
 pub fn main() -> iced::Result {
-    Slider::run(Settings::default())
+    iced::run("Slider - Iced", Slider::update, Slider::view)
 }
 
 #[derive(Debug, Clone)]
@@ -17,20 +17,14 @@ pub struct Slider {
     shift_step: u8,
 }
 
-impl Sandbox for Slider {
-    type Message = Message;
-
-    fn new() -> Slider {
+impl Slider {
+    fn new() -> Self {
         Slider {
             value: 50,
             default: 50,
             step: 5,
             shift_step: 1,
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Slider - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -73,5 +67,11 @@ impl Sandbox for Slider {
         .center_x()
         .center_y()
         .into()
+    }
+}
+
+impl Default for Slider {
+    fn default() -> Self {
+        Self::new()
     }
 }

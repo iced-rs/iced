@@ -1,4 +1,3 @@
-use iced::executor;
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
@@ -6,15 +5,18 @@ use iced::widget::{
     row, scrollable, text,
 };
 use iced::{
-    color, Alignment, Application, Command, Element, Font, Length, Point,
-    Rectangle, Renderer, Settings, Subscription, Theme,
+    color, Alignment, Element, Font, Length, Point, Rectangle, Renderer,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
-    Layout::run(Settings::default())
+    iced::sandbox(Layout::title, Layout::update, Layout::view)
+        .subscription(Layout::subscription)
+        .theme(Layout::theme)
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 struct Layout {
     example: Example,
     explain: bool,
@@ -29,28 +31,12 @@ enum Message {
     ThemeSelected(Theme),
 }
 
-impl Application for Layout {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self {
-                example: Example::default(),
-                explain: false,
-                theme: Theme::Light,
-            },
-            Command::none(),
-        )
-    }
-
+impl Layout {
     fn title(&self) -> String {
         format!("{} - Layout - Iced", self.example.title)
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Next => {
                 self.example = self.example.next();
@@ -65,8 +51,6 @@ impl Application for Layout {
                 self.theme = theme;
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

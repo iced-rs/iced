@@ -1,18 +1,23 @@
 use iced::widget::{button, column, container, text};
-use iced::{
-    executor, system, Application, Command, Element, Length, Settings, Theme,
-};
-
-use bytesize::ByteSize;
+use iced::{system, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::application(
+        "System Information - Iced",
+        Example::update,
+        Example::view,
+    )
+    .run()
 }
 
+#[derive(Default)]
 #[allow(clippy::large_enum_variant)]
 enum Example {
+    #[default]
     Loading,
-    Loaded { information: system::Information },
+    Loaded {
+        information: system::Information,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -22,23 +27,7 @@ enum Message {
     Refresh,
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self::Loading,
-            system::fetch_information(Message::InformationReceived),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("System Information - Iced")
-    }
-
+impl Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Refresh => {
@@ -55,6 +44,8 @@ impl Application for Example {
     }
 
     fn view(&self) -> Element<Message> {
+        use bytesize::ByteSize;
+
         let content: Element<_> = match self {
             Example::Loading => text("Loading...").size(40).into(),
             Example::Loaded { information } => {

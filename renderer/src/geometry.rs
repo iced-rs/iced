@@ -2,7 +2,7 @@ mod cache;
 
 pub use cache::Cache;
 
-use crate::core::{Point, Rectangle, Size, Transformation, Vector};
+use crate::core::{Point, Radians, Rectangle, Size, Transformation, Vector};
 use crate::graphics::geometry::{Fill, Path, Stroke, Text};
 use crate::Renderer;
 
@@ -184,7 +184,7 @@ impl Frame {
 
     /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
-    pub fn rotate(&mut self, angle: f32) {
+    pub fn rotate(&mut self, angle: impl Into<Radians>) {
         delegate!(self, frame, frame.rotate(angle));
     }
 

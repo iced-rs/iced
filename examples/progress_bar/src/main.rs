@@ -1,8 +1,8 @@
 use iced::widget::{column, progress_bar, slider};
-use iced::{Element, Sandbox, Settings};
+use iced::Element;
 
 pub fn main() -> iced::Result {
-    Progress::run(Settings::default())
+    iced::run("Progress Bar - Iced", Progress::update, Progress::view)
 }
 
 #[derive(Default)]
@@ -15,17 +15,7 @@ enum Message {
     SliderChanged(f32),
 }
 
-impl Sandbox for Progress {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("A simple Progressbar")
-    }
-
+impl Progress {
     fn update(&mut self, message: Message) {
         match message {
             Message::SliderChanged(x) => self.value = x,

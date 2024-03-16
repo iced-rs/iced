@@ -1,8 +1,8 @@
 use iced::widget::{column, pick_list, scrollable, vertical_space};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::run("Pick List - Iced", Example::update, Example::view)
 }
 
 #[derive(Default)]
@@ -15,17 +15,7 @@ enum Message {
     LanguageSelected(Language),
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Pick list - Iced")
-    }
-
+impl Example {
     fn update(&mut self, message: Message) {
         match message {
             Message::LanguageSelected(language) => {
