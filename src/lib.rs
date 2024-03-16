@@ -362,7 +362,7 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message>(
-    title: &'static str,
+    title: impl program::Title<State> + 'static,
     update: impl Fn(&mut State, Message) + 'static,
     view: impl for<'a> program::View<'a, State, Message> + 'static,
 ) -> Result

@@ -143,31 +143,30 @@ where
 /// Creates a [`Program`] that can leverage the [`Command`] API for
 /// concurrent operations.
 pub fn application<State, Message>(
-    new: impl Fn() -> (State, Command<Message>),
+    title: impl Title<State>,
     update: impl Fn(&mut State, Message) -> Command<Message>,
     view: impl for<'a> self::View<'a, State, Message>,
 ) -> Program<
     impl Definition<State = State, Message = Message, Theme = crate::Theme>,
 >
 where
-    State: 'static,
+    State: Default + 'static,
     Message: Send + std::fmt::Debug,
 {
     use std::marker::PhantomData;
 
-    struct Application<State, Message, New, Update, View> {
-        new: New,
+    struct Application<State, Message, Update, View> {
         update: Update,
         view: View,
         _state: PhantomData<State>,
         _message: PhantomData<Message>,
     }
 
-    impl<State, Message, New, Update, View> Definition
-        for Application<State, Message, New, Update, View>
+    impl<State, Message, Update, View> Definition
+        for Application<State, Message, Update, View>
     where
+        State: Default,
         Message: Send + std::fmt::Debug,
-        New: Fn() -> (State, Command<Message>),
         Update: Fn(&mut State, Message) -> Command<Message>,
         View: for<'a> self::View<'a, State, Message>,
     {
@@ -177,7 +176,7 @@ where
         type Executor = executor::Default;
 
         fn build(&self) -> (Self::State, Command<Self::Message>) {
-            (self.new)()
+            (Self::State::default(), Command::none())
         }
 
         fn update(
@@ -198,7 +197,6 @@ where
 
     Program {
         raw: Application {
-            new,
             update,
             view,
             _state: PhantomData,
@@ -206,6 +204,7 @@ where
         },
         settings: Settings::default(),
     }
+    .title(title)
 }
 
 /// A fully functioning and configured iced application.
@@ -367,6 +366,19 @@ impl<P: Definition> Program<P> {
         }
     }
 
+    /// Runs the [`Command`] produced by the closure at startup.
+    pub fn load(
+        self,
+        f: impl Fn() -> Command<P::Message>,
+    ) -> Program<
+        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
+    > {
+        Program {
+            raw: with_load(self.raw, f),
+            settings: self.settings,
+        }
+    }
+
     /// Sets the subscription logic of the [`Program`].
     pub fn subscription(
         self,
@@ -498,6 +510,64 @@ fn with_title<P: Definition>(
     }
 
     WithTitle { program, title }
+}
+
+fn with_load<P: Definition>(
+    program: P,
+    f: impl Fn() -> Command<P::Message>,
+) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+    struct WithLoad<P, F> {
+        program: P,
+        load: F,
+    }
+
+    impl<P: Definition, F> Definition for WithLoad<P, F>
+    where
+        F: Fn() -> Command<P::Message>,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Executor = executor::Default;
+
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
+            let (state, command) = self.program.build();
+
+            (state, Command::batch([command, (self.load)()]))
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Command<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+        ) -> Element<'a, Self::Message, Self::Theme> {
+            self.program.view(state)
+        }
+
+        fn title(&self, state: &Self::State) -> String {
+            self.program.title(state)
+        }
+
+        fn theme(&self, state: &Self::State) -> Self::Theme {
+            self.program.theme(state)
+        }
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+    }
+
+    WithLoad { program, load: f }
 }
 
 fn with_subscription<P: Definition>(

@@ -5,8 +5,7 @@ use iced::window;
 use iced::{Alignment, Command, Element, Length, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::application(Events::new, Events::update, Events::view)
-        .title("Events - Iced")
+    iced::application("Events - Iced", Events::update, Events::view)
         .subscription(Events::subscription)
         .ignore_close_request()
         .run()
@@ -26,10 +25,6 @@ enum Message {
 }
 
 impl Events {
-    fn new() -> (Events, Command<Message>) {
-        (Events::default(), Command::none())
-    }
-
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {

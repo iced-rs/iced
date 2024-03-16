@@ -13,12 +13,12 @@ use ::image::ColorType;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application(Example::new, Example::update, Example::view)
+    iced::application("Screenshot - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
-        .title("Screenshot - Iced")
         .run()
 }
 
+#[derive(Default)]
 struct Example {
     screenshot: Option<Screenshot>,
     saved_png_path: Option<Result<String, PngError>>,
@@ -44,22 +44,6 @@ enum Message {
 }
 
 impl Example {
-    fn new() -> (Self, Command<Message>) {
-        (
-            Example {
-                screenshot: None,
-                saved_png_path: None,
-                png_saving: false,
-                crop_error: None,
-                x_input_value: None,
-                y_input_value: None,
-                width_input_value: None,
-                height_input_value: None,
-            },
-            Command::none(),
-        )
-    }
-
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Screenshot => {

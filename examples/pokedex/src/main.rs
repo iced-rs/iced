@@ -3,15 +3,18 @@ use iced::widget::{self, column, container, image, row, text};
 use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    iced::application(Pokedex::new, Pokedex::update, Pokedex::view)
-        .title(Pokedex::title)
+    iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
+        .load(Pokedex::load)
         .run()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 enum Pokedex {
+    #[default]
     Loading,
-    Loaded { pokemon: Pokemon },
+    Loaded {
+        pokemon: Pokemon,
+    },
     Errored,
 }
 
@@ -22,11 +25,8 @@ enum Message {
 }
 
 impl Pokedex {
-    fn new() -> (Self, Command<Message>) {
-        (
-            Pokedex::Loading,
-            Command::perform(Pokemon::search(), Message::PokemonFound),
-        )
+    fn load() -> Command<Message> {
+        Command::perform(Pokemon::search(), Message::PokemonFound)
     }
 
     fn title(&self) -> String {

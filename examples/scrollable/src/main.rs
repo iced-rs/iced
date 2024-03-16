@@ -11,12 +11,11 @@ static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
     iced::application(
-        ScrollableDemo::new,
+        "Scrollable - Iced",
         ScrollableDemo::update,
         ScrollableDemo::view,
     )
     .theme(ScrollableDemo::theme)
-    .title("Scrollable - Iced")
     .run()
 }
 
@@ -49,18 +48,15 @@ enum Message {
 }
 
 impl ScrollableDemo {
-    fn new() -> (Self, Command<Message>) {
-        (
-            ScrollableDemo {
-                scrollable_direction: Direction::Vertical,
-                scrollbar_width: 10,
-                scrollbar_margin: 0,
-                scroller_width: 10,
-                current_scroll_offset: scrollable::RelativeOffset::START,
-                alignment: scrollable::Alignment::Start,
-            },
-            Command::none(),
-        )
+    fn new() -> Self {
+        ScrollableDemo {
+            scrollable_direction: Direction::Vertical,
+            scrollbar_width: 10,
+            scrollbar_margin: 0,
+            scroller_width: 10,
+            current_scroll_offset: scrollable::RelativeOffset::START,
+            alignment: scrollable::Alignment::Start,
+        }
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -336,6 +332,12 @@ impl ScrollableDemo {
 
     fn theme(&self) -> Theme {
         Theme::Dark
+    }
+}
+
+impl Default for ScrollableDemo {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -3,9 +3,7 @@ use iced::window;
 use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    iced::application(Exit::new, Exit::update, Exit::view)
-        .title("Exit - Iced")
-        .run()
+    iced::application("Exit - Iced", Exit::update, Exit::view).run()
 }
 
 #[derive(Default)]
@@ -20,10 +18,6 @@ enum Message {
 }
 
 impl Exit {
-    fn new() -> (Self, Command<Message>) {
-        (Self::default(), Command::none())
-    }
-
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Confirm => window::close(window::Id::MAIN),
