@@ -289,7 +289,8 @@ where
                         | winit::event::WindowEvent::Moved(_),
                     ..
                 }
-            ) {
+            ) || matches!(event, winit::event::Event::UserEvent(_))
+            {
                 process_event(event, event_loop);
                 process_event(winit::event::Event::AboutToWait, event_loop);
             } else {
