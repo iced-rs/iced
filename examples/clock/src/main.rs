@@ -61,7 +61,7 @@ impl Clock {
     }
 
     fn theme(&self) -> Theme {
-        Theme::ALL[(self.now.unix_timestamp() as usize / 60) % Theme::ALL.len()]
+        Theme::ALL[(self.now.unix_timestamp() as usize / 10) % Theme::ALL.len()]
             .clone()
     }
 }
@@ -94,7 +94,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let radius = frame.width().min(frame.height()) / 2.0;
 
             let background = Path::circle(center, radius);
-            frame.fill(&background, palette.primary.weak.color);
+            frame.fill(&background, palette.secondary.strong.color);
 
             let short_hand =
                 Path::line(Point::ORIGIN, Point::new(0.0, -0.5 * radius));
@@ -107,7 +107,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let thin_stroke = || -> Stroke {
                 Stroke {
                     width,
-                    style: stroke::Style::Solid(palette.primary.weak.text),
+                    style: stroke::Style::Solid(palette.secondary.strong.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -116,7 +116,7 @@ impl<Message> canvas::Program<Message> for Clock {
             let wide_stroke = || -> Stroke {
                 Stroke {
                     width: width * 3.0,
-                    style: stroke::Style::Solid(palette.primary.weak.text),
+                    style: stroke::Style::Solid(palette.secondary.strong.text),
                     line_cap: LineCap::Round,
                     ..Stroke::default()
                 }
@@ -150,7 +150,7 @@ impl<Message> canvas::Program<Message> for Clock {
                         (0.78 * radius) * rotate_factor,
                         -width * 2.0,
                     ),
-                    color: palette.primary.weak.text,
+                    color: palette.secondary.strong.text,
                     horizontal_alignment: if rotate_factor > 0.0 {
                         alignment::Horizontal::Right
                     } else {
