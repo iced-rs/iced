@@ -1,5 +1,7 @@
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
+use crate::core::{
+    Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
+};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{Path, Style, Text};
@@ -192,10 +194,10 @@ impl Frame {
             self.transform.pre_translate(translation.x, translation.y);
     }
 
-    pub fn rotate(&mut self, angle: f32) {
-        self.transform = self
-            .transform
-            .pre_concat(tiny_skia::Transform::from_rotate(angle.to_degrees()));
+    pub fn rotate(&mut self, angle: impl Into<Radians>) {
+        self.transform = self.transform.pre_concat(
+            tiny_skia::Transform::from_rotate(angle.into().0.to_degrees()),
+        );
     }
 
     pub fn scale(&mut self, scale: impl Into<f32>) {

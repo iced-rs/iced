@@ -1,8 +1,10 @@
+use iced::alignment;
 use iced::mouse;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Element, Length, Point, Rectangle, Renderer, Subscription, Theme, Vector,
+    Degrees, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
+    Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
@@ -133,8 +135,31 @@ impl<Message> canvas::Program<Message> for Clock {
             });
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.second(), 60));
+                let rotation = hand_rotation(self.now.second(), 60);
+
+                frame.rotate(rotation);
                 frame.stroke(&long_hand, thin_stroke());
+
+                let rotate_factor = if rotation < 180.0 { 1.0 } else { -1.0 };
+
+                frame.rotate(Degrees(-90.0 * rotate_factor));
+                frame.fill_text(canvas::Text {
+                    content: theme.to_string(),
+                    size: 15.into(),
+                    position: Point::new(
+                        (0.8 * radius - 8.0) * rotate_factor,
+                        -8.0,
+                    ),
+                    color: palette.primary.weak.text,
+                    horizontal_alignment: if rotate_factor > 0.0 {
+                        alignment::Horizontal::Right
+                    } else {
+                        alignment::Horizontal::Left
+                    },
+                    vertical_alignment: alignment::Vertical::Bottom,
+                    font: Font::MONOSPACE,
+                    ..canvas::Text::default()
+                });
             });
         });
 
@@ -142,8 +167,8 @@ impl<Message> canvas::Program<Message> for Clock {
     }
 }
 
-fn hand_rotation(n: u8, total: u8) -> f32 {
+fn hand_rotation(n: u8, total: u8) -> Degrees {
     let turns = n as f32 / total as f32;
 
-    2.0 * std::f32::consts::PI * turns
+    Degrees(360.0 * turns)
 }

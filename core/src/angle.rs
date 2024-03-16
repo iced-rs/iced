@@ -7,6 +7,18 @@ use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Sub, SubAssign};
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Degrees(pub f32);
 
+impl PartialEq<f32> for Degrees {
+    fn eq(&self, other: &f32) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialOrd<f32> for Degrees {
+    fn partial_cmp(&self, other: &f32) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
 /// Radians
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Radians(pub f32);
@@ -138,5 +150,17 @@ impl Div for Radians {
 
     fn div(self, rhs: Self) -> Self::Output {
         Self(self.0 / rhs.0)
+    }
+}
+
+impl PartialEq<f32> for Radians {
+    fn eq(&self, other: &f32) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialOrd<f32> for Radians {
+    fn partial_cmp(&self, other: &f32) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
     }
 }
