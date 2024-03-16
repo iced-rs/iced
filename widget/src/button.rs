@@ -141,11 +141,6 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-struct Focus {
-    is_window_focused: bool,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_focused: bool,
     is_pressed: bool,
