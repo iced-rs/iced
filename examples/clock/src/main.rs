@@ -145,10 +145,10 @@ impl<Message> canvas::Program<Message> for Clock {
                 frame.rotate(Degrees(-90.0 * rotate_factor));
                 frame.fill_text(canvas::Text {
                     content: theme.to_string(),
-                    size: 15.into(),
+                    size: (radius / 15.0).into(),
                     position: Point::new(
-                        (0.8 * radius - 8.0) * rotate_factor,
-                        -8.0,
+                        (0.78 * radius) * rotate_factor,
+                        -width * 2.0,
                     ),
                     color: palette.primary.weak.text,
                     horizontal_alignment: if rotate_factor > 0.0 {
