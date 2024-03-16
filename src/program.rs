@@ -355,7 +355,7 @@ impl<P: Definition> Program<P> {
     }
 
     /// Sets the [`Title`] of the [`Program`].
-    pub fn title(
+    pub(crate) fn title(
         self,
         title: impl Title<P::State>,
     ) -> Program<
