@@ -4,7 +4,7 @@ use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
     iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
-        .load(Pokedex::load)
+        .load(Pokedex::search)
         .run()
 }
 
@@ -25,7 +25,7 @@ enum Message {
 }
 
 impl Pokedex {
-    fn load() -> Command<Message> {
+    fn search() -> Command<Message> {
         Command::perform(Pokemon::search(), Message::PokemonFound)
     }
 
@@ -56,7 +56,7 @@ impl Pokedex {
                 _ => {
                     *self = Pokedex::Loading;
 
-                    Command::perform(Pokemon::search(), Message::PokemonFound)
+                    Self::search()
                 }
             },
         }
