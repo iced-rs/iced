@@ -15,8 +15,7 @@
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::sandbox(update, view)
-//!         .title("A counter")
+//!     iced::sandbox("A counter", update, view)
 //!         .theme(|_| Theme::Dark)
 //!         .centered()
 //!         .run()
@@ -54,7 +53,7 @@ use std::borrow::Cow;
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {
-///     iced::sandbox(update, view).title("A counter").run()
+///     iced::sandbox("A counter", update, view).run()
 /// }
 ///
 /// #[derive(Debug, Clone)]
@@ -76,6 +75,7 @@ use std::borrow::Cow;
 /// }
 /// ```
 pub fn sandbox<State, Message>(
+    title: impl Title<State>,
     update: impl Fn(&mut State, Message),
     view: impl for<'a> self::View<'a, State, Message>,
 ) -> Program<
@@ -138,6 +138,7 @@ where
         },
         settings: Settings::default(),
     }
+    .title(title)
 }
 
 /// Creates a [`Program`] that can leverage the [`Command`] API for

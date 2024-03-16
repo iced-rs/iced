@@ -6,11 +6,14 @@ use iced::widget::{
 use iced::{Element, Length, Point, Rectangle, Renderer, Theme, Vector};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(VectorialText::update, VectorialText::view)
-        .theme(|_| Theme::Dark)
-        .title("Vectorial Text - Iced")
-        .antialiased()
-        .run()
+    iced::sandbox(
+        "Vectorial Text - Iced",
+        VectorialText::update,
+        VectorialText::view,
+    )
+    .theme(|_| Theme::Dark)
+    .antialiased()
+    .run()
 }
 
 #[derive(Default)]

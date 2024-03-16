@@ -370,7 +370,7 @@ where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
 {
-    sandbox(update, view).title(title).run()
+    sandbox(title, update, view).run()
 }
 
 #[doc(inline)]

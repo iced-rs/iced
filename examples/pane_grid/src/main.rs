@@ -7,9 +7,8 @@ use iced::widget::{
 use iced::{Color, Element, Length, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Example::update, Example::view)
+    iced::sandbox("Pane Grid - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
-        .title("Pane Grid - Iced")
         .run()
 }
 

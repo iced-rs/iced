@@ -6,9 +6,8 @@ use iced::widget::{
 use iced::{Alignment, Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Styling::update, Styling::view)
+    iced::sandbox("Styling - Iced", Styling::update, Styling::view)
         .theme(Styling::theme)
-        .title("Styling - Iced")
         .run()
 }
 

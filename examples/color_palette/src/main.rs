@@ -13,12 +13,15 @@ use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    iced::sandbox(ColorPalette::update, ColorPalette::view)
-        .theme(ColorPalette::theme)
-        .title("Color Palette - Iced")
-        .default_font(Font::MONOSPACE)
-        .antialiased()
-        .run()
+    iced::sandbox(
+        "Color Palette - Iced",
+        ColorPalette::update,
+        ColorPalette::view,
+    )
+    .theme(ColorPalette::theme)
+    .default_font(Font::MONOSPACE)
+    .antialiased()
+    .run()
 }
 
 #[derive(Default)]

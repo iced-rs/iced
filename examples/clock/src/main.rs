@@ -6,8 +6,7 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Clock::update, Clock::view)
-        .title("Clock - Iced")
+    iced::sandbox("Clock - Iced", Clock::update, Clock::view)
         .subscription(Clock::subscription)
         .theme(Clock::theme)
         .antialiased()

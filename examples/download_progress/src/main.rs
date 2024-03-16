@@ -4,9 +4,8 @@ use iced::widget::{button, column, container, progress_bar, text, Column};
 use iced::{Alignment, Element, Length, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Example::update, Example::view)
+    iced::sandbox("Download Progress - Iced", Example::update, Example::view)
         .subscription(Example::subscription)
-        .title("Download Progress - Iced")
         .run()
 }
 

@@ -4,8 +4,7 @@ use iced::{Element, Font, Length};
 const ICON_FONT: Font = Font::with_name("icons");
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Example::update, Example::view)
-        .title("Checkbox - Iced")
+    iced::sandbox("Checkbox - Iced", Example::update, Example::view)
         .fonts([include_bytes!("../fonts/icons.ttf").as_slice().into()])
         .run()
 }

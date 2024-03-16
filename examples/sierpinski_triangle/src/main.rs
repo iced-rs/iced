@@ -8,10 +8,13 @@ use rand::Rng;
 use std::fmt::Debug;
 
 fn main() -> iced::Result {
-    iced::sandbox(SierpinskiEmulator::update, SierpinskiEmulator::view)
-        .title("Sierpinski Triangle - Iced")
-        .antialiased()
-        .run()
+    iced::sandbox(
+        "Sierpinski Triangle - Iced",
+        SierpinskiEmulator::update,
+        SierpinskiEmulator::view,
+    )
+    .antialiased()
+    .run()
 }
 
 #[derive(Debug, Default)]

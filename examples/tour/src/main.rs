@@ -16,8 +16,7 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    iced::sandbox(Tour::update, Tour::view)
-        .title(Tour::title)
+    iced::sandbox(Tour::title, Tour::update, Tour::view)
         .centered()
         .run()
 }

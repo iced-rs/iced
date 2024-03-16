@@ -9,9 +9,8 @@ use iced::window;
 use iced::{Alignment, Color, Element, Length, Subscription};
 
 fn main() -> iced::Result {
-    iced::sandbox(IcedCubes::update, IcedCubes::view)
+    iced::sandbox("Custom Shader - Iced", IcedCubes::update, IcedCubes::view)
         .subscription(IcedCubes::subscription)
-        .title("Custom Shader - Iced")
         .run()
 }
 

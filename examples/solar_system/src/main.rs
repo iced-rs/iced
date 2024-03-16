@@ -22,11 +22,14 @@ use std::time::Instant;
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::sandbox(SolarSystem::update, SolarSystem::view)
-        .subscription(SolarSystem::subscription)
-        .theme(SolarSystem::theme)
-        .title("Solar System - Iced")
-        .run()
+    iced::sandbox(
+        "Solar System - Iced",
+        SolarSystem::update,
+        SolarSystem::view,
+    )
+    .subscription(SolarSystem::subscription)
+    .theme(SolarSystem::theme)
+    .run()
 }
 
 #[derive(Default)]

@@ -4,10 +4,13 @@ use iced::widget::{
 use iced::{Alignment, Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(QRGenerator::update, QRGenerator::view)
-        .title("QR Code Generator - Iced")
-        .theme(QRGenerator::theme)
-        .run()
+    iced::sandbox(
+        "QR Code Generator - Iced",
+        QRGenerator::update,
+        QRGenerator::view,
+    )
+    .theme(QRGenerator::theme)
+    .run()
 }
 
 #[derive(Default)]

@@ -11,10 +11,13 @@ use circular::Circular;
 use linear::Linear;
 
 pub fn main() -> iced::Result {
-    iced::sandbox(LoadingSpinners::update, LoadingSpinners::view)
-        .title("Loading Spinners - Iced")
-        .antialiased()
-        .run()
+    iced::sandbox(
+        "Loading Spinners - Iced",
+        LoadingSpinners::update,
+        LoadingSpinners::view,
+    )
+    .antialiased()
+    .run()
 }
 
 struct LoadingSpinners {

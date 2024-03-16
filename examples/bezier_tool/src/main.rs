@@ -3,8 +3,7 @@ use iced::widget::{button, column, text};
 use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Example::update, Example::view)
-        .title("Bezier tool - Iced")
+    iced::sandbox("Bezier Tool - Iced", Example::update, Example::view)
         .antialiased()
         .run()
 }
