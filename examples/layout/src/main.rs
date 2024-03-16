@@ -10,7 +10,7 @@ use iced::{
 };
 
 pub fn main() -> iced::Result {
-    iced::sandbox(Layout::title, Layout::update, Layout::view)
+    iced::application(Layout::title, Layout::update, Layout::view)
         .subscription(Layout::subscription)
         .theme(Layout::theme)
         .run()

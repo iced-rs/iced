@@ -363,15 +363,15 @@ pub type Result = std::result::Result<(), Error>;
 /// ```
 pub fn run<State, Message>(
     title: impl program::Title<State> + 'static,
-    update: impl Fn(&mut State, Message) + 'static,
+    update: impl program::Update<State, Message> + 'static,
     view: impl for<'a> program::View<'a, State, Message> + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
 {
-    sandbox(title, update, view).run()
+    application(title, update, view).run()
 }
 
 #[doc(inline)]
-pub use program::{application, sandbox};
+pub use program::application;

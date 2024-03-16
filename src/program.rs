@@ -15,7 +15,7 @@
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::sandbox("A counter", update, view)
+//!     iced::application("A counter", update, view)
 //!         .theme(|_| Theme::Dark)
 //!         .centered()
 //!         .run()
@@ -46,14 +46,14 @@ use crate::{Command, Element, Font, Result, Settings, Subscription};
 
 use std::borrow::Cow;
 
-/// Creates the most basic kind of [`Program`] from some update and view logic.
+/// Creates an iced [`Program`] given its title, update, and view logic.
 ///
 /// # Example
 /// ```no_run
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {
-///     iced::sandbox("A counter", update, view).run()
+///     iced::application("A counter", update, view).run()
 /// }
 ///
 /// #[derive(Debug, Clone)]
@@ -74,78 +74,9 @@ use std::borrow::Cow;
 ///     ]
 /// }
 /// ```
-pub fn sandbox<State, Message>(
-    title: impl Title<State>,
-    update: impl Fn(&mut State, Message),
-    view: impl for<'a> self::View<'a, State, Message>,
-) -> Program<
-    impl Definition<State = State, Message = Message, Theme = crate::Theme>,
->
-where
-    State: Default + 'static,
-    Message: Send + std::fmt::Debug,
-{
-    use std::marker::PhantomData;
-
-    struct Sandbox<State, Message, Update, View> {
-        update: Update,
-        view: View,
-        _state: PhantomData<State>,
-        _message: PhantomData<Message>,
-    }
-
-    impl<State, Message, Update, View> Definition
-        for Sandbox<State, Message, Update, View>
-    where
-        State: Default + 'static,
-        Message: Send + std::fmt::Debug,
-        Update: Fn(&mut State, Message),
-        View: for<'a> self::View<'a, State, Message>,
-    {
-        type State = State;
-        type Message = Message;
-        type Theme = crate::Theme;
-        type Executor = iced_futures::backend::null::Executor;
-
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            (State::default(), Command::none())
-        }
-
-        fn update(
-            &self,
-            state: &mut Self::State,
-            message: Self::Message,
-        ) -> Command<Self::Message> {
-            (self.update)(state, message);
-
-            Command::none()
-        }
-
-        fn view<'a>(
-            &self,
-            state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
-            self.view.view(state).into()
-        }
-    }
-
-    Program {
-        raw: Sandbox {
-            update,
-            view,
-            _state: PhantomData,
-            _message: PhantomData,
-        },
-        settings: Settings::default(),
-    }
-    .title(title)
-}
-
-/// Creates a [`Program`] that can leverage the [`Command`] API for
-/// concurrent operations.
 pub fn application<State, Message>(
     title: impl Title<State>,
-    update: impl Fn(&mut State, Message) -> Command<Message>,
+    update: impl Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message>,
 ) -> Program<
     impl Definition<State = State, Message = Message, Theme = crate::Theme>,
@@ -168,7 +99,7 @@ where
     where
         State: Default,
         Message: Send + std::fmt::Debug,
-        Update: Fn(&mut State, Message) -> Command<Message>,
+        Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message>,
     {
         type State = State;
@@ -185,7 +116,7 @@ where
             state: &mut Self::State,
             message: Self::Message,
         ) -> Command<Self::Message> {
-            (self.update)(state, message)
+            self.update.update(state, message).into()
         }
 
         fn view<'a>(
@@ -704,18 +635,44 @@ where
     }
 }
 
+/// The update logic of some [`Program`].
+///
+/// This trait allows [`application`] to take any closure that
+/// returns any `Into<Command<Message>>`.
+///
+/// [`application`]: self::application()
+pub trait Update<State, Message> {
+    /// Processes the message and updates the state of the [`Program`].
+    fn update(
+        &self,
+        state: &mut State,
+        message: Message,
+    ) -> impl Into<Command<Message>>;
+}
+
+impl<T, State, Message, C> Update<State, Message> for T
+where
+    T: Fn(&mut State, Message) -> C,
+    C: Into<Command<Message>>,
+{
+    fn update(
+        &self,
+        state: &mut State,
+        message: Message,
+    ) -> impl Into<Command<Message>> {
+        self(state, message)
+    }
+}
+
 /// The view logic of some [`Program`].
 ///
-/// This trait allows [`sandbox`] and [`application`] to
-/// take any closure that returns any `Into<Element<'_, Message>>`.
+/// This trait allows [`application`] to take any closure that
+/// returns any `Into<Element<'_, Message>>`.
 ///
 /// [`application`]: self::application()
 pub trait View<'a, State, Message> {
-    /// The widget returned by the view logic.
-    type Widget: Into<Element<'a, Message>>;
-
     /// Produces the widget of the [`Program`].
-    fn view(&self, state: &'a State) -> Self::Widget;
+    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message>>;
 }
 
 impl<'a, T, State, Message, Widget> View<'a, State, Message> for T
@@ -724,9 +681,7 @@ where
     State: 'static,
     Widget: Into<Element<'a, Message>>,
 {
-    type Widget = Widget;
-
-    fn view(&self, state: &'a State) -> Self::Widget {
+    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message>> {
         self(state)
     }
 }

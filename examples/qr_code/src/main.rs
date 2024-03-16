@@ -4,7 +4,7 @@ use iced::widget::{
 use iced::{Alignment, Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    iced::sandbox(
+    iced::application(
         "QR Code Generator - Iced",
         QRGenerator::update,
         QRGenerator::view,

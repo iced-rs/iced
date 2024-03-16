@@ -151,7 +151,7 @@ use iced::{Element, Length};
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
-    iced::run("Custom 2D Geometry - Iced", |_, _| {}, view)
+    iced::run("Custom 2D Geometry - Iced", |_: &mut _, _| {}, view)
 }
 
 fn view(_state: &()) -> Element<'_, ()> {

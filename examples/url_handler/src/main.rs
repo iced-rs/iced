@@ -3,7 +3,7 @@ use iced::widget::{container, text};
 use iced::{Element, Length, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::sandbox("URL Handler - Iced", App::update, App::view)
+    iced::application("URL Handler - Iced", App::update, App::view)
         .subscription(App::subscription)
         .run()
 }

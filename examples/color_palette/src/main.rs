@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    iced::sandbox(
+    iced::application(
         "Color Palette - Iced",
         ColorPalette::update,
         ColorPalette::view,
