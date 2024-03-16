@@ -1,27 +1,32 @@
 use iced::alignment;
-use iced::executor;
 use iced::keyboard;
 use iced::time;
 use iced::widget::{button, column, container, row, text};
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
-};
+use iced::{Alignment, Element, Length, Subscription, Theme};
 
 use std::time::{Duration, Instant};
 
 pub fn main() -> iced::Result {
-    Stopwatch::run(Settings::default())
+    iced::sandbox(Stopwatch::update, Stopwatch::view)
+        .subscription(Stopwatch::subscription)
+        .theme(Stopwatch::theme)
+        .title("Stopwatch - Iced")
+        .run()
 }
 
+#[derive(Default)]
 struct Stopwatch {
     duration: Duration,
     state: State,
 }
 
+#[derive(Default)]
 enum State {
+    #[default]
     Idle,
-    Ticking { last_tick: Instant },
+    Ticking {
+        last_tick: Instant,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -31,27 +36,8 @@ enum Message {
     Tick(Instant),
 }
 
-impl Application for Stopwatch {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Stopwatch, Command<Message>) {
-        (
-            Stopwatch {
-                duration: Duration::default(),
-                state: State::Idle,
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Stopwatch - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl Stopwatch {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Toggle => match self.state {
                 State::Idle => {
@@ -73,8 +59,6 @@ impl Application for Stopwatch {
                 self.duration = Duration::default();
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {

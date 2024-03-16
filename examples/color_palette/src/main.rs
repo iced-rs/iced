@@ -3,8 +3,8 @@ use iced::mouse;
 use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
-    Color, Element, Font, Length, Pixels, Point, Rectangle, Renderer, Sandbox,
-    Settings, Size, Vector,
+    Color, Element, Font, Length, Pixels, Point, Rectangle, Renderer, Size,
+    Vector,
 };
 use palette::{
     self, convert::FromColor, rgb::Rgb, Darken, Hsl, Lighten, ShiftHue,
@@ -13,11 +13,12 @@ use std::marker::PhantomData;
 use std::ops::RangeInclusive;
 
 pub fn main() -> iced::Result {
-    ColorPalette::run(Settings {
-        antialiasing: true,
-        default_font: Font::MONOSPACE,
-        ..Settings::default()
-    })
+    iced::sandbox(ColorPalette::update, ColorPalette::view)
+        .theme(ColorPalette::theme)
+        .title("Color Palette - Iced")
+        .default_font(Font::MONOSPACE)
+        .antialiased()
+        .run()
 }
 
 #[derive(Default)]
@@ -41,17 +42,7 @@ pub enum Message {
     LchColorChanged(palette::Lch),
 }
 
-impl Sandbox for ColorPalette {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Color palette - Iced")
-    }
-
+impl ColorPalette {
     fn update(&mut self, message: Message) {
         let srgb = match message {
             Message::RgbColorChanged(rgb) => Rgb::from(rgb),

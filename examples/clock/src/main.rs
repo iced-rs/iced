@@ -1,17 +1,17 @@
-use iced::executor;
 use iced::mouse;
 use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
-    Application, Command, Element, Length, Point, Rectangle, Renderer,
-    Settings, Subscription, Theme, Vector,
+    Element, Length, Point, Rectangle, Renderer, Subscription, Theme, Vector,
 };
 
 pub fn main() -> iced::Result {
-    Clock::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::sandbox(Clock::update, Clock::view)
+        .title("Clock - Iced")
+        .subscription(Clock::subscription)
+        .theme(Clock::theme)
+        .antialiased()
+        .run()
 }
 
 struct Clock {
@@ -24,28 +24,8 @@ enum Message {
     Tick(time::OffsetDateTime),
 }
 
-impl Application for Clock {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Clock {
-                now: time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-                clock: Cache::default(),
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Clock - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl Clock {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Tick(local_time) => {
                 let now = local_time;
@@ -56,8 +36,6 @@ impl Application for Clock {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {
@@ -82,7 +60,18 @@ impl Application for Clock {
     }
 
     fn theme(&self) -> Theme {
-        Theme::TokyoNight
+        Theme::ALL[(self.now.unix_timestamp() as usize / 60) % Theme::ALL.len()]
+            .clone()
+    }
+}
+
+impl Default for Clock {
+    fn default() -> Self {
+        Self {
+            now: time::OffsetDateTime::now_local()
+                .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            clock: Cache::default(),
+        }
     }
 }
 

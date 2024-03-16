@@ -1,12 +1,12 @@
 use iced::widget::{button, column, container, text};
-use iced::{
-    executor, system, Application, Command, Element, Length, Settings, Theme,
-};
+use iced::{system, Command, Element, Length};
 
 use bytesize::ByteSize;
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::application(Example::new, Example::update, Example::view)
+        .title("System Information - Iced")
+        .run()
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -22,21 +22,12 @@ enum Message {
     Refresh,
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+impl Example {
+    fn new() -> (Self, Command<Message>) {
         (
             Self::Loading,
             system::fetch_information(Message::InformationReceived),
         )
-    }
-
-    fn title(&self) -> String {
-        String::from("System Information - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

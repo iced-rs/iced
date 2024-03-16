@@ -1,20 +1,23 @@
-use iced::executor;
 use iced::widget::scrollable::Properties;
 use iced::widget::{
     button, column, container, horizontal_space, progress_bar, radio, row,
     scrollable, slider, text, vertical_space, Scrollable,
 };
-use iced::{
-    Alignment, Application, Border, Color, Command, Element, Length, Settings,
-    Theme,
-};
+use iced::{Alignment, Border, Color, Command, Element, Length, Theme};
 
 use once_cell::sync::Lazy;
 
 static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
-    ScrollableDemo::run(Settings::default())
+    iced::application(
+        ScrollableDemo::new,
+        ScrollableDemo::update,
+        ScrollableDemo::view,
+    )
+    .theme(ScrollableDemo::theme)
+    .title("Scrollable - Iced")
+    .run()
 }
 
 struct ScrollableDemo {
@@ -45,13 +48,8 @@ enum Message {
     Scrolled(scrollable::Viewport),
 }
 
-impl Application for ScrollableDemo {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+impl ScrollableDemo {
+    fn new() -> (Self, Command<Message>) {
         (
             ScrollableDemo {
                 scrollable_direction: Direction::Vertical,
@@ -63,10 +61,6 @@ impl Application for ScrollableDemo {
             },
             Command::none(),
         )
-    }
-
-    fn title(&self) -> String {
-        String::from("Scrollable - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -340,7 +334,7 @@ impl Application for ScrollableDemo {
         container(content).padding(20).center_x().center_y().into()
     }
 
-    fn theme(&self) -> Self::Theme {
+    fn theme(&self) -> Theme {
         Theme::Dark
     }
 }

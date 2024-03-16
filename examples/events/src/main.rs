@@ -1,21 +1,15 @@
 use iced::alignment;
 use iced::event::{self, Event};
-use iced::executor;
 use iced::widget::{button, checkbox, container, text, Column};
 use iced::window;
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
-};
+use iced::{Alignment, Command, Element, Length, Subscription};
 
 pub fn main() -> iced::Result {
-    Events::run(Settings {
-        window: window::Settings {
-            exit_on_close_request: false,
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::application(Events::new, Events::update, Events::view)
+        .title("Events - Iced")
+        .subscription(Events::subscription)
+        .ignore_close_request()
+        .run()
 }
 
 #[derive(Debug, Default)]
@@ -31,18 +25,9 @@ enum Message {
     Exit,
 }
 
-impl Application for Events {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Events, Command<Message>) {
+impl Events {
+    fn new() -> (Events, Command<Message>) {
         (Events::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Events - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

@@ -83,10 +83,10 @@ mod circle {
 
 use circle::circle;
 use iced::widget::{column, container, slider, text};
-use iced::{Alignment, Element, Length, Sandbox, Settings};
+use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::run("Custom Widget - Iced", Example::update, Example::view)
 }
 
 struct Example {
@@ -98,15 +98,9 @@ enum Message {
     RadiusChanged(f32),
 }
 
-impl Sandbox for Example {
-    type Message = Message;
-
+impl Example {
     fn new() -> Self {
         Example { radius: 50.0 }
-    }
-
-    fn title(&self) -> String {
-        String::from("Custom widget - Iced")
     }
 
     fn update(&mut self, message: Message) {
@@ -134,5 +128,11 @@ impl Sandbox for Example {
             .center_x()
             .center_y()
             .into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Self::new()
     }
 }

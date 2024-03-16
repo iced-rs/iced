@@ -1,10 +1,11 @@
-use iced::executor;
 use iced::widget::{button, column, container};
 use iced::window;
-use iced::{Alignment, Application, Command, Element, Length, Settings, Theme};
+use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    Exit::run(Settings::default())
+    iced::application(Exit::new, Exit::update, Exit::view)
+        .title("Exit - Iced")
+        .run()
 }
 
 #[derive(Default)]
@@ -18,18 +19,9 @@ enum Message {
     Exit,
 }
 
-impl Application for Exit {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+impl Exit {
+    fn new() -> (Self, Command<Message>) {
         (Self::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Exit - Iced")
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {

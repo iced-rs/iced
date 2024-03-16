@@ -1,12 +1,10 @@
 use iced::alignment;
-use iced::executor;
 use iced::keyboard;
 use iced::widget::{button, column, container, image, row, text, text_input};
 use iced::window;
 use iced::window::screenshot::{self, Screenshot};
 use iced::{
-    Alignment, Application, Command, ContentFit, Element, Length, Rectangle,
-    Subscription, Theme,
+    Alignment, Command, ContentFit, Element, Length, Rectangle, Subscription,
 };
 
 use ::image as img;
@@ -15,7 +13,10 @@ use ::image::ColorType;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Example::run(iced::Settings::default())
+    iced::application(Example::new, Example::update, Example::view)
+        .subscription(Example::subscription)
+        .title("Screenshot - Iced")
+        .run()
 }
 
 struct Example {
@@ -42,13 +43,8 @@ enum Message {
     HeightInputChanged(Option<u32>),
 }
 
-impl Application for Example {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
+impl Example {
+    fn new() -> (Self, Command<Message>) {
         (
             Example {
                 screenshot: None,
@@ -64,11 +60,7 @@ impl Application for Example {
         )
     }
 
-    fn title(&self) -> String {
-        "Screenshot".to_string()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::Screenshot => {
                 return iced::window::screenshot(
@@ -130,7 +122,7 @@ impl Application for Example {
         Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Message> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
             image(image::Handle::from_pixels(
@@ -259,7 +251,7 @@ impl Application for Example {
             .into()
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         use keyboard::key;
 
         keyboard::on_key_press(|key, _modifiers| {

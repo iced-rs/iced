@@ -4,7 +4,7 @@ use iced::widget::{
     scrollable, slider, text, text_input, toggler, vertical_space,
 };
 use iced::widget::{Button, Column, Container, Slider};
-use iced::{Color, Element, Font, Length, Pixels, Sandbox, Settings};
+use iced::{Color, Element, Font, Length, Pixels};
 
 pub fn main() -> iced::Result {
     #[cfg(target_arch = "wasm32")]
@@ -16,7 +16,10 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    Tour::run(Settings::default())
+    iced::sandbox(Tour::update, Tour::view)
+        .title(Tour::title)
+        .centered()
+        .run()
 }
 
 pub struct Tour {
@@ -24,11 +27,9 @@ pub struct Tour {
     debug: bool,
 }
 
-impl Sandbox for Tour {
-    type Message = Message;
-
-    fn new() -> Tour {
-        Tour {
+impl Tour {
+    fn new() -> Self {
+        Self {
             steps: Steps::new(),
             debug: false,
         }
@@ -87,6 +88,12 @@ impl Sandbox for Tour {
         );
 
         container(scrollable).height(Length::Fill).center_y().into()
+    }
+}
+
+impl Default for Tour {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

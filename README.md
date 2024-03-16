@@ -98,8 +98,8 @@ that can be incremented and decremented using two buttons.
 We start by modelling the __state__ of our application:
 
 ```rust
+#[derive(Default)]
 struct Counter {
-    // The counter value
     value: i32,
 }
 ```
@@ -110,8 +110,8 @@ the button presses. These interactions are our __messages__:
 ```rust
 #[derive(Debug, Clone, Copy)]
 pub enum Message {
-    IncrementPressed,
-    DecrementPressed,
+    Increment,
+    Decrement,
 }
 ```
 
@@ -126,15 +126,15 @@ impl Counter {
         // We use a column: a simple vertical layout
         column![
             // The increment button. We tell it to produce an
-            // `IncrementPressed` message when pressed
-            button("+").on_press(Message::IncrementPressed),
+            // `Increment` message when pressed
+            button("+").on_press(Message::Increment),
 
             // We show the value of the counter here
             text(self.value).size(50),
 
             // The decrement button. We tell it to produce a
-            // `DecrementPressed` message when pressed
-            button("-").on_press(Message::DecrementPressed),
+            // `Decrement` message when pressed
+            button("-").on_press(Message::Decrement),
         ]
     }
 }
@@ -160,8 +160,15 @@ impl Counter {
 }
 ```
 
-And that's everything! We just wrote a whole user interface. Iced is now able
-to:
+And that's everything! We just wrote a whole user interface. Let's run it:
+
+```rust
+fn main() -> iced::Result {
+    iced::run("A cool counter", Counter::update, Counter::view)
+}
+```
+
+Iced will automatically:
 
   1. Take the result of our __view logic__ and layout its widgets.
   1. Process events from our system and produce __messages__ for our

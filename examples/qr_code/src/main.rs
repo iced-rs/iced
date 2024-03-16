@@ -1,10 +1,13 @@
 use iced::widget::{
     column, container, pick_list, qr_code, row, text, text_input,
 };
-use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
+use iced::{Alignment, Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    QRGenerator::run(Settings::default())
+    iced::sandbox(QRGenerator::update, QRGenerator::view)
+        .title("QR Code Generator - Iced")
+        .theme(QRGenerator::theme)
+        .run()
 }
 
 #[derive(Default)]
@@ -20,17 +23,7 @@ enum Message {
     ThemeChanged(Theme),
 }
 
-impl Sandbox for QRGenerator {
-    type Message = Message;
-
-    fn new() -> Self {
-        QRGenerator::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("QR Code Generator - Iced")
-    }
-
+impl QRGenerator {
     fn update(&mut self, message: Message) {
         match message {
             Message::DataChanged(mut data) => {

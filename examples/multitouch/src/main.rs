@@ -2,46 +2,28 @@
 //! a circle around each fingertip. This only works on touch-enabled
 //! computers like Microsoft Surface.
 use iced::mouse;
+use iced::touch;
 use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
 use iced::widget::canvas::{self, Canvas, Geometry};
-use iced::{
-    executor, touch, window, Application, Color, Command, Element, Length,
-    Point, Rectangle, Renderer, Settings, Subscription, Theme,
-};
+use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme};
 
 use std::collections::HashMap;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Multitouch::run(Settings {
-        antialiasing: true,
-        window: window::Settings {
-            position: window::Position::Centered,
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::sandbox(Multitouch::update, Multitouch::view)
+        .title("Multitouch - Iced")
+        .antialiased()
+        .centered()
+        .run()
 }
 
+#[derive(Default)]
 struct Multitouch {
-    state: State,
-}
-
-#[derive(Debug)]
-struct State {
     cache: canvas::Cache,
     fingers: HashMap<touch::Finger, Point>,
-}
-
-impl State {
-    fn new() -> Self {
-        Self {
-            cache: canvas::Cache::new(),
-            fingers: HashMap::new(),
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -50,53 +32,29 @@ enum Message {
     FingerLifted { id: touch::Finger },
 }
 
-impl Application for Multitouch {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Multitouch {
-                state: State::new(),
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Multitouch - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl Multitouch {
+    fn update(&mut self, message: Message) {
         match message {
             Message::FingerPressed { id, position } => {
-                self.state.fingers.insert(id, position);
-                self.state.cache.clear();
+                self.fingers.insert(id, position);
+                self.cache.clear();
             }
             Message::FingerLifted { id } => {
-                self.state.fingers.remove(&id);
-                self.state.cache.clear();
+                self.fingers.remove(&id);
+                self.cache.clear();
             }
         }
-
-        Command::none()
-    }
-
-    fn subscription(&self) -> Subscription<Message> {
-        Subscription::none()
     }
 
     fn view(&self) -> Element<Message> {
-        Canvas::new(&self.state)
+        Canvas::new(self)
             .width(Length::Fill)
             .height(Length::Fill)
             .into()
     }
 }
 
-impl canvas::Program<Message> for State {
+impl canvas::Program<Message> for Multitouch {
     type State = ();
 
     fn update(

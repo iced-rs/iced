@@ -1,17 +1,16 @@
 use iced::alignment::{self, Alignment};
-use iced::executor;
 use iced::keyboard;
 use iced::widget::pane_grid::{self, PaneGrid};
 use iced::widget::{
     button, column, container, responsive, row, scrollable, text,
 };
-use iced::{
-    Application, Color, Command, Element, Length, Settings, Size, Subscription,
-    Theme,
-};
+use iced::{Color, Element, Length, Size, Subscription};
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::sandbox(Example::update, Example::view)
+        .subscription(Example::subscription)
+        .title("Pane Grid - Iced")
+        .run()
 }
 
 struct Example {
@@ -35,30 +34,18 @@ enum Message {
     CloseFocused,
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
+impl Example {
+    fn new() -> Self {
         let (panes, _) = pane_grid::State::new(Pane::new(0));
 
-        (
-            Example {
-                panes,
-                panes_created: 1,
-                focus: None,
-            },
-            Command::none(),
-        )
+        Example {
+            panes,
+            panes_created: 1,
+            focus: None,
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Pane grid - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::Split(axis, pane) => {
                 let result =
@@ -132,8 +119,6 @@ impl Application for Example {
                 }
             }
         }
-
-        Command::none()
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -206,6 +191,12 @@ impl Application for Example {
             .height(Length::Fill)
             .padding(10)
             .into()
+    }
+}
+
+impl Default for Example {
+    fn default() -> Self {
+        Example::new()
     }
 }
 
