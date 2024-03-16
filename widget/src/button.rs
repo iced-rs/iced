@@ -1,13 +1,15 @@
 //! Allow your users to perform actions by pressing a button.
 use crate::core::event::{self, Event};
+use crate::core::keyboard::{self, key};
 use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::theme::palette;
 use crate::core::touch;
+use crate::core::widget;
+use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
-use crate::core::widget::Operation;
 use crate::core::{
     Background, Border, Clipboard, Color, Element, Layout, Length, Padding,
     Rectangle, Shadow, Shell, Size, Theme, Vector, Widget,
@@ -50,6 +52,7 @@ pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: crate::core::Renderer,
 {
+    id: Option<widget::Id>,
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
     width: Length,
@@ -74,6 +77,7 @@ where
         let size = content.as_widget().size_hint();
 
         Button {
+            id: Some(widget::Id::unique()),
             content,
             on_press: None,
             width: size.width.fluid(),
@@ -137,8 +141,52 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+struct Focus {
+    is_window_focused: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
+    is_focused: bool,
     is_pressed: bool,
+    is_active: bool,
+}
+
+impl State {
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    fn pressed(&mut self) {
+        self.is_focused = true;
+        self.is_pressed = true;
+        self.is_active = true;
+    }
+
+    fn focus(&mut self) {
+        self.is_focused = true;
+    }
+
+    fn reset(&mut self) {
+        self.is_pressed = false;
+        self.is_active = false;
+        self.is_focused = false;
+    }
+}
+
+impl operation::Focusable for State {
+    fn is_focused(&self) -> bool {
+        State::is_focused(&self)
+    }
+
+    fn focus(&mut self) {
+        State::reset(self);
+        State::focus(self)
+    }
+
+    fn unfocus(&mut self) {
+        Self::reset(self)
+    }
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -198,6 +246,8 @@ where
         renderer: &Renderer,
         operation: &mut dyn Operation<Message>,
     ) {
+        let state = tree.state.downcast_mut::<State>();
+        operation.focusable(state, self.id.as_ref().map(|id| id));
         operation.container(None, layout.bounds(), &mut |operation| {
             self.content.as_widget().operate(
                 &mut tree.children[0],
@@ -238,12 +288,13 @@ where
                 if self.on_press.is_some() {
                     let bounds = layout.bounds();
 
+                    let state = tree.state.downcast_mut::<State>();
                     if cursor.is_over(bounds) {
-                        let state = tree.state.downcast_mut::<State>();
-
-                        state.is_pressed = true;
+                        state.pressed();
 
                         return event::Status::Captured;
+                    } else {
+                        state.reset();
                     }
                 }
             }
@@ -270,6 +321,21 @@ where
 
                 state.is_pressed = false;
             }
+            Event::Keyboard(keyboard::Event::KeyPressed { key, .. }) => {
+                match key.as_ref() {
+                    keyboard::Key::Named(key::Named::Space)
+                    | keyboard::Key::Named(key::Named::Enter) => {
+                        let state = tree.state.downcast_mut::<State>();
+                        if state.is_focused() {
+                            if let Some(on_press) = self.on_press.clone() {
+                                shell.publish(on_press);
+                                state.pressed();
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
             _ => {}
         }
 
@@ -290,6 +356,7 @@ where
         let content_layout = layout.children().next().unwrap();
         let is_mouse_over = cursor.is_over(bounds);
 
+        let state = tree.state.downcast_ref::<State>();
         let status = if self.on_press.is_none() {
             Status::Disabled
         } else if is_mouse_over {
@@ -301,7 +368,11 @@ where
                 Status::Hovered
             }
         } else {
-            Status::Active
+            if state.is_focused() {
+                Status::Focused(state.is_active)
+            } else {
+                Status::Active
+            }
         };
 
         let styling = (self.style)(theme, status);
@@ -405,6 +476,8 @@ pub enum Status {
     Pressed,
     /// The [`Button`] cannot be pressed.
     Disabled,
+    /// The [`Button`] can be pressed and it is being focused.
+    Focused(bool),
 }
 
 /// The appearance of a button.
@@ -414,9 +487,9 @@ pub struct Appearance {
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
     pub text_color: Color,
-    /// The [`Border`] of the buton.
+    /// The [`Border`] of the button.
     pub border: Border,
-    /// The [`Shadow`] of the butoon.
+    /// The [`Shadow`] of the button.
     pub shadow: Shadow,
 }
 
@@ -475,6 +548,7 @@ pub fn primary(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active | Status::Pressed => base,
+        Status::Focused(active) => focused(base, active, palette.is_dark),
         Status::Hovered => Appearance {
             background: Some(Background::Color(palette.primary.base.color)),
             ..base
@@ -490,6 +564,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active | Status::Pressed => base,
+        Status::Focused(active) => focused(base, active, palette.is_dark),
         Status::Hovered => Appearance {
             background: Some(Background::Color(palette.secondary.strong.color)),
             ..base
@@ -505,6 +580,7 @@ pub fn success(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active | Status::Pressed => base,
+        Status::Focused(active) => focused(base, active, palette.is_dark),
         Status::Hovered => Appearance {
             background: Some(Background::Color(palette.success.strong.color)),
             ..base
@@ -520,6 +596,7 @@ pub fn danger(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active | Status::Pressed => base,
+        Status::Focused(active) => focused(base, active, palette.is_dark),
         Status::Hovered => Appearance {
             background: Some(Background::Color(palette.danger.strong.color)),
             ..base
@@ -539,6 +616,7 @@ pub fn text(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active | Status::Pressed => base,
+        Status::Focused(active) => focused(base, active, palette.is_dark),
         Status::Hovered => Appearance {
             text_color: palette.background.base.text.scale_alpha(0.8),
             ..base
@@ -562,6 +640,28 @@ fn disabled(appearance: Appearance) -> Appearance {
             .background
             .map(|background| background.scale_alpha(0.5)),
         text_color: appearance.text_color.scale_alpha(0.5),
+        ..appearance
+    }
+}
+
+fn focused(
+    appearance: Appearance,
+    active: bool,
+    is_dark_theme: bool,
+) -> Appearance {
+    if active {
+        return appearance;
+    }
+
+    Appearance {
+        border: appearance
+            .border
+            .with_color(if is_dark_theme {
+                Color::WHITE
+            } else {
+                Color::BLACK
+            })
+            .with_width(2),
         ..appearance
     }
 }
