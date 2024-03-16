@@ -5,7 +5,7 @@ const ICON_FONT: Font = Font::with_name("icons");
 
 pub fn main() -> iced::Result {
     iced::sandbox("Checkbox - Iced", Example::update, Example::view)
-        .fonts([include_bytes!("../fonts/icons.ttf").as_slice().into()])
+        .font(include_bytes!("../fonts/icons.ttf").as_slice())
         .run()
 }
 

@@ -312,18 +312,10 @@ impl<P: Definition> Program<P> {
         }
     }
 
-    /// Sets the fonts that will be loaded at the start of the [`Program`].
-    pub fn fonts(
-        self,
-        fonts: impl IntoIterator<Item = Cow<'static, [u8]>>,
-    ) -> Self {
-        Self {
-            settings: Settings {
-                fonts: fonts.into_iter().collect(),
-                ..self.settings
-            },
-            ..self
-        }
+    /// Adds a font to the list of fonts that will be loaded at the start of the [`Program`].
+    pub fn font(mut self, font: impl Into<Cow<'static, [u8]>>) -> Self {
+        self.settings.fonts.push(font.into());
+        self
     }
 
     /// Sets the [`window::Settings::position`] to [`window::Position::Centered`] in the [`Program`].
