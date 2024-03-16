@@ -107,7 +107,7 @@ where
         type Theme = crate::Theme;
         type Executor = iced_futures::backend::null::Executor;
 
-        fn new(&self) -> (Self::State, Command<Self::Message>) {
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
             (State::default(), Command::none())
         }
 
@@ -176,7 +176,7 @@ where
         type Theme = crate::Theme;
         type Executor = executor::Default;
 
-        fn new(&self) -> (Self::State, Command<Self::Message>) {
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
             (self.new)()
         }
 
@@ -240,7 +240,7 @@ impl<P: Definition> Program<P> {
             type Executor = P::Executor;
 
             fn new(program: Self::Flags) -> (Self, Command<Self::Message>) {
-                let (state, command) = P::new(&program);
+                let (state, command) = P::build(&program);
 
                 (Self { program, state }, command)
             }
@@ -414,7 +414,7 @@ pub trait Definition: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
-    fn new(&self) -> (Self::State, Command<Self::Message>);
+    fn build(&self) -> (Self::State, Command<Self::Message>);
 
     fn update(
         &self,
@@ -462,8 +462,8 @@ fn with_title<P: Definition>(
         type Theme = P::Theme;
         type Executor = P::Executor;
 
-        fn new(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.new()
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
+            self.program.build()
         }
 
         fn title(&self, state: &Self::State) -> String {
@@ -525,8 +525,8 @@ fn with_subscription<P: Definition>(
             (self.subscription)(state)
         }
 
-        fn new(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.new()
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
+            self.program.build()
         }
 
         fn update(
@@ -581,8 +581,8 @@ fn with_theme<P: Definition>(
             (self.theme)(state)
         }
 
-        fn new(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.new()
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
+            self.program.build()
         }
 
         fn title(&self, state: &Self::State) -> String {
