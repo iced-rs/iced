@@ -215,6 +215,7 @@ impl<'a> Layer<'a> {
                 handle,
                 filter_method,
                 bounds,
+                rotation,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -222,6 +223,7 @@ impl<'a> Layer<'a> {
                     handle: handle.clone(),
                     filter_method: *filter_method,
                     bounds: *bounds * transformation,
+                    rotation: *rotation,
                 });
             }
             Primitive::Svg {

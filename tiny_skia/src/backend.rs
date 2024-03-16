@@ -576,6 +576,7 @@ impl Backend {
                 handle,
                 filter_method,
                 bounds,
+                rotation,
             } => {
                 let physical_bounds = (*bounds * transformation) * scale_factor;
 
@@ -586,8 +587,10 @@ impl Backend {
                 let clip_mask = (!physical_bounds.is_within(&clip_bounds))
                     .then_some(clip_mask as &_);
 
+                let center = physical_bounds.center();
                 let transform = into_transform(transformation)
-                    .post_scale(scale_factor, scale_factor);
+                    .post_scale(scale_factor, scale_factor)
+                    .post_rotate_at(-rotation.to_degrees(), center.x, center.y);
 
                 self.raster_pipeline.draw(
                     handle,

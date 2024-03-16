@@ -148,7 +148,7 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset);
+        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset, 0.0);
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height

@@ -10,9 +10,10 @@ struct VertexInput {
     @builtin(vertex_index) vertex_index: u32,
     @location(0) pos: vec2<f32>,
     @location(1) scale: vec2<f32>,
-    @location(2) atlas_pos: vec2<f32>,
-    @location(3) atlas_scale: vec2<f32>,
-    @location(4) layer: i32,
+    @location(2) rotation: f32,
+    @location(3) atlas_pos: vec2<f32>,
+    @location(4) atlas_scale: vec2<f32>,
+    @location(5) layer: i32,
 }
 
 struct VertexOutput {
@@ -30,14 +31,30 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.uv = vec2<f32>(v_pos * input.atlas_scale + input.atlas_pos);
     out.layer = f32(input.layer);
 
-    var transform: mat4x4<f32> = mat4x4<f32>(
+    let translate_origin = mat4x4<f32>(
+        vec4<f32>(1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, 1.0, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(-0.5, -0.5, 0.0, 1.0)
+    );
+
+    let cos_rot = cos(input.rotation);
+    let sin_rot = sin(input.rotation);
+    let rotate = mat4x4<f32>(
+        vec4<f32>(cos_rot, -sin_rot, 0.0, 0.0),
+        vec4<f32>(sin_rot, cos_rot, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(0.5, 0.5, 0.0, 1.0)
+    );
+
+    let transform: mat4x4<f32> = mat4x4<f32>(
         vec4<f32>(input.scale.x, 0.0, 0.0, 0.0),
         vec4<f32>(0.0, input.scale.y, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
         vec4<f32>(input.pos, 0.0, 1.0)
     );
 
-    out.position = globals.transform * transform * vec4<f32>(v_pos, 0.0, 1.0);
+    out.position = globals.transform * transform * rotate * translate_origin * vec4<f32>(v_pos, 0.0, 1.0);
 
     return out;
 }

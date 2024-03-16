@@ -220,11 +220,13 @@ where
         handle: image::Handle,
         filter_method: image::FilterMethod,
         bounds: Rectangle,
+        rotation: f32,
     ) {
         self.primitives.push(Primitive::Image {
             handle,
             filter_method,
             bounds,
+            rotation,
         });
     }
 }

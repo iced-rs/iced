@@ -15,6 +15,9 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image.
+        rotation: f32,
     },
     /// A vector image.
     Vector {
