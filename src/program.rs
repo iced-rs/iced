@@ -143,7 +143,7 @@ where
 ///
 /// It can be [`run`]!
 ///
-/// Create one with either the [`sandbox`] or [`application`] helpers.
+/// Create one with the [`application`] helper.
 ///
 /// [`run`]: Program::run
 /// [`application`]: self::application()
