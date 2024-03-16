@@ -149,10 +149,10 @@ impl Counter {
 
     pub fn update(&mut self, message: Message) {
         match message {
-            Message::IncrementPressed => {
+            Message::Increment => {
                 self.value += 1;
             }
-            Message::DecrementPressed => {
+            Message::Decrement => {
                 self.value -= 1;
             }
         }
