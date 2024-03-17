@@ -2,18 +2,16 @@ mod scene;
 
 use scene::Scene;
 
-use iced::executor;
 use iced::time::Instant;
 use iced::widget::shader::wgpu;
 use iced::widget::{checkbox, column, container, row, shader, slider, text};
 use iced::window;
-use iced::{
-    Alignment, Application, Color, Command, Element, Length, Subscription,
-    Theme,
-};
+use iced::{Alignment, Color, Element, Length, Subscription};
 
 fn main() -> iced::Result {
-    IcedCubes::run(iced::Settings::default())
+    iced::program("Custom Shader - Iced", IcedCubes::update, IcedCubes::view)
+        .subscription(IcedCubes::subscription)
+        .run()
 }
 
 struct IcedCubes {
@@ -30,27 +28,15 @@ enum Message {
     LightColorChanged(Color),
 }
 
-impl Application for IcedCubes {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Self::Message>) {
-        (
-            Self {
-                start: Instant::now(),
-                scene: Scene::new(),
-            },
-            Command::none(),
-        )
+impl IcedCubes {
+    fn new() -> Self {
+        Self {
+            start: Instant::now(),
+            scene: Scene::new(),
+        }
     }
 
-    fn title(&self) -> String {
-        "Iced Cubes".to_string()
-    }
-
-    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+    fn update(&mut self, message: Message) {
         match message {
             Message::CubeAmountChanged(amount) => {
                 self.scene.change_amount(amount);
@@ -68,11 +54,9 @@ impl Application for IcedCubes {
                 self.scene.light_color = color;
             }
         }
-
-        Command::none()
     }
 
-    fn view(&self) -> Element<'_, Self::Message> {
+    fn view(&self) -> Element<'_, Message> {
         let top_controls = row![
             control(
                 "Amount",
@@ -147,8 +131,14 @@ impl Application for IcedCubes {
             .into()
     }
 
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         window::frames().map(Message::Tick)
+    }
+}
+
+impl Default for IcedCubes {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

@@ -6,7 +6,7 @@ use std::borrow::Cow;
 
 /// The settings of an application.
 #[derive(Debug, Clone)]
-pub struct Settings<Flags> {
+pub struct Settings<Flags = ()> {
     /// The identifier of the application.
     ///
     /// If provided, this identifier may be used to identify the application or

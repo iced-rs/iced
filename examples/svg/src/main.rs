@@ -1,8 +1,8 @@
 use iced::widget::{checkbox, column, container, svg};
-use iced::{color, Element, Length, Sandbox, Settings};
+use iced::{color, Element, Length};
 
 pub fn main() -> iced::Result {
-    Tiger::run(Settings::default())
+    iced::run("SVG - Iced", Tiger::update, Tiger::view)
 }
 
 #[derive(Debug, Default)]
@@ -15,18 +15,8 @@ pub enum Message {
     ToggleColorFilter(bool),
 }
 
-impl Sandbox for Tiger {
-    type Message = Message;
-
-    fn new() -> Self {
-        Tiger::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("SVG - Iced")
-    }
-
-    fn update(&mut self, message: Self::Message) {
+impl Tiger {
+    fn update(&mut self, message: Message) {
         match message {
             Message::ToggleColorFilter(apply_color_filter) => {
                 self.apply_color_filter = apply_color_filter;
@@ -34,7 +24,7 @@ impl Sandbox for Tiger {
         }
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<Message> {
         let handle = svg::Handle::from_path(format!(
             "{}/resources/tiger.svg",
             env!("CARGO_MANIFEST_DIR")

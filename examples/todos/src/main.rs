@@ -1,14 +1,11 @@
 use iced::alignment::{self, Alignment};
-use iced::font::{self, Font};
 use iced::keyboard;
 use iced::widget::{
     self, button, checkbox, column, container, keyed_column, row, scrollable,
     text, text_input, Text,
 };
 use iced::window;
-use iced::{
-    Application, Command, Element, Length, Settings, Size, Subscription, Theme,
-};
+use iced::{Command, Element, Font, Length, Subscription};
 
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
@@ -20,17 +17,17 @@ pub fn main() -> iced::Result {
     #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
-    Todos::run(Settings {
-        window: window::Settings {
-            size: Size::new(500.0, 800.0),
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::program(Todos::title, Todos::update, Todos::view)
+        .load(Todos::load)
+        .subscription(Todos::subscription)
+        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .window_size((500.0, 800.0))
+        .run()
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 enum Todos {
+    #[default]
     Loading,
     Loaded(State),
 }
@@ -47,7 +44,6 @@ struct State {
 #[derive(Debug, Clone)]
 enum Message {
     Loaded(Result<SavedState, LoadError>),
-    FontLoaded(Result<(), font::Error>),
     Saved(Result<(), SaveError>),
     InputChanged(String),
     CreateTask,
@@ -57,21 +53,12 @@ enum Message {
     ToggleFullscreen(window::Mode),
 }
 
-impl Application for Todos {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = iced::executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Todos, Command<Message>) {
-        (
-            Todos::Loading,
-            Command::batch(vec![
-                font::load(include_bytes!("../fonts/icons.ttf").as_slice())
-                    .map(Message::FontLoaded),
-                Command::perform(SavedState::load(), Message::Loaded),
-            ]),
-        )
+impl Todos {
+    fn load() -> Command<Message> {
+        Command::batch(vec![Command::perform(
+            SavedState::load(),
+            Message::Loaded,
+        )])
     }
 
     fn title(&self) -> String {

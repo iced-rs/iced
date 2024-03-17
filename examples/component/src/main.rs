@@ -1,10 +1,10 @@
 use iced::widget::container;
-use iced::{Element, Length, Sandbox, Settings};
+use iced::{Element, Length};
 
 use numeric_input::numeric_input;
 
 pub fn main() -> iced::Result {
-    Component::run(Settings::default())
+    iced::run("Component - Iced", Component::update, Component::view)
 }
 
 #[derive(Default)]
@@ -17,17 +17,7 @@ enum Message {
     NumericInputChanged(Option<u32>),
 }
 
-impl Sandbox for Component {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Component - Iced")
-    }
-
+impl Component {
     fn update(&mut self, message: Message) {
         match message {
             Message::NumericInputChanged(value) => {

@@ -276,6 +276,17 @@ impl Palette {
         success: color!(0x00c15a),
         danger: color!(0xf62d0f),
     };
+
+    /// The built-in [Ferra] variant of a [`Palette`].
+    ///
+    /// [Ferra]: https://github.com/casperstorm/ferra
+    pub const FERRA: Self = Self {
+        background: color!(0x2b292d),
+        text: color!(0xfecdb2),
+        primary: color!(0xd1d1e0),
+        success: color!(0xb1b695),
+        danger: color!(0xe06b75),
+    };
 }
 
 /// An extended set of colors generated from a [`Palette`].
@@ -378,6 +389,10 @@ pub static EXTENDED_NIGHTFLY: Lazy<Extended> =
 /// The built-in Oxocarbon variant of an [`Extended`] palette.
 pub static EXTENDED_OXOCARBON: Lazy<Extended> =
     Lazy::new(|| Extended::generate(Palette::OXOCARBON));
+
+/// The built-in Ferra variant of an [`Extended`] palette.
+pub static EXTENDED_FERRA: Lazy<Extended> =
+    Lazy::new(|| Extended::generate(Palette::FERRA));
 
 impl Extended {
     /// Generates an [`Extended`] palette from a simple [`Palette`].

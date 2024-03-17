@@ -52,6 +52,8 @@ pub enum Theme {
     Nightfly,
     /// The built-in Oxocarbon variant.
     Oxocarbon,
+    /// The built-in Ferra variant:
+    Ferra,
     /// A [`Theme`] that uses a [`Custom`] palette.
     Custom(Arc<Custom>),
 }
@@ -80,6 +82,7 @@ impl Theme {
         Self::Moonfly,
         Self::Nightfly,
         Self::Oxocarbon,
+        Self::Ferra,
     ];
 
     /// Creates a new custom [`Theme`] from the given [`Palette`].
@@ -121,6 +124,7 @@ impl Theme {
             Self::Moonfly => Palette::MOONFLY,
             Self::Nightfly => Palette::NIGHTFLY,
             Self::Oxocarbon => Palette::OXOCARBON,
+            Self::Ferra => Palette::FERRA,
             Self::Custom(custom) => custom.palette,
         }
     }
@@ -151,6 +155,7 @@ impl Theme {
             Self::Moonfly => &palette::EXTENDED_MOONFLY,
             Self::Nightfly => &palette::EXTENDED_NIGHTFLY,
             Self::Oxocarbon => &palette::EXTENDED_OXOCARBON,
+            Self::Ferra => &palette::EXTENDED_FERRA,
             Self::Custom(custom) => &custom.extended,
         }
     }
@@ -180,6 +185,7 @@ impl fmt::Display for Theme {
             Self::Moonfly => write!(f, "Moonfly"),
             Self::Nightfly => write!(f, "Nightfly"),
             Self::Oxocarbon => write!(f, "Oxocarbon"),
+            Self::Ferra => write!(f, "Ferra"),
             Self::Custom(custom) => custom.fmt(f),
         }
     }

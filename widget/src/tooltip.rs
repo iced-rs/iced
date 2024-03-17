@@ -273,11 +273,10 @@ where
 }
 
 /// The position of the tooltip. Defaults to following the cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Position {
-    /// The tooltip will follow the cursor.
-    FollowCursor,
     /// The tooltip will appear on the top of the widget.
+    #[default]
     Top,
     /// The tooltip will appear on the bottom of the widget.
     Bottom,
@@ -285,6 +284,8 @@ pub enum Position {
     Left,
     /// The tooltip will appear on the right of the widget.
     Right,
+    /// The tooltip will follow the cursor.
+    FollowCursor,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Default)]

@@ -134,8 +134,22 @@
 //! }
 //! ```
 //!
-//! And that's everything! We just wrote a whole user interface. Iced is now
-//! able to:
+//! And that's everything! We just wrote a whole user interface. Let's run it:
+//!
+//! ```no_run
+//! # #[derive(Default)]
+//! # struct Counter;
+//! # impl Counter {
+//! #     fn update(&mut self, _message: ()) {}
+//! #     fn view(&self) -> iced::Element<()> { unimplemented!() }
+//! # }
+//! #
+//! fn main() -> iced::Result {
+//!     iced::run("A cool counter", Counter::update, Counter::view)
+//! }
+//! ```
+//!
+//! Iced will automatically:
 //!
 //!   1. Take the result of our __view logic__ and layout its widgets.
 //!   1. Process events from our system and produce __messages__ for our
@@ -143,8 +157,8 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! The [`Application`] and [`Sandbox`] traits should get you started quickly,
-//! streamlining all the process described above!
+//! You can either use the [`program`] builder or implement the [`Application`]
+//! trait directly.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
@@ -172,7 +186,6 @@ pub use iced_futures::futures;
 pub use iced_highlighter as highlighter;
 
 mod error;
-mod sandbox;
 
 pub mod application;
 pub mod settings;
@@ -309,7 +322,6 @@ pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
 pub use renderer::Renderer;
-pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
 
@@ -327,3 +339,52 @@ pub type Element<
 ///
 /// [`Application`]: crate::Application
 pub type Result = std::result::Result<(), Error>;
+
+/// Runs a basic iced application with default [`Settings`] given its title,
+/// update, and view logic.
+///
+/// This is equivalent to chaining [`program`] with [`Program::run`].
+///
+/// [`Program::run`]: application::Program::run
+///
+/// # Example
+/// ```no_run
+/// use iced::widget::{button, column, text, Column};
+///
+/// pub fn main() -> iced::Result {
+///     iced::run("A counter", update, view)
+/// }
+///
+/// #[derive(Debug, Clone)]
+/// enum Message {
+///     Increment,
+/// }
+///
+/// fn update(value: &mut u64, message: Message) {
+///     match message {
+///         Message::Increment => *value += 1,
+///     }
+/// }
+///
+/// fn view(value: &u64) -> Column<Message> {
+///     column![
+///         text(value),
+///         button("+").on_press(Message::Increment),
+///     ]
+/// }
+/// ```
+pub fn run<State, Message, Theme>(
+    title: impl application::Title<State> + 'static,
+    update: impl application::Update<State, Message> + 'static,
+    view: impl for<'a> application::View<'a, State, Message, Theme> + 'static,
+) -> Result
+where
+    State: Default + 'static,
+    Message: std::fmt::Debug + Send + 'static,
+    Theme: Default + application::DefaultStyle + 'static,
+{
+    program(title, update, view).run()
+}
+
+#[doc(inline)]
+pub use application::program;

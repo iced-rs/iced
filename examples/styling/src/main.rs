@@ -3,10 +3,12 @@ use iced::widget::{
     progress_bar, row, scrollable, slider, text, text_input, toggler,
     vertical_rule, vertical_space,
 };
-use iced::{Alignment, Element, Length, Sandbox, Settings, Theme};
+use iced::{Alignment, Element, Length, Theme};
 
 pub fn main() -> iced::Result {
-    Styling::run(Settings::default())
+    iced::program("Styling - Iced", Styling::update, Styling::view)
+        .theme(Styling::theme)
+        .run()
 }
 
 #[derive(Default)]
@@ -28,17 +30,7 @@ enum Message {
     TogglerToggled(bool),
 }
 
-impl Sandbox for Styling {
-    type Message = Message;
-
-    fn new() -> Self {
-        Styling::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Styling - Iced")
-    }
-
+impl Styling {
     fn update(&mut self, message: Message) {
         match message {
             Message::ThemeChanged(theme) => {
