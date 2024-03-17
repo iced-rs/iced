@@ -137,6 +137,13 @@
 //! And that's everything! We just wrote a whole user interface. Let's run it:
 //!
 //! ```no_run
+//! # #[derive(Default)]
+//! # struct Counter;
+//! # impl Counter {
+//! #     fn update(&mut self, _message: ()) {}
+//! #     fn view(&self) -> iced::Element<()> { unimplemented!() }
+//! # }
+//! #
 //! fn main() -> iced::Result {
 //!     iced::run("A cool counter", Counter::update, Counter::view)
 //! }
