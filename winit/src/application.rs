@@ -133,8 +133,7 @@ pub async fn run<A, E, C>(
     compositor_settings: C::Settings,
 ) -> Result<(), Error>
 where
-    A: Application,
-    A::Message: 'static,
+    A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
     A::Theme: DefaultStyle,
@@ -318,7 +317,7 @@ async fn run_instance<A, E, C>(
     should_be_visible: bool,
     exit_on_close_request: bool,
 ) where
-    A: Application,
+    A: Application + 'static,
     E: Executor + 'static,
     C: Compositor<Renderer = A::Renderer> + 'static,
     A::Theme: DefaultStyle,
