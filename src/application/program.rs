@@ -64,37 +64,38 @@ use std::borrow::Cow;
 ///     ]
 /// }
 /// ```
-pub fn program<State, Message>(
+pub fn program<State, Message, Theme>(
     title: impl Title<State>,
     update: impl Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message>,
-) -> Program<
-    impl Definition<State = State, Message = Message, Theme = crate::Theme>,
->
+    view: impl for<'a> self::View<'a, State, Message, Theme>,
+) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
 where
     State: Default + 'static,
     Message: Send + std::fmt::Debug,
+    Theme: Default + application::DefaultStyle,
 {
     use std::marker::PhantomData;
 
-    struct Application<State, Message, Update, View> {
+    struct Application<State, Message, Theme, Update, View> {
         update: Update,
         view: View,
         _state: PhantomData<State>,
         _message: PhantomData<Message>,
+        _theme: PhantomData<Theme>,
     }
 
-    impl<State, Message, Update, View> Definition
-        for Application<State, Message, Update, View>
+    impl<State, Message, Theme, Update, View> Definition
+        for Application<State, Message, Theme, Update, View>
     where
         State: Default,
         Message: Send + std::fmt::Debug,
+        Theme: Default + application::DefaultStyle,
         Update: self::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message>,
+        View: for<'a> self::View<'a, State, Message, Theme>,
     {
         type State = State;
         type Message = Message;
-        type Theme = crate::Theme;
+        type Theme = Theme;
         type Executor = executor::Default;
 
         fn build(&self) -> (Self::State, Command<Self::Message>) {
@@ -123,6 +124,7 @@ where
             view,
             _state: PhantomData,
             _message: PhantomData,
+            _theme: PhantomData,
         },
         settings: Settings::default(),
     }
@@ -793,18 +795,18 @@ where
 ///
 /// This trait allows the [`program`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message> {
+pub trait View<'a, State, Message, Theme> {
     /// Produces the widget of the [`Program`].
-    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message>>;
+    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message, Theme>>;
 }
 
-impl<'a, T, State, Message, Widget> View<'a, State, Message> for T
+impl<'a, T, State, Message, Theme, Widget> View<'a, State, Message, Theme> for T
 where
     T: Fn(&'a State) -> Widget,
     State: 'static,
-    Widget: Into<Element<'a, Message>>,
+    Widget: Into<Element<'a, Message, Theme>>,
 {
-    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message>> {
+    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message, Theme>> {
         self(state)
     }
 }
