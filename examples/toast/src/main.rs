@@ -92,8 +92,8 @@ impl App {
         }
     }
 
-    fn view<'a>(&'a self) -> Element<'a, Message> {
-        let subtitle = |title, content: Element<'a, Message>| {
+    fn view(&self) -> Element<'_, Message> {
+        let subtitle = |title, content: Element<'static, Message>| {
             column![text(title).size(14), content].spacing(5)
         };
 
