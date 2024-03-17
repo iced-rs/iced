@@ -15,9 +15,7 @@ pub use application::{default, Appearance, DefaultStyle};
 ///   document.
 ///
 /// An [`Application`] can execute asynchronous actions by returning a
-/// [`Command`] in some of its methods. If you do not intend to perform any
-/// background work in your program, the [`Sandbox`] trait offers a simplified
-/// interface.
+/// [`Command`] in some of its methods.
 ///
 /// When using an [`Application`] with the `debug` feature enabled, a debug view
 /// can be toggled by pressing `F12`.

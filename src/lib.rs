@@ -134,8 +134,15 @@
 //! }
 //! ```
 //!
-//! And that's everything! We just wrote a whole user interface. Iced is now
-//! able to:
+//! And that's everything! We just wrote a whole user interface. Let's run it:
+//!
+//! ```no_run
+//! fn main() -> iced::Result {
+//!     iced::run("A cool counter", Counter::update, Counter::view)
+//! }
+//! ```
+//!
+//! Iced will automatically:
 //!
 //!   1. Take the result of our __view logic__ and layout its widgets.
 //!   1. Process events from our system and produce __messages__ for our
@@ -143,11 +150,12 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! The [`Application`] and [`Sandbox`] traits should get you started quickly,
-//! streamlining all the process described above!
+//! You can either use the [`application`] builder or implement the [`Application`]
+//! trait directly.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
+//! [`application`]: application()
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]

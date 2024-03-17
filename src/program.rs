@@ -5,7 +5,7 @@
 //! or a specific type.
 //!
 //! This API is meant to be a more convenient—although less
-//! powerful—alternative to the [`Sandbox`] and [`Application`] traits.
+//! powerful—alternative to the [`Application`] traits.
 //!
 //! [`Sandbox`]: crate::Sandbox
 //!
@@ -748,8 +748,6 @@ fn with_style<P: Definition>(
 ///
 /// This trait is implemented both for `&static str` and
 /// any closure `Fn(&State) -> String`.
-///
-/// You can use any of these in [`Program::title`].
 pub trait Title<State> {
     /// Produces the title of the [`Program`].
     fn title(&self, state: &State) -> String;
