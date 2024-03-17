@@ -31,30 +31,30 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.uv = vec2<f32>(v_pos * input.atlas_scale + input.atlas_pos);
     out.layer = f32(input.layer);
 
-    let translate_origin = mat4x4<f32>(
-        vec4<f32>(1.0, 0.0, 0.0, 0.0),
-        vec4<f32>(0.0, 1.0, 0.0, 0.0),
-        vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(-0.5, -0.5, 0.0, 1.0)
-    );
-
-    let cos_rot = cos(input.rotation);
-    let sin_rot = sin(input.rotation);
-    let rotate = mat4x4<f32>(
+    var cos_rot = cos(input.rotation);
+    var sin_rot = sin(input.rotation);
+    var rotate = mat4x4<f32>(
         vec4<f32>(cos_rot, sin_rot, 0.0, 0.0),
         vec4<f32>(-sin_rot, cos_rot, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(0.5, 0.5, 0.0, 1.0)
+        vec4<f32>(input.scale / 2.0, 0.0, 1.0)
     );
 
-    let transform: mat4x4<f32> = mat4x4<f32>(
+    var scale: mat4x4<f32> = mat4x4<f32>(
         vec4<f32>(input.scale.x, 0.0, 0.0, 0.0),
         vec4<f32>(0.0, input.scale.y, 0.0, 0.0),
+        vec4<f32>(0.0, 0.0, 1.0, 0.0),
+        vec4<f32>(-input.scale / 2.0, 0.0, 1.0)
+    );
+
+    var translate: mat4x4<f32> = mat4x4<f32>(
+        vec4<f32>(1.0, 0.0, 0.0, 0.0),
+        vec4<f32>(0.0, 1.0, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
         vec4<f32>(input.pos, 0.0, 1.0)
     );
 
-    out.position = globals.transform * transform * rotate * translate_origin * vec4<f32>(v_pos, 0.0, 1.0);
+    out.position = globals.transform * translate * rotate * scale * vec4<f32>(v_pos, 0.0, 1.0);
 
     return out;
 }

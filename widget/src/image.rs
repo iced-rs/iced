@@ -8,7 +8,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget, RotationLayout
+    ContentFit, Element, Layout, Length, Rectangle, Size,
+    Vector, Widget,
 };
 
 use std::hash::Hash;
@@ -39,7 +40,6 @@ pub struct Image<Handle> {
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: f32,
-    rotation_layout: RotationLayout,
 }
 
 impl<Handle> Image<Handle> {
@@ -52,7 +52,6 @@ impl<Handle> Image<Handle> {
             content_fit: ContentFit::Contain,
             filter_method: FilterMethod::default(),
             rotation: 0.0,
-            rotation_layout: RotationLayout::Change,
         }
     }
 
@@ -87,12 +86,6 @@ impl<Handle> Image<Handle> {
         self.rotation = degrees;
         self
     }
-
-    /// Sets the [`RotationLayout`] of the [`Image`].
-    pub fn rotation_layout(mut self, rotation_layout: RotationLayout) -> Self {
-        self.rotation_layout = rotation_layout;
-        self
-    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -103,8 +96,6 @@ pub fn layout<Renderer, Handle>(
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    rotation: f32,
-    rotation_layout: RotationLayout,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -134,10 +125,7 @@ where
         },
     };
 
-    // The size of the image after applying the rotation strategy
-    let rotated_size = rotation_layout.apply_to_size(final_size, rotation);
-    
-    layout::Node::new(rotated_size)
+    layout::Node::new(final_size)
 }
 
 /// Draws an [`Image`]
@@ -170,7 +158,12 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset, rotation);
+        renderer.draw(
+            handle.clone(),
+            filter_method,
+            drawing_bounds + offset,
+            rotation,
+        );
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
@@ -207,8 +200,6 @@ where
             self.width,
             self.height,
             self.content_fit,
-            self.rotation,
-            self.rotation_layout
         )
     }
 
