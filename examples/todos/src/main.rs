@@ -55,10 +55,7 @@ enum Message {
 
 impl Todos {
     fn load() -> Command<Message> {
-        Command::batch(vec![Command::perform(
-            SavedState::load(),
-            Message::Loaded,
-        )])
+        Command::perform(SavedState::load(), Message::Loaded)
     }
 
     fn title(&self) -> String {
