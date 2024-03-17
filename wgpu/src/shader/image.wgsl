@@ -41,8 +41,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     let cos_rot = cos(input.rotation);
     let sin_rot = sin(input.rotation);
     let rotate = mat4x4<f32>(
-        vec4<f32>(cos_rot, -sin_rot, 0.0, 0.0),
-        vec4<f32>(sin_rot, cos_rot, 0.0, 0.0),
+        vec4<f32>(cos_rot, sin_rot, 0.0, 0.0),
+        vec4<f32>(-sin_rot, cos_rot, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
         vec4<f32>(0.5, 0.5, 0.0, 1.0)
     );

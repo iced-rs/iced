@@ -8,7 +8,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
+    ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget, RotationLayout
 };
 
 use std::hash::Hash;
@@ -38,6 +38,8 @@ pub struct Image<Handle> {
     height: Length,
     content_fit: ContentFit,
     filter_method: FilterMethod,
+    rotation: f32,
+    rotation_layout: RotationLayout,
 }
 
 impl<Handle> Image<Handle> {
@@ -49,6 +51,8 @@ impl<Handle> Image<Handle> {
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
             filter_method: FilterMethod::default(),
+            rotation: 0.0,
+            rotation_layout: RotationLayout::Change,
         }
     }
 
@@ -77,6 +81,18 @@ impl<Handle> Image<Handle> {
         self.filter_method = filter_method;
         self
     }
+
+    /// Rotates the [`Image`] by the given angle in radians.
+    pub fn rotation(mut self, degrees: f32) -> Self {
+        self.rotation = degrees;
+        self
+    }
+
+    /// Sets the [`RotationLayout`] of the [`Image`].
+    pub fn rotation_layout(mut self, rotation_layout: RotationLayout) -> Self {
+        self.rotation_layout = rotation_layout;
+        self
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -87,6 +103,8 @@ pub fn layout<Renderer, Handle>(
     width: Length,
     height: Length,
     content_fit: ContentFit,
+    rotation: f32,
+    rotation_layout: RotationLayout,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -116,7 +134,10 @@ where
         },
     };
 
-    layout::Node::new(final_size)
+    // The size of the image after applying the rotation strategy
+    let rotated_size = rotation_layout.apply_to_size(final_size, rotation);
+    
+    layout::Node::new(rotated_size)
 }
 
 /// Draws an [`Image`]
@@ -126,6 +147,7 @@ pub fn draw<Renderer, Handle>(
     handle: &Handle,
     content_fit: ContentFit,
     filter_method: FilterMethod,
+    rotation: f32,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
@@ -148,7 +170,7 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset, 0.0);
+        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset, rotation);
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height
@@ -185,6 +207,8 @@ where
             self.width,
             self.height,
             self.content_fit,
+            self.rotation,
+            self.rotation_layout
         )
     }
 
@@ -204,6 +228,7 @@ where
             &self.handle,
             self.content_fit,
             self.filter_method,
+            self.rotation,
         );
     }
 }

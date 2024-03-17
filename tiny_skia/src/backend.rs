@@ -590,7 +590,7 @@ impl Backend {
                 let center = physical_bounds.center();
                 let transform = into_transform(transformation)
                     .post_scale(scale_factor, scale_factor)
-                    .post_rotate_at(-rotation.to_degrees(), center.x, center.y);
+                    .post_rotate_at(rotation.to_degrees(), center.x, center.y);
 
                 self.raster_pipeline.draw(
                     handle,
