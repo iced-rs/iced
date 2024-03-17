@@ -152,7 +152,7 @@ impl Todos {
                     Message::ToggleFullscreen(mode) => {
                         window::change_mode(window::Id::MAIN, mode)
                     }
-                    _ => Command::none(),
+                    Message::Loaded(_) => Command::none(),
                 };
 
                 if !saved {
