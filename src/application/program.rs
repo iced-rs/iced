@@ -32,7 +32,7 @@
 use crate::application::{self, Application};
 use crate::executor::{self, Executor};
 use crate::window;
-use crate::{Command, Element, Font, Result, Settings, Subscription};
+use crate::{Command, Element, Font, Result, Settings, Size, Subscription};
 
 use std::borrow::Cow;
 
@@ -269,6 +269,20 @@ impl<P: Definition> Program<P> {
             settings: Settings {
                 window: window::Settings {
                     exit_on_close_request,
+                    ..self.settings.window
+                },
+                ..self.settings
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::size`] of the [`Program`].
+    pub fn window_size(self, size: impl Into<Size>) -> Self {
+        Self {
+            settings: Settings {
+                window: window::Settings {
+                    size: size.into(),
                     ..self.settings.window
                 },
                 ..self.settings
