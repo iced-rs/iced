@@ -1,17 +1,17 @@
 mod echo;
 
 use iced::alignment::{self, Alignment};
-use iced::executor;
 use iced::widget::{
     button, column, container, row, scrollable, text, text_input,
 };
-use iced::{
-    color, Application, Command, Element, Length, Settings, Subscription, Theme,
-};
+use iced::{color, Command, Element, Length, Subscription};
 use once_cell::sync::Lazy;
 
 pub fn main() -> iced::Result {
-    WebSocket::run(Settings::default())
+    iced::program("WebSocket - Iced", WebSocket::update, WebSocket::view)
+        .load(WebSocket::load)
+        .subscription(WebSocket::subscription)
+        .run()
 }
 
 #[derive(Default)]
@@ -29,21 +29,9 @@ enum Message {
     Server,
 }
 
-impl Application for WebSocket {
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-    type Executor = executor::Default;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self::default(),
-            Command::perform(echo::server::run(), |_| Message::Server),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("WebSocket - Iced")
+impl WebSocket {
+    fn load() -> Command<Message> {
+        Command::perform(echo::server::run(), |_| Message::Server)
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
