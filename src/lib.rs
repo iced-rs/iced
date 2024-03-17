@@ -343,6 +343,10 @@ pub type Result = std::result::Result<(), Error>;
 /// Runs a basic iced application with default [`Settings`] given its title,
 /// update, and view logic.
 ///
+/// This is equivalent to chaining [`program`] with [`Program::run`].
+///
+/// [`Program::run`]: application::Program::run
+///
 /// # Example
 /// ```no_run
 /// use iced::widget::{button, column, text, Column};
