@@ -5,7 +5,7 @@ use iced::window;
 use iced::{Alignment, Command, Element, Length, Subscription};
 
 pub fn main() -> iced::Result {
-    iced::application("Events - Iced", Events::update, Events::view)
+    iced::program("Events - Iced", Events::update, Events::view)
         .subscription(Events::subscription)
         .exit_on_close_request(false)
         .run()

@@ -7,7 +7,7 @@ use iced::widget::canvas::{
 use iced::{Element, Length, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
-    iced::application("Arc - Iced", Arc::update, Arc::view)
+    iced::program("Arc - Iced", Arc::update, Arc::view)
         .subscription(Arc::subscription)
         .theme(|_| Theme::Dark)
         .antialiasing(true)

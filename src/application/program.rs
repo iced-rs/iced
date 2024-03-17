@@ -1,13 +1,3 @@
-//! Create iced applications out of simple functions.
-//!
-//! You can use this API to create and run iced applications
-//! step by step—without coupling your logic to a trait
-//! or a specific type.
-//!
-//! This API is meant to be a more convenient—although less
-//! powerful—alternative to the [`Application`] traits.
-//!
-//! [`Sandbox`]: crate::Sandbox
 //!
 //! # Example
 //! ```no_run
@@ -15,7 +5,7 @@
 //! use iced::Theme;
 //!
 //! pub fn main() -> iced::Result {
-//!     iced::application("A counter", update, view)
+//!     iced::program("A counter", update, view)
 //!         .theme(|_| Theme::Dark)
 //!         .centered()
 //!         .run()
@@ -53,7 +43,7 @@ use std::borrow::Cow;
 /// use iced::widget::{button, column, text, Column};
 ///
 /// pub fn main() -> iced::Result {
-///     iced::application("A counter", update, view).run()
+///     iced::program("A counter", update, view).run()
 /// }
 ///
 /// #[derive(Debug, Clone)]
@@ -74,7 +64,7 @@ use std::borrow::Cow;
 ///     ]
 /// }
 /// ```
-pub fn application<State, Message>(
+pub fn program<State, Message>(
     title: impl Title<State>,
     update: impl Update<State, Message>,
     view: impl for<'a> self::View<'a, State, Message>,
@@ -139,14 +129,18 @@ where
     .title(title)
 }
 
-/// A fully functioning and configured iced application.
+/// The underlying definition and configuration of an iced [`Application`].
 ///
-/// It can be [`run`]!
+/// You can use this API to create and run iced applications
+/// step by step—without coupling your logic to a trait
+/// or a specific type.
 ///
-/// Create one with the [`application`] helper.
+/// This API is meant to be a more convenient—although less
+/// powerful—alternative to the [`Application`] trait.
+///
+/// You can create a [`Program`] with the [`program`] helper.
 ///
 /// [`run`]: Program::run
-/// [`application`]: self::application()
 #[derive(Debug)]
 pub struct Program<P: Definition> {
     raw: P,
@@ -154,7 +148,7 @@ pub struct Program<P: Definition> {
 }
 
 impl<P: Definition> Program<P> {
-    /// Runs the [`Program`].
+    /// Runs the underlying [`Application`] of the [`Program`].
     pub fn run(self) -> Result
     where
         Self: 'static,
@@ -364,9 +358,7 @@ impl<P: Definition> Program<P> {
 /// The internal definition of a [`Program`].
 ///
 /// You should not need to implement this trait directly. Instead, use the
-/// helper functions available in the [`program`] module and the [`Program`] struct.
-///
-/// [`program`]: crate::program
+/// methods available in the [`Program`] struct.
 #[allow(missing_docs)]
 pub trait Definition: Sized {
     /// The state of the program.
@@ -748,6 +740,8 @@ fn with_style<P: Definition>(
 ///
 /// This trait is implemented both for `&static str` and
 /// any closure `Fn(&State) -> String`.
+///
+/// This trait allows the [`program`] builder to take any of them.
 pub trait Title<State> {
     /// Produces the title of the [`Program`].
     fn title(&self, state: &State) -> String;
@@ -770,10 +764,8 @@ where
 
 /// The update logic of some [`Program`].
 ///
-/// This trait allows [`application`] to take any closure that
+/// This trait allows the [`program`] builder to take any closure that
 /// returns any `Into<Command<Message>>`.
-///
-/// [`application`]: self::application()
 pub trait Update<State, Message> {
     /// Processes the message and updates the state of the [`Program`].
     fn update(
@@ -799,10 +791,8 @@ where
 
 /// The view logic of some [`Program`].
 ///
-/// This trait allows [`application`] to take any closure that
+/// This trait allows the [`program`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-///
-/// [`application`]: self::application()
 pub trait View<'a, State, Message> {
     /// Produces the widget of the [`Program`].
     fn view(&self, state: &'a State) -> impl Into<Element<'a, Message>>;

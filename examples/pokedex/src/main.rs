@@ -3,7 +3,7 @@ use iced::widget::{self, column, container, image, row, text};
 use iced::{Alignment, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    iced::application(Pokedex::title, Pokedex::update, Pokedex::view)
+    iced::program(Pokedex::title, Pokedex::update, Pokedex::view)
         .load(Pokedex::search)
         .run()
 }

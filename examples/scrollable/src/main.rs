@@ -10,7 +10,7 @@ use once_cell::sync::Lazy;
 static SCROLLABLE_ID: Lazy<scrollable::Id> = Lazy::new(scrollable::Id::unique);
 
 pub fn main() -> iced::Result {
-    iced::application(
+    iced::program(
         "Scrollable - Iced",
         ScrollableDemo::update,
         ScrollableDemo::view,

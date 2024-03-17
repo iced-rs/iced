@@ -9,13 +9,9 @@ use iced::window;
 use iced::{Alignment, Color, Element, Length, Subscription};
 
 fn main() -> iced::Result {
-    iced::application(
-        "Custom Shader - Iced",
-        IcedCubes::update,
-        IcedCubes::view,
-    )
-    .subscription(IcedCubes::subscription)
-    .run()
+    iced::program("Custom Shader - Iced", IcedCubes::update, IcedCubes::view)
+        .subscription(IcedCubes::subscription)
+        .run()
 }
 
 struct IcedCubes {

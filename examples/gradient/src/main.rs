@@ -8,7 +8,7 @@ use iced::{Alignment, Color, Element, Length, Radians, Theme};
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
+    iced::program("Gradient - Iced", Gradient::update, Gradient::view)
         .style(Gradient::style)
         .transparent(true)
         .run()

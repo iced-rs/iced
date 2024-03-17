@@ -157,12 +157,11 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! You can either use the [`application`] builder or implement the [`Application`]
+//! You can either use the [`program`] builder or implement the [`Application`]
 //! trait directly.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
-//! [`application`]: application()
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
@@ -189,7 +188,6 @@ pub use iced_highlighter as highlighter;
 mod error;
 
 pub mod application;
-pub mod program;
 pub mod settings;
 pub mod time;
 pub mod window;
@@ -323,7 +321,6 @@ pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
-pub use program::Program;
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use subscription::Subscription;
@@ -375,16 +372,16 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message>(
-    title: impl program::Title<State> + 'static,
-    update: impl program::Update<State, Message> + 'static,
-    view: impl for<'a> program::View<'a, State, Message> + 'static,
+    title: impl application::Title<State> + 'static,
+    update: impl application::Update<State, Message> + 'static,
+    view: impl for<'a> application::View<'a, State, Message> + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
 {
-    application(title, update, view).run()
+    program(title, update, view).run()
 }
 
 #[doc(inline)]
-pub use program::application;
+pub use application::program;

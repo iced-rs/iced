@@ -2,12 +2,8 @@ use iced::widget::{button, column, container, text};
 use iced::{system, Command, Element, Length};
 
 pub fn main() -> iced::Result {
-    iced::application(
-        "System Information - Iced",
-        Example::update,
-        Example::view,
-    )
-    .run()
+    iced::program("System Information - Iced", Example::update, Example::view)
+        .run()
 }
 
 #[derive(Default)]

@@ -1,7 +1,10 @@
 //! Build interactive cross-platform applications.
-use crate::{Command, Element, Executor, Settings, Subscription};
+mod program;
+
+pub use program::{program, Definition, Program, Title, Update, View};
 
 use crate::shell::application;
+use crate::{Command, Element, Executor, Settings, Subscription};
 
 pub use application::{default, Appearance, DefaultStyle};
 
