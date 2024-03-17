@@ -4,7 +4,7 @@ use iced::{Alignment, Element, Length};
 
 pub fn main() -> iced::Result {
     iced::application("Bezier Tool - Iced", Example::update, Example::view)
-        .antialiased()
+        .antialiasing(true)
         .run()
 }
 

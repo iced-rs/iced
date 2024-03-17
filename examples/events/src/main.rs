@@ -7,7 +7,7 @@ use iced::{Alignment, Command, Element, Length, Subscription};
 pub fn main() -> iced::Result {
     iced::application("Events - Iced", Events::update, Events::view)
         .subscription(Events::subscription)
-        .ignore_close_request()
+        .exit_on_close_request(false)
         .run()
 }
 

@@ -16,7 +16,7 @@ pub fn main() -> iced::Result {
         LoadingSpinners::update,
         LoadingSpinners::view,
     )
-    .antialiased()
+    .antialiasing(true)
     .run()
 }
 

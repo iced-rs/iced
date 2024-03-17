@@ -194,12 +194,16 @@ impl<P: Definition> Program<P> {
                 self.program.view(&self.state)
             }
 
+            fn subscription(&self) -> Subscription<Self::Message> {
+                self.program.subscription(&self.state)
+            }
+
             fn theme(&self) -> Self::Theme {
                 self.program.theme(&self.state)
             }
 
-            fn subscription(&self) -> Subscription<Self::Message> {
-                self.program.subscription(&self.state)
+            fn style(&self, theme: &Self::Theme) -> application::Appearance {
+                self.program.style(&self.state, theme)
             }
         }
 
@@ -221,11 +225,11 @@ impl<P: Definition> Program<P> {
         Self { settings, ..self }
     }
 
-    /// Toggles the [`Settings::antialiasing`] to `true` for the [`Program`].
-    pub fn antialiased(self) -> Self {
+    /// Sets the [`Settings::antialiasing`] of the [`Program`].
+    pub fn antialiasing(self, antialiasing: bool) -> Self {
         Self {
             settings: Settings {
-                antialiasing: true,
+                antialiasing,
                 ..self.settings
             },
             ..self
@@ -263,12 +267,26 @@ impl<P: Definition> Program<P> {
         }
     }
 
-    /// Sets the [`window::Settings::exit_on_close_request`] to `false` in the [`Program`].
-    pub fn ignore_close_request(self) -> Self {
+    /// Sets the [`window::Settings::exit_on_close_request`] of the [`Program`].
+    pub fn exit_on_close_request(self, exit_on_close_request: bool) -> Self {
         Self {
             settings: Settings {
                 window: window::Settings {
-                    exit_on_close_request: false,
+                    exit_on_close_request,
+                    ..self.settings.window
+                },
+                ..self.settings
+            },
+            ..self
+        }
+    }
+
+    /// Sets the [`window::Settings::transparent`] of the [`Program`].
+    pub fn transparent(self, transparent: bool) -> Self {
+        Self {
+            settings: Settings {
+                window: window::Settings {
+                    transparent,
                     ..self.settings.window
                 },
                 ..self.settings
@@ -328,6 +346,19 @@ impl<P: Definition> Program<P> {
             settings: self.settings,
         }
     }
+
+    /// Sets the style logic of the [`Program`].
+    pub fn style(
+        self,
+        f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+    ) -> Program<
+        impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
+    > {
+        Program {
+            raw: with_style(self.raw, f),
+            settings: self.settings,
+        }
+    }
 }
 
 /// The internal definition of a [`Program`].
@@ -376,6 +407,14 @@ pub trait Definition: Sized {
 
     fn theme(&self, _state: &Self::State) -> Self::Theme {
         Self::Theme::default()
+    }
+
+    fn style(
+        &self,
+        _state: &Self::State,
+        theme: &Self::Theme,
+    ) -> application::Appearance {
+        application::DefaultStyle::default_style(theme)
     }
 }
 
@@ -431,6 +470,14 @@ fn with_title<P: Definition>(
         ) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> application::Appearance {
+            self.program.style(state, theme)
+        }
     }
 
     WithTitle { program, title }
@@ -479,15 +526,23 @@ fn with_load<P: Definition>(
             self.program.title(state)
         }
 
-        fn theme(&self, state: &Self::State) -> Self::Theme {
-            self.program.theme(state)
-        }
-
         fn subscription(
             &self,
             state: &Self::State,
         ) -> Subscription<Self::Message> {
             self.program.subscription(state)
+        }
+
+        fn theme(&self, state: &Self::State) -> Self::Theme {
+            self.program.theme(state)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> application::Appearance {
+            self.program.style(state, theme)
         }
     }
 
@@ -544,6 +599,14 @@ fn with_subscription<P: Definition>(
 
         fn theme(&self, state: &Self::State) -> Self::Theme {
             self.program.theme(state)
+        }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> application::Appearance {
+            self.program.style(state, theme)
         }
     }
 
@@ -604,9 +667,81 @@ fn with_theme<P: Definition>(
         ) -> Subscription<Self::Message> {
             self.program.subscription(state)
         }
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> application::Appearance {
+            self.program.style(state, theme)
+        }
     }
 
     WithTheme { program, theme: f }
+}
+
+fn with_style<P: Definition>(
+    program: P,
+    f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
+    struct WithStyle<P, F> {
+        program: P,
+        style: F,
+    }
+
+    impl<P: Definition, F> Definition for WithStyle<P, F>
+    where
+        F: Fn(&P::State, &P::Theme) -> application::Appearance,
+    {
+        type State = P::State;
+        type Message = P::Message;
+        type Theme = P::Theme;
+        type Executor = P::Executor;
+
+        fn style(
+            &self,
+            state: &Self::State,
+            theme: &Self::Theme,
+        ) -> application::Appearance {
+            (self.style)(state, theme)
+        }
+
+        fn build(&self) -> (Self::State, Command<Self::Message>) {
+            self.program.build()
+        }
+
+        fn title(&self, state: &Self::State) -> String {
+            self.program.title(state)
+        }
+
+        fn update(
+            &self,
+            state: &mut Self::State,
+            message: Self::Message,
+        ) -> Command<Self::Message> {
+            self.program.update(state, message)
+        }
+
+        fn view<'a>(
+            &self,
+            state: &'a Self::State,
+        ) -> Element<'a, Self::Message, Self::Theme> {
+            self.program.view(state)
+        }
+
+        fn subscription(
+            &self,
+            state: &Self::State,
+        ) -> Subscription<Self::Message> {
+            self.program.subscription(state)
+        }
+
+        fn theme(&self, state: &Self::State) -> Self::Theme {
+            self.program.theme(state)
+        }
+    }
+
+    WithStyle { program, style: f }
 }
 
 /// The title logic of some [`Program`].

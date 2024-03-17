@@ -20,7 +20,7 @@ pub fn main() -> iced::Result {
     )
     .theme(ColorPalette::theme)
     .default_font(Font::MONOSPACE)
-    .antialiased()
+    .antialiasing(true)
     .run()
 }
 

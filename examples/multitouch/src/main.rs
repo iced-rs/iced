@@ -14,7 +14,7 @@ pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
     iced::application("Multitouch - Iced", Multitouch::update, Multitouch::view)
-        .antialiased()
+        .antialiasing(true)
         .centered()
         .run()
 }

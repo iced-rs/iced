@@ -1,22 +1,17 @@
 use iced::application;
+use iced::gradient;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
-use iced::{gradient, window};
-use iced::{
-    Alignment, Color, Element, Length, Radians, Sandbox, Settings, Theme,
-};
+use iced::{Alignment, Color, Element, Length, Radians, Theme};
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Gradient::run(Settings {
-        window: window::Settings {
-            transparent: true,
-            ..Default::default()
-        },
-        ..Default::default()
-    })
+    iced::application("Gradient - Iced", Gradient::update, Gradient::view)
+        .style(Gradient::style)
+        .transparent(true)
+        .run()
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -35,9 +30,7 @@ enum Message {
     TransparentToggled(bool),
 }
 
-impl Sandbox for Gradient {
-    type Message = Message;
-
+impl Gradient {
     fn new() -> Self {
         Self {
             start: Color::WHITE,
@@ -45,10 +38,6 @@ impl Sandbox for Gradient {
             angle: Radians(0.0),
             transparent: false,
         }
-    }
-
-    fn title(&self) -> String {
-        String::from("Gradient")
     }
 
     fn update(&mut self, message: Message) {
@@ -115,6 +104,12 @@ impl Sandbox for Gradient {
         } else {
             application::default(theme)
         }
+    }
+}
+
+impl Default for Gradient {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

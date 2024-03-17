@@ -172,7 +172,6 @@ pub use iced_futures::futures;
 pub use iced_highlighter as highlighter;
 
 mod error;
-mod sandbox;
 
 pub mod application;
 pub mod program;
@@ -311,7 +310,6 @@ pub use executor::Executor;
 pub use font::Font;
 pub use program::Program;
 pub use renderer::Renderer;
-pub use sandbox::Sandbox;
 pub use settings::Settings;
 pub use subscription::Subscription;
 

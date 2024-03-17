@@ -10,7 +10,7 @@ pub fn main() -> iced::Result {
     iced::application("Arc - Iced", Arc::update, Arc::view)
         .subscription(Arc::subscription)
         .theme(|_| Theme::Dark)
-        .antialiased()
+        .antialiasing(true)
         .run()
 }
 
