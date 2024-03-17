@@ -1,21 +1,19 @@
 use iced::event::{self, Event};
-use iced::executor;
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
     self, button, column, container, pick_list, row, slider, text, text_input,
 };
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-};
+use iced::{Alignment, Command, Element, Length, Subscription};
 
 use toast::{Status, Toast};
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
+    iced::program("Toast - Iced", App::update, App::view)
+        .subscription(App::subscription)
+        .run()
 }
 
-#[derive(Default)]
 struct App {
     toasts: Vec<Toast>,
     editing: Toast,
@@ -34,32 +32,20 @@ enum Message {
     Event(Event),
 }
 
-impl Application for App {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = iced::Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            App {
-                toasts: vec![Toast {
-                    title: "Example Toast".into(),
-                    body: "Add more toasts in the form below!".into(),
-                    status: Status::Primary,
-                }],
-                timeout_secs: toast::DEFAULT_TIMEOUT,
-                ..Default::default()
-            },
-            Command::none(),
-        )
+impl App {
+    fn new() -> Self {
+        App {
+            toasts: vec![Toast {
+                title: "Example Toast".into(),
+                body: "Add more toasts in the form below!".into(),
+                status: Status::Primary,
+            }],
+            timeout_secs: toast::DEFAULT_TIMEOUT,
+            editing: Toast::default(),
+        }
     }
 
-    fn title(&self) -> String {
-        String::from("Toast - Iced")
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
+    fn subscription(&self) -> Subscription<Message> {
         event::listen().map(Message::Event)
     }
 
@@ -169,6 +155,12 @@ impl Application for App {
         toast::Manager::new(content, &self.toasts, Message::Close)
             .timeout(self.timeout_secs)
             .into()
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
