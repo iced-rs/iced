@@ -166,10 +166,7 @@ impl<P: Definition> Program<P> {
 
     /// Runs the underlying [`Application`] of the [`Program`] with a
     /// closure that creates the initial state.
-    pub fn run_with(
-        self,
-        initialize: impl Fn() -> P::State + Clone + 'static,
-    ) -> Result
+    pub fn run_with(self, initialize: impl Fn() -> P::State + Clone) -> Result
     where
         Self: 'static,
     {

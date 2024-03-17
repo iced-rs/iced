@@ -192,7 +192,8 @@ where
     /// [`Error`]: crate::Error
     fn run(settings: Settings<Self::Flags>) -> crate::Result
     where
-        Self: 'static,
+        Self::Message: 'static,
+        Self::Executor: 'static,
     {
         #[allow(clippy::needless_update)]
         let renderer_settings = crate::renderer::Settings {
