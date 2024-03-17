@@ -1,3 +1,4 @@
+//! Create and run iced applications step by step.
 //!
 //! # Example
 //! ```no_run
@@ -29,10 +30,12 @@
 //!     ]
 //! }
 //! ```
-use crate::application::{self, Application};
+use crate::application::Application;
 use crate::executor::{self, Executor};
 use crate::window;
 use crate::{Command, Element, Font, Result, Settings, Size, Subscription};
+
+pub use crate::application::{Appearance, DefaultStyle};
 
 use std::borrow::Cow;
 
@@ -72,7 +75,7 @@ pub fn program<State, Message, Theme>(
 where
     State: 'static,
     Message: Send + std::fmt::Debug,
-    Theme: Default + application::DefaultStyle,
+    Theme: Default + DefaultStyle,
 {
     use std::marker::PhantomData;
 
@@ -88,7 +91,7 @@ where
         for Application<State, Message, Theme, Update, View>
     where
         Message: Send + std::fmt::Debug,
-        Theme: Default + application::DefaultStyle,
+        Theme: Default + DefaultStyle,
         Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme>,
     {
@@ -130,14 +133,11 @@ where
     .title(title)
 }
 
-/// The underlying definition and configuration of an iced [`Application`].
+/// The underlying definition and configuration of an iced application.
 ///
 /// You can use this API to create and run iced applications
 /// step by step—without coupling your logic to a trait
 /// or a specific type.
-///
-/// This API is meant to be a more convenient—although less
-/// powerful—alternative to the [`Application`] trait.
 ///
 /// You can create a [`Program`] with the [`program`] helper.
 ///
@@ -229,7 +229,7 @@ impl<P: Definition> Program<P> {
                 self.program.theme(&self.state)
             }
 
-            fn style(&self, theme: &Self::Theme) -> application::Appearance {
+            fn style(&self, theme: &Self::Theme) -> Appearance {
                 self.program.style(&self.state, theme)
             }
         }
@@ -391,7 +391,7 @@ impl<P: Definition> Program<P> {
     /// Sets the style logic of the [`Program`].
     pub fn style(
         self,
-        f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+        f: impl Fn(&P::State, &P::Theme) -> Appearance,
     ) -> Program<
         impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -415,7 +415,7 @@ pub trait Definition: Sized {
     type Message: Send + std::fmt::Debug;
 
     /// The theme of the program.
-    type Theme: Default + application::DefaultStyle;
+    type Theme: Default + DefaultStyle;
 
     /// The executor of the program.
     type Executor: Executor;
@@ -448,12 +448,8 @@ pub trait Definition: Sized {
         Self::Theme::default()
     }
 
-    fn style(
-        &self,
-        _state: &Self::State,
-        theme: &Self::Theme,
-    ) -> application::Appearance {
-        application::DefaultStyle::default_style(theme)
+    fn style(&self, _state: &Self::State, theme: &Self::Theme) -> Appearance {
+        DefaultStyle::default_style(theme)
     }
 }
 
@@ -514,7 +510,7 @@ fn with_title<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -578,7 +574,7 @@ fn with_load<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -642,7 +638,7 @@ fn with_subscription<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -709,7 +705,7 @@ fn with_theme<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -719,7 +715,7 @@ fn with_theme<P: Definition>(
 
 fn with_style<P: Definition>(
     program: P,
-    f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+    f: impl Fn(&P::State, &P::Theme) -> Appearance,
 ) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithStyle<P, F> {
         program: P,
@@ -728,7 +724,7 @@ fn with_style<P: Definition>(
 
     impl<P: Definition, F> Definition for WithStyle<P, F>
     where
-        F: Fn(&P::State, &P::Theme) -> application::Appearance,
+        F: Fn(&P::State, &P::Theme) -> Appearance,
     {
         type State = P::State;
         type Message = P::Message;
@@ -739,7 +735,7 @@ fn with_style<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             (self.style)(state, theme)
         }
 

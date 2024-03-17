@@ -1,12 +1,8 @@
 //! Build interactive cross-platform applications.
-mod program;
-
-pub use program::{program, Definition, Program, Title, Update, View};
-
 use crate::shell::application;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
-pub use application::{default, Appearance, DefaultStyle};
+pub use application::{Appearance, DefaultStyle};
 
 /// An interactive cross-platform application.
 ///
@@ -62,8 +58,9 @@ pub use application::{default, Appearance, DefaultStyle};
 /// says "Hello, world!":
 ///
 /// ```no_run
+/// use iced::advanced::Application;
 /// use iced::executor;
-/// use iced::{Application, Command, Element, Settings, Theme};
+/// use iced::{Command, Element, Settings, Theme};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())

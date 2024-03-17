@@ -157,11 +157,11 @@
 //!   1. Draw the resulting user interface.
 //!
 //! # Usage
-//! You can either use the [`program`] builder or implement the [`Application`]
-//! trait directly.
+//! Use [`run`] or the [`program`] builder.
 //!
 //! [Elm]: https://elm-lang.org/
 //! [The Elm Architecture]: https://guide.elm-lang.org/architecture/
+//! [`program`]: program()
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/iced-rs/iced/9ab6923e943f784985e9ef9ca28b10278297225d/docs/logo.svg"
 )]
@@ -185,9 +185,10 @@ pub use iced_futures::futures;
 #[cfg(feature = "highlighter")]
 pub use iced_highlighter as highlighter;
 
+mod application;
 mod error;
 
-pub mod application;
+pub mod program;
 pub mod settings;
 pub mod time;
 pub mod window;
@@ -315,12 +316,12 @@ pub mod widget {
     mod runtime {}
 }
 
-pub use application::Application;
 pub use command::Command;
 pub use error::Error;
 pub use event::Event;
 pub use executor::Executor;
 pub use font::Font;
+pub use program::Program;
 pub use renderer::Renderer;
 pub use settings::Settings;
 pub use subscription::Subscription;
@@ -335,9 +336,7 @@ pub type Element<
     Renderer = crate::Renderer,
 > = crate::core::Element<'a, Message, Theme, Renderer>;
 
-/// The result of running an [`Application`].
-///
-/// [`Application`]: crate::Application
+/// The result of running a [`Program`].
 pub type Result = std::result::Result<(), Error>;
 
 /// Runs a basic iced application with default [`Settings`] given its title,
@@ -345,7 +344,7 @@ pub type Result = std::result::Result<(), Error>;
 ///
 /// This is equivalent to chaining [`program`] with [`Program::run`].
 ///
-/// [`Program::run`]: application::Program::run
+/// [`program`]: program()
 ///
 /// # Example
 /// ```no_run
@@ -374,17 +373,17 @@ pub type Result = std::result::Result<(), Error>;
 /// }
 /// ```
 pub fn run<State, Message, Theme>(
-    title: impl application::Title<State> + 'static,
-    update: impl application::Update<State, Message> + 'static,
-    view: impl for<'a> application::View<'a, State, Message, Theme> + 'static,
+    title: impl program::Title<State> + 'static,
+    update: impl program::Update<State, Message> + 'static,
+    view: impl for<'a> program::View<'a, State, Message, Theme> + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
-    Theme: Default + application::DefaultStyle + 'static,
+    Theme: Default + program::DefaultStyle + 'static,
 {
     program(title, update, view).run()
 }
 
 #[doc(inline)]
-pub use application::program;
+pub use program::program;

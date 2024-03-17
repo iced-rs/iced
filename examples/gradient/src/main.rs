@@ -1,5 +1,5 @@
-use iced::application;
 use iced::gradient;
+use iced::program;
 use iced::widget::{
     checkbox, column, container, horizontal_space, row, slider, text,
 };
@@ -95,14 +95,16 @@ impl Gradient {
         .into()
     }
 
-    fn style(&self, theme: &Theme) -> application::Appearance {
+    fn style(&self, theme: &Theme) -> program::Appearance {
+        use program::DefaultStyle;
+
         if self.transparent {
-            application::Appearance {
+            program::Appearance {
                 background_color: Color::TRANSPARENT,
                 text_color: theme.palette().text,
             }
         } else {
-            application::default(theme)
+            Theme::default_style(theme)
         }
     }
 }
