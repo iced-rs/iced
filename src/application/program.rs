@@ -70,7 +70,7 @@ pub fn program<State, Message, Theme>(
     view: impl for<'a> self::View<'a, State, Message, Theme>,
 ) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
 where
-    State: Default + 'static,
+    State: 'static,
     Message: Send + std::fmt::Debug,
     Theme: Default + application::DefaultStyle,
 {
@@ -87,7 +87,6 @@ where
     impl<State, Message, Theme, Update, View> Definition
         for Application<State, Message, Theme, Update, View>
     where
-        State: Default,
         Message: Send + std::fmt::Debug,
         Theme: Default + application::DefaultStyle,
         Update: self::Update<State, Message>,
@@ -98,8 +97,8 @@ where
         type Theme = Theme;
         type Executor = executor::Default;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            (Self::State::default(), Command::none())
+        fn load(&self) -> Command<Self::Message> {
+            Command::none()
         }
 
         fn update(
@@ -151,25 +150,57 @@ pub struct Program<P: Definition> {
 
 impl<P: Definition> Program<P> {
     /// Runs the underlying [`Application`] of the [`Program`].
+    ///
+    /// The state of the [`Program`] must implement [`Default`].
+    /// If your state does not implement [`Default`], use [`run_with`]
+    /// instead.
+    ///
+    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
+        P::State: Default,
     {
-        struct Instance<P: Definition> {
+        self.run_with(P::State::default)
+    }
+
+    /// Runs the underlying [`Application`] of the [`Program`] with a
+    /// closure that creates the initial state.
+    pub fn run_with(
+        self,
+        initialize: impl Fn() -> P::State + Clone + 'static,
+    ) -> Result
+    where
+        Self: 'static,
+    {
+        use std::marker::PhantomData;
+
+        struct Instance<P: Definition, I> {
             program: P,
             state: P::State,
+            _initialize: PhantomData<I>,
         }
 
-        impl<P: Definition> Application for Instance<P> {
+        impl<P: Definition, I: Fn() -> P::State> Application for Instance<P, I> {
             type Message = P::Message;
             type Theme = P::Theme;
-            type Flags = P;
+            type Flags = (P, I);
             type Executor = P::Executor;
 
-            fn new(program: Self::Flags) -> (Self, Command<Self::Message>) {
-                let (state, command) = P::build(&program);
+            fn new(
+                (program, initialize): Self::Flags,
+            ) -> (Self, Command<Self::Message>) {
+                let state = initialize();
+                let command = program.load();
 
-                (Self { program, state }, command)
+                (
+                    Self {
+                        program,
+                        state,
+                        _initialize: PhantomData,
+                    },
+                    command,
+                )
             }
 
             fn title(&self) -> String {
@@ -206,7 +237,7 @@ impl<P: Definition> Program<P> {
         let Self { raw, settings } = self;
 
         Instance::run(Settings {
-            flags: raw,
+            flags: (raw, initialize),
             id: settings.id,
             window: settings.window,
             fonts: settings.fonts,
@@ -389,7 +420,7 @@ pub trait Definition: Sized {
     /// The executor of the program.
     type Executor: Executor;
 
-    fn build(&self) -> (Self::State, Command<Self::Message>);
+    fn load(&self) -> Command<Self::Message>;
 
     fn update(
         &self,
@@ -445,8 +476,8 @@ fn with_title<P: Definition>(
         type Theme = P::Theme;
         type Executor = P::Executor;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {
@@ -509,10 +540,8 @@ fn with_load<P: Definition>(
         type Theme = P::Theme;
         type Executor = executor::Default;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            let (state, command) = self.program.build();
-
-            (state, Command::batch([command, (self.load)()]))
+        fn load(&self) -> Command<Self::Message> {
+            Command::batch([self.program.load(), (self.load)()])
         }
 
         fn update(
@@ -582,8 +611,8 @@ fn with_subscription<P: Definition>(
             (self.subscription)(state)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn update(
@@ -646,8 +675,8 @@ fn with_theme<P: Definition>(
             (self.theme)(state)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {
@@ -714,8 +743,8 @@ fn with_style<P: Definition>(
             (self.style)(state, theme)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {
