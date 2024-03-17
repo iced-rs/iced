@@ -340,10 +340,8 @@ pub type Element<
 /// [`Application`]: crate::Application
 pub type Result = std::result::Result<(), Error>;
 
-/// Runs a basic iced application with default [`Settings`] given
-///   - its window title,
-///   - its update logic,
-///   - and its view logic.
+/// Runs a basic iced application with default [`Settings`] given its title,
+/// update, and view logic.
 ///
 /// # Example
 /// ```no_run
