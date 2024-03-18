@@ -54,6 +54,23 @@ macro_rules! row {
 /// Creates a new [`Text`] widget with the provided content.
 ///
 /// [`Text`]: core::widget::Text
+///
+/// This macro uses the same syntax as [`format!`], but creates a new [`Text`] widget instead.
+///
+/// See [the formatting documentation in `std::fmt`](std::fmt)
+/// for details of the macro argument syntax.
+///
+/// # Examples
+///
+/// ```
+/// fn view(&self) -> Element<Message> {
+///     let empty = text!();
+///     let simple = text!("Hello, world!");
+///     let keyword = text!("Hello, {}", "world!");
+///     let planet = "Earth";
+///     let complex = text!("Hello, {planet}!");
+/// }
+/// ```
 #[macro_export]
 macro_rules! text {
     () => (
