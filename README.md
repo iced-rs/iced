@@ -175,7 +175,7 @@ Iced will automatically:
      __update logic__.
   1. Draw the resulting user interface.
 
-Browse the [documentation] and the [examples] to learn more!
+Read the [book], the [documentation], and the [examples] to learn more!
 
 ## Implementation details
 
@@ -215,6 +215,7 @@ come chat to [our Discord server].
 
 The development of Iced is sponsored by the [Cryptowatch] team at [Kraken.com]
 
+[book]: https://book.iced.rs/
 [documentation]: https://docs.rs/iced/
 [examples]: https://github.com/iced-rs/iced/tree/master/examples
 [Coffee]: https://github.com/hecrj/coffee
