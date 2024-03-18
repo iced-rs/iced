@@ -63,8 +63,8 @@
 //! ```
 //! #[derive(Debug, Clone, Copy)]
 //! pub enum Message {
-//!     IncrementPressed,
-//!     DecrementPressed,
+//!     Increment,
+//!     Decrement,
 //! }
 //! ```
 //!
@@ -79,8 +79,8 @@
 //! #
 //! # #[derive(Debug, Clone, Copy)]
 //! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
+//! #     Increment,
+//! #     Decrement,
 //! # }
 //! #
 //! use iced::widget::{button, column, text, Column};
@@ -90,15 +90,15 @@
 //!         // We use a column: a simple vertical layout
 //!         column![
 //!             // The increment button. We tell it to produce an
-//!             // `IncrementPressed` message when pressed
-//!             button("+").on_press(Message::IncrementPressed),
+//!             // `Increment` message when pressed
+//!             button("+").on_press(Message::Increment),
 //!
 //!             // We show the value of the counter here
 //!             text(self.value).size(50),
 //!
 //!             // The decrement button. We tell it to produce a
-//!             // `DecrementPressed` message when pressed
-//!             button("-").on_press(Message::DecrementPressed),
+//!             // `Decrement` message when pressed
+//!             button("-").on_press(Message::Decrement),
 //!         ]
 //!     }
 //! }
@@ -115,18 +115,18 @@
 //! #
 //! # #[derive(Debug, Clone, Copy)]
 //! # pub enum Message {
-//! #     IncrementPressed,
-//! #     DecrementPressed,
+//! #     Increment,
+//! #     Decrement,
 //! # }
 //! impl Counter {
 //!     // ...
 //!
 //!     pub fn update(&mut self, message: Message) {
 //!         match message {
-//!             Message::IncrementPressed => {
+//!             Message::Increment => {
 //!                 self.value += 1;
 //!             }
-//!             Message::DecrementPressed => {
+//!             Message::Decrement => {
 //!                 self.value -= 1;
 //!             }
 //!         }
