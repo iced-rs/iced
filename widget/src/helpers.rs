@@ -64,18 +64,17 @@ macro_rules! row {
 ///
 /// ```
 /// fn view(&self) -> Element<Message> {
-///     let empty = text!();
 ///     let simple = text!("Hello, world!");
+///
 ///     let keyword = text!("Hello, {}", "world!");
+///
 ///     let planet = "Earth";
-///     let complex = text!("Hello, {planet}!");
+///     let local_variable = text!("Hello, {planet}!");
+///     // ...
 /// }
 /// ```
 #[macro_export]
 macro_rules! text {
-    () => (
-        $crate::Text::new()
-    );
     ($($arg:tt)*) => {
         $crate::Text::new(format!($($arg)*))
     };
