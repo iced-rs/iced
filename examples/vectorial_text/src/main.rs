@@ -55,7 +55,7 @@ impl VectorialText {
                 row![
                     text(label),
                     horizontal_space(),
-                    text(format!("{:.2}", value))
+                    text!("{:.2}", value)
                 ],
                 slider(range, value, message).step(0.01)
             ]

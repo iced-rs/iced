@@ -54,7 +54,7 @@ impl SierpinskiEmulator {
                 .width(Length::Fill)
                 .height(Length::Fill),
             row![
-                text(format!("Iteration: {:?}", self.graph.iteration)),
+                text!("Iteration: {:?}", self.graph.iteration),
                 slider(0..=10000, self.graph.iteration, Message::IterationSet)
             ]
             .padding(10)

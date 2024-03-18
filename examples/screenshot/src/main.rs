@@ -163,7 +163,7 @@ impl Example {
                 .push_maybe(
                     self.crop_error
                         .as_ref()
-                        .map(|error| text(format!("Crop error! \n{error}"))),
+                        .map(|error| text!("Crop error! \n{error}")),
                 )
                 .spacing(10)
                 .align_items(Alignment::Center);

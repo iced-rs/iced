@@ -131,7 +131,7 @@ impl App {
                 subtitle(
                     "Timeout",
                     row![
-                        text(format!("{:0>2} sec", self.timeout_secs)),
+                        text!("{:0>2} sec", self.timeout_secs),
                         slider(
                             1.0..=30.0,
                             self.timeout_secs as f64,

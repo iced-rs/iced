@@ -109,7 +109,7 @@ impl Pokemon {
             column![
                 row![
                     text(&self.name).size(30).width(Length::Fill),
-                    text(format!("#{}", self.number))
+                    text!("#{}", self.number)
                         .size(20)
                         .color([0.5, 0.5, 0.5]),
                 ]

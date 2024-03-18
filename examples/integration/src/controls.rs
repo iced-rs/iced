@@ -78,7 +78,7 @@ impl Program for Controls {
         container(
             column![
                 text("Background color").color(Color::WHITE),
-                text(format!("{background_color:?}"))
+                text!("{background_color:?}")
                     .size(14)
                     .color(Color::WHITE),
                 text_input("Placeholder", &self.input)

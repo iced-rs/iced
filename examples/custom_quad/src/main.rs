@@ -165,7 +165,7 @@ impl Example {
                 self.border_width,
                 self.shadow
             ),
-            text(format!("Radius: {tl:.2}/{tr:.2}/{br:.2}/{bl:.2}")),
+            text!("Radius: {tl:.2}/{tr:.2}/{br:.2}/{bl:.2}"),
             slider(1.0..=100.0, tl, Message::RadiusTopLeftChanged).step(0.01),
             slider(1.0..=100.0, tr, Message::RadiusTopRightChanged).step(0.01),
             slider(1.0..=100.0, br, Message::RadiusBottomRightChanged)
@@ -174,7 +174,7 @@ impl Example {
                 .step(0.01),
             slider(1.0..=10.0, self.border_width, Message::BorderWidthChanged)
                 .step(0.01),
-            text(format!("Shadow: {sx:.2}x{sy:.2}, {sr:.2}")),
+            text!("Shadow: {sx:.2}x{sy:.2}, {sr:.2}"),
             slider(-100.0..=100.0, sx, Message::ShadowXOffsetChanged)
                 .step(0.01),
             slider(-100.0..=100.0, sy, Message::ShadowYOffsetChanged)

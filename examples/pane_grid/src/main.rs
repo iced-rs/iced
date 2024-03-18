@@ -285,7 +285,7 @@ fn view_content<'a>(
     .max_width(160);
 
     let content = column![
-        text(format!("{}x{}", size.width, size.height)).size(24),
+        text!("{}x{}", size.width, size.height).size(24),
         controls,
     ]
     .spacing(10)
