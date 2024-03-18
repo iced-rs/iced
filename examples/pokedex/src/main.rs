@@ -109,9 +109,7 @@ impl Pokemon {
             column![
                 row![
                     text(&self.name).size(30).width(Length::Fill),
-                    text!("#{}", self.number)
-                        .size(20)
-                        .color([0.5, 0.5, 0.5]),
+                    text!("#{}", self.number).size(20).color([0.5, 0.5, 0.5]),
                 ]
                 .align_items(Alignment::Center)
                 .spacing(20),

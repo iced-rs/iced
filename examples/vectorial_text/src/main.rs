@@ -52,11 +52,7 @@ impl VectorialText {
     fn view(&self) -> Element<Message> {
         let slider_with_label = |label, range, value, message: fn(f32) -> _| {
             column![
-                row![
-                    text(label),
-                    horizontal_space(),
-                    text!("{:.2}", value)
-                ],
+                row![text(label), horizontal_space(), text!("{:.2}", value)],
                 slider(range, value, message).step(0.01)
             ]
             .spacing(2)

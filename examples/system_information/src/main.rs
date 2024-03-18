@@ -108,15 +108,11 @@ impl Example {
 
                 let memory_used = text!("Memory (used): {memory_text}");
 
-                let graphics_adapter = text!(
-                    "Graphics adapter: {}",
-                    information.graphics_adapter
-                );
+                let graphics_adapter =
+                    text!("Graphics adapter: {}", information.graphics_adapter);
 
-                let graphics_backend = text!(
-                    "Graphics backend: {}",
-                    information.graphics_backend
-                );
+                let graphics_backend =
+                    text!("Graphics backend: {}", information.graphics_backend);
 
                 column![
                     system_name.size(30),
