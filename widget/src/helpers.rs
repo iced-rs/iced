@@ -62,15 +62,32 @@ macro_rules! row {
 ///
 /// # Examples
 ///
-/// ```
-/// fn view(&self) -> Element<Message> {
-///     let simple = text!("Hello, world!");
+/// ```no_run
+/// # mod iced {
+/// #     pub struct Element<Message>(pub std::marker::PhantomData<Message>);
+/// #     pub mod widget {
+/// #         macro_rules! text {
+/// #           ($($arg:tt)*) => {unimplemented!()}
+/// #         }
+/// #         pub(crate) use text;
+/// #     }
+/// # }
+/// # struct Example;
+/// # enum Message {}
+/// use iced::Element;
+/// use iced::widget::text;
 ///
-///     let keyword = text!("Hello, {}", "world!");
+/// impl Example {
+///     fn view(&self) -> Element<Message> {
+///         let simple = text!("Hello, world!");
 ///
-///     let planet = "Earth";
-///     let local_variable = text!("Hello, {planet}!");
-///     // ...
+///         let keyword = text!("Hello, {}", "world!");
+///
+///         let planet = "Earth";
+///         let local_variable = text!("Hello, {planet}!");
+///         // ...
+///         # iced::Element(std::marker::PhantomData)
+///     }
 /// }
 /// ```
 #[macro_export]
