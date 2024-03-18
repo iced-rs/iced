@@ -51,6 +51,19 @@ macro_rules! row {
     );
 }
 
+/// Creates a new [`Text`] widget with the provided content.
+///
+/// [`Text`]: core::widget::Text
+#[macro_export]
+macro_rules! text {
+    () => (
+        $crate::Text::new()
+    );
+    ($($arg:tt)*) => {
+        $crate::Text::new(format!($($arg)*))
+    };
+}
+
 /// Creates a new [`Container`] with the provided content.
 ///
 /// [`Container`]: crate::Container
