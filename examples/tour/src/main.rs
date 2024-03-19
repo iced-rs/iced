@@ -21,19 +21,13 @@ pub fn main() -> iced::Result {
         .run()
 }
 
+#[derive(Default)]
 pub struct Tour {
     steps: Steps,
     debug: bool,
 }
 
 impl Tour {
-    fn new() -> Self {
-        Self {
-            steps: Steps::new(),
-            debug: false,
-        }
-    }
-
     fn title(&self) -> String {
         format!("{} - Iced", self.steps.title())
     }
@@ -87,12 +81,6 @@ impl Tour {
         );
 
         container(scrollable).height(Length::Fill).center_y().into()
-    }
-}
-
-impl Default for Tour {
-    fn default() -> Self {
-        Self::new()
     }
 }
 
@@ -174,6 +162,12 @@ impl Steps {
 
     fn title(&self) -> &str {
         self.steps[self.current].title()
+    }
+}
+
+impl Default for Steps {
+    fn default() -> Self {
+        Steps::new()
     }
 }
 

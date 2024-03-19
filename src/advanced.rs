@@ -1,4 +1,5 @@
 //! Leverage advanced concepts like custom widgets.
+pub use crate::application::Application;
 pub use crate::core::clipboard::{self, Clipboard};
 pub use crate::core::image;
 pub use crate::core::layout::{self, Layout};

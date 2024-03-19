@@ -4,7 +4,9 @@ use crate::{Font, Pixels};
 
 use std::borrow::Cow;
 
-/// The settings of an application.
+/// The settings of an iced [`Program`].
+///
+/// [`Program`]: crate::Program
 #[derive(Debug, Clone)]
 pub struct Settings<Flags = ()> {
     /// The identifier of the application.
@@ -18,9 +20,9 @@ pub struct Settings<Flags = ()> {
     /// They will be ignored on the Web.
     pub window: window::Settings,
 
-    /// The data needed to initialize the [`Application`].
+    /// The data needed to initialize the [`Program`].
     ///
-    /// [`Application`]: crate::Application
+    /// [`Program`]: crate::Program
     pub flags: Flags,
 
     /// The fonts to load on boot.
@@ -49,9 +51,9 @@ pub struct Settings<Flags = ()> {
 }
 
 impl<Flags> Settings<Flags> {
-    /// Initialize [`Application`] settings using the given data.
+    /// Initialize [`Program`] settings using the given data.
     ///
-    /// [`Application`]: crate::Application
+    /// [`Program`]: crate::Program
     pub fn with_flags(flags: Flags) -> Self {
         let default_settings = Settings::<()>::default();
 

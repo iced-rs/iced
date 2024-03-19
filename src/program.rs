@@ -1,3 +1,4 @@
+//! Create and run iced applications step by step.
 //!
 //! # Example
 //! ```no_run
@@ -29,10 +30,12 @@
 //!     ]
 //! }
 //! ```
-use crate::application::{self, Application};
+use crate::application::Application;
 use crate::executor::{self, Executor};
 use crate::window;
 use crate::{Command, Element, Font, Result, Settings, Size, Subscription};
+
+pub use crate::application::{Appearance, DefaultStyle};
 
 use std::borrow::Cow;
 
@@ -70,9 +73,9 @@ pub fn program<State, Message, Theme>(
     view: impl for<'a> self::View<'a, State, Message, Theme>,
 ) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
 where
-    State: Default + 'static,
+    State: 'static,
     Message: Send + std::fmt::Debug,
-    Theme: Default + application::DefaultStyle,
+    Theme: Default + DefaultStyle,
 {
     use std::marker::PhantomData;
 
@@ -87,9 +90,8 @@ where
     impl<State, Message, Theme, Update, View> Definition
         for Application<State, Message, Theme, Update, View>
     where
-        State: Default,
         Message: Send + std::fmt::Debug,
-        Theme: Default + application::DefaultStyle,
+        Theme: Default + DefaultStyle,
         Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme>,
     {
@@ -98,8 +100,8 @@ where
         type Theme = Theme;
         type Executor = executor::Default;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            (Self::State::default(), Command::none())
+        fn load(&self) -> Command<Self::Message> {
+            Command::none()
         }
 
         fn update(
@@ -131,14 +133,11 @@ where
     .title(title)
 }
 
-/// The underlying definition and configuration of an iced [`Application`].
+/// The underlying definition and configuration of an iced application.
 ///
 /// You can use this API to create and run iced applications
 /// step by step—without coupling your logic to a trait
 /// or a specific type.
-///
-/// This API is meant to be a more convenient—although less
-/// powerful—alternative to the [`Application`] trait.
 ///
 /// You can create a [`Program`] with the [`program`] helper.
 ///
@@ -151,25 +150,57 @@ pub struct Program<P: Definition> {
 
 impl<P: Definition> Program<P> {
     /// Runs the underlying [`Application`] of the [`Program`].
+    ///
+    /// The state of the [`Program`] must implement [`Default`].
+    /// If your state does not implement [`Default`], use [`run_with`]
+    /// instead.
+    ///
+    /// [`run_with`]: Self::run_with
     pub fn run(self) -> Result
     where
         Self: 'static,
+        P::State: Default,
     {
-        struct Instance<P: Definition> {
+        self.run_with(P::State::default)
+    }
+
+    /// Runs the underlying [`Application`] of the [`Program`] with a
+    /// closure that creates the initial state.
+    pub fn run_with(
+        self,
+        initialize: impl Fn() -> P::State + Clone + 'static,
+    ) -> Result
+    where
+        Self: 'static,
+    {
+        use std::marker::PhantomData;
+
+        struct Instance<P: Definition, I> {
             program: P,
             state: P::State,
+            _initialize: PhantomData<I>,
         }
 
-        impl<P: Definition> Application for Instance<P> {
+        impl<P: Definition, I: Fn() -> P::State> Application for Instance<P, I> {
             type Message = P::Message;
             type Theme = P::Theme;
-            type Flags = P;
+            type Flags = (P, I);
             type Executor = P::Executor;
 
-            fn new(program: Self::Flags) -> (Self, Command<Self::Message>) {
-                let (state, command) = P::build(&program);
+            fn new(
+                (program, initialize): Self::Flags,
+            ) -> (Self, Command<Self::Message>) {
+                let state = initialize();
+                let command = program.load();
 
-                (Self { program, state }, command)
+                (
+                    Self {
+                        program,
+                        state,
+                        _initialize: PhantomData,
+                    },
+                    command,
+                )
             }
 
             fn title(&self) -> String {
@@ -198,7 +229,7 @@ impl<P: Definition> Program<P> {
                 self.program.theme(&self.state)
             }
 
-            fn style(&self, theme: &Self::Theme) -> application::Appearance {
+            fn style(&self, theme: &Self::Theme) -> Appearance {
                 self.program.style(&self.state, theme)
             }
         }
@@ -206,7 +237,7 @@ impl<P: Definition> Program<P> {
         let Self { raw, settings } = self;
 
         Instance::run(Settings {
-            flags: raw,
+            flags: (raw, initialize),
             id: settings.id,
             window: settings.window,
             fonts: settings.fonts,
@@ -360,7 +391,7 @@ impl<P: Definition> Program<P> {
     /// Sets the style logic of the [`Program`].
     pub fn style(
         self,
-        f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+        f: impl Fn(&P::State, &P::Theme) -> Appearance,
     ) -> Program<
         impl Definition<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -384,12 +415,12 @@ pub trait Definition: Sized {
     type Message: Send + std::fmt::Debug;
 
     /// The theme of the program.
-    type Theme: Default + application::DefaultStyle;
+    type Theme: Default + DefaultStyle;
 
     /// The executor of the program.
     type Executor: Executor;
 
-    fn build(&self) -> (Self::State, Command<Self::Message>);
+    fn load(&self) -> Command<Self::Message>;
 
     fn update(
         &self,
@@ -417,12 +448,8 @@ pub trait Definition: Sized {
         Self::Theme::default()
     }
 
-    fn style(
-        &self,
-        _state: &Self::State,
-        theme: &Self::Theme,
-    ) -> application::Appearance {
-        application::DefaultStyle::default_style(theme)
+    fn style(&self, _state: &Self::State, theme: &Self::Theme) -> Appearance {
+        DefaultStyle::default_style(theme)
     }
 }
 
@@ -445,8 +472,8 @@ fn with_title<P: Definition>(
         type Theme = P::Theme;
         type Executor = P::Executor;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {
@@ -483,7 +510,7 @@ fn with_title<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -509,10 +536,8 @@ fn with_load<P: Definition>(
         type Theme = P::Theme;
         type Executor = executor::Default;
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            let (state, command) = self.program.build();
-
-            (state, Command::batch([command, (self.load)()]))
+        fn load(&self) -> Command<Self::Message> {
+            Command::batch([self.program.load(), (self.load)()])
         }
 
         fn update(
@@ -549,7 +574,7 @@ fn with_load<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -582,8 +607,8 @@ fn with_subscription<P: Definition>(
             (self.subscription)(state)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn update(
@@ -613,7 +638,7 @@ fn with_subscription<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -646,8 +671,8 @@ fn with_theme<P: Definition>(
             (self.theme)(state)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {
@@ -680,7 +705,7 @@ fn with_theme<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             self.program.style(state, theme)
         }
     }
@@ -690,7 +715,7 @@ fn with_theme<P: Definition>(
 
 fn with_style<P: Definition>(
     program: P,
-    f: impl Fn(&P::State, &P::Theme) -> application::Appearance,
+    f: impl Fn(&P::State, &P::Theme) -> Appearance,
 ) -> impl Definition<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithStyle<P, F> {
         program: P,
@@ -699,7 +724,7 @@ fn with_style<P: Definition>(
 
     impl<P: Definition, F> Definition for WithStyle<P, F>
     where
-        F: Fn(&P::State, &P::Theme) -> application::Appearance,
+        F: Fn(&P::State, &P::Theme) -> Appearance,
     {
         type State = P::State;
         type Message = P::Message;
@@ -710,12 +735,12 @@ fn with_style<P: Definition>(
             &self,
             state: &Self::State,
             theme: &Self::Theme,
-        ) -> application::Appearance {
+        ) -> Appearance {
             (self.style)(state, theme)
         }
 
-        fn build(&self) -> (Self::State, Command<Self::Message>) {
-            self.program.build()
+        fn load(&self) -> Command<Self::Message> {
+            self.program.load()
         }
 
         fn title(&self, state: &Self::State) -> String {

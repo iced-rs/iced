@@ -55,10 +55,7 @@ enum Message {
 
 impl Todos {
     fn load() -> Command<Message> {
-        Command::batch(vec![Command::perform(
-            SavedState::load(),
-            Message::Loaded,
-        )])
+        Command::perform(SavedState::load(), Message::Loaded)
     }
 
     fn title(&self) -> String {
@@ -155,7 +152,7 @@ impl Todos {
                     Message::ToggleFullscreen(mode) => {
                         window::change_mode(window::Id::MAIN, mode)
                     }
-                    _ => Command::none(),
+                    Message::Loaded(_) => Command::none(),
                 };
 
                 if !saved {

@@ -1,20 +1,19 @@
 use iced::event::{self, Event};
-use iced::executor;
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
     self, button, column, container, horizontal_space, pick_list, row, text,
     text_input,
 };
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-};
+use iced::{Alignment, Command, Element, Length, Subscription};
 
 use modal::Modal;
 use std::fmt;
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
+    iced::program("Modal - Iced", App::update, App::view)
+        .subscription(App::subscription)
+        .run()
 }
 
 #[derive(Default)]
@@ -36,21 +35,8 @@ enum Message {
     Event(Event),
 }
 
-impl Application for App {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = iced::Theme;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (App::default(), Command::none())
-    }
-
-    fn title(&self) -> String {
-        String::from("Modal - Iced")
-    }
-
-    fn subscription(&self) -> Subscription<Self::Message> {
+impl App {
+    fn subscription(&self) -> Subscription<Message> {
         event::listen().map(Message::Event)
     }
 
