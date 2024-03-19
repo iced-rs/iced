@@ -53,20 +53,20 @@ impl Size {
     }
 }
 
-impl From<[f32; 2]> for Size {
-    fn from([width, height]: [f32; 2]) -> Self {
+impl<T> From<[T; 2]> for Size<T> {
+    fn from([width, height]: [T; 2]) -> Self {
         Size { width, height }
     }
 }
 
-impl From<[u16; 2]> for Size {
-    fn from([width, height]: [u16; 2]) -> Self {
-        Size::new(width.into(), height.into())
+impl<T> From<(T, T)> for Size<T> {
+    fn from((width, height): (T, T)) -> Self {
+        Self { width, height }
     }
 }
 
-impl From<Vector<f32>> for Size {
-    fn from(vector: Vector<f32>) -> Self {
+impl<T> From<Vector<T>> for Size<T> {
+    fn from(vector: Vector<T>) -> Self {
         Size {
             width: vector.x,
             height: vector.y,
@@ -74,20 +74,23 @@ impl From<Vector<f32>> for Size {
     }
 }
 
-impl From<Size> for [f32; 2] {
-    fn from(size: Size) -> [f32; 2] {
+impl<T> From<Size<T>> for [T; 2] {
+    fn from(size: Size<T>) -> Self {
         [size.width, size.height]
     }
 }
 
-impl From<Size> for Vector<f32> {
-    fn from(size: Size) -> Self {
+impl<T> From<Size<T>> for Vector<T> {
+    fn from(size: Size<T>) -> Self {
         Vector::new(size.width, size.height)
     }
 }
 
-impl std::ops::Sub for Size {
-    type Output = Size;
+impl<T> std::ops::Sub for Size<T>
+where
+    T: std::ops::Sub<Output = T>,
+{
+    type Output = Size<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Size {

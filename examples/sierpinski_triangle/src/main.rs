@@ -1,25 +1,23 @@
-use std::fmt::Debug;
-
-use iced::executor;
 use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
 use iced::widget::canvas::{self, Canvas};
 use iced::widget::{column, row, slider, text};
-use iced::{
-    Application, Color, Command, Length, Point, Rectangle, Renderer, Settings,
-    Size, Theme,
-};
+use iced::{Color, Length, Point, Rectangle, Renderer, Size, Theme};
 
 use rand::Rng;
+use std::fmt::Debug;
 
 fn main() -> iced::Result {
-    SierpinskiEmulator::run(Settings {
-        antialiasing: true,
-        ..Settings::default()
-    })
+    iced::program(
+        "Sierpinski Triangle - Iced",
+        SierpinskiEmulator::update,
+        SierpinskiEmulator::view,
+    )
+    .antialiasing(true)
+    .run()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct SierpinskiEmulator {
     graph: SierpinskiGraph,
 }
@@ -31,27 +29,8 @@ pub enum Message {
     PointRemoved,
 }
 
-impl Application for SierpinskiEmulator {
-    type Executor = executor::Default;
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-
-    fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
-        let emulator = SierpinskiEmulator {
-            graph: SierpinskiGraph::new(),
-        };
-        (emulator, Command::none())
-    }
-
-    fn title(&self) -> String {
-        "Sierpinski Triangle Emulator".to_string()
-    }
-
-    fn update(
-        &mut self,
-        message: Self::Message,
-    ) -> iced::Command<Self::Message> {
+impl SierpinskiEmulator {
+    fn update(&mut self, message: Message) {
         match message {
             Message::IterationSet(cur_iter) => {
                 self.graph.iteration = cur_iter;
@@ -67,11 +46,9 @@ impl Application for SierpinskiEmulator {
         }
 
         self.graph.redraw();
-
-        Command::none()
     }
 
-    fn view(&self) -> iced::Element<'_, Self::Message> {
+    fn view(&self) -> iced::Element<'_, Message> {
         column![
             Canvas::new(&self.graph)
                 .width(Length::Fill)
@@ -167,10 +144,6 @@ impl canvas::Program<Message> for SierpinskiGraph {
 }
 
 impl SierpinskiGraph {
-    fn new() -> SierpinskiGraph {
-        SierpinskiGraph::default()
-    }
-
     fn redraw(&mut self) {
         self.cache.clear();
     }

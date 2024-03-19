@@ -5,32 +5,24 @@ mod preset;
 use grid::Grid;
 use preset::Preset;
 
-use iced::executor;
 use iced::time;
 use iced::widget::{
     button, checkbox, column, container, pick_list, row, slider, text,
 };
-use iced::window;
-use iced::{
-    Alignment, Application, Command, Element, Length, Settings, Subscription,
-    Theme,
-};
+use iced::{Alignment, Command, Element, Length, Subscription, Theme};
 use std::time::Duration;
 
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    GameOfLife::run(Settings {
-        antialiasing: true,
-        window: window::Settings {
-            position: window::Position::Centered,
-            ..window::Settings::default()
-        },
-        ..Settings::default()
-    })
+    iced::program("Game of Life - Iced", GameOfLife::update, GameOfLife::view)
+        .subscription(GameOfLife::subscription)
+        .theme(|_| Theme::Dark)
+        .antialiasing(true)
+        .centered()
+        .run()
 }
 
-#[derive(Default)]
 struct GameOfLife {
     grid: Grid,
     is_playing: bool,
@@ -52,24 +44,16 @@ enum Message {
     PresetPicked(Preset),
 }
 
-impl Application for GameOfLife {
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    fn new(_flags: ()) -> (Self, Command<Message>) {
-        (
-            Self {
-                speed: 5,
-                ..Self::default()
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Game of Life - Iced")
+impl GameOfLife {
+    fn new() -> Self {
+        Self {
+            grid: Grid::default(),
+            is_playing: false,
+            queued_ticks: 0,
+            speed: 5,
+            next_speed: None,
+            version: 0,
+        }
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
@@ -154,9 +138,11 @@ impl Application for GameOfLife {
             .height(Length::Fill)
             .into()
     }
+}
 
-    fn theme(&self) -> Theme {
-        Theme::Dark
+impl Default for GameOfLife {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

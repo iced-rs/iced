@@ -1,12 +1,12 @@
-use iced::executor;
-use iced::font::{self, Font};
 use iced::widget::{checkbox, column, container, row, text};
-use iced::{Application, Command, Element, Length, Settings, Theme};
+use iced::{Element, Font, Length};
 
 const ICON_FONT: Font = Font::with_name("icons");
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::program("Checkbox - Iced", Example::update, Example::view)
+        .font(include_bytes!("../fonts/icons.ttf").as_slice())
+        .run()
 }
 
 #[derive(Default)]
@@ -21,28 +21,10 @@ enum Message {
     DefaultToggled(bool),
     CustomToggled(bool),
     StyledToggled(bool),
-    FontLoaded(Result<(), font::Error>),
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Flags = ();
-    type Executor = executor::Default;
-    type Theme = Theme;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self::default(),
-            font::load(include_bytes!("../fonts/icons.ttf").as_slice())
-                .map(Message::FontLoaded),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Checkbox - Iced")
-    }
-
-    fn update(&mut self, message: Message) -> Command<Message> {
+impl Example {
+    fn update(&mut self, message: Message) {
         match message {
             Message::DefaultToggled(default) => {
                 self.default = default;
@@ -53,10 +35,7 @@ impl Application for Example {
             Message::CustomToggled(custom) => {
                 self.custom = custom;
             }
-            Message::FontLoaded(_) => (),
         }
-
-        Command::none()
     }
 
     fn view(&self) -> Element<Message> {

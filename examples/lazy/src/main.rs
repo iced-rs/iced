@@ -2,13 +2,13 @@ use iced::widget::{
     button, column, horizontal_space, lazy, pick_list, row, scrollable, text,
     text_input,
 };
-use iced::{Element, Length, Sandbox, Settings};
+use iced::{Element, Length};
 
 use std::collections::HashSet;
 use std::hash::Hash;
 
 pub fn main() -> iced::Result {
-    App::run(Settings::default())
+    iced::run("Lazy - Iced", App::update, App::view)
 }
 
 struct App {
@@ -120,17 +120,7 @@ enum Message {
     ItemColorChanged(Item, Color),
 }
 
-impl Sandbox for App {
-    type Message = Message;
-
-    fn new() -> Self {
-        Self::default()
-    }
-
-    fn title(&self) -> String {
-        String::from("Lazy - Iced")
-    }
-
+impl App {
     fn update(&mut self, message: Message) {
         match message {
             Message::InputChanged(input) => {

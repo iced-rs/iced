@@ -13,7 +13,7 @@ pub enum RedrawRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::time::{Duration, Instant};
+    use crate::time::Duration;
 
     #[test]
     fn ordering() {

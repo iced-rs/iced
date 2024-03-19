@@ -112,6 +112,12 @@ impl<T> Command<T> {
     }
 }
 
+impl<Message> From<()> for Command<Message> {
+    fn from(_value: ()) -> Self {
+        Self::none()
+    }
+}
+
 impl<T> fmt::Debug for Command<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let Command(command) = self;

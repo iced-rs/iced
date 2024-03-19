@@ -1,19 +1,22 @@
 use iced::event::{self, Event};
-use iced::executor;
 use iced::mouse;
 use iced::widget::{
     column, container, horizontal_space, row, scrollable, text, vertical_space,
 };
 use iced::window;
 use iced::{
-    Alignment, Application, Color, Command, Element, Font, Length, Point,
-    Rectangle, Settings, Subscription, Theme,
+    Alignment, Color, Command, Element, Font, Length, Point, Rectangle,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
-    Example::run(Settings::default())
+    iced::program("Visible Bounds - Iced", Example::update, Example::view)
+        .subscription(Example::subscription)
+        .theme(|_| Theme::Dark)
+        .run()
 }
 
+#[derive(Default)]
 struct Example {
     mouse_position: Option<Point>,
     outer_bounds: Option<Rectangle>,
@@ -29,27 +32,7 @@ enum Message {
     InnerBoundsFetched(Option<Rectangle>),
 }
 
-impl Application for Example {
-    type Message = Message;
-    type Theme = Theme;
-    type Flags = ();
-    type Executor = executor::Default;
-
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
-        (
-            Self {
-                mouse_position: None,
-                outer_bounds: None,
-                inner_bounds: None,
-            },
-            Command::none(),
-        )
-    }
-
-    fn title(&self) -> String {
-        String::from("Visible bounds - Iced")
-    }
-
+impl Example {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::MouseMoved(position) => {
@@ -171,10 +154,6 @@ impl Application for Example {
             }
             _ => None,
         })
-    }
-
-    fn theme(&self) -> Theme {
-        Theme::Dark
     }
 }
 

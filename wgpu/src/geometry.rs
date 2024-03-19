@@ -1,6 +1,8 @@
 //! Build and draw geometry.
 use crate::core::text::LineHeight;
-use crate::core::{Pixels, Point, Rectangle, Size, Transformation, Vector};
+use crate::core::{
+    Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
+};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -475,12 +477,12 @@ impl Frame {
 
     /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
-    pub fn rotate(&mut self, angle: f32) {
+    pub fn rotate(&mut self, angle: impl Into<Radians>) {
         self.transforms.current.0 = self
             .transforms
             .current
             .0
-            .pre_rotate(lyon::math::Angle::radians(angle));
+            .pre_rotate(lyon::math::Angle::radians(angle.into().0));
     }
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
