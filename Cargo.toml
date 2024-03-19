@@ -158,4 +158,4 @@ web-time = "0.2"
 wgpu = "0.19"
 winapi = "0.3"
 window_clipboard = "0.4.1"
-winit = { git = "https://github.com/iced-rs/winit.git", rev = "b91e39ece2c0d378c3b80da7f3ab50e17bb798a5" }
+winit = { git = "https://github.com/iced-rs/winit.git", rev = "592bd152f6d5786fae7d918532d7db752c0d164f" }
