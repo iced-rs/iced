@@ -16,6 +16,7 @@ impl Handle {
     /// Creates an image [`Handle`] pointing to the image of the given path.
     ///
     /// Makes an educated guess about the image format by examining the data in the file.
+    #[cfg(feature = "image")]
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
         Self::from_data(Data::Path(path.into()))
     }
@@ -43,6 +44,7 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
+    #[cfg(feature = "image")]
     pub fn from_memory(
         bytes: impl AsRef<[u8]> + Send + Sync + 'static,
     ) -> Handle {
@@ -70,6 +72,7 @@ impl Handle {
     }
 }
 
+#[cfg(feature = "image")]
 impl<T> From<T> for Handle
 where
     T: Into<PathBuf>,

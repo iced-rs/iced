@@ -10,8 +10,6 @@ use std::borrow::Cow;
 
 pub struct Backend {
     text_pipeline: crate::text::Pipeline,
-
-    #[cfg(feature = "image")]
     raster_pipeline: crate::raster::Pipeline,
 
     #[cfg(feature = "svg")]
@@ -22,8 +20,6 @@ impl Backend {
     pub fn new() -> Self {
         Self {
             text_pipeline: crate::text::Pipeline::new(),
-
-            #[cfg(feature = "image")]
             raster_pipeline: crate::raster::Pipeline::new(),
 
             #[cfg(feature = "svg")]
@@ -131,8 +127,6 @@ impl Backend {
         }
 
         self.text_pipeline.trim_cache();
-
-        #[cfg(feature = "image")]
         self.raster_pipeline.trim_cache();
 
         #[cfg(feature = "svg")]
@@ -571,7 +565,6 @@ impl Backend {
                     transformation,
                 );
             }
-            #[cfg(feature = "image")]
             Primitive::Image {
                 handle,
                 filter_method,
@@ -596,12 +589,6 @@ impl Backend {
                     pixels,
                     transform,
                     clip_mask,
-                );
-            }
-            #[cfg(not(feature = "image"))]
-            Primitive::Image { .. } => {
-                log::warn!(
-                    "Unsupported primitive in `iced_tiny_skia`: {primitive:?}",
                 );
             }
             #[cfg(feature = "svg")]
@@ -999,7 +986,6 @@ impl backend::Text for Backend {
     }
 }
 
-#[cfg(feature = "image")]
 impl backend::Image for Backend {
     fn dimensions(
         &self,

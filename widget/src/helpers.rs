@@ -353,7 +353,6 @@ where
 /// Creates a new [`Image`].
 ///
 /// [`Image`]: crate::Image
-#[cfg(feature = "image")]
 pub fn image<Handle>(handle: impl Into<Handle>) -> crate::Image<Handle> {
     crate::Image::new(handle.into())
 }

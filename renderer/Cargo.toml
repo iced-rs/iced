@@ -12,7 +12,6 @@ keywords.workspace = true
 
 [features]
 wgpu = ["iced_wgpu"]
-image = ["iced_tiny_skia/image", "iced_wgpu?/image"]
 svg = ["iced_tiny_skia/svg", "iced_wgpu?/svg"]
 geometry = ["iced_graphics/geometry", "iced_tiny_skia/geometry", "iced_wgpu?/geometry"]
 tracing = ["iced_wgpu?/tracing"]

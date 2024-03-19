@@ -26,15 +26,13 @@ pub mod color;
 pub mod compositor;
 pub mod damage;
 pub mod gradient;
+pub mod image;
 pub mod mesh;
 pub mod renderer;
 pub mod text;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;
-
-#[cfg(feature = "image")]
-pub mod image;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;

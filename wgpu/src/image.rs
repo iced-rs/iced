@@ -1,6 +1,4 @@
 mod atlas;
-
-#[cfg(feature = "image")]
 mod raster;
 
 #[cfg(feature = "svg")]
@@ -8,6 +6,7 @@ mod vector;
 
 use atlas::Atlas;
 
+use crate::core::image;
 use crate::core::{Rectangle, Size, Transformation};
 use crate::layer;
 use crate::Buffer;
@@ -17,9 +16,6 @@ use std::mem;
 
 use bytemuck::{Pod, Zeroable};
 
-#[cfg(feature = "image")]
-use crate::core::image;
-
 #[cfg(feature = "svg")]
 use crate::core::svg;
 
@@ -28,7 +24,6 @@ use tracing::info_span;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    #[cfg(feature = "image")]
     raster_cache: RefCell<raster::Cache>,
     #[cfg(feature = "svg")]
     vector_cache: RefCell<vector::Cache>,
@@ -336,7 +331,6 @@ impl Pipeline {
         });
 
         Pipeline {
-            #[cfg(feature = "image")]
             raster_cache: RefCell::new(raster::Cache::default()),
 
             #[cfg(feature = "svg")]
@@ -356,7 +350,6 @@ impl Pipeline {
         }
     }
 
-    #[cfg(feature = "image")]
     pub fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
         let mut cache = self.raster_cache.borrow_mut();
         let memory = cache.load(handle);
@@ -390,7 +383,6 @@ impl Pipeline {
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
-        #[cfg(feature = "image")]
         let mut raster_cache = self.raster_cache.borrow_mut();
 
         #[cfg(feature = "svg")]
@@ -398,7 +390,6 @@ impl Pipeline {
 
         for image in images {
             match &image {
-                #[cfg(feature = "image")]
                 layer::Image::Raster {
                     handle,
                     filter_method,
@@ -423,9 +414,6 @@ impl Pipeline {
                         );
                     }
                 }
-                #[cfg(not(feature = "image"))]
-                layer::Image::Raster { .. } => {}
-
                 #[cfg(feature = "svg")]
                 layer::Image::Vector {
                     handle,
@@ -525,7 +513,6 @@ impl Pipeline {
     }
 
     pub fn end_frame(&mut self) {
-        #[cfg(feature = "image")]
         self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
 
         #[cfg(feature = "svg")]
