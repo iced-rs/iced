@@ -5,13 +5,27 @@ use crate::core::window::icon;
 
 use std::io;
 
-#[cfg(feature = "image")]
+#[cfg(any(
+    feature = "image-png",
+    feature = "image-gif",
+    feature = "image-jpeg",
+    feature = "image-ico",
+    feature = "image-webp",
+    feature = "image-codecs"
+))]
 use std::path::Path;
 
 /// Creates an icon from an image file.
 ///
 /// This will return an error in case the file is missing at run-time. You may prefer [`from_file_data`] instead.
-#[cfg(feature = "image")]
+#[cfg(any(
+    feature = "image-png",
+    feature = "image-gif",
+    feature = "image-jpeg",
+    feature = "image-ico",
+    feature = "image-webp",
+    feature = "image-codecs"
+))]
 pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
     let icon = image::io::Reader::open(icon_path)?.decode()?.to_rgba8();
 
@@ -22,7 +36,14 @@ pub fn from_file<P: AsRef<Path>>(icon_path: P) -> Result<Icon, Error> {
 ///
 /// This content can be included in your application at compile-time, e.g. using the `include_bytes!` macro.
 /// You can pass an explicit file format. Otherwise, the file format will be guessed at runtime.
-#[cfg(feature = "image")]
+#[cfg(any(
+    feature = "image-png",
+    feature = "image-gif",
+    feature = "image-jpeg",
+    feature = "image-ico",
+    feature = "image-webp",
+    feature = "image-codecs"
+))]
 pub fn from_file_data(
     data: &[u8],
     explicit_format: Option<image::ImageFormat>,

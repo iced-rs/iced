@@ -23,6 +23,18 @@ default = ["wgpu", "fira-sans"]
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "dep:image"]
+# Enables png codec support for images
+image-png = ["iced_core/image-codec", "image/png"]
+# Enables gif codec support for images
+image-gif = ["iced_core/image-codec", "image/gif"]
+# Enables jpeg codec support for images
+image-jpeg = ["iced_core/image-codec", "image/jpeg"]
+# Enables ico codec support for images
+image-ico = ["iced_core/image-codec", "image/ico"]
+# Enables webp codec support for images
+image-webp = ["iced_core/image-codec", "image/webp"]
+# Enables all codec support for images
+image-codecs = ["iced_core/image-codec", "image/default"]
 # Enables the `Svg` widget
 svg = ["iced_widget/svg"]
 # Enables the `Canvas` widget
@@ -126,7 +138,7 @@ glam = "0.25"
 glyphon = "0.5"
 guillotiere = "0.6"
 half = "2.2"
-image = "0.24"
+image = { version = "0.24", default-features = false }
 kamadak-exif = "0.5"
 kurbo = "0.10"
 log = "0.4"
