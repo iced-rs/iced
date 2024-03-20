@@ -308,10 +308,13 @@ where
                     content_layout_node.as_ref().unwrap(),
                 );
 
-                element
-                    .as_widget_mut()
-                    .overlay(tree, content_layout, renderer, translation)
-                    .map(|overlay| RefCell::new(Nested::new(overlay)))
+                (
+                    element
+                        .as_widget_mut()
+                        .overlay(tree, content_layout, renderer, translation)
+                        .map(|overlay| RefCell::new(Nested::new(overlay))),
+                    content_layout_node,
+                )
             },
         }
         .build();
@@ -341,7 +344,10 @@ struct Overlay<'a, 'b, Message, Theme, Renderer> {
 
     #[borrows(mut content, mut tree)]
     #[not_covariant]
-    overlay: Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
+    overlay: (
+        Option<RefCell<Nested<'this, Message, Theme, Renderer>>>,
+        &'this mut Option<layout::Node>,
+    ),
 }
 
 impl<'a, 'b, Message, Theme, Renderer>
@@ -351,7 +357,7 @@ impl<'a, 'b, Message, Theme, Renderer>
         &self,
         f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
-        self.with_overlay(|overlay| {
+        self.with_overlay(|(overlay, _layout)| {
             overlay.as_ref().map(|nested| (f)(&mut nested.borrow_mut()))
         })
     }
@@ -360,7 +366,7 @@ impl<'a, 'b, Message, Theme, Renderer>
         &mut self,
         f: impl FnOnce(&mut Nested<'_, Message, Theme, Renderer>) -> T,
     ) -> Option<T> {
-        self.with_overlay_mut(|overlay| {
+        self.with_overlay_mut(|(overlay, _layout)| {
             overlay.as_mut().map(|nested| (f)(nested.get_mut()))
         })
     }
@@ -412,10 +418,27 @@ where
         clipboard: &mut dyn Clipboard,
         shell: &mut Shell<'_, Message>,
     ) -> event::Status {
-        self.with_overlay_mut_maybe(|overlay| {
-            overlay.on_event(event, layout, cursor, renderer, clipboard, shell)
-        })
-        .unwrap_or(event::Status::Ignored)
+        let mut is_layout_invalid = false;
+
+        let event_status = self
+            .with_overlay_mut_maybe(|overlay| {
+                let event_status = overlay.on_event(
+                    event, layout, cursor, renderer, clipboard, shell,
+                );
+
+                is_layout_invalid = shell.is_layout_invalid();
+
+                event_status
+            })
+            .unwrap_or(event::Status::Ignored);
+
+        if is_layout_invalid {
+            self.with_overlay_mut(|(_overlay, layout)| {
+                **layout = None;
+            });
+        }
+
+        event_status
     }
 
     fn is_over(
