@@ -18,7 +18,7 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "fira-sans"]
+default = ["wgpu", "fira-sans", "auto-detect-theme"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
 # Enables the `Image` widget
@@ -53,8 +53,11 @@ multi-window = ["iced_winit/multi-window"]
 advanced = []
 # Enables embedding Fira Sans as the default font on Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
+# Enables auto-detecting light/dark mode for the built-in theme
+auto-detect-theme = ["iced_core/auto-detect-theme"]
 
 [dependencies]
+iced_core.workspace = true
 iced_futures.workspace = true
 iced_renderer.workspace = true
 iced_widget.workspace = true
@@ -121,6 +124,7 @@ async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 cosmic-text = "0.10"
+dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
 glyphon = "0.5"
