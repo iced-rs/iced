@@ -153,7 +153,7 @@ pub trait Compositor: std::any::Any {
 
     fn configure_surface(
         &mut self,
-        surface: &mut Box<dyn Surface>,
+        surface: &mut dyn Surface,
         width: u32,
         height: u32,
     );

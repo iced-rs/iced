@@ -104,7 +104,7 @@ impl crate::graphics::Compositor for Compositor {
             }
             #[cfg(feature = "custom")]
             (Self::Custom(compositor), Surface::Custom(surface)) => {
-                compositor.configure_surface(surface, width, height);
+                compositor.configure_surface(surface.as_mut(), width, height);
             }
             #[allow(unreachable_patterns)]
             _ => panic!(
