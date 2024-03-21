@@ -27,3 +27,24 @@ impl Default for Settings {
         }
     }
 }
+
+impl From<Settings> for iced_tiny_skia::Settings {
+    fn from(settings: Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+        }
+    }
+}
+
+#[cfg(feature = "wgpu")]
+impl From<Settings> for iced_wgpu::Settings {
+    fn from(settings: Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            antialiasing: settings.antialiasing,
+            ..iced_wgpu::Settings::default()
+        }
+    }
+}

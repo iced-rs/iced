@@ -130,7 +130,7 @@ pub fn default(theme: &Theme) -> Appearance {
 /// settings.
 pub async fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings,
+    compositor_settings: impl Into<C::Settings>,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -219,7 +219,7 @@ where
         };
     }
 
-    let compositor = C::new(compositor_settings, window.clone()).await?;
+    let compositor = C::new(compositor_settings.into(), window.clone()).await?;
     let mut renderer = compositor.create_renderer();
 
     for font in settings.fonts {

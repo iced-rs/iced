@@ -107,11 +107,13 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry> {
+    ) {
+        use canvas::Frame;
+
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(
                 &canvas::Path::rectangle(Point::ORIGIN, frame.size()),
@@ -139,7 +141,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
             });
         });
 
-        vec![geom]
+        renderer.draw_geometry([geom]);
     }
 }
 

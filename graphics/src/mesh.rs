@@ -1,6 +1,6 @@
 //! Draw triangles!
 use crate::color;
-use crate::core::{Rectangle, Size};
+use crate::core::{self, Rectangle, Size};
 use crate::gradient;
 use crate::Damage;
 
@@ -73,4 +73,8 @@ pub struct GradientVertex2D {
 
     /// The packed vertex data of the gradient.
     pub gradient: gradient::Packed,
+}
+
+pub trait Renderer: core::Renderer {
+    fn draw_mesh(&mut self, mesh: Mesh);
 }

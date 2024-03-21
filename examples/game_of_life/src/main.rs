@@ -193,7 +193,7 @@ mod grid {
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
+    use iced::widget::canvas::{frame, Cache, Canvas, Frame, Path, Text};
     use iced::{
         Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -516,11 +516,11 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
-            renderer: &Renderer,
+            renderer: &mut Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> Vec<Geometry> {
+        ) {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
             let life = self.life_cache.draw(renderer, bounds.size(), |frame| {
@@ -546,7 +546,7 @@ mod grid {
             });
 
             let overlay = {
-                let mut frame = Frame::new(renderer, bounds.size());
+                let mut frame = frame(renderer, bounds.size());
 
                 let hovered_cell = cursor.position_in(bounds).map(|position| {
                     Cell::at(self.project(position, frame.size()))
@@ -599,12 +599,10 @@ mod grid {
                     ..text
                 });
 
-                frame.into_geometry()
+                frame.into()
             };
 
-            if self.scaling < 0.2 || !self.show_lines {
-                vec![life, overlay]
-            } else {
+            if self.scaling >= 0.2 && self.show_lines {
                 let grid =
                     self.grid_cache.draw(renderer, bounds.size(), |frame| {
                         frame.translate(center);
@@ -640,7 +638,9 @@ mod grid {
                         }
                     });
 
-                vec![life, grid, overlay]
+                renderer.draw_geometry([life, grid, overlay]);
+            } else {
+                renderer.draw_geometry([life, overlay]);
             }
         }
 

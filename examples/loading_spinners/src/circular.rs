@@ -6,7 +6,7 @@ use iced::advanced::{self, Clipboard, Layout, Shell, Widget};
 use iced::event;
 use iced::mouse;
 use iced::time::Instant;
-use iced::widget::canvas;
+use iced::widget::canvas::{self, Frame};
 use iced::window::{self, RedrawRequest};
 use iced::{
     Background, Color, Element, Event, Length, Radians, Rectangle, Renderer,
@@ -356,9 +356,7 @@ where
         renderer.with_translation(
             Vector::new(bounds.x, bounds.y),
             |renderer| {
-                use iced::advanced::graphics::geometry::Renderer as _;
-
-                renderer.draw(vec![geometry]);
+                renderer.draw_geometry([geometry]);
             },
         );
     }

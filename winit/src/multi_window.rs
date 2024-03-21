@@ -105,7 +105,7 @@ where
 /// settings.
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings,
+    compositor_settings: impl Into<C::Settings>,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -186,8 +186,10 @@ where
         };
     }
 
-    let mut compositor =
-        executor::block_on(C::new(compositor_settings, main_window.clone()))?;
+    let mut compositor = executor::block_on(C::new(
+        compositor_settings.into(),
+        main_window.clone(),
+    ))?;
 
     let mut window_manager = WindowManager::new();
     let _ = window_manager.insert(

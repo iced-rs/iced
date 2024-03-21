@@ -126,11 +126,12 @@ impl<Message> canvas::Program<Message> for State {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry> {
+    ) {
+        use canvas::Frame;
         use std::f32::consts::PI;
 
         let background =
@@ -197,7 +198,7 @@ impl<Message> canvas::Program<Message> for State {
             });
         });
 
-        vec![background, system]
+        renderer.draw_geometry([background, system]);
     }
 }
 

@@ -1018,3 +1018,12 @@ impl backend::Svg for Backend {
         self.vector_pipeline.viewport_dimensions(handle)
     }
 }
+
+#[cfg(feature = "geometry")]
+impl crate::graphics::geometry::Backend for Backend {
+    type Frame = crate::geometry::Frame;
+
+    fn new_frame(&self, size: Size) -> Self::Frame {
+        crate::geometry::Frame::new(size)
+    }
+}

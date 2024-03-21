@@ -292,12 +292,14 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
         fn draw(
             &self,
             _state: &Self::State,
-            renderer: &Renderer,
+            renderer: &mut Renderer,
             theme: &Theme,
             bounds: Rectangle,
             _cursor: mouse::Cursor,
-        ) -> Vec<canvas::Geometry> {
-            let mut frame = canvas::Frame::new(renderer, bounds.size());
+        ) {
+            use canvas::Frame;
+
+            let mut frame = canvas::frame(renderer, bounds.size());
 
             let palette = theme.extended_palette();
 
@@ -307,7 +309,7 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
                 palette.background.strong.color,
             );
 
-            vec![frame.into_geometry()]
+            renderer.draw_geometry([frame]);
         }
     }
 

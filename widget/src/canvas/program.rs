@@ -37,22 +37,15 @@ where
         (event::Status::Ignored, None)
     }
 
-    /// Draws the state of the [`Program`], producing a bunch of [`Geometry`].
-    ///
-    /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
-    /// [`Cache`].
-    ///
-    /// [`Geometry`]: crate::canvas::Geometry
-    /// [`Frame`]: crate::canvas::Frame
-    /// [`Cache`]: crate::canvas::Cache
+    /// Draws the state of the [`Program`] with the given [`Renderer`].
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Renderer::Geometry>;
+    );
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
@@ -90,12 +83,12 @@ where
     fn draw(
         &self,
         state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Renderer::Geometry> {
-        T::draw(self, state, renderer, theme, bounds, cursor)
+    ) {
+        T::draw(self, state, renderer, theme, bounds, cursor);
     }
 
     fn mouse_interaction(

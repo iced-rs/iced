@@ -28,3 +28,11 @@ impl Damage for Custom {
         }
     }
 }
+
+impl TryFrom<Mesh> for Custom {
+    type Error = &'static str;
+
+    fn try_from(mesh: Mesh) -> Result<Self, Self::Error> {
+        Ok(Custom::Mesh(mesh))
+    }
+}

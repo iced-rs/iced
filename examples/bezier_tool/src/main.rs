@@ -52,7 +52,7 @@ impl Example {
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
+    use iced::widget::canvas::{self, frame, Canvas, Frame, Path, Stroke};
     use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
@@ -138,30 +138,25 @@ mod bezier {
         fn draw(
             &self,
             state: &Self::State,
-            renderer: &Renderer,
+            renderer: &mut Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> Vec<Geometry> {
-            let content = self.state.cache.draw(
-                renderer,
-                bounds.size(),
-                |frame: &mut Frame| {
+        ) {
+            let content =
+                self.state.cache.draw(renderer, bounds.size(), |frame| {
                     Curve::draw_all(self.curves, frame);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
                         Stroke::default().with_width(2.0),
                     );
-                },
-            );
+                });
+
+            renderer.draw_geometry([content]);
 
             if let Some(pending) = state {
-                let pending_curve = pending.draw(renderer, bounds, cursor);
-
-                vec![content, pending_curve]
-            } else {
-                vec![content]
+                pending.draw(renderer, bounds, cursor);
             }
         }
 
@@ -187,7 +182,7 @@ mod bezier {
     }
 
     impl Curve {
-        fn draw_all(curves: &[Curve], frame: &mut Frame) {
+        fn draw_all(curves: &[Curve], frame: &mut impl Frame) {
             let curves = Path::new(|p| {
                 for curve in curves {
                     p.move_to(curve.from);
@@ -208,11 +203,11 @@ mod bezier {
     impl Pending {
         fn draw(
             &self,
-            renderer: &Renderer,
+            renderer: &mut Renderer,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) -> Geometry {
-            let mut frame = Frame::new(renderer, bounds.size());
+        ) {
+            let mut frame = frame(renderer, bounds.size());
 
             if let Some(cursor_position) = cursor.position_in(bounds) {
                 match *self {
@@ -232,7 +227,7 @@ mod bezier {
                 };
             }
 
-            frame.into_geometry()
+            renderer.draw_geometry([frame]);
         }
     }
 }

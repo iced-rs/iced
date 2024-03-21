@@ -8,7 +8,6 @@ use crate::core::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
     Widget,
 };
-use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
 
 use std::cell::RefCell;
@@ -92,6 +91,8 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
+        use canvas::Frame;
+
         let state = tree.state.downcast_ref::<State>();
 
         let bounds = layout.bounds();
@@ -142,7 +143,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
             |renderer| {
-                renderer.draw(vec![geometry]);
+                renderer.draw_geometry(vec![geometry]);
             },
         );
     }
@@ -161,11 +162,11 @@ where
 /// The data of a [`QRCode`].
 ///
 /// It stores the contents that will be displayed.
-#[derive(Debug)]
+#[allow(missing_debug_implementations)]
 pub struct Data {
     contents: Vec<qrcode::Color>,
     width: usize,
-    cache: canvas::Cache,
+    cache: canvas::Cache<Renderer>,
 }
 
 impl Data {

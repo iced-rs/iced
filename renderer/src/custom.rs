@@ -94,8 +94,6 @@ pub trait Renderer {
 
 #[cfg(feature = "geometry")]
 pub trait Frame: std::any::Any {
-    fn new(&self, size: Size) -> Box<dyn Frame>;
-
     fn width(&self) -> f32;
 
     fn height(&self) -> f32;
@@ -108,7 +106,7 @@ pub trait Frame: std::any::Any {
 
     fn fill_rectangle(&mut self, top_left: Point, size: Size, fill: Fill);
 
-    fn stroke<'a>(&mut self, path: &Path, stroke: Stroke<'a>);
+    fn stroke(&mut self, path: &Path, stroke: Stroke<'_>);
 
     fn fill_text(&mut self, text: geometry::Text);
 

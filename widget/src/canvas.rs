@@ -7,7 +7,6 @@ pub use event::Event;
 pub use program::Program;
 
 pub use crate::graphics::geometry::*;
-pub use crate::renderer::geometry::*;
 
 use crate::core;
 use crate::core::layout::{self, Layout};
@@ -21,13 +20,19 @@ use crate::graphics::geometry;
 
 use std::marker::PhantomData;
 
+/// A simple cache that stores generated [`Geometry`] to avoid recomputation.
+///
+/// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
+/// change or it is explicitly cleared.
+pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
+
 /// A widget capable of drawing 2D graphics.
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
+/// # use iced_widget::canvas::{self, frame, Canvas, Fill, Frame, Path, Program};
 /// # use iced_widget::core::{Color, Rectangle};
 /// # use iced_widget::core::mouse;
 /// # use iced_widget::{Renderer, Theme};
@@ -42,9 +47,9 @@ use std::marker::PhantomData;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry>{
+///     fn draw(&self, _state: &(), renderer: &mut Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) {
 ///         // We prepare a new `Frame`
-///         let mut frame = Frame::new(renderer, bounds.size());
+///         let mut frame = frame(renderer, bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
 ///         let circle = Path::circle(frame.center(), self.radius);
@@ -53,7 +58,7 @@ use std::marker::PhantomData;
 ///         frame.fill(&circle, Color::BLACK);
 ///
 ///         // Finally, we produce the geometry
-///         vec![frame.into_geometry()]
+///         renderer.draw_geometry([frame]);
 ///     }
 /// }
 ///
@@ -210,9 +215,7 @@ where
         renderer.with_transformation(
             Transformation::translate(bounds.x, bounds.y),
             |renderer| {
-                renderer.draw(
-                    self.program.draw(state, renderer, theme, bounds, cursor),
-                );
+                self.program.draw(state, renderer, theme, bounds, cursor);
             },
         );
     }

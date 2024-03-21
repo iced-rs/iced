@@ -124,11 +124,13 @@ impl<Message> canvas::Program<Message> for State {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry> {
+    ) {
+        use canvas::Frame;
+
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();
             let center = bounds.center();
@@ -153,7 +155,7 @@ impl<Message> canvas::Program<Message> for State {
             });
         });
 
-        vec![geometry]
+        renderer.draw_geometry([geometry]);
     }
 }
 

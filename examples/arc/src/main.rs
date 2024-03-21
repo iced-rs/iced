@@ -1,9 +1,7 @@
 use std::{f32::consts::PI, time::Instant};
 
 use iced::mouse;
-use iced::widget::canvas::{
-    self, stroke, Cache, Canvas, Geometry, Path, Stroke,
-};
+use iced::widget::canvas::{self, stroke, Cache, Canvas, Frame, Path, Stroke};
 use iced::{Element, Length, Point, Rectangle, Renderer, Subscription, Theme};
 
 pub fn main() -> iced::Result {
@@ -57,11 +55,11 @@ impl<Message> canvas::Program<Message> for Arc {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
+    ) {
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();
 
@@ -104,6 +102,6 @@ impl<Message> canvas::Program<Message> for Arc {
             );
         });
 
-        vec![geometry]
+        renderer.draw_geometry([geometry]);
     }
 }

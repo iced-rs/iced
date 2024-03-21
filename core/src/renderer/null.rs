@@ -21,14 +21,13 @@ impl Null {
 }
 
 impl Renderer for Null {
-    fn with_layer(&mut self, _bounds: Rectangle, _f: impl FnOnce(&mut Self)) {}
+    fn start_layer(&mut self) {}
 
-    fn with_transformation(
-        &mut self,
-        _transformation: Transformation,
-        _f: impl FnOnce(&mut Self),
-    ) {
-    }
+    fn end_layer(&mut self, _bounds: Rectangle) {}
+
+    fn start_transformation(&mut self) {}
+
+    fn end_transformation(&mut self, _transformation: Transformation) {}
 
     fn clear(&mut self) {}
 

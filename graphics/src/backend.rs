@@ -2,6 +2,7 @@
 use crate::core::image;
 use crate::core::svg;
 use crate::core::Size;
+use crate::Mesh;
 
 use std::borrow::Cow;
 
@@ -10,7 +11,7 @@ use std::borrow::Cow;
 /// [`Renderer`]: crate::Renderer
 pub trait Backend {
     /// The custom kind of primitives this [`Backend`] supports.
-    type Primitive;
+    type Primitive: TryFrom<Mesh, Error = &'static str>;
 }
 
 /// A graphics backend that supports text rendering.

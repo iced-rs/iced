@@ -1,6 +1,6 @@
 use iced::alignment::{self, Alignment};
 use iced::mouse;
-use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path};
+use iced::widget::canvas::{self, Canvas, Frame, Path};
 use iced::widget::{column, row, text, Slider};
 use iced::{
     Color, Element, Font, Length, Pixels, Point, Rectangle, Renderer, Size,
@@ -156,7 +156,7 @@ impl Theme {
             .into()
     }
 
-    fn draw(&self, frame: &mut Frame, text_color: Color) {
+    fn draw(&self, frame: &mut impl Frame, text_color: Color) {
         let pad = 20.0;
 
         let box_size = Size {
@@ -252,18 +252,18 @@ impl<Message> canvas::Program<Message> for Theme {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &Renderer,
+        renderer: &mut Renderer,
         theme: &iced::Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
+    ) {
         let theme = self.canvas_cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.extended_palette();
 
             self.draw(frame, palette.background.base.text);
         });
 
-        vec![theme]
+        renderer.draw_geometry([theme]);
     }
 }
 
