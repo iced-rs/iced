@@ -193,7 +193,9 @@ mod grid {
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{frame, Cache, Canvas, Frame, Path, Text};
+    use iced::widget::canvas::{
+        frame, Cache, Canvas, Frame, Geometry, Path, Text,
+    };
     use iced::{
         Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -516,11 +518,11 @@ mod grid {
         fn draw(
             &self,
             _interaction: &Interaction,
-            renderer: &mut Renderer,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) {
+        ) -> Vec<Geometry> {
             let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
 
             let life = self.life_cache.draw(renderer, bounds.size(), |frame| {
@@ -638,9 +640,9 @@ mod grid {
                         }
                     });
 
-                renderer.draw_geometry([life, grid, overlay]);
+                vec![life, grid, overlay]
             } else {
-                renderer.draw_geometry([life, overlay]);
+                vec![life, overlay]
             }
         }
 

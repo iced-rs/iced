@@ -52,7 +52,9 @@ impl Example {
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{self, frame, Canvas, Frame, Path, Stroke};
+    use iced::widget::canvas::{
+        self, frame, Canvas, Frame, Geometry, Path, Stroke,
+    };
     use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
@@ -138,11 +140,11 @@ mod bezier {
         fn draw(
             &self,
             state: &Self::State,
-            renderer: &mut Renderer,
+            renderer: &Renderer,
             _theme: &Theme,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) {
+        ) -> Vec<Geometry> {
             let content =
                 self.state.cache.draw(renderer, bounds.size(), |frame| {
                     Curve::draw_all(self.curves, frame);
@@ -153,10 +155,10 @@ mod bezier {
                     );
                 });
 
-            renderer.draw_geometry([content]);
-
             if let Some(pending) = state {
-                pending.draw(renderer, bounds, cursor);
+                vec![content, pending.draw(renderer, bounds, cursor)]
+            } else {
+                vec![content]
             }
         }
 
@@ -203,10 +205,10 @@ mod bezier {
     impl Pending {
         fn draw(
             &self,
-            renderer: &mut Renderer,
+            renderer: &Renderer,
             bounds: Rectangle,
             cursor: mouse::Cursor,
-        ) {
+        ) -> Geometry {
             let mut frame = frame(renderer, bounds.size());
 
             if let Some(cursor_position) = cursor.position_in(bounds) {
@@ -227,7 +229,7 @@ mod bezier {
                 };
             }
 
-            renderer.draw_geometry([frame]);
+            frame.into()
         }
     }
 }

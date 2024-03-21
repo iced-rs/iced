@@ -5,7 +5,7 @@ use iced::mouse;
 use iced::touch;
 use iced::widget::canvas::event;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::{self, Canvas};
+use iced::widget::canvas::{self, Canvas, Geometry};
 use iced::{Color, Element, Length, Point, Rectangle, Renderer, Theme};
 
 use std::collections::HashMap;
@@ -83,11 +83,11 @@ impl canvas::Program<Message> for Multitouch {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &mut Renderer,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) {
+    ) -> Vec<Geometry> {
         use canvas::Frame;
 
         let fingerweb = self.cache.draw(renderer, bounds.size(), |frame| {
@@ -156,6 +156,6 @@ impl canvas::Program<Message> for Multitouch {
             }
         });
 
-        renderer.draw_geometry([fingerweb]);
+        vec![fingerweb]
     }
 }

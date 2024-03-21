@@ -1,6 +1,8 @@
 use iced::alignment;
 use iced::mouse;
-use iced::widget::canvas::{stroke, Cache, Frame, LineCap, Path, Stroke};
+use iced::widget::canvas::{
+    stroke, Cache, Frame, Geometry, LineCap, Path, Stroke,
+};
 use iced::widget::{canvas, container};
 use iced::{
     Degrees, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
@@ -82,11 +84,11 @@ impl<Message> canvas::Program<Message> for Clock {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &mut Renderer,
+        renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) {
+    ) -> Vec<Geometry> {
         let clock = self.clock.draw(renderer, bounds.size(), |frame| {
             let palette = theme.extended_palette();
 
@@ -163,7 +165,7 @@ impl<Message> canvas::Program<Message> for Clock {
             });
         });
 
-        renderer.draw_geometry([clock]);
+        vec![clock]
     }
 }
 

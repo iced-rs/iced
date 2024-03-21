@@ -26,13 +26,17 @@ use std::marker::PhantomData;
 /// change or it is explicitly cleared.
 pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
 
+/// The geometry supported by a renderer.
+pub type Geometry<Renderer = crate::Renderer> =
+    <Renderer as geometry::Renderer>::Geometry;
+
 /// A widget capable of drawing 2D graphics.
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// # use iced_widget::canvas::{self, frame, Canvas, Fill, Frame, Path, Program};
+/// # use iced_widget::canvas::{self, frame, Canvas, Fill, Frame, Geometry, Path, Program};
 /// # use iced_widget::core::{Color, Rectangle};
 /// # use iced_widget::core::mouse;
 /// # use iced_widget::{Renderer, Theme};
@@ -47,7 +51,7 @@ pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
 /// impl Program<()> for Circle {
 ///     type State = ();
 ///
-///     fn draw(&self, _state: &(), renderer: &mut Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) {
+///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry> {
 ///         // We prepare a new `Frame`
 ///         let mut frame = frame(renderer, bounds.size());
 ///
@@ -58,7 +62,7 @@ pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
 ///         frame.fill(&circle, Color::BLACK);
 ///
 ///         // Finally, we produce the geometry
-///         renderer.draw_geometry([frame]);
+///         vec![frame.into()]
 ///     }
 /// }
 ///
@@ -215,7 +219,12 @@ where
         renderer.with_transformation(
             Transformation::translate(bounds.x, bounds.y),
             |renderer| {
-                self.program.draw(state, renderer, theme, bounds, cursor);
+                let layers =
+                    self.program.draw(state, renderer, theme, bounds, cursor);
+
+                for layer in layers {
+                    renderer.draw_geometry(layer);
+                }
             },
         );
     }

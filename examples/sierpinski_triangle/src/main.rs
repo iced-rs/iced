@@ -1,6 +1,6 @@
 use iced::mouse;
 use iced::widget::canvas::event::{self, Event};
-use iced::widget::canvas::{self, Canvas};
+use iced::widget::canvas::{self, Canvas, Geometry};
 use iced::widget::{column, row, slider, text};
 use iced::{Color, Length, Point, Rectangle, Renderer, Size, Theme};
 
@@ -107,11 +107,11 @@ impl canvas::Program<Message> for SierpinskiGraph {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &mut Renderer,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) {
+    ) -> Vec<Geometry> {
         use canvas::Frame;
 
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
@@ -141,7 +141,7 @@ impl canvas::Program<Message> for SierpinskiGraph {
             });
         });
 
-        renderer.draw_geometry([geom]);
+        vec![geom]
     }
 }
 

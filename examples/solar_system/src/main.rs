@@ -10,7 +10,7 @@ use iced::mouse;
 use iced::widget::canvas;
 use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::Path;
+use iced::widget::canvas::{Geometry, Path};
 use iced::window;
 use iced::{
     Color, Element, Length, Point, Rectangle, Renderer, Size, Subscription,
@@ -126,11 +126,11 @@ impl<Message> canvas::Program<Message> for State {
     fn draw(
         &self,
         _state: &Self::State,
-        renderer: &mut Renderer,
+        renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) {
+    ) -> Vec<Geometry> {
         use canvas::Frame;
         use std::f32::consts::PI;
 
@@ -198,7 +198,7 @@ impl<Message> canvas::Program<Message> for State {
             });
         });
 
-        renderer.draw_geometry([background, system]);
+        vec![background, system]
     }
 }
 
