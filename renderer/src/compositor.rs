@@ -1,4 +1,5 @@
 use crate::core::Color;
+use crate::custom;
 use crate::graphics::compositor::{Information, SurfaceError, Window};
 use crate::graphics::{Error, Viewport};
 use crate::{Renderer, Settings};
@@ -10,12 +11,14 @@ pub enum Compositor {
     TinySkia(iced_tiny_skia::window::Compositor),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::window::Compositor),
+    Custom(Box<dyn custom::Compositor>),
 }
 
 pub enum Surface {
     TinySkia(iced_tiny_skia::window::Surface),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::window::Surface<'static>),
+    Custom(Box<dyn custom::Surface>),
 }
 
 impl crate::graphics::Compositor for Compositor {
@@ -56,6 +59,9 @@ impl crate::graphics::Compositor for Compositor {
             Compositor::Wgpu(compositor) => {
                 Renderer::Wgpu(compositor.create_renderer())
             }
+            Compositor::Custom(compositor) => {
+                Renderer::Custom(compositor.create_renderer())
+            }
         }
     }
 
@@ -73,6 +79,9 @@ impl crate::graphics::Compositor for Compositor {
             Self::Wgpu(compositor) => {
                 Surface::Wgpu(compositor.create_surface(window, width, height))
             }
+            Self::Custom(compositor) => Surface::Custom(
+                compositor.create_surface(Box::new(window), width, height),
+            ),
         }
     }
 
@@ -90,6 +99,9 @@ impl crate::graphics::Compositor for Compositor {
             (Self::Wgpu(compositor), Surface::Wgpu(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
+            (Self::Custom(compositor), Surface::Custom(surface)) => {
+                compositor.configure_surface(surface, width, height);
+            }
             #[allow(unreachable_patterns)]
             _ => panic!(
                 "The provided surface is not compatible with the compositor."
@@ -102,6 +114,7 @@ impl crate::graphics::Compositor for Compositor {
             Self::TinySkia(compositor) => compositor.fetch_information(),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(compositor) => compositor.fetch_information(),
+            Self::Custom(compositor) => compositor.fetch_information(),
         }
     }
 
@@ -144,6 +157,18 @@ impl crate::graphics::Compositor for Compositor {
                     overlay,
                 )
             }),
+
+            #[cfg(feature = "wgpu")]
+            (
+                Self::Custom(compositor),
+                crate::Renderer::Custom(renderer),
+                Surface::Custom(surface),
+            ) => renderer.present(
+                surface.as_mut(),
+                viewport,
+                background_color,
+                compositor.as_mut(),
+            ),
             #[allow(unreachable_patterns)]
             _ => panic!(
                 "The provided renderer or surface are not compatible \

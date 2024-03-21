@@ -108,7 +108,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
@@ -142,7 +142,7 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         let bounds = layout.bounds();
@@ -169,7 +169,7 @@ where
 
             let appearance = (self.style)(theme, status);
 
-            renderer.draw(
+            renderer.draw_svg(
                 self.handle.clone(),
                 appearance.color,
                 drawing_bounds + offset,

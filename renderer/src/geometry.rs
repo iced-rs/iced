@@ -3,6 +3,7 @@ mod cache;
 pub use cache::Cache;
 
 use crate::core::{Point, Radians, Rectangle, Size, Transformation, Vector};
+use crate::custom;
 use crate::graphics::geometry::{Fill, Path, Stroke, Text};
 use crate::Renderer;
 
@@ -12,6 +13,7 @@ macro_rules! delegate {
             Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
+            Self::Custom($name) => $body,
         }
     };
 }
@@ -20,6 +22,7 @@ pub enum Geometry {
     TinySkia(iced_tiny_skia::Primitive),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Primitive),
+    Custom(Box<dyn custom::Geometry>),
 }
 
 impl Geometry {
@@ -32,6 +35,9 @@ impl Geometry {
             Self::Wgpu(primitive) => {
                 Self::Wgpu(primitive.transform(transformation))
             }
+            Self::Custom(geometry) => {
+                Self::Custom(geometry.transform(transformation))
+            }
         }
     }
 }
@@ -40,6 +46,7 @@ pub enum Frame {
     TinySkia(iced_tiny_skia::geometry::Frame),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::geometry::Frame),
+    Custom(Box<dyn custom::Frame>),
 }
 
 impl Frame {
@@ -51,6 +58,9 @@ impl Frame {
             #[cfg(feature = "wgpu")]
             Renderer::Wgpu(_) => {
                 Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
+            }
+            Renderer::Custom(renderer) => {
+                Frame::Custom(renderer.new_frame(size))
             }
         }
     }
@@ -82,7 +92,7 @@ impl Frame {
     /// Draws the given [`Path`] on the [`Frame`] by filling it with the
     /// provided style.
     pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
-        delegate!(self, frame, frame.fill(path, fill));
+        delegate!(self, frame, frame.fill(path, fill.into()));
     }
 
     /// Draws an axis-aligned rectangle given its top-left corner coordinate and
@@ -93,13 +103,17 @@ impl Frame {
         size: Size,
         fill: impl Into<Fill>,
     ) {
-        delegate!(self, frame, frame.fill_rectangle(top_left, size, fill));
+        delegate!(
+            self,
+            frame,
+            frame.fill_rectangle(top_left, size, fill.into())
+        );
     }
 
     /// Draws the stroke of the given [`Path`] on the [`Frame`] with the
     /// provided style.
     pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
-        delegate!(self, frame, frame.stroke(path, stroke));
+        delegate!(self, frame, frame.stroke(path, stroke.into()));
     }
 
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
@@ -116,7 +130,7 @@ impl Frame {
     /// Support for vectorial text is planned, and should address all these
     /// limitations.
     pub fn fill_text(&mut self, text: impl Into<Text>) {
-        delegate!(self, frame, frame.fill_text(text));
+        delegate!(self, frame, frame.fill_text(text.into()));
     }
 
     /// Stores the current transform of the [`Frame`] and executes the given
@@ -155,6 +169,7 @@ impl Frame {
             Self::Wgpu(_) => {
                 Self::Wgpu(iced_wgpu::geometry::Frame::new(region.size()))
             }
+            Self::Custom(frame) => Self::Custom(frame.new(region.size())),
         };
 
         let result = f(&mut frame);
@@ -167,6 +182,9 @@ impl Frame {
             }
             #[cfg(feature = "wgpu")]
             (Self::Wgpu(target), Self::Wgpu(frame)) => {
+                target.clip(frame, origin);
+            }
+            (Self::Custom(target), Self::Custom(frame)) => {
                 target.clip(frame, origin);
             }
             #[allow(unreachable_patterns)]
@@ -185,19 +203,19 @@ impl Frame {
     /// Applies a rotation in radians to the current transform of the [`Frame`].
     #[inline]
     pub fn rotate(&mut self, angle: impl Into<Radians>) {
-        delegate!(self, frame, frame.rotate(angle));
+        delegate!(self, frame, frame.rotate(angle.into()));
     }
 
     /// Applies a uniform scaling to the current transform of the [`Frame`].
     #[inline]
     pub fn scale(&mut self, scale: impl Into<f32>) {
-        delegate!(self, frame, frame.scale(scale));
+        delegate!(self, frame, frame.scale(scale.into()));
     }
 
     /// Applies a non-uniform scaling to the current transform of the [`Frame`].
     #[inline]
     pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
-        delegate!(self, frame, frame.scale_nonuniform(scale));
+        delegate!(self, frame, frame.scale_nonuniform(scale.into()));
     }
 
     pub fn into_geometry(self) -> Geometry {
@@ -205,6 +223,7 @@ impl Frame {
             Self::TinySkia(frame) => Geometry::TinySkia(frame.into_primitive()),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(frame) => Geometry::Wgpu(frame.into_primitive()),
+            Self::Custom(frame) => Geometry::Custom(frame.into_geometry()),
         }
     }
 }

@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// A component that can be used by widgets to draw themselves on a screen.
-pub trait Renderer: Sized {
+pub trait Renderer {
     /// Draws the primitives recorded in the given closure in a new layer.
     ///
     /// The layer will clip its contents to the provided `bounds`.

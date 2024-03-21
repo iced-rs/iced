@@ -211,11 +211,11 @@ where
 {
     type Handle = image::Handle;
 
-    fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
+    fn measure_image(&self, handle: &image::Handle) -> Size<u32> {
         self.backend().dimensions(handle)
     }
 
-    fn draw(
+    fn draw_image(
         &mut self,
         handle: image::Handle,
         filter_method: image::FilterMethod,
@@ -233,11 +233,11 @@ impl<B> svg::Renderer for Renderer<B>
 where
     B: Backend + backend::Svg,
 {
-    fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
+    fn measure_svg(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
     }
 
-    fn draw(
+    fn draw_svg(
         &mut self,
         handle: svg::Handle,
         color: Option<Color>,

@@ -93,7 +93,7 @@ where
 {
     // The raw w/h of the underlying image
     let image_size = {
-        let Size { width, height } = renderer.dimensions(handle);
+        let Size { width, height } = renderer.measure_image(handle);
 
         Size::new(width as f32, height as f32)
     };
@@ -130,7 +130,7 @@ pub fn draw<Renderer, Handle>(
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    let Size { width, height } = renderer.dimensions(handle);
+    let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
 
     let bounds = layout.bounds();
@@ -148,7 +148,11 @@ pub fn draw<Renderer, Handle>(
             ..bounds
         };
 
-        renderer.draw(handle.clone(), filter_method, drawing_bounds + offset);
+        renderer.draw_image(
+            handle.clone(),
+            filter_method,
+            drawing_bounds + offset,
+        );
     };
 
     if adjusted_fit.width > bounds.width || adjusted_fit.height > bounds.height

@@ -5,6 +5,7 @@
 pub use iced_wgpu as wgpu;
 
 pub mod compositor;
+pub mod custom;
 
 #[cfg(feature = "geometry")]
 pub mod geometry;
@@ -38,6 +39,7 @@ pub enum Renderer {
     TinySkia(iced_tiny_skia::Renderer),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Renderer),
+    Custom(Box<dyn custom::Renderer>),
 }
 
 macro_rules! delegate {
@@ -46,6 +48,7 @@ macro_rules! delegate {
             Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
+            Self::Custom($name) => $body,
         }
     };
 }
@@ -61,6 +64,9 @@ impl Renderer {
                 renderer.draw_primitive(iced_wgpu::Primitive::Custom(
                     iced_wgpu::primitive::Custom::Mesh(mesh),
                 ));
+            }
+            Self::Custom(renderer) => {
+                renderer.draw_mesh(mesh);
             }
         }
     }
@@ -92,6 +98,18 @@ impl core::Renderer for Renderer {
                     #[cfg(feature = "wgpu")]
                     Self::Wgpu(renderer) => {
                         renderer.end_layer(primitives, bounds);
+                    }
+                    _ => unreachable!(),
+                }
+            }
+            Self::Custom(renderer) => {
+                renderer.start_layer();
+
+                f(self);
+
+                match self {
+                    Self::Custom(renderer) => {
+                        renderer.end_layer(bounds);
                     }
                     _ => unreachable!(),
                 }
@@ -132,6 +150,18 @@ impl core::Renderer for Renderer {
                     _ => unreachable!(),
                 }
             }
+            Self::Custom(renderer) => {
+                renderer.start_transformation();
+
+                f(self);
+
+                match self {
+                    Self::Custom(renderer) => {
+                        renderer.end_transformation(transformation);
+                    }
+                    _ => unreachable!(),
+                }
+            }
         }
     }
 
@@ -140,7 +170,7 @@ impl core::Renderer for Renderer {
         quad: renderer::Quad,
         background: impl Into<Background>,
     ) {
-        delegate!(self, renderer, renderer.fill_quad(quad, background));
+        delegate!(self, renderer, renderer.fill_quad(quad, background.into()));
     }
 
     fn clear(&mut self) {
@@ -216,36 +246,43 @@ impl text::Renderer for Renderer {
 impl crate::core::image::Renderer for Renderer {
     type Handle = crate::core::image::Handle;
 
-    fn dimensions(
+    fn measure_image(
         &self,
         handle: &crate::core::image::Handle,
     ) -> core::Size<u32> {
-        delegate!(self, renderer, renderer.dimensions(handle))
+        delegate!(self, renderer, renderer.measure_image(handle))
     }
 
-    fn draw(
+    fn draw_image(
         &mut self,
         handle: crate::core::image::Handle,
         filter_method: crate::core::image::FilterMethod,
         bounds: Rectangle,
     ) {
-        delegate!(self, renderer, renderer.draw(handle, filter_method, bounds));
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_image(handle, filter_method, bounds)
+        );
     }
 }
 
 #[cfg(feature = "svg")]
 impl crate::core::svg::Renderer for Renderer {
-    fn dimensions(&self, handle: &crate::core::svg::Handle) -> core::Size<u32> {
-        delegate!(self, renderer, renderer.dimensions(handle))
+    fn measure_svg(
+        &self,
+        handle: &crate::core::svg::Handle,
+    ) -> core::Size<u32> {
+        delegate!(self, renderer, renderer.measure_svg(handle))
     }
 
-    fn draw(
+    fn draw_svg(
         &mut self,
         handle: crate::core::svg::Handle,
         color: Option<crate::core::Color>,
         bounds: Rectangle,
     ) {
-        delegate!(self, renderer, renderer.draw(handle, color, bounds));
+        delegate!(self, renderer, renderer.draw_svg(handle, color, bounds));
     }
 }
 
@@ -263,6 +300,7 @@ impl crate::graphics::geometry::Renderer for Renderer {
                         }
                         #[cfg(feature = "wgpu")]
                         crate::Geometry::Wgpu(_) => unreachable!(),
+                        crate::Geometry::Custom(_) => unreachable!(),
                     }
                 }
             }
@@ -274,6 +312,19 @@ impl crate::graphics::geometry::Renderer for Renderer {
                             renderer.draw_primitive(primitive);
                         }
                         crate::Geometry::TinySkia(_) => unreachable!(),
+                        crate::Geometry::Custom(_) => unreachable!(),
+                    }
+                }
+            }
+            Self::Custom(renderer) => {
+                for layer in layers {
+                    match layer {
+                        crate::Geometry::Custom(geometry) => {
+                            renderer.draw_geometry(geometry);
+                        }
+                        crate::Geometry::TinySkia(_) => unreachable!(),
+                        #[cfg(feature = "wgpu")]
+                        crate::Geometry::Wgpu(_) => unreachable!(),
                     }
                 }
             }
@@ -296,6 +347,11 @@ impl iced_wgpu::primitive::pipeline::Renderer for Renderer {
             }
             Self::Wgpu(renderer) => {
                 renderer.draw_pipeline_primitive(bounds, primitive);
+            }
+            Self::Custom(_renderer) => {
+                log::warn!(
+                    "Custom shader primitive is unavailable with custom renderer."
+                );
             }
         }
     }
