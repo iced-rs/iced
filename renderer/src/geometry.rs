@@ -3,7 +3,6 @@ mod cache;
 pub use cache::Cache;
 
 use crate::core::{Point, Radians, Rectangle, Size, Transformation, Vector};
-use crate::custom;
 use crate::graphics::geometry::{Fill, Path, Stroke, Text};
 use crate::Renderer;
 
@@ -13,6 +12,7 @@ macro_rules! delegate {
             Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
+            #[cfg(feature = "custom")]
             Self::Custom($name) => $body,
         }
     };
@@ -22,7 +22,8 @@ pub enum Geometry {
     TinySkia(iced_tiny_skia::Primitive),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Primitive),
-    Custom(Box<dyn custom::Geometry>),
+    #[cfg(feature = "custom")]
+    Custom(Box<dyn crate::custom::Geometry>),
 }
 
 impl Geometry {
@@ -35,6 +36,7 @@ impl Geometry {
             Self::Wgpu(primitive) => {
                 Self::Wgpu(primitive.transform(transformation))
             }
+            #[cfg(feature = "custom")]
             Self::Custom(geometry) => {
                 Self::Custom(geometry.transform(transformation))
             }
@@ -46,7 +48,8 @@ pub enum Frame {
     TinySkia(iced_tiny_skia::geometry::Frame),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::geometry::Frame),
-    Custom(Box<dyn custom::Frame>),
+    #[cfg(feature = "custom")]
+    Custom(Box<dyn crate::custom::Frame>),
 }
 
 impl Frame {
@@ -59,6 +62,7 @@ impl Frame {
             Renderer::Wgpu(_) => {
                 Frame::Wgpu(iced_wgpu::geometry::Frame::new(size))
             }
+            #[cfg(feature = "custom")]
             Renderer::Custom(renderer) => {
                 Frame::Custom(renderer.new_frame(size))
             }
@@ -169,6 +173,7 @@ impl Frame {
             Self::Wgpu(_) => {
                 Self::Wgpu(iced_wgpu::geometry::Frame::new(region.size()))
             }
+            #[cfg(feature = "custom")]
             Self::Custom(frame) => Self::Custom(frame.new(region.size())),
         };
 
@@ -184,6 +189,7 @@ impl Frame {
             (Self::Wgpu(target), Self::Wgpu(frame)) => {
                 target.clip(frame, origin);
             }
+            #[cfg(feature = "custom")]
             (Self::Custom(target), Self::Custom(frame)) => {
                 target.clip(frame, origin);
             }
@@ -223,6 +229,7 @@ impl Frame {
             Self::TinySkia(frame) => Geometry::TinySkia(frame.into_primitive()),
             #[cfg(feature = "wgpu")]
             Self::Wgpu(frame) => Geometry::Wgpu(frame.into_primitive()),
+            #[cfg(feature = "custom")]
             Self::Custom(frame) => Geometry::Custom(frame.into_geometry()),
         }
     }

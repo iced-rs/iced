@@ -1,5 +1,4 @@
 use crate::core::Size;
-use crate::custom;
 use crate::geometry::{Frame, Geometry};
 use crate::Renderer;
 
@@ -30,7 +29,8 @@ enum Internal {
     TinySkia(Arc<iced_tiny_skia::Primitive>),
     #[cfg(feature = "wgpu")]
     Wgpu(Arc<iced_wgpu::Primitive>),
-    Custom(Arc<dyn custom::Geometry>),
+    #[cfg(feature = "custom")]
+    Custom(Arc<dyn crate::custom::Geometry>),
 }
 
 impl Cache {
@@ -84,6 +84,7 @@ impl Cache {
                             content: primitive.clone(),
                         });
                     }
+                    #[cfg(feature = "custom")]
                     Internal::Custom(geometry) => {
                         return Geometry::Custom(geometry.clone().load())
                     }
@@ -105,6 +106,7 @@ impl Cache {
                 Geometry::Wgpu(primitive) => {
                     Internal::Wgpu(Arc::new(primitive))
                 }
+                #[cfg(feature = "custom")]
                 Geometry::Custom(geometry) => {
                     Internal::Custom(geometry.cache())
                 }
@@ -128,6 +130,7 @@ impl Cache {
                     content: primitive,
                 })
             }
+            #[cfg(feature = "custom")]
             Internal::Custom(geometry) => Geometry::Custom(geometry.load()),
         }
     }

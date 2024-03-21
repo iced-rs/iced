@@ -39,6 +39,7 @@ pub enum Renderer {
     TinySkia(iced_tiny_skia::Renderer),
     #[cfg(feature = "wgpu")]
     Wgpu(iced_wgpu::Renderer),
+    #[cfg(feature = "custom")]
     Custom(Box<dyn custom::Renderer>),
 }
 
@@ -48,6 +49,7 @@ macro_rules! delegate {
             Self::TinySkia($name) => $body,
             #[cfg(feature = "wgpu")]
             Self::Wgpu($name) => $body,
+            #[cfg(feature = "custom")]
             Self::Custom($name) => $body,
         }
     };
@@ -65,6 +67,7 @@ impl Renderer {
                     iced_wgpu::primitive::Custom::Mesh(mesh),
                 ));
             }
+            #[cfg(feature = "custom")]
             Self::Custom(renderer) => {
                 renderer.draw_mesh(mesh);
             }
@@ -102,6 +105,7 @@ impl core::Renderer for Renderer {
                     _ => unreachable!(),
                 }
             }
+            #[cfg(feature = "custom")]
             Self::Custom(renderer) => {
                 renderer.start_layer();
 
@@ -150,6 +154,7 @@ impl core::Renderer for Renderer {
                     _ => unreachable!(),
                 }
             }
+            #[cfg(feature = "custom")]
             Self::Custom(renderer) => {
                 renderer.start_transformation();
 
@@ -300,6 +305,7 @@ impl crate::graphics::geometry::Renderer for Renderer {
                         }
                         #[cfg(feature = "wgpu")]
                         crate::Geometry::Wgpu(_) => unreachable!(),
+                        #[cfg(feature = "custom")]
                         crate::Geometry::Custom(_) => unreachable!(),
                     }
                 }
@@ -312,10 +318,12 @@ impl crate::graphics::geometry::Renderer for Renderer {
                             renderer.draw_primitive(primitive);
                         }
                         crate::Geometry::TinySkia(_) => unreachable!(),
+                        #[cfg(feature = "custom")]
                         crate::Geometry::Custom(_) => unreachable!(),
                     }
                 }
             }
+            #[cfg(feature = "custom")]
             Self::Custom(renderer) => {
                 for layer in layers {
                     match layer {
@@ -348,6 +356,7 @@ impl iced_wgpu::primitive::pipeline::Renderer for Renderer {
             Self::Wgpu(renderer) => {
                 renderer.draw_pipeline_primitive(bounds, primitive);
             }
+            #[cfg(feature = "custom")]
             Self::Custom(_renderer) => {
                 log::warn!(
                     "Custom shader primitive is unavailable with custom renderer."
