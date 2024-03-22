@@ -1,5 +1,6 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
+use crate::compositor;
 use crate::core;
 use crate::core::image;
 use crate::core::renderer;
@@ -258,4 +259,11 @@ where
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
         self.draw_primitive(geometry);
     }
+}
+
+impl<B> compositor::Renderer for Renderer<B>
+where
+    B: Backend,
+{
+    type Compositor = B::Compositor;
 }

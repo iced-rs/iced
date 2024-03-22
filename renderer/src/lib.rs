@@ -6,15 +6,11 @@ pub use iced_wgpu as wgpu;
 
 pub mod fallback;
 
-mod settings;
-
 pub use iced_graphics as graphics;
 pub use iced_graphics::core;
 
 #[cfg(feature = "geometry")]
 pub use iced_graphics::geometry;
-
-pub use settings::Settings;
 
 /// The default graphics renderer for [`iced`].
 ///

@@ -200,15 +200,12 @@ impl<L, R> graphics::Compositor for Compositor<L, R>
 where
     L: graphics::Compositor,
     R: graphics::Compositor,
-    L::Settings: From<crate::Settings>,
-    R::Settings: From<crate::Settings>,
 {
-    type Settings = crate::Settings;
     type Renderer = Renderer<L::Renderer, R::Renderer>;
     type Surface = Surface<L::Surface, R::Surface>;
 
     async fn new<W: compositor::Window + Clone>(
-        settings: Self::Settings,
+        settings: graphics::Settings,
         compatible_window: W,
     ) -> Result<Self, graphics::Error> {
         if let Ok(left) = L::new(settings.into(), compatible_window.clone())
@@ -527,4 +524,12 @@ mod geometry {
             }
         }
     }
+}
+
+impl<L, R> compositor::Renderer for Renderer<L, R>
+where
+    L: compositor::Renderer,
+    R: compositor::Renderer,
+{
+    type Compositor = Compositor<L::Compositor, R::Compositor>;
 }

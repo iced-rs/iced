@@ -1,9 +1,8 @@
 //! Connect a window with a renderer.
 use crate::core::{Color, Size};
-use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::compositor;
-use crate::graphics::{Error, Viewport};
+use crate::graphics::{self, Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use std::future::Future;
@@ -225,15 +224,14 @@ pub fn present<T: AsRef<str>>(
 }
 
 impl graphics::Compositor for Compositor {
-    type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
     fn new<W: compositor::Window>(
-        settings: Self::Settings,
+        settings: graphics::Settings,
         compatible_window: W,
     ) -> impl Future<Output = Result<Self, Error>> {
-        new(settings, compatible_window)
+        new(settings.into(), compatible_window)
     }
 
     fn create_renderer(&self) -> Self::Renderer {

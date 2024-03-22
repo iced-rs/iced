@@ -32,6 +32,7 @@
 //! ```
 use crate::application::Application;
 use crate::executor::{self, Executor};
+use crate::graphics::compositor;
 use crate::window;
 use crate::{Command, Element, Font, Result, Settings, Size, Subscription};
 
@@ -67,37 +68,41 @@ use std::borrow::Cow;
 ///     ]
 /// }
 /// ```
-pub fn program<State, Message, Theme>(
+pub fn program<State, Message, Theme, Renderer>(
     title: impl Title<State>,
     update: impl Update<State, Message>,
-    view: impl for<'a> self::View<'a, State, Message, Theme>,
+    view: impl for<'a> self::View<'a, State, Message, Theme, Renderer>,
 ) -> Program<impl Definition<State = State, Message = Message, Theme = Theme>>
 where
     State: 'static,
     Message: Send + std::fmt::Debug,
     Theme: Default + DefaultStyle,
+    Renderer: compositor::Renderer + crate::core::text::Renderer,
 {
     use std::marker::PhantomData;
 
-    struct Application<State, Message, Theme, Update, View> {
+    struct Application<State, Message, Theme, Renderer, Update, View> {
         update: Update,
         view: View,
         _state: PhantomData<State>,
         _message: PhantomData<Message>,
         _theme: PhantomData<Theme>,
+        _renderer: PhantomData<Renderer>,
     }
 
-    impl<State, Message, Theme, Update, View> Definition
-        for Application<State, Message, Theme, Update, View>
+    impl<State, Message, Theme, Renderer, Update, View> Definition
+        for Application<State, Message, Theme, Renderer, Update, View>
     where
         Message: Send + std::fmt::Debug,
         Theme: Default + DefaultStyle,
+        Renderer: compositor::Renderer + crate::core::text::Renderer,
         Update: self::Update<State, Message>,
-        View: for<'a> self::View<'a, State, Message, Theme>,
+        View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
         type State = State;
         type Message = Message;
         type Theme = Theme;
+        type Renderer = Renderer;
         type Executor = executor::Default;
 
         fn load(&self) -> Command<Self::Message> {
@@ -115,7 +120,7 @@ where
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.view.view(state).into()
         }
     }
@@ -127,6 +132,7 @@ where
             _state: PhantomData,
             _message: PhantomData,
             _theme: PhantomData,
+            _renderer: PhantomData,
         },
         settings: Settings::default(),
     }
@@ -184,6 +190,7 @@ impl<P: Definition> Program<P> {
         impl<P: Definition, I: Fn() -> P::State> Application for Instance<P, I> {
             type Message = P::Message;
             type Theme = P::Theme;
+            type Renderer = P::Renderer;
             type Flags = (P, I);
             type Executor = P::Executor;
 
@@ -216,7 +223,7 @@ impl<P: Definition> Program<P> {
 
             fn view(
                 &self,
-            ) -> crate::Element<'_, Self::Message, Self::Theme, crate::Renderer>
+            ) -> crate::Element<'_, Self::Message, Self::Theme, Self::Renderer>
             {
                 self.program.view(&self.state)
             }
@@ -417,6 +424,9 @@ pub trait Definition: Sized {
     /// The theme of the program.
     type Theme: Default + DefaultStyle;
 
+    /// The renderer of the program.
+    type Renderer: compositor::Renderer + crate::core::text::Renderer;
+
     /// The executor of the program.
     type Executor: Executor;
 
@@ -431,7 +441,7 @@ pub trait Definition: Sized {
     fn view<'a>(
         &self,
         state: &'a Self::State,
-    ) -> Element<'a, Self::Message, Self::Theme>;
+    ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
 
     fn title(&self, _state: &Self::State) -> String {
         String::from("A cool iced application!")
@@ -470,6 +480,7 @@ fn with_title<P: Definition>(
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
+        type Renderer = P::Renderer;
         type Executor = P::Executor;
 
         fn load(&self) -> Command<Self::Message> {
@@ -491,7 +502,7 @@ fn with_title<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state)
         }
 
@@ -534,6 +545,7 @@ fn with_load<P: Definition>(
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
+        type Renderer = P::Renderer;
         type Executor = executor::Default;
 
         fn load(&self) -> Command<Self::Message> {
@@ -551,7 +563,7 @@ fn with_load<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state)
         }
 
@@ -598,6 +610,7 @@ fn with_subscription<P: Definition>(
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
+        type Renderer = P::Renderer;
         type Executor = executor::Default;
 
         fn subscription(
@@ -622,7 +635,7 @@ fn with_subscription<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state)
         }
 
@@ -665,6 +678,7 @@ fn with_theme<P: Definition>(
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
+        type Renderer = P::Renderer;
         type Executor = P::Executor;
 
         fn theme(&self, state: &Self::State) -> Self::Theme {
@@ -690,7 +704,7 @@ fn with_theme<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state)
         }
 
@@ -729,6 +743,7 @@ fn with_style<P: Definition>(
         type State = P::State;
         type Message = P::Message;
         type Theme = P::Theme;
+        type Renderer = P::Renderer;
         type Executor = P::Executor;
 
         fn style(
@@ -758,7 +773,7 @@ fn with_style<P: Definition>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-        ) -> Element<'a, Self::Message, Self::Theme> {
+        ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state)
         }
 
@@ -834,18 +849,25 @@ where
 ///
 /// This trait allows the [`program`] builder to take any closure that
 /// returns any `Into<Element<'_, Message>>`.
-pub trait View<'a, State, Message, Theme> {
+pub trait View<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Program`].
-    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message, Theme>>;
+    fn view(
+        &self,
+        state: &'a State,
+    ) -> impl Into<Element<'a, Message, Theme, Renderer>>;
 }
 
-impl<'a, T, State, Message, Theme, Widget> View<'a, State, Message, Theme> for T
+impl<'a, T, State, Message, Theme, Renderer, Widget>
+    View<'a, State, Message, Theme, Renderer> for T
 where
     T: Fn(&'a State) -> Widget,
     State: 'static,
-    Widget: Into<Element<'a, Message, Theme>>,
+    Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
-    fn view(&self, state: &'a State) -> impl Into<Element<'a, Message, Theme>> {
+    fn view(
+        &self,
+        state: &'a State,
+    ) -> impl Into<Element<'a, Message, Theme, Renderer>> {
         self(state)
     }
 }

@@ -372,15 +372,16 @@ pub type Result = std::result::Result<(), Error>;
 ///     ]
 /// }
 /// ```
-pub fn run<State, Message, Theme>(
+pub fn run<State, Message, Theme, Renderer>(
     title: impl program::Title<State> + 'static,
     update: impl program::Update<State, Message> + 'static,
-    view: impl for<'a> program::View<'a, State, Message, Theme> + 'static,
+    view: impl for<'a> program::View<'a, State, Message, Theme, Renderer> + 'static,
 ) -> Result
 where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
     Theme: Default + program::DefaultStyle + 'static,
+    Renderer: graphics::compositor::Renderer + core::text::Renderer + 'static,
 {
     program(title, update, view).run()
 }

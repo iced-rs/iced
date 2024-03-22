@@ -1,6 +1,6 @@
 //! Configure a renderer.
 use crate::core::{Font, Pixels};
-use crate::graphics::Antialiasing;
+use crate::graphics::{self, Antialiasing};
 
 /// The settings of a [`Backend`].
 ///
@@ -61,6 +61,17 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+        }
+    }
+}
+
+impl From<graphics::Settings> for Settings {
+    fn from(settings: graphics::Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            antialiasing: settings.antialiasing,
+            ..Settings::default()
         }
     }
 }

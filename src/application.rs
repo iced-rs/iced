@@ -1,4 +1,6 @@
 //! Build interactive cross-platform applications.
+use crate::core::text;
+use crate::graphics::compositor;
 use crate::shell::application;
 use crate::{Command, Element, Executor, Settings, Subscription};
 
@@ -60,7 +62,7 @@ pub use application::{Appearance, DefaultStyle};
 /// ```no_run
 /// use iced::advanced::Application;
 /// use iced::executor;
-/// use iced::{Command, Element, Settings, Theme};
+/// use iced::{Command, Element, Settings, Theme, Renderer};
 ///
 /// pub fn main() -> iced::Result {
 ///     Hello::run(Settings::default())
@@ -73,6 +75,7 @@ pub use application::{Appearance, DefaultStyle};
 ///     type Flags = ();
 ///     type Message = ();
 ///     type Theme = Theme;
+///     type Renderer = Renderer;
 ///
 ///     fn new(_flags: ()) -> (Hello, Command<Self::Message>) {
 ///         (Hello, Command::none())
@@ -109,6 +112,9 @@ where
     /// The theme of your [`Application`].
     type Theme: Default;
 
+    /// The renderer of your [`Application`].
+    type Renderer: text::Renderer + compositor::Renderer;
+
     /// The data needed to initialize your [`Application`].
     type Flags;
 
@@ -142,7 +148,7 @@ where
     /// Returns the widgets to display in the [`Application`].
     ///
     /// These widgets can produce __messages__ based on user interaction.
-    fn view(&self) -> Element<'_, Self::Message, Self::Theme, crate::Renderer>;
+    fn view(&self) -> Element<'_, Self::Message, Self::Theme, Self::Renderer>;
 
     /// Returns the current [`Theme`] of the [`Application`].
     ///
@@ -195,7 +201,7 @@ where
         Self: 'static,
     {
         #[allow(clippy::needless_update)]
-        let renderer_settings = crate::renderer::Settings {
+        let renderer_settings = crate::graphics::Settings {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             antialiasing: if settings.antialiasing {
@@ -203,13 +209,13 @@ where
             } else {
                 None
             },
-            ..crate::renderer::Settings::default()
+            ..crate::graphics::Settings::default()
         };
 
         let run = crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            crate::renderer::Compositor,
+            <Self::Renderer as compositor::Renderer>::Compositor,
         >(settings.into(), renderer_settings);
 
         #[cfg(target_arch = "wasm32")]
@@ -241,7 +247,7 @@ where
 {
     type Message = A::Message;
     type Theme = A::Theme;
-    type Renderer = crate::Renderer;
+    type Renderer = A::Renderer;
 
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         self.0.update(message)

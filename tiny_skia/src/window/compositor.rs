@@ -1,7 +1,7 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
-use crate::graphics::{Error, Viewport};
+use crate::graphics::{self, Error, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use std::collections::VecDeque;
@@ -25,15 +25,14 @@ pub struct Surface {
 }
 
 impl crate::graphics::Compositor for Compositor {
-    type Settings = Settings;
     type Renderer = Renderer;
     type Surface = Surface;
 
     fn new<W: compositor::Window>(
-        settings: Self::Settings,
+        settings: graphics::Settings,
         compatible_window: W,
     ) -> impl Future<Output = Result<Self, Error>> {
-        future::ready(Ok(new(settings, compatible_window)))
+        future::ready(Ok(new(settings.into(), compatible_window)))
     }
 
     fn create_renderer(&self) -> Self::Renderer {

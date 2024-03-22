@@ -1,9 +1,9 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::{Error, Viewport};
-
+use crate::core;
 use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
+use crate::{Error, Settings, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::future::Future;
@@ -11,9 +11,6 @@ use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
-    /// The settings of the backend.
-    type Settings: Default;
-
     /// The iced renderer of the backend.
     type Renderer;
 
@@ -22,7 +19,7 @@ pub trait Compositor: Sized {
 
     /// Creates a new [`Compositor`].
     fn new<W: Window + Clone>(
-        settings: Self::Settings,
+        settings: Settings,
         compatible_window: W,
     ) -> impl Future<Output = Result<Self, Error>>;
 
@@ -93,6 +90,12 @@ impl<T> Window for T where
 {
 }
 
+/// A renderer that supports composition.
+pub trait Renderer: core::Renderer {
+    /// The compositor of the renderer.
+    type Compositor: Compositor<Renderer = Self>;
+}
+
 /// Result of an unsuccessful call to [`Compositor::present`].
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
@@ -123,13 +126,13 @@ pub struct Information {
     pub backend: String,
 }
 
+#[cfg(debug_assertions)]
 impl Compositor for () {
-    type Settings = ();
     type Renderer = ();
     type Surface = ();
 
     async fn new<W: Window + Clone>(
-        _settings: Self::Settings,
+        _settings: Settings,
         _compatible_window: W,
     ) -> Result<Self, Error> {
         Ok(())
@@ -181,4 +184,9 @@ impl Compositor for () {
     ) -> Vec<u8> {
         vec![]
     }
+}
+
+#[cfg(debug_assertions)]
+impl Renderer for () {
+    type Compositor = ();
 }

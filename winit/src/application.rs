@@ -13,6 +13,7 @@ use crate::core::window;
 use crate::core::{Color, Event, Point, Size, Theme};
 use crate::futures::futures;
 use crate::futures::{Executor, Runtime, Subscription};
+use crate::graphics;
 use crate::graphics::compositor::{self, Compositor};
 use crate::runtime::clipboard;
 use crate::runtime::program::Program;
@@ -130,7 +131,7 @@ pub fn default(theme: &Theme) -> Appearance {
 /// settings.
 pub async fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: impl Into<C::Settings>,
+    graphics_settings: graphics::Settings,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -219,7 +220,7 @@ where
         };
     }
 
-    let compositor = C::new(compositor_settings.into(), window.clone()).await?;
+    let compositor = C::new(graphics_settings, window.clone()).await?;
     let mut renderer = compositor.create_renderer();
 
     for font in settings.fonts {
