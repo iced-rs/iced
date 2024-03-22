@@ -459,10 +459,10 @@ mod geometry {
         Right(R),
     }
 
-    impl<L, R> geometry::Frame for Frame<L, R>
+    impl<L, R> geometry::frame::Backend for Frame<L, R>
     where
-        L: geometry::Frame,
-        R: geometry::Frame,
+        L: geometry::frame::Backend,
+        R: geometry::frame::Backend,
     {
         type Geometry = Geometry<L::Geometry, R::Geometry>;
 
@@ -545,17 +545,11 @@ mod geometry {
         fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
             delegate!(self, frame, frame.scale_nonuniform(scale));
         }
-    }
 
-    impl<L, R> From<Frame<L, R>> for Geometry<L::Geometry, R::Geometry>
-    where
-        L: geometry::Frame,
-        R: geometry::Frame,
-    {
-        fn from(frame: Frame<L, R>) -> Self {
-            match frame {
-                Frame::Left(frame) => Self::Left(frame.into()),
-                Frame::Right(frame) => Self::Right(frame.into()),
+        fn into_geometry(self) -> Self::Geometry {
+            match self {
+                Frame::Left(frame) => Geometry::Left(frame.into_geometry()),
+                Frame::Right(frame) => Geometry::Right(frame.into_geometry()),
             }
         }
     }

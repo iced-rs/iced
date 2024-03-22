@@ -129,8 +129,6 @@ impl<Message> canvas::Program<Message> for State {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
-        use canvas::Frame;
-
         let geometry = self.cache.draw(renderer, bounds.size(), |frame| {
             let palette = theme.palette();
             let center = bounds.center();

@@ -80,7 +80,7 @@ impl Frame {
     }
 }
 
-impl geometry::Frame for Frame {
+impl geometry::frame::Backend for Frame {
     type Geometry = Primitive;
 
     /// Creates a new empty [`Frame`] with the given dimensions.
@@ -339,11 +339,10 @@ impl geometry::Frame for Frame {
             ],
         });
     }
-}
-impl From<Frame> for Primitive {
-    fn from(frame: Frame) -> Self {
-        Self::Group {
-            primitives: frame.into_primitives(),
+
+    fn into_geometry(self) -> Self::Geometry {
+        Primitive::Group {
+            primitives: self.into_primitives(),
         }
     }
 }

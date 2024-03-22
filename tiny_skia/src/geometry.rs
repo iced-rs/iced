@@ -35,7 +35,7 @@ impl Frame {
     }
 }
 
-impl geometry::Frame for Frame {
+impl geometry::frame::Backend for Frame {
     type Geometry = Primitive;
 
     fn width(&self) -> f32 {
@@ -228,11 +228,9 @@ impl geometry::Frame for Frame {
 
         self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
-}
 
-impl From<Frame> for Primitive {
-    fn from(frame: Frame) -> Self {
-        frame.into_primitive()
+    fn into_geometry(self) -> Self::Geometry {
+        self.into_primitive()
     }
 }
 

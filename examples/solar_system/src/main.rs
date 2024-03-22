@@ -131,7 +131,6 @@ impl<Message> canvas::Program<Message> for State {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        use canvas::Frame;
         use std::f32::consts::PI;
 
         let background =

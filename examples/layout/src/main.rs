@@ -297,9 +297,7 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
             bounds: Rectangle,
             _cursor: mouse::Cursor,
         ) -> Vec<canvas::Geometry> {
-            use canvas::Frame;
-
-            let mut frame = canvas::frame(renderer, bounds.size());
+            let mut frame = canvas::Frame::new(renderer, bounds.size());
 
             let palette = theme.extended_palette();
 
@@ -309,7 +307,7 @@ fn square<'a>(size: impl Into<Length> + Copy) -> Element<'a, Message> {
                 palette.background.strong.color,
             );
 
-            vec![frame.into()]
+            vec![frame.into_geometry()]
         }
     }
 

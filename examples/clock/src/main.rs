@@ -1,8 +1,6 @@
 use iced::alignment;
 use iced::mouse;
-use iced::widget::canvas::{
-    stroke, Cache, Frame, Geometry, LineCap, Path, Stroke,
-};
+use iced::widget::canvas::{stroke, Cache, Geometry, LineCap, Path, Stroke};
 use iced::widget::{canvas, container};
 use iced::{
     Degrees, Element, Font, Length, Point, Rectangle, Renderer, Subscription,

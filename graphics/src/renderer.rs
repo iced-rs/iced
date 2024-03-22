@@ -257,7 +257,8 @@ impl<B: Backend> mesh::Renderer for Renderer<B> {
 impl<B> crate::geometry::Renderer for Renderer<B>
 where
     B: Backend + crate::geometry::Backend,
-    B::Frame: crate::geometry::Frame<Geometry = Primitive<B::Primitive>>,
+    B::Frame:
+        crate::geometry::frame::Backend<Geometry = Primitive<B::Primitive>>,
 {
     type Frame = B::Frame;
     type Geometry = Primitive<B::Primitive>;

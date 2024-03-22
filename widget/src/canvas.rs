@@ -6,7 +6,10 @@ mod program;
 pub use event::Event;
 pub use program::Program;
 
-pub use crate::graphics::geometry::*;
+pub use crate::graphics::geometry::{
+    fill, gradient, path, stroke, Fill, Gradient, LineCap, LineDash, LineJoin,
+    Path, Stroke, Style, Text,
+};
 
 use crate::core;
 use crate::core::layout::{self, Layout};
@@ -30,13 +33,16 @@ pub type Cache<Renderer = crate::Renderer> = geometry::Cache<Renderer>;
 pub type Geometry<Renderer = crate::Renderer> =
     <Renderer as geometry::Renderer>::Geometry;
 
+/// The frame supported by a renderer.
+pub type Frame<Renderer = crate::Renderer> = geometry::Frame<Renderer>;
+
 /// A widget capable of drawing 2D graphics.
 ///
 /// ## Drawing a simple circle
 /// If you want to get a quick overview, here's how we can draw a simple circle:
 ///
 /// ```no_run
-/// # use iced_widget::canvas::{self, frame, Canvas, Fill, Frame, Geometry, Path, Program};
+/// # use iced_widget::canvas::{self, Canvas, Fill, Frame, Geometry, Path, Program};
 /// # use iced_widget::core::{Color, Rectangle};
 /// # use iced_widget::core::mouse;
 /// # use iced_widget::{Renderer, Theme};
@@ -53,7 +59,7 @@ pub type Geometry<Renderer = crate::Renderer> =
 ///
 ///     fn draw(&self, _state: &(), renderer: &Renderer, _theme: &Theme, bounds: Rectangle, _cursor: mouse::Cursor) -> Vec<Geometry> {
 ///         // We prepare a new `Frame`
-///         let mut frame = frame(renderer, bounds.size());
+///         let mut frame = Frame::new(renderer, bounds.size());
 ///
 ///         // We create a `Path` representing a simple circle
 ///         let circle = Path::circle(frame.center(), self.radius);
@@ -62,7 +68,7 @@ pub type Geometry<Renderer = crate::Renderer> =
 ///         frame.fill(&circle, Color::BLACK);
 ///
 ///         // Finally, we produce the geometry
-///         vec![frame.into()]
+///         vec![frame.into_geometry()]
 ///     }
 /// }
 ///

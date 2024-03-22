@@ -91,8 +91,6 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         _cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        use canvas::Frame;
-
         let state = tree.state.downcast_ref::<State>();
 
         let bounds = layout.bounds();

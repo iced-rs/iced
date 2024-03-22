@@ -156,7 +156,7 @@ impl Theme {
             .into()
     }
 
-    fn draw(&self, frame: &mut impl Frame, text_color: Color) {
+    fn draw(&self, frame: &mut Frame, text_color: Color) {
         let pad = 20.0;
 
         let box_size = Size {

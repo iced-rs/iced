@@ -88,8 +88,6 @@ impl canvas::Program<Message> for Multitouch {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        use canvas::Frame;
-
         let fingerweb = self.cache.draw(renderer, bounds.size(), |frame| {
             if self.fingers.len() < 2 {
                 return;

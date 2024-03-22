@@ -52,9 +52,7 @@ impl Example {
 mod bezier {
     use iced::mouse;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        self, frame, Canvas, Frame, Geometry, Path, Stroke,
-    };
+    use iced::widget::canvas::{self, Canvas, Frame, Geometry, Path, Stroke};
     use iced::{Element, Length, Point, Rectangle, Renderer, Theme};
 
     #[derive(Default)]
@@ -184,7 +182,7 @@ mod bezier {
     }
 
     impl Curve {
-        fn draw_all(curves: &[Curve], frame: &mut impl Frame) {
+        fn draw_all(curves: &[Curve], frame: &mut Frame) {
             let curves = Path::new(|p| {
                 for curve in curves {
                     p.move_to(curve.from);
@@ -209,7 +207,7 @@ mod bezier {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Geometry {
-            let mut frame = frame(renderer, bounds.size());
+            let mut frame = Frame::new(renderer, bounds.size());
 
             if let Some(cursor_position) = cursor.position_in(bounds) {
                 match *self {
@@ -229,7 +227,7 @@ mod bezier {
                 };
             }
 
-            frame.into()
+            frame.into_geometry()
         }
     }
 }

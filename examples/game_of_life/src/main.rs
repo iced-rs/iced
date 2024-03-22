@@ -193,9 +193,7 @@ mod grid {
     use iced::touch;
     use iced::widget::canvas;
     use iced::widget::canvas::event::{self, Event};
-    use iced::widget::canvas::{
-        frame, Cache, Canvas, Frame, Geometry, Path, Text,
-    };
+    use iced::widget::canvas::{Cache, Canvas, Frame, Geometry, Path, Text};
     use iced::{
         Color, Element, Length, Point, Rectangle, Renderer, Size, Theme, Vector,
     };
@@ -548,7 +546,7 @@ mod grid {
             });
 
             let overlay = {
-                let mut frame = frame(renderer, bounds.size());
+                let mut frame = Frame::new(renderer, bounds.size());
 
                 let hovered_cell = cursor.position_in(bounds).map(|position| {
                     Cell::at(self.project(position, frame.size()))
@@ -601,7 +599,7 @@ mod grid {
                     ..text
                 });
 
-                frame.into()
+                frame.into_geometry()
             };
 
             if self.scaling >= 0.2 && self.show_lines {

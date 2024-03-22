@@ -112,8 +112,6 @@ impl canvas::Program<Message> for SierpinskiGraph {
         bounds: Rectangle,
         _cursor: mouse::Cursor,
     ) -> Vec<Geometry> {
-        use canvas::Frame;
-
         let geom = self.cache.draw(renderer, bounds.size(), |frame| {
             frame.stroke(
                 &canvas::Path::rectangle(Point::ORIGIN, frame.size()),
