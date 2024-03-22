@@ -161,13 +161,21 @@ impl Data {
         queue: &wgpu::Queue,
         instances: &[Instance],
     ) {
+        self.instance_count = instances.len();
+
+        if self.instance_count == 0 {
+            return;
+        }
+
         let _ = self.instances.resize(device, instances.len());
         let _ = self.instances.write(queue, 0, instances);
-
-        self.instance_count = instances.len();
     }
 
     fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        if self.instance_count == 0 {
+            return;
+        }
+
         render_pass.set_bind_group(0, &self.constants, &[]);
         render_pass.set_vertex_buffer(0, self.instances.slice(..));
 
