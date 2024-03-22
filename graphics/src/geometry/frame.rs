@@ -69,16 +69,9 @@ where
     /// Draws the characters of the given [`Text`] on the [`Frame`], filling
     /// them with the given color.
     ///
-    /// __Warning:__ Text currently does not work well with rotations and scale
-    /// transforms! The position will be correctly transformed, but the
-    /// resulting glyphs will not be rotated or scaled properly.
-    ///
-    /// Additionally, all text will be rendered on top of all the layers of
+    /// __Warning:__ All text will be rendered on top of all the layers of
     /// a `Canvas`. Therefore, it is currently only meant to be used for
     /// overlays, which is the most common use case.
-    ///
-    /// Support for vectorial text is planned, and should address all these
-    /// limitations.
     pub fn fill_text(&mut self, text: impl Into<Text>) {
         self.raw.fill_text(text);
     }
