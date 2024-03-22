@@ -10,6 +10,9 @@ use std::borrow::Cow;
 ///
 /// [`Renderer`]: crate::Renderer
 pub trait Backend {
+    /// The compositor of this [`Backend`].
+    type Compositor;
+
     /// The custom kind of primitives this [`Backend`] supports.
     type Primitive: TryFrom<Mesh, Error = &'static str>;
 }

@@ -8,11 +8,7 @@ use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 
-pub enum Renderer<L, R>
-where
-    L: core::Renderer,
-    R: core::Renderer,
-{
+pub enum Renderer<L, R> {
     Left(L),
     Right(R),
 }
@@ -24,29 +20,6 @@ macro_rules! delegate {
             Self::Right($name) => $body,
         }
     };
-}
-
-impl<L, R> Renderer<L, R>
-where
-    L: core::Renderer,
-    R: core::Renderer,
-{
-    #[cfg(feature = "geometry")]
-    pub fn draw_geometry<Geometry>(
-        &mut self,
-        layers: impl IntoIterator<Item = Geometry>,
-    ) where
-        L: graphics::geometry::Renderer,
-        R: graphics::geometry::Renderer,
-
-        Geometry: Into<geometry::Geometry<L::Geometry, R::Geometry>>,
-    {
-        use graphics::geometry::Renderer;
-
-        for layer in layers {
-            <Self as Renderer>::draw_geometry(self, layer.into());
-        }
-    }
 }
 
 impl<L, R> core::Renderer for Renderer<L, R>

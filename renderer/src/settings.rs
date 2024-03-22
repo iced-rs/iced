@@ -28,6 +28,7 @@ impl Default for Settings {
     }
 }
 
+#[cfg(feature = "tiny-skia")]
 impl From<Settings> for iced_tiny_skia::Settings {
     fn from(settings: Settings) -> Self {
         Self {
@@ -47,4 +48,8 @@ impl From<Settings> for iced_wgpu::Settings {
             ..iced_wgpu::Settings::default()
         }
     }
+}
+
+impl From<Settings> for () {
+    fn from(_settings: Settings) -> Self {}
 }

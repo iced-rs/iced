@@ -7,6 +7,7 @@ use crate::primitive::{self, Primitive};
 use crate::quad;
 use crate::text;
 use crate::triangle;
+use crate::window;
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -372,6 +373,7 @@ impl Backend {
 }
 
 impl crate::graphics::Backend for Backend {
+    type Compositor = window::Compositor;
     type Primitive = primitive::Custom;
 }
 

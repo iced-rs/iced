@@ -141,7 +141,9 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
             |renderer| {
-                renderer.draw_geometry(vec![geometry]);
+                use crate::graphics::geometry::Renderer as _;
+
+                renderer.draw_geometry(geometry);
             },
         );
     }

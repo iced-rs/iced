@@ -1,4 +1,5 @@
 use crate::alignment;
+use crate::image;
 use crate::renderer::{self, Renderer};
 use crate::text::{self, Text};
 use crate::{
@@ -7,20 +8,7 @@ use crate::{
 
 use std::borrow::Cow;
 
-/// A renderer that does nothing.
-///
-/// It can be useful if you are writing tests!
-#[derive(Debug, Clone, Copy, Default)]
-pub struct Null;
-
-impl Null {
-    /// Creates a new [`Null`] renderer.
-    pub fn new() -> Null {
-        Null
-    }
-}
-
-impl Renderer for Null {
+impl Renderer for () {
     fn start_layer(&mut self) {}
 
     fn end_layer(&mut self, _bounds: Rectangle) {}
@@ -39,7 +27,7 @@ impl Renderer for Null {
     }
 }
 
-impl text::Renderer for Null {
+impl text::Renderer for () {
     type Font = Font;
     type Paragraph = ();
     type Editor = ();
@@ -170,6 +158,22 @@ impl text::Editor for () {
         _format_highlight: impl Fn(
             &H::Highlight,
         ) -> text::highlighter::Format<Self::Font>,
+    ) {
+    }
+}
+
+impl image::Renderer for () {
+    type Handle = ();
+
+    fn measure_image(&self, _handle: &Self::Handle) -> Size<u32> {
+        Size::default()
+    }
+
+    fn draw_image(
+        &mut self,
+        _handle: Self::Handle,
+        _filter_method: image::FilterMethod,
+        _bounds: Rectangle,
     ) {
     }
 }

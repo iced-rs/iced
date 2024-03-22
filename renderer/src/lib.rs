@@ -19,27 +19,40 @@ pub use settings::Settings;
 /// The default graphics renderer for [`iced`].
 ///
 /// [`iced`]: https://github.com/iced-rs/iced
-#[cfg(not(feature = "wgpu"))]
-pub type Renderer = iced_tiny_skia::Renderer;
-
-/// The default graphics renderer for [`iced`].
-///
-/// [`iced`]: https://github.com/iced-rs/iced
-#[cfg(feature = "wgpu")]
-pub type Renderer =
-    fallback::Renderer<iced_wgpu::Renderer, iced_tiny_skia::Renderer>;
+pub type Renderer = renderer::Renderer;
 
 /// The default graphics compositor for [`iced`].
 ///
 /// [`iced`]: https://github.com/iced-rs/iced
-#[cfg(not(feature = "wgpu"))]
-pub type Compositor = iced_tiny_skia::window::Compositor;
+pub type Compositor = renderer::Compositor;
 
-/// The default graphics renderer for [`iced`].
-///
-/// [`iced`]: https://github.com/iced-rs/iced
-#[cfg(feature = "wgpu")]
-pub type Compositor = fallback::Compositor<
-    iced_wgpu::window::Compositor,
-    iced_tiny_skia::window::Compositor,
->;
+#[cfg(all(feature = "wgpu", feature = "tiny-skia"))]
+mod renderer {
+    pub type Renderer = crate::fallback::Renderer<
+        iced_wgpu::Renderer,
+        iced_tiny_skia::Renderer,
+    >;
+
+    pub type Compositor = crate::fallback::Compositor<
+        iced_wgpu::window::Compositor,
+        iced_tiny_skia::window::Compositor,
+    >;
+}
+
+#[cfg(all(feature = "wgpu", not(feature = "tiny-skia")))]
+mod renderer {
+    pub type Renderer = iced_wgpu::Renderer;
+    pub type Compositor = iced_wgpu::window::Compositor;
+}
+
+#[cfg(all(not(feature = "wgpu"), feature = "tiny-skia"))]
+mod renderer {
+    pub type Renderer = iced_tiny_skia::Renderer;
+    pub type Compositor = iced_tiny_skia::window::Compositor;
+}
+
+#[cfg(not(any(feature = "wgpu", feature = "tiny-skia")))]
+mod renderer {
+    pub type Renderer = ();
+    pub type Compositor = ();
+}

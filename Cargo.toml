@@ -18,9 +18,11 @@ all-features = true
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["wgpu", "fira-sans", "auto-detect-theme"]
+default = ["wgpu", "tiny-skia", "fira-sans", "auto-detect-theme"]
 # Enable the `wgpu` GPU-accelerated renderer backend
 wgpu = ["iced_renderer/wgpu", "iced_widget/wgpu"]
+# Enable the `tiny-skia` software renderer backend
+tiny-skia = ["iced_renderer/tiny-skia"]
 # Enables the `Image` widget
 image = ["iced_widget/image", "dep:image"]
 # Enables the `Svg` widget

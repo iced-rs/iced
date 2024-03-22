@@ -5,6 +5,7 @@ use crate::graphics::backend;
 use crate::graphics::text;
 use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
+use crate::window;
 
 use std::borrow::Cow;
 
@@ -990,6 +991,8 @@ fn rounded_box_sdf(
 }
 
 impl iced_graphics::Backend for Backend {
+    type Compositor = window::Compositor;
+
     type Primitive = primitive::Custom;
 }
 

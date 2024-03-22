@@ -15,7 +15,7 @@ pub trait Compositor: Sized {
     type Settings: Default;
 
     /// The iced renderer of the backend.
-    type Renderer: iced_core::Renderer;
+    type Renderer;
 
     /// The surface of the backend.
     type Surface;
@@ -121,4 +121,64 @@ pub struct Information {
     pub adapter: String,
     /// Contains the graphics backend.
     pub backend: String,
+}
+
+impl Compositor for () {
+    type Settings = ();
+    type Renderer = ();
+    type Surface = ();
+
+    async fn new<W: Window + Clone>(
+        _settings: Self::Settings,
+        _compatible_window: W,
+    ) -> Result<Self, Error> {
+        Ok(())
+    }
+
+    fn create_renderer(&self) -> Self::Renderer {}
+
+    fn create_surface<W: Window + Clone>(
+        &mut self,
+        _window: W,
+        _width: u32,
+        _height: u32,
+    ) -> Self::Surface {
+    }
+
+    fn configure_surface(
+        &mut self,
+        _surface: &mut Self::Surface,
+        _width: u32,
+        _height: u32,
+    ) {
+    }
+
+    fn fetch_information(&self) -> Information {
+        Information {
+            adapter: String::from("Null Renderer"),
+            backend: String::from("Null"),
+        }
+    }
+
+    fn present<T: AsRef<str>>(
+        &mut self,
+        _renderer: &mut Self::Renderer,
+        _surface: &mut Self::Surface,
+        _viewport: &Viewport,
+        _background_color: Color,
+        _overlay: &[T],
+    ) -> Result<(), SurfaceError> {
+        Ok(())
+    }
+
+    fn screenshot<T: AsRef<str>>(
+        &mut self,
+        _renderer: &mut Self::Renderer,
+        _surface: &mut Self::Surface,
+        _viewport: &Viewport,
+        _background_color: Color,
+        _overlay: &[T],
+    ) -> Vec<u8> {
+        vec![]
+    }
 }

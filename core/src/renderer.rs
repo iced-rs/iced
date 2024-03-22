@@ -1,9 +1,5 @@
 //! Write your own renderer.
-#[cfg(debug_assertions)]
 mod null;
-
-#[cfg(debug_assertions)]
-pub use null::Null;
 
 use crate::{
     Background, Border, Color, Rectangle, Shadow, Size, Transformation, Vector,

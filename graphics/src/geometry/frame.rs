@@ -1,7 +1,6 @@
 //! Draw and generate geometry.
 use crate::core::{Point, Radians, Rectangle, Size, Vector};
 use crate::geometry::{self, Fill, Path, Stroke, Text};
-use crate::Cached;
 
 /// The region of a surface that can be used to draw geometry.
 #[allow(missing_debug_implementations)]
@@ -173,7 +172,7 @@ where
 /// of each method.
 #[allow(missing_docs)]
 pub trait Backend: Sized {
-    type Geometry: Cached;
+    type Geometry;
 
     fn width(&self) -> f32;
     fn height(&self) -> f32;
