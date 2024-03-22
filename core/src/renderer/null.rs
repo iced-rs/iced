@@ -1,6 +1,7 @@
 use crate::alignment;
 use crate::image;
 use crate::renderer::{self, Renderer};
+use crate::svg;
 use crate::text::{self, Text};
 use crate::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
@@ -173,6 +174,20 @@ impl image::Renderer for () {
         &mut self,
         _handle: Self::Handle,
         _filter_method: image::FilterMethod,
+        _bounds: Rectangle,
+    ) {
+    }
+}
+
+impl svg::Renderer for () {
+    fn measure_svg(&self, _handle: &svg::Handle) -> Size<u32> {
+        Size::default()
+    }
+
+    fn draw_svg(
+        &mut self,
+        _handle: svg::Handle,
+        _color: Option<Color>,
         _bounds: Rectangle,
     ) {
     }

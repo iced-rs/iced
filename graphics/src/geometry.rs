@@ -44,3 +44,13 @@ pub trait Backend {
     /// Creates a new [`Self::Frame`].
     fn new_frame(&self, size: Size) -> Self::Frame;
 }
+
+#[cfg(debug_assertions)]
+impl Renderer for () {
+    type Geometry = ();
+    type Frame = ();
+
+    fn new_frame(&self, _size: Size) -> Self::Frame {}
+
+    fn draw_geometry(&mut self, _geometry: Self::Geometry) {}
+}

@@ -992,7 +992,6 @@ fn rounded_box_sdf(
 
 impl iced_graphics::Backend for Backend {
     type Compositor = window::Compositor;
-
     type Primitive = primitive::Custom;
 }
 

@@ -203,3 +203,49 @@ pub trait Backend: Sized {
 
     fn into_geometry(self) -> Self::Geometry;
 }
+
+#[cfg(debug_assertions)]
+impl Backend for () {
+    type Geometry = ();
+
+    fn width(&self) -> f32 {
+        0.0
+    }
+
+    fn height(&self) -> f32 {
+        0.0
+    }
+
+    fn size(&self) -> Size {
+        Size::ZERO
+    }
+
+    fn center(&self) -> Point {
+        Point::ORIGIN
+    }
+
+    fn push_transform(&mut self) {}
+    fn pop_transform(&mut self) {}
+
+    fn translate(&mut self, _translation: Vector) {}
+    fn rotate(&mut self, _angle: impl Into<Radians>) {}
+    fn scale(&mut self, _scale: impl Into<f32>) {}
+    fn scale_nonuniform(&mut self, _scale: impl Into<Vector>) {}
+
+    fn draft(&mut self, _size: Size) -> Self {}
+    fn paste(&mut self, _frame: Self, _at: Point) {}
+
+    fn stroke<'a>(&mut self, _path: &Path, _stroke: impl Into<Stroke<'a>>) {}
+
+    fn fill(&mut self, _path: &Path, _fill: impl Into<Fill>) {}
+    fn fill_text(&mut self, _text: impl Into<Text>) {}
+    fn fill_rectangle(
+        &mut self,
+        _top_left: Point,
+        _size: Size,
+        _fill: impl Into<Fill>,
+    ) {
+    }
+
+    fn into_geometry(self) -> Self::Geometry {}
+}

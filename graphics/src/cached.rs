@@ -31,3 +31,12 @@ impl<T> Cached for Primitive<T> {
         Arc::new(self)
     }
 }
+
+#[cfg(debug_assertions)]
+impl Cached for () {
+    type Cache = ();
+
+    fn load(_cache: &Self::Cache) -> Self {}
+
+    fn cache(self) -> Self::Cache {}
+}
