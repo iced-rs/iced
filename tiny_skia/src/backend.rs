@@ -990,9 +990,9 @@ fn rounded_box_sdf(
     (x.powf(2.0) + y.powf(2.0)).sqrt() - radius
 }
 
-impl iced_graphics::Backend for Backend {
-    type Compositor = window::Compositor;
+impl backend::Backend for Backend {
     type Primitive = primitive::Custom;
+    type Compositor = window::Compositor;
 }
 
 impl backend::Text for Backend {

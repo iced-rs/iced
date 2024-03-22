@@ -113,7 +113,7 @@ where
     type Theme: Default;
 
     /// The renderer of your [`Application`].
-    type Renderer: text::Renderer + compositor::Renderer;
+    type Renderer: text::Renderer + compositor::Default;
 
     /// The data needed to initialize your [`Application`].
     type Flags;
@@ -215,7 +215,7 @@ where
         let run = crate::shell::application::run::<
             Instance<Self>,
             Self::Executor,
-            <Self::Renderer as compositor::Renderer>::Compositor,
+            <Self::Renderer as compositor::Default>::Compositor,
         >(settings.into(), renderer_settings);
 
         #[cfg(target_arch = "wasm32")]

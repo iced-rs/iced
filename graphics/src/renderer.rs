@@ -261,7 +261,7 @@ where
     }
 }
 
-impl<B> compositor::Renderer for Renderer<B>
+impl<B> compositor::Default for Renderer<B>
 where
     B: Backend,
 {

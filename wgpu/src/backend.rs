@@ -372,9 +372,9 @@ impl Backend {
     }
 }
 
-impl crate::graphics::Backend for Backend {
-    type Compositor = window::Compositor;
+impl backend::Backend for Backend {
     type Primitive = primitive::Custom;
+    type Compositor = window::Compositor;
 }
 
 impl backend::Text for Backend {

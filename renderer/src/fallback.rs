@@ -524,10 +524,10 @@ mod geometry {
     }
 }
 
-impl<L, R> compositor::Renderer for Renderer<L, R>
+impl<L, R> compositor::Default for Renderer<L, R>
 where
-    L: compositor::Renderer,
-    R: compositor::Renderer,
+    L: compositor::Default,
+    R: compositor::Default,
 {
     type Compositor = Compositor<L::Compositor, R::Compositor>;
 }

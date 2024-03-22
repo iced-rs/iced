@@ -10,11 +10,11 @@ use std::borrow::Cow;
 ///
 /// [`Renderer`]: crate::Renderer
 pub trait Backend: Sized {
-    /// The compositor of this [`Backend`].
-    type Compositor: Compositor<Renderer = Renderer<Self>>;
-
     /// The custom kind of primitives this [`Backend`] supports.
     type Primitive: TryFrom<Mesh, Error = &'static str>;
+
+    /// The default compositor of this [`Backend`].
+    type Compositor: Compositor<Renderer = Renderer<Self>>;
 }
 
 /// A graphics backend that supports text rendering.

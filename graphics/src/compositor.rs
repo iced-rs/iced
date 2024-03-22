@@ -1,6 +1,5 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::core;
 use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
 use crate::{Error, Settings, Viewport};
@@ -90,8 +89,8 @@ impl<T> Window for T where
 {
 }
 
-/// A renderer that supports composition.
-pub trait Renderer: core::Renderer {
+/// Defines the default compositor of a renderer.
+pub trait Default {
     /// The compositor of the renderer.
     type Compositor: Compositor<Renderer = Self>;
 }
@@ -187,6 +186,6 @@ impl Compositor for () {
 }
 
 #[cfg(debug_assertions)]
-impl Renderer for () {
+impl Default for () {
     type Compositor = ();
 }

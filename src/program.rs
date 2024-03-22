@@ -31,6 +31,7 @@
 //! }
 //! ```
 use crate::application::Application;
+use crate::core::text;
 use crate::executor::{self, Executor};
 use crate::graphics::compositor;
 use crate::window;
@@ -77,7 +78,7 @@ where
     State: 'static,
     Message: Send + std::fmt::Debug,
     Theme: Default + DefaultStyle,
-    Renderer: compositor::Renderer + crate::core::text::Renderer,
+    Renderer: self::Renderer,
 {
     use std::marker::PhantomData;
 
@@ -95,7 +96,7 @@ where
     where
         Message: Send + std::fmt::Debug,
         Theme: Default + DefaultStyle,
-        Renderer: compositor::Renderer + crate::core::text::Renderer,
+        Renderer: self::Renderer,
         Update: self::Update<State, Message>,
         View: for<'a> self::View<'a, State, Message, Theme, Renderer>,
     {
@@ -425,7 +426,7 @@ pub trait Definition: Sized {
     type Theme: Default + DefaultStyle;
 
     /// The renderer of the program.
-    type Renderer: compositor::Renderer + crate::core::text::Renderer;
+    type Renderer: Renderer + crate::core::text::Renderer;
 
     /// The executor of the program.
     type Executor: Executor;
@@ -871,3 +872,8 @@ where
         self(state)
     }
 }
+
+/// The renderer of some [`Program`].
+pub trait Renderer: text::Renderer + compositor::Default {}
+
+impl<T> Renderer for T where T: text::Renderer + compositor::Default {}

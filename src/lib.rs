@@ -381,7 +381,7 @@ where
     State: Default + 'static,
     Message: std::fmt::Debug + Send + 'static,
     Theme: Default + program::DefaultStyle + 'static,
-    Renderer: graphics::compositor::Renderer + core::text::Renderer + 'static,
+    Renderer: program::Renderer + 'static,
 {
     program(title, update, view).run()
 }
