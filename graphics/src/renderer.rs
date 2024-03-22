@@ -58,18 +58,6 @@ impl<B: Backend> Renderer<B> {
     ) -> O {
         f(&mut self.backend, &self.primitives)
     }
-
-    #[cfg(feature = "geometry")]
-    pub fn draw_geometry<Geometry>(
-        &mut self,
-        layers: impl IntoIterator<Item = Geometry>,
-    ) where
-        Geometry: Into<Primitive<B::Primitive>>,
-    {
-        for layer in layers {
-            self.draw_primitive(layer.into());
-        }
-    }
 }
 
 impl<B: Backend> iced_core::Renderer for Renderer<B> {

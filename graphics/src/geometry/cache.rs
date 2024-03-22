@@ -1,11 +1,10 @@
 use crate::core::Size;
-use crate::geometry::{self, Frame, Geometry};
-use crate::Primitive;
+use crate::geometry::{self, Frame};
+use crate::Cached;
 
 use std::cell::RefCell;
-use std::sync::Arc;
 
-/// A simple cache that stores generated [`Geometry`] to avoid recomputation.
+/// A simple cache that stores generated geometry to avoid recomputation.
 ///
 /// A [`Cache`] will not redraw its geometry unless the dimensions of its layer
 /// change or it is explicitly cleared.
@@ -32,16 +31,16 @@ where
         *self.state.borrow_mut() = State::Empty;
     }
 
-    /// Draws [`Geometry`] using the provided closure and stores it in the
+    /// Draws geometry using the provided closure and stores it in the
     /// [`Cache`].
     ///
     /// The closure will only be called when
     /// - the bounds have changed since the previous draw call.
     /// - the [`Cache`] is empty or has been explicitly cleared.
     ///
-    /// Otherwise, the previously stored [`Geometry`] will be returned. The
+    /// Otherwise, the previously stored geometry will be returned. The
     /// [`Cache`] is not cleared in this case. In other words, it will keep
-    /// returning the stored [`Geometry`] if needed.
+    /// returning the stored geometry if needed.
     pub fn draw(
         &self,
         renderer: &Renderer,
@@ -56,7 +55,7 @@ where
         } = self.state.borrow().deref()
         {
             if *cached_bounds == bounds {
-                return Geometry::load(geometry);
+                return Cached::load(geometry);
             }
         }
 
@@ -64,7 +63,7 @@ where
         draw_fn(&mut frame);
 
         let geometry = frame.into_geometry().cache();
-        let result = Geometry::load(&geometry);
+        let result = Cached::load(&geometry);
 
         *self.state.borrow_mut() = State::Filled { bounds, geometry };
 
@@ -99,25 +98,11 @@ where
 
 enum State<Geometry>
 where
-    Geometry: self::Geometry,
+    Geometry: Cached,
 {
     Empty,
     Filled {
         bounds: Size,
         geometry: Geometry::Cache,
     },
-}
-
-impl<T> Geometry for Primitive<T> {
-    type Cache = Arc<Self>;
-
-    fn load(cache: &Arc<Self>) -> Self {
-        Self::Cache {
-            content: cache.clone(),
-        }
-    }
-
-    fn cache(self) -> Arc<Self> {
-        Arc::new(self)
-    }
 }

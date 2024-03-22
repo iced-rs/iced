@@ -398,6 +398,7 @@ mod geometry {
     use super::Renderer;
     use crate::core::{Point, Radians, Size, Vector};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
+    use crate::graphics::Cached;
 
     impl<L, R> geometry::Renderer for Renderer<L, R>
     where
@@ -432,10 +433,10 @@ mod geometry {
         Right(R),
     }
 
-    impl<L, R> geometry::Geometry for Geometry<L, R>
+    impl<L, R> Cached for Geometry<L, R>
     where
-        L: geometry::Geometry,
-        R: geometry::Geometry,
+        L: Cached,
+        R: Cached,
     {
         type Cache = Geometry<L::Cache, R::Cache>;
 

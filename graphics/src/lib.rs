@@ -9,14 +9,15 @@
 )]
 #![forbid(rust_2018_idioms)]
 #![deny(
-    // missing_debug_implementations,
-    // missing_docs,
+    missing_debug_implementations,
+    missing_docs,
     unsafe_code,
     unused_results,
     rustdoc::broken_intra_doc_links
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 mod antialiasing;
+mod cached;
 mod error;
 mod primitive;
 mod viewport;
@@ -38,6 +39,7 @@ pub mod image;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
+pub use cached::Cached;
 pub use compositor::Compositor;
 pub use damage::Damage;
 pub use error::Error;

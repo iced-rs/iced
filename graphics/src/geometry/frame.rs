@@ -1,7 +1,10 @@
+//! Draw and generate geometry.
 use crate::core::{Point, Radians, Rectangle, Size, Vector};
-use crate::geometry::{self, Geometry};
-use crate::geometry::{Fill, Path, Stroke, Text};
+use crate::geometry::{self, Fill, Path, Stroke, Text};
+use crate::Cached;
 
+/// The region of a surface that can be used to draw geometry.
+#[allow(missing_debug_implementations)]
 pub struct Frame<Renderer>
 where
     Renderer: geometry::Renderer,
@@ -13,6 +16,7 @@ impl<Renderer> Frame<Renderer>
 where
     Renderer: geometry::Renderer,
 {
+    /// Creates a new [`Frame`] with the given dimensions.
     pub fn new(renderer: &Renderer, size: Size) -> Self {
         Self {
             raw: renderer.new_frame(size),
@@ -164,6 +168,7 @@ where
         self.raw.scale_nonuniform(scale);
     }
 
+    /// Turns the [`Frame`] into its underlying geometry.
     pub fn into_geometry(self) -> Renderer::Geometry {
         self.raw.into_geometry()
     }
@@ -175,7 +180,7 @@ where
 /// of each method.
 #[allow(missing_docs)]
 pub trait Backend: Sized {
-    type Geometry: Geometry;
+    type Geometry: Cached;
 
     fn width(&self) -> f32;
     fn height(&self) -> f32;

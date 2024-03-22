@@ -19,32 +19,28 @@ pub use text::Text;
 pub use crate::gradient::{self, Gradient};
 
 use crate::core::Size;
+use crate::Cached;
 
 /// A renderer capable of drawing some [`Self::Geometry`].
 pub trait Renderer: crate::core::Renderer {
     /// The kind of geometry this renderer can draw.
-    type Geometry: Geometry;
+    type Geometry: Cached;
 
     /// The kind of [`Frame`] this renderer supports.
     type Frame: frame::Backend<Geometry = Self::Geometry>;
 
+    /// Creates a new [`Self::Frame`].
     fn new_frame(&self, size: Size) -> Self::Frame;
 
     /// Draws the given [`Self::Geometry`].
     fn draw_geometry(&mut self, geometry: Self::Geometry);
 }
 
+/// The graphics backend of a geometry renderer.
 pub trait Backend {
     /// The kind of [`Frame`] this backend supports.
     type Frame: frame::Backend;
 
+    /// Creates a new [`Self::Frame`].
     fn new_frame(&self, size: Size) -> Self::Frame;
-}
-
-pub trait Geometry: Sized {
-    type Cache;
-
-    fn load(cache: &Self::Cache) -> Self;
-
-    fn cache(self) -> Self::Cache;
 }

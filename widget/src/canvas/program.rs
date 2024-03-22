@@ -38,7 +38,14 @@ where
         (event::Status::Ignored, None)
     }
 
-    /// Draws the state of the [`Program`] with the given [`Renderer`].
+    /// Draws the state of the [`Program`], producing a bunch of [`Geometry`].
+    ///
+    /// [`Geometry`] can be easily generated with a [`Frame`] or stored in a
+    /// [`Cache`].
+    ///
+    /// [`Geometry`]: crate::canvas::Geometry
+    /// [`Frame`]: crate::canvas::Frame
+    /// [`Cache`]: crate::canvas::Cache
     fn draw(
         &self,
         state: &Self::State,
