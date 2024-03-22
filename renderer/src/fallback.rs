@@ -208,16 +208,14 @@ where
         settings: graphics::Settings,
         compatible_window: W,
     ) -> Result<Self, graphics::Error> {
-        if let Ok(left) = L::new(settings.into(), compatible_window.clone())
+        if let Ok(left) = L::new(settings, compatible_window.clone())
             .await
             .map(Self::Left)
         {
             return Ok(left);
         }
 
-        R::new(settings.into(), compatible_window)
-            .await
-            .map(Self::Right)
+        R::new(settings, compatible_window).await.map(Self::Right)
     }
 
     fn create_renderer(&self) -> Self::Renderer {
