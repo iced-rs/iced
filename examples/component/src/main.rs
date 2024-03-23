@@ -74,7 +74,7 @@ mod numeric_input {
     impl<Message, Theme> Component<Message, Theme> for NumericInput<Message>
     where
         Theme: text::DefaultStyle
-            + button::DefaultStyle
+            + button::Catalog
             + text_input::DefaultStyle
             + 'static,
     {
@@ -152,7 +152,7 @@ mod numeric_input {
         for Element<'a, Message, Theme>
     where
         Theme: text::DefaultStyle
-            + button::DefaultStyle
+            + button::Catalog
             + text_input::DefaultStyle
             + 'static,
         Message: 'a,

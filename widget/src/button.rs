@@ -1,4 +1,5 @@
 //! Allow your users to perform actions by pressing a button.
+use crate::core::closure;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -49,6 +50,7 @@ use crate::core::{
 pub struct Button<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
     Renderer: crate::core::Renderer,
+    Theme: Catalog,
 {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
@@ -56,20 +58,18 @@ where
     height: Length,
     padding: Padding,
     clip: bool,
-    style: Style<'a, Theme>,
+    style: Theme::Item<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
 where
     Renderer: crate::core::Renderer,
+    Theme: Catalog,
 {
     /// Creates a new [`Button`] with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    ) -> Self {
         let content = content.into();
         let size = content.as_widget().size_hint();
 
@@ -80,7 +80,7 @@ where
             height: size.height.fluid(),
             padding: DEFAULT_PADDING,
             clip: false,
-            style: Box::new(Theme::default_style),
+            style: Theme::default(),
         }
     }
 
@@ -120,11 +120,8 @@ where
     }
 
     /// Sets the style variant of this [`Button`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    pub fn style(mut self, style: impl Into<Theme::Item<'a>>) -> Self {
+        self.style = style.into();
         self
     }
 
@@ -146,6 +143,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     Message: 'a + Clone,
     Renderer: 'a + crate::core::Renderer,
+    Theme: Catalog,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -304,7 +302,7 @@ where
             Status::Active
         };
 
-        let styling = (self.style)(theme, status);
+        let styling = theme.style(&self.style, status);
 
         if styling.background.is_some()
             || styling.border.width > 0.0
@@ -378,7 +376,7 @@ impl<'a, Message, Theme, Renderer> From<Button<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: Clone + 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: crate::core::Renderer + 'a,
 {
     fn from(button: Button<'a, Message, Theme, Renderer>) -> Self {
@@ -409,7 +407,7 @@ pub enum Status {
 
 /// The appearance of a button.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the button.
     pub background: Option<Background>,
     /// The text [`Color`] of the button.
@@ -420,7 +418,7 @@ pub struct Appearance {
     pub shadow: Shadow,
 }
 
-impl Appearance {
+impl Style {
     /// Updates the [`Appearance`] with the given [`Background`].
     pub fn with_background(self, background: impl Into<Background>) -> Self {
         Self {
@@ -430,7 +428,7 @@ impl Appearance {
     }
 }
 
-impl std::default::Default for Appearance {
+impl std::default::Default for Style {
     fn default() -> Self {
         Self {
             background: None,
@@ -441,41 +439,43 @@ impl std::default::Default for Appearance {
     }
 }
 
-/// The style of a [`Button`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Button`].
+pub trait Catalog: Sized {
+    /// The item type of this [`Catalog`].
+    type Item<'a>;
 
-/// The default style of a [`Button`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Button`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default item produced by this [`Catalog`].
+    fn default<'a>() -> Self::Item<'a>;
+
+    /// The [`Style`] of an item with the given status.
+    fn style(&self, item: &Self::Item<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        primary(self, status)
+/// The item of a button [`Catalog`] for the built-in [`Theme`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type Item<'a, Theme> = closure::Binary<'a, Theme, Status, Style>;
+
+impl Catalog for Theme {
+    type Item<'a> = Item<'a, Self>;
+
+    fn default<'a>() -> Self::Item<'a> {
+        closure::Binary::from(primary)
     }
-}
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
-impl DefaultStyle for Color {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default().with_background(*self)
+    fn style(&self, item: &Self::Item<'_>, status: Status) -> Style {
+        (item.0)(self, status)
     }
 }
 
 /// A primary button; denoting a main action.
-pub fn primary(theme: &Theme, status: Status) -> Appearance {
+pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = styled(palette.primary.strong);
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             background: Some(Background::Color(palette.primary.base.color)),
             ..base
         },
@@ -484,13 +484,13 @@ pub fn primary(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A secondary button; denoting a complementary action.
-pub fn secondary(theme: &Theme, status: Status) -> Appearance {
+pub fn secondary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = styled(palette.secondary.base);
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             background: Some(Background::Color(palette.secondary.strong.color)),
             ..base
         },
@@ -499,13 +499,13 @@ pub fn secondary(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A success button; denoting a good outcome.
-pub fn success(theme: &Theme, status: Status) -> Appearance {
+pub fn success(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = styled(palette.success.base);
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             background: Some(Background::Color(palette.success.strong.color)),
             ..base
         },
@@ -514,13 +514,13 @@ pub fn success(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A danger button; denoting a destructive action.
-pub fn danger(theme: &Theme, status: Status) -> Appearance {
+pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
     let base = styled(palette.danger.base);
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             background: Some(Background::Color(palette.danger.strong.color)),
             ..base
         },
@@ -529,17 +529,17 @@ pub fn danger(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A text button; useful for links.
-pub fn text(theme: &Theme, status: Status) -> Appearance {
+pub fn text(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
-    let base = Appearance {
+    let base = Style {
         text_color: palette.background.base.text,
-        ..Appearance::default()
+        ..Style::default()
     };
 
     match status {
         Status::Active | Status::Pressed => base,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             text_color: palette.background.base.text.scale_alpha(0.8),
             ..base
         },
@@ -547,17 +547,17 @@ pub fn text(theme: &Theme, status: Status) -> Appearance {
     }
 }
 
-fn styled(pair: palette::Pair) -> Appearance {
-    Appearance {
+fn styled(pair: palette::Pair) -> Style {
+    Style {
         background: Some(Background::Color(pair.color)),
         text_color: pair.text,
         border: Border::rounded(2),
-        ..Appearance::default()
+        ..Style::default()
     }
 }
 
-fn disabled(appearance: Appearance) -> Appearance {
-    Appearance {
+fn disabled(appearance: Style) -> Style {
+    Style {
         background: appearance
             .background
             .map(|background| background.scale_alpha(0.5)),
