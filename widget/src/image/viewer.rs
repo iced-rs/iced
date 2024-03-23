@@ -345,6 +345,7 @@ where
                         ..Rectangle::with_size(image_size)
                     },
                     0.0,
+                    Size::UNIT,
                 );
             });
         });

@@ -221,12 +221,14 @@ where
         filter_method: image::FilterMethod,
         bounds: Rectangle,
         rotation: f32,
+        scale: Size,
     ) {
         self.primitives.push(Primitive::Image {
             handle,
             filter_method,
             bounds,
             rotation,
+            scale,
         });
     }
 }

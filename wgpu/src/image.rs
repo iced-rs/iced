@@ -285,16 +285,18 @@ impl Pipeline {
                         attributes: &wgpu::vertex_attr_array!(
                             // Position
                             0 => Float32x2,
-                            // Scale
+                            // Image size
                             1 => Float32x2,
                             // Rotation
                             2 => Float32,
-                            // Atlas position
+                            // Scale
                             3 => Float32x2,
-                            // Atlas scale
+                            // Atlas position
                             4 => Float32x2,
+                            // Atlas scale
+                            5 => Float32x2,
                             // Layer
-                            5 => Sint32,
+                            6 => Sint32,
                         ),
                     }],
                 },
@@ -413,7 +415,8 @@ impl Pipeline {
                     handle,
                     filter_method,
                     bounds,
-                    rotation
+                    rotation,
+                    scale,
                 } => {
                     if let Some(atlas_entry) = raster_cache.upload(
                         device,
@@ -425,6 +428,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             *rotation,
+                            [scale.width, scale.height],
                             atlas_entry,
                             match filter_method {
                                 image::FilterMethod::Nearest => {
@@ -458,6 +462,8 @@ impl Pipeline {
                         add_instances(
                             [bounds.x, bounds.y],
                             size,
+                            0.0,
+                            [1.0, 1.0],
                             atlas_entry,
                             nearest_instances,
                         );
@@ -553,6 +559,7 @@ struct Instance {
     _position: [f32; 2],
     _size: [f32; 2],
     _rotation: f32,
+    _scale: [f32; 2],
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
@@ -572,12 +579,20 @@ fn add_instances(
     image_position: [f32; 2],
     image_size: [f32; 2],
     rotation: f32,
+    scale: [f32; 2],
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
     match entry {
         atlas::Entry::Contiguous(allocation) => {
-            add_instance(image_position, image_size, rotation, allocation, instances);
+            add_instance(
+                image_position,
+                image_size,
+                rotation,
+                scale,
+                allocation,
+                instances,
+            );
         }
         atlas::Entry::Fragmented { fragments, size } => {
             let scaling_x = image_size[0] / size.width as f32;
@@ -603,7 +618,9 @@ fn add_instances(
                     fragment_height as f32 * scaling_y,
                 ];
 
-                add_instance(position, size, rotation, allocation, instances);
+                add_instance(
+                    position, size, rotation, scale, allocation, instances,
+                );
             }
         }
     }
@@ -614,6 +631,7 @@ fn add_instance(
     position: [f32; 2],
     size: [f32; 2],
     rotation: f32,
+    scale: [f32; 2],
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -625,6 +643,7 @@ fn add_instance(
         _position: position,
         _size: size,
         _rotation: rotation,
+        _scale: scale,
         _position_in_atlas: [
             (x as f32 + 0.5) / atlas::SIZE as f32,
             (y as f32 + 0.5) / atlas::SIZE as f32,

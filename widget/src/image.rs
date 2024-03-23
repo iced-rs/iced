@@ -1,5 +1,6 @@
 //! Display images in your user interface.
 pub mod viewer;
+use iced_renderer::core::RotationLayout;
 pub use viewer::Viewer;
 
 use crate::core::image;
@@ -8,8 +9,7 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size,
-    Vector, Widget,
+    ContentFit, Element, Layout, Length, Rectangle, Size, Widget,
 };
 
 use std::hash::Hash;
@@ -40,6 +40,7 @@ pub struct Image<Handle> {
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: f32,
+    rotation_layout: RotationLayout,
 }
 
 impl<Handle> Image<Handle> {
@@ -52,6 +53,7 @@ impl<Handle> Image<Handle> {
             content_fit: ContentFit::Contain,
             filter_method: FilterMethod::default(),
             rotation: 0.0,
+            rotation_layout: RotationLayout::Change,
         }
     }
 
@@ -86,6 +88,12 @@ impl<Handle> Image<Handle> {
         self.rotation = degrees;
         self
     }
+
+    /// Sets the [`RotationLayout`] of the [`Image`].
+    pub fn rotation_layout(mut self, rotation_layout: RotationLayout) -> Self {
+        self.rotation_layout = rotation_layout;
+        self
+    }
 }
 
 /// Computes the layout of an [`Image`].
@@ -96,6 +104,8 @@ pub fn layout<Renderer, Handle>(
     width: Length,
     height: Length,
     content_fit: ContentFit,
+    rotation: f32,
+    rotation_layout: RotationLayout,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -107,11 +117,13 @@ where
         Size::new(width as f32, height as f32)
     };
 
+    let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
+
     // The size to be available to the widget prior to `Shrink`ing
-    let raw_size = limits.resolve(width, height, image_size);
+    let raw_size = limits.resolve(width, height, rotated_size);
 
     // The uncropped size of the image when fit to the bounds above
-    let full_size = content_fit.fit(image_size, raw_size);
+    let full_size = content_fit.fit(rotated_size, raw_size);
 
     // Shrink the widget to fit the resized image, if requested
     let final_size = Size {
@@ -136,33 +148,36 @@ pub fn draw<Renderer, Handle>(
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: f32,
+    rotation_layout: RotationLayout,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
     let Size { width, height } = renderer.dimensions(handle);
     let image_size = Size::new(width as f32, height as f32);
+    let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
 
     let bounds = layout.bounds();
-    let adjusted_fit = content_fit.fit(image_size, bounds.size());
+    let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
+    let scale = Size::new(
+        adjusted_fit.width / rotated_size.width,
+        adjusted_fit.height / rotated_size.height,
+    );
 
     let render = |renderer: &mut Renderer| {
-        let offset = Vector::new(
-            (bounds.width - adjusted_fit.width).max(0.0) / 2.0,
-            (bounds.height - adjusted_fit.height).max(0.0) / 2.0,
-        );
-
         let drawing_bounds = Rectangle {
-            width: adjusted_fit.width,
-            height: adjusted_fit.height,
-            ..bounds
+            width: image_size.width,
+            height: image_size.height,
+            x: bounds.center_x() - image_size.width / 2.0,
+            y: bounds.center_y() - image_size.height / 2.0,
         };
 
         renderer.draw(
             handle.clone(),
             filter_method,
-            drawing_bounds + offset,
+            drawing_bounds,
             rotation,
+            scale,
         );
     };
 
@@ -200,6 +215,8 @@ where
             self.width,
             self.height,
             self.content_fit,
+            self.rotation,
+            self.rotation_layout,
         )
     }
 
@@ -220,6 +237,7 @@ where
             self.content_fit,
             self.filter_method,
             self.rotation,
+            self.rotation_layout,
         );
     }
 }

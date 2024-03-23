@@ -229,8 +229,13 @@ impl crate::core::image::Renderer for Renderer {
         filter_method: crate::core::image::FilterMethod,
         bounds: Rectangle,
         rotation: f32,
+        scale: crate::core::Size,
     ) {
-        delegate!(self, renderer, renderer.draw(handle, filter_method, bounds, rotation));
+        delegate!(
+            self,
+            renderer,
+            renderer.draw(handle, filter_method, bounds, rotation, scale)
+        );
     }
 }
 

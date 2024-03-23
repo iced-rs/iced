@@ -216,6 +216,7 @@ impl<'a> Layer<'a> {
                 filter_method,
                 bounds,
                 rotation,
+                scale,
             } => {
                 let layer = &mut layers[current_layer];
 
@@ -224,6 +225,7 @@ impl<'a> Layer<'a> {
                     filter_method: *filter_method,
                     bounds: *bounds * transformation,
                     rotation: *rotation,
+                    scale: *scale,
                 });
             }
             Primitive::Svg {

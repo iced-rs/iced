@@ -196,5 +196,6 @@ pub trait Renderer: crate::Renderer {
         filter_method: FilterMethod,
         bounds: Rectangle,
         rotation: f32,
+        scale: Size,
     );
 }
