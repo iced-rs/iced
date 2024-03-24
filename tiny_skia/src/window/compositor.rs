@@ -1,11 +1,11 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
 use crate::graphics::damage;
-use crate::graphics::{self, Error, Viewport};
+use crate::graphics::error::{self, Error};
+use crate::graphics::{self, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
 
 use std::collections::VecDeque;
-use std::future::{self, Future};
 use std::num::NonZeroU32;
 
 pub struct Compositor {
@@ -28,11 +28,22 @@ impl crate::graphics::Compositor for Compositor {
     type Renderer = Renderer;
     type Surface = Surface;
 
-    fn new<W: compositor::Window>(
+    async fn with_backend<W: compositor::Window>(
         settings: graphics::Settings,
         compatible_window: W,
-    ) -> impl Future<Output = Result<Self, Error>> {
-        future::ready(Ok(new(settings.into(), compatible_window)))
+        backend: Option<&str>,
+    ) -> Result<Self, Error> {
+        match backend {
+            None | Some("tiny-skia") | Some("tiny_skia") => {
+                Ok(new(settings.into(), compatible_window))
+            }
+            Some(backend) => Err(Error::GraphicsAdapterNotFound {
+                backend: "tiny-skia",
+                reason: error::Reason::DidNotMatch {
+                    preferred_backend: backend.to_owned(),
+                },
+            }),
+        }
     }
 
     fn create_renderer(&self) -> Self::Renderer {

@@ -18,7 +18,6 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 mod antialiasing;
 mod cached;
-mod error;
 mod primitive;
 mod settings;
 mod viewport;
@@ -27,6 +26,7 @@ pub mod backend;
 pub mod color;
 pub mod compositor;
 pub mod damage;
+pub mod error;
 pub mod gradient;
 pub mod mesh;
 pub mod renderer;

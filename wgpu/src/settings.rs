@@ -29,30 +29,6 @@ pub struct Settings {
     pub antialiasing: Option<Antialiasing>,
 }
 
-impl Settings {
-    /// Creates new [`Settings`] using environment configuration.
-    ///
-    /// Specifically:
-    ///
-    /// - The `internal_backend` can be configured using the `WGPU_BACKEND`
-    /// environment variable. If the variable is not set, the primary backend
-    /// will be used. The following values are allowed:
-    ///     - `vulkan`
-    ///     - `metal`
-    ///     - `dx12`
-    ///     - `dx11`
-    ///     - `gl`
-    ///     - `webgpu`
-    ///     - `primary`
-    pub fn from_env() -> Self {
-        Settings {
-            internal_backend: wgpu::util::backend_bits_from_env()
-                .unwrap_or(wgpu::Backends::all()),
-            ..Self::default()
-        }
-    }
-}
-
 impl Default for Settings {
     fn default() -> Settings {
         Settings {

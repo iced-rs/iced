@@ -204,18 +204,55 @@ where
     type Renderer = Renderer<L::Renderer, R::Renderer>;
     type Surface = Surface<L::Surface, R::Surface>;
 
-    async fn new<W: compositor::Window + Clone>(
+    async fn with_backend<W: compositor::Window + Clone>(
         settings: graphics::Settings,
         compatible_window: W,
+        backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
-        if let Ok(left) = L::new(settings, compatible_window.clone())
-            .await
-            .map(Self::Left)
-        {
-            return Ok(left);
+        use std::env;
+
+        let backends = backend
+            .map(str::to_owned)
+            .or_else(|| env::var("ICED_BACKEND").ok());
+
+        let mut candidates: Vec<_> = backends
+            .map(|backends| {
+                backends
+                    .split(',')
+                    .filter(|candidate| !candidate.is_empty())
+                    .map(str::to_owned)
+                    .map(Some)
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        if candidates.is_empty() {
+            candidates.push(None);
         }
 
-        R::new(settings, compatible_window).await.map(Self::Right)
+        let mut errors = vec![];
+
+        for backend in candidates.iter().map(Option::as_deref) {
+            match L::with_backend(settings, compatible_window.clone(), backend)
+                .await
+            {
+                Ok(compositor) => return Ok(Self::Left(compositor)),
+                Err(error) => {
+                    errors.push(error);
+                }
+            }
+
+            match R::with_backend(settings, compatible_window.clone(), backend)
+                .await
+            {
+                Ok(compositor) => return Ok(Self::Right(compositor)),
+                Err(error) => {
+                    errors.push(error);
+                }
+            }
+        }
+
+        Err(graphics::Error::List(errors))
     }
 
     fn create_renderer(&self) -> Self::Renderer {
