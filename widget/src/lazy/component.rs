@@ -478,12 +478,14 @@ where
         translation: Vector,
     ) -> Option<overlay::Element<'b, Message, Theme, Renderer>> {
         self.rebuild_element_if_necessary();
+
         let tree = tree
             .state
             .downcast_mut::<Rc<RefCell<Option<Tree>>>>()
             .borrow_mut()
             .take()
             .unwrap();
+
         let overlay = Overlay(Some(
             InnerBuilder {
                 instance: self,

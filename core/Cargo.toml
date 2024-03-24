@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[features]
+auto-detect-theme = ["dep:dark-light"]
+
 [dependencies]
 bitflags.workspace = true
 glam.workspace = true
@@ -21,6 +24,9 @@ smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
 xxhash-rust.workspace = true
+
+dark-light.workspace = true
+dark-light.optional = true
 
 [target.'cfg(windows)'.dependencies]
 raw-window-handle.workspace = true

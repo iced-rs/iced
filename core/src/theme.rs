@@ -7,10 +7,9 @@ use std::fmt;
 use std::sync::Arc;
 
 /// A built-in theme.
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Theme {
     /// The built-in light variant.
-    #[default]
     Light,
     /// The built-in dark variant.
     Dark,
@@ -158,6 +157,28 @@ impl Theme {
             Self::Ferra => &palette::EXTENDED_FERRA,
             Self::Custom(custom) => &custom.extended,
         }
+    }
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        #[cfg(feature = "auto-detect-theme")]
+        {
+            use once_cell::sync::Lazy;
+
+            static DEFAULT: Lazy<Theme> =
+                Lazy::new(|| match dark_light::detect() {
+                    dark_light::Mode::Dark => Theme::Dark,
+                    dark_light::Mode::Light | dark_light::Mode::Default => {
+                        Theme::Light
+                    }
+                });
+
+            DEFAULT.clone()
+        }
+
+        #[cfg(not(feature = "auto-detect-theme"))]
+        Theme::Light
     }
 }
 
