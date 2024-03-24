@@ -426,7 +426,7 @@ pub trait Definition: Sized {
     type Theme: Default + DefaultStyle;
 
     /// The renderer of the program.
-    type Renderer: Renderer + crate::core::text::Renderer;
+    type Renderer: Renderer;
 
     /// The executor of the program.
     type Executor: Executor;
