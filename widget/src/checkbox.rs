@@ -39,6 +39,7 @@ pub struct Checkbox<
     Renderer = crate::Renderer,
 > where
     Renderer: text::Renderer,
+    Theme: Catalog,
 {
     is_checked: bool,
     on_toggle: Option<Box<dyn Fn(bool) -> Message + 'a>>,
@@ -51,12 +52,13 @@ pub struct Checkbox<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     icon: Icon<Renderer::Font>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Checkbox<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: Catalog,
 {
     /// The default size of a [`Checkbox`].
     const DEFAULT_SIZE: f32 = 16.0;
@@ -69,10 +71,7 @@ where
     /// It expects:
     ///   * the label of the [`Checkbox`]
     ///   * a boolean describing whether the [`Checkbox`] is checked or not
-    pub fn new(label: impl Into<String>, is_checked: bool) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(label: impl Into<String>, is_checked: bool) -> Self {
         Checkbox {
             is_checked,
             on_toggle: None,
@@ -91,7 +90,7 @@ where
                 line_height: text::LineHeight::default(),
                 shaping: text::Shaping::Basic,
             },
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -173,12 +172,21 @@ where
         self
     }
 
-    /// Sets the style of the [`Checkbox`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    /// Sets the style of this [`Checkbox`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of this [`Checkbox`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -187,6 +195,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Checkbox<'a, Message, Theme, Renderer>
 where
     Renderer: text::Renderer,
+    Theme: Catalog,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<widget::text::State<Renderer::Paragraph>>()
@@ -285,7 +294,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -304,7 +313,7 @@ where
             Status::Active { is_checked }
         };
 
-        let appearance = (self.style)(theme, status);
+        let style = theme.style(&self.class, status);
 
         {
             let layout = children.next().unwrap();
@@ -313,10 +322,10 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border: appearance.border,
+                    border: style.border,
                     ..renderer::Quad::default()
                 },
-                appearance.background,
+                style.background,
             );
 
             let Icon {
@@ -341,7 +350,7 @@ where
                         shaping: *shaping,
                     },
                     bounds.center(),
-                    appearance.icon_color,
+                    style.icon_color,
                     *viewport,
                 );
             }
@@ -352,11 +361,11 @@ where
 
             crate::text::draw(
                 renderer,
-                style,
+                defaults,
                 label_layout,
                 tree.state.downcast_ref(),
                 crate::text::Appearance {
-                    color: appearance.text_color,
+                    color: style.text_color,
                 },
                 viewport,
             );
@@ -368,7 +377,7 @@ impl<'a, Message, Theme, Renderer> From<Checkbox<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
     fn from(
@@ -413,9 +422,9 @@ pub enum Status {
     },
 }
 
-/// The appearance of a checkbox.
+/// The style of a checkbox.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the checkbox.
     pub background: Background,
     /// The icon [`Color`] of the checkbox.
@@ -426,29 +435,37 @@ pub struct Appearance {
     pub text_color: Option<Color>,
 }
 
-/// The style of a [`Checkbox`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Checkbox`].
+pub trait Catalog: Sized {
+    /// The item class of this [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`Checkbox`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Checkbox`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by this [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, item: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        primary(self, status)
+/// A styling function for a [`Checkbox`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(primary)
     }
-}
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
 /// A primary checkbox; denoting a main toggle.
-pub fn primary(theme: &Theme, status: Status) -> Appearance {
+pub fn primary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
@@ -474,7 +491,7 @@ pub fn primary(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A secondary checkbox; denoting a complementary toggle.
-pub fn secondary(theme: &Theme, status: Status) -> Appearance {
+pub fn secondary(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
@@ -500,7 +517,7 @@ pub fn secondary(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A success checkbox; denoting a positive toggle.
-pub fn success(theme: &Theme, status: Status) -> Appearance {
+pub fn success(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
@@ -526,7 +543,7 @@ pub fn success(theme: &Theme, status: Status) -> Appearance {
 }
 
 /// A danger checkbox; denoting a negaive toggle.
-pub fn danger(theme: &Theme, status: Status) -> Appearance {
+pub fn danger(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     match status {
@@ -556,8 +573,8 @@ fn styled(
     base: palette::Pair,
     accent: palette::Pair,
     is_checked: bool,
-) -> Appearance {
-    Appearance {
+) -> Style {
+    Style {
         background: Background::Color(if is_checked {
             accent.color
         } else {

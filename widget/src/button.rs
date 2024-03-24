@@ -1,5 +1,4 @@
 //! Allow your users to perform actions by pressing a button.
-use crate::core::closure;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -58,7 +57,7 @@ where
     height: Length,
     padding: Padding,
     clip: bool,
-    style: Theme::Item<'a>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Button<'a, Message, Theme, Renderer>
@@ -80,7 +79,7 @@ where
             height: size.height.fluid(),
             padding: DEFAULT_PADDING,
             clip: false,
-            style: Theme::default(),
+            class: Theme::default(),
         }
     }
 
@@ -119,16 +118,28 @@ where
         self
     }
 
-    /// Sets the style variant of this [`Button`].
-    pub fn style(mut self, style: impl Into<Theme::Item<'a>>) -> Self {
-        self.style = style.into();
-        self
-    }
-
     /// Sets whether the contents of the [`Button`] should be clipped on
     /// overflow.
     pub fn clip(mut self, clip: bool) -> Self {
         self.clip = clip;
+        self
+    }
+
+    /// Sets the style of this [`Button`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of this [`Button`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -302,19 +313,19 @@ where
             Status::Active
         };
 
-        let styling = theme.style(&self.style, status);
+        let style = theme.style(&self.class, status);
 
-        if styling.background.is_some()
-            || styling.border.width > 0.0
-            || styling.shadow.color.a > 0.0
+        if style.background.is_some()
+            || style.border.width > 0.0
+            || style.shadow.color.a > 0.0
         {
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border: styling.border,
-                    shadow: styling.shadow,
+                    border: style.border,
+                    shadow: style.shadow,
                 },
-                styling
+                style
                     .background
                     .unwrap_or(Background::Color(Color::TRANSPARENT)),
             );
@@ -331,7 +342,7 @@ where
             renderer,
             theme,
             &renderer::Style {
-                text_color: styling.text_color,
+                text_color: style.text_color,
             },
             content_layout,
             cursor,
@@ -405,7 +416,7 @@ pub enum Status {
     Disabled,
 }
 
-/// The appearance of a button.
+/// The style of a button.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Style {
     /// The [`Background`] of the button.
@@ -419,7 +430,7 @@ pub struct Style {
 }
 
 impl Style {
-    /// Updates the [`Appearance`] with the given [`Background`].
+    /// Updates the [`Style`] with the given [`Background`].
     pub fn with_background(self, background: impl Into<Background>) -> Self {
         Self {
             background: Some(background.into()),
@@ -428,7 +439,7 @@ impl Style {
     }
 }
 
-impl std::default::Default for Style {
+impl Default for Style {
     fn default() -> Self {
         Self {
             background: None,
@@ -441,30 +452,30 @@ impl std::default::Default for Style {
 
 /// The theme catalog of a [`Button`].
 pub trait Catalog: Sized {
-    /// The item type of this [`Catalog`].
-    type Item<'a>;
+    /// The item class of this [`Catalog`].
+    type Class<'a>;
 
-    /// The default item produced by this [`Catalog`].
-    fn default<'a>() -> Self::Item<'a>;
+    /// The default class produced by this [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
 
-    /// The [`Style`] of an item with the given status.
-    fn style(&self, item: &Self::Item<'_>, status: Status) -> Style;
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, item: &Self::Class<'_>, status: Status) -> Style;
 }
 
-/// The item of a button [`Catalog`] for the built-in [`Theme`].
+/// A styling function for a [`Button`].
 ///
 /// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
-pub type Item<'a, Theme> = closure::Binary<'a, Theme, Status, Style>;
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
 
 impl Catalog for Theme {
-    type Item<'a> = Item<'a, Self>;
+    type Class<'a> = StyleFn<'a, Self>;
 
-    fn default<'a>() -> Self::Item<'a> {
-        closure::Binary::from(primary)
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(primary)
     }
 
-    fn style(&self, item: &Self::Item<'_>, status: Status) -> Style {
-        (item.0)(self, status)
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
@@ -556,12 +567,12 @@ fn styled(pair: palette::Pair) -> Style {
     }
 }
 
-fn disabled(appearance: Style) -> Style {
+fn disabled(style: Style) -> Style {
     Style {
-        background: appearance
+        background: style
             .background
             .map(|background| background.scale_alpha(0.5)),
-        text_color: appearance.text_color.scale_alpha(0.5),
-        ..appearance
+        text_color: style.text_color.scale_alpha(0.5),
+        ..style
     }
 }

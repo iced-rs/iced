@@ -161,7 +161,7 @@ pub fn checkbox<'a, Message, Theme, Renderer>(
     is_checked: bool,
 ) -> Checkbox<'a, Message, Theme, Renderer>
 where
-    Theme: checkbox::DefaultStyle + 'a,
+    Theme: checkbox::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
     Checkbox::new(label, is_checked)
@@ -367,7 +367,7 @@ pub fn svg<'a, Theme>(
     handle: impl Into<core::svg::Handle>,
 ) -> crate::Svg<'a, Theme>
 where
-    Theme: crate::svg::DefaultStyle + 'a,
+    Theme: crate::svg::Catalog,
 {
     crate::Svg::new(handle)
 }
