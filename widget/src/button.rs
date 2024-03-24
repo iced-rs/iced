@@ -125,7 +125,7 @@ where
         self
     }
 
-    /// Sets the style of this [`Button`].
+    /// Sets the style of the [`Button`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
     where
@@ -135,7 +135,7 @@ where
         self
     }
 
-    /// Sets the style class of this [`Button`].
+    /// Sets the style class of the [`Button`].
     #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
@@ -451,20 +451,18 @@ impl Default for Style {
 }
 
 /// The theme catalog of a [`Button`].
-pub trait Catalog: Sized {
-    /// The item class of this [`Catalog`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
     type Class<'a>;
 
-    /// The default class produced by this [`Catalog`].
+    /// The default class produced by the [`Catalog`].
     fn default<'a>() -> Self::Class<'a>;
 
     /// The [`Style`] of a class with the given status.
-    fn style(&self, item: &Self::Class<'_>, status: Status) -> Style;
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
 /// A styling function for a [`Button`].
-///
-/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
 pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
 
 impl Catalog for Theme {

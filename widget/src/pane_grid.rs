@@ -30,6 +30,7 @@ pub use split::Split;
 pub use state::State;
 pub use title_bar::TitleBar;
 
+use crate::container;
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
@@ -39,8 +40,8 @@ use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 
 const DRAG_DEADBAND_DISTANCE: f32 = 10.0;
@@ -101,7 +102,8 @@ pub struct PaneGrid<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     contents: Contents<'a, Content<'a, Message, Theme, Renderer>>,
     width: Length,
@@ -110,12 +112,13 @@ pub struct PaneGrid<
     on_click: Option<Box<dyn Fn(Pane) -> Message + 'a>>,
     on_drag: Option<Box<dyn Fn(DragEvent) -> Message + 'a>>,
     on_resize: Option<(f32, Box<dyn Fn(ResizeEvent) -> Message + 'a>)>,
-    style: Style<'a, Theme>,
+    class: <Theme as Catalog>::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> PaneGrid<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a [`PaneGrid`] with the given [`State`] and view function.
     ///
@@ -124,10 +127,7 @@ where
     pub fn new<T>(
         state: &'a State<T>,
         view: impl Fn(Pane, &'a T, bool) -> Content<'a, Message, Theme, Renderer>,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    ) -> Self {
         let contents = if let Some((pane, pane_state)) =
             state.maximized.and_then(|pane| {
                 state.panes.get(&pane).map(|pane_state| (pane, pane_state))
@@ -158,7 +158,7 @@ where
             on_click: None,
             on_drag: None,
             on_resize: None,
-            style: Box::new(Theme::default_style),
+            class: <Theme as Catalog>::default(),
         }
     }
 
@@ -218,8 +218,23 @@ where
     }
 
     /// Sets the style of the [`PaneGrid`].
-    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        <Theme as Catalog>::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`PaneGrid`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(
+        mut self,
+        class: impl Into<<Theme as Catalog>::Class<'a>>,
+    ) -> Self {
+        self.class = class.into();
         self
     }
 
@@ -233,7 +248,8 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for PaneGrid<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<state::Action>()
@@ -596,7 +612,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -677,7 +693,7 @@ where
             None
         };
 
-        let appearance = (self.style)(theme);
+        let style = Catalog::style(theme, &self.class);
 
         for ((id, (content, tree)), pane_layout) in
             contents.zip(layout.children())
@@ -692,7 +708,7 @@ where
                         tree,
                         renderer,
                         theme,
-                        style,
+                        defaults,
                         pane_layout,
                         pane_cursor,
                         viewport,
@@ -710,10 +726,10 @@ where
                             renderer.fill_quad(
                                 renderer::Quad {
                                     bounds,
-                                    border: appearance.hovered_region.border,
+                                    border: style.hovered_region.border,
                                     ..renderer::Quad::default()
                                 },
-                                appearance.hovered_region.background,
+                                style.hovered_region.background,
                             );
                         }
                     }
@@ -723,7 +739,7 @@ where
                         tree,
                         renderer,
                         theme,
-                        style,
+                        defaults,
                         pane_layout,
                         pane_cursor,
                         viewport,
@@ -738,10 +754,10 @@ where
             renderer.fill_quad(
                 renderer::Quad {
                     bounds,
-                    border: appearance.hovered_region.border,
+                    border: style.hovered_region.border,
                     ..renderer::Quad::default()
                 },
-                appearance.hovered_region.background,
+                style.hovered_region.background,
             );
         }
 
@@ -759,7 +775,7 @@ where
                             tree,
                             renderer,
                             theme,
-                            style,
+                            defaults,
                             layout,
                             pane_cursor,
                             viewport,
@@ -772,9 +788,9 @@ where
         if picked_pane.is_none() {
             if let Some((axis, split_region, is_picked)) = picked_split {
                 let highlight = if is_picked {
-                    appearance.picked_split
+                    style.picked_split
                 } else {
-                    appearance.hovered_split
+                    style.hovered_split
                 };
 
                 renderer.fill_quad(
@@ -832,8 +848,8 @@ impl<'a, Message, Theme, Renderer> From<PaneGrid<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::Renderer + 'a,
 {
     fn from(
         pane_grid: PaneGrid<'a, Message, Theme, Renderer>,
@@ -1116,7 +1132,7 @@ impl<'a, T> Contents<'a, T> {
 
 /// The appearance of a [`PaneGrid`].
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Appearance {
+pub struct Style {
     /// The appearance of a hovered region highlight.
     pub hovered_region: Highlight,
     /// The appearance of a picked split.
@@ -1145,32 +1161,40 @@ pub struct Line {
     pub width: f32,
 }
 
-/// The style of a [`PaneGrid`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
+/// The theme catalog of a [`PaneGrid`].
+pub trait Catalog: container::Catalog {
+    /// The item class of this [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`PaneGrid`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`PaneGrid`].
-    fn default_style(&self) -> Appearance;
+    /// The default class produced by this [`Catalog`].
+    fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &<Self as Catalog>::Class<'_>) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self) -> Appearance {
-        default(self)
+/// A styling function for a [`PaneGrid`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> StyleFn<'a, Self> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &StyleFn<'_, Self>) -> Style {
+        class(self)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`PaneGrid`].
-pub fn default(theme: &Theme) -> Appearance {
+pub fn default(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    Appearance {
+    Style {
         hovered_region: Highlight {
             background: Background::Color(Color {
                 a: 0.5,

@@ -2,10 +2,9 @@
 use std::ops::RangeInclusive;
 
 pub use crate::slider::{
-    default, Appearance, DefaultStyle, Handle, HandleShape, Status, Style,
+    default, Catalog, Handle, HandleShape, Status, Style, StyleFn,
 };
 
-use crate::core;
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
 use crate::core::keyboard::key::{self, Key};
@@ -15,8 +14,8 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Border, Clipboard, Element, Length, Pixels, Point, Rectangle, Shell, Size,
-    Widget,
+    self, Border, Clipboard, Element, Length, Pixels, Point, Rectangle, Shell,
+    Size, Widget,
 };
 
 /// An vertical bar and a handle that selects a single value from a range of
@@ -41,7 +40,10 @@ use crate::core::{
 /// VerticalSlider::new(0.0..=100.0, value, Message::SliderChanged);
 /// ```
 #[allow(missing_debug_implementations)]
-pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme> {
+pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     range: RangeInclusive<T>,
     step: T,
     shift_step: Option<T>,
@@ -51,13 +53,14 @@ pub struct VerticalSlider<'a, T, Message, Theme = crate::Theme> {
     on_release: Option<Message>,
     width: f32,
     height: Length,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, T, Message, Theme> VerticalSlider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + std::cmp::PartialOrd,
     Message: Clone,
+    Theme: Catalog,
 {
     /// The default width of a [`VerticalSlider`].
     pub const DEFAULT_WIDTH: f32 = 16.0;
@@ -72,7 +75,6 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Theme: DefaultStyle + 'a,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -97,7 +99,7 @@ where
             on_release: None,
             width: Self::DEFAULT_WIDTH,
             height: Length::Fill,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -132,15 +134,6 @@ where
         self
     }
 
-    /// Sets the style of the [`VerticalSlider`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
-        self
-    }
-
     /// Sets the step size of the [`VerticalSlider`].
     pub fn step(mut self, step: T) -> Self {
         self.step = step;
@@ -154,6 +147,24 @@ where
         self.shift_step = Some(shift_step.into());
         self
     }
+
+    /// Sets the style of the [`VerticalSlider`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`VerticalSlider`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -161,6 +172,7 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
+    Theme: Catalog,
     Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -354,8 +366,8 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let style = (self.style)(
-            theme,
+        let style = theme.style(
+            &self.class,
             if state.is_dragging {
                 Status::Dragged
             } else if is_mouse_over {
@@ -467,7 +479,7 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: core::Renderer + 'a,
 {
     fn from(

@@ -20,12 +20,15 @@ use crate::scrollable::{self, Scrollable};
 #[allow(missing_debug_implementations)]
 pub struct Menu<
     'a,
+    'b,
     T,
     Message,
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
+    Theme: Catalog,
     Renderer: text::Renderer,
+    'b: 'a,
 {
     state: &'a mut State,
     options: &'a [T],
@@ -38,15 +41,17 @@ pub struct Menu<
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: &'a Style<'a, Theme>,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, T, Message, Theme, Renderer> Menu<'a, T, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme, Renderer>
+    Menu<'a, 'b, T, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
+    'b: 'a,
 {
     /// Creates a new [`Menu`] with the given [`State`], a list of options,
     /// the message to produced when an option is selected, and its [`Style`].
@@ -56,7 +61,7 @@ where
         hovered_option: &'a mut Option<usize>,
         on_selected: impl FnMut(T) -> Message + 'a,
         on_option_hovered: Option<&'a dyn Fn(T) -> Message>,
-        style: &'a Style<'a, Theme>,
+        class: &'a <Theme as Catalog>::Class<'b>,
     ) -> Self {
         Menu {
             state,
@@ -70,7 +75,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style,
+            class,
         }
     }
 
@@ -153,8 +158,9 @@ impl Default for State {
     }
 }
 
-struct Overlay<'a, Message, Theme, Renderer>
+struct Overlay<'a, 'b, Message, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: crate::core::Renderer,
 {
     position: Point,
@@ -162,18 +168,19 @@ where
     container: Container<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
-    style: &'a Style<'a, Theme>,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, Message, Theme, Renderer> Overlay<'a, Message, Theme, Renderer>
+impl<'a, 'b, Message, Theme, Renderer> Overlay<'a, 'b, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: Catalog + scrollable::Catalog + 'a,
     Renderer: text::Renderer + 'a,
+    'b: 'a,
 {
     pub fn new<T>(
         position: Point,
-        menu: Menu<'a, T, Message, Theme, Renderer>,
+        menu: Menu<'a, 'b, T, Message, Theme, Renderer>,
         target_height: f32,
     ) -> Self
     where
@@ -191,28 +198,24 @@ where
             text_size,
             text_line_height,
             text_shaping,
-            style,
+            class,
         } = menu;
 
-        let container = Container::with_style(
-            Scrollable::with_direction_and_style(
-                List {
-                    options,
-                    hovered_option,
-                    on_selected,
-                    on_option_hovered,
-                    font,
-                    text_size,
-                    text_line_height,
-                    text_shaping,
-                    padding,
-                    style: &style.list,
-                },
-                scrollable::Direction::default(),
-                &style.scrollable,
-            ),
-            container::transparent,
-        );
+        let container = Container::new(Scrollable::with_direction(
+            List {
+                options,
+                hovered_option,
+                on_selected,
+                on_option_hovered,
+                font,
+                text_size,
+                text_line_height,
+                text_shaping,
+                padding,
+                class,
+            },
+            scrollable::Direction::default(),
+        ));
 
         state.tree.diff(&container as &dyn Widget<_, _, _>);
 
@@ -222,15 +225,16 @@ where
             container,
             width,
             target_height,
-            style,
+            class,
         }
     }
 }
 
-impl<'a, Message, Theme, Renderer>
+impl<'a, 'b, Message, Theme, Renderer>
     crate::core::Overlay<Message, Theme, Renderer>
-    for Overlay<'a, Message, Theme, Renderer>
+    for Overlay<'a, 'b, Message, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn layout(&mut self, renderer: &Renderer, bounds: Size) -> layout::Node {
@@ -293,30 +297,32 @@ where
         &self,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
     ) {
         let bounds = layout.bounds();
 
-        let appearance = (self.style.list)(theme);
+        let style = Catalog::style(theme, self.class);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: appearance.border,
+                border: style.border,
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
-        self.container
-            .draw(self.state, renderer, theme, style, layout, cursor, &bounds);
+        self.container.draw(
+            self.state, renderer, theme, defaults, layout, cursor, &bounds,
+        );
     }
 }
 
-struct List<'a, T, Message, Theme, Renderer>
+struct List<'a, 'b, T, Message, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     options: &'a [T],
@@ -328,13 +334,14 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: &'a dyn Fn(&Theme) -> Appearance,
+    class: &'a <Theme as Catalog>::Class<'b>,
 }
 
-impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
-    for List<'a, T, Message, Theme, Renderer>
+impl<'a, 'b, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+    for List<'a, 'b, T, Message, Theme, Renderer>
 where
     T: Clone + ToString,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -477,7 +484,7 @@ where
         _cursor: mouse::Cursor,
         viewport: &Rectangle,
     ) {
-        let appearance = (self.style)(theme);
+        let style = Catalog::style(theme, self.class);
         let bounds = layout.bounds();
 
         let text_size =
@@ -507,14 +514,14 @@ where
                 renderer.fill_quad(
                     renderer::Quad {
                         bounds: Rectangle {
-                            x: bounds.x + appearance.border.width,
-                            width: bounds.width - appearance.border.width * 2.0,
+                            x: bounds.x + style.border.width,
+                            width: bounds.width - style.border.width * 2.0,
                             ..bounds
                         },
-                        border: Border::rounded(appearance.border.radius),
+                        border: Border::rounded(style.border.radius),
                         ..renderer::Quad::default()
                     },
-                    appearance.selected_background,
+                    style.selected_background,
                 );
             }
 
@@ -531,9 +538,9 @@ where
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {
-                    appearance.selected_text_color
+                    style.selected_text_color
                 } else {
-                    appearance.text_color
+                    style.text_color
                 },
                 *viewport,
             );
@@ -541,23 +548,24 @@ where
     }
 }
 
-impl<'a, T, Message, Theme, Renderer>
-    From<List<'a, T, Message, Theme, Renderer>>
+impl<'a, 'b, T, Message, Theme, Renderer>
+    From<List<'a, 'b, T, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     T: ToString + Clone,
     Message: 'a,
-    Theme: 'a,
+    Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
+    'b: 'a,
 {
-    fn from(list: List<'a, T, Message, Theme, Renderer>) -> Self {
+    fn from(list: List<'a, 'b, T, Message, Theme, Renderer>) -> Self {
         Element::new(list)
     }
 }
 
 /// The appearance of a [`Menu`].
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the menu.
     pub background: Background,
     /// The [`Border`] of the menu.
@@ -570,35 +578,38 @@ pub struct Appearance {
     pub selected_background: Background,
 }
 
-/// The style of the different parts of a [`Menu`].
-#[allow(missing_debug_implementations)]
-pub struct Style<'a, Theme> {
-    /// The style of the list of the [`Menu`].
-    pub list: Box<dyn Fn(&Theme) -> Appearance + 'a>,
-    /// The style of the [`Scrollable`] of the [`Menu`].
-    pub scrollable: scrollable::Style<'a, Theme>,
+/// The theme catalog of a [`Menu`].
+pub trait Catalog: scrollable::Catalog + container::Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
+
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &<Self as Catalog>::Class<'_>) -> Style;
 }
 
-/// The default style of a [`Menu`].
-pub trait DefaultStyle: Sized {
-    /// Returns the default style of a [`Menu`].
-    fn default_style() -> Style<'static, Self>;
-}
+/// A styling function for a [`Menu`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
 
-impl DefaultStyle for Theme {
-    fn default_style() -> Style<'static, Self> {
-        Style {
-            list: Box::new(default),
-            scrollable: Box::new(scrollable::default),
-        }
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> StyleFn<'a, Self> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &StyleFn<'_, Self>) -> Style {
+        class(self)
     }
 }
 
 /// The default style of the list of a [`Menu`].
-pub fn default(theme: &Theme) -> Appearance {
+pub fn default(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
-    Appearance {
+    Style {
         background: palette.background.weak.color.into(),
         border: Border {
             width: 1.0,

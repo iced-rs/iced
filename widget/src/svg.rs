@@ -78,7 +78,7 @@ where
         }
     }
 
-    /// Sets the style of this [`Svg`].
+    /// Sets the style of the [`Svg`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
     where
@@ -88,7 +88,7 @@ where
         self
     }
 
-    /// Sets the style class of this [`Svg`].
+    /// Sets the style class of the [`Svg`].
     #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
@@ -176,11 +176,11 @@ where
                 Status::Idle
             };
 
-            let appearance = theme.style(&self.class, status);
+            let style = theme.style(&self.class, status);
 
             renderer.draw(
                 self.handle.clone(),
-                appearance.color,
+                style.color,
                 drawing_bounds + offset,
             );
         };
@@ -228,10 +228,10 @@ pub struct Style {
 
 /// The theme catalog of an [`Svg`].
 pub trait Catalog {
-    /// The item class of this [`Catalog`].
+    /// The item class of the [`Catalog`].
     type Class<'a>;
 
-    /// The default class produced by this [`Catalog`].
+    /// The default class produced by the [`Catalog`].
     fn default<'a>() -> Self::Class<'a>;
 
     /// The [`Style`] of a class with the given status.

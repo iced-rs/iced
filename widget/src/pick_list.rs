@@ -32,6 +32,7 @@ pub struct PickList<
     T: ToString + PartialEq + Clone,
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     on_select: Box<dyn Fn(T) -> Message + 'a>,
@@ -47,7 +48,8 @@ pub struct PickList<
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
     handle: Handle<Renderer::Font>,
-    style: Style<'a, Theme>,
+    class: <Theme as Catalog>::Class<'a>,
+    menu_class: <Theme as menu::Catalog>::Class<'a>,
 }
 
 impl<'a, T, L, V, Message, Theme, Renderer>
@@ -57,6 +59,7 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// Creates a new [`PickList`] with the given list of options, the current
@@ -65,10 +68,7 @@ where
         options: L,
         selected: Option<V>,
         on_select: impl Fn(T) -> Message + 'a,
-    ) -> Self
-    where
-        Theme: DefaultStyle,
-    {
+    ) -> Self {
         Self {
             on_select: Box::new(on_select),
             on_open: None,
@@ -83,7 +83,8 @@ where
             text_shaping: text::Shaping::Basic,
             font: None,
             handle: Handle::default(),
-            style: Theme::default_style(),
+            class: <Theme as Catalog>::default(),
+            menu_class: <Theme as menu::Catalog>::default(),
         }
     }
 
@@ -151,8 +152,23 @@ where
     }
 
     /// Sets the style of the [`PickList`].
-    pub fn style(mut self, style: impl Into<Style<'a, Theme>>) -> Self {
-        self.style = style.into();
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        <Theme as Catalog>::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`PickList`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(
+        mut self,
+        class: impl Into<<Theme as Catalog>::Class<'a>>,
+    ) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -164,6 +180,7 @@ where
     L: Borrow<[T]>,
     V: Borrow<T>,
     Message: Clone + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn tag(&self) -> tree::Tag {
@@ -409,15 +426,15 @@ where
             Status::Active
         };
 
-        let appearance = (self.style.field)(theme, status);
+        let style = Catalog::style(theme, &self.class, status);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: appearance.border,
+                border: style.border,
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
         let handle = match &self.handle {
@@ -478,7 +495,7 @@ where
                     bounds.x + bounds.width - self.padding.right,
                     bounds.center_y(),
                 ),
-                appearance.handle_color,
+                style.handle_color,
                 *viewport,
             );
         }
@@ -505,9 +522,9 @@ where
                 },
                 Point::new(bounds.x + self.padding.left, bounds.center_y()),
                 if is_selected {
-                    appearance.text_color
+                    style.text_color
                 } else {
-                    appearance.placeholder_color
+                    style.placeholder_color
                 },
                 *viewport,
             );
@@ -539,7 +556,7 @@ where
                     (on_select)(option)
                 },
                 None,
-                &self.style.menu,
+                &self.menu_class,
             )
             .width(bounds.width)
             .padding(self.padding)
@@ -565,7 +582,7 @@ where
     L: Borrow<[T]> + 'a,
     V: Borrow<T> + 'a,
     Message: Clone + 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -662,7 +679,7 @@ pub enum Status {
 
 /// The appearance of a pick list.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The text [`Color`] of the pick list.
     pub text_color: Color,
     /// The placeholder [`Color`] of the pick list.
@@ -675,36 +692,44 @@ pub struct Appearance {
     pub border: Border,
 }
 
-/// The styles of the different parts of a [`PickList`].
-#[allow(missing_debug_implementations)]
-pub struct Style<'a, Theme> {
-    /// The style of the [`PickList`] itself.
-    pub field: Box<dyn Fn(&Theme, Status) -> Appearance + 'a>,
+/// The theme catalog of a [`PickList`].
+pub trait Catalog: menu::Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-    /// The style of the [`Menu`] of the pick list.
-    pub menu: menu::Style<'a, Theme>,
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(
+        &self,
+        class: &<Self as Catalog>::Class<'_>,
+        status: Status,
+    ) -> Style;
 }
 
-/// The default style of a [`PickList`].
-pub trait DefaultStyle: Sized {
-    /// Returns the default style of a [`PickList`].
-    fn default_style() -> Style<'static, Self>;
-}
+/// A styling function for a [`PickList`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
 
-impl DefaultStyle for Theme {
-    fn default_style() -> Style<'static, Self> {
-        Style {
-            field: Box::new(default),
-            menu: menu::DefaultStyle::default_style(),
-        }
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> StyleFn<'a, Self> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &StyleFn<'_, Self>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
 /// The default style of the field of a [`PickList`].
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
-    let active = Appearance {
+    let active = Style {
         text_color: palette.background.weak.text,
         background: palette.background.weak.color.into(),
         placeholder_color: palette.background.strong.color,
@@ -718,7 +743,7 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active => active,
-        Status::Hovered | Status::Opened => Appearance {
+        Status::Hovered | Status::Opened => Style {
             border: Border {
                 color: palette.primary.strong.color,
                 ..active.border

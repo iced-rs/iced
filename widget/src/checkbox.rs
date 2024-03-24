@@ -172,7 +172,7 @@ where
         self
     }
 
-    /// Sets the style of this [`Checkbox`].
+    /// Sets the style of the [`Checkbox`].
     #[must_use]
     pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
     where
@@ -182,7 +182,7 @@ where
         self
     }
 
-    /// Sets the style class of this [`Checkbox`].
+    /// Sets the style class of the [`Checkbox`].
     #[cfg(feature = "advanced")]
     #[must_use]
     pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
@@ -364,7 +364,7 @@ where
                 defaults,
                 label_layout,
                 tree.state.downcast_ref(),
-                crate::text::Appearance {
+                crate::text::Style {
                     color: style.text_color,
                 },
                 viewport,
@@ -437,14 +437,14 @@ pub struct Style {
 
 /// The theme catalog of a [`Checkbox`].
 pub trait Catalog: Sized {
-    /// The item class of this [`Catalog`].
+    /// The item class of the [`Catalog`].
     type Class<'a>;
 
-    /// The default class produced by this [`Catalog`].
+    /// The default class produced by the [`Catalog`].
     fn default<'a>() -> Self::Class<'a>;
 
     /// The [`Style`] of a class with the given status.
-    fn style(&self, item: &Self::Class<'_>, status: Status) -> Style;
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
 /// A styling function for a [`Checkbox`].
