@@ -84,7 +84,7 @@ where
             font: None,
             handle: Handle::default(),
             class: <Theme as Catalog>::default(),
-            menu_class: <Theme as menu::Catalog>::default(),
+            menu_class: <Theme as Catalog>::default_menu(),
         }
     }
 
@@ -699,6 +699,11 @@ pub trait Catalog: menu::Catalog {
 
     /// The default class produced by the [`Catalog`].
     fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The default class for the menu of the [`PickList`].
+    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
+        <Self as menu::Catalog>::default()
+    }
 
     /// The [`Style`] of a class with the given status.
     fn style(

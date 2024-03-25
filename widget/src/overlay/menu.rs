@@ -1,5 +1,4 @@
 //! Build and show dropdown menus.
-use crate::container::{self, Container};
 use crate::core::alignment;
 use crate::core::event::{self, Event};
 use crate::core::layout::{self, Layout};
@@ -165,7 +164,7 @@ where
 {
     position: Point,
     state: &'a mut Tree,
-    container: Container<'a, Message, Theme, Renderer>,
+    list: Scrollable<'a, Message, Theme, Renderer>,
     width: f32,
     target_height: f32,
     class: &'a <Theme as Catalog>::Class<'b>,
@@ -201,7 +200,7 @@ where
             class,
         } = menu;
 
-        let container = Container::new(Scrollable::with_direction(
+        let list = Scrollable::with_direction(
             List {
                 options,
                 hovered_option,
@@ -215,14 +214,14 @@ where
                 class,
             },
             scrollable::Direction::default(),
-        ));
+        );
 
-        state.tree.diff(&container as &dyn Widget<_, _, _>);
+        state.tree.diff(&list as &dyn Widget<_, _, _>);
 
         Self {
             position,
             state: &mut state.tree,
-            container,
+            list,
             width,
             target_height,
             class,
@@ -255,7 +254,7 @@ where
         )
         .width(self.width);
 
-        let node = self.container.layout(self.state, renderer, &limits);
+        let node = self.list.layout(self.state, renderer, &limits);
         let size = node.size();
 
         node.move_to(if space_below > space_above {
@@ -276,7 +275,7 @@ where
     ) -> event::Status {
         let bounds = layout.bounds();
 
-        self.container.on_event(
+        self.list.on_event(
             self.state, event, layout, cursor, renderer, clipboard, shell,
             &bounds,
         )
@@ -289,7 +288,7 @@ where
         viewport: &Rectangle,
         renderer: &Renderer,
     ) -> mouse::Interaction {
-        self.container
+        self.list
             .mouse_interaction(self.state, layout, cursor, viewport, renderer)
     }
 
@@ -314,7 +313,7 @@ where
             style.background,
         );
 
-        self.container.draw(
+        self.list.draw(
             self.state, renderer, theme, defaults, layout, cursor, &bounds,
         );
     }
@@ -579,12 +578,17 @@ pub struct Style {
 }
 
 /// The theme catalog of a [`Menu`].
-pub trait Catalog: scrollable::Catalog + container::Catalog {
+pub trait Catalog: scrollable::Catalog {
     /// The item class of the [`Catalog`].
     type Class<'a>;
 
     /// The default class produced by the [`Catalog`].
     fn default<'a>() -> <Self as Catalog>::Class<'a>;
+
+    /// The default class for the scrollable of the [`Menu`].
+    fn default_scrollable<'a>() -> <Self as scrollable::Catalog>::Class<'a> {
+        <Self as scrollable::Catalog>::default()
+    }
 
     /// The [`Style`] of a class with the given status.
     fn style(&self, class: &<Self as Catalog>::Class<'_>) -> Style;

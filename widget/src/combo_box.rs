@@ -64,7 +64,8 @@ where
         on_selected: impl Fn(T) -> Message + 'static,
     ) -> Self {
         let text_input = TextInput::new(placeholder, &state.value())
-            .on_input(TextInputEvent::TextChanged);
+            .on_input(TextInputEvent::TextChanged)
+            .class(Theme::default_input());
 
         let selection = selection.map(T::to_string).unwrap_or_default();
 
@@ -77,7 +78,7 @@ where
             on_option_hovered: None,
             on_input: None,
             on_close: None,
-            menu_class: <Theme as menu::Catalog>::default(),
+            menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
         }
@@ -752,7 +753,17 @@ where
 }
 
 /// The theme catalog of a [`ComboBox`].
-pub trait Catalog: text_input::Catalog + menu::Catalog {}
+pub trait Catalog: text_input::Catalog + menu::Catalog {
+    /// The default class for the text input of the [`ComboBox`].
+    fn default_input<'a>() -> <Self as text_input::Catalog>::Class<'a> {
+        <Self as text_input::Catalog>::default()
+    }
+
+    /// The default class for the menu of the [`ComboBox`].
+    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
+        <Self as menu::Catalog>::default()
+    }
+}
 
 impl Catalog for Theme {}
 
