@@ -143,23 +143,18 @@ mod bezier {
             bounds: Rectangle,
             cursor: mouse::Cursor,
         ) -> Vec<Geometry> {
-            let content = self.state.cache.draw(
-                renderer,
-                bounds.size(),
-                |frame: &mut Frame| {
+            let content =
+                self.state.cache.draw(renderer, bounds.size(), |frame| {
                     Curve::draw_all(self.curves, frame);
 
                     frame.stroke(
                         &Path::rectangle(Point::ORIGIN, frame.size()),
                         Stroke::default().with_width(2.0),
                     );
-                },
-            );
+                });
 
             if let Some(pending) = state {
-                let pending_curve = pending.draw(renderer, bounds, cursor);
-
-                vec![content, pending_curve]
+                vec![content, pending.draw(renderer, bounds, cursor)]
             } else {
                 vec![content]
             }

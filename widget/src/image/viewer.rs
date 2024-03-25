@@ -117,7 +117,7 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_image(&self.handle);
 
         let mut size = limits.resolve(
             self.width,
@@ -335,8 +335,7 @@ where
 
         renderer.with_layer(bounds, |renderer| {
             renderer.with_translation(translation, |renderer| {
-                image::Renderer::draw(
-                    renderer,
+                renderer.draw_image(
                     self.handle.clone(),
                     self.filter_method,
                     Rectangle {
@@ -421,7 +420,7 @@ pub fn image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let Size { width, height } = renderer.dimensions(handle);
+    let Size { width, height } = renderer.measure_image(handle);
 
     let (width, height) = {
         let dimensions = (width as f32, height as f32);

@@ -1,5 +1,6 @@
 //! Create a renderer from a [`Backend`].
 use crate::backend::{self, Backend};
+use crate::compositor;
 use crate::core;
 use crate::core::image;
 use crate::core::renderer;
@@ -8,8 +9,9 @@ use crate::core::text::Text;
 use crate::core::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
+use crate::mesh;
 use crate::text;
-use crate::Primitive;
+use crate::{Mesh, Primitive};
 
 use std::borrow::Cow;
 
@@ -20,6 +22,7 @@ pub struct Renderer<B: Backend> {
     default_font: Font,
     default_text_size: Pixels,
     primitives: Vec<Primitive<B::Primitive>>,
+    stack: Vec<Vec<Primitive<B::Primitive>>>,
 }
 
 impl<B: Backend> Renderer<B> {
@@ -34,6 +37,7 @@ impl<B: Backend> Renderer<B> {
             default_font,
             default_text_size,
             primitives: Vec::new(),
+            stack: Vec::new(),
         }
     }
 
@@ -55,60 +59,34 @@ impl<B: Backend> Renderer<B> {
     ) -> O {
         f(&mut self.backend, &self.primitives)
     }
+}
 
-    /// Starts recording a new layer.
-    pub fn start_layer(&mut self) -> Vec<Primitive<B::Primitive>> {
-        std::mem::take(&mut self.primitives)
+impl<B: Backend> iced_core::Renderer for Renderer<B> {
+    fn start_layer(&mut self) {
+        self.stack.push(std::mem::take(&mut self.primitives));
     }
 
-    /// Ends the recording of a layer.
-    pub fn end_layer(
-        &mut self,
-        primitives: Vec<Primitive<B::Primitive>>,
-        bounds: Rectangle,
-    ) {
-        let layer = std::mem::replace(&mut self.primitives, primitives);
+    fn end_layer(&mut self, bounds: Rectangle) {
+        let layer = std::mem::replace(
+            &mut self.primitives,
+            self.stack.pop().expect("a layer should be recording"),
+        );
 
         self.primitives.push(Primitive::group(layer).clip(bounds));
     }
 
-    /// Starts recording a translation.
-    pub fn start_transformation(&mut self) -> Vec<Primitive<B::Primitive>> {
-        std::mem::take(&mut self.primitives)
+    fn start_transformation(&mut self) {
+        self.stack.push(std::mem::take(&mut self.primitives));
     }
 
-    /// Ends the recording of a translation.
-    pub fn end_transformation(
-        &mut self,
-        primitives: Vec<Primitive<B::Primitive>>,
-        transformation: Transformation,
-    ) {
-        let layer = std::mem::replace(&mut self.primitives, primitives);
+    fn end_transformation(&mut self, transformation: Transformation) {
+        let layer = std::mem::replace(
+            &mut self.primitives,
+            self.stack.pop().expect("a layer should be recording"),
+        );
 
         self.primitives
             .push(Primitive::group(layer).transform(transformation));
-    }
-}
-
-impl<B: Backend> iced_core::Renderer for Renderer<B> {
-    fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        let current = self.start_layer();
-
-        f(self);
-
-        self.end_layer(current, bounds);
-    }
-
-    fn with_transformation(
-        &mut self,
-        transformation: Transformation,
-        f: impl FnOnce(&mut Self),
-    ) {
-        let current = self.start_transformation();
-
-        f(self);
-
-        self.end_transformation(current, transformation);
     }
 
     fn fill_quad(
@@ -211,11 +189,11 @@ where
 {
     type Handle = image::Handle;
 
-    fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
+    fn measure_image(&self, handle: &image::Handle) -> Size<u32> {
         self.backend().dimensions(handle)
     }
 
-    fn draw(
+    fn draw_image(
         &mut self,
         handle: image::Handle,
         filter_method: image::FilterMethod,
@@ -233,11 +211,11 @@ impl<B> svg::Renderer for Renderer<B>
 where
     B: Backend + backend::Svg,
 {
-    fn dimensions(&self, handle: &svg::Handle) -> Size<u32> {
+    fn measure_svg(&self, handle: &svg::Handle) -> Size<u32> {
         self.backend().viewport_dimensions(handle)
     }
 
-    fn draw(
+    fn draw_svg(
         &mut self,
         handle: svg::Handle,
         color: Option<Color>,
@@ -249,4 +227,43 @@ where
             bounds,
         });
     }
+}
+
+impl<B: Backend> mesh::Renderer for Renderer<B> {
+    fn draw_mesh(&mut self, mesh: Mesh) {
+        match B::Primitive::try_from(mesh) {
+            Ok(primitive) => {
+                self.draw_primitive(Primitive::Custom(primitive));
+            }
+            Err(error) => {
+                log::warn!("mesh primitive could not be drawn: {error:?}");
+            }
+        }
+    }
+}
+
+#[cfg(feature = "geometry")]
+impl<B> crate::geometry::Renderer for Renderer<B>
+where
+    B: Backend + crate::geometry::Backend,
+    B::Frame:
+        crate::geometry::frame::Backend<Geometry = Primitive<B::Primitive>>,
+{
+    type Frame = B::Frame;
+    type Geometry = Primitive<B::Primitive>;
+
+    fn new_frame(&self, size: Size) -> Self::Frame {
+        self.backend.new_frame(size)
+    }
+
+    fn draw_geometry(&mut self, geometry: Self::Geometry) {
+        self.draw_primitive(geometry);
+    }
+}
+
+impl<B> compositor::Default for Renderer<B>
+where
+    B: Backend,
+{
+    type Compositor = B::Compositor;
 }

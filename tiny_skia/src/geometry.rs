@@ -4,7 +4,7 @@ use crate::core::{
 };
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
-use crate::graphics::geometry::{Path, Style, Text};
+use crate::graphics::geometry::{self, Path, Style, Text};
 use crate::graphics::Gradient;
 use crate::primitive::{self, Primitive};
 
@@ -25,23 +25,36 @@ impl Frame {
         }
     }
 
-    pub fn width(&self) -> f32 {
+    pub fn into_primitive(self) -> Primitive {
+        Primitive::Clip {
+            bounds: Rectangle::new(Point::ORIGIN, self.size),
+            content: Box::new(Primitive::Group {
+                primitives: self.primitives,
+            }),
+        }
+    }
+}
+
+impl geometry::frame::Backend for Frame {
+    type Geometry = Primitive;
+
+    fn width(&self) -> f32 {
         self.size.width
     }
 
-    pub fn height(&self) -> f32 {
+    fn height(&self) -> f32 {
         self.size.height
     }
 
-    pub fn size(&self) -> Size {
+    fn size(&self) -> Size {
         self.size
     }
 
-    pub fn center(&self) -> Point {
+    fn center(&self) -> Point {
         Point::new(self.size.width / 2.0, self.size.height / 2.0)
     }
 
-    pub fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
+    fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
         let Some(path) =
             convert_path(path).and_then(|path| path.transform(self.transform))
         else {
@@ -61,7 +74,7 @@ impl Frame {
             }));
     }
 
-    pub fn fill_rectangle(
+    fn fill_rectangle(
         &mut self,
         top_left: Point,
         size: Size,
@@ -89,7 +102,7 @@ impl Frame {
             }));
     }
 
-    pub fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
+    fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
         let Some(path) =
             convert_path(path).and_then(|path| path.transform(self.transform))
         else {
@@ -110,7 +123,7 @@ impl Frame {
             }));
     }
 
-    pub fn fill_text(&mut self, text: impl Into<Text>) {
+    fn fill_text(&mut self, text: impl Into<Text>) {
         let text = text.into();
 
         let (scale_x, scale_y) = self.transform.get_scale();
@@ -174,51 +187,50 @@ impl Frame {
         }
     }
 
-    pub fn push_transform(&mut self) {
+    fn push_transform(&mut self) {
         self.stack.push(self.transform);
     }
 
-    pub fn pop_transform(&mut self) {
+    fn pop_transform(&mut self) {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    pub fn clip(&mut self, frame: Self, at: Point) {
+    fn draft(&mut self, size: Size) -> Self {
+        Self::new(size)
+    }
+
+    fn paste(&mut self, frame: Self, at: Point) {
         self.primitives.push(Primitive::Transform {
             transformation: Transformation::translate(at.x, at.y),
             content: Box::new(frame.into_primitive()),
         });
     }
 
-    pub fn translate(&mut self, translation: Vector) {
+    fn translate(&mut self, translation: Vector) {
         self.transform =
             self.transform.pre_translate(translation.x, translation.y);
     }
 
-    pub fn rotate(&mut self, angle: impl Into<Radians>) {
+    fn rotate(&mut self, angle: impl Into<Radians>) {
         self.transform = self.transform.pre_concat(
             tiny_skia::Transform::from_rotate(angle.into().0.to_degrees()),
         );
     }
 
-    pub fn scale(&mut self, scale: impl Into<f32>) {
+    fn scale(&mut self, scale: impl Into<f32>) {
         let scale = scale.into();
 
         self.scale_nonuniform(Vector { x: scale, y: scale });
     }
 
-    pub fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
+    fn scale_nonuniform(&mut self, scale: impl Into<Vector>) {
         let scale = scale.into();
 
         self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
 
-    pub fn into_primitive(self) -> Primitive {
-        Primitive::Clip {
-            bounds: Rectangle::new(Point::ORIGIN, self.size),
-            content: Box::new(Primitive::Group {
-                primitives: self.primitives,
-            }),
-        }
+    fn into_geometry(self) -> Self::Geometry {
+        self.into_primitive()
     }
 }
 

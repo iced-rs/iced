@@ -5,6 +5,7 @@ use crate::graphics::backend;
 use crate::graphics::text;
 use crate::graphics::{Damage, Viewport};
 use crate::primitive::{self, Primitive};
+use crate::window;
 
 use std::borrow::Cow;
 
@@ -989,8 +990,9 @@ fn rounded_box_sdf(
     (x.powf(2.0) + y.powf(2.0)).sqrt() - radius
 }
 
-impl iced_graphics::Backend for Backend {
+impl backend::Backend for Backend {
     type Primitive = primitive::Custom;
+    type Compositor = window::Compositor;
 }
 
 impl backend::Text for Backend {
@@ -1016,5 +1018,14 @@ impl backend::Svg for Backend {
         handle: &crate::core::svg::Handle,
     ) -> crate::core::Size<u32> {
         self.vector_pipeline.viewport_dimensions(handle)
+    }
+}
+
+#[cfg(feature = "geometry")]
+impl crate::graphics::geometry::Backend for Backend {
+    type Frame = crate::geometry::Frame;
+
+    fn new_frame(&self, size: Size) -> Self::Frame {
+        crate::geometry::Frame::new(size)
     }
 }
