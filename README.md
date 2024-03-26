@@ -79,6 +79,17 @@ you want to learn about a specific release, check out [the release list].
 
 [the release list]: https://github.com/iced-rs/iced/releases
 
+The majority of documentation currently follows the master branch,
+it may be suggested to use git referenced dependency in your Cargo.toml file.
+
+```toml
+[dependencies.iced]
+git = "https://github.com/iced-rs/iced.git"
+branch = "master"
+features = ["canvas", "tokio", "debug", "async-std", "lazy", "webgl"]
+```
+
+
 ## Overview
 
 Inspired by [The Elm Architecture], Iced expects you to split user interfaces
