@@ -52,7 +52,7 @@ highlighter = ["iced_highlighter"]
 # Enables experimental multi-window support.
 multi-window = ["iced_winit/multi-window"]
 # Enables the advanced module
-advanced = ["iced_widget/advanced"]
+advanced = ["iced_core/advanced", "iced_widget/advanced"]
 # Enables embedding Fira Sans as the default font on Wasm builds
 fira-sans = ["iced_renderer/fira-sans"]
 # Enables auto-detecting light/dark mode for the built-in theme
