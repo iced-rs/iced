@@ -178,7 +178,7 @@ where
 /// The data of a [`QRCode`].
 ///
 /// It stores the contents that will be displayed.
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 pub struct Data {
     contents: Vec<qrcode::Color>,
     width: usize,
