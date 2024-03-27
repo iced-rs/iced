@@ -1,10 +1,11 @@
 //! Load and draw raster graphics.
+pub use bytes::Bytes;
+
 use crate::{Rectangle, Size};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
-use std::sync::Arc;
 
 /// A handle of some image data.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -29,12 +30,12 @@ impl Handle {
     pub fn from_pixels(
         width: u32,
         height: u32,
-        pixels: impl AsRef<[u8]> + Send + Sync + 'static,
+        pixels: impl Into<Bytes>,
     ) -> Handle {
         Self::from_data(Data::Rgba {
             width,
             height,
-            pixels: Bytes::new(pixels),
+            pixels: pixels.into(),
         })
     }
 
@@ -44,10 +45,8 @@ impl Handle {
     ///
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
-    pub fn from_memory(
-        bytes: impl AsRef<[u8]> + Send + Sync + 'static,
-    ) -> Handle {
-        Self::from_data(Data::Bytes(Bytes::new(bytes)))
+    pub fn from_memory(bytes: impl Into<Bytes>) -> Handle {
+        Self::from_data(Data::Bytes(bytes.into()))
     }
 
     fn from_data(data: Data) -> Handle {
@@ -83,55 +82,6 @@ where
 impl Hash for Handle {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.id.hash(state);
-    }
-}
-
-/// A wrapper around raw image data.
-///
-/// It behaves like a `&[u8]`.
-#[derive(Clone)]
-pub struct Bytes(Arc<dyn AsRef<[u8]> + Send + Sync + 'static>);
-
-impl Bytes {
-    /// Creates new [`Bytes`] around `data`.
-    pub fn new(data: impl AsRef<[u8]> + Send + Sync + 'static) -> Self {
-        Self(Arc::new(data))
-    }
-}
-
-impl std::fmt::Debug for Bytes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.as_ref().as_ref().fmt(f)
-    }
-}
-
-impl std::hash::Hash for Bytes {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.0.as_ref().as_ref().hash(state);
-    }
-}
-
-impl PartialEq for Bytes {
-    fn eq(&self, other: &Self) -> bool {
-        let a = self.as_ref();
-        let b = other.as_ref();
-        core::ptr::eq(a, b) || a == b
-    }
-}
-
-impl Eq for Bytes {}
-
-impl AsRef<[u8]> for Bytes {
-    fn as_ref(&self) -> &[u8] {
-        self.0.as_ref().as_ref()
-    }
-}
-
-impl std::ops::Deref for Bytes {
-    type Target = [u8];
-
-    fn deref(&self) -> &[u8] {
-        self.0.as_ref().as_ref()
     }
 }
 
