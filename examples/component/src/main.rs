@@ -73,10 +73,7 @@ mod numeric_input {
 
     impl<Message, Theme> Component<Message, Theme> for NumericInput<Message>
     where
-        Theme: text::DefaultStyle
-            + button::DefaultStyle
-            + text_input::DefaultStyle
-            + 'static,
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
     {
         type State = ();
         type Event = Event;
@@ -151,10 +148,7 @@ mod numeric_input {
     impl<'a, Message, Theme> From<NumericInput<Message>>
         for Element<'a, Message, Theme>
     where
-        Theme: text::DefaultStyle
-            + button::DefaultStyle
-            + text_input::DefaultStyle
-            + 'static,
+        Theme: text::Catalog + button::Catalog + text_input::Catalog + 'static,
         Message: 'a,
     {
         fn from(numeric_input: NumericInput<Message>) -> Self {

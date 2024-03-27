@@ -6,7 +6,8 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Element, Layout, Padding, Point, Rectangle, Shell, Size,
+    Vector,
 };
 
 /// The title bar of a [`Pane`].
@@ -19,32 +20,31 @@ pub struct TitleBar<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     content: Element<'a, Message, Theme, Renderer>,
     controls: Option<Element<'a, Message, Theme, Renderer>>,
     padding: Padding,
     always_show_controls: bool,
-    style: container::Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a new [`TitleBar`] with the given content.
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self
-    where
-        Theme: container::DefaultStyle + 'a,
-    {
+    ) -> Self {
         Self {
             content: content.into(),
             controls: None,
             padding: Padding::ZERO,
             always_show_controls: false,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -63,15 +63,6 @@ where
         self
     }
 
-    /// Sets the style of the [`TitleBar`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, container::Status) -> container::Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
-        self
-    }
-
     /// Sets whether or not the [`controls`] attached to this [`TitleBar`] are
     /// always visible.
     ///
@@ -84,11 +75,33 @@ where
         self.always_show_controls = true;
         self
     }
+
+    /// Sets the style of the [`TitleBar`].
+    #[must_use]
+    pub fn style(
+        mut self,
+        style: impl Fn(&Theme) -> container::Style + 'a,
+    ) -> Self
+    where
+        Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as container::StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`TitleBar`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 impl<'a, Message, Theme, Renderer> TitleBar<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(controls) = self.controls.as_ref() {
@@ -117,7 +130,7 @@ where
 
     /// Draws the [`TitleBar`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::core::Renderer
+    /// [`Renderer`]: core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -130,16 +143,7 @@ where
         show_controls: bool,
     ) {
         let bounds = layout.bounds();
-
-        let style = {
-            let status = if cursor.is_over(bounds) {
-                container::Status::Hovered
-            } else {
-                container::Status::Idle
-            };
-
-            (self.style)(theme, status)
-        };
+        let style = theme.style(&self.class);
 
         let inherited_style = renderer::Style {
             text_color: style.text_color.unwrap_or(inherited_style.text_color),

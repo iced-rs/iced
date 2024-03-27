@@ -127,7 +127,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         let image_size = {
-            let Size { width, height } = renderer.dimensions(&self.handle);
+            let Size { width, height } = renderer.measure_image(&self.handle);
             Size::new(width as f32, height as f32)
         };
         let raw_size = limits.resolve(self.width, self.height, image_size);
@@ -344,8 +344,7 @@ where
                     height: image_size.height,
                     ..bounds
                 };
-
-                renderer.draw(
+                renderer.draw_image(
                     self.handle.clone(),
                     self.filter_method,
                     drawing_bounds,
@@ -429,7 +428,7 @@ pub fn image_size<Renderer>(
 where
     Renderer: image::Renderer,
 {
-    let size = renderer.dimensions(handle);
+    let size = renderer.measure_image(handle);
     let size = Size::new(size.width as f32, size.height as f32);
     let size = content_fit.fit(size, bounds);
 

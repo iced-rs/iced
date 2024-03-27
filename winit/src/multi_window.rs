@@ -16,6 +16,7 @@ use crate::futures::futures::executor;
 use crate::futures::futures::task;
 use crate::futures::futures::{Future, StreamExt};
 use crate::futures::{Executor, Runtime, Subscription};
+use crate::graphics;
 use crate::graphics::{compositor, Compositor};
 use crate::multi_window::window_manager::WindowManager;
 use crate::runtime::command::{self, Command};
@@ -105,7 +106,7 @@ where
 /// settings.
 pub fn run<A, E, C>(
     settings: Settings<A::Flags>,
-    compositor_settings: C::Settings,
+    graphics_settings: graphics::Settings,
 ) -> Result<(), Error>
 where
     A: Application + 'static,
@@ -187,7 +188,7 @@ where
     }
 
     let mut compositor =
-        executor::block_on(C::new(compositor_settings, main_window.clone()))?;
+        executor::block_on(C::new(graphics_settings, main_window.clone()))?;
 
     let mut window_manager = WindowManager::new();
     let _ = window_manager.insert(

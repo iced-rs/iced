@@ -44,7 +44,9 @@ mod rainbow {
             cursor: mouse::Cursor,
             _viewport: &Rectangle,
         ) {
-            use iced::advanced::graphics::mesh::{self, Mesh, SolidVertex2D};
+            use iced::advanced::graphics::mesh::{
+                self, Mesh, Renderer as _, SolidVertex2D,
+            };
             use iced::advanced::Renderer as _;
 
             let bounds = layout.bounds();
