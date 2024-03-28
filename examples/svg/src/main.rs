@@ -31,7 +31,7 @@ impl Tiger {
         ));
 
         let svg = svg(handle).width(Length::Fill).height(Length::Fill).style(
-            |_theme, _status| svg::Appearance {
+            |_theme, _status| svg::Style {
                 color: if self.apply_color_filter {
                     Some(color!(0x0000ff))
                 } else {

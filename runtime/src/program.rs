@@ -2,7 +2,7 @@
 use crate::Command;
 
 use iced_core::text;
-use iced_core::{Element, Renderer};
+use iced_core::Element;
 
 mod state;
 
@@ -11,7 +11,7 @@ pub use state::State;
 /// The core of a user interface application following The Elm Architecture.
 pub trait Program: Sized {
     /// The graphics backend to use to draw the [`Program`].
-    type Renderer: Renderer + text::Renderer;
+    type Renderer: text::Renderer;
 
     /// The theme used to draw the [`Program`].
     type Theme;

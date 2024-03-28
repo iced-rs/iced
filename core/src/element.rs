@@ -95,7 +95,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     ///
     /// ```no_run
     /// # mod iced {
-    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_core::renderer::Null>;
+    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
     /// #
     /// #     pub mod widget {
     /// #         pub fn row<'a, Message>(iter: impl IntoIterator<Item = super::Element<'a, Message>>) -> super::Element<'a, Message> {
@@ -109,7 +109,7 @@ impl<'a, Message, Theme, Renderer> Element<'a, Message, Theme, Renderer> {
     /// #     pub enum Message {}
     /// #     pub struct Counter;
     /// #
-    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, iced_core::renderer::Null>;
+    /// #     pub type Element<'a, Message> = iced_core::Element<'a, Message, iced_core::Theme, ()>;
     /// #
     /// #     impl Counter {
     /// #         pub fn view(&self) -> Element<Message> {

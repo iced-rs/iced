@@ -9,7 +9,7 @@ use crate::core::renderer;
 use crate::core::touch;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
+    self, Border, Clipboard, Color, Element, Layout, Length, Pixels, Point,
     Rectangle, Shell, Size, Theme, Widget,
 };
 
@@ -39,7 +39,10 @@ use std::ops::RangeInclusive;
 ///
 /// ![Slider drawn by Coffee's renderer](https://github.com/hecrj/coffee/blob/bda9818f823dfcb8a7ad0ff4940b4d4b387b5208/images/ui/slider.png?raw=true)
 #[allow(missing_debug_implementations)]
-pub struct Slider<'a, T, Message, Theme = crate::Theme> {
+pub struct Slider<'a, T, Message, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     range: RangeInclusive<T>,
     step: T,
     shift_step: Option<T>,
@@ -49,13 +52,14 @@ pub struct Slider<'a, T, Message, Theme = crate::Theme> {
     on_release: Option<Message>,
     width: Length,
     height: f32,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, T, Message, Theme> Slider<'a, T, Message, Theme>
 where
     T: Copy + From<u8> + PartialOrd,
     Message: Clone,
+    Theme: Catalog,
 {
     /// The default height of a [`Slider`].
     pub const DEFAULT_HEIGHT: f32 = 16.0;
@@ -70,7 +74,6 @@ where
     ///   `Message`.
     pub fn new<F>(range: RangeInclusive<T>, value: T, on_change: F) -> Self
     where
-        Theme: DefaultStyle + 'a,
         F: 'a + Fn(T) -> Message,
     {
         let value = if value >= *range.start() {
@@ -95,7 +98,7 @@ where
             on_release: None,
             width: Length::Fill,
             height: Self::DEFAULT_HEIGHT,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -130,15 +133,6 @@ where
         self
     }
 
-    /// Sets the style of the [`Slider`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
-        self
-    }
-
     /// Sets the step size of the [`Slider`].
     pub fn step(mut self, step: impl Into<T>) -> Self {
         self.step = step.into();
@@ -152,6 +146,24 @@ where
         self.shift_step = Some(shift_step.into());
         self
     }
+
+    /// Sets the style of the [`Slider`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Slider`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -159,7 +171,8 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive,
     Message: Clone,
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -349,8 +362,8 @@ where
         let bounds = layout.bounds();
         let is_mouse_over = cursor.is_over(bounds);
 
-        let style = (self.style)(
-            theme,
+        let style = theme.style(
+            &self.class,
             if state.is_dragging {
                 Status::Dragged
             } else if is_mouse_over {
@@ -461,8 +474,8 @@ impl<'a, T, Message, Theme, Renderer> From<Slider<'a, T, Message, Theme>>
 where
     T: Copy + Into<f64> + num_traits::FromPrimitive + 'a,
     Message: Clone + 'a,
-    Theme: 'a,
-    Renderer: crate::core::Renderer + 'a,
+    Theme: Catalog + 'a,
+    Renderer: core::Renderer + 'a,
 {
     fn from(
         slider: Slider<'a, T, Message, Theme>,
@@ -490,15 +503,15 @@ pub enum Status {
 
 /// The appearance of a slider.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The colors of the rail of the slider.
     pub rail: Rail,
     /// The appearance of the [`Handle`] of the slider.
     pub handle: Handle,
 }
 
-impl Appearance {
-    /// Changes the [`HandleShape`] of the [`Appearance`] to a circle
+impl Style {
+    /// Changes the [`HandleShape`] of the [`Style`] to a circle
     /// with the given radius.
     pub fn with_circular_handle(mut self, radius: impl Into<Pixels>) -> Self {
         self.handle.shape = HandleShape::Circle {
@@ -549,29 +562,35 @@ pub enum HandleShape {
     },
 }
 
-/// The style of a [`Slider`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Slider`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`Slider`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Slider`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        default(self, status)
+/// A styling function for a [`Slider`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`Slider`].
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let color = match status {
@@ -580,7 +599,7 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
         Status::Dragged => palette.primary.strong.color,
     };
 
-    Appearance {
+    Style {
         rail: Rail {
             colors: (color, palette.secondary.base.color),
             width: 4.0,

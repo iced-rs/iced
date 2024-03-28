@@ -12,8 +12,8 @@ use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Background, Border, Clipboard, Color, Element, Layout, Length, Pixels,
-    Point, Rectangle, Shell, Size, Theme, Vector, Widget,
+    self, Background, Border, Clipboard, Color, Element, Layout, Length,
+    Pixels, Point, Rectangle, Shell, Size, Theme, Vector, Widget,
 };
 use crate::runtime::Command;
 
@@ -28,7 +28,8 @@ pub struct Scrollable<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     id: Option<Id>,
     width: Length,
@@ -36,20 +37,18 @@ pub struct Scrollable<
     direction: Direction,
     content: Element<'a, Message, Theme, Renderer>,
     on_scroll: Option<Box<dyn Fn(Viewport) -> Message + 'a>>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Scrollable<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a new vertical [`Scrollable`].
     pub fn new(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    ) -> Self {
         Self::with_direction(content, Direction::default())
     }
 
@@ -57,18 +56,6 @@ where
     pub fn with_direction(
         content: impl Into<Element<'a, Message, Theme, Renderer>>,
         direction: Direction,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
-        Self::with_direction_and_style(content, direction, Theme::default_style)
-    }
-
-    /// Creates a new [`Scrollable`] with the given [`Direction`] and style.
-    pub fn with_direction_and_style(
-        content: impl Into<Element<'a, Message, Theme, Renderer>>,
-        direction: Direction,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
     ) -> Self {
         let content = content.into();
 
@@ -91,7 +78,7 @@ where
             direction,
             content,
             on_scroll: None,
-            style: Box::new(style),
+            class: Theme::default(),
         }
     }
 
@@ -121,12 +108,21 @@ where
         self
     }
 
-    /// Sets the style of the [`Scrollable`] .
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    /// Sets the style of this [`Scrollable`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Scrollable`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -237,7 +233,8 @@ pub enum Alignment {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Scrollable<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -651,7 +648,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
@@ -701,13 +698,9 @@ where
             Status::Active
         };
 
-        let appearance = (self.style)(theme, status);
+        let style = theme.style(&self.class, status);
 
-        container::draw_background(
-            renderer,
-            &appearance.container,
-            layout.bounds(),
-        );
+        container::draw_background(renderer, &style.container, layout.bounds());
 
         // Draw inner content
         if scrollbars.active() {
@@ -719,7 +712,7 @@ where
                             &tree.children[0],
                             renderer,
                             theme,
-                            style,
+                            defaults,
                             content_layout,
                             cursor,
                             &Rectangle {
@@ -782,7 +775,7 @@ where
                     if let Some(scrollbar) = scrollbars.y {
                         draw_scrollbar(
                             renderer,
-                            appearance.vertical_scrollbar,
+                            style.vertical_scrollbar,
                             &scrollbar,
                         );
                     }
@@ -790,14 +783,14 @@ where
                     if let Some(scrollbar) = scrollbars.x {
                         draw_scrollbar(
                             renderer,
-                            appearance.horizontal_scrollbar,
+                            style.horizontal_scrollbar,
                             &scrollbar,
                         );
                     }
 
                     if let (Some(x), Some(y)) = (scrollbars.x, scrollbars.y) {
                         let background =
-                            appearance.gap.or(appearance.container.background);
+                            style.gap.or(style.container.background);
 
                         if let Some(background) = background {
                             renderer.fill_quad(
@@ -821,7 +814,7 @@ where
                 &tree.children[0],
                 renderer,
                 theme,
-                style,
+                defaults,
                 content_layout,
                 cursor,
                 &Rectangle {
@@ -916,8 +909,8 @@ impl<'a, Message, Theme, Renderer>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::core::Renderer,
+    Theme: 'a + Catalog,
+    Renderer: 'a + core::Renderer,
 {
     fn from(
         text_input: Scrollable<'a, Message, Theme, Renderer>,
@@ -1570,9 +1563,9 @@ pub enum Status {
 
 /// The appearance of a scrolable.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
-    /// The [`container::Appearance`] of a scrollable.
-    pub container: container::Appearance,
+pub struct Style {
+    /// The [`container::Style`] of a scrollable.
+    pub container: container::Style,
     /// The vertical [`Scrollbar`] appearance.
     pub vertical_scrollbar: Scrollbar,
     /// The horizontal [`Scrollbar`] appearance.
@@ -1601,29 +1594,35 @@ pub struct Scroller {
     pub border: Border,
 }
 
-/// The style of a [`Scrollable`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Scrollable`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`Scrollable`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Scrollable`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        default(self, status)
+/// A styling function for a [`Scrollable`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`Scrollable`].
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let scrollbar = Scrollbar {
@@ -1636,8 +1635,8 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
     };
 
     match status {
-        Status::Active => Appearance {
-            container: container::Appearance::default(),
+        Status::Active => Style {
+            container: container::Style::default(),
             vertical_scrollbar: scrollbar,
             horizontal_scrollbar: scrollbar,
             gap: None,
@@ -1654,8 +1653,8 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
                 ..scrollbar
             };
 
-            Appearance {
-                container: container::Appearance::default(),
+            Style {
+                container: container::Style::default(),
                 vertical_scrollbar: if is_vertical_scrollbar_hovered {
                     hovered_scrollbar
                 } else {
@@ -1681,8 +1680,8 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
                 ..scrollbar
             };
 
-            Appearance {
-                container: container::Appearance::default(),
+            Style {
+                container: container::Style::default(),
                 vertical_scrollbar: if is_vertical_scrollbar_dragged {
                     dragged_scrollbar
                 } else {

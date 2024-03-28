@@ -6,7 +6,7 @@ use crate::core::overlay;
 use crate::core::renderer;
 use crate::core::widget::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
+    self, Clipboard, Element, Layout, Point, Rectangle, Shell, Size, Vector,
 };
 use crate::pane_grid::{Draggable, TitleBar};
 
@@ -20,30 +20,29 @@ pub struct Content<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     title_bar: Option<TitleBar<'a, Message, Theme, Renderer>>,
     body: Element<'a, Message, Theme, Renderer>,
-    style: container::Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     /// Creates a new [`Content`] with the provided body.
-    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self
-    where
-        Theme: container::DefaultStyle + 'a,
-    {
+    pub fn new(body: impl Into<Element<'a, Message, Theme, Renderer>>) -> Self {
         Self {
             title_bar: None,
             body: body.into(),
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
-    /// Sets the [`TitleBar`] of this [`Content`].
+    /// Sets the [`TitleBar`] of the [`Content`].
     pub fn title_bar(
         mut self,
         title_bar: TitleBar<'a, Message, Theme, Renderer>,
@@ -53,18 +52,31 @@ where
     }
 
     /// Sets the style of the [`Content`].
+    #[must_use]
     pub fn style(
         mut self,
-        style: impl Fn(&Theme, container::Status) -> container::Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+        style: impl Fn(&Theme) -> container::Style + 'a,
+    ) -> Self
+    where
+        Theme::Class<'a>: From<container::StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as container::StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Content`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
 
 impl<'a, Message, Theme, Renderer> Content<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     pub(super) fn state(&self) -> Tree {
         let children = if let Some(title_bar) = self.title_bar.as_ref() {
@@ -93,7 +105,7 @@ where
 
     /// Draws the [`Content`] with the provided [`Renderer`] and [`Layout`].
     ///
-    /// [`Renderer`]: crate::core::Renderer
+    /// [`Renderer`]: core::Renderer
     pub fn draw(
         &self,
         tree: &Tree,
@@ -107,15 +119,7 @@ where
         let bounds = layout.bounds();
 
         {
-            let style = {
-                let status = if cursor.is_over(bounds) {
-                    container::Status::Hovered
-                } else {
-                    container::Status::Idle
-                };
-
-                (self.style)(theme, status)
-            };
+            let style = theme.style(&self.class);
 
             container::draw_background(renderer, &style, bounds);
         }
@@ -381,7 +385,8 @@ where
 impl<'a, Message, Theme, Renderer> Draggable
     for &Content<'a, Message, Theme, Renderer>
 where
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog,
+    Renderer: core::Renderer,
 {
     fn can_be_dragged_at(
         &self,
@@ -403,8 +408,8 @@ impl<'a, T, Message, Theme, Renderer> From<T>
     for Content<'a, Message, Theme, Renderer>
 where
     T: Into<Element<'a, Message, Theme, Renderer>>,
-    Theme: container::DefaultStyle + 'a,
-    Renderer: crate::core::Renderer,
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
 {
     fn from(element: T) -> Self {
         Self::new(element)

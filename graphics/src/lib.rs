@@ -17,14 +17,16 @@
 )]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 mod antialiasing;
-mod error;
+mod cached;
 mod primitive;
+mod settings;
 mod viewport;
 
 pub mod backend;
 pub mod color;
 pub mod compositor;
 pub mod damage;
+pub mod error;
 pub mod gradient;
 pub mod mesh;
 pub mod renderer;
@@ -38,6 +40,7 @@ pub mod image;
 
 pub use antialiasing::Antialiasing;
 pub use backend::Backend;
+pub use cached::Cached;
 pub use compositor::Compositor;
 pub use damage::Damage;
 pub use error::Error;
@@ -45,6 +48,7 @@ pub use gradient::Gradient;
 pub use mesh::Mesh;
 pub use primitive::Primitive;
 pub use renderer::Renderer;
+pub use settings::Settings;
 pub use viewport::Viewport;
 
 pub use iced_core as core;

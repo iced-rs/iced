@@ -1,7 +1,7 @@
 use crate::Vector;
 
 /// An amount of space in 2 dimensions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Size<T = f32> {
     /// The width.
     pub width: T,

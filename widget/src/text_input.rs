@@ -60,6 +60,7 @@ pub struct TextInput<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     id: Option<Id>,
@@ -75,7 +76,7 @@ pub struct TextInput<
     on_paste: Option<Box<dyn Fn(String) -> Message + 'a>>,
     on_submit: Option<Message>,
     icon: Option<Icon<Renderer::Font>>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 /// The default [`Padding`] of a [`TextInput`].
@@ -84,24 +85,12 @@ pub const DEFAULT_PADDING: Padding = Padding::new(5.0);
 impl<'a, Message, Theme, Renderer> TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// Creates a new [`TextInput`] with the given placeholder and
     /// its current value.
-    pub fn new(placeholder: &str, value: &str) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
-        Self::with_style(placeholder, value, Theme::default_style)
-    }
-
-    /// Creates a new [`TextInput`] with the given placeholder,
-    /// its current value, and its style.
-    pub fn with_style(
-        placeholder: &str,
-        value: &str,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
+    pub fn new(placeholder: &str, value: &str) -> Self {
         TextInput {
             id: None,
             placeholder: String::from(placeholder),
@@ -116,7 +105,7 @@ where
             on_paste: None,
             on_submit: None,
             icon: None,
-            style: Box::new(style),
+            class: Theme::default(),
         }
     }
 
@@ -203,11 +192,19 @@ where
     }
 
     /// Sets the style of the [`TextInput`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`TextInput`].
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 
@@ -345,15 +342,15 @@ where
             Status::Active
         };
 
-        let appearance = (self.style)(theme, status);
+        let style = theme.style(&self.class, status);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds,
-                border: appearance.border,
+                border: style.border,
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
         if self.icon.is_some() {
@@ -362,7 +359,7 @@ where
             renderer.fill_paragraph(
                 &state.icon,
                 icon_layout.bounds().center(),
-                appearance.icon,
+                style.icon,
                 *viewport,
             );
         }
@@ -401,7 +398,7 @@ where
                                 },
                                 ..renderer::Quad::default()
                             },
-                            appearance.value,
+                            style.value,
                         ))
                     } else {
                         None
@@ -440,7 +437,7 @@ where
                                 },
                                 ..renderer::Quad::default()
                             },
-                            appearance.selection,
+                            style.selection,
                         )),
                         if end == right {
                             right_offset
@@ -475,9 +472,9 @@ where
                 Point::new(text_bounds.x, text_bounds.center_y())
                     - Vector::new(offset, 0.0),
                 if text.is_empty() {
-                    appearance.placeholder
+                    style.placeholder
                 } else {
-                    appearance.value
+                    style.value
                 },
                 viewport,
             );
@@ -496,6 +493,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for TextInput<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -1058,8 +1056,8 @@ where
 impl<'a, Message, Theme, Renderer> From<TextInput<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Message: 'a + Clone,
-    Theme: 'a,
+    Message: Clone + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -1400,7 +1398,7 @@ pub enum Status {
 
 /// The appearance of a text input.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the text input.
     pub background: Background,
     /// The [`Border`] of the text input.
@@ -1415,32 +1413,40 @@ pub struct Appearance {
     pub selection: Color,
 }
 
-/// The style of a [`TextInput`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`TextInput`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`TextInput`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`TextInput`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        default(self, status)
+/// A styling function for a [`TextInput`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`TextInput`].
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
-    let active = Appearance {
+    let active = Style {
         background: Background::Color(palette.background.base.color),
         border: Border {
             radius: 2.0.into(),
@@ -1455,21 +1461,21 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active => active,
-        Status::Hovered => Appearance {
+        Status::Hovered => Style {
             border: Border {
                 color: palette.background.base.text,
                 ..active.border
             },
             ..active
         },
-        Status::Focused => Appearance {
+        Status::Focused => Style {
             border: Border {
                 color: palette.primary.strong.color,
                 ..active.border
             },
             ..active
         },
-        Status::Disabled => Appearance {
+        Status::Disabled => Style {
             background: Background::Color(palette.background.weak.color),
             value: active.placeholder,
             ..active

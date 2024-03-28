@@ -10,7 +10,7 @@ use iced::mouse;
 use iced::widget::canvas;
 use iced::widget::canvas::gradient;
 use iced::widget::canvas::stroke::{self, Stroke};
-use iced::widget::canvas::Path;
+use iced::widget::canvas::{Geometry, Path};
 use iced::window;
 use iced::{
     Color, Element, Length, Point, Rectangle, Renderer, Size, Subscription,
@@ -130,7 +130,7 @@ impl<Message> canvas::Program<Message> for State {
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry> {
+    ) -> Vec<Geometry> {
         use std::f32::consts::PI;
 
         let background =

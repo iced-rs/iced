@@ -4,7 +4,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    Background, Border, Element, Layout, Length, Rectangle, Size, Theme, Widget,
+    self, Background, Border, Element, Layout, Length, Rectangle, Size, Theme,
+    Widget,
 };
 
 use std::ops::RangeInclusive;
@@ -22,15 +23,21 @@ use std::ops::RangeInclusive;
 ///
 /// ![Progress bar drawn with `iced_wgpu`](https://user-images.githubusercontent.com/18618951/71662391-a316c200-2d51-11ea-9cef-52758cab85e3.png)
 #[allow(missing_debug_implementations)]
-pub struct ProgressBar<'a, Theme = crate::Theme> {
+pub struct ProgressBar<'a, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     range: RangeInclusive<f32>,
     value: f32,
     width: Length,
     height: Option<Length>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
-impl<'a, Theme> ProgressBar<'a, Theme> {
+impl<'a, Theme> ProgressBar<'a, Theme>
+where
+    Theme: Catalog,
+{
     /// The default height of a [`ProgressBar`].
     pub const DEFAULT_HEIGHT: f32 = 30.0;
 
@@ -39,16 +46,13 @@ impl<'a, Theme> ProgressBar<'a, Theme> {
     /// It expects:
     ///   * an inclusive range of possible values
     ///   * the current value of the [`ProgressBar`]
-    pub fn new(range: RangeInclusive<f32>, value: f32) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(range: RangeInclusive<f32>, value: f32) -> Self {
         ProgressBar {
             value: value.clamp(*range.start(), *range.end()),
             range,
             width: Length::Fill,
             height: None,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -65,8 +69,20 @@ impl<'a, Theme> ProgressBar<'a, Theme> {
     }
 
     /// Sets the style of the [`ProgressBar`].
-    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`ProgressBar`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -74,7 +90,8 @@ impl<'a, Theme> ProgressBar<'a, Theme> {
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for ProgressBar<'a, Theme>
 where
-    Renderer: crate::core::Renderer,
+    Theme: Catalog,
+    Renderer: core::Renderer,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -116,15 +133,15 @@ where
                 / (range_end - range_start)
         };
 
-        let appearance = (self.style)(theme);
+        let style = theme.style(&self.class);
 
         renderer.fill_quad(
             renderer::Quad {
                 bounds: Rectangle { ..bounds },
-                border: appearance.border,
+                border: style.border,
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
         if active_progress_width > 0.0 {
@@ -134,10 +151,10 @@ where
                         width: active_progress_width,
                         ..bounds
                     },
-                    border: Border::rounded(appearance.border.radius),
+                    border: Border::rounded(style.border.radius),
                     ..renderer::Quad::default()
                 },
-                appearance.bar,
+                style.bar,
             );
         }
     }
@@ -147,8 +164,8 @@ impl<'a, Message, Theme, Renderer> From<ProgressBar<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
-    Renderer: 'a + crate::core::Renderer,
+    Theme: 'a + Catalog,
+    Renderer: 'a + core::Renderer,
 {
     fn from(
         progress_bar: ProgressBar<'a, Theme>,
@@ -159,7 +176,7 @@ where
 
 /// The appearance of a progress bar.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the progress bar.
     pub background: Background,
     /// The [`Background`] of the bar of the progress bar.
@@ -168,29 +185,37 @@ pub struct Appearance {
     pub border: Border,
 }
 
-/// The style of a [`ProgressBar`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
+/// The theme catalog of a [`ProgressBar`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`ProgressBar`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`ProgressBar`].
-    fn default_style(&self) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self) -> Appearance {
-        primary(self)
+/// A styling function for a [`ProgressBar`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(primary)
     }
-}
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self) -> Appearance {
-        *self
+    fn style(&self, class: &Self::Class<'_>) -> Style {
+        class(self)
     }
 }
 
 /// The primary style of a [`ProgressBar`].
-pub fn primary(theme: &Theme) -> Appearance {
+pub fn primary(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     styled(
@@ -200,7 +225,7 @@ pub fn primary(theme: &Theme) -> Appearance {
 }
 
 /// The secondary style of a [`ProgressBar`].
-pub fn secondary(theme: &Theme) -> Appearance {
+pub fn secondary(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     styled(
@@ -210,14 +235,14 @@ pub fn secondary(theme: &Theme) -> Appearance {
 }
 
 /// The success style of a [`ProgressBar`].
-pub fn success(theme: &Theme) -> Appearance {
+pub fn success(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     styled(palette.background.strong.color, palette.success.base.color)
 }
 
 /// The danger style of a [`ProgressBar`].
-pub fn danger(theme: &Theme) -> Appearance {
+pub fn danger(theme: &Theme) -> Style {
     let palette = theme.extended_palette();
 
     styled(palette.background.strong.color, palette.danger.base.color)
@@ -226,8 +251,8 @@ pub fn danger(theme: &Theme) -> Appearance {
 fn styled(
     background: impl Into<Background>,
     bar: impl Into<Background>,
-) -> Appearance {
-    Appearance {
+) -> Style {
+    Style {
         background: background.into(),
         bar: bar.into(),
         border: Border::rounded(2),

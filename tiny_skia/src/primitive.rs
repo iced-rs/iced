@@ -1,5 +1,5 @@
 use crate::core::Rectangle;
-use crate::graphics::Damage;
+use crate::graphics::{Damage, Mesh};
 
 pub type Primitive = crate::graphics::Primitive<Custom>;
 
@@ -40,5 +40,13 @@ impl Damage for Custom {
                 .expand(1.0)
             }
         }
+    }
+}
+
+impl TryFrom<Mesh> for Custom {
+    type Error = &'static str;
+
+    fn try_from(_mesh: Mesh) -> Result<Self, Self::Error> {
+        Err("unsupported")
     }
 }

@@ -7,6 +7,7 @@ use crate::primitive::{self, Primitive};
 use crate::quad;
 use crate::text;
 use crate::triangle;
+use crate::window;
 use crate::{Layer, Settings};
 
 #[cfg(feature = "tracing")]
@@ -371,8 +372,9 @@ impl Backend {
     }
 }
 
-impl crate::graphics::Backend for Backend {
+impl backend::Backend for Backend {
     type Primitive = primitive::Custom;
+    type Compositor = window::Compositor;
 }
 
 impl backend::Text for Backend {
@@ -395,5 +397,14 @@ impl backend::Svg for Backend {
         handle: &crate::core::svg::Handle,
     ) -> Size<u32> {
         self.image_pipeline.viewport_dimensions(handle)
+    }
+}
+
+#[cfg(feature = "geometry")]
+impl crate::graphics::geometry::Backend for Backend {
+    type Frame = crate::geometry::Frame;
+
+    fn new_frame(&self, size: Size) -> Self::Frame {
+        crate::geometry::Frame::new(size)
     }
 }

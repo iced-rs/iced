@@ -12,6 +12,7 @@ keywords.workspace = true
 
 [features]
 auto-detect-theme = ["dep:dark-light"]
+advanced = []
 
 [dependencies]
 bitflags.workspace = true

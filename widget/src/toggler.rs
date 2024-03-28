@@ -35,6 +35,7 @@ pub struct Toggler<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     is_toggled: bool,
@@ -48,11 +49,12 @@ pub struct Toggler<
     text_shaping: text::Shaping,
     spacing: f32,
     font: Option<Renderer::Font>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// The default size of a [`Toggler`].
@@ -72,7 +74,6 @@ where
         f: F,
     ) -> Self
     where
-        Theme: 'a + DefaultStyle,
         F: 'a + Fn(bool) -> Message,
     {
         Toggler {
@@ -87,7 +88,7 @@ where
             text_shaping: text::Shaping::Basic,
             spacing: Self::DEFAULT_SIZE / 2.0,
             font: None,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -145,11 +146,20 @@ where
     }
 
     /// Sets the style of the [`Toggler`].
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Toggler`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -157,6 +167,7 @@ where
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Toggler<'a, Message, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -284,7 +295,7 @@ where
                 style,
                 label_layout,
                 tree.state.downcast_ref(),
-                crate::text::Appearance::default(),
+                crate::text::Style::default(),
                 viewport,
             );
         }
@@ -302,7 +313,7 @@ where
             }
         };
 
-        let appearance = (self.style)(theme, status);
+        let style = theme.style(&self.class, status);
 
         let border_radius = bounds.height / BORDER_RADIUS_RATIO;
         let space = SPACE_RATIO * bounds.height;
@@ -319,12 +330,12 @@ where
                 bounds: toggler_background_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: appearance.background_border_width,
-                    color: appearance.background_border_color,
+                    width: style.background_border_width,
+                    color: style.background_border_color,
                 },
                 ..renderer::Quad::default()
             },
-            appearance.background,
+            style.background,
         );
 
         let toggler_foreground_bounds = Rectangle {
@@ -344,12 +355,12 @@ where
                 bounds: toggler_foreground_bounds,
                 border: Border {
                     radius: border_radius.into(),
-                    width: appearance.foreground_border_width,
-                    color: appearance.foreground_border_color,
+                    width: style.foreground_border_width,
+                    color: style.foreground_border_color,
                 },
                 ..renderer::Quad::default()
             },
-            appearance.foreground,
+            style.foreground,
         );
     }
 }
@@ -358,7 +369,7 @@ impl<'a, Message, Theme, Renderer> From<Toggler<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -385,7 +396,7 @@ pub enum Status {
 
 /// The appearance of a toggler.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The background [`Color`] of the toggler.
     pub background: Color,
     /// The width of the background border of the toggler.
@@ -400,29 +411,37 @@ pub struct Appearance {
     pub foreground_border_color: Color,
 }
 
-/// The style of a [`Toggler`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Toggler`].
+pub trait Catalog: Sized {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`Toggler`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Toggler`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        default(self, status)
+/// A styling function for a [`Toggler`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`Toggler`].
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
     let background = match status {
@@ -455,7 +474,7 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
         }
     };
 
-    Appearance {
+    Style {
         background,
         foreground,
         foreground_border_width: 0.0,

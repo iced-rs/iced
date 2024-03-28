@@ -69,6 +69,7 @@ use crate::core::{
 #[allow(missing_debug_implementations)]
 pub struct Radio<'a, Message, Theme = crate::Theme, Renderer = crate::Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     is_selected: bool,
@@ -81,12 +82,13 @@ where
     text_line_height: text::LineHeight,
     text_shaping: text::Shaping,
     font: Option<Renderer::Font>,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Message, Theme, Renderer> Radio<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// The default size of a [`Radio`] button.
@@ -110,7 +112,6 @@ where
         f: F,
     ) -> Self
     where
-        Theme: DefaultStyle + 'a,
         V: Eq + Copy,
         F: FnOnce(V) -> Message,
     {
@@ -125,7 +126,7 @@ where
             text_line_height: text::LineHeight::default(),
             text_shaping: text::Shaping::Basic,
             font: None,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -175,11 +176,20 @@ where
     }
 
     /// Sets the style of the [`Radio`] button.
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Radio`] button.
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -188,6 +198,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Radio<'a, Message, Theme, Renderer>
 where
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -284,7 +295,7 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
         viewport: &Rectangle,
@@ -300,7 +311,7 @@ where
             Status::Active { is_selected }
         };
 
-        let appearance = (self.style)(theme, status);
+        let style = theme.style(&self.class, status);
 
         {
             let layout = children.next().unwrap();
@@ -314,12 +325,12 @@ where
                     bounds,
                     border: Border {
                         radius: (size / 2.0).into(),
-                        width: appearance.border_width,
-                        color: appearance.border_color,
+                        width: style.border_width,
+                        color: style.border_color,
                     },
                     ..renderer::Quad::default()
                 },
-                appearance.background,
+                style.background,
             );
 
             if self.is_selected {
@@ -334,7 +345,7 @@ where
                         border: Border::rounded(dot_size / 2.0),
                         ..renderer::Quad::default()
                     },
-                    appearance.dot_color,
+                    style.dot_color,
                 );
             }
         }
@@ -344,11 +355,11 @@ where
 
             crate::text::draw(
                 renderer,
-                style,
+                defaults,
                 label_layout,
                 tree.state.downcast_ref(),
-                crate::text::Appearance {
-                    color: appearance.text_color,
+                crate::text::Style {
+                    color: style.text_color,
                 },
                 viewport,
             );
@@ -360,7 +371,7 @@ impl<'a, Message, Theme, Renderer> From<Radio<'a, Message, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
     Message: 'a + Clone,
-    Theme: 'a,
+    Theme: 'a + Catalog,
     Renderer: 'a + text::Renderer,
 {
     fn from(
@@ -387,7 +398,7 @@ pub enum Status {
 
 /// The appearance of a radio button.
 #[derive(Debug, Clone, Copy)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Background`] of the radio button.
     pub background: Background,
     /// The [`Color`] of the dot of the radio button.
@@ -400,32 +411,38 @@ pub struct Appearance {
     pub text_color: Option<Color>,
 }
 
-/// The style of a [`Radio`] button.
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of a [`Radio`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`Radio`] button.
-pub trait DefaultStyle {
-    /// Returns the default style of a [`Radio`] button.
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, status: Status) -> Appearance {
-        default(self, status)
+/// A styling function for a [`Radio`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`Radio`] button.
-pub fn default(theme: &Theme, status: Status) -> Appearance {
+pub fn default(theme: &Theme, status: Status) -> Style {
     let palette = theme.extended_palette();
 
-    let active = Appearance {
+    let active = Style {
         background: Color::TRANSPARENT.into(),
         dot_color: palette.primary.strong.color,
         border_width: 1.0,
@@ -435,7 +452,7 @@ pub fn default(theme: &Theme, status: Status) -> Appearance {
 
     match status {
         Status::Active { .. } => active,
-        Status::Hovered { .. } => Appearance {
+        Status::Hovered { .. } => Style {
             dot_color: palette.primary.strong.color,
             background: palette.primary.weak.color.into(),
             ..active

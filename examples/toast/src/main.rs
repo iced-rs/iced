@@ -651,45 +651,33 @@ mod toast {
         }
     }
 
-    fn styled(pair: theme::palette::Pair) -> container::Appearance {
-        container::Appearance {
+    fn styled(pair: theme::palette::Pair) -> container::Style {
+        container::Style {
             background: Some(pair.color.into()),
             text_color: pair.text.into(),
             ..Default::default()
         }
     }
 
-    fn primary(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn primary(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.primary.weak)
     }
 
-    fn secondary(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn secondary(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.secondary.weak)
     }
 
-    fn success(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn success(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.success.weak)
     }
 
-    fn danger(
-        theme: &Theme,
-        _status: container::Status,
-    ) -> container::Appearance {
+    fn danger(theme: &Theme) -> container::Style {
         let palette = theme.extended_palette();
 
         styled(palette.danger.weak)

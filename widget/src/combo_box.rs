@@ -32,6 +32,7 @@ pub struct ComboBox<
     Theme = crate::Theme,
     Renderer = crate::Renderer,
 > where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     state: &'a State<T>,
@@ -42,7 +43,7 @@ pub struct ComboBox<
     on_option_hovered: Option<Box<dyn Fn(T) -> Message>>,
     on_close: Option<Message>,
     on_input: Option<Box<dyn Fn(String) -> Message>>,
-    menu_style: menu::Style<'a, Theme>,
+    menu_class: <Theme as menu::Catalog>::Class<'a>,
     padding: Padding,
     size: Option<f32>,
 }
@@ -50,6 +51,7 @@ pub struct ComboBox<
 impl<'a, T, Message, Theme, Renderer> ComboBox<'a, T, Message, Theme, Renderer>
 where
     T: std::fmt::Display + Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// Creates a new [`ComboBox`] with the given list of options, a placeholder,
@@ -60,18 +62,10 @@ where
         placeholder: &str,
         selection: Option<&T>,
         on_selected: impl Fn(T) -> Message + 'static,
-    ) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
-        let style = Theme::default_style();
-
-        let text_input = TextInput::with_style(
-            placeholder,
-            &state.value(),
-            style.text_input,
-        )
-        .on_input(TextInputEvent::TextChanged);
+    ) -> Self {
+        let text_input = TextInput::new(placeholder, &state.value())
+            .on_input(TextInputEvent::TextChanged)
+            .class(Theme::default_input());
 
         let selection = selection.map(T::to_string).unwrap_or_default();
 
@@ -84,7 +78,7 @@ where
             on_option_hovered: None,
             on_input: None,
             on_close: None,
-            menu_style: style.menu,
+            menu_class: <Theme as Catalog>::default_menu(),
             padding: text_input::DEFAULT_PADDING,
             size: None,
         }
@@ -124,18 +118,6 @@ where
         self
     }
 
-    /// Sets the style of the [`ComboBox`].
-    pub fn style(mut self, style: impl Into<Style<'a, Theme>>) -> Self
-    where
-        Theme: 'a,
-    {
-        let style = style.into();
-
-        self.text_input = self.text_input.style(style.text_input);
-        self.menu_style = style.menu;
-        self
-    }
-
     /// Sets the [`Renderer::Font`] of the [`ComboBox`].
     ///
     /// [`Renderer::Font`]: text::Renderer
@@ -172,6 +154,55 @@ where
             text_input: self.text_input.width(width),
             ..self
         }
+    }
+
+    /// Sets the style of the input of the [`ComboBox`].
+    #[must_use]
+    pub fn input_style(
+        mut self,
+        style: impl Fn(&Theme, text_input::Status) -> text_input::Style + 'a,
+    ) -> Self
+    where
+        <Theme as text_input::Catalog>::Class<'a>:
+            From<text_input::StyleFn<'a, Theme>>,
+    {
+        self.text_input = self.text_input.style(style);
+        self
+    }
+
+    /// Sets the style of the menu of the [`ComboBox`].
+    #[must_use]
+    pub fn menu_style(
+        mut self,
+        style: impl Fn(&Theme) -> menu::Style + 'a,
+    ) -> Self
+    where
+        <Theme as menu::Catalog>::Class<'a>: From<menu::StyleFn<'a, Theme>>,
+    {
+        self.menu_class = (Box::new(style) as menu::StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the input of the [`ComboBox`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn input_class(
+        mut self,
+        class: impl Into<<Theme as text_input::Catalog>::Class<'a>>,
+    ) -> Self {
+        self.text_input = self.text_input.class(class);
+        self
+    }
+
+    /// Sets the style class of the menu of the [`ComboBox`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn menu_class(
+        mut self,
+        class: impl Into<<Theme as menu::Catalog>::Class<'a>>,
+    ) -> Self {
+        self.menu_class = class.into();
+        self
     }
 }
 
@@ -296,6 +327,7 @@ impl<'a, T, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone,
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn size(&self) -> Size<Length> {
@@ -686,7 +718,7 @@ where
                     (self.on_selected)(x)
                 },
                 self.on_option_hovered.as_deref(),
-                &self.menu_style,
+                &self.menu_class,
             )
             .width(bounds.width)
             .padding(self.padding);
@@ -712,13 +744,28 @@ impl<'a, T, Message, Theme, Renderer>
 where
     T: Display + Clone + 'static,
     Message: Clone + 'a,
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(combo_box: ComboBox<'a, T, Message, Theme, Renderer>) -> Self {
         Self::new(combo_box)
     }
 }
+
+/// The theme catalog of a [`ComboBox`].
+pub trait Catalog: text_input::Catalog + menu::Catalog {
+    /// The default class for the text input of the [`ComboBox`].
+    fn default_input<'a>() -> <Self as text_input::Catalog>::Class<'a> {
+        <Self as text_input::Catalog>::default()
+    }
+
+    /// The default class for the menu of the [`ComboBox`].
+    fn default_menu<'a>() -> <Self as menu::Catalog>::Class<'a> {
+        <Self as menu::Catalog>::default()
+    }
+}
+
+impl Catalog for Theme {}
 
 fn search<'a, T, A>(
     options: impl IntoIterator<Item = T> + 'a,
@@ -761,31 +808,4 @@ where
             matcher.to_lowercase()
         })
         .collect()
-}
-
-/// The style of a [`ComboBox`].
-#[allow(missing_debug_implementations)]
-pub struct Style<'a, Theme> {
-    /// The style of the [`TextInput`] of the [`ComboBox`].
-    pub text_input: text_input::Style<'a, Theme>,
-
-    /// The style of the [`Menu`] of the [`ComboBox`].
-    ///
-    /// [`Menu`]: menu::Menu
-    pub menu: menu::Style<'a, Theme>,
-}
-
-/// The default style of a [`ComboBox`].
-pub trait DefaultStyle: Sized {
-    /// Returns the default style of a [`ComboBox`].
-    fn default_style() -> Style<'static, Self>;
-}
-
-impl DefaultStyle for Theme {
-    fn default_style() -> Style<'static, Self> {
-        Style {
-            text_input: Box::new(text_input::default),
-            menu: menu::DefaultStyle::default_style(),
-        }
-    }
 }

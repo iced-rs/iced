@@ -18,6 +18,7 @@ pub use text::{LineHeight, Shaping};
 #[allow(missing_debug_implementations)]
 pub struct Text<'a, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     content: Cow<'a, str>,
@@ -29,18 +30,16 @@ where
     vertical_alignment: alignment::Vertical,
     font: Option<Renderer::Font>,
     shaping: Shaping,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
 impl<'a, Theme, Renderer> Text<'a, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new(content: impl Into<Cow<'a, str>>) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
         Text {
             content: content.into(),
             size: None,
@@ -51,7 +50,7 @@ where
             horizontal_alignment: alignment::Horizontal::Left,
             vertical_alignment: alignment::Vertical::Top,
             shaping: Shaping::Basic,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -72,25 +71,6 @@ where
     /// [`Font`]: crate::text::Renderer::Font
     pub fn font(mut self, font: impl Into<Renderer::Font>) -> Self {
         self.font = Some(font.into());
-        self
-    }
-
-    /// Sets the style of the [`Text`].
-    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
-        self.style = Box::new(style);
-        self
-    }
-
-    /// Sets the [`Color`] of the [`Text`].
-    pub fn color(self, color: impl Into<Color>) -> Self {
-        self.color_maybe(Some(color))
-    }
-
-    /// Sets the [`Color`] of the [`Text`], if `Some`.
-    pub fn color_maybe(mut self, color: Option<impl Into<Color>>) -> Self {
-        let color = color.map(Into::into);
-
-        self.style = Box::new(move |_theme| Appearance { color });
         self
     }
 
@@ -129,6 +109,42 @@ where
         self.shaping = shaping;
         self
     }
+
+    /// Sets the style of the [`Text`].
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the [`Color`] of the [`Text`].
+    pub fn color(self, color: impl Into<Color>) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.color_maybe(Some(color))
+    }
+
+    /// Sets the [`Color`] of the [`Text`], if `Some`.
+    pub fn color_maybe(self, color: Option<impl Into<Color>>) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        let color = color.map(Into::into);
+
+        self.style(move |_theme| Style { color })
+    }
+
+    /// Sets the style class of the [`Text`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
+        self
+    }
 }
 
 /// The internal state of a [`Text`] widget.
@@ -138,6 +154,7 @@ pub struct State<P: Paragraph>(P);
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Text<'a, Theme, Renderer>
 where
+    Theme: Catalog,
     Renderer: text::Renderer,
 {
     fn tag(&self) -> tree::Tag {
@@ -182,15 +199,15 @@ where
         tree: &Tree,
         renderer: &mut Renderer,
         theme: &Theme,
-        style: &renderer::Style,
+        defaults: &renderer::Style,
         layout: Layout<'_>,
         _cursor_position: mouse::Cursor,
         viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State<Renderer::Paragraph>>();
-        let appearance = (self.style)(theme);
+        let style = theme.style(&self.class);
 
-        draw(renderer, style, layout, state, appearance, viewport);
+        draw(renderer, defaults, layout, state, style, viewport);
     }
 }
 
@@ -250,7 +267,7 @@ pub fn draw<Renderer>(
     style: &renderer::Style,
     layout: Layout<'_>,
     state: &State<Renderer::Paragraph>,
-    appearance: Appearance,
+    appearance: Style,
     viewport: &Rectangle,
 ) where
     Renderer: text::Renderer,
@@ -281,7 +298,7 @@ pub fn draw<Renderer>(
 impl<'a, Message, Theme, Renderer> From<Text<'a, Theme, Renderer>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(
@@ -293,7 +310,7 @@ where
 
 impl<'a, Theme, Renderer> From<&'a str> for Text<'a, Theme, Renderer>
 where
-    Theme: DefaultStyle + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer,
 {
     fn from(content: &'a str) -> Self {
@@ -304,7 +321,7 @@ where
 impl<'a, Message, Theme, Renderer> From<&'a str>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: DefaultStyle + 'a,
+    Theme: Catalog + 'a,
     Renderer: text::Renderer + 'a,
 {
     fn from(content: &'a str) -> Self {
@@ -314,30 +331,38 @@ where
 
 /// The appearance of some text.
 #[derive(Debug, Clone, Copy, Default)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Color`] of the text.
     ///
     /// The default, `None`, means using the inherited color.
     pub color: Option<Color>,
 }
 
-/// The style of some [`Text`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
+/// The theme catalog of a [`Text`].
+pub trait Catalog: Sized {
+    /// The item class of this [`Catalog`].
+    type Class<'a>;
 
-/// The default style of some [`Text`].
-pub trait DefaultStyle {
-    /// Returns the default style of some [`Text`].
-    fn default_style(&self) -> Appearance;
+    /// The default class produced by this [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, item: &Self::Class<'_>) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self) -> Appearance {
-        Appearance::default()
+/// A styling function for a [`Text`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(|_theme| Style::default())
     }
-}
 
-impl DefaultStyle for Color {
-    fn default_style(&self) -> Appearance {
-        Appearance { color: Some(*self) }
+    fn style(&self, class: &Self::Class<'_>) -> Style {
+        class(self)
     }
 }

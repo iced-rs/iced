@@ -8,7 +8,6 @@ use crate::core::{
     Color, Element, Layout, Length, Point, Rectangle, Size, Theme, Vector,
     Widget,
 };
-use crate::graphics::geometry::Renderer as _;
 use crate::Renderer;
 
 use std::cell::RefCell;
@@ -20,22 +19,25 @@ const QUIET_ZONE: usize = 2;
 /// A type of matrix barcode consisting of squares arranged in a grid which
 /// can be read by an imaging device, such as a camera.
 #[allow(missing_debug_implementations)]
-pub struct QRCode<'a, Theme = crate::Theme> {
+pub struct QRCode<'a, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     data: &'a Data,
     cell_size: u16,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
-impl<'a, Theme> QRCode<'a, Theme> {
+impl<'a, Theme> QRCode<'a, Theme>
+where
+    Theme: Catalog,
+{
     /// Creates a new [`QRCode`] with the provided [`Data`].
-    pub fn new(data: &'a Data) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(data: &'a Data) -> Self {
         Self {
             data,
             cell_size: DEFAULT_CELL_SIZE,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
@@ -46,14 +48,27 @@ impl<'a, Theme> QRCode<'a, Theme> {
     }
 
     /// Sets the style of the [`QRCode`].
-    pub fn style(mut self, style: impl Fn(&Theme) -> Appearance + 'a) -> Self {
-        self.style = Box::new(style);
+    #[must_use]
+    pub fn style(mut self, style: impl Fn(&Theme) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`QRCode`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
 
-impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
-    for QRCode<'a, Theme>
+impl<'a, Message, Theme> Widget<Message, Theme, Renderer> for QRCode<'a, Theme>
+where
+    Theme: Catalog,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -97,13 +112,13 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         let bounds = layout.bounds();
         let side_length = self.data.width + 2 * QUIET_ZONE;
 
-        let appearance = (self.style)(theme);
-        let mut last_appearance = state.last_appearance.borrow_mut();
+        let style = theme.style(&self.class);
+        let mut last_style = state.last_style.borrow_mut();
 
-        if Some(appearance) != *last_appearance {
+        if Some(style) != *last_style {
             self.data.cache.clear();
 
-            *last_appearance = Some(appearance);
+            *last_style = Some(style);
         }
 
         // Reuse cache if possible
@@ -115,7 +130,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
             frame.fill_rectangle(
                 Point::ORIGIN,
                 Size::new(side_length as f32, side_length as f32),
-                appearance.background,
+                style.background,
             );
 
             // Avoid drawing on the quiet zone
@@ -134,7 +149,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
                     frame.fill_rectangle(
                         Point::new(column as f32, row as f32),
                         Size::UNIT,
-                        appearance.cell,
+                        style.cell,
                     );
                 });
         });
@@ -142,7 +157,9 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
         renderer.with_translation(
             bounds.position() - Point::ORIGIN,
             |renderer| {
-                renderer.draw(vec![geometry]);
+                use crate::graphics::geometry::Renderer as _;
+
+                renderer.draw_geometry(geometry);
             },
         );
     }
@@ -151,7 +168,7 @@ impl<'a, Message, Theme> Widget<Message, Theme, Renderer>
 impl<'a, Message, Theme> From<QRCode<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: 'a,
+    Theme: Catalog + 'a,
 {
     fn from(qr_code: QRCode<'a, Theme>) -> Self {
         Self::new(qr_code)
@@ -165,7 +182,7 @@ where
 pub struct Data {
     contents: Vec<qrcode::Color>,
     width: usize,
-    cache: canvas::Cache,
+    cache: canvas::Cache<Renderer>,
 }
 
 impl Data {
@@ -323,44 +340,50 @@ impl From<qrcode::types::QrError> for Error {
 
 #[derive(Default)]
 struct State {
-    last_appearance: RefCell<Option<Appearance>>,
+    last_style: RefCell<Option<Style>>,
 }
 
 /// The appearance of a QR code.
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Appearance {
+pub struct Style {
     /// The color of the QR code data cells
     pub cell: Color,
     /// The color of the QR code background
     pub background: Color,
 }
 
-/// The style of a [`QRCode`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme) -> Appearance + 'a>;
+/// The theme catalog of a [`QRCode`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of a [`QRCode`].
-pub trait DefaultStyle {
-    /// Returns the default style of a [`QRCode`].
-    fn default_style(&self) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self) -> Appearance {
-        default(self)
+/// A styling function for a [`QRCode`].
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme) -> Style + 'a>;
+
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(default)
+    }
+
+    fn style(&self, class: &Self::Class<'_>) -> Style {
+        class(self)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self) -> Appearance {
-        *self
-    }
-}
-
 /// The default style of a [`QRCode`].
-pub fn default(theme: &Theme) -> Appearance {
+pub fn default(theme: &Theme) -> Style {
     let palette = theme.palette();
 
-    Appearance {
+    Style {
         cell: palette.text,
         background: palette.background,
     }

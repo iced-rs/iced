@@ -1,5 +1,5 @@
 //! Draw primitives using custom pipelines.
-use crate::core::{Rectangle, Size};
+use crate::core::{self, Rectangle, Size};
 
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -58,7 +58,7 @@ pub trait Primitive: Debug + Send + Sync + 'static {
 }
 
 /// A renderer than can draw custom pipeline primitives.
-pub trait Renderer: crate::core::Renderer {
+pub trait Renderer: core::Renderer {
     /// Draws a custom pipeline primitive.
     fn draw_pipeline_primitive(
         &mut self,

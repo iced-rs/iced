@@ -1,5 +1,6 @@
 use crate::canvas::event::{self, Event};
 use crate::canvas::mouse;
+use crate::canvas::Geometry;
 use crate::core::Rectangle;
 use crate::graphics::geometry;
 
@@ -52,7 +53,7 @@ where
         theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Renderer::Geometry>;
+    ) -> Vec<Geometry<Renderer>>;
 
     /// Returns the current mouse interaction of the [`Program`].
     ///
@@ -94,7 +95,7 @@ where
         theme: &Theme,
         bounds: Rectangle,
         cursor: mouse::Cursor,
-    ) -> Vec<Renderer::Geometry> {
+    ) -> Vec<Geometry<Renderer>> {
         T::draw(self, state, renderer, theme, bounds, cursor)
     }
 

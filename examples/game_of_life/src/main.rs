@@ -602,9 +602,7 @@ mod grid {
                 frame.into_geometry()
             };
 
-            if self.scaling < 0.2 || !self.show_lines {
-                vec![life, overlay]
-            } else {
+            if self.scaling >= 0.2 && self.show_lines {
                 let grid =
                     self.grid_cache.draw(renderer, bounds.size(), |frame| {
                         frame.translate(center);
@@ -641,6 +639,8 @@ mod grid {
                     });
 
                 vec![life, grid, overlay]
+            } else {
+                vec![life, overlay]
             }
         }
 

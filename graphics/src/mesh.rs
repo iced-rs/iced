@@ -74,3 +74,9 @@ pub struct GradientVertex2D {
     /// The packed vertex data of the gradient.
     pub gradient: gradient::Packed,
 }
+
+/// A renderer capable of drawing a [`Mesh`].
+pub trait Renderer {
+    /// Draws the given [`Mesh`].
+    fn draw_mesh(&mut self, mesh: Mesh);
+}

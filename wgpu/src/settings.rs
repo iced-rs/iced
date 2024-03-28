@@ -1,6 +1,6 @@
 //! Configure a renderer.
 use crate::core::{Font, Pixels};
-use crate::graphics::Antialiasing;
+use crate::graphics::{self, Antialiasing};
 
 /// The settings of a [`Backend`].
 ///
@@ -29,30 +29,6 @@ pub struct Settings {
     pub antialiasing: Option<Antialiasing>,
 }
 
-impl Settings {
-    /// Creates new [`Settings`] using environment configuration.
-    ///
-    /// Specifically:
-    ///
-    /// - The `internal_backend` can be configured using the `WGPU_BACKEND`
-    /// environment variable. If the variable is not set, the primary backend
-    /// will be used. The following values are allowed:
-    ///     - `vulkan`
-    ///     - `metal`
-    ///     - `dx12`
-    ///     - `dx11`
-    ///     - `gl`
-    ///     - `webgpu`
-    ///     - `primary`
-    pub fn from_env() -> Self {
-        Settings {
-            internal_backend: wgpu::util::backend_bits_from_env()
-                .unwrap_or(wgpu::Backends::all()),
-            ..Self::default()
-        }
-    }
-}
-
 impl Default for Settings {
     fn default() -> Settings {
         Settings {
@@ -61,6 +37,17 @@ impl Default for Settings {
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,
+        }
+    }
+}
+
+impl From<graphics::Settings> for Settings {
+    fn from(settings: graphics::Settings) -> Self {
+        Self {
+            default_font: settings.default_font,
+            default_text_size: settings.default_text_size,
+            antialiasing: settings.antialiasing,
+            ..Settings::default()
         }
     }
 }

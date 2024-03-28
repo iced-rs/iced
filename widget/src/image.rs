@@ -112,7 +112,7 @@ where
 {
     // The raw w/h of the underlying image
     let image_size = {
-        let Size { width, height } = renderer.dimensions(handle);
+        let Size { width, height } = renderer.measure_image(handle);
 
         Size::new(width as f32, height as f32)
     };
@@ -154,7 +154,7 @@ pub fn draw<Renderer, Handle>(
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone + Hash,
 {
-    let Size { width, height } = renderer.dimensions(handle);
+    let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
     let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
 
@@ -176,7 +176,7 @@ pub fn draw<Renderer, Handle>(
 
         let drawing_bounds = Rectangle::new(position, image_size);
 
-        renderer.draw(
+        renderer.draw_image(
             handle.clone(),
             filter_method,
             drawing_bounds,

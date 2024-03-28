@@ -21,6 +21,7 @@ svg = ["iced_renderer/svg"]
 canvas = ["iced_renderer/geometry"]
 qr_code = ["canvas", "qrcode"]
 wgpu = ["iced_renderer/wgpu"]
+advanced = []
 
 [dependencies]
 iced_renderer.workspace = true

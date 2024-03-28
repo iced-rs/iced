@@ -1,12 +1,10 @@
 //! Connect a window with a renderer.
 use crate::core::{Color, Size};
-use crate::graphics;
 use crate::graphics::color;
 use crate::graphics::compositor;
-use crate::graphics::{Error, Viewport};
+use crate::graphics::error;
+use crate::graphics::{self, Viewport};
 use crate::{Backend, Primitive, Renderer, Settings};
-
-use std::future::Future;
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
@@ -20,6 +18,32 @@ pub struct Compositor {
     alpha_mode: wgpu::CompositeAlphaMode,
 }
 
+/// A compositor error.
+#[derive(Debug, Clone, thiserror::Error)]
+pub enum Error {
+    /// The surface creation failed.
+    #[error("the surface creation failed: {0}")]
+    SurfaceCreationFailed(#[from] wgpu::CreateSurfaceError),
+    /// The surface is not compatible.
+    #[error("the surface is not compatible")]
+    IncompatibleSurface,
+    /// No adapter was found for the options requested.
+    #[error("no adapter was found for the options requested: {0:?}")]
+    NoAdapterFound(String),
+    /// No device request succeeded.
+    #[error("no device request succeeded: {0:?}")]
+    RequestDeviceFailed(Vec<(wgpu::Limits, wgpu::RequestDeviceError)>),
+}
+
+impl From<Error> for graphics::Error {
+    fn from(error: Error) -> Self {
+        Self::GraphicsAdapterNotFound {
+            backend: "wgpu",
+            reason: error::Reason::RequestFailed(error.to_string()),
+        }
+    }
+}
+
 impl Compositor {
     /// Requests a new [`Compositor`] with the given [`Settings`].
     ///
@@ -27,7 +51,7 @@ impl Compositor {
     pub async fn request<W: compositor::Window>(
         settings: Settings,
         compatible_window: Option<W>,
-    ) -> Option<Self> {
+    ) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: settings.internal_backend,
             ..Default::default()
@@ -49,23 +73,27 @@ impl Compositor {
         let compatible_surface = compatible_window
             .and_then(|window| instance.create_surface(window).ok());
 
+        let adapter_options = wgpu::RequestAdapterOptions {
+            power_preference: wgpu::util::power_preference_from_env()
+                .unwrap_or(if settings.antialiasing.is_none() {
+                    wgpu::PowerPreference::LowPower
+                } else {
+                    wgpu::PowerPreference::HighPerformance
+                }),
+            compatible_surface: compatible_surface.as_ref(),
+            force_fallback_adapter: false,
+        };
+
         let adapter = instance
-            .request_adapter(&wgpu::RequestAdapterOptions {
-                power_preference: wgpu::util::power_preference_from_env()
-                    .unwrap_or(if settings.antialiasing.is_none() {
-                        wgpu::PowerPreference::LowPower
-                    } else {
-                        wgpu::PowerPreference::HighPerformance
-                    }),
-                compatible_surface: compatible_surface.as_ref(),
-                force_fallback_adapter: false,
-            })
-            .await?;
+            .request_adapter(&adapter_options)
+            .await
+            .ok_or(Error::NoAdapterFound(format!("{:?}", adapter_options)))?;
 
         log::info!("Selected: {:#?}", adapter.get_info());
 
-        let (format, alpha_mode) =
-            compatible_surface.as_ref().and_then(|surface| {
+        let (format, alpha_mode) = compatible_surface
+            .as_ref()
+            .and_then(|surface| {
                 let capabilities = surface.get_capabilities(&adapter);
 
                 let mut formats = capabilities.formats.iter().copied();
@@ -101,7 +129,8 @@ impl Compositor {
                 };
 
                 format.zip(Some(preferred_alpha))
-            })?;
+            })
+            .ok_or(Error::IncompatibleSurface)?;
 
         log::info!(
             "Selected format: {format:?} with alpha mode: {alpha_mode:?}"
@@ -115,39 +144,46 @@ impl Compositor {
         let limits =
             [wgpu::Limits::default(), wgpu::Limits::downlevel_defaults()];
 
-        let mut limits = limits.into_iter().map(|limits| wgpu::Limits {
+        let limits = limits.into_iter().map(|limits| wgpu::Limits {
             max_bind_groups: 2,
             ..limits
         });
 
-        let (device, queue) =
-            loop {
-                let required_limits = limits.next()?;
-                let device = adapter.request_device(
+        let mut errors = Vec::new();
+
+        for required_limits in limits {
+            let result = adapter
+                .request_device(
                     &wgpu::DeviceDescriptor {
                         label: Some(
                             "iced_wgpu::window::compositor device descriptor",
                         ),
                         required_features: wgpu::Features::empty(),
-                        required_limits,
+                        required_limits: required_limits.clone(),
                     },
                     None,
-                ).await.ok();
+                )
+                .await;
 
-                if let Some(device) = device {
-                    break Some(device);
+            match result {
+                Ok((device, queue)) => {
+                    return Ok(Compositor {
+                        instance,
+                        settings,
+                        adapter,
+                        device,
+                        queue,
+                        format,
+                        alpha_mode,
+                    })
                 }
-            }?;
+                Err(error) => {
+                    errors.push((required_limits, error));
+                }
+            }
+        }
 
-        Some(Compositor {
-            instance,
-            settings,
-            adapter,
-            device,
-            queue,
-            format,
-            alpha_mode,
-        })
+        Err(Error::RequestDeviceFailed(errors))
     }
 
     /// Creates a new rendering [`Backend`] for this [`Compositor`].
@@ -168,9 +204,7 @@ pub async fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
 ) -> Result<Compositor, Error> {
-    Compositor::request(settings, Some(compatible_window))
-        .await
-        .ok_or(Error::GraphicsAdapterNotFound)
+    Compositor::request(settings, Some(compatible_window)).await
 }
 
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
@@ -229,15 +263,31 @@ pub fn present<T: AsRef<str>>(
 }
 
 impl graphics::Compositor for Compositor {
-    type Settings = Settings;
     type Renderer = Renderer;
     type Surface = wgpu::Surface<'static>;
 
-    fn new<W: compositor::Window>(
-        settings: Self::Settings,
+    async fn with_backend<W: compositor::Window>(
+        settings: graphics::Settings,
         compatible_window: W,
-    ) -> impl Future<Output = Result<Self, Error>> {
-        new(settings, compatible_window)
+        backend: Option<&str>,
+    ) -> Result<Self, graphics::Error> {
+        match backend {
+            None | Some("wgpu") => Ok(new(
+                Settings {
+                    internal_backend: wgpu::util::backend_bits_from_env()
+                        .unwrap_or(wgpu::Backends::all()),
+                    ..settings.into()
+                },
+                compatible_window,
+            )
+            .await?),
+            Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
+                backend: "wgpu",
+                reason: error::Reason::DidNotMatch {
+                    preferred_backend: backend.to_owned(),
+                },
+            }),
+        }
     }
 
     fn create_renderer(&self) -> Self::Renderer {

@@ -2,15 +2,19 @@
 use crate::core::image;
 use crate::core::svg;
 use crate::core::Size;
+use crate::{Compositor, Mesh, Renderer};
 
 use std::borrow::Cow;
 
 /// The graphics backend of a [`Renderer`].
 ///
 /// [`Renderer`]: crate::Renderer
-pub trait Backend {
+pub trait Backend: Sized {
     /// The custom kind of primitives this [`Backend`] supports.
-    type Primitive;
+    type Primitive: TryFrom<Mesh, Error = &'static str>;
+
+    /// The default compositor of this [`Backend`].
+    type Compositor: Compositor<Renderer = Renderer<Self>>;
 }
 
 /// A graphics backend that supports text rendering.

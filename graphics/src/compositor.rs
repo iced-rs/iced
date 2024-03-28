@@ -1,9 +1,8 @@
 //! A compositor is responsible for initializing a renderer and managing window
 //! surfaces.
-use crate::{Error, Viewport};
-
 use crate::core::Color;
 use crate::futures::{MaybeSend, MaybeSync};
+use crate::{Error, Settings, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 use std::future::Future;
@@ -11,19 +10,28 @@ use thiserror::Error;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
-    /// The settings of the backend.
-    type Settings: Default;
-
     /// The iced renderer of the backend.
-    type Renderer: iced_core::Renderer;
+    type Renderer;
 
     /// The surface of the backend.
     type Surface;
 
     /// Creates a new [`Compositor`].
     fn new<W: Window + Clone>(
-        settings: Self::Settings,
+        settings: Settings,
         compatible_window: W,
+    ) -> impl Future<Output = Result<Self, Error>> {
+        Self::with_backend(settings, compatible_window, None)
+    }
+
+    /// Creates a new [`Compositor`] with a backend preference.
+    ///
+    /// If the backend does not match the preference, it will return
+    /// [`Error::GraphicsAdapterNotFound`].
+    fn with_backend<W: Window + Clone>(
+        _settings: Settings,
+        _compatible_window: W,
+        _backend: Option<&str>,
     ) -> impl Future<Output = Result<Self, Error>>;
 
     /// Creates a [`Self::Renderer`] for the [`Compositor`].
@@ -93,6 +101,12 @@ impl<T> Window for T where
 {
 }
 
+/// Defines the default compositor of a renderer.
+pub trait Default {
+    /// The compositor of the renderer.
+    type Compositor: Compositor<Renderer = Self>;
+}
+
 /// Result of an unsuccessful call to [`Compositor::present`].
 #[derive(Clone, PartialEq, Eq, Debug, Error)]
 pub enum SurfaceError {
@@ -121,4 +135,70 @@ pub struct Information {
     pub adapter: String,
     /// Contains the graphics backend.
     pub backend: String,
+}
+
+#[cfg(debug_assertions)]
+impl Compositor for () {
+    type Renderer = ();
+    type Surface = ();
+
+    async fn with_backend<W: Window + Clone>(
+        _settings: Settings,
+        _compatible_window: W,
+        _preffered_backend: Option<&str>,
+    ) -> Result<Self, Error> {
+        Ok(())
+    }
+
+    fn create_renderer(&self) -> Self::Renderer {}
+
+    fn create_surface<W: Window + Clone>(
+        &mut self,
+        _window: W,
+        _width: u32,
+        _height: u32,
+    ) -> Self::Surface {
+    }
+
+    fn configure_surface(
+        &mut self,
+        _surface: &mut Self::Surface,
+        _width: u32,
+        _height: u32,
+    ) {
+    }
+
+    fn fetch_information(&self) -> Information {
+        Information {
+            adapter: String::from("Null Renderer"),
+            backend: String::from("Null"),
+        }
+    }
+
+    fn present<T: AsRef<str>>(
+        &mut self,
+        _renderer: &mut Self::Renderer,
+        _surface: &mut Self::Surface,
+        _viewport: &Viewport,
+        _background_color: Color,
+        _overlay: &[T],
+    ) -> Result<(), SurfaceError> {
+        Ok(())
+    }
+
+    fn screenshot<T: AsRef<str>>(
+        &mut self,
+        _renderer: &mut Self::Renderer,
+        _surface: &mut Self::Surface,
+        _viewport: &Viewport,
+        _background_color: Color,
+        _overlay: &[T],
+    ) -> Vec<u8> {
+        vec![]
+    }
+}
+
+#[cfg(debug_assertions)]
+impl Default for () {
+    type Compositor = ();
 }

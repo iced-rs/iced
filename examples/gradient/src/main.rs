@@ -60,7 +60,7 @@ impl Gradient {
         } = *self;
 
         let gradient_box = container(horizontal_space())
-            .style(move |_theme, _status| {
+            .style(move |_theme| {
                 let gradient = gradient::Linear::new(angle)
                     .add_stop(0.0, start)
                     .add_stop(1.0, end);

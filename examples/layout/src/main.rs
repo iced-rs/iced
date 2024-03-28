@@ -81,10 +81,10 @@ impl Layout {
         } else {
             self.example.view()
         })
-        .style(|theme, _status| {
+        .style(|theme| {
             let palette = theme.extended_palette();
 
-            container::Appearance::default()
+            container::Style::default()
                 .with_border(palette.background.strong.color, 4.0)
         })
         .padding(4)
@@ -245,10 +245,10 @@ fn application<'a>() -> Element<'a, Message> {
         .padding(10)
         .align_items(Alignment::Center),
     )
-    .style(|theme, _status| {
+    .style(|theme| {
         let palette = theme.extended_palette();
 
-        container::Appearance::default()
+        container::Style::default()
             .with_border(palette.background.strong.color, 1)
     });
 

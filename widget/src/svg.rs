@@ -20,36 +20,36 @@ pub use crate::core::svg::Handle;
 /// [`Svg`] images can have a considerable rendering cost when resized,
 /// specially when they are complex.
 #[allow(missing_debug_implementations)]
-pub struct Svg<'a, Theme = crate::Theme> {
+pub struct Svg<'a, Theme = crate::Theme>
+where
+    Theme: Catalog,
+{
     handle: Handle,
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    style: Style<'a, Theme>,
+    class: Theme::Class<'a>,
 }
 
-impl<'a, Theme> Svg<'a, Theme> {
+impl<'a, Theme> Svg<'a, Theme>
+where
+    Theme: Catalog,
+{
     /// Creates a new [`Svg`] from the given [`Handle`].
-    pub fn new(handle: impl Into<Handle>) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn new(handle: impl Into<Handle>) -> Self {
         Svg {
             handle: handle.into(),
             width: Length::Fill,
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
-            style: Box::new(Theme::default_style),
+            class: Theme::default(),
         }
     }
 
     /// Creates a new [`Svg`] that will display the contents of the file at the
     /// provided path.
     #[must_use]
-    pub fn from_path(path: impl Into<PathBuf>) -> Self
-    where
-        Theme: DefaultStyle + 'a,
-    {
+    pub fn from_path(path: impl Into<PathBuf>) -> Self {
         Self::new(Handle::from_path(path))
     }
 
@@ -78,13 +78,21 @@ impl<'a, Theme> Svg<'a, Theme> {
         }
     }
 
-    /// Sets the style variant of this [`Svg`].
+    /// Sets the style of the [`Svg`].
     #[must_use]
-    pub fn style(
-        mut self,
-        style: impl Fn(&Theme, Status) -> Appearance + 'a,
-    ) -> Self {
-        self.style = Box::new(style);
+    pub fn style(mut self, style: impl Fn(&Theme, Status) -> Style + 'a) -> Self
+    where
+        Theme::Class<'a>: From<StyleFn<'a, Theme>>,
+    {
+        self.class = (Box::new(style) as StyleFn<'a, Theme>).into();
+        self
+    }
+
+    /// Sets the style class of the [`Svg`].
+    #[cfg(feature = "advanced")]
+    #[must_use]
+    pub fn class(mut self, class: impl Into<Theme::Class<'a>>) -> Self {
+        self.class = class.into();
         self
     }
 }
@@ -93,6 +101,7 @@ impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
     for Svg<'a, Theme>
 where
     Renderer: svg::Renderer,
+    Theme: Catalog,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -108,7 +117,7 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         // The raw w/h of the underlying image
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         // The size to be available to the widget prior to `Shrink`ing
@@ -142,7 +151,7 @@ where
         cursor: mouse::Cursor,
         _viewport: &Rectangle,
     ) {
-        let Size { width, height } = renderer.dimensions(&self.handle);
+        let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
 
         let bounds = layout.bounds();
@@ -167,11 +176,11 @@ where
                 Status::Idle
             };
 
-            let appearance = (self.style)(theme, status);
+            let style = theme.style(&self.class, status);
 
-            renderer.draw(
+            renderer.draw_svg(
                 self.handle.clone(),
-                appearance.color,
+                style.color,
                 drawing_bounds + offset,
             );
         };
@@ -189,7 +198,7 @@ where
 impl<'a, Message, Theme, Renderer> From<Svg<'a, Theme>>
     for Element<'a, Message, Theme, Renderer>
 where
-    Theme: 'a,
+    Theme: Catalog + 'a,
     Renderer: svg::Renderer + 'a,
 {
     fn from(icon: Svg<'a, Theme>) -> Element<'a, Message, Theme, Renderer> {
@@ -208,7 +217,7 @@ pub enum Status {
 
 /// The appearance of an [`Svg`].
 #[derive(Debug, Clone, Copy, PartialEq, Default)]
-pub struct Appearance {
+pub struct Style {
     /// The [`Color`] filter of an [`Svg`].
     ///
     /// Useful for coloring a symbolic icon.
@@ -217,23 +226,37 @@ pub struct Appearance {
     pub color: Option<Color>,
 }
 
-/// The style of an [`Svg`].
-pub type Style<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Appearance + 'a>;
+/// The theme catalog of an [`Svg`].
+pub trait Catalog {
+    /// The item class of the [`Catalog`].
+    type Class<'a>;
 
-/// The default style of an [`Svg`].
-pub trait DefaultStyle {
-    /// Returns the default style of an [`Svg`].
-    fn default_style(&self, status: Status) -> Appearance;
+    /// The default class produced by the [`Catalog`].
+    fn default<'a>() -> Self::Class<'a>;
+
+    /// The [`Style`] of a class with the given status.
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style;
 }
 
-impl DefaultStyle for Theme {
-    fn default_style(&self, _status: Status) -> Appearance {
-        Appearance::default()
+impl Catalog for Theme {
+    type Class<'a> = StyleFn<'a, Self>;
+
+    fn default<'a>() -> Self::Class<'a> {
+        Box::new(|_theme, _status| Style::default())
+    }
+
+    fn style(&self, class: &Self::Class<'_>, status: Status) -> Style {
+        class(self, status)
     }
 }
 
-impl DefaultStyle for Appearance {
-    fn default_style(&self, _status: Status) -> Appearance {
-        *self
+/// A styling function for an [`Svg`].
+///
+/// This is just a boxed closure: `Fn(&Theme, Status) -> Style`.
+pub type StyleFn<'a, Theme> = Box<dyn Fn(&Theme, Status) -> Style + 'a>;
+
+impl<'a, Theme> From<Style> for StyleFn<'a, Theme> {
+    fn from(style: Style) -> Self {
+        Box::new(move |_theme, _status| style)
     }
 }

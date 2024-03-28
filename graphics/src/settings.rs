@@ -1,5 +1,5 @@
 use crate::core::{Font, Pixels};
-use crate::graphics::Antialiasing;
+use crate::Antialiasing;
 
 /// The settings of a Backend.
 #[derive(Debug, Clone, Copy, PartialEq)]

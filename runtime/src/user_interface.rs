@@ -45,7 +45,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
+    /// #     pub type Renderer = ();
     /// # }
     /// #
     /// # pub struct Counter;
@@ -62,7 +62,7 @@ where
     /// // Initialization
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
-    /// let mut renderer = Renderer::new();
+    /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     ///
     /// // Application loop
@@ -121,7 +121,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
+    /// #     pub type Renderer = ();
     /// # }
     /// #
     /// # pub struct Counter;
@@ -139,7 +139,7 @@ where
     ///
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
-    /// let mut renderer = Renderer::new();
+    /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut clipboard = clipboard::Null;
@@ -374,7 +374,7 @@ where
     ///
     /// ```no_run
     /// # mod iced_wgpu {
-    /// #     pub use iced_runtime::core::renderer::Null as Renderer;
+    /// #     pub type Renderer = ();
     /// #     pub type Theme = ();
     /// # }
     /// #
@@ -394,7 +394,7 @@ where
     ///
     /// let mut counter = Counter::new();
     /// let mut cache = user_interface::Cache::new();
-    /// let mut renderer = Renderer::new();
+    /// let mut renderer = Renderer::default();
     /// let mut window_size = Size::new(1024.0, 768.0);
     /// let mut cursor = mouse::Cursor::default();
     /// let mut clipboard = clipboard::Null;
