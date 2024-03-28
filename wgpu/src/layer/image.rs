@@ -1,6 +1,6 @@
 use crate::core::image;
 use crate::core::svg;
-use crate::core::{Color, Rectangle};
+use crate::core::{Color, Rectangle, Size};
 
 /// A raster or vector image.
 #[derive(Debug, Clone)]
@@ -15,6 +15,12 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image.
+        rotation: f32,
+
+        /// The scale of the image after rotation.
+        scale: Size,
     },
     /// A vector image.
     Vector {

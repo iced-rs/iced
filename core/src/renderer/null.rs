@@ -175,6 +175,8 @@ impl image::Renderer for () {
         _handle: Self::Handle,
         _filter_method: image::FilterMethod,
         _bounds: Rectangle,
+        _rotation: f32,
+        _scale: Size,
     ) {
     }
 }

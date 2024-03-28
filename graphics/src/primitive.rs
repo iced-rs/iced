@@ -1,4 +1,6 @@
 //! Draw using different graphical primitives.
+use iced_core::Size;
+
 use crate::core::alignment;
 use crate::core::image;
 use crate::core::svg;
@@ -81,6 +83,10 @@ pub enum Primitive<T> {
         filter_method: image::FilterMethod,
         /// The bounds of the image
         bounds: Rectangle,
+        /// The rotation of the image
+        rotation: f32,
+        /// The scale of the image after rotation
+        scale: Size,
     },
     /// An SVG primitive
     Svg {
