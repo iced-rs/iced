@@ -9,6 +9,7 @@ use crate::core::{
     Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
     Vector, Widget,
 };
+use iced_renderer::core::ContentFit;
 
 use std::hash::Hash;
 
@@ -23,6 +24,7 @@ pub struct Viewer<Handle> {
     scale_step: f32,
     handle: Handle,
     filter_method: image::FilterMethod,
+    content_fit: ContentFit,
 }
 
 impl<Handle> Viewer<Handle> {
@@ -37,12 +39,19 @@ impl<Handle> Viewer<Handle> {
             max_scale: 10.0,
             scale_step: 0.10,
             filter_method: image::FilterMethod::default(),
+            content_fit: ContentFit::Contain,
         }
     }
 
     /// Sets the [`image::FilterMethod`] of the [`Viewer`].
     pub fn filter_method(mut self, filter_method: image::FilterMethod) -> Self {
         self.filter_method = filter_method;
+        self
+    }
+
+    /// Sets the [`iced_renderer::core::ContentFit`] of the [`Viewer`].
+    pub fn content_fit(mut self, content_fit: ContentFit) -> Self {
+        self.content_fit = content_fit;
         self
     }
 
@@ -117,36 +126,25 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
-        let Size { width, height } = renderer.measure_image(&self.handle);
+        let image_size = {
+            let Size { width, height } = renderer.measure_image(&self.handle);
+            Size::new(width as f32, height as f32)
+        };
+        let raw_size = limits.resolve(self.width, self.height, image_size);
+        let full_size = self.content_fit.fit(image_size, raw_size);
 
-        let mut size = limits.resolve(
-            self.width,
-            self.height,
-            Size::new(width as f32, height as f32),
-        );
-
-        let expansion_size = if height > width {
-            self.width
-        } else {
-            self.height
+        let final_size = Size {
+            width: match self.width {
+                Length::Shrink => f32::min(raw_size.width, full_size.width),
+                _ => raw_size.width,
+            },
+            height: match self.height {
+                Length::Shrink => f32::min(raw_size.height, full_size.height),
+                _ => raw_size.height,
+            },
         };
 
-        // Only calculate viewport sizes if the images are constrained to a limited space.
-        // If they are Fill|Portion let them expand within their allotted space.
-        match expansion_size {
-            Length::Shrink | Length::Fixed(_) => {
-                let aspect_ratio = width as f32 / height as f32;
-                let viewport_aspect_ratio = size.width / size.height;
-                if viewport_aspect_ratio > aspect_ratio {
-                    size.width = width as f32 * size.height / height as f32;
-                } else {
-                    size.height = height as f32 * size.width / width as f32;
-                }
-            }
-            Length::Fill | Length::FillPortion(_) => {}
-        }
-
-        layout::Node::new(size)
+        layout::Node::new(final_size)
     }
 
     fn on_event(
@@ -189,6 +187,7 @@ where
                                 &self.handle,
                                 state,
                                 bounds.size(),
+                                self.content_fit,
                             );
 
                             let factor = state.scale / previous_scale - 1.0;
@@ -249,8 +248,8 @@ where
                         &self.handle,
                         state,
                         bounds.size(),
+                        self.content_fit,
                     );
-
                     let hidden_width = (image_size.width - bounds.width / 2.0)
                         .max(0.0)
                         .round();
@@ -321,31 +320,39 @@ where
         let state = tree.state.downcast_ref::<State>();
         let bounds = layout.bounds();
 
-        let image_size =
-            image_size(renderer, &self.handle, state, bounds.size());
+        let image_size = image_size(
+            renderer,
+            &self.handle,
+            state,
+            bounds.size(),
+            self.content_fit,
+        );
 
         let translation = {
             let image_top_left = Vector::new(
-                bounds.width / 2.0 - image_size.width / 2.0,
-                bounds.height / 2.0 - image_size.height / 2.0,
+                (bounds.width - image_size.width).max(0.0) / 2.0,
+                (bounds.height - image_size.height).max(0.0) / 2.0,
             );
 
             image_top_left - state.offset(bounds, image_size)
         };
 
-        renderer.with_layer(bounds, |renderer| {
+        let render = |renderer: &mut Renderer| {
             renderer.with_translation(translation, |renderer| {
+                let drawing_bounds = Rectangle {
+                    width: image_size.width,
+                    height: image_size.height,
+                    ..bounds
+                };
                 renderer.draw_image(
                     self.handle.clone(),
                     self.filter_method,
-                    Rectangle {
-                        x: bounds.x,
-                        y: bounds.y,
-                        ..Rectangle::with_size(image_size)
-                    },
+                    drawing_bounds,
                 );
             });
-        });
+        };
+
+        renderer.with_layer(bounds, render);
     }
 }
 
@@ -416,27 +423,14 @@ pub fn image_size<Renderer>(
     handle: &<Renderer as image::Renderer>::Handle,
     state: &State,
     bounds: Size,
+    content_fit: ContentFit,
 ) -> Size
 where
     Renderer: image::Renderer,
 {
-    let Size { width, height } = renderer.measure_image(handle);
+    let size = renderer.measure_image(handle);
+    let size = Size::new(size.width as f32, size.height as f32);
+    let size = content_fit.fit(size, bounds);
 
-    let (width, height) = {
-        let dimensions = (width as f32, height as f32);
-
-        let width_ratio = bounds.width / dimensions.0;
-        let height_ratio = bounds.height / dimensions.1;
-
-        let ratio = width_ratio.min(height_ratio);
-        let scale = state.scale;
-
-        if ratio < 1.0 {
-            (dimensions.0 * ratio * scale, dimensions.1 * ratio * scale)
-        } else {
-            (dimensions.0 * scale, dimensions.1 * scale)
-        }
-    };
-
-    Size::new(width, height)
+    Size::new(size.width * state.scale, size.height * state.scale)
 }
