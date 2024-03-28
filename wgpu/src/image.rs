@@ -285,18 +285,20 @@ impl Pipeline {
                         attributes: &wgpu::vertex_attr_array!(
                             // Position
                             0 => Float32x2,
-                            // Image size
+                            // Center
                             1 => Float32x2,
+                            // Image size
+                            2 => Float32x2,
                             // Rotation
-                            2 => Float32,
+                            3 => Float32,
                             // Scale
-                            3 => Float32x2,
-                            // Atlas position
                             4 => Float32x2,
-                            // Atlas scale
+                            // Atlas position
                             5 => Float32x2,
+                            // Atlas scale
+                            6 => Float32x2,
                             // Layer
-                            6 => Sint32,
+                            7 => Sint32,
                         ),
                     }],
                 },
@@ -557,6 +559,7 @@ impl Pipeline {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Instance {
     _position: [f32; 2],
+    _center: [f32; 2],
     _size: [f32; 2],
     _rotation: f32,
     _scale: [f32; 2],
@@ -583,10 +586,16 @@ fn add_instances(
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
+    let center = [
+        image_position[0] + image_size[0] / 2.0,
+        image_position[1] + image_size[1] / 2.0,
+    ];
+    
     match entry {
         atlas::Entry::Contiguous(allocation) => {
             add_instance(
                 image_position,
+                center,
                 image_size,
                 rotation,
                 scale,
@@ -619,7 +628,7 @@ fn add_instances(
                 ];
 
                 add_instance(
-                    position, size, rotation, scale, allocation, instances,
+                    position, center, size, rotation, scale, allocation, instances,
                 );
             }
         }
@@ -629,6 +638,7 @@ fn add_instances(
 #[inline]
 fn add_instance(
     position: [f32; 2],
+    center: [f32; 2],
     size: [f32; 2],
     rotation: f32,
     scale: [f32; 2],
@@ -641,6 +651,7 @@ fn add_instance(
 
     let instance = Instance {
         _position: position,
+        _center: center,
         _size: size,
         _rotation: rotation,
         _scale: scale,

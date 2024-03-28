@@ -1,6 +1,6 @@
 //! Display images in your user interface.
 pub mod viewer;
-use iced_renderer::core::RotationLayout;
+use iced_renderer::core::{Point, RotationLayout};
 pub use viewer::Viewer;
 
 use crate::core::image;
@@ -117,6 +117,7 @@ where
         Size::new(width as f32, height as f32)
     };
 
+    // The rotated size of the image
     let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
 
     // The size to be available to the widget prior to `Shrink`ing
@@ -165,12 +166,15 @@ pub fn draw<Renderer, Handle>(
     );
 
     let render = |renderer: &mut Renderer| {
-        let drawing_bounds = Rectangle {
-            width: image_size.width,
-            height: image_size.height,
-            x: bounds.center_x() - image_size.width / 2.0,
-            y: bounds.center_y() - image_size.height / 2.0,
+        let position = match content_fit {
+            ContentFit::None => bounds.position(),
+            _ => Point::new(
+                bounds.center_x() - image_size.width / 2.0,
+                bounds.center_y() - image_size.height / 2.0,
+            ),
         };
+
+        let drawing_bounds = Rectangle::new(position, image_size);
 
         renderer.draw(
             handle.clone(),

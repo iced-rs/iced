@@ -9,12 +9,13 @@ struct Globals {
 struct VertexInput {
     @builtin(vertex_index) vertex_index: u32,
     @location(0) pos: vec2<f32>,
-    @location(1) image_size: vec2<f32>,
-    @location(2) rotation: f32,
-    @location(3) scale: vec2<f32>,
-    @location(4) atlas_pos: vec2<f32>,
-    @location(5) atlas_scale: vec2<f32>,
-    @location(6) layer: i32,
+    @location(1) center: vec2<f32>,
+    @location(2) image_size: vec2<f32>,
+    @location(3) rotation: f32,
+    @location(4) scale: vec2<f32>,
+    @location(5) atlas_pos: vec2<f32>,
+    @location(6) atlas_scale: vec2<f32>,
+    @location(7) layer: i32,
 }
 
 struct VertexOutput {
@@ -34,9 +35,8 @@ fn vs_main(input: VertexInput) -> VertexOutput {
     out.uv = vec2<f32>(v_pos * input.atlas_scale + input.atlas_pos);
     out.layer = f32(input.layer);
 
-    // Shift the center to the origin and then scale to image_size
-    // Range [0, 1] -> [-0.5, 0.5] -> [-image_size/2, image_size/2]
-    v_pos = (v_pos - 0.5) * input.image_size;
+    // Calculate the vertex position and move the center to the origin
+    v_pos = input.pos + v_pos * input.image_size - input.center;
 
     // Apply the rotation around the center of the image
     let cos_rot = cos(input.rotation);
@@ -53,7 +53,7 @@ fn vs_main(input: VertexInput) -> VertexOutput {
         vec4<f32>(input.scale.x, 0.0, 0.0, 0.0),
         vec4<f32>(0.0, input.scale.y, 0.0, 0.0),
         vec4<f32>(0.0, 0.0, 1.0, 0.0),
-        vec4<f32>(input.pos + input.image_size / 2.0, 0.0, 1.0)
+        vec4<f32>(input.center, 0.0, 1.0)
     );
 
     // Calculate the final position of the vertex
