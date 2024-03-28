@@ -433,7 +433,7 @@ impl<'a> Step {
 
         let spacing_section = column![
             slider(0..=80, spacing, StepMessage::SpacingChanged),
-            text(format!("{spacing} px"))
+            text!("{spacing} px")
                 .width(Length::Fill)
                 .horizontal_alignment(alignment::Horizontal::Center),
         ]
@@ -457,7 +457,7 @@ impl<'a> Step {
     fn text(size: u16, color: Color) -> Column<'a, StepMessage> {
         let size_section = column![
             "You can change its size:",
-            text(format!("This text is {size} pixels")).size(size),
+            text!("This text is {size} pixels").size(size),
             slider(10..=70, size, StepMessage::TextSizeChanged),
         ]
         .padding(20)
@@ -472,7 +472,7 @@ impl<'a> Step {
 
         let color_section = column![
             "And its color:",
-            text(format!("{color:?}")).color(color),
+            text!("{color:?}").color(color),
             color_sliders,
         ]
         .padding(20)
@@ -544,7 +544,7 @@ impl<'a> Step {
             .push(ferris(width, filter_method))
             .push(slider(100..=500, width, StepMessage::ImageWidthChanged))
             .push(
-                text(format!("Width: {width} px"))
+                text!("Width: {width} px")
                     .width(Length::Fill)
                     .horizontal_alignment(alignment::Horizontal::Center),
             )

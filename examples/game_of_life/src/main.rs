@@ -163,7 +163,7 @@ fn view_controls<'a>(
 
     let speed_controls = row![
         slider(1.0..=1000.0, speed as f32, Message::SpeedChanged),
-        text(format!("x{speed}")).size(16),
+        text!("x{speed}").size(16),
     ]
     .align_items(Alignment::Center)
     .spacing(10);

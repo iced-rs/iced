@@ -61,7 +61,7 @@ impl Events {
         let events = Column::with_children(
             self.last
                 .iter()
-                .map(|event| text(format!("{event:?}")).size(40))
+                .map(|event| text!("{event:?}").size(40))
                 .map(Element::from),
         );
 

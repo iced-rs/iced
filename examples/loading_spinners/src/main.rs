@@ -81,7 +81,7 @@ impl LoadingSpinners {
                         Message::CycleDurationChanged(x / 100.0)
                     })
                     .width(200.0),
-                    text(format!("{:.2}s", self.cycle_duration)),
+                    text!("{:.2}s", self.cycle_duration),
                 ]
                 .align_items(iced::Alignment::Center)
                 .spacing(20.0),
