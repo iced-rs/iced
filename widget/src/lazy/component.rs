@@ -17,6 +17,8 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+/// > Available on crate feature `lazy` only.
+/// 
 /// A reusable, custom widget that uses The Elm Architecture.
 ///
 /// A [`Component`] allows you to implement custom widgets as if they were
