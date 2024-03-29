@@ -53,6 +53,7 @@ impl Pipeline {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
         sections: &[Text<'_>],
         layer_bounds: Rectangle,
         scale_factor: f32,
@@ -262,6 +263,7 @@ impl Pipeline {
         let result = renderer.prepare(
             device,
             queue,
+            encoder,
             font_system,
             &mut self.atlas,
             glyphon::Resolution {

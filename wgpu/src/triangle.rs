@@ -48,7 +48,8 @@ impl Layer {
     fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         solid: &solid::Pipeline,
         gradient: &gradient::Pipeline,
         meshes: &[Mesh<'_>],
@@ -103,33 +104,47 @@ impl Layer {
             let uniforms =
                 Uniforms::new(transformation * mesh.transformation());
 
-            index_offset +=
-                self.index_buffer.write(queue, index_offset, indices);
+            index_offset += self.index_buffer.write(
+                device,
+                encoder,
+                belt,
+                index_offset,
+                indices,
+            );
+
             self.index_strides.push(indices.len() as u32);
 
             match mesh {
                 Mesh::Solid { buffers, .. } => {
                     solid_vertex_offset += self.solid.vertices.write(
-                        queue,
+                        device,
+                        encoder,
+                        belt,
                         solid_vertex_offset,
                         &buffers.vertices,
                     );
 
                     solid_uniform_offset += self.solid.uniforms.write(
-                        queue,
+                        device,
+                        encoder,
+                        belt,
                         solid_uniform_offset,
                         &[uniforms],
                     );
                 }
                 Mesh::Gradient { buffers, .. } => {
                     gradient_vertex_offset += self.gradient.vertices.write(
-                        queue,
+                        device,
+                        encoder,
+                        belt,
                         gradient_vertex_offset,
                         &buffers.vertices,
                     );
 
                     gradient_uniform_offset += self.gradient.uniforms.write(
-                        queue,
+                        device,
+                        encoder,
+                        belt,
                         gradient_uniform_offset,
                         &[uniforms],
                     );
@@ -237,7 +252,8 @@ impl Pipeline {
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         meshes: &[Mesh<'_>],
         transformation: Transformation,
     ) {
@@ -252,7 +268,8 @@ impl Pipeline {
         let layer = &mut self.layers[self.prepare_layer];
         layer.prepare(
             device,
-            queue,
+            encoder,
+            belt,
             &self.solid,
             &self.gradient,
             meshes,

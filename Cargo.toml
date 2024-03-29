@@ -129,7 +129,7 @@ cosmic-text = "0.10"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = "0.5"
+glyphon = { git = "https://github.com/hecrj/glyphon.git", branch = "use-staging-belt" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"

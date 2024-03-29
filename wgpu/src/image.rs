@@ -83,21 +83,31 @@ impl Layer {
     fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         nearest_instances: &[Instance],
         linear_instances: &[Instance],
         transformation: Transformation,
     ) {
-        queue.write_buffer(
+        let uniforms = Uniforms {
+            transform: transformation.into(),
+        };
+
+        let bytes = bytemuck::bytes_of(&uniforms);
+
+        belt.write_buffer(
+            encoder,
             &self.uniforms,
             0,
-            bytemuck::bytes_of(&Uniforms {
-                transform: transformation.into(),
-            }),
-        );
+            (bytes.len() as u64).try_into().expect("Sized uniforms"),
+            device,
+        )
+        .copy_from_slice(bytes);
 
-        self.nearest.upload(device, queue, nearest_instances);
-        self.linear.upload(device, queue, linear_instances);
+        self.nearest
+            .upload(device, encoder, belt, nearest_instances);
+
+        self.linear.upload(device, encoder, belt, linear_instances);
     }
 
     fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
@@ -158,7 +168,8 @@ impl Data {
     fn upload(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         instances: &[Instance],
     ) {
         self.instance_count = instances.len();
@@ -168,7 +179,7 @@ impl Data {
         }
 
         let _ = self.instances.resize(device, instances.len());
-        let _ = self.instances.write(queue, 0, instances);
+        let _ = self.instances.write(device, encoder, belt, 0, instances);
     }
 
     fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
@@ -383,8 +394,8 @@ impl Pipeline {
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         images: &[layer::Image],
         transformation: Transformation,
         _scale: f32,
@@ -501,7 +512,8 @@ impl Pipeline {
 
         layer.prepare(
             device,
-            queue,
+            encoder,
+            belt,
             nearest_instances,
             linear_instances,
             transformation,

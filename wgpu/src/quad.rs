@@ -57,7 +57,8 @@ impl Pipeline {
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         quads: &Batch,
         transformation: Transformation,
         scale: f32,
@@ -67,7 +68,7 @@ impl Pipeline {
         }
 
         let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(device, queue, quads, transformation, scale);
+        layer.prepare(device, encoder, belt, quads, transformation, scale);
 
         self.prepare_layer += 1;
     }
@@ -162,7 +163,8 @@ impl Layer {
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         quads: &Batch,
         transformation: Transformation,
         scale: f32,
@@ -171,15 +173,25 @@ impl Layer {
         let _ = info_span!("Wgpu::Quad", "PREPARE").entered();
 
         let uniforms = Uniforms::new(transformation, scale);
+        let bytes = bytemuck::bytes_of(&uniforms);
 
-        queue.write_buffer(
+        belt.write_buffer(
+            encoder,
             &self.constants_buffer,
             0,
-            bytemuck::bytes_of(&uniforms),
-        );
+            (bytes.len() as u64).try_into().expect("Sized uniforms"),
+            device,
+        )
+        .copy_from_slice(bytes);
 
-        self.solid.prepare(device, queue, &quads.solids);
-        self.gradient.prepare(device, queue, &quads.gradients);
+        if !quads.solids.is_empty() {
+            self.solid.prepare(device, encoder, belt, &quads.solids);
+        }
+
+        if !quads.gradients.is_empty() {
+            self.gradient
+                .prepare(device, encoder, belt, &quads.gradients);
+        }
     }
 }
 
