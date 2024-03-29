@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 use std::ops::RangeBounds;
 
+pub const MAX_WRITE_SIZE: usize = 1024 * 100;
+
 #[derive(Debug)]
 pub struct Buffer<T> {
     label: &'static str,
@@ -69,14 +71,38 @@ impl<T: bytemuck::Pod> Buffer<T> {
     ) -> usize {
         let bytes: &[u8] = bytemuck::cast_slice(contents);
 
-        belt.write_buffer(
-            encoder,
-            &self.raw,
-            offset as u64,
-            (bytes.len() as u64).try_into().expect("Non-empty write"),
-            device,
-        )
-        .copy_from_slice(bytes);
+        if bytes.len() <= MAX_WRITE_SIZE {
+            belt.write_buffer(
+                encoder,
+                &self.raw,
+                offset as u64,
+                (bytes.len() as u64).try_into().expect("Non-empty write"),
+                device,
+            )
+            .copy_from_slice(bytes);
+        } else {
+            let mut bytes_written = 0;
+
+            let bytes_per_chunk = (bytes.len().min(MAX_WRITE_SIZE) as u64)
+                .try_into()
+                .expect("Non-empty write");
+
+            while bytes_written < bytes.len() {
+                belt.write_buffer(
+                    encoder,
+                    &self.raw,
+                    (offset + bytes_written) as u64,
+                    bytes_per_chunk,
+                    device,
+                )
+                .copy_from_slice(
+                    &bytes[bytes_written
+                        ..bytes_written + bytes_per_chunk.get() as usize],
+                );
+
+                bytes_written += bytes_per_chunk.get() as usize;
+            }
+        }
 
         self.offsets.push(offset as u64);
 

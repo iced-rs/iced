@@ -1,3 +1,4 @@
+use crate::buffer;
 use crate::core::{Color, Size, Transformation};
 use crate::graphics::backend;
 use crate::graphics::color;
@@ -66,7 +67,9 @@ impl Backend {
             // TODO: Resize belt smartly (?)
             // It would be great if the `StagingBelt` API exposed methods
             // for introspection to detect when a resize may be worth it.
-            staging_belt: wgpu::util::StagingBelt::new(1024 * 100),
+            staging_belt: wgpu::util::StagingBelt::new(
+                buffer::MAX_WRITE_SIZE as u64,
+            ),
         }
     }
 
