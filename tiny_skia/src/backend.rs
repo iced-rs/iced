@@ -233,7 +233,8 @@ impl Backend {
                                         ),
                                         size,
                                         &radii,
-                                    );
+                                    )
+                                    .max(0.0);
                                     let shadow_alpha = 1.0
                                         - smoothstep(
                                             -shadow.blur_radius * scale_factor,
