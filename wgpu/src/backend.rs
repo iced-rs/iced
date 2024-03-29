@@ -131,7 +131,10 @@ impl Backend {
         self.image_pipeline.end_frame();
     }
 
+    /// Recalls staging memory for future uploads.
     ///
+    /// This method should be called after the command encoder
+    /// has been submitted.
     pub fn recall(&mut self) {
         self.staging_belt.recall();
     }
