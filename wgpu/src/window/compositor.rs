@@ -243,6 +243,7 @@ pub fn present<T: AsRef<str>>(
 
             // Submit work
             let _submission = compositor.queue.submit(Some(encoder.finish()));
+            backend.recall();
             frame.present();
 
             Ok(())

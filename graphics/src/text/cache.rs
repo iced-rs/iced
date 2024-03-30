@@ -2,9 +2,9 @@
 use crate::core::{Font, Size};
 use crate::text;
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 use std::collections::hash_map;
-use std::hash::{BuildHasher, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 
 /// A store of recently used sections of text.
 #[allow(missing_debug_implementations)]
@@ -13,10 +13,7 @@ pub struct Cache {
     entries: FxHashMap<KeyHash, Entry>,
     aliases: FxHashMap<KeyHash, KeyHash>,
     recently_used: FxHashSet<KeyHash>,
-    hasher: HashBuilder,
 }
-
-type HashBuilder = xxhash_rust::xxh3::Xxh3Builder;
 
 impl Cache {
     /// Creates a new empty [`Cache`].
@@ -35,7 +32,7 @@ impl Cache {
         font_system: &mut cosmic_text::FontSystem,
         key: Key<'_>,
     ) -> (KeyHash, &mut Entry) {
-        let hash = key.hash(self.hasher.build_hasher());
+        let hash = key.hash(FxHasher::default());
 
         if let Some(hash) = self.aliases.get(&hash) {
             let _ = self.recently_used.insert(*hash);
@@ -77,7 +74,7 @@ impl Cache {
             ] {
                 if key.bounds != bounds {
                     let _ = self.aliases.insert(
-                        Key { bounds, ..key }.hash(self.hasher.build_hasher()),
+                        Key { bounds, ..key }.hash(FxHasher::default()),
                         hash,
                     );
                 }

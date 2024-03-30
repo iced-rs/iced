@@ -25,7 +25,6 @@ log.workspace = true
 rustc-hash.workspace = true
 softbuffer.workspace = true
 tiny-skia.workspace = true
-xxhash-rust.workspace = true
 
 resvg.workspace = true
 resvg.optional = true

@@ -21,10 +21,10 @@ log.workspace = true
 num-traits.workspace = true
 once_cell.workspace = true
 palette.workspace = true
+rustc-hash.workspace = true
 smol_str.workspace = true
 thiserror.workspace = true
 web-time.workspace = true
-xxhash-rust.workspace = true
 
 dark-light.workspace = true
 dark-light.optional = true

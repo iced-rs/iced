@@ -1,3 +1,4 @@
+use crate::buffer;
 use crate::core::{Color, Size, Transformation};
 use crate::graphics::backend;
 use crate::graphics::color;
@@ -30,6 +31,7 @@ pub struct Backend {
     pipeline_storage: pipeline::Storage,
     #[cfg(any(feature = "image", feature = "svg"))]
     image_pipeline: image::Pipeline,
+    staging_belt: wgpu::util::StagingBelt,
 }
 
 impl Backend {
@@ -61,6 +63,13 @@ impl Backend {
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
+
+            // TODO: Resize belt smartly (?)
+            // It would be great if the `StagingBelt` API exposed methods
+            // for introspection to detect when a resize may be worth it.
+            staging_belt: wgpu::util::StagingBelt::new(
+                buffer::MAX_WRITE_SIZE as u64,
+            ),
         }
     }
 
@@ -105,6 +114,8 @@ impl Backend {
             &layers,
         );
 
+        self.staging_belt.finish();
+
         self.render(
             device,
             encoder,
@@ -123,12 +134,20 @@ impl Backend {
         self.image_pipeline.end_frame();
     }
 
+    /// Recalls staging memory for future uploads.
+    ///
+    /// This method should be called after the command encoder
+    /// has been submitted.
+    pub fn recall(&mut self) {
+        self.staging_belt.recall();
+    }
+
     fn prepare(
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         format: wgpu::TextureFormat,
-        _encoder: &mut wgpu::CommandEncoder,
+        encoder: &mut wgpu::CommandEncoder,
         scale_factor: f32,
         target_size: Size<u32>,
         transformation: Transformation,
@@ -144,7 +163,8 @@ impl Backend {
             if !layer.quads.is_empty() {
                 self.quad_pipeline.prepare(
                     device,
-                    queue,
+                    encoder,
+                    &mut self.staging_belt,
                     &layer.quads,
                     transformation,
                     scale_factor,
@@ -157,7 +177,8 @@ impl Backend {
 
                 self.triangle_pipeline.prepare(
                     device,
-                    queue,
+                    encoder,
+                    &mut self.staging_belt,
                     &layer.meshes,
                     scaled,
                 );
@@ -171,8 +192,8 @@ impl Backend {
 
                     self.image_pipeline.prepare(
                         device,
-                        queue,
-                        _encoder,
+                        encoder,
+                        &mut self.staging_belt,
                         &layer.images,
                         scaled,
                         scale_factor,
@@ -184,6 +205,7 @@ impl Backend {
                 self.text_pipeline.prepare(
                     device,
                     queue,
+                    encoder,
                     &layer.text,
                     layer.bounds,
                     scale_factor,
