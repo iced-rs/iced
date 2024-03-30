@@ -129,7 +129,7 @@ cosmic-text = "0.10"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "6412ac86d63f048d17022fa100db7be6686db728" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "ceed55403ce53e120ce9d1fae17dcfe388726118" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
