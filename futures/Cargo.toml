@@ -22,6 +22,7 @@ iced_core.workspace = true
 
 futures.workspace = true
 log.workspace = true
+rustc-hash.workspace = true
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 async-std.workspace = true

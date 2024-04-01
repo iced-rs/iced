@@ -1,12 +1,11 @@
 use crate::core::event::{self, Event};
-use crate::core::Hasher;
-use crate::subscription::Recipe;
+use crate::subscription::{Hasher, Recipe};
 use crate::{BoxFuture, MaybeSend};
 
 use futures::channel::mpsc;
 use futures::sink::{Sink, SinkExt};
+use rustc_hash::FxHashMap;
 
-use std::collections::HashMap;
 use std::hash::Hasher as _;
 
 /// A registry of subscription streams.
@@ -18,7 +17,7 @@ use std::hash::Hasher as _;
 /// [`Subscription`]: crate::Subscription
 #[derive(Debug, Default)]
 pub struct Tracker {
-    subscriptions: HashMap<u64, Execution>,
+    subscriptions: FxHashMap<u64, Execution>,
 }
 
 #[derive(Debug)]
@@ -31,7 +30,7 @@ impl Tracker {
     /// Creates a new empty [`Tracker`].
     pub fn new() -> Self {
         Self {
-            subscriptions: HashMap::new(),
+            subscriptions: FxHashMap::default(),
         }
     }
 

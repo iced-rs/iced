@@ -1,6 +1,7 @@
 //! Load and draw vector graphics.
-use crate::{Color, Hasher, Rectangle, Size};
+use crate::{Color, Rectangle, Size};
 
+use rustc_hash::FxHasher;
 use std::borrow::Cow;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
@@ -30,7 +31,7 @@ impl Handle {
     }
 
     fn from_data(data: Data) -> Handle {
-        let mut hasher = Hasher::default();
+        let mut hasher = FxHasher::default();
         data.hash(&mut hasher);
 
         Handle {

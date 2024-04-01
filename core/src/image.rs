@@ -1,6 +1,7 @@
 //! Load and draw raster graphics.
-use crate::{Hasher, Rectangle, Size};
+use crate::{Rectangle, Size};
 
+use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher as _};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -50,7 +51,7 @@ impl Handle {
     }
 
     fn from_data(data: Data) -> Handle {
-        let mut hasher = Hasher::default();
+        let mut hasher = FxHasher::default();
         data.hash(&mut hasher);
 
         Handle {

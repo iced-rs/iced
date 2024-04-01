@@ -1,8 +1,8 @@
 //! Draw primitives using custom pipelines.
 use crate::core::{self, Rectangle, Size};
 
+use rustc_hash::FxHashMap;
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Arc;
 
@@ -82,7 +82,7 @@ impl Renderer for crate::Renderer {
 /// Stores custom, user-provided pipelines.
 #[derive(Default, Debug)]
 pub struct Storage {
-    pipelines: HashMap<TypeId, Box<dyn Any + Send>>,
+    pipelines: FxHashMap<TypeId, Box<dyn Any + Send>>,
 }
 
 impl Storage {

@@ -27,7 +27,7 @@ use crate::{Clipboard, Error, Proxy, Settings};
 
 pub use crate::application::{default, Appearance, DefaultStyle};
 
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::mem::ManuallyDrop;
 use std::sync::Arc;
 use std::time::Instant;
@@ -381,12 +381,12 @@ async fn run_instance<A, E, C>(
         )]
     };
 
-    let mut ui_caches = HashMap::new();
+    let mut ui_caches = FxHashMap::default();
     let mut user_interfaces = ManuallyDrop::new(build_user_interfaces(
         &application,
         &mut debug,
         &mut window_manager,
-        HashMap::from_iter([(
+        FxHashMap::from_iter([(
             window::Id::MAIN,
             user_interface::Cache::default(),
         )]),
@@ -759,7 +759,7 @@ async fn run_instance<A, E, C>(
 
                         // TODO mw application update returns which window IDs to update
                         if !messages.is_empty() || uis_stale {
-                            let mut cached_interfaces: HashMap<
+                            let mut cached_interfaces: FxHashMap<
                                 window::Id,
                                 user_interface::Cache,
                             > = ManuallyDrop::into_inner(user_interfaces)
@@ -849,7 +849,7 @@ fn update<A: Application, C, E: Executor>(
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window_manager: &mut WindowManager<A, C>,
-    ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
+    ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
 ) where
     C: Compositor<Renderer = A::Renderer> + 'static,
     A::Theme: DefaultStyle,
@@ -890,7 +890,7 @@ fn run_command<A, C, E>(
     proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
     debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
-    ui_caches: &mut HashMap<window::Id, user_interface::Cache>,
+    ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
 ) where
     A: Application,
     E: Executor,
@@ -1218,8 +1218,8 @@ pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
     application: &'a A,
     debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
-    mut cached_user_interfaces: HashMap<window::Id, user_interface::Cache>,
-) -> HashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
+    mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
+) -> FxHashMap<window::Id, UserInterface<'a, A::Message, A::Theme, A::Renderer>>
 where
     C: Compositor<Renderer = A::Renderer>,
     A::Theme: DefaultStyle,
