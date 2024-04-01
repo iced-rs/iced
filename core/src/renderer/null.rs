@@ -67,7 +67,7 @@ impl text::Renderer for () {
 
     fn fill_text(
         &mut self,
-        _paragraph: Text<'_, Self::Font>,
+        _paragraph: Text,
         _position: Point,
         _color: Color,
         _clip_bounds: Rectangle,
@@ -78,11 +78,11 @@ impl text::Renderer for () {
 impl text::Paragraph for () {
     type Font = Font;
 
-    fn with_text(_text: Text<'_, Self::Font>) -> Self {}
+    fn with_text(_text: Text<&str>) -> Self {}
 
     fn resize(&mut self, _new_bounds: Size) {}
 
-    fn compare(&self, _text: Text<'_, Self::Font>) -> text::Difference {
+    fn compare(&self, _text: Text<&str>) -> text::Difference {
         text::Difference::None
     }
 

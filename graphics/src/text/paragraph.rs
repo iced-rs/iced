@@ -61,7 +61,7 @@ impl Paragraph {
 impl core::text::Paragraph for Paragraph {
     type Font = Font;
 
-    fn with_text(text: Text<'_, Font>) -> Self {
+    fn with_text(text: Text<&str>) -> Self {
         log::trace!("Allocating paragraph: {}", text.content);
 
         let mut font_system =
@@ -146,7 +146,7 @@ impl core::text::Paragraph for Paragraph {
         }
     }
 
-    fn compare(&self, text: Text<'_, Font>) -> core::text::Difference {
+    fn compare(&self, text: Text<&str>) -> core::text::Difference {
         let font_system = text::font_system().read().expect("Read font system");
         let paragraph = self.internal();
         let metrics = paragraph.buffer.metrics();

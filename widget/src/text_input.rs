@@ -232,7 +232,7 @@ where
         let placeholder_text = Text {
             font,
             line_height: self.line_height,
-            content: &self.placeholder,
+            content: self.placeholder.as_str(),
             bounds: Size::new(f32::INFINITY, text_bounds.height),
             size: text_size,
             horizontal_alignment: alignment::Horizontal::Left,
@@ -251,9 +251,11 @@ where
         });
 
         if let Some(icon) = &self.icon {
+            let mut content = [0; 4];
+
             let icon_text = Text {
                 line_height: self.line_height,
-                content: &icon.code_point.to_string(),
+                content: icon.code_point.encode_utf8(&mut content) as &_,
                 font: icon.font,
                 size: icon.size.unwrap_or_else(|| renderer.default_size()),
                 bounds: Size::new(f32::INFINITY, text_bounds.height),

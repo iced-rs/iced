@@ -526,7 +526,7 @@ where
 
             renderer.fill_text(
                 Text {
-                    content: &option.to_string(),
+                    content: option.to_string(),
                     bounds: Size::new(f32::INFINITY, bounds.height),
                     size: text_size,
                     line_height: self.text_line_height,
