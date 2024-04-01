@@ -53,7 +53,7 @@ impl Example {
         ];
 
         column![
-            text("My itens with keys").size(30),
+            text("My items with keys").size(30),
             keyed_column(items)
         ].padding(20)
     }

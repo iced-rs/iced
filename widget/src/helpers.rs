@@ -120,7 +120,7 @@ where
 /// 
 /// 
 /// column![
-///     text("My itens with keys").size(30),
+///     text("My items with keys").size(30),
 ///     button("My button").on_press(Message::Nothing),
 ///     keyed_column(items)
 /// ]
