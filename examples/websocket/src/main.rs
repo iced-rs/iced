@@ -97,7 +97,11 @@ impl WebSocket {
         } else {
             scrollable(
                 column(
-                    self.messages.iter().cloned().map(text).map(Element::from),
+                    self.messages
+                        .iter()
+                        .map(ToString::to_string)
+                        .map(text)
+                        .map(Element::from),
                 )
                 .spacing(10),
             )

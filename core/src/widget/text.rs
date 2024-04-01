@@ -21,7 +21,7 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    content: Cow<'a, str>,
+    content: Content<'a>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -39,9 +39,9 @@ where
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new(content: impl Into<Cow<'a, str>>) -> Self {
+    pub fn new(content: impl IntoContent<'a>) -> Self {
         Text {
-            content: content.into(),
+            content: content.into_content(),
             size: None,
             line_height: LineHeight::default(),
             font: None,
@@ -366,3 +366,67 @@ impl Catalog for Theme {
         class(self)
     }
 }
+
+/// The content of a [`Text`] widget.
+///
+/// This is just an alias to a string that may be either
+/// borrowed or owned.
+pub type Content<'a> = Cow<'a, str>;
+
+/// A trait for converting a value to some text [`Content`].
+pub trait IntoContent<'a> {
+    /// Converts the value to some text [`Content`].
+    fn into_content(self) -> Content<'a>;
+}
+
+impl<'a> IntoContent<'a> for &'a str {
+    fn into_content(self) -> Content<'a> {
+        Content::Borrowed(self)
+    }
+}
+
+impl<'a> IntoContent<'a> for &'a String {
+    fn into_content(self) -> Content<'a> {
+        Content::Borrowed(self.as_str())
+    }
+}
+
+impl<'a> IntoContent<'a> for String {
+    fn into_content(self) -> Content<'a> {
+        Content::Owned(self)
+    }
+}
+
+macro_rules! into_content {
+    ($type:ty) => {
+        impl<'a> IntoContent<'a> for $type {
+            fn into_content(self) -> Content<'a> {
+                Content::Owned(self.to_string())
+            }
+        }
+
+        impl<'a> IntoContent<'a> for &$type {
+            fn into_content(self) -> Content<'a> {
+                Content::Owned(self.to_string())
+            }
+        }
+    };
+}
+
+into_content!(char);
+into_content!(bool);
+
+into_content!(u8);
+into_content!(u16);
+into_content!(u32);
+into_content!(u64);
+into_content!(u128);
+
+into_content!(i8);
+into_content!(i16);
+into_content!(i32);
+into_content!(i64);
+into_content!(i128);
+
+into_content!(f32);
+into_content!(f64);

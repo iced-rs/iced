@@ -145,13 +145,13 @@ where
 ///
 /// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
-    text: impl ToString,
+    text: impl text::IntoContent<'a>,
 ) -> Text<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
-    Text::new(text.to_string())
+    Text::new(text)
 }
 
 /// Creates a new [`Checkbox`].
