@@ -118,13 +118,14 @@ where
 ///     )
 /// ];
 /// 
-/// 
 /// column![
 ///     text("My items with keys").size(30),
 ///     button("My button").on_press(Message::Nothing),
 ///     keyed_column(items)
 /// ]
 /// ```
+/// 
+/// You can also find the complete code in [example by clicking here](../../../examples/keyed_column)
 pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
 ) -> keyed::Column<'a, Key, Message, Theme, Renderer>
