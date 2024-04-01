@@ -121,10 +121,11 @@ where
 
     /// Disables [`Button`] so that it has no effect if pressed.
     ///
-    /// If `disabled_if` is called with a true boolean, the [`Button`] will be disabled and the message will be removed.
-    /// If `disabled_if` is called with a boolean false, the [`Button`] button will not be affected
-    pub fn disabled_if(mut self, desabled_id: bool) -> Self {
-        if desabled_id {
+    /// If called with a true boolean, [`Button`] will be disabled and the message will be removed.
+    /// 
+    /// If called with a boolean false, the [`Button`] button will not be affected
+    pub fn disabled_if(mut self, disable: bool) -> Self {
+        if disable {
             self.on_press = None;
         }
 
