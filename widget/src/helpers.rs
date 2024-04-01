@@ -76,6 +76,55 @@ where
 }
 
 /// Creates a new [`keyed::Column`] with the given children.
+/// 
+/// Creates a list of items containing an identification key and an Element<_>, combine widgets any way you want
+///
+/// ![Screenshot](../../../examples/keyed_column/assets/image.png)
+/// 
+/// # Example code
+/// ```
+/// use iced::widget::{Column, row, button, keyed_column, text, column, container};
+/// 
+/// let items = vec![
+///    (
+///         1, // key
+///         container( // widget
+///             row![
+///                 text("Item 1"),
+///                 text("Description of item 1"),
+///                 button("My button").on_press(Message::Nothing)
+///             ].spacing(30).padding([10, 0, 0, 0])
+///         ).into()
+///     ),
+///     (
+///         2, // key
+///         container( // widget
+///             row![
+///                 text("Item 2"),
+///                 text("Description of item 2"),
+///                 button("My button").on_press(Message::Nothing)
+///             ].spacing(30).padding([10, 0, 0, 0])
+///         ).into()
+///     ),
+///     (
+///         3, // key
+///         container( // widget
+///             row![
+///                 text("Item 3"),
+///                 text("Description of item 3"),
+///                 button("My button").on_press(Message::Nothing)
+///             ].spacing(30).padding([10, 0, 0, 0])
+///         ).into()
+///     )
+/// ];
+/// 
+/// 
+/// column![
+///     text("My itens with keys").size(30),
+///     button("My button").on_press(Message::Nothing),
+///     keyed_column(items)
+/// ]
+/// ```
 pub fn keyed_column<'a, Key, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = (Key, Element<'a, Message, Theme, Renderer>)>,
 ) -> keyed::Column<'a, Key, Message, Theme, Renderer>
