@@ -109,12 +109,25 @@ where
         self
     }
 
+
     /// Sets the message that will be produced when the [`Button`] is pressed,
     /// if `Some`.
     ///
     /// If `None`, the [`Button`] will be disabled.
     pub fn on_press_maybe(mut self, on_press: Option<Message>) -> Self {
         self.on_press = on_press;
+        self
+    }
+
+    /// Disables [`Button`] so that it has no effect if pressed.
+    ///
+    /// If `disabled_if` is called with a true boolean, the [`Button`] will be disabled and the message will be removed.
+    /// If `disabled_if` is called with a boolean false, the [`Button`] button will not be affected
+    pub fn disabled_if(mut self, desabled_id: bool) -> Self {
+        if desabled_id {
+            self.on_press = None;
+        }
+
         self
     }
 
