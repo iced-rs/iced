@@ -21,7 +21,7 @@ where
     Theme: Catalog,
     Renderer: text::Renderer,
 {
-    content: Content<'a>,
+    fragment: Fragment<'a>,
     size: Option<Pixels>,
     line_height: LineHeight,
     width: Length,
@@ -39,9 +39,9 @@ where
     Renderer: text::Renderer,
 {
     /// Create a new fragment of [`Text`] with the given contents.
-    pub fn new(content: impl IntoContent<'a>) -> Self {
+    pub fn new(fragment: impl IntoFragment<'a>) -> Self {
         Text {
-            content: content.into_content(),
+            fragment: fragment.into_fragment(),
             size: None,
             line_height: LineHeight::default(),
             font: None,
@@ -184,7 +184,7 @@ where
             limits,
             self.width,
             self.height,
-            &self.content,
+            &self.fragment,
             self.line_height,
             self.size,
             self.font,
@@ -367,66 +367,66 @@ impl Catalog for Theme {
     }
 }
 
-/// The content of a [`Text`] widget.
+/// A fragment of [`Text`].
 ///
 /// This is just an alias to a string that may be either
 /// borrowed or owned.
-pub type Content<'a> = Cow<'a, str>;
+pub type Fragment<'a> = Cow<'a, str>;
 
-/// A trait for converting a value to some text [`Content`].
-pub trait IntoContent<'a> {
-    /// Converts the value to some text [`Content`].
-    fn into_content(self) -> Content<'a>;
+/// A trait for converting a value to some text [`Fragment`].
+pub trait IntoFragment<'a> {
+    /// Converts the value to some text [`Fragment`].
+    fn into_fragment(self) -> Fragment<'a>;
 }
 
-impl<'a> IntoContent<'a> for &'a str {
-    fn into_content(self) -> Content<'a> {
-        Content::Borrowed(self)
+impl<'a> IntoFragment<'a> for &'a str {
+    fn into_fragment(self) -> Fragment<'a> {
+        Fragment::Borrowed(self)
     }
 }
 
-impl<'a> IntoContent<'a> for &'a String {
-    fn into_content(self) -> Content<'a> {
-        Content::Borrowed(self.as_str())
+impl<'a> IntoFragment<'a> for &'a String {
+    fn into_fragment(self) -> Fragment<'a> {
+        Fragment::Borrowed(self.as_str())
     }
 }
 
-impl<'a> IntoContent<'a> for String {
-    fn into_content(self) -> Content<'a> {
-        Content::Owned(self)
+impl<'a> IntoFragment<'a> for String {
+    fn into_fragment(self) -> Fragment<'a> {
+        Fragment::Owned(self)
     }
 }
 
-macro_rules! into_content {
+macro_rules! into_fragment {
     ($type:ty) => {
-        impl<'a> IntoContent<'a> for $type {
-            fn into_content(self) -> Content<'a> {
-                Content::Owned(self.to_string())
+        impl<'a> IntoFragment<'a> for $type {
+            fn into_fragment(self) -> Fragment<'a> {
+                Fragment::Owned(self.to_string())
             }
         }
 
-        impl<'a> IntoContent<'a> for &$type {
-            fn into_content(self) -> Content<'a> {
-                Content::Owned(self.to_string())
+        impl<'a> IntoFragment<'a> for &$type {
+            fn into_fragment(self) -> Fragment<'a> {
+                Fragment::Owned(self.to_string())
             }
         }
     };
 }
 
-into_content!(char);
-into_content!(bool);
+into_fragment!(char);
+into_fragment!(bool);
 
-into_content!(u8);
-into_content!(u16);
-into_content!(u32);
-into_content!(u64);
-into_content!(u128);
+into_fragment!(u8);
+into_fragment!(u16);
+into_fragment!(u32);
+into_fragment!(u64);
+into_fragment!(u128);
 
-into_content!(i8);
-into_content!(i16);
-into_content!(i32);
-into_content!(i64);
-into_content!(i128);
+into_fragment!(i8);
+into_fragment!(i16);
+into_fragment!(i32);
+into_fragment!(i64);
+into_fragment!(i128);
 
-into_content!(f32);
-into_content!(f64);
+into_fragment!(f32);
+into_fragment!(f64);

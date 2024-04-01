@@ -145,7 +145,7 @@ where
 ///
 /// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
-    text: impl text::IntoContent<'a>,
+    text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,
