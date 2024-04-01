@@ -115,7 +115,7 @@ where
 
     fn fill_text(
         &mut self,
-        text: core::Text<'_, Self::Font>,
+        text: core::Text<String, Self::Font>,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,

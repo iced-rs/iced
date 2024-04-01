@@ -163,13 +163,13 @@ where
 
     fn fill_text(
         &mut self,
-        text: Text<'_, Self::Font>,
+        text: Text,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
     ) {
         self.primitives.push(Primitive::Text {
-            content: text.content.to_string(),
+            content: text.content,
             bounds: Rectangle::new(position, text.bounds),
             size: text.size,
             line_height: text.line_height,

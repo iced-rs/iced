@@ -479,7 +479,7 @@ where
 
             renderer.fill_text(
                 Text {
-                    content: &code_point.to_string(),
+                    content: code_point.to_string(),
                     size,
                     line_height,
                     font,
@@ -502,7 +502,7 @@ where
 
         let label = selected.map(ToString::to_string);
 
-        if let Some(label) = label.as_deref().or(self.placeholder.as_deref()) {
+        if let Some(label) = label.or_else(|| self.placeholder.clone()) {
             let text_size =
                 self.text_size.unwrap_or_else(|| renderer.default_size());
 
