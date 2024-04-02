@@ -110,6 +110,21 @@ where
         self
     }
 
+    /// Sets the text size of the [`TextEditor`].
+    pub fn size(mut self, size: impl Into<Pixels>) -> Self {
+        self.text_size = Some(size.into());
+        self
+    }
+
+    /// Sets the [`text::LineHeight`] of the [`TextEditor`].
+    pub fn line_height(
+        mut self,
+        line_height: impl Into<text::LineHeight>,
+    ) -> Self {
+        self.line_height = line_height.into();
+        self
+    }
+
     /// Sets the [`Padding`] of the [`TextEditor`].
     pub fn padding(mut self, padding: impl Into<Padding>) -> Self {
         self.padding = padding.into();
