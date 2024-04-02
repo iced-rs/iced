@@ -2,7 +2,7 @@ mod echo;
 
 use iced::alignment::{self, Alignment};
 use iced::widget::{
-    button, column, container, row, scrollable, text, text_input, value,
+    button, column, container, row, scrollable, text, text_input,
 };
 use iced::{color, Command, Element, Length, Subscription};
 use once_cell::sync::Lazy;
@@ -96,7 +96,7 @@ impl WebSocket {
             .into()
         } else {
             scrollable(
-                column(self.messages.iter().map(value).map(Element::from))
+                column(self.messages.iter().map(text).map(Element::from))
                     .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
