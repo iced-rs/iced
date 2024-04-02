@@ -124,6 +124,13 @@ where
     /// If called with a true boolean, [`Button`] will be disabled and the message will be removed.
     /// 
     /// If called with a boolean false, the [`Button`] button will not be affected
+    /// 
+    /// Attention, this function must be called after `on_press`.
+    /// ```rust
+    /// button("my button").on_press(Message::Hi).disabled_if(bool)
+    /// ```
+    /// 
+    /// if called before it will have no effect.
     pub fn disabled_if(mut self, disable: bool) -> Self {
         if disable {
             self.on_press = None;
