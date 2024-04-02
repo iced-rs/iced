@@ -357,7 +357,7 @@ impl<'a> Step {
         .into()
     }
 
-    fn container(title: &str) -> Column<'a, StepMessage> {
+    fn container(title: &str) -> Column<'_, StepMessage> {
         column![text(title).size(50)].spacing(20)
     }
 
@@ -589,7 +589,7 @@ impl<'a> Step {
         value: &str,
         is_secure: bool,
         is_showing_icon: bool,
-    ) -> Column<'a, StepMessage> {
+    ) -> Column<'_, StepMessage> {
         let mut text_input = text_input("Type something to continue...", value)
             .on_input(StepMessage::InputChanged)
             .padding(10)
@@ -674,7 +674,7 @@ fn ferris<'a>(
     .center_x()
 }
 
-fn padded_button<'a, Message: Clone>(label: &str) -> Button<'a, Message> {
+fn padded_button<Message: Clone>(label: &str) -> Button<'_, Message> {
     button(text(label)).padding([12, 24])
 }
 

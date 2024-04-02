@@ -2,6 +2,7 @@ pub mod server;
 
 use iced::futures;
 use iced::subscription::{self, Subscription};
+use iced::widget::text;
 
 use futures::channel::mpsc;
 use futures::sink::SinkExt;
@@ -136,16 +137,24 @@ impl Message {
     pub fn disconnected() -> Self {
         Message::Disconnected
     }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Message::Connected => "Connected successfully!",
+            Message::Disconnected => "Connection lost... Retrying...",
+            Message::User(message) => message.as_str(),
+        }
+    }
 }
 
 impl fmt::Display for Message {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Message::Connected => write!(f, "Connected successfully!"),
-            Message::Disconnected => {
-                write!(f, "Connection lost... Retrying...")
-            }
-            Message::User(message) => write!(f, "{message}"),
-        }
+        f.write_str(self.as_str())
+    }
+}
+
+impl<'a> text::IntoFragment<'a> for &'a Message {
+    fn into_fragment(self) -> text::Fragment<'a> {
+        text::Fragment::Borrowed(self.as_str())
     }
 }
