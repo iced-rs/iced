@@ -421,12 +421,14 @@ into_fragment!(u16);
 into_fragment!(u32);
 into_fragment!(u64);
 into_fragment!(u128);
+into_fragment!(usize);
 
 into_fragment!(i8);
 into_fragment!(i16);
 into_fragment!(i32);
 into_fragment!(i64);
 into_fragment!(i128);
+into_fragment!(isize);
 
 into_fragment!(f32);
 into_fragment!(f64);
