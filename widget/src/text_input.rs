@@ -712,7 +712,7 @@ where
 
                     match key.as_ref() {
                         keyboard::Key::Character("c")
-                            if state.keyboard_modifiers.command() =>
+                            if state.keyboard_modifiers.command() && !self.is_secure =>
                         {
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
@@ -726,7 +726,7 @@ where
                             return event::Status::Captured;
                         }
                         keyboard::Key::Character("x")
-                            if state.keyboard_modifiers.command() =>
+                            if state.keyboard_modifiers.command() && !self.is_secure =>
                         {
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
