@@ -379,6 +379,18 @@ pub trait IntoFragment<'a> {
     fn into_fragment(self) -> Fragment<'a>;
 }
 
+impl<'a> IntoFragment<'a> for Fragment<'a> {
+    fn into_fragment(self) -> Fragment<'a> {
+        self
+    }
+}
+
+impl<'a, 'b> IntoFragment<'a> for &'a Fragment<'b> {
+    fn into_fragment(self) -> Fragment<'a> {
+        Fragment::Borrowed(self)
+    }
+}
+
 impl<'a> IntoFragment<'a> for &'a str {
     fn into_fragment(self) -> Fragment<'a> {
         Fragment::Borrowed(self)
