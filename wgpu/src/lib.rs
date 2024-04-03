@@ -120,9 +120,7 @@ impl Renderer {
         let scale_factor = viewport.scale_factor() as f32;
         let transformation = viewport.projection();
 
-        for line in overlay {
-            println!("{}", line.as_ref());
-        }
+        self.draw_overlay(overlay, viewport);
 
         self.prepare(
             engine,
@@ -493,6 +491,50 @@ impl Renderer {
         }
 
         let _ = ManuallyDrop::into_inner(render_pass);
+    }
+
+    fn draw_overlay(
+        &mut self,
+        overlay: &[impl AsRef<str>],
+        viewport: &Viewport,
+    ) {
+        use crate::core::alignment;
+        use crate::core::text::Renderer as _;
+        use crate::core::Renderer as _;
+        use crate::core::Vector;
+
+        self.with_layer(
+            Rectangle::with_size(viewport.logical_size()),
+            |renderer| {
+                for (i, line) in overlay.iter().enumerate() {
+                    let text = crate::core::Text {
+                        content: line.as_ref().to_owned(),
+                        bounds: viewport.logical_size(),
+                        size: Pixels(20.0),
+                        line_height: core::text::LineHeight::default(),
+                        font: Font::MONOSPACE,
+                        horizontal_alignment: alignment::Horizontal::Left,
+                        vertical_alignment: alignment::Vertical::Top,
+                        shaping: core::text::Shaping::Basic,
+                    };
+
+                    renderer.fill_text(
+                        text.clone(),
+                        Point::new(11.0, 11.0 + 25.0 * i as f32),
+                        Color::new(0.9, 0.9, 0.9, 1.0),
+                        Rectangle::with_size(Size::INFINITY),
+                    );
+
+                    renderer.fill_text(
+                        text,
+                        Point::new(11.0, 11.0 + 25.0 * i as f32)
+                            + Vector::new(-1.0, -1.0),
+                        Color::BLACK,
+                        Rectangle::with_size(Size::INFINITY),
+                    );
+                }
+            },
+        );
     }
 }
 
