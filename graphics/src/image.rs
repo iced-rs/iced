@@ -35,6 +35,8 @@ pub enum Image {
 
 #[cfg(feature = "image")]
 /// Tries to load an image by its [`Handle`].
+///
+/// [`Handle`]: image::Handle
 pub fn load(
     handle: &image::Handle,
 ) -> ::image::ImageResult<::image::DynamicImage> {

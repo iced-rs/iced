@@ -54,7 +54,7 @@ impl Compositor {
         compatible_window: Option<W>,
     ) -> Result<Self, Error> {
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: settings.internal_backend,
+            backends: settings.backends,
             ..Default::default()
         });
 
@@ -63,7 +63,7 @@ impl Compositor {
         #[cfg(not(target_arch = "wasm32"))]
         if log::max_level() >= log::LevelFilter::Info {
             let available_adapters: Vec<_> = instance
-                .enumerate_adapters(settings.internal_backend)
+                .enumerate_adapters(settings.backends)
                 .iter()
                 .map(wgpu::Adapter::get_info)
                 .collect();
@@ -197,8 +197,7 @@ impl Compositor {
     }
 }
 
-/// Creates a [`Compositor`] and its [`Backend`] for the given [`Settings`] and
-/// window.
+/// Creates a [`Compositor`] with the given [`Settings`] and window.
 pub async fn new<W: compositor::Window>(
     settings: Settings,
     compatible_window: W,
@@ -206,7 +205,7 @@ pub async fn new<W: compositor::Window>(
     Compositor::request(settings, Some(compatible_window)).await
 }
 
-/// Presents the given primitives with the given [`Compositor`] and [`Backend`].
+/// Presents the given primitives with the given [`Compositor`].
 pub fn present<T: AsRef<str>>(
     compositor: &mut Compositor,
     renderer: &mut Renderer,
@@ -273,7 +272,7 @@ impl graphics::Compositor for Compositor {
         match backend {
             None | Some("wgpu") => Ok(new(
                 Settings {
-                    internal_backend: wgpu::util::backend_bits_from_env()
+                    backends: wgpu::util::backend_bits_from_env()
                         .unwrap_or(wgpu::Backends::all()),
                     ..settings.into()
                 },
