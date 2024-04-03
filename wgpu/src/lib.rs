@@ -315,9 +315,10 @@ impl Renderer {
 
         // TODO: Can we avoid collecting here?
         let layers: Vec<_> = self.layers.iter().collect();
+        let mut i = 0;
 
-        for layer in &layers {
-            match layer {
+        while i < layers.len() {
+            match layers[i] {
                 Layer::Live(live) => {
                     let bounds = live
                         .bounds
@@ -393,32 +394,54 @@ impl Renderer {
 
                         image_layer += 1;
                     }
-                }
-                Layer::Cached(cached) => {
-                    let bounds = cached
-                        .bounds
-                        .map(|bounds| bounds * scale_factor)
-                        .map(Rectangle::snap)
-                        .unwrap_or(Rectangle::with_size(target_size));
 
-                    if !cached.quads.is_empty() {
-                        engine.quad_pipeline.render_cache(
-                            &cached.quads,
-                            bounds,
-                            &mut render_pass,
-                        );
+                    i += 1;
+                }
+                Layer::Cached(_) => {
+                    let group_len = layers[i..]
+                        .iter()
+                        .position(|layer| matches!(layer, Layer::Live(_)))
+                        .unwrap_or(layers.len());
+
+                    let group = layers[i..i + group_len].iter().map(|layer| {
+                        let Layer::Cached(cached) = layer else {
+                            unreachable!()
+                        };
+
+                        let bounds = cached
+                            .bounds
+                            .map(|bounds| bounds * scale_factor)
+                            .map(Rectangle::snap)
+                            .unwrap_or(Rectangle::with_size(target_size));
+
+                        (cached, bounds)
+                    });
+
+                    for (cached, bounds) in group.clone() {
+                        if !cached.quads.is_empty() {
+                            engine.quad_pipeline.render_cache(
+                                &cached.quads,
+                                bounds,
+                                &mut render_pass,
+                            );
+                        }
                     }
 
-                    if !cached.meshes.is_empty() {
+                    let group_has_meshes = group
+                        .clone()
+                        .any(|(cached, _)| !cached.meshes.is_empty());
+
+                    if group_has_meshes {
                         let _ = ManuallyDrop::into_inner(render_pass);
 
-                        engine.triangle_pipeline.render_cache(
+                        engine.triangle_pipeline.render_cache_group(
                             device,
                             encoder,
                             frame,
                             target_size,
-                            &cached.meshes,
-                            bounds,
+                            group.clone().map(|(cached, bounds)| {
+                                (&cached.meshes, bounds)
+                            }),
                             scale_factor,
                         );
 
@@ -443,24 +466,28 @@ impl Renderer {
                             ));
                     }
 
-                    if !cached.text.is_empty() {
-                        engine.text_pipeline.render_cache(
-                            &cached.text,
-                            bounds,
-                            &mut render_pass,
-                        );
+                    for (cached, bounds) in group {
+                        if !cached.text.is_empty() {
+                            engine.text_pipeline.render_cache(
+                                &cached.text,
+                                bounds,
+                                &mut render_pass,
+                            );
+                        }
+
+                        #[cfg(any(feature = "svg", feature = "image"))]
+                        if !cached.images.is_empty() {
+                            engine.image_pipeline.render(
+                                image_layer,
+                                bounds,
+                                &mut render_pass,
+                            );
+
+                            image_layer += 1;
+                        }
                     }
 
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !cached.images.is_empty() {
-                        engine.image_pipeline.render(
-                            image_layer,
-                            bounds,
-                            &mut render_pass,
-                        );
-
-                        image_layer += 1;
-                    }
+                    i += group_len;
                 }
             }
         }

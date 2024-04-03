@@ -136,14 +136,13 @@ impl Pipeline {
             self.blit.as_mut(),
             &self.solid,
             &self.gradient,
-            &self.layers[layer],
             target_size,
-            meshes,
-            bounds,
+            std::iter::once((&self.layers[layer], meshes, bounds)),
             scale_factor,
         );
     }
 
+    #[allow(dead_code)]
     pub fn render_cache(
         &mut self,
         device: &wgpu::Device,
@@ -165,25 +164,51 @@ impl Pipeline {
             self.blit.as_mut(),
             &self.solid,
             &self.gradient,
-            layer,
             target_size,
-            batch,
-            bounds,
+            std::iter::once((layer, batch, bounds)),
             scale_factor,
         );
     }
 
-    fn render(
+    pub fn render_cache_group<'a>(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        target: &wgpu::TextureView,
+        target_size: Size<u32>,
+        group: impl Iterator<Item = (&'a Cache, Rectangle<u32>)>,
+        scale_factor: f32,
+    ) {
+        let group = group.filter_map(|(cache, bounds)| {
+            if let Cache::Uploaded { batch, layer, .. } = cache {
+                Some((layer, batch, bounds))
+            } else {
+                None
+            }
+        });
+
+        Self::render(
+            device,
+            encoder,
+            target,
+            self.blit.as_mut(),
+            &self.solid,
+            &self.gradient,
+            target_size,
+            group,
+            scale_factor,
+        );
+    }
+
+    fn render<'a>(
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         mut blit: Option<&mut msaa::Blit>,
         solid: &solid::Pipeline,
         gradient: &gradient::Pipeline,
-        layer: &Layer,
         target_size: Size<u32>,
-        meshes: &Batch,
-        bounds: Rectangle<u32>,
+        group: impl Iterator<Item = (&'a Layer, &'a Batch, Rectangle<u32>)>,
         scale_factor: f32,
     ) {
         {
@@ -220,14 +245,16 @@ impl Pipeline {
                     occlusion_query_set: None,
                 });
 
-            layer.render(
-                solid,
-                gradient,
-                meshes,
-                bounds,
-                scale_factor,
-                &mut render_pass,
-            );
+            for (layer, meshes, bounds) in group {
+                layer.render(
+                    solid,
+                    gradient,
+                    meshes,
+                    bounds,
+                    scale_factor,
+                    &mut render_pass,
+                );
+            }
         }
 
         if let Some(blit) = blit {
