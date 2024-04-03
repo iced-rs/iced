@@ -626,7 +626,9 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
         let mut draw_line = false;
 
         walk_along_path(
-            path.raw().iter().flattened(0.01),
+            path.raw().iter().flattened(
+                lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
+            ),
             0.0,
             lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
             &mut RepeatedPattern {
