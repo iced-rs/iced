@@ -9,13 +9,66 @@ pub use paragraph::Paragraph;
 
 pub use cosmic_text;
 
+use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::Shaping;
-use crate::core::{Color, Point, Rectangle, Size};
+use crate::core::text::{LineHeight, Shaping};
+use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use once_cell::sync::OnceCell;
 use std::borrow::Cow;
 use std::sync::{Arc, RwLock, Weak};
+
+/// A text primitive.
+#[derive(Debug, Clone)]
+pub enum Text {
+    /// A paragraph.
+    #[allow(missing_docs)]
+    Paragraph {
+        paragraph: paragraph::Weak,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
+        transformation: Transformation,
+    },
+    /// An editor.
+    #[allow(missing_docs)]
+    Editor {
+        editor: editor::Weak,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
+        transformation: Transformation,
+    },
+    /// Some cached text.
+    Cached {
+        /// The contents of the text.
+        content: String,
+        /// The bounds of the text.
+        bounds: Rectangle,
+        /// The color of the text.
+        color: Color,
+        /// The size of the text in logical pixels.
+        size: Pixels,
+        /// The line height of the text.
+        line_height: LineHeight,
+        /// The font of the text.
+        font: Font,
+        /// The horizontal alignment of the text.
+        horizontal_alignment: alignment::Horizontal,
+        /// The vertical alignment of the text.
+        vertical_alignment: alignment::Vertical,
+        /// The shaping strategy of the text.
+        shaping: Shaping,
+        /// The clip bounds of the text.
+        clip_bounds: Rectangle,
+    },
+    /// Some raw text.
+    #[allow(missing_docs)]
+    Raw {
+        raw: Raw,
+        transformation: Transformation,
+    },
+}
 
 /// The regular variant of the [Fira Sans] font.
 ///

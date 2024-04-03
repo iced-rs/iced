@@ -42,6 +42,12 @@ impl Transformation {
     }
 }
 
+impl Default for Transformation {
+    fn default() -> Self {
+        Transformation::IDENTITY
+    }
+}
+
 impl Mul for Transformation {
     type Output = Self;
 

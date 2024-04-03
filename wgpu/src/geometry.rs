@@ -10,22 +10,72 @@ use crate::graphics::geometry::{
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::primitive::{self, Primitive};
+use crate::graphics::{self, Cached};
+use crate::layer;
+use crate::text;
 
 use lyon::geom::euclid;
 use lyon::tessellation;
 
 use std::borrow::Cow;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// A frame for drawing some geometry.
 #[allow(missing_debug_implementations)]
 pub struct Frame {
     size: Size,
     buffers: BufferStack,
-    primitives: Vec<Primitive>,
+    layers: Vec<layer::Live>,
+    text: text::Batch,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
     stroke_tessellator: tessellation::StrokeTessellator,
+}
+
+pub enum Geometry {
+    Live(Vec<layer::Live>),
+    Cached(Rc<[Rc<RefCell<layer::Cached>>]>),
+}
+
+impl Cached for Geometry {
+    type Cache = Rc<[Rc<RefCell<layer::Cached>>]>;
+
+    fn load(cache: &Self::Cache) -> Self {
+        Geometry::Cached(cache.clone())
+    }
+
+    fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+        match self {
+            Self::Live(live) => {
+                let mut layers = live.into_iter();
+
+                let mut new: Vec<_> = previous
+                    .map(|previous| {
+                        previous
+                            .iter()
+                            .cloned()
+                            .zip(layers.by_ref())
+                            .map(|(cached, live)| {
+                                cached.borrow_mut().update(live);
+                                cached
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                new.extend(
+                    layers
+                        .map(layer::Live::into_cached)
+                        .map(RefCell::new)
+                        .map(Rc::new),
+                );
+
+                Rc::from(new)
+            }
+            Self::Cached(cache) => cache,
+        }
+    }
 }
 
 impl Frame {
@@ -34,7 +84,8 @@ impl Frame {
         Frame {
             size,
             buffers: BufferStack::new(),
-            primitives: Vec::new(),
+            layers: Vec::new(),
+            text: text::Batch::new(),
             transforms: Transforms {
                 previous: Vec::new(),
                 current: Transform(lyon::math::Transform::identity()),
@@ -44,49 +95,54 @@ impl Frame {
         }
     }
 
-    fn into_primitives(mut self) -> Vec<Primitive> {
-        for buffer in self.buffers.stack {
-            match buffer {
-                Buffer::Solid(buffer) => {
-                    if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::Custom(
-                            primitive::Custom::Mesh(Mesh::Solid {
-                                buffers: mesh::Indexed {
-                                    vertices: buffer.vertices,
-                                    indices: buffer.indices,
-                                },
-                                size: self.size,
-                            }),
-                        ));
-                    }
-                }
-                Buffer::Gradient(buffer) => {
-                    if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::Custom(
-                            primitive::Custom::Mesh(Mesh::Gradient {
-                                buffers: mesh::Indexed {
-                                    vertices: buffer.vertices,
-                                    indices: buffer.indices,
-                                },
-                                size: self.size,
-                            }),
-                        ));
-                    }
-                }
-            }
+    fn into_layers(mut self) -> Vec<layer::Live> {
+        if !self.text.is_empty() || !self.buffers.stack.is_empty() {
+            let clip_bounds = Rectangle::with_size(self.size);
+            let transformation = Transformation::IDENTITY;
+
+            // TODO: Generate different meshes for different transformations (?)
+            // Instead of transforming each path
+            let meshes = self
+                .buffers
+                .stack
+                .into_iter()
+                .map(|buffer| match buffer {
+                    Buffer::Solid(buffer) => Mesh::Solid {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        transformation: Transformation::IDENTITY,
+                        size: self.size,
+                    },
+                    Buffer::Gradient(buffer) => Mesh::Gradient {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        transformation: Transformation::IDENTITY,
+                        size: self.size,
+                    },
+                })
+                .collect();
+
+            let layer = layer::Live {
+                bounds: Some(clip_bounds),
+                transformation,
+                meshes,
+                text: self.text,
+                ..layer::Live::default()
+            };
+
+            self.layers.push(layer);
         }
 
-        self.primitives
+        self.layers
     }
 }
 
 impl geometry::frame::Backend for Frame {
-    type Geometry = Primitive;
-
-    /// Creates a new empty [`Frame`] with the given dimensions.
-    ///
-    /// The default coordinate system of a [`Frame`] has its origin at the
-    /// top-left corner of its bounds.
+    type Geometry = Geometry;
 
     #[inline]
     fn width(&self) -> f32 {
@@ -246,8 +302,7 @@ impl geometry::frame::Backend for Frame {
                 height: f32::INFINITY,
             };
 
-            // TODO: Honor layering!
-            self.primitives.push(Primitive::Text {
+            self.text.push(graphics::Text::Cached {
                 content: text.content,
                 bounds,
                 color: text.color,
@@ -313,37 +368,17 @@ impl geometry::frame::Backend for Frame {
     }
 
     fn paste(&mut self, frame: Frame, at: Point) {
-        let size = frame.size();
-        let primitives = frame.into_primitives();
-        let transformation = Transformation::translate(at.x, at.y);
+        let translation = Transformation::translate(at.x, at.y);
 
-        let (text, meshes) = primitives
-            .into_iter()
-            .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
-
-        self.primitives.push(Primitive::Group {
-            primitives: vec![
-                Primitive::Transform {
-                    transformation,
-                    content: Box::new(Primitive::Group { primitives: meshes }),
-                },
-                Primitive::Transform {
-                    transformation,
-                    content: Box::new(Primitive::Clip {
-                        bounds: Rectangle::with_size(size),
-                        content: Box::new(Primitive::Group {
-                            primitives: text,
-                        }),
-                    }),
-                },
-            ],
-        });
+        self.layers
+            .extend(frame.into_layers().into_iter().map(|mut layer| {
+                layer.transformation = layer.transformation * translation;
+                layer
+            }));
     }
 
     fn into_geometry(self) -> Self::Geometry {
-        Primitive::Group {
-            primitives: self.into_primitives(),
-        }
+        Geometry::Live(self.into_layers())
     }
 }
 

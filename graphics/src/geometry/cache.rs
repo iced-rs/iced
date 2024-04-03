@@ -49,7 +49,7 @@ where
     ) -> Renderer::Geometry {
         use std::ops::Deref;
 
-        if let State::Filled {
+        let previous = if let State::Filled {
             bounds: cached_bounds,
             geometry,
         } = self.state.borrow().deref()
@@ -57,12 +57,16 @@ where
             if *cached_bounds == bounds {
                 return Cached::load(geometry);
             }
-        }
+
+            Some(geometry.clone())
+        } else {
+            None
+        };
 
         let mut frame = Frame::new(renderer, bounds);
         draw_fn(&mut frame);
 
-        let geometry = frame.into_geometry().cache();
+        let geometry = frame.into_geometry().cache(previous);
         let result = Cached::load(&geometry);
 
         *self.state.borrow_mut() = State::Filled { bounds, geometry };

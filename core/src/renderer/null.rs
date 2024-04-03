@@ -10,11 +10,11 @@ use crate::{
 use std::borrow::Cow;
 
 impl Renderer for () {
-    fn start_layer(&mut self) {}
+    fn start_layer(&mut self, _bounds: Rectangle) {}
 
     fn end_layer(&mut self, _bounds: Rectangle) {}
 
-    fn start_transformation(&mut self) {}
+    fn start_transformation(&mut self, _transformation: Transformation) {}
 
     fn end_transformation(&mut self, _transformation: Transformation) {}
 

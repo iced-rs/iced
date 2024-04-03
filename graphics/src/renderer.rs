@@ -62,7 +62,7 @@ impl<B: Backend> Renderer<B> {
 }
 
 impl<B: Backend> iced_core::Renderer for Renderer<B> {
-    fn start_layer(&mut self) {
+    fn start_layer(&mut self, _bounds: Rectangle) {
         self.stack.push(std::mem::take(&mut self.primitives));
     }
 
@@ -75,7 +75,7 @@ impl<B: Backend> iced_core::Renderer for Renderer<B> {
         self.primitives.push(Primitive::group(layer).clip(bounds));
     }
 
-    fn start_transformation(&mut self) {
+    fn start_transformation(&mut self, _transformation: Transformation) {
         self.stack.push(std::mem::take(&mut self.primitives));
     }
 

@@ -41,6 +41,3 @@ lyon.optional = true
 
 resvg.workspace = true
 resvg.optional = true
-
-tracing.workspace = true
-tracing.optional = true

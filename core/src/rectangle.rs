@@ -16,6 +16,22 @@ pub struct Rectangle<T = f32> {
     pub height: T,
 }
 
+impl<T> Rectangle<T>
+where
+    T: Default,
+{
+    /// Creates a new [`Rectangle`] with its top-left corner at the origin
+    /// and with the provided [`Size`].
+    pub fn with_size(size: Size<T>) -> Self {
+        Self {
+            x: T::default(),
+            y: T::default(),
+            width: size.width,
+            height: size.height,
+        }
+    }
+}
+
 impl Rectangle<f32> {
     /// Creates a new [`Rectangle`] with its top-left corner in the given
     /// [`Point`] and with the provided [`Size`].
@@ -23,17 +39,6 @@ impl Rectangle<f32> {
         Self {
             x: top_left.x,
             y: top_left.y,
-            width: size.width,
-            height: size.height,
-        }
-    }
-
-    /// Creates a new [`Rectangle`] with its top-left corner at the origin
-    /// and with the provided [`Size`].
-    pub fn with_size(size: Size) -> Self {
-        Self {
-            x: 0.0,
-            y: 0.0,
             width: size.width,
             height: size.height,
         }

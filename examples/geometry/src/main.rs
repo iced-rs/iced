@@ -6,7 +6,10 @@ mod rainbow {
     use iced::advanced::renderer;
     use iced::advanced::widget::{self, Widget};
     use iced::mouse;
-    use iced::{Element, Length, Rectangle, Renderer, Size, Theme, Vector};
+    use iced::{
+        Element, Length, Rectangle, Renderer, Size, Theme, Transformation,
+        Vector,
+    };
 
     #[derive(Debug, Clone, Copy, Default)]
     pub struct Rainbow;
@@ -130,6 +133,7 @@ mod rainbow {
                         0, 8, 1, // L
                     ],
                 },
+                transformation: Transformation::IDENTITY,
             };
 
             renderer.with_translation(

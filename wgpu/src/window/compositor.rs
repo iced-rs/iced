@@ -4,18 +4,19 @@ use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::{self, Viewport};
-use crate::{Backend, Primitive, Renderer, Settings};
+use crate::{Engine, Renderer, Settings};
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
 pub struct Compositor {
-    settings: Settings,
     instance: wgpu::Instance,
     adapter: wgpu::Adapter,
     device: wgpu::Device,
     queue: wgpu::Queue,
     format: wgpu::TextureFormat,
     alpha_mode: wgpu::CompositeAlphaMode,
+    engine: Engine,
+    settings: Settings,
 }
 
 /// A compositor error.
@@ -167,15 +168,24 @@ impl Compositor {
 
             match result {
                 Ok((device, queue)) => {
+                    let engine = Engine::new(
+                        &adapter,
+                        &device,
+                        &queue,
+                        format,
+                        settings.antialiasing,
+                    );
+
                     return Ok(Compositor {
                         instance,
-                        settings,
                         adapter,
                         device,
                         queue,
                         format,
                         alpha_mode,
-                    })
+                        engine,
+                        settings,
+                    });
                 }
                 Err(error) => {
                     errors.push((required_limits, error));
@@ -184,17 +194,6 @@ impl Compositor {
         }
 
         Err(Error::RequestDeviceFailed(errors))
-    }
-
-    /// Creates a new rendering [`Backend`] for this [`Compositor`].
-    pub fn create_backend(&self) -> Backend {
-        Backend::new(
-            &self.adapter,
-            &self.device,
-            &self.queue,
-            self.settings,
-            self.format,
-        )
     }
 }
 
@@ -210,9 +209,8 @@ pub async fn new<W: compositor::Window>(
 /// Presents the given primitives with the given [`Compositor`] and [`Backend`].
 pub fn present<T: AsRef<str>>(
     compositor: &mut Compositor,
-    backend: &mut Backend,
+    renderer: &mut Renderer,
     surface: &mut wgpu::Surface<'static>,
-    primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
@@ -229,21 +227,21 @@ pub fn present<T: AsRef<str>>(
                 .texture
                 .create_view(&wgpu::TextureViewDescriptor::default());
 
-            backend.present(
+            renderer.present(
+                &mut compositor.engine,
                 &compositor.device,
                 &compositor.queue,
                 &mut encoder,
                 Some(background_color),
                 frame.texture.format(),
                 view,
-                primitives,
                 viewport,
                 overlay,
             );
 
-            // Submit work
-            let _submission = compositor.queue.submit(Some(encoder.finish()));
-            backend.recall();
+            let _ = compositor.engine.submit(&compositor.queue, encoder);
+
+            // Present the frame
             frame.present();
 
             Ok(())
@@ -292,11 +290,7 @@ impl graphics::Compositor for Compositor {
     }
 
     fn create_renderer(&self) -> Self::Renderer {
-        Renderer::new(
-            self.create_backend(),
-            self.settings.default_font,
-            self.settings.default_text_size,
-        )
+        Renderer::new(self.settings, &self.engine)
     }
 
     fn create_surface<W: compositor::Window>(
@@ -328,7 +322,7 @@ impl graphics::Compositor for Compositor {
             &wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
-                present_mode: self.settings.present_mode,
+                present_mode: wgpu::PresentMode::Immediate,
                 width,
                 height,
                 alpha_mode: self.alpha_mode,
@@ -355,17 +349,7 @@ impl graphics::Compositor for Compositor {
         background_color: Color,
         overlay: &[T],
     ) -> Result<(), compositor::SurfaceError> {
-        renderer.with_primitives(|backend, primitives| {
-            present(
-                self,
-                backend,
-                surface,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
-        })
+        present(self, renderer, surface, viewport, background_color, overlay)
     }
 
     fn screenshot<T: AsRef<str>>(
@@ -376,16 +360,7 @@ impl graphics::Compositor for Compositor {
         background_color: Color,
         overlay: &[T],
     ) -> Vec<u8> {
-        renderer.with_primitives(|backend, primitives| {
-            screenshot(
-                self,
-                backend,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
-        })
+        screenshot(self, renderer, viewport, background_color, overlay)
     }
 }
 
@@ -393,19 +368,12 @@ impl graphics::Compositor for Compositor {
 ///
 /// Returns RGBA bytes of the texture data.
 pub fn screenshot<T: AsRef<str>>(
-    compositor: &Compositor,
-    backend: &mut Backend,
-    primitives: &[Primitive],
+    compositor: &mut Compositor,
+    renderer: &mut Renderer,
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
 ) -> Vec<u8> {
-    let mut encoder = compositor.device.create_command_encoder(
-        &wgpu::CommandEncoderDescriptor {
-            label: Some("iced_wgpu.offscreen.encoder"),
-        },
-    );
-
     let dimensions = BufferDimensions::new(viewport.physical_size());
 
     let texture_extent = wgpu::Extent3d {
@@ -429,14 +397,20 @@ pub fn screenshot<T: AsRef<str>>(
 
     let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
-    backend.present(
+    let mut encoder = compositor.device.create_command_encoder(
+        &wgpu::CommandEncoderDescriptor {
+            label: Some("iced_wgpu.offscreen.encoder"),
+        },
+    );
+
+    renderer.present(
+        &mut compositor.engine,
         &compositor.device,
         &compositor.queue,
         &mut encoder,
         Some(background_color),
         texture.format(),
         &view,
-        primitives,
         viewport,
         overlay,
     );
@@ -474,7 +448,7 @@ pub fn screenshot<T: AsRef<str>>(
         texture_extent,
     );
 
-    let index = compositor.queue.submit(Some(encoder.finish()));
+    let index = compositor.engine.submit(&compositor.queue, encoder);
 
     let slice = output_buffer.slice(..);
     slice.map_async(wgpu::MapMode::Read, |_| {});

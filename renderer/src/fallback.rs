@@ -39,16 +39,20 @@ where
         delegate!(self, renderer, renderer.clear());
     }
 
-    fn start_layer(&mut self) {
-        delegate!(self, renderer, renderer.start_layer());
+    fn start_layer(&mut self, bounds: Rectangle) {
+        delegate!(self, renderer, renderer.start_layer(bounds));
     }
 
     fn end_layer(&mut self, bounds: Rectangle) {
         delegate!(self, renderer, renderer.end_layer(bounds));
     }
 
-    fn start_transformation(&mut self) {
-        delegate!(self, renderer, renderer.start_transformation());
+    fn start_transformation(&mut self, transformation: Transformation) {
+        delegate!(
+            self,
+            renderer,
+            renderer.start_transformation(transformation)
+        );
     }
 
     fn end_transformation(&mut self, transformation: Transformation) {
@@ -433,6 +437,7 @@ mod geometry {
         }
     }
 
+    #[derive(Clone)]
     pub enum Geometry<L, R> {
         Left(L),
         Right(R),
@@ -452,10 +457,21 @@ mod geometry {
             }
         }
 
-        fn cache(self) -> Self::Cache {
-            match self {
-                Self::Left(geometry) => Geometry::Left(geometry.cache()),
-                Self::Right(geometry) => Geometry::Right(geometry.cache()),
+        fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+            match (self, previous) {
+                (Self::Left(geometry), Some(Geometry::Left(previous))) => {
+                    Geometry::Left(geometry.cache(Some(previous)))
+                }
+                (Self::Left(geometry), None) => {
+                    Geometry::Left(geometry.cache(None))
+                }
+                (Self::Right(geometry), Some(Geometry::Right(previous))) => {
+                    Geometry::Right(geometry.cache(Some(previous)))
+                }
+                (Self::Right(geometry), None) => {
+                    Geometry::Right(geometry.cache(None))
+                }
+                _ => unreachable!(),
             }
         }
     }

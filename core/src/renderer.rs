@@ -9,7 +9,7 @@ use crate::{
 /// A component that can be used by widgets to draw themselves on a screen.
 pub trait Renderer {
     /// Starts recording a new layer.
-    fn start_layer(&mut self);
+    fn start_layer(&mut self, bounds: Rectangle);
 
     /// Ends recording a new layer.
     ///
@@ -20,13 +20,13 @@ pub trait Renderer {
     ///
     /// The layer will clip its contents to the provided `bounds`.
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
-        self.start_layer();
+        self.start_layer(bounds);
         f(self);
         self.end_layer(bounds);
     }
 
     /// Starts recording with a new [`Transformation`].
-    fn start_transformation(&mut self);
+    fn start_transformation(&mut self, transformation: Transformation);
 
     /// Ends recording a new layer.
     ///
@@ -39,7 +39,7 @@ pub trait Renderer {
         transformation: Transformation,
         f: impl FnOnce(&mut Self),
     ) {
-        self.start_transformation();
+        self.start_transformation(transformation);
         f(self);
         self.end_transformation(transformation);
     }

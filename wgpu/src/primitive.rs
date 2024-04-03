@@ -3,8 +3,7 @@ pub mod pipeline;
 
 pub use pipeline::Pipeline;
 
-use crate::core::Rectangle;
-use crate::graphics::{Damage, Mesh};
+use crate::graphics::Mesh;
 
 use std::fmt::Debug;
 
@@ -18,21 +17,4 @@ pub enum Custom {
     Mesh(Mesh),
     /// A custom pipeline primitive.
     Pipeline(Pipeline),
-}
-
-impl Damage for Custom {
-    fn bounds(&self) -> Rectangle {
-        match self {
-            Self::Mesh(mesh) => mesh.bounds(),
-            Self::Pipeline(pipeline) => pipeline.bounds,
-        }
-    }
-}
-
-impl TryFrom<Mesh> for Custom {
-    type Error = &'static str;
-
-    fn try_from(mesh: Mesh) -> Result<Self, Self::Error> {
-        Ok(Custom::Mesh(mesh))
-    }
 }

@@ -1,343 +1,326 @@
-//! Organize rendering primitives into a flattened list of layers.
-mod image;
-mod pipeline;
-mod text;
-
-pub mod mesh;
-
-pub use image::Image;
-pub use mesh::Mesh;
-pub use pipeline::Pipeline;
-pub use text::Text;
-
-use crate::core;
-use crate::core::alignment;
-use crate::core::{
-    Color, Font, Pixels, Point, Rectangle, Size, Transformation, Vector,
-};
-use crate::graphics;
+use crate::core::renderer;
+use crate::core::{Background, Color, Point, Rectangle, Transformation};
 use crate::graphics::color;
-use crate::graphics::Viewport;
-use crate::primitive::{self, Primitive};
+use crate::graphics::text::{Editor, Paragraph};
+use crate::graphics::Mesh;
+use crate::image::{self, Image};
 use crate::quad::{self, Quad};
+use crate::text::{self, Text};
+use crate::triangle;
 
-/// A group of primitives that should be clipped together.
-#[derive(Debug)]
-pub struct Layer<'a> {
-    /// The clipping bounds of the [`Layer`].
-    pub bounds: Rectangle,
+use std::cell::{self, RefCell};
+use std::rc::Rc;
 
-    /// The quads of the [`Layer`].
-    pub quads: quad::Batch,
-
-    /// The triangle meshes of the [`Layer`].
-    pub meshes: Vec<Mesh<'a>>,
-
-    /// The text of the [`Layer`].
-    pub text: Vec<Text<'a>>,
-
-    /// The images of the [`Layer`].
-    pub images: Vec<Image>,
-
-    /// The custom pipelines of this [`Layer`].
-    pub pipelines: Vec<Pipeline>,
+pub enum Layer<'a> {
+    Live(&'a Live),
+    Cached(cell::Ref<'a, Cached>),
 }
 
-impl<'a> Layer<'a> {
-    /// Creates a new [`Layer`] with the given clipping bounds.
-    pub fn new(bounds: Rectangle) -> Self {
+pub enum LayerMut<'a> {
+    Live(&'a mut Live),
+    Cached(cell::RefMut<'a, Cached>),
+}
+
+pub struct Stack {
+    live: Vec<Live>,
+    cached: Vec<Rc<RefCell<Cached>>>,
+    order: Vec<Kind>,
+    transformations: Vec<Transformation>,
+    previous: Vec<usize>,
+    current: usize,
+    live_count: usize,
+}
+
+impl Stack {
+    pub fn new() -> Self {
         Self {
-            bounds,
-            quads: quad::Batch::default(),
-            meshes: Vec::new(),
-            text: Vec::new(),
-            images: Vec::new(),
-            pipelines: Vec::new(),
+            live: vec![Live::default()],
+            cached: Vec::new(),
+            order: vec![Kind::Live],
+            transformations: vec![Transformation::IDENTITY],
+            previous: Vec::new(),
+            current: 0,
+            live_count: 1,
         }
     }
 
-    /// Creates a new [`Layer`] for the provided overlay text.
-    ///
-    /// This can be useful for displaying debug information.
-    pub fn overlay(lines: &'a [impl AsRef<str>], viewport: &Viewport) -> Self {
-        let mut overlay =
-            Layer::new(Rectangle::with_size(viewport.logical_size()));
+    pub fn draw_quad(&mut self, quad: renderer::Quad, background: Background) {
+        let transformation = self.transformations.last().unwrap();
+        let bounds = quad.bounds * *transformation;
 
-        for (i, line) in lines.iter().enumerate() {
-            let text = text::Cached {
-                content: line.as_ref(),
-                bounds: Rectangle::new(
-                    Point::new(11.0, 11.0 + 25.0 * i as f32),
-                    Size::INFINITY,
-                ),
-                color: Color::new(0.9, 0.9, 0.9, 1.0),
-                size: Pixels(20.0),
-                line_height: core::text::LineHeight::default(),
-                font: Font::MONOSPACE,
-                horizontal_alignment: alignment::Horizontal::Left,
-                vertical_alignment: alignment::Vertical::Top,
-                shaping: core::text::Shaping::Basic,
-                clip_bounds: Rectangle::with_size(Size::INFINITY),
-            };
+        let quad = Quad {
+            position: [bounds.x, bounds.y],
+            size: [bounds.width, bounds.height],
+            border_color: color::pack(quad.border.color),
+            border_radius: quad.border.radius.into(),
+            border_width: quad.border.width,
+            shadow_color: color::pack(quad.shadow.color),
+            shadow_offset: quad.shadow.offset.into(),
+            shadow_blur_radius: quad.shadow.blur_radius,
+        };
 
-            overlay.text.push(Text::Cached(text.clone()));
-
-            overlay.text.push(Text::Cached(text::Cached {
-                bounds: text.bounds + Vector::new(-1.0, -1.0),
-                color: Color::BLACK,
-                ..text
-            }));
-        }
-
-        overlay
+        self.live[self.current].quads.add(quad, &background);
     }
 
-    /// Distributes the given [`Primitive`] and generates a list of layers based
-    /// on its contents.
-    pub fn generate(
-        primitives: &'a [Primitive],
-        viewport: &Viewport,
-    ) -> Vec<Self> {
-        let first_layer =
-            Layer::new(Rectangle::with_size(viewport.logical_size()));
-
-        let mut layers = vec![first_layer];
-
-        for primitive in primitives {
-            Self::process_primitive(
-                &mut layers,
-                Transformation::IDENTITY,
-                primitive,
-                0,
-            );
-        }
-
-        layers
-    }
-
-    fn process_primitive(
-        layers: &mut Vec<Self>,
-        transformation: Transformation,
-        primitive: &'a Primitive,
-        current_layer: usize,
+    pub fn draw_paragraph(
+        &mut self,
+        paragraph: &Paragraph,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
     ) {
-        match primitive {
-            Primitive::Paragraph {
-                paragraph,
-                position,
-                color,
-                clip_bounds,
-            } => {
-                let layer = &mut layers[current_layer];
+        let paragraph = Text::Paragraph {
+            paragraph: paragraph.downgrade(),
+            position,
+            color,
+            clip_bounds,
+            transformation: self.transformations.last().copied().unwrap(),
+        };
 
-                layer.text.push(Text::Paragraph {
-                    paragraph: paragraph.clone(),
-                    position: *position,
-                    color: *color,
-                    clip_bounds: *clip_bounds,
-                    transformation,
-                });
-            }
-            Primitive::Editor {
-                editor,
-                position,
-                color,
-                clip_bounds,
-            } => {
-                let layer = &mut layers[current_layer];
+        self.live[self.current].text.push(paragraph);
+    }
 
-                layer.text.push(Text::Editor {
-                    editor: editor.clone(),
-                    position: *position,
-                    color: *color,
-                    clip_bounds: *clip_bounds,
-                    transformation,
-                });
+    pub fn draw_editor(
+        &mut self,
+        editor: &Editor,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
+    ) {
+        let paragraph = Text::Editor {
+            editor: editor.downgrade(),
+            position,
+            color,
+            clip_bounds,
+            transformation: self.transformations.last().copied().unwrap(),
+        };
+
+        self.live[self.current].text.push(paragraph);
+    }
+
+    pub fn draw_text(
+        &mut self,
+        text: crate::core::Text,
+        position: Point,
+        color: Color,
+        clip_bounds: Rectangle,
+    ) {
+        let transformation = self.transformation();
+
+        let paragraph = Text::Cached {
+            content: text.content,
+            bounds: Rectangle::new(position, text.bounds) * transformation,
+            color,
+            size: text.size * transformation.scale_factor(),
+            line_height: text.line_height,
+            font: text.font,
+            horizontal_alignment: text.horizontal_alignment,
+            vertical_alignment: text.vertical_alignment,
+            shaping: text.shaping,
+            clip_bounds: clip_bounds * transformation,
+        };
+
+        self.live[self.current].text.push(paragraph);
+    }
+
+    pub fn draw_image(
+        &mut self,
+        handle: crate::core::image::Handle,
+        filter_method: crate::core::image::FilterMethod,
+        bounds: Rectangle,
+    ) {
+        let image = Image::Raster {
+            handle,
+            filter_method,
+            bounds: bounds * self.transformation(),
+        };
+
+        self.live[self.current].images.push(image);
+    }
+
+    pub fn draw_svg(
+        &mut self,
+        handle: crate::core::svg::Handle,
+        color: Option<Color>,
+        bounds: Rectangle,
+    ) {
+        let svg = Image::Vector {
+            handle,
+            color,
+            bounds: bounds * self.transformation(),
+        };
+
+        self.live[self.current].images.push(svg);
+    }
+
+    pub fn draw_mesh(&mut self, mut mesh: Mesh) {
+        match &mut mesh {
+            Mesh::Solid { transformation, .. }
+            | Mesh::Gradient { transformation, .. } => {
+                *transformation = *transformation * self.transformation();
             }
-            Primitive::Text {
-                content,
+        }
+
+        self.live[self.current].meshes.push(mesh);
+    }
+
+    pub fn draw_layer(&mut self, mut layer: Live) {
+        layer.transformation = layer.transformation * self.transformation();
+
+        if self.live_count == self.live.len() {
+            self.live.push(layer);
+        } else {
+            self.live[self.live_count] = layer;
+        }
+
+        self.live_count += 1;
+        self.order.push(Kind::Live);
+    }
+
+    pub fn draw_cached_layer(&mut self, layer: &Rc<RefCell<Cached>>) {
+        {
+            let mut layer = layer.borrow_mut();
+            layer.transformation = self.transformation() * layer.transformation;
+        }
+
+        self.cached.push(layer.clone());
+        self.order.push(Kind::Cache);
+    }
+
+    pub fn push_clip(&mut self, bounds: Option<Rectangle>) {
+        self.previous.push(self.current);
+        self.order.push(Kind::Live);
+
+        self.current = self.live_count;
+        self.live_count += 1;
+
+        let bounds = bounds.map(|bounds| bounds * self.transformation());
+
+        if self.current == self.live.len() {
+            self.live.push(Live {
                 bounds,
-                size,
-                line_height,
-                color,
-                font,
-                horizontal_alignment,
-                vertical_alignment,
-                shaping,
-                clip_bounds,
-            } => {
-                let layer = &mut layers[current_layer];
-
-                layer.text.push(Text::Cached(text::Cached {
-                    content,
-                    bounds: *bounds + transformation.translation(),
-                    size: *size * transformation.scale_factor(),
-                    line_height: *line_height,
-                    color: *color,
-                    font: *font,
-                    horizontal_alignment: *horizontal_alignment,
-                    vertical_alignment: *vertical_alignment,
-                    shaping: *shaping,
-                    clip_bounds: *clip_bounds * transformation,
-                }));
-            }
-            graphics::Primitive::RawText(raw) => {
-                let layer = &mut layers[current_layer];
-
-                layer.text.push(Text::Raw {
-                    raw: raw.clone(),
-                    transformation,
-                });
-            }
-            Primitive::Quad {
-                bounds,
-                background,
-                border,
-                shadow,
-            } => {
-                let layer = &mut layers[current_layer];
-                let bounds = *bounds * transformation;
-
-                let quad = Quad {
-                    position: [bounds.x, bounds.y],
-                    size: [bounds.width, bounds.height],
-                    border_color: color::pack(border.color),
-                    border_radius: border.radius.into(),
-                    border_width: border.width,
-                    shadow_color: shadow.color.into_linear(),
-                    shadow_offset: shadow.offset.into(),
-                    shadow_blur_radius: shadow.blur_radius,
-                };
-
-                layer.quads.add(quad, background);
-            }
-            Primitive::Image {
-                handle,
-                filter_method,
-                bounds,
-            } => {
-                let layer = &mut layers[current_layer];
-
-                layer.images.push(Image::Raster {
-                    handle: handle.clone(),
-                    filter_method: *filter_method,
-                    bounds: *bounds * transformation,
-                });
-            }
-            Primitive::Svg {
-                handle,
-                color,
-                bounds,
-            } => {
-                let layer = &mut layers[current_layer];
-
-                layer.images.push(Image::Vector {
-                    handle: handle.clone(),
-                    color: *color,
-                    bounds: *bounds * transformation,
-                });
-            }
-            Primitive::Group { primitives } => {
-                // TODO: Inspect a bit and regroup (?)
-                for primitive in primitives {
-                    Self::process_primitive(
-                        layers,
-                        transformation,
-                        primitive,
-                        current_layer,
-                    );
-                }
-            }
-            Primitive::Clip { bounds, content } => {
-                let layer = &mut layers[current_layer];
-                let translated_bounds = *bounds * transformation;
-
-                // Only draw visible content
-                if let Some(clip_bounds) =
-                    layer.bounds.intersection(&translated_bounds)
-                {
-                    let clip_layer = Layer::new(clip_bounds);
-                    layers.push(clip_layer);
-
-                    Self::process_primitive(
-                        layers,
-                        transformation,
-                        content,
-                        layers.len() - 1,
-                    );
-                }
-            }
-            Primitive::Transform {
-                transformation: new_transformation,
-                content,
-            } => {
-                Self::process_primitive(
-                    layers,
-                    transformation * *new_transformation,
-                    content,
-                    current_layer,
-                );
-            }
-            Primitive::Cache { content } => {
-                Self::process_primitive(
-                    layers,
-                    transformation,
-                    content,
-                    current_layer,
-                );
-            }
-            Primitive::Custom(custom) => match custom {
-                primitive::Custom::Mesh(mesh) => match mesh {
-                    graphics::Mesh::Solid { buffers, size } => {
-                        let layer = &mut layers[current_layer];
-
-                        let bounds =
-                            Rectangle::with_size(*size) * transformation;
-
-                        // Only draw visible content
-                        if let Some(clip_bounds) =
-                            layer.bounds.intersection(&bounds)
-                        {
-                            layer.meshes.push(Mesh::Solid {
-                                transformation,
-                                buffers,
-                                clip_bounds,
-                            });
-                        }
-                    }
-                    graphics::Mesh::Gradient { buffers, size } => {
-                        let layer = &mut layers[current_layer];
-
-                        let bounds =
-                            Rectangle::with_size(*size) * transformation;
-
-                        // Only draw visible content
-                        if let Some(clip_bounds) =
-                            layer.bounds.intersection(&bounds)
-                        {
-                            layer.meshes.push(Mesh::Gradient {
-                                transformation,
-                                buffers,
-                                clip_bounds,
-                            });
-                        }
-                    }
-                },
-                primitive::Custom::Pipeline(pipeline) => {
-                    let layer = &mut layers[current_layer];
-                    let bounds = pipeline.bounds * transformation;
-
-                    if let Some(clip_bounds) =
-                        layer.bounds.intersection(&bounds)
-                    {
-                        layer.pipelines.push(Pipeline {
-                            bounds,
-                            viewport: clip_bounds,
-                            primitive: pipeline.primitive.clone(),
-                        });
-                    }
-                }
-            },
+                ..Live::default()
+            });
+        } else {
+            self.live[self.current].bounds = bounds;
         }
     }
+
+    pub fn pop_clip(&mut self) {
+        self.current = self.previous.pop().unwrap();
+    }
+
+    pub fn push_transformation(&mut self, transformation: Transformation) {
+        self.transformations
+            .push(self.transformation() * transformation);
+    }
+
+    pub fn pop_transformation(&mut self) {
+        let _ = self.transformations.pop();
+    }
+
+    fn transformation(&self) -> Transformation {
+        self.transformations.last().copied().unwrap()
+    }
+
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = LayerMut<'_>> {
+        let mut live = self.live.iter_mut();
+        let mut cached = self.cached.iter_mut();
+
+        self.order.iter().map(move |kind| match kind {
+            Kind::Live => LayerMut::Live(live.next().unwrap()),
+            Kind::Cache => {
+                LayerMut::Cached(cached.next().unwrap().borrow_mut())
+            }
+        })
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = Layer<'_>> {
+        let mut live = self.live.iter();
+        let mut cached = self.cached.iter();
+
+        self.order.iter().map(move |kind| match kind {
+            Kind::Live => Layer::Live(live.next().unwrap()),
+            Kind::Cache => Layer::Cached(cached.next().unwrap().borrow()),
+        })
+    }
+
+    pub fn clear(&mut self) {
+        for live in &mut self.live[..self.live_count] {
+            live.bounds = None;
+            live.transformation = Transformation::IDENTITY;
+
+            live.quads.clear();
+            live.meshes.clear();
+            live.text.clear();
+            live.images.clear();
+        }
+
+        self.current = 0;
+        self.live_count = 1;
+
+        self.order.clear();
+        self.order.push(Kind::Live);
+
+        self.cached.clear();
+        self.previous.clear();
+    }
+}
+
+impl Default for Stack {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Default)]
+pub struct Live {
+    pub bounds: Option<Rectangle>,
+    pub transformation: Transformation,
+    pub quads: quad::Batch,
+    pub meshes: triangle::Batch,
+    pub text: text::Batch,
+    pub images: image::Batch,
+}
+
+impl Live {
+    pub fn into_cached(self) -> Cached {
+        Cached {
+            bounds: self.bounds,
+            transformation: self.transformation,
+            last_transformation: None,
+            quads: quad::Cache::Staged(self.quads),
+            meshes: triangle::Cache::Staged(self.meshes),
+            text: text::Cache::Staged(self.text),
+            images: self.images,
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Cached {
+    pub bounds: Option<Rectangle>,
+    pub transformation: Transformation,
+    pub last_transformation: Option<Transformation>,
+    pub quads: quad::Cache,
+    pub meshes: triangle::Cache,
+    pub text: text::Cache,
+    pub images: image::Batch,
+}
+
+impl Cached {
+    pub fn update(&mut self, live: Live) {
+        self.bounds = live.bounds;
+        self.transformation = live.transformation;
+
+        self.quads.update(live.quads);
+        self.meshes.update(live.meshes);
+        self.text.update(live.text);
+        self.images = live.images;
+    }
+}
+
+enum Kind {
+    Live,
+    Cache,
 }
