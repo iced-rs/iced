@@ -95,7 +95,6 @@ impl Pipeline {
                     needs_reupload: false,
                 }
             }
-
             Cache::Uploaded {
                 batch,
                 layer,

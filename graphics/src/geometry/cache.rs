@@ -22,13 +22,20 @@ where
     /// Creates a new empty [`Cache`].
     pub fn new() -> Self {
         Cache {
-            state: RefCell::new(State::Empty),
+            state: RefCell::new(State::Empty { previous: None }),
         }
     }
 
     /// Clears the [`Cache`], forcing a redraw the next time it is used.
     pub fn clear(&self) {
-        *self.state.borrow_mut() = State::Empty;
+        use std::ops::Deref;
+
+        let previous = match self.state.borrow().deref() {
+            State::Empty { previous } => previous.clone(),
+            State::Filled { geometry, .. } => Some(geometry.clone()),
+        };
+
+        *self.state.borrow_mut() = State::Empty { previous };
     }
 
     /// Draws geometry using the provided closure and stores it in the
@@ -49,18 +56,18 @@ where
     ) -> Renderer::Geometry {
         use std::ops::Deref;
 
-        let previous = if let State::Filled {
-            bounds: cached_bounds,
-            geometry,
-        } = self.state.borrow().deref()
-        {
-            if *cached_bounds == bounds {
-                return Cached::load(geometry);
-            }
+        let previous = match self.state.borrow().deref() {
+            State::Empty { previous } => previous.clone(),
+            State::Filled {
+                bounds: cached_bounds,
+                geometry,
+            } => {
+                if *cached_bounds == bounds {
+                    return Cached::load(geometry);
+                }
 
-            Some(geometry.clone())
-        } else {
-            None
+                Some(geometry.clone())
+            }
         };
 
         let mut frame = Frame::new(renderer, bounds);
@@ -83,7 +90,7 @@ where
         let state = self.state.borrow();
 
         match *state {
-            State::Empty => write!(f, "Cache::Empty"),
+            State::Empty { .. } => write!(f, "Cache::Empty"),
             State::Filled { bounds, .. } => {
                 write!(f, "Cache::Filled {{ bounds: {bounds:?} }}")
             }
@@ -104,7 +111,9 @@ enum State<Geometry>
 where
     Geometry: Cached,
 {
-    Empty,
+    Empty {
+        previous: Option<Geometry::Cache>,
+    },
     Filled {
         bounds: Size,
         geometry: Geometry::Cache,
