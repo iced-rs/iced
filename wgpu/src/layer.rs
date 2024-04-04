@@ -13,17 +13,17 @@ use std::rc::Rc;
 
 pub enum Layer<'a> {
     Live(&'a Live),
-    Cached(cell::Ref<'a, Cached>),
+    Cached(Transformation, cell::Ref<'a, Cached>),
 }
 
 pub enum LayerMut<'a> {
     Live(&'a mut Live),
-    Cached(cell::RefMut<'a, Cached>),
+    Cached(Transformation, cell::RefMut<'a, Cached>),
 }
 
 pub struct Stack {
     live: Vec<Live>,
-    cached: Vec<Rc<RefCell<Cached>>>,
+    cached: Vec<(Transformation, Rc<RefCell<Cached>>)>,
     order: Vec<Kind>,
     transformations: Vec<Transformation>,
     previous: Vec<usize>,
@@ -92,7 +92,7 @@ impl Stack {
             position,
             color,
             clip_bounds,
-            transformation: self.transformations.last().copied().unwrap(),
+            transformation: self.transformation(),
         };
 
         self.live[self.current].text.push(paragraph);
@@ -178,36 +178,31 @@ impl Stack {
     }
 
     pub fn draw_cached_layer(&mut self, layer: &Rc<RefCell<Cached>>) {
-        {
-            let mut layer = layer.borrow_mut();
-            layer.transformation = self.transformation() * layer.transformation;
-        }
-
-        self.cached.push(layer.clone());
+        self.cached.push((self.transformation(), layer.clone()));
         self.order.push(Kind::Cache);
     }
 
     pub fn push_clip(&mut self, bounds: Option<Rectangle>) {
-        self.previous.push(self.current);
-        self.order.push(Kind::Live);
+        // self.previous.push(self.current);
+        // self.order.push(Kind::Live);
 
-        self.current = self.live_count;
-        self.live_count += 1;
+        // self.current = self.live_count;
+        // self.live_count += 1;
 
-        let bounds = bounds.map(|bounds| bounds * self.transformation());
+        // let bounds = bounds.map(|bounds| bounds * self.transformation());
 
-        if self.current == self.live.len() {
-            self.live.push(Live {
-                bounds,
-                ..Live::default()
-            });
-        } else {
-            self.live[self.current].bounds = bounds;
-        }
+        // if self.current == self.live.len() {
+        //     self.live.push(Live {
+        //         bounds,
+        //         ..Live::default()
+        //     });
+        // } else {
+        //     self.live[self.current].bounds = bounds;
+        // }
     }
 
     pub fn pop_clip(&mut self) {
-        self.current = self.previous.pop().unwrap();
+        // self.current = self.previous.pop().unwrap();
     }
 
     pub fn push_transformation(&mut self, transformation: Transformation) {
@@ -224,13 +219,17 @@ impl Stack {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = LayerMut<'_>> {
+        dbg!(self.order.len());
         let mut live = self.live.iter_mut();
         let mut cached = self.cached.iter_mut();
 
         self.order.iter().map(move |kind| match kind {
             Kind::Live => LayerMut::Live(live.next().unwrap()),
             Kind::Cache => {
-                LayerMut::Cached(cached.next().unwrap().borrow_mut())
+                let (transformation, layer) = cached.next().unwrap();
+                let layer = layer.borrow_mut();
+
+                LayerMut::Cached(*transformation * layer.transformation, layer)
             }
         })
     }
@@ -241,7 +240,12 @@ impl Stack {
 
         self.order.iter().map(move |kind| match kind {
             Kind::Live => Layer::Live(live.next().unwrap()),
-            Kind::Cache => Layer::Cached(cached.next().unwrap().borrow()),
+            Kind::Cache => {
+                let (transformation, layer) = cached.next().unwrap();
+                let layer = layer.borrow();
+
+                Layer::Cached(*transformation * layer.transformation, layer)
+            }
         })
     }
 
@@ -288,7 +292,6 @@ impl Live {
         Cached {
             bounds: self.bounds,
             transformation: self.transformation,
-            last_transformation: None,
             quads: quad::Cache::Staged(self.quads),
             meshes: triangle::Cache::Staged(self.meshes),
             text: text::Cache::Staged(self.text),
@@ -301,7 +304,6 @@ impl Live {
 pub struct Cached {
     pub bounds: Option<Rectangle>,
     pub transformation: Transformation,
-    pub last_transformation: Option<Transformation>,
     pub quads: quad::Cache,
     pub meshes: triangle::Cache,
     pub text: text::Cache,
@@ -311,7 +313,6 @@ pub struct Cached {
 impl Cached {
     pub fn update(&mut self, live: Live) {
         self.bounds = live.bounds;
-        self.transformation = live.transformation;
 
         self.quads.update(live.quads);
         self.meshes.update(live.meshes);

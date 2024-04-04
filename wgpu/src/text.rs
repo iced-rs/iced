@@ -26,7 +26,7 @@ pub enum Cache {
         renderer: glyphon::TextRenderer,
         atlas: Option<glyphon::TextAtlas>,
         buffer_cache: Option<BufferCache>,
-        scale_factor: f32,
+        transformation: Transformation,
         target_size: Size<u32>,
         needs_reupload: bool,
     },
@@ -95,7 +95,7 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         sections: &Batch,
         layer_bounds: Rectangle,
-        scale_factor: f32,
+        layer_transformation: Transformation,
         target_size: Size<u32>,
     ) {
         if self.renderers.len() <= self.prepare_layer {
@@ -117,7 +117,7 @@ impl Pipeline {
             &mut self.cache,
             sections,
             layer_bounds,
-            scale_factor,
+            layer_transformation,
             target_size,
         );
 
@@ -140,7 +140,7 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         cache: &mut Cache,
         layer_bounds: Rectangle,
-        new_scale_factor: f32,
+        new_transformation: Transformation,
         new_target_size: Size<u32>,
     ) {
         match cache {
@@ -186,7 +186,7 @@ impl Pipeline {
                     buffer_cache.as_mut().unwrap_or(&mut self.cache),
                     &batch,
                     layer_bounds,
-                    new_scale_factor,
+                    new_transformation,
                     new_target_size,
                 );
 
@@ -196,7 +196,7 @@ impl Pipeline {
                     renderer,
                     atlas,
                     buffer_cache,
-                    scale_factor: new_scale_factor,
+                    transformation: new_transformation,
                     target_size: new_target_size,
                 }
             }
@@ -206,13 +206,13 @@ impl Pipeline {
                 renderer,
                 atlas,
                 buffer_cache,
-                scale_factor,
+                transformation,
                 target_size,
             } => {
                 if *needs_reupload
                     || atlas.is_none()
                     || buffer_cache.is_none()
-                    || new_scale_factor != *scale_factor
+                    || new_transformation != *transformation
                     || new_target_size != *target_size
                 {
                     let _ = prepare(
@@ -224,11 +224,11 @@ impl Pipeline {
                         buffer_cache.as_mut().unwrap_or(&mut self.cache),
                         batch,
                         layer_bounds,
-                        *scale_factor,
-                        *target_size,
+                        new_transformation,
+                        new_target_size,
                     );
 
-                    *scale_factor = new_scale_factor;
+                    *transformation = new_transformation;
                     *target_size = new_target_size;
                 }
             }
@@ -297,7 +297,7 @@ fn prepare(
     buffer_cache: &mut BufferCache,
     sections: &Batch,
     layer_bounds: Rectangle,
-    scale_factor: f32,
+    layer_transformation: Transformation,
     target_size: Size<u32>,
 ) -> Result<(), glyphon::PrepareError> {
     let mut font_system = font_system().write().expect("Write font system");
@@ -349,7 +349,7 @@ fn prepare(
         })
         .collect();
 
-    let layer_bounds = layer_bounds * scale_factor;
+    let layer_bounds = layer_bounds * layer_transformation;
 
     let text_areas = sections.iter().zip(allocations.iter()).filter_map(
         |(section, allocation)| {
@@ -456,7 +456,7 @@ fn prepare(
                 }
             };
 
-            let bounds = bounds * transformation * scale_factor;
+            let bounds = bounds * transformation * layer_transformation;
 
             let left = match horizontal_alignment {
                 alignment::Horizontal::Left => bounds.x,
@@ -470,14 +470,16 @@ fn prepare(
                 alignment::Vertical::Bottom => bounds.y - bounds.height,
             };
 
-            let clip_bounds = layer_bounds
-                .intersection(&(clip_bounds * transformation * scale_factor))?;
+            let clip_bounds = layer_bounds.intersection(
+                &(clip_bounds * transformation * layer_transformation),
+            )?;
 
             Some(glyphon::TextArea {
                 buffer,
                 left,
                 top,
-                scale: scale_factor * transformation.scale_factor(),
+                scale: transformation.scale_factor()
+                    * layer_transformation.scale_factor(),
                 bounds: glyphon::TextBounds {
                     left: clip_bounds.x as i32,
                     top: clip_bounds.y as i32,

@@ -116,32 +116,10 @@ impl Renderer {
         viewport: &Viewport,
         overlay: &[T],
     ) {
-        let target_size = viewport.physical_size();
-        let scale_factor = viewport.scale_factor() as f32;
-        let transformation = viewport.projection();
-
         self.draw_overlay(overlay, viewport);
 
-        self.prepare(
-            engine,
-            device,
-            queue,
-            format,
-            encoder,
-            scale_factor,
-            target_size,
-            transformation,
-        );
-
-        self.render(
-            engine,
-            device,
-            encoder,
-            frame,
-            clear_color,
-            scale_factor,
-            target_size,
-        );
+        self.prepare(engine, device, queue, format, encoder, viewport);
+        self.render(engine, device, encoder, frame, clear_color, viewport);
     }
 
     fn prepare(
@@ -151,10 +129,10 @@ impl Renderer {
         queue: &wgpu::Queue,
         _format: wgpu::TextureFormat,
         encoder: &mut wgpu::CommandEncoder,
-        scale_factor: f32,
-        target_size: Size<u32>,
-        transformation: Transformation,
+        viewport: &Viewport,
     ) {
+        let scale_factor = viewport.scale_factor() as f32;
+
         for layer in self.layers.iter_mut() {
             match layer {
                 LayerMut::Live(live) => {
@@ -164,7 +142,7 @@ impl Renderer {
                             encoder,
                             &mut engine.staging_belt,
                             &live.quads,
-                            transformation,
+                            viewport.projection(),
                             scale_factor,
                         );
                     }
@@ -175,7 +153,7 @@ impl Renderer {
                             encoder,
                             &mut engine.staging_belt,
                             &live.meshes,
-                            transformation
+                            viewport.projection()
                                 * Transformation::scale(scale_factor),
                         );
                     }
@@ -187,10 +165,11 @@ impl Renderer {
                             encoder,
                             &live.text,
                             live.bounds.unwrap_or(Rectangle::with_size(
-                                Size::INFINITY,
+                                viewport.logical_size(),
                             )),
-                            scale_factor,
-                            target_size,
+                            live.transformation
+                                * Transformation::scale(scale_factor),
+                            viewport.physical_size(),
                         );
                     }
 
@@ -201,38 +180,46 @@ impl Renderer {
                             encoder,
                             &mut engine.staging_belt,
                             &live.images,
-                            transformation,
+                            viewport.projection(),
                             scale_factor,
                         );
                     }
                 }
-                LayerMut::Cached(mut cached) => {
+                LayerMut::Cached(layer_transformation, mut cached) => {
                     if !cached.quads.is_empty() {
                         engine.quad_pipeline.prepare_cache(
                             device,
                             encoder,
                             &mut engine.staging_belt,
                             &mut cached.quads,
-                            transformation,
+                            viewport.projection(),
                             scale_factor,
                         );
                     }
 
                     if !cached.meshes.is_empty() {
+                        let transformation =
+                            Transformation::scale(scale_factor)
+                                * layer_transformation;
+
                         engine.triangle_pipeline.prepare_cache(
                             device,
                             encoder,
                             &mut engine.staging_belt,
                             &mut cached.meshes,
-                            transformation
-                                * Transformation::scale(scale_factor),
+                            viewport.projection(),
+                            transformation,
                         );
                     }
 
                     if !cached.text.is_empty() {
-                        let bounds = cached
-                            .bounds
-                            .unwrap_or(Rectangle::with_size(Size::INFINITY));
+                        let bounds = cached.bounds.unwrap_or(
+                            Rectangle::with_size(viewport.logical_size()),
+                        );
+
+                        let transformation =
+                            Transformation::scale(scale_factor)
+                                * layer_transformation;
 
                         engine.text_pipeline.prepare_cache(
                             device,
@@ -240,8 +227,8 @@ impl Renderer {
                             encoder,
                             &mut cached.text,
                             bounds,
-                            scale_factor,
-                            target_size,
+                            transformation,
+                            viewport.physical_size(),
                         );
                     }
 
@@ -252,7 +239,7 @@ impl Renderer {
                             encoder,
                             &mut engine.staging_belt,
                             &cached.images,
-                            transformation,
+                            viewport.projection(),
                             scale_factor,
                         );
                     }
@@ -268,8 +255,7 @@ impl Renderer {
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
         clear_color: Option<Color>,
-        scale_factor: f32,
-        target_size: Size<u32>,
+        viewport: &Viewport,
     ) {
         use std::mem::ManuallyDrop;
 
@@ -312,22 +298,37 @@ impl Renderer {
         let mut image_layer = 0;
 
         // TODO: Can we avoid collecting here?
+        let scale_factor = viewport.scale_factor() as f32;
+        let screen_bounds = Rectangle::with_size(viewport.logical_size());
+        let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
+            viewport.physical_size(),
+        ));
+
         let layers: Vec<_> = self.layers.iter().collect();
         let mut i = 0;
+
+        // println!("RENDER");
 
         while i < layers.len() {
             match layers[i] {
                 Layer::Live(live) => {
-                    let bounds = live
-                        .bounds
-                        .map(|bounds| bounds * scale_factor)
+                    let layer_transformation =
+                        Transformation::scale(scale_factor)
+                            * live.transformation;
+
+                    let layer_bounds = live.bounds.unwrap_or(screen_bounds);
+
+                    let Some(physical_bounds) = physical_bounds
+                        .intersection(&(layer_bounds * layer_transformation))
                         .map(Rectangle::snap)
-                        .unwrap_or(Rectangle::with_size(target_size));
+                    else {
+                        continue;
+                    };
 
                     if !live.quads.is_empty() {
                         engine.quad_pipeline.render_batch(
                             quad_layer,
-                            bounds,
+                            physical_bounds,
                             &live.quads,
                             &mut render_pass,
                         );
@@ -336,6 +337,7 @@ impl Renderer {
                     }
 
                     if !live.meshes.is_empty() {
+                        // println!("LIVE PASS");
                         let _ = ManuallyDrop::into_inner(render_pass);
 
                         engine.triangle_pipeline.render_batch(
@@ -343,10 +345,10 @@ impl Renderer {
                             encoder,
                             frame,
                             mesh_layer,
-                            target_size,
+                            viewport.physical_size(),
                             &live.meshes,
-                            bounds,
-                            scale_factor,
+                            physical_bounds,
+                            &layer_transformation,
                         );
 
                         mesh_layer += 1;
@@ -375,7 +377,7 @@ impl Renderer {
                     if !live.text.is_empty() {
                         engine.text_pipeline.render_batch(
                             text_layer,
-                            bounds,
+                            physical_bounds,
                             &mut render_pass,
                         );
 
@@ -386,7 +388,7 @@ impl Renderer {
                     if !live.images.is_empty() {
                         engine.image_pipeline.render(
                             image_layer,
-                            bounds,
+                            physical_bounds,
                             &mut render_pass,
                         );
 
@@ -395,25 +397,35 @@ impl Renderer {
 
                     i += 1;
                 }
-                Layer::Cached(_) => {
+                Layer::Cached(_, _) => {
                     let group_len = layers[i..]
                         .iter()
                         .position(|layer| matches!(layer, Layer::Live(_)))
-                        .unwrap_or(layers.len());
+                        .unwrap_or(layers.len() - i);
 
-                    let group = layers[i..i + group_len].iter().map(|layer| {
-                        let Layer::Cached(cached) = layer else {
-                            unreachable!()
-                        };
+                    let group =
+                        layers[i..i + group_len].iter().filter_map(|layer| {
+                            let Layer::Cached(transformation, cached) = layer
+                            else {
+                                unreachable!()
+                            };
 
-                        let bounds = cached
-                            .bounds
-                            .map(|bounds| bounds * scale_factor)
-                            .map(Rectangle::snap)
-                            .unwrap_or(Rectangle::with_size(target_size));
+                            let physical_bounds = cached
+                                .bounds
+                                .and_then(|bounds| {
+                                    physical_bounds.intersection(
+                                        &(bounds
+                                            * *transformation
+                                            * Transformation::scale(
+                                                scale_factor,
+                                            )),
+                                    )
+                                })
+                                .unwrap_or(physical_bounds)
+                                .snap();
 
-                        (cached, bounds)
-                    });
+                            Some((cached, physical_bounds))
+                        });
 
                     for (cached, bounds) in group.clone() {
                         if !cached.quads.is_empty() {
@@ -430,17 +442,17 @@ impl Renderer {
                         .any(|(cached, _)| !cached.meshes.is_empty());
 
                     if group_has_meshes {
+                        // println!("CACHE PASS");
                         let _ = ManuallyDrop::into_inner(render_pass);
 
                         engine.triangle_pipeline.render_cache_group(
                             device,
                             encoder,
                             frame,
-                            target_size,
+                            viewport.physical_size(),
                             group.clone().map(|(cached, bounds)| {
                                 (&cached.meshes, bounds)
                             }),
-                            scale_factor,
                         );
 
                         render_pass =

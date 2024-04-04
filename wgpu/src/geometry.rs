@@ -106,23 +106,28 @@ impl Frame {
                 .buffers
                 .stack
                 .into_iter()
-                .map(|buffer| match buffer {
-                    Buffer::Solid(buffer) => Mesh::Solid {
-                        buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
-                        },
-                        transformation: Transformation::IDENTITY,
-                        size: self.size,
-                    },
-                    Buffer::Gradient(buffer) => Mesh::Gradient {
-                        buffers: mesh::Indexed {
-                            vertices: buffer.vertices,
-                            indices: buffer.indices,
-                        },
-                        transformation: Transformation::IDENTITY,
-                        size: self.size,
-                    },
+                .filter_map(|buffer| match buffer {
+                    Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
+                        Some(Mesh::Solid {
+                            buffers: mesh::Indexed {
+                                vertices: buffer.vertices,
+                                indices: buffer.indices,
+                            },
+                            transformation: Transformation::IDENTITY,
+                            size: self.size,
+                        })
+                    }
+                    Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
+                        Some(Mesh::Gradient {
+                            buffers: mesh::Indexed {
+                                vertices: buffer.vertices,
+                                indices: buffer.indices,
+                            },
+                            transformation: Transformation::IDENTITY,
+                            size: self.size,
+                        })
+                    }
+                    _ => None,
                 })
                 .collect();
 

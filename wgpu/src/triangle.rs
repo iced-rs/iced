@@ -68,8 +68,11 @@ impl Pipeline {
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
         cache: &mut Cache,
-        transformation: Transformation,
+        new_projection: Transformation,
+        new_transformation: Transformation,
     ) {
+        let new_projection = new_projection * new_transformation;
+
         match cache {
             Cache::Staged(_) => {
                 let Cache::Staged(batch) =
@@ -86,21 +89,25 @@ impl Pipeline {
                     &self.solid,
                     &self.gradient,
                     &batch,
-                    transformation,
+                    new_projection,
                 );
 
                 *cache = Cache::Uploaded {
                     layer,
                     batch,
+                    transformation: new_transformation,
+                    projection: new_projection,
                     needs_reupload: false,
                 }
             }
             Cache::Uploaded {
                 batch,
                 layer,
+                transformation,
+                projection,
                 needs_reupload,
             } => {
-                if *needs_reupload {
+                if *needs_reupload || new_projection != *projection {
                     layer.prepare(
                         device,
                         encoder,
@@ -108,9 +115,11 @@ impl Pipeline {
                         &self.solid,
                         &self.gradient,
                         batch,
-                        transformation,
+                        new_projection,
                     );
 
+                    *transformation = new_transformation;
+                    *projection = new_projection;
                     *needs_reupload = false;
                 }
             }
@@ -126,7 +135,7 @@ impl Pipeline {
         target_size: Size<u32>,
         meshes: &Batch,
         bounds: Rectangle<u32>,
-        scale_factor: f32,
+        transformation: &Transformation,
     ) {
         Self::render(
             device,
@@ -136,8 +145,12 @@ impl Pipeline {
             &self.solid,
             &self.gradient,
             target_size,
-            std::iter::once((&self.layers[layer], meshes, bounds)),
-            scale_factor,
+            std::iter::once((
+                &self.layers[layer],
+                meshes,
+                transformation,
+                bounds,
+            )),
         );
     }
 
@@ -150,9 +163,14 @@ impl Pipeline {
         target_size: Size<u32>,
         cache: &Cache,
         bounds: Rectangle<u32>,
-        scale_factor: f32,
     ) {
-        let Cache::Uploaded { batch, layer, .. } = cache else {
+        let Cache::Uploaded {
+            batch,
+            layer,
+            transformation,
+            ..
+        } = cache
+        else {
             return;
         };
 
@@ -164,8 +182,7 @@ impl Pipeline {
             &self.solid,
             &self.gradient,
             target_size,
-            std::iter::once((layer, batch, bounds)),
-            scale_factor,
+            std::iter::once((layer, batch, transformation, bounds)),
         );
     }
 
@@ -176,11 +193,16 @@ impl Pipeline {
         target: &wgpu::TextureView,
         target_size: Size<u32>,
         group: impl Iterator<Item = (&'a Cache, Rectangle<u32>)>,
-        scale_factor: f32,
     ) {
         let group = group.filter_map(|(cache, bounds)| {
-            if let Cache::Uploaded { batch, layer, .. } = cache {
-                Some((layer, batch, bounds))
+            if let Cache::Uploaded {
+                batch,
+                layer,
+                transformation,
+                ..
+            } = cache
+            {
+                Some((layer, batch, transformation, bounds))
             } else {
                 None
             }
@@ -195,7 +217,6 @@ impl Pipeline {
             &self.gradient,
             target_size,
             group,
-            scale_factor,
         );
     }
 
@@ -207,8 +228,9 @@ impl Pipeline {
         solid: &solid::Pipeline,
         gradient: &gradient::Pipeline,
         target_size: Size<u32>,
-        group: impl Iterator<Item = (&'a Layer, &'a Batch, Rectangle<u32>)>,
-        scale_factor: f32,
+        group: impl Iterator<
+            Item = (&'a Layer, &'a Batch, &'a Transformation, Rectangle<u32>),
+        >,
     ) {
         {
             let (attachment, resolve_target, load) = if let Some(blit) =
@@ -244,13 +266,13 @@ impl Pipeline {
                     occlusion_query_set: None,
                 });
 
-            for (layer, meshes, bounds) in group {
+            for (layer, meshes, transformation, bounds) in group {
                 layer.render(
                     solid,
                     gradient,
                     meshes,
                     bounds,
-                    scale_factor,
+                    *transformation,
                     &mut render_pass,
                 );
             }
@@ -272,6 +294,8 @@ pub enum Cache {
     Uploaded {
         batch: Batch,
         layer: Layer,
+        transformation: Transformation,
+        projection: Transformation,
         needs_reupload: bool,
     },
 }
@@ -390,6 +414,7 @@ impl Layer {
 
         for mesh in meshes {
             let indices = mesh.indices();
+
             let uniforms =
                 Uniforms::new(transformation * mesh.transformation());
 
@@ -448,7 +473,7 @@ impl Layer {
         gradient: &'a gradient::Pipeline,
         meshes: &Batch,
         layer_bounds: Rectangle<u32>,
-        scale_factor: f32,
+        transformation: Transformation,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         let mut num_solids = 0;
@@ -457,15 +482,12 @@ impl Layer {
 
         for (index, mesh) in meshes.iter().enumerate() {
             let Some(clip_bounds) = Rectangle::<f32>::from(layer_bounds)
-                .intersection(&(mesh.clip_bounds() * scale_factor))
-                .map(Rectangle::snap)
+                .intersection(&(mesh.clip_bounds() * transformation))
             else {
                 continue;
             };
 
-            if clip_bounds.width < 1 || clip_bounds.height < 1 {
-                continue;
-            }
+            let clip_bounds = clip_bounds.snap();
 
             render_pass.set_scissor_rect(
                 clip_bounds.x,
