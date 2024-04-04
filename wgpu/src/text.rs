@@ -230,6 +230,7 @@ impl Pipeline {
 
                     *transformation = new_transformation;
                     *target_size = new_target_size;
+                    *needs_reupload = false;
                 }
             }
         }

@@ -183,26 +183,26 @@ impl Stack {
     }
 
     pub fn push_clip(&mut self, bounds: Option<Rectangle>) {
-        // self.previous.push(self.current);
-        // self.order.push(Kind::Live);
+        self.previous.push(self.current);
+        self.order.push(Kind::Live);
 
-        // self.current = self.live_count;
-        // self.live_count += 1;
+        self.current = self.live_count;
+        self.live_count += 1;
 
-        // let bounds = bounds.map(|bounds| bounds * self.transformation());
+        let bounds = bounds.map(|bounds| bounds * self.transformation());
 
-        // if self.current == self.live.len() {
-        //     self.live.push(Live {
-        //         bounds,
-        //         ..Live::default()
-        //     });
-        // } else {
-        //     self.live[self.current].bounds = bounds;
-        // }
+        if self.current == self.live.len() {
+            self.live.push(Live {
+                bounds,
+                ..Live::default()
+            });
+        } else {
+            self.live[self.current].bounds = bounds;
+        }
     }
 
     pub fn pop_clip(&mut self) {
-        // self.current = self.previous.pop().unwrap();
+        self.current = self.previous.pop().unwrap();
     }
 
     pub fn push_transformation(&mut self, transformation: Transformation) {
@@ -219,7 +219,6 @@ impl Stack {
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = LayerMut<'_>> {
-        dbg!(self.order.len());
         let mut live = self.live.iter_mut();
         let mut cached = self.cached.iter_mut();
 
