@@ -41,6 +41,14 @@ impl<T> Command<T> {
         Self::single(Action::Widget(Box::new(operation)))
     }
 
+    /// Dispatches message without action
+    pub fn dispatch(message: T) -> Self
+    where
+        T: 'static + MaybeSend,
+    {
+        Command::single(Action::Future(Box::pin(std::future::ready(message))))
+    }
+
     /// Creates a [`Command`] that performs the action of the given future.
     pub fn perform<A>(
         future: impl Future<Output = A> + 'static + MaybeSend,
