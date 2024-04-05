@@ -195,8 +195,8 @@ impl geometry::frame::Backend for Frame {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    fn draft(&mut self, size: Size) -> Self {
-        Self::new(size)
+    fn draft(&mut self, clip_bounds: Rectangle) -> Self {
+        Self::new(clip_bounds.size())
     }
 
     fn paste(&mut self, frame: Self, at: Point) {

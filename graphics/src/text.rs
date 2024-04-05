@@ -11,7 +11,7 @@ pub use cosmic_text;
 
 use crate::core::alignment;
 use crate::core::font::{self, Font};
-use crate::core::text::{LineHeight, Shaping};
+use crate::core::text::Shaping;
 use crate::core::{Color, Pixels, Point, Rectangle, Size, Transformation};
 
 use once_cell::sync::OnceCell;
@@ -50,7 +50,7 @@ pub enum Text {
         /// The size of the text in logical pixels.
         size: Pixels,
         /// The line height of the text.
-        line_height: LineHeight,
+        line_height: Pixels,
         /// The font of the text.
         font: Font,
         /// The horizontal alignment of the text.

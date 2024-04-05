@@ -6,40 +6,44 @@ use crate::core::{
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
-    self, LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
+    self, LineCap, LineDash, LineJoin, Path, Stroke, Style,
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::{self, Cached};
-use crate::layer;
+use crate::graphics::{self, Cached, Text};
 use crate::text;
+use crate::triangle;
 
 use lyon::geom::euclid;
 use lyon::tessellation;
 
 use std::borrow::Cow;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 /// A frame for drawing some geometry.
 #[allow(missing_debug_implementations)]
 pub struct Frame {
-    size: Size,
+    clip_bounds: Rectangle,
     buffers: BufferStack,
-    layers: Vec<layer::Live>,
-    text: text::Batch,
+    meshes: Vec<Mesh>,
+    text: Vec<Text>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
     stroke_tessellator: tessellation::StrokeTessellator,
 }
 
 pub enum Geometry {
-    Live(Vec<layer::Live>),
-    Cached(Rc<[Rc<RefCell<layer::Cached>>]>),
+    Live { meshes: Vec<Mesh>, text: Vec<Text> },
+    Cached(Cache),
+}
+
+#[derive(Clone)]
+pub struct Cache {
+    pub meshes: triangle::Cache,
+    pub text: text::Cache,
 }
 
 impl Cached for Geometry {
-    type Cache = Rc<[Rc<RefCell<layer::Cached>>]>;
+    type Cache = Cache;
 
     fn load(cache: &Self::Cache) -> Self {
         Geometry::Cached(cache.clone())
@@ -47,31 +51,18 @@ impl Cached for Geometry {
 
     fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
         match self {
-            Self::Live(live) => {
-                let mut layers = live.into_iter();
+            Self::Live { meshes, text } => {
+                if let Some(mut previous) = previous {
+                    previous.meshes.update(meshes);
+                    previous.text.update(text);
 
-                let mut new: Vec<_> = previous
-                    .map(|previous| {
-                        previous
-                            .iter()
-                            .cloned()
-                            .zip(layers.by_ref())
-                            .map(|(cached, live)| {
-                                cached.borrow_mut().update(live);
-                                cached
-                            })
-                            .collect()
-                    })
-                    .unwrap_or_default();
-
-                new.extend(
-                    layers
-                        .map(layer::Live::into_cached)
-                        .map(RefCell::new)
-                        .map(Rc::new),
-                );
-
-                Rc::from(new)
+                    previous
+                } else {
+                    Cache {
+                        meshes: triangle::Cache::new(meshes),
+                        text: text::Cache::new(text),
+                    }
+                }
             }
             Self::Cached(cache) => cache,
         }
@@ -81,68 +72,25 @@ impl Cached for Geometry {
 impl Frame {
     /// Creates a new [`Frame`] with the given [`Size`].
     pub fn new(size: Size) -> Frame {
+        Self::with_clip(Rectangle::with_size(size))
+    }
+
+    /// Creates a new [`Frame`] with the given clip bounds.
+    pub fn with_clip(bounds: Rectangle) -> Frame {
         Frame {
-            size,
+            clip_bounds: bounds,
             buffers: BufferStack::new(),
-            layers: Vec::new(),
-            text: text::Batch::new(),
+            meshes: Vec::new(),
+            text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform(lyon::math::Transform::identity()),
+                current: Transform(lyon::math::Transform::translation(
+                    bounds.x, bounds.y,
+                )),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
         }
-    }
-
-    fn into_layers(mut self) -> Vec<layer::Live> {
-        if !self.text.is_empty() || !self.buffers.stack.is_empty() {
-            let clip_bounds = Rectangle::with_size(self.size);
-            let transformation = Transformation::IDENTITY;
-
-            // TODO: Generate different meshes for different transformations (?)
-            // Instead of transforming each path
-            let meshes = self
-                .buffers
-                .stack
-                .into_iter()
-                .filter_map(|buffer| match buffer {
-                    Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
-                        Some(Mesh::Solid {
-                            buffers: mesh::Indexed {
-                                vertices: buffer.vertices,
-                                indices: buffer.indices,
-                            },
-                            transformation: Transformation::IDENTITY,
-                            size: self.size,
-                        })
-                    }
-                    Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
-                        Some(Mesh::Gradient {
-                            buffers: mesh::Indexed {
-                                vertices: buffer.vertices,
-                                indices: buffer.indices,
-                            },
-                            transformation: Transformation::IDENTITY,
-                            size: self.size,
-                        })
-                    }
-                    _ => None,
-                })
-                .collect();
-
-            let layer = layer::Live {
-                bounds: Some(clip_bounds),
-                transformation,
-                meshes,
-                text: self.text,
-                ..layer::Live::default()
-            };
-
-            self.layers.push(layer);
-        }
-
-        self.layers
     }
 }
 
@@ -151,22 +99,22 @@ impl geometry::frame::Backend for Frame {
 
     #[inline]
     fn width(&self) -> f32 {
-        self.size.width
+        self.clip_bounds.width
     }
 
     #[inline]
     fn height(&self) -> f32 {
-        self.size.height
+        self.clip_bounds.height
     }
 
     #[inline]
     fn size(&self) -> Size {
-        self.size
+        self.clip_bounds.size()
     }
 
     #[inline]
     fn center(&self) -> Point {
-        Point::new(self.size.width / 2.0, self.size.height / 2.0)
+        Point::new(self.clip_bounds.width / 2.0, self.clip_bounds.height / 2.0)
     }
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
@@ -269,7 +217,7 @@ impl geometry::frame::Backend for Frame {
         .expect("Stroke path");
     }
 
-    fn fill_text(&mut self, text: impl Into<Text>) {
+    fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
         let (scale_x, scale_y) = self.transforms.current.scale();
@@ -312,12 +260,12 @@ impl geometry::frame::Backend for Frame {
                 bounds,
                 color: text.color,
                 size,
-                line_height,
+                line_height: line_height.to_absolute(size),
                 font: text.font,
                 horizontal_alignment: text.horizontal_alignment,
                 vertical_alignment: text.vertical_alignment,
                 shaping: text.shaping,
-                clip_bounds: Rectangle::with_size(Size::INFINITY),
+                clip_bounds: self.clip_bounds,
             });
         } else {
             text.draw_with(|path, color| self.fill(&path, color));
@@ -368,22 +316,25 @@ impl geometry::frame::Backend for Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
-    fn draft(&mut self, size: Size) -> Frame {
-        Frame::new(size)
+    fn draft(&mut self, clip_bounds: Rectangle) -> Frame {
+        Frame::with_clip(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Frame, at: Point) {
-        let translation = Transformation::translate(at.x, at.y);
+    fn paste(&mut self, frame: Frame, _at: Point) {
+        self.meshes
+            .extend(frame.buffers.into_meshes(frame.clip_bounds));
 
-        self.layers
-            .extend(frame.into_layers().into_iter().map(|mut layer| {
-                layer.transformation = layer.transformation * translation;
-                layer
-            }));
+        self.text.extend(frame.text);
     }
 
-    fn into_geometry(self) -> Self::Geometry {
-        Geometry::Live(self.into_layers())
+    fn into_geometry(mut self) -> Self::Geometry {
+        self.meshes
+            .extend(self.buffers.into_meshes(self.clip_bounds));
+
+        Geometry::Live {
+            meshes: self.meshes,
+            text: self.text,
+        }
     }
 }
 
@@ -468,6 +419,27 @@ impl BufferStack {
             }
             _ => unreachable!(),
         }
+    }
+
+    fn into_meshes(self, clip_bounds: Rectangle) -> impl Iterator<Item = Mesh> {
+        self.stack.into_iter().map(move |buffer| match buffer {
+            Buffer::Solid(buffer) => Mesh::Solid {
+                buffers: mesh::Indexed {
+                    vertices: buffer.vertices,
+                    indices: buffer.indices,
+                },
+                clip_bounds,
+                transformation: Transformation::IDENTITY,
+            },
+            Buffer::Gradient(buffer) => Mesh::Gradient {
+                buffers: mesh::Indexed {
+                    vertices: buffer.vertices,
+                    indices: buffer.indices,
+                },
+                clip_bounds,
+                transformation: Transformation::IDENTITY,
+            },
+        })
     }
 }
 

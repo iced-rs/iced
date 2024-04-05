@@ -80,7 +80,7 @@ impl Pipeline {
         }
     }
 
-    pub fn prepare_batch(
+    pub fn prepare(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
@@ -99,64 +99,7 @@ impl Pipeline {
         self.prepare_layer += 1;
     }
 
-    pub fn prepare_cache(
-        &self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        belt: &mut wgpu::util::StagingBelt,
-        cache: &mut Cache,
-        transformation: Transformation,
-        scale: f32,
-    ) {
-        match cache {
-            Cache::Staged(_) => {
-                let Cache::Staged(batch) =
-                    std::mem::replace(cache, Cache::Staged(Batch::default()))
-                else {
-                    unreachable!()
-                };
-
-                let mut layer = Layer::new(device, &self.constant_layout);
-                layer.prepare(
-                    device,
-                    encoder,
-                    belt,
-                    &batch,
-                    transformation,
-                    scale,
-                );
-
-                *cache = Cache::Uploaded {
-                    layer,
-                    batch,
-                    needs_reupload: false,
-                }
-            }
-
-            Cache::Uploaded {
-                batch,
-                layer,
-                needs_reupload,
-            } => {
-                if *needs_reupload {
-                    layer.prepare(
-                        device,
-                        encoder,
-                        belt,
-                        batch,
-                        transformation,
-                        scale,
-                    );
-
-                    *needs_reupload = false;
-                } else {
-                    layer.update(device, encoder, belt, transformation, scale);
-                }
-            }
-        }
-    }
-
-    pub fn render_batch<'a>(
+    pub fn render<'a>(
         &'a self,
         layer: usize,
         bounds: Rectangle<u32>,
@@ -164,59 +107,38 @@ impl Pipeline {
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
         if let Some(layer) = self.layers.get(layer) {
-            self.render(bounds, layer, &quads.order, render_pass);
-        }
-    }
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
 
-    pub fn render_cache<'a>(
-        &'a self,
-        cache: &'a Cache,
-        bounds: Rectangle<u32>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        if let Cache::Uploaded { layer, batch, .. } = cache {
-            self.render(bounds, layer, &batch.order, render_pass);
-        }
-    }
+            let mut solid_offset = 0;
+            let mut gradient_offset = 0;
 
-    fn render<'a>(
-        &'a self,
-        bounds: Rectangle<u32>,
-        layer: &'a Layer,
-        order: &Order,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        render_pass.set_scissor_rect(
-            bounds.x,
-            bounds.y,
-            bounds.width,
-            bounds.height,
-        );
+            for (kind, count) in &quads.order {
+                match kind {
+                    Kind::Solid => {
+                        self.solid.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.solid,
+                            solid_offset..(solid_offset + count),
+                        );
 
-        let mut solid_offset = 0;
-        let mut gradient_offset = 0;
+                        solid_offset += count;
+                    }
+                    Kind::Gradient => {
+                        self.gradient.render(
+                            render_pass,
+                            &layer.constants,
+                            &layer.gradient,
+                            gradient_offset..(gradient_offset + count),
+                        );
 
-        for (kind, count) in order {
-            match kind {
-                Kind::Solid => {
-                    self.solid.render(
-                        render_pass,
-                        &layer.constants,
-                        &layer.solid,
-                        solid_offset..(solid_offset + count),
-                    );
-
-                    solid_offset += count;
-                }
-                Kind::Gradient => {
-                    self.gradient.render(
-                        render_pass,
-                        &layer.constants,
-                        &layer.gradient,
-                        gradient_offset..(gradient_offset + count),
-                    );
-
-                    gradient_offset += count;
+                        gradient_offset += count;
+                    }
                 }
             }
         }
@@ -224,48 +146,6 @@ impl Pipeline {
 
     pub fn end_frame(&mut self) {
         self.prepare_layer = 0;
-    }
-}
-
-#[derive(Debug)]
-pub enum Cache {
-    Staged(Batch),
-    Uploaded {
-        batch: Batch,
-        layer: Layer,
-        needs_reupload: bool,
-    },
-}
-
-impl Cache {
-    pub fn is_empty(&self) -> bool {
-        match self {
-            Cache::Staged(batch) | Cache::Uploaded { batch, .. } => {
-                batch.is_empty()
-            }
-        }
-    }
-
-    pub fn update(&mut self, new_batch: Batch) {
-        match self {
-            Self::Staged(batch) => {
-                *batch = new_batch;
-            }
-            Self::Uploaded {
-                batch,
-                needs_reupload,
-                ..
-            } => {
-                *batch = new_batch;
-                *needs_reupload = true;
-            }
-        }
-    }
-}
-
-impl Default for Cache {
-    fn default() -> Self {
-        Self::Staged(Batch::default())
     }
 }
 

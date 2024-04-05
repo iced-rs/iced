@@ -6,10 +6,136 @@ use crate::graphics::mesh::{self, Mesh};
 use crate::graphics::Antialiasing;
 use crate::Buffer;
 
+use rustc_hash::{FxHashMap, FxHashSet};
+use std::collections::hash_map;
+use std::rc::Rc;
+use std::sync::atomic::{self, AtomicU64};
+
 const INITIAL_INDEX_COUNT: usize = 1_000;
 const INITIAL_VERTEX_COUNT: usize = 1_000;
 
-pub type Batch = Vec<Mesh>;
+pub type Batch = Vec<Item>;
+
+pub enum Item {
+    Group {
+        transformation: Transformation,
+        meshes: Vec<Mesh>,
+    },
+    Cached {
+        transformation: Transformation,
+        cache: Cache,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct Cache {
+    id: Id,
+    batch: Rc<[Mesh]>,
+    version: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Id(u64);
+
+impl Cache {
+    pub fn new(meshes: Vec<Mesh>) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+        Self {
+            id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
+            batch: Rc::from(meshes),
+            version: 0,
+        }
+    }
+
+    pub fn update(&mut self, meshes: Vec<Mesh>) {
+        self.batch = Rc::from(meshes);
+        self.version += 1;
+    }
+}
+
+#[derive(Debug)]
+struct Upload {
+    layer: Layer,
+    transformation: Transformation,
+    version: usize,
+}
+
+#[derive(Debug, Default)]
+pub struct Storage {
+    uploads: FxHashMap<Id, Upload>,
+    recently_used: FxHashSet<Id>,
+}
+
+impl Storage {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    fn get(&self, id: Id) -> Option<&Upload> {
+        self.uploads.get(&id)
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        solid: &solid::Pipeline,
+        gradient: &gradient::Pipeline,
+        cache: &Cache,
+        new_transformation: Transformation,
+    ) {
+        match self.uploads.entry(cache.id) {
+            hash_map::Entry::Occupied(entry) => {
+                let upload = entry.into_mut();
+
+                if upload.version != cache.version
+                    || upload.transformation != new_transformation
+                {
+                    upload.layer.prepare(
+                        device,
+                        encoder,
+                        belt,
+                        solid,
+                        gradient,
+                        &cache.batch,
+                        new_transformation,
+                    );
+
+                    upload.version = cache.version;
+                    upload.transformation = new_transformation;
+                }
+            }
+            hash_map::Entry::Vacant(entry) => {
+                let mut layer = Layer::new(device, solid, gradient);
+
+                layer.prepare(
+                    device,
+                    encoder,
+                    belt,
+                    solid,
+                    gradient,
+                    &cache.batch,
+                    new_transformation,
+                );
+
+                let _ = entry.insert(Upload {
+                    layer,
+                    transformation: new_transformation,
+                    version: 0,
+                });
+            }
+        }
+
+        let _ = self.recently_used.insert(cache.id);
+    }
+
+    pub fn trim(&mut self) {
+        self.uploads.retain(|id, _| self.recently_used.contains(id));
+        self.recently_used.clear();
+    }
+}
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -35,180 +161,103 @@ impl Pipeline {
         }
     }
 
-    pub fn prepare_batch(
+    pub fn prepare(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
-        meshes: &Batch,
-        transformation: Transformation,
+        storage: &mut Storage,
+        items: &[Item],
+        projection: Transformation,
     ) {
-        if self.layers.len() <= self.prepare_layer {
-            self.layers
-                .push(Layer::new(device, &self.solid, &self.gradient));
-        }
+        for item in items {
+            match item {
+                Item::Group {
+                    transformation,
+                    meshes,
+                } => {
+                    if self.layers.len() <= self.prepare_layer {
+                        self.layers.push(Layer::new(
+                            device,
+                            &self.solid,
+                            &self.gradient,
+                        ));
+                    }
 
-        let layer = &mut self.layers[self.prepare_layer];
-        layer.prepare(
-            device,
-            encoder,
-            belt,
-            &self.solid,
-            &self.gradient,
-            meshes,
-            transformation,
-        );
-
-        self.prepare_layer += 1;
-    }
-
-    pub fn prepare_cache(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        belt: &mut wgpu::util::StagingBelt,
-        cache: &mut Cache,
-        new_projection: Transformation,
-        new_transformation: Transformation,
-    ) {
-        let new_projection = new_projection * new_transformation;
-
-        match cache {
-            Cache::Staged(_) => {
-                let Cache::Staged(batch) =
-                    std::mem::replace(cache, Cache::Staged(Batch::default()))
-                else {
-                    unreachable!()
-                };
-
-                let mut layer = Layer::new(device, &self.solid, &self.gradient);
-                layer.prepare(
-                    device,
-                    encoder,
-                    belt,
-                    &self.solid,
-                    &self.gradient,
-                    &batch,
-                    new_projection,
-                );
-
-                *cache = Cache::Uploaded {
-                    layer,
-                    batch,
-                    transformation: new_transformation,
-                    projection: new_projection,
-                    needs_reupload: false,
-                }
-            }
-            Cache::Uploaded {
-                batch,
-                layer,
-                transformation,
-                projection,
-                needs_reupload,
-            } => {
-                if *needs_reupload || new_projection != *projection {
+                    let layer = &mut self.layers[self.prepare_layer];
                     layer.prepare(
                         device,
                         encoder,
                         belt,
                         &self.solid,
                         &self.gradient,
-                        batch,
-                        new_projection,
+                        meshes,
+                        projection * *transformation,
                     );
 
-                    *transformation = new_transformation;
-                    *projection = new_projection;
-                    *needs_reupload = false;
+                    self.prepare_layer += 1;
+                }
+                Item::Cached {
+                    transformation,
+                    cache,
+                } => {
+                    storage.prepare(
+                        device,
+                        encoder,
+                        belt,
+                        &self.solid,
+                        &self.gradient,
+                        cache,
+                        projection * *transformation,
+                    );
                 }
             }
         }
     }
 
-    pub fn render_batch(
+    pub fn render(
         &mut self,
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
-        layer: usize,
+        storage: &Storage,
+        start: usize,
+        batch: &Batch,
         target_size: Size<u32>,
-        meshes: &Batch,
-        bounds: Rectangle<u32>,
-        transformation: &Transformation,
-    ) {
-        Self::render(
-            device,
-            encoder,
-            target,
-            self.blit.as_mut(),
-            &self.solid,
-            &self.gradient,
-            target_size,
-            std::iter::once((
-                &self.layers[layer],
+        bounds: Rectangle,
+        screen_transformation: Transformation,
+    ) -> usize {
+        let mut layer_count = 0;
+
+        let items = batch.iter().filter_map(|item| match item {
+            Item::Group {
+                transformation,
                 meshes,
+            } => {
+                let layer = &self.layers[start + layer_count];
+                layer_count += 1;
+
+                Some((
+                    layer,
+                    meshes.as_slice(),
+                    screen_transformation * *transformation,
+                ))
+            }
+            Item::Cached {
                 transformation,
-                bounds,
-            )),
-        );
-    }
+                cache,
+            } => {
+                let upload = storage.get(cache.id)?;
 
-    #[allow(dead_code)]
-    pub fn render_cache(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        target_size: Size<u32>,
-        cache: &Cache,
-        bounds: Rectangle<u32>,
-    ) {
-        let Cache::Uploaded {
-            batch,
-            layer,
-            transformation,
-            ..
-        } = cache
-        else {
-            return;
-        };
-
-        Self::render(
-            device,
-            encoder,
-            target,
-            self.blit.as_mut(),
-            &self.solid,
-            &self.gradient,
-            target_size,
-            std::iter::once((layer, batch, transformation, bounds)),
-        );
-    }
-
-    pub fn render_cache_group<'a>(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        target_size: Size<u32>,
-        group: impl Iterator<Item = (&'a Cache, Rectangle<u32>)>,
-    ) {
-        let group = group.filter_map(|(cache, bounds)| {
-            if let Cache::Uploaded {
-                batch,
-                layer,
-                transformation,
-                ..
-            } = cache
-            {
-                Some((layer, batch, transformation, bounds))
-            } else {
-                None
+                Some((
+                    &upload.layer,
+                    &cache.batch,
+                    screen_transformation * *transformation,
+                ))
             }
         });
 
-        Self::render(
+        render(
             device,
             encoder,
             target,
@@ -216,71 +265,11 @@ impl Pipeline {
             &self.solid,
             &self.gradient,
             target_size,
-            group,
+            bounds,
+            items,
         );
-    }
 
-    fn render<'a>(
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        target: &wgpu::TextureView,
-        mut blit: Option<&mut msaa::Blit>,
-        solid: &solid::Pipeline,
-        gradient: &gradient::Pipeline,
-        target_size: Size<u32>,
-        group: impl Iterator<
-            Item = (&'a Layer, &'a Batch, &'a Transformation, Rectangle<u32>),
-        >,
-    ) {
-        {
-            let (attachment, resolve_target, load) = if let Some(blit) =
-                &mut blit
-            {
-                let (attachment, resolve_target) =
-                    blit.targets(device, target_size.width, target_size.height);
-
-                (
-                    attachment,
-                    Some(resolve_target),
-                    wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
-                )
-            } else {
-                (target, None, wgpu::LoadOp::Load)
-            };
-
-            let mut render_pass =
-                encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                    label: Some("iced_wgpu.triangle.render_pass"),
-                    color_attachments: &[Some(
-                        wgpu::RenderPassColorAttachment {
-                            view: attachment,
-                            resolve_target,
-                            ops: wgpu::Operations {
-                                load,
-                                store: wgpu::StoreOp::Store,
-                            },
-                        },
-                    )],
-                    depth_stencil_attachment: None,
-                    timestamp_writes: None,
-                    occlusion_query_set: None,
-                });
-
-            for (layer, meshes, transformation, bounds) in group {
-                layer.render(
-                    solid,
-                    gradient,
-                    meshes,
-                    bounds,
-                    *transformation,
-                    &mut render_pass,
-                );
-            }
-        }
-
-        if let Some(blit) = blit {
-            blit.draw(encoder, target);
-        }
+        layer_count
     }
 
     pub fn end_frame(&mut self) {
@@ -288,47 +277,61 @@ impl Pipeline {
     }
 }
 
-#[derive(Debug)]
-pub enum Cache {
-    Staged(Batch),
-    Uploaded {
-        batch: Batch,
-        layer: Layer,
-        transformation: Transformation,
-        projection: Transformation,
-        needs_reupload: bool,
-    },
-}
+fn render<'a>(
+    device: &wgpu::Device,
+    encoder: &mut wgpu::CommandEncoder,
+    target: &wgpu::TextureView,
+    mut blit: Option<&mut msaa::Blit>,
+    solid: &solid::Pipeline,
+    gradient: &gradient::Pipeline,
+    target_size: Size<u32>,
+    bounds: Rectangle,
+    group: impl Iterator<Item = (&'a Layer, &'a [Mesh], Transformation)>,
+) {
+    {
+        let (attachment, resolve_target, load) = if let Some(blit) = &mut blit {
+            let (attachment, resolve_target) =
+                blit.targets(device, target_size.width, target_size.height);
 
-impl Cache {
-    pub fn is_empty(&self) -> bool {
-        match self {
-            Cache::Staged(batch) | Cache::Uploaded { batch, .. } => {
-                batch.is_empty()
-            }
+            (
+                attachment,
+                Some(resolve_target),
+                wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+            )
+        } else {
+            (target, None, wgpu::LoadOp::Load)
+        };
+
+        let mut render_pass =
+            encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("iced_wgpu.triangle.render_pass"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: attachment,
+                    resolve_target,
+                    ops: wgpu::Operations {
+                        load,
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+
+        for (layer, meshes, transformation) in group {
+            layer.render(
+                solid,
+                gradient,
+                meshes,
+                bounds,
+                transformation,
+                &mut render_pass,
+            );
         }
     }
 
-    pub fn update(&mut self, new_batch: Batch) {
-        match self {
-            Self::Staged(batch) => {
-                *batch = new_batch;
-            }
-            Self::Uploaded {
-                batch,
-                needs_reupload,
-                ..
-            } => {
-                *batch = new_batch;
-                *needs_reupload = true;
-            }
-        }
-    }
-}
-
-impl Default for Cache {
-    fn default() -> Self {
-        Self::Staged(Batch::default())
+    if let Some(blit) = blit {
+        blit.draw(encoder, target);
     }
 }
 
@@ -366,7 +369,7 @@ impl Layer {
         belt: &mut wgpu::util::StagingBelt,
         solid: &solid::Pipeline,
         gradient: &gradient::Pipeline,
-        meshes: &Batch,
+        meshes: &[Mesh],
         transformation: Transformation,
     ) {
         // Count the total amount of vertices & indices we need to handle
@@ -471,8 +474,8 @@ impl Layer {
         &'a self,
         solid: &'a solid::Pipeline,
         gradient: &'a gradient::Pipeline,
-        meshes: &Batch,
-        layer_bounds: Rectangle<u32>,
+        meshes: &[Mesh],
+        bounds: Rectangle,
         transformation: Transformation,
         render_pass: &mut wgpu::RenderPass<'a>,
     ) {
@@ -481,8 +484,8 @@ impl Layer {
         let mut last_is_solid = None;
 
         for (index, mesh) in meshes.iter().enumerate() {
-            let Some(clip_bounds) = Rectangle::<f32>::from(layer_bounds)
-                .intersection(&(mesh.clip_bounds() * transformation))
+            let Some(clip_bounds) =
+                bounds.intersection(&(mesh.clip_bounds() * transformation))
             else {
                 continue;
             };

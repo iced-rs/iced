@@ -33,9 +33,12 @@ where
 }
 
 impl Rectangle<f32> {
+    /// A rectangle starting at [`Point::ORIGIN`] with infinite width and height.
+    pub const INFINITE: Self = Self::new(Point::ORIGIN, Size::INFINITY);
+
     /// Creates a new [`Rectangle`] with its top-left corner in the given
     /// [`Point`] and with the provided [`Size`].
-    pub fn new(top_left: Point, size: Size) -> Self {
+    pub const fn new(top_left: Point, size: Size) -> Self {
         Self {
             x: top_left.x,
             y: top_left.y,

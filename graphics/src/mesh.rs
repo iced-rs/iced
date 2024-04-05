@@ -1,6 +1,6 @@
 //! Draw triangles!
 use crate::color;
-use crate::core::{Rectangle, Size, Transformation};
+use crate::core::{Rectangle, Transformation};
 use crate::gradient;
 
 use bytemuck::{Pod, Zeroable};
@@ -16,8 +16,8 @@ pub enum Mesh {
         /// The [`Transformation`] for the vertices of the [`Mesh`].
         transformation: Transformation,
 
-        /// The [`Size`] of the [`Mesh`].
-        size: Size,
+        /// The clip bounds of the [`Mesh`].
+        clip_bounds: Rectangle,
     },
     /// A mesh with a gradient.
     Gradient {
@@ -27,8 +27,8 @@ pub enum Mesh {
         /// The [`Transformation`] for the vertices of the [`Mesh`].
         transformation: Transformation,
 
-        /// The [`Size`] of the [`Mesh`].
-        size: Size,
+        /// The clip bounds of the [`Mesh`].
+        clip_bounds: Rectangle,
     },
 }
 
@@ -53,15 +53,15 @@ impl Mesh {
     pub fn clip_bounds(&self) -> Rectangle {
         match self {
             Self::Solid {
-                size,
+                clip_bounds,
                 transformation,
                 ..
             }
             | Self::Gradient {
-                size,
+                clip_bounds,
                 transformation,
                 ..
-            } => Rectangle::with_size(*size) * *transformation,
+            } => *clip_bounds * *transformation,
         }
     }
 }

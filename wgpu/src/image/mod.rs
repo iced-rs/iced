@@ -9,7 +9,6 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
-use crate::core::image;
 use crate::core::{Rectangle, Size, Transformation};
 use crate::Buffer;
 
@@ -234,10 +233,12 @@ impl Pipeline {
                             [bounds.width, bounds.height],
                             atlas_entry,
                             match filter_method {
-                                image::FilterMethod::Nearest => {
+                                crate::core::image::FilterMethod::Nearest => {
                                     nearest_instances
                                 }
-                                image::FilterMethod::Linear => linear_instances,
+                                crate::core::image::FilterMethod::Linear => {
+                                    linear_instances
+                                }
                             },
                         );
                     }

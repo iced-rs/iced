@@ -82,7 +82,6 @@ mod rainbow {
             let posn_l = [0.0, bounds.height / 2.0];
 
             let mesh = Mesh::Solid {
-                size: bounds.size(),
                 buffers: mesh::Indexed {
                     vertices: vec![
                         SolidVertex2D {
@@ -134,6 +133,7 @@ mod rainbow {
                     ],
                 },
                 transformation: Transformation::IDENTITY,
+                clip_bounds: Rectangle::INFINITE,
             };
 
             renderer.with_translation(

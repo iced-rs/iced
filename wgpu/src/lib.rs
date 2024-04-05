@@ -60,7 +60,7 @@ pub use iced_graphics::core;
 pub use wgpu;
 
 pub use engine::Engine;
-pub use layer::{Layer, LayerMut};
+pub use layer::Layer;
 pub use primitive::Primitive;
 pub use settings::Settings;
 
@@ -85,6 +85,9 @@ pub struct Renderer {
     default_text_size: Pixels,
     layers: layer::Stack,
 
+    triangle_storage: triangle::Storage,
+    text_storage: text::Storage,
+
     // TODO: Centralize all the image feature handling
     #[cfg(any(feature = "svg", feature = "image"))]
     image_cache: image::cache::Shared,
@@ -96,6 +99,9 @@ impl Renderer {
             default_font: settings.default_font,
             default_text_size: settings.default_text_size,
             layers: layer::Stack::new(),
+
+            triangle_storage: triangle::Storage::new(),
+            text_storage: text::Storage::new(),
 
             #[cfg(any(feature = "svg", feature = "image"))]
             image_cache: _engine.image_cache().clone(),
@@ -117,9 +123,11 @@ impl Renderer {
         overlay: &[T],
     ) {
         self.draw_overlay(overlay, viewport);
-
         self.prepare(engine, device, queue, format, encoder, viewport);
         self.render(engine, device, encoder, frame, clear_color, viewport);
+
+        self.triangle_storage.trim();
+        self.text_storage.trim();
     }
 
     fn prepare(
@@ -134,116 +142,51 @@ impl Renderer {
         let scale_factor = viewport.scale_factor() as f32;
 
         for layer in self.layers.iter_mut() {
-            match layer {
-                LayerMut::Live(live) => {
-                    if !live.quads.is_empty() {
-                        engine.quad_pipeline.prepare_batch(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &live.quads,
-                            viewport.projection(),
-                            scale_factor,
-                        );
-                    }
+            if !layer.quads.is_empty() {
+                engine.quad_pipeline.prepare(
+                    device,
+                    encoder,
+                    &mut engine.staging_belt,
+                    &layer.quads,
+                    viewport.projection(),
+                    scale_factor,
+                );
+            }
 
-                    if !live.meshes.is_empty() {
-                        engine.triangle_pipeline.prepare_batch(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &live.meshes,
-                            viewport.projection()
-                                * Transformation::scale(scale_factor),
-                        );
-                    }
+            if !layer.triangles.is_empty() {
+                engine.triangle_pipeline.prepare(
+                    device,
+                    encoder,
+                    &mut engine.staging_belt,
+                    &mut self.triangle_storage,
+                    &layer.triangles,
+                    viewport.projection() * Transformation::scale(scale_factor),
+                );
+            }
 
-                    if !live.text.is_empty() {
-                        engine.text_pipeline.prepare_batch(
-                            device,
-                            queue,
-                            encoder,
-                            &live.text,
-                            live.bounds.unwrap_or(Rectangle::with_size(
-                                viewport.logical_size(),
-                            )),
-                            live.transformation
-                                * Transformation::scale(scale_factor),
-                            viewport.physical_size(),
-                        );
-                    }
+            if !layer.text.is_empty() {
+                engine.text_pipeline.prepare(
+                    device,
+                    queue,
+                    encoder,
+                    &mut self.text_storage,
+                    &layer.text,
+                    layer.bounds,
+                    Transformation::scale(scale_factor),
+                    viewport.physical_size(),
+                );
+            }
 
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !live.images.is_empty() {
-                        engine.image_pipeline.prepare(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &live.images,
-                            viewport.projection(),
-                            scale_factor,
-                        );
-                    }
-                }
-                LayerMut::Cached(layer_transformation, mut cached) => {
-                    if !cached.quads.is_empty() {
-                        engine.quad_pipeline.prepare_cache(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &mut cached.quads,
-                            viewport.projection(),
-                            scale_factor,
-                        );
-                    }
-
-                    if !cached.meshes.is_empty() {
-                        let transformation =
-                            Transformation::scale(scale_factor)
-                                * layer_transformation;
-
-                        engine.triangle_pipeline.prepare_cache(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &mut cached.meshes,
-                            viewport.projection(),
-                            transformation,
-                        );
-                    }
-
-                    if !cached.text.is_empty() {
-                        let bounds = cached.bounds.unwrap_or(
-                            Rectangle::with_size(viewport.logical_size()),
-                        );
-
-                        let transformation =
-                            Transformation::scale(scale_factor)
-                                * layer_transformation;
-
-                        engine.text_pipeline.prepare_cache(
-                            device,
-                            queue,
-                            encoder,
-                            &mut cached.text,
-                            bounds,
-                            transformation,
-                            viewport.physical_size(),
-                        );
-                    }
-
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !cached.images.is_empty() {
-                        engine.image_pipeline.prepare(
-                            device,
-                            encoder,
-                            &mut engine.staging_belt,
-                            &cached.images,
-                            viewport.projection(),
-                            scale_factor,
-                        );
-                    }
-                }
+            #[cfg(any(feature = "svg", feature = "image"))]
+            if !layer.images.is_empty() {
+                engine.image_pipeline.prepare(
+                    device,
+                    encoder,
+                    &mut engine.staging_belt,
+                    &layer.images,
+                    viewport.projection(),
+                    scale_factor,
+                );
             }
         }
     }
@@ -297,208 +240,87 @@ impl Renderer {
         #[cfg(any(feature = "svg", feature = "image"))]
         let mut image_layer = 0;
 
-        // TODO: Can we avoid collecting here?
         let scale_factor = viewport.scale_factor() as f32;
-        let screen_bounds = Rectangle::with_size(viewport.logical_size());
         let physical_bounds = Rectangle::<f32>::from(Rectangle::with_size(
             viewport.physical_size(),
         ));
 
-        let layers: Vec<_> = self.layers.iter().collect();
-        let mut i = 0;
+        let scale = Transformation::scale(scale_factor);
 
-        // println!("RENDER");
+        for layer in self.layers.iter() {
+            let Some(physical_bounds) =
+                physical_bounds.intersection(&(layer.bounds * scale))
+            else {
+                continue;
+            };
 
-        while i < layers.len() {
-            match layers[i] {
-                Layer::Live(live) => {
-                    let layer_transformation =
-                        Transformation::scale(scale_factor)
-                            * live.transformation;
+            let scissor_rect = physical_bounds.snap();
 
-                    let layer_bounds = live.bounds.unwrap_or(screen_bounds);
+            if !layer.quads.is_empty() {
+                engine.quad_pipeline.render(
+                    quad_layer,
+                    scissor_rect,
+                    &layer.quads,
+                    &mut render_pass,
+                );
 
-                    let Some(physical_bounds) = physical_bounds
-                        .intersection(&(layer_bounds * layer_transformation))
-                        .map(Rectangle::snap)
-                    else {
-                        continue;
-                    };
+                quad_layer += 1;
+            }
 
-                    if !live.quads.is_empty() {
-                        engine.quad_pipeline.render_batch(
-                            quad_layer,
-                            physical_bounds,
-                            &live.quads,
-                            &mut render_pass,
-                        );
+            if !layer.triangles.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
 
-                        quad_layer += 1;
-                    }
+                mesh_layer += engine.triangle_pipeline.render(
+                    device,
+                    encoder,
+                    frame,
+                    &self.triangle_storage,
+                    mesh_layer,
+                    &layer.triangles,
+                    viewport.physical_size(),
+                    physical_bounds,
+                    scale,
+                );
 
-                    if !live.meshes.is_empty() {
-                        // println!("LIVE PASS");
-                        let _ = ManuallyDrop::into_inner(render_pass);
-
-                        engine.triangle_pipeline.render_batch(
-                            device,
-                            encoder,
-                            frame,
-                            mesh_layer,
-                            viewport.physical_size(),
-                            &live.meshes,
-                            physical_bounds,
-                            &layer_transformation,
-                        );
-
-                        mesh_layer += 1;
-
-                        render_pass =
-                            ManuallyDrop::new(encoder.begin_render_pass(
-                                &wgpu::RenderPassDescriptor {
-                                    label: Some("iced_wgpu render pass"),
-                                    color_attachments: &[Some(
-                                        wgpu::RenderPassColorAttachment {
-                                            view: frame,
-                                            resolve_target: None,
-                                            ops: wgpu::Operations {
-                                                load: wgpu::LoadOp::Load,
-                                                store: wgpu::StoreOp::Store,
-                                            },
-                                        },
-                                    )],
-                                    depth_stencil_attachment: None,
-                                    timestamp_writes: None,
-                                    occlusion_query_set: None,
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: frame,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
                                 },
-                            ));
-                    }
+                            },
+                        )],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    },
+                ));
+            }
 
-                    if !live.text.is_empty() {
-                        engine.text_pipeline.render_batch(
-                            text_layer,
-                            physical_bounds,
-                            &mut render_pass,
-                        );
+            if !layer.text.is_empty() {
+                text_layer += engine.text_pipeline.render(
+                    &self.text_storage,
+                    text_layer,
+                    &layer.text,
+                    scissor_rect,
+                    &mut render_pass,
+                );
+            }
 
-                        text_layer += 1;
-                    }
+            #[cfg(any(feature = "svg", feature = "image"))]
+            if !layer.images.is_empty() {
+                engine.image_pipeline.render(
+                    image_layer,
+                    scissor_rect,
+                    &mut render_pass,
+                );
 
-                    #[cfg(any(feature = "svg", feature = "image"))]
-                    if !live.images.is_empty() {
-                        engine.image_pipeline.render(
-                            image_layer,
-                            physical_bounds,
-                            &mut render_pass,
-                        );
-
-                        image_layer += 1;
-                    }
-
-                    i += 1;
-                }
-                Layer::Cached(_, _) => {
-                    let group_len = layers[i..]
-                        .iter()
-                        .position(|layer| matches!(layer, Layer::Live(_)))
-                        .unwrap_or(layers.len() - i);
-
-                    let group =
-                        layers[i..i + group_len].iter().filter_map(|layer| {
-                            let Layer::Cached(transformation, cached) = layer
-                            else {
-                                unreachable!()
-                            };
-
-                            let physical_bounds = cached
-                                .bounds
-                                .and_then(|bounds| {
-                                    physical_bounds.intersection(
-                                        &(bounds
-                                            * *transformation
-                                            * Transformation::scale(
-                                                scale_factor,
-                                            )),
-                                    )
-                                })
-                                .unwrap_or(physical_bounds)
-                                .snap();
-
-                            Some((cached, physical_bounds))
-                        });
-
-                    for (cached, bounds) in group.clone() {
-                        if !cached.quads.is_empty() {
-                            engine.quad_pipeline.render_cache(
-                                &cached.quads,
-                                bounds,
-                                &mut render_pass,
-                            );
-                        }
-                    }
-
-                    let group_has_meshes = group
-                        .clone()
-                        .any(|(cached, _)| !cached.meshes.is_empty());
-
-                    if group_has_meshes {
-                        // println!("CACHE PASS");
-                        let _ = ManuallyDrop::into_inner(render_pass);
-
-                        engine.triangle_pipeline.render_cache_group(
-                            device,
-                            encoder,
-                            frame,
-                            viewport.physical_size(),
-                            group.clone().map(|(cached, bounds)| {
-                                (&cached.meshes, bounds)
-                            }),
-                        );
-
-                        render_pass =
-                            ManuallyDrop::new(encoder.begin_render_pass(
-                                &wgpu::RenderPassDescriptor {
-                                    label: Some("iced_wgpu render pass"),
-                                    color_attachments: &[Some(
-                                        wgpu::RenderPassColorAttachment {
-                                            view: frame,
-                                            resolve_target: None,
-                                            ops: wgpu::Operations {
-                                                load: wgpu::LoadOp::Load,
-                                                store: wgpu::StoreOp::Store,
-                                            },
-                                        },
-                                    )],
-                                    depth_stencil_attachment: None,
-                                    timestamp_writes: None,
-                                    occlusion_query_set: None,
-                                },
-                            ));
-                    }
-
-                    for (cached, bounds) in group {
-                        if !cached.text.is_empty() {
-                            engine.text_pipeline.render_cache(
-                                &cached.text,
-                                bounds,
-                                &mut render_pass,
-                            );
-                        }
-
-                        #[cfg(any(feature = "svg", feature = "image"))]
-                        if !cached.images.is_empty() {
-                            engine.image_pipeline.render(
-                                image_layer,
-                                bounds,
-                                &mut render_pass,
-                            );
-
-                            image_layer += 1;
-                        }
-                    }
-
-                    i += group_len;
-                }
+                image_layer += 1;
             }
         }
 
@@ -552,7 +374,7 @@ impl Renderer {
 
 impl core::Renderer for Renderer {
     fn start_layer(&mut self, bounds: Rectangle) {
-        self.layers.push_clip(Some(bounds));
+        self.layers.push_clip(bounds);
     }
 
     fn end_layer(&mut self, _bounds: Rectangle) {
@@ -690,15 +512,13 @@ impl graphics::geometry::Renderer for Renderer {
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
         match geometry {
-            Geometry::Live(layers) => {
-                for layer in layers {
-                    self.layers.draw_layer(layer);
-                }
+            Geometry::Live { meshes, text } => {
+                self.layers.draw_mesh_group(meshes);
+                self.layers.draw_text_group(text);
             }
-            Geometry::Cached(layers) => {
-                for layer in layers.as_ref() {
-                    self.layers.draw_cached_layer(layer);
-                }
+            Geometry::Cached(cache) => {
+                self.layers.draw_mesh_cache(cache.meshes);
+                self.layers.draw_text_cache(cache.text);
             }
         }
     }

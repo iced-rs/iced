@@ -405,7 +405,7 @@ where
 #[cfg(feature = "geometry")]
 mod geometry {
     use super::Renderer;
-    use crate::core::{Point, Radians, Size, Vector};
+    use crate::core::{Point, Radians, Rectangle, Size, Vector};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
     use crate::graphics::Cached;
 
@@ -533,10 +533,10 @@ mod geometry {
             delegate!(self, frame, frame.pop_transform());
         }
 
-        fn draft(&mut self, size: Size) -> Self {
+        fn draft(&mut self, bounds: Rectangle) -> Self {
             match self {
-                Self::Left(frame) => Self::Left(frame.draft(size)),
-                Self::Right(frame) => Self::Right(frame.draft(size)),
+                Self::Left(frame) => Self::Left(frame.draft(bounds)),
+                Self::Right(frame) => Self::Right(frame.draft(bounds)),
             }
         }
 

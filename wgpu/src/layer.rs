@@ -8,39 +8,46 @@ use crate::quad::{self, Quad};
 use crate::text::{self, Text};
 use crate::triangle;
 
-use std::cell::{self, RefCell};
-use std::rc::Rc;
-
-pub enum Layer<'a> {
-    Live(&'a Live),
-    Cached(Transformation, cell::Ref<'a, Cached>),
+pub struct Layer {
+    pub bounds: Rectangle,
+    pub quads: quad::Batch,
+    pub triangles: triangle::Batch,
+    pub text: text::Batch,
+    pub images: image::Batch,
 }
 
-pub enum LayerMut<'a> {
-    Live(&'a mut Live),
-    Cached(Transformation, cell::RefMut<'a, Cached>),
+impl Default for Layer {
+    fn default() -> Self {
+        Self {
+            bounds: Rectangle::INFINITE,
+            quads: quad::Batch::default(),
+            triangles: triangle::Batch::default(),
+            text: text::Batch::default(),
+            images: image::Batch::default(),
+        }
+    }
 }
 
 pub struct Stack {
-    live: Vec<Live>,
-    cached: Vec<(Transformation, Rc<RefCell<Cached>>)>,
-    order: Vec<Kind>,
+    layers: Vec<Layer>,
     transformations: Vec<Transformation>,
     previous: Vec<usize>,
+    pending_meshes: Vec<Vec<Mesh>>,
+    pending_text: Vec<Vec<Text>>,
     current: usize,
-    live_count: usize,
+    active_count: usize,
 }
 
 impl Stack {
     pub fn new() -> Self {
         Self {
-            live: vec![Live::default()],
-            cached: Vec::new(),
-            order: vec![Kind::Live],
+            layers: vec![Layer::default()],
             transformations: vec![Transformation::IDENTITY],
-            previous: Vec::new(),
+            previous: vec![],
+            pending_meshes: vec![Vec::new()],
+            pending_text: vec![Vec::new()],
             current: 0,
-            live_count: 1,
+            active_count: 1,
         }
     }
 
@@ -59,7 +66,7 @@ impl Stack {
             shadow_blur_radius: quad.shadow.blur_radius,
         };
 
-        self.live[self.current].quads.add(quad, &background);
+        self.layers[self.current].quads.add(quad, &background);
     }
 
     pub fn draw_paragraph(
@@ -77,7 +84,7 @@ impl Stack {
             transformation: self.transformations.last().copied().unwrap(),
         };
 
-        self.live[self.current].text.push(paragraph);
+        self.pending_text[self.current].push(paragraph);
     }
 
     pub fn draw_editor(
@@ -87,7 +94,7 @@ impl Stack {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        let paragraph = Text::Editor {
+        let editor = Text::Editor {
             editor: editor.downgrade(),
             position,
             color,
@@ -95,7 +102,7 @@ impl Stack {
             transformation: self.transformation(),
         };
 
-        self.live[self.current].text.push(paragraph);
+        self.pending_text[self.current].push(editor);
     }
 
     pub fn draw_text(
@@ -107,12 +114,13 @@ impl Stack {
     ) {
         let transformation = self.transformation();
 
-        let paragraph = Text::Cached {
+        let text = Text::Cached {
             content: text.content,
             bounds: Rectangle::new(position, text.bounds) * transformation,
             color,
             size: text.size * transformation.scale_factor(),
-            line_height: text.line_height,
+            line_height: text.line_height.to_absolute(text.size)
+                * transformation.scale_factor(),
             font: text.font,
             horizontal_alignment: text.horizontal_alignment,
             vertical_alignment: text.vertical_alignment,
@@ -120,7 +128,7 @@ impl Stack {
             clip_bounds: clip_bounds * transformation,
         };
 
-        self.live[self.current].text.push(paragraph);
+        self.pending_text[self.current].push(text);
     }
 
     pub fn draw_image(
@@ -135,7 +143,7 @@ impl Stack {
             bounds: bounds * self.transformation(),
         };
 
-        self.live[self.current].images.push(image);
+        self.layers[self.current].images.push(image);
     }
 
     pub fn draw_svg(
@@ -150,7 +158,7 @@ impl Stack {
             bounds: bounds * self.transformation(),
         };
 
-        self.live[self.current].images.push(svg);
+        self.layers[self.current].images.push(svg);
     }
 
     pub fn draw_mesh(&mut self, mut mesh: Mesh) {
@@ -161,51 +169,86 @@ impl Stack {
             }
         }
 
-        self.live[self.current].meshes.push(mesh);
+        self.pending_meshes[self.current].push(mesh);
     }
 
-    pub fn draw_layer(&mut self, mut layer: Live) {
-        layer.transformation = layer.transformation * self.transformation();
+    pub fn draw_mesh_group(&mut self, meshes: Vec<Mesh>) {
+        self.flush_pending();
 
-        if self.live_count == self.live.len() {
-            self.live.push(layer);
-        } else {
-            self.live[self.live_count] = layer;
-        }
+        let transformation = self.transformation();
 
-        self.live_count += 1;
-        self.order.push(Kind::Live);
-    }
-
-    pub fn draw_cached_layer(&mut self, layer: &Rc<RefCell<Cached>>) {
-        self.cached.push((self.transformation(), layer.clone()));
-        self.order.push(Kind::Cache);
-    }
-
-    pub fn push_clip(&mut self, bounds: Option<Rectangle>) {
-        self.previous.push(self.current);
-        self.order.push(Kind::Live);
-
-        self.current = self.live_count;
-        self.live_count += 1;
-
-        let bounds = bounds.map(|bounds| bounds * self.transformation());
-
-        if self.current == self.live.len() {
-            self.live.push(Live {
-                bounds,
-                ..Live::default()
+        self.layers[self.current]
+            .triangles
+            .push(triangle::Item::Group {
+                transformation,
+                meshes,
             });
+    }
+
+    pub fn draw_mesh_cache(&mut self, cache: triangle::Cache) {
+        self.flush_pending();
+
+        let transformation = self.transformation();
+
+        self.layers[self.current]
+            .triangles
+            .push(triangle::Item::Cached {
+                transformation,
+                cache,
+            });
+    }
+
+    pub fn draw_text_group(&mut self, text: Vec<Text>) {
+        self.flush_pending();
+
+        let transformation = self.transformation();
+
+        self.layers[self.current].text.push(text::Item::Group {
+            transformation,
+            text,
+        });
+    }
+
+    pub fn draw_text_cache(&mut self, cache: text::Cache) {
+        self.flush_pending();
+
+        let transformation = self.transformation();
+
+        self.layers[self.current].text.push(text::Item::Cached {
+            transformation,
+            cache,
+        });
+    }
+
+    pub fn push_clip(&mut self, bounds: Rectangle) {
+        self.previous.push(self.current);
+
+        self.current = self.active_count;
+        self.active_count += 1;
+
+        let bounds = bounds * self.transformation();
+
+        if self.current == self.layers.len() {
+            self.layers.push(Layer {
+                bounds,
+                ..Layer::default()
+            });
+            self.pending_meshes.push(Vec::new());
+            self.pending_text.push(Vec::new());
         } else {
-            self.live[self.current].bounds = bounds;
+            self.layers[self.current].bounds = bounds;
         }
     }
 
     pub fn pop_clip(&mut self) {
+        self.flush_pending();
+
         self.current = self.previous.pop().unwrap();
     }
 
     pub fn push_transformation(&mut self, transformation: Transformation) {
+        self.flush_pending();
+
         self.transformations
             .push(self.transformation() * transformation);
     }
@@ -218,55 +261,57 @@ impl Stack {
         self.transformations.last().copied().unwrap()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = LayerMut<'_>> {
-        let mut live = self.live.iter_mut();
-        let mut cached = self.cached.iter_mut();
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Layer> {
+        self.flush_pending();
 
-        self.order.iter().map(move |kind| match kind {
-            Kind::Live => LayerMut::Live(live.next().unwrap()),
-            Kind::Cache => {
-                let (transformation, layer) = cached.next().unwrap();
-                let layer = layer.borrow_mut();
-
-                LayerMut::Cached(*transformation * layer.transformation, layer)
-            }
-        })
+        self.layers[..self.active_count].iter_mut()
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = Layer<'_>> {
-        let mut live = self.live.iter();
-        let mut cached = self.cached.iter();
-
-        self.order.iter().map(move |kind| match kind {
-            Kind::Live => Layer::Live(live.next().unwrap()),
-            Kind::Cache => {
-                let (transformation, layer) = cached.next().unwrap();
-                let layer = layer.borrow();
-
-                Layer::Cached(*transformation * layer.transformation, layer)
-            }
-        })
+    pub fn iter(&self) -> impl Iterator<Item = &Layer> {
+        self.layers[..self.active_count].iter()
     }
 
     pub fn clear(&mut self) {
-        for live in &mut self.live[..self.live_count] {
-            live.bounds = None;
-            live.transformation = Transformation::IDENTITY;
+        for (live, pending_meshes) in self.layers[..self.active_count]
+            .iter_mut()
+            .zip(self.pending_meshes.iter_mut())
+        {
+            live.bounds = Rectangle::INFINITE;
 
             live.quads.clear();
-            live.meshes.clear();
+            live.triangles.clear();
             live.text.clear();
             live.images.clear();
+            pending_meshes.clear();
         }
 
         self.current = 0;
-        self.live_count = 1;
-
-        self.order.clear();
-        self.order.push(Kind::Live);
-
-        self.cached.clear();
+        self.active_count = 1;
         self.previous.clear();
+    }
+
+    // We want to keep the allocated memory
+    #[allow(clippy::drain_collect)]
+    fn flush_pending(&mut self) {
+        let transformation = self.transformation();
+
+        let pending_meshes = &mut self.pending_meshes[self.current];
+        if !pending_meshes.is_empty() {
+            self.layers[self.current]
+                .triangles
+                .push(triangle::Item::Group {
+                    transformation,
+                    meshes: pending_meshes.drain(..).collect(),
+                });
+        }
+
+        let pending_text = &mut self.pending_text[self.current];
+        if !pending_text.is_empty() {
+            self.layers[self.current].text.push(text::Item::Group {
+                transformation,
+                text: pending_text.drain(..).collect(),
+            });
+        }
     }
 }
 
@@ -274,53 +319,4 @@ impl Default for Stack {
     fn default() -> Self {
         Self::new()
     }
-}
-
-#[derive(Default)]
-pub struct Live {
-    pub bounds: Option<Rectangle>,
-    pub transformation: Transformation,
-    pub quads: quad::Batch,
-    pub meshes: triangle::Batch,
-    pub text: text::Batch,
-    pub images: image::Batch,
-}
-
-impl Live {
-    pub fn into_cached(self) -> Cached {
-        Cached {
-            bounds: self.bounds,
-            transformation: self.transformation,
-            quads: quad::Cache::Staged(self.quads),
-            meshes: triangle::Cache::Staged(self.meshes),
-            text: text::Cache::Staged(self.text),
-            images: self.images,
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct Cached {
-    pub bounds: Option<Rectangle>,
-    pub transformation: Transformation,
-    pub quads: quad::Cache,
-    pub meshes: triangle::Cache,
-    pub text: text::Cache,
-    pub images: image::Batch,
-}
-
-impl Cached {
-    pub fn update(&mut self, live: Live) {
-        self.bounds = live.bounds;
-
-        self.quads.update(live.quads);
-        self.meshes.update(live.meshes);
-        self.text.update(live.text);
-        self.images = live.images;
-    }
-}
-
-enum Kind {
-    Live,
-    Cache,
 }

@@ -113,13 +113,11 @@ where
         region: Rectangle,
         f: impl FnOnce(&mut Self) -> R,
     ) -> R {
-        let mut frame = self.draft(region.size());
+        let mut frame = self.draft(region);
 
         let result = f(&mut frame);
 
-        let origin = Point::new(region.x, region.y);
-
-        self.paste(frame, origin);
+        self.paste(frame, Point::new(region.x, region.y));
 
         result
     }
@@ -129,14 +127,14 @@ where
     /// Draw its contents back to this [`Frame`] with [`paste`].
     ///
     /// [`paste`]: Self::paste
-    pub fn draft(&mut self, size: Size) -> Self {
+    fn draft(&mut self, clip_bounds: Rectangle) -> Self {
         Self {
-            raw: self.raw.draft(size),
+            raw: self.raw.draft(clip_bounds),
         }
     }
 
     /// Draws the contents of the given [`Frame`] with origin at the given [`Point`].
-    pub fn paste(&mut self, frame: Self, at: Point) {
+    fn paste(&mut self, frame: Self, at: Point) {
         self.raw.paste(frame.raw, at);
     }
 
@@ -187,7 +185,7 @@ pub trait Backend: Sized {
     fn scale(&mut self, scale: impl Into<f32>);
     fn scale_nonuniform(&mut self, scale: impl Into<Vector>);
 
-    fn draft(&mut self, size: Size) -> Self;
+    fn draft(&mut self, clip_bounds: Rectangle) -> Self;
     fn paste(&mut self, frame: Self, at: Point);
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>);
@@ -232,7 +230,7 @@ impl Backend for () {
     fn scale(&mut self, _scale: impl Into<f32>) {}
     fn scale_nonuniform(&mut self, _scale: impl Into<Vector>) {}
 
-    fn draft(&mut self, _size: Size) -> Self {}
+    fn draft(&mut self, _clip_bounds: Rectangle) -> Self {}
     fn paste(&mut self, _frame: Self, _at: Point) {}
 
     fn stroke<'a>(&mut self, _path: &Path, _stroke: impl Into<Stroke<'a>>) {}
