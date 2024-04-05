@@ -422,24 +422,31 @@ impl BufferStack {
     }
 
     fn into_meshes(self, clip_bounds: Rectangle) -> impl Iterator<Item = Mesh> {
-        self.stack.into_iter().map(move |buffer| match buffer {
-            Buffer::Solid(buffer) => Mesh::Solid {
-                buffers: mesh::Indexed {
-                    vertices: buffer.vertices,
-                    indices: buffer.indices,
-                },
-                clip_bounds,
-                transformation: Transformation::IDENTITY,
-            },
-            Buffer::Gradient(buffer) => Mesh::Gradient {
-                buffers: mesh::Indexed {
-                    vertices: buffer.vertices,
-                    indices: buffer.indices,
-                },
-                clip_bounds,
-                transformation: Transformation::IDENTITY,
-            },
-        })
+        self.stack
+            .into_iter()
+            .filter_map(move |buffer| match buffer {
+                Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
+                    Some(Mesh::Solid {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        clip_bounds,
+                        transformation: Transformation::IDENTITY,
+                    })
+                }
+                Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
+                    Some(Mesh::Gradient {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        clip_bounds,
+                        transformation: Transformation::IDENTITY,
+                    })
+                }
+                _ => None,
+            })
     }
 }
 
