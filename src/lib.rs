@@ -199,6 +199,13 @@ pub mod advanced;
 #[cfg(feature = "multi-window")]
 pub mod multi_window;
 
+#[cfg(all(
+    feature = "dynamic-linking",
+    not(feature = "ignore-dynamic-linking")
+))]
+#[allow(unused_imports)]
+use iced_dylib;
+
 pub use crate::core::alignment;
 pub use crate::core::border;
 pub use crate::core::color;
