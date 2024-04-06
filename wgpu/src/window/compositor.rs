@@ -321,12 +321,12 @@ impl graphics::Compositor for Compositor {
             &wgpu::SurfaceConfiguration {
                 usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
                 format: self.format,
-                present_mode: wgpu::PresentMode::Immediate,
+                present_mode: self.settings.present_mode,
                 width,
                 height,
                 alpha_mode: self.alpha_mode,
                 view_formats: vec![],
-                desired_maximum_frame_latency: 0,
+                desired_maximum_frame_latency: 1,
             },
         );
     }
