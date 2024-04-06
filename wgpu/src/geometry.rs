@@ -38,8 +38,8 @@ pub enum Geometry {
 
 #[derive(Clone)]
 pub struct Cache {
-    pub meshes: triangle::Cache,
-    pub text: text::Cache,
+    pub meshes: Option<triangle::Cache>,
+    pub text: Option<text::Cache>,
 }
 
 impl Cached for Geometry {
@@ -53,8 +53,17 @@ impl Cached for Geometry {
         match self {
             Self::Live { meshes, text } => {
                 if let Some(mut previous) = previous {
-                    previous.meshes.update(meshes);
-                    previous.text.update(text);
+                    if let Some(cache) = &mut previous.meshes {
+                        cache.update(meshes);
+                    } else {
+                        previous.meshes = triangle::Cache::new(meshes);
+                    }
+
+                    if let Some(cache) = &mut previous.text {
+                        cache.update(text);
+                    } else {
+                        previous.text = text::Cache::new(text);
+                    }
 
                     previous
                 } else {

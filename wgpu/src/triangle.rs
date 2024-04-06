@@ -38,14 +38,18 @@ pub struct Cache {
 pub struct Id(u64);
 
 impl Cache {
-    pub fn new(meshes: Vec<Mesh>) -> Self {
+    pub fn new(meshes: Vec<Mesh>) -> Option<Self> {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-        Self {
+        if meshes.is_empty() {
+            return None;
+        }
+
+        Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
             batch: Rc::from(meshes),
             version: 0,
-        }
+        })
     }
 
     pub fn update(&mut self, meshes: Vec<Mesh>) {
@@ -72,8 +76,12 @@ impl Storage {
         Self::default()
     }
 
-    fn get(&self, id: Id) -> Option<&Upload> {
-        self.uploads.get(&id)
+    fn get(&self, cache: &Cache) -> Option<&Upload> {
+        if cache.batch.is_empty() {
+            return None;
+        }
+
+        self.uploads.get(&cache.id)
     }
 
     fn prepare(
@@ -90,8 +98,9 @@ impl Storage {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if upload.version != cache.version
-                    || upload.transformation != new_transformation
+                if !cache.batch.is_empty()
+                    && (upload.version != cache.version
+                        || upload.transformation != new_transformation)
                 {
                     upload.layer.prepare(
                         device,
@@ -125,6 +134,12 @@ impl Storage {
                     transformation: new_transformation,
                     version: 0,
                 });
+
+                log::info!(
+                    "New mesh upload: {} (total: {})",
+                    cache.id.0,
+                    self.uploads.len()
+                );
             }
         }
 
@@ -247,7 +262,7 @@ impl Pipeline {
                 transformation,
                 cache,
             } => {
-                let upload = storage.get(cache.id)?;
+                let upload = storage.get(cache)?;
 
                 Some((
                     &upload.layer,

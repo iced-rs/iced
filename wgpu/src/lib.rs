@@ -517,8 +517,13 @@ impl graphics::geometry::Renderer for Renderer {
                 self.layers.draw_text_group(text);
             }
             Geometry::Cached(cache) => {
-                self.layers.draw_mesh_cache(cache.meshes);
-                self.layers.draw_text_cache(cache.text);
+                if let Some(meshes) = cache.meshes {
+                    self.layers.draw_mesh_cache(meshes);
+                }
+
+                if let Some(text) = cache.text {
+                    self.layers.draw_text_cache(text);
+                }
             }
         }
     }

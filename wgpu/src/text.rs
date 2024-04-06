@@ -43,14 +43,18 @@ pub struct Cache {
 pub struct Id(u64);
 
 impl Cache {
-    pub fn new(text: Vec<Text>) -> Self {
+    pub fn new(text: Vec<Text>) -> Option<Self> {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-        Self {
+        if text.is_empty() {
+            return None;
+        }
+
+        Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
             text: Rc::from(text),
             version: 0,
-        }
+        })
     }
 
     pub fn update(&mut self, text: Vec<Text>) {
@@ -78,8 +82,12 @@ impl Storage {
         Self::default()
     }
 
-    fn get(&self, id: Id) -> Option<&Upload> {
-        self.uploads.get(&id)
+    fn get(&self, cache: &Cache) -> Option<&Upload> {
+        if cache.text.is_empty() {
+            return None;
+        }
+
+        self.uploads.get(&cache.id)
     }
 
     fn prepare(
@@ -97,8 +105,9 @@ impl Storage {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if upload.version != cache.version
-                    || upload.transformation != new_transformation
+                if !cache.text.is_empty()
+                    && (upload.version != cache.version
+                        || upload.transformation != new_transformation)
                 {
                     let _ = prepare(
                         device,
@@ -154,6 +163,12 @@ impl Storage {
                     transformation: new_transformation,
                     version: 0,
                 });
+
+                log::info!(
+                    "New text upload: {} (total: {})",
+                    cache.id.0,
+                    self.uploads.len()
+                );
             }
         }
 
@@ -291,7 +306,7 @@ impl Pipeline {
                     layer_count += 1;
                 }
                 Item::Cached { cache, .. } => {
-                    if let Some(upload) = storage.get(cache.id) {
+                    if let Some(upload) = storage.get(cache) {
                         upload
                             .renderer
                             .render(&upload.atlas, render_pass)
