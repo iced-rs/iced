@@ -184,8 +184,16 @@ impl Pipeline {
         belt: &mut wgpu::util::StagingBelt,
         storage: &mut Storage,
         items: &[Item],
-        projection: Transformation,
+        scale: Transformation,
+        target_size: Size<u32>,
     ) {
+        let projection = if let Some(blit) = &mut self.blit {
+            blit.prepare(device, encoder, belt, target_size) * scale
+        } else {
+            Transformation::orthographic(target_size.width, target_size.height)
+                * scale
+        };
+
         for item in items {
             match item {
                 Item::Group {
@@ -233,13 +241,11 @@ impl Pipeline {
 
     pub fn render(
         &mut self,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         target: &wgpu::TextureView,
         storage: &Storage,
         start: usize,
         batch: &Batch,
-        target_size: Size<u32>,
         bounds: Rectangle,
         screen_transformation: Transformation,
     ) -> usize {
@@ -274,13 +280,11 @@ impl Pipeline {
         });
 
         render(
-            device,
             encoder,
             target,
             self.blit.as_mut(),
             &self.solid,
             &self.gradient,
-            target_size,
             bounds,
             items,
         );
@@ -294,20 +298,17 @@ impl Pipeline {
 }
 
 fn render<'a>(
-    device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
     target: &wgpu::TextureView,
     mut blit: Option<&mut msaa::Blit>,
     solid: &solid::Pipeline,
     gradient: &gradient::Pipeline,
-    target_size: Size<u32>,
     bounds: Rectangle,
     group: impl Iterator<Item = (&'a Layer, &'a [Mesh], Transformation)>,
 ) {
     {
         let (attachment, resolve_target, load) = if let Some(blit) = &mut blit {
-            let (attachment, resolve_target) =
-                blit.targets(device, target_size.width, target_size.height);
+            let (attachment, resolve_target) = blit.targets();
 
             (
                 attachment,

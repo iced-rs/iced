@@ -117,7 +117,7 @@ impl Renderer {
     ) {
         self.draw_overlay(overlay, viewport);
         self.prepare(engine, device, queue, format, encoder, viewport);
-        self.render(engine, device, encoder, frame, clear_color, viewport);
+        self.render(engine, encoder, frame, clear_color, viewport);
 
         self.triangle_storage.trim();
         self.text_storage.trim();
@@ -153,7 +153,8 @@ impl Renderer {
                     &mut engine.staging_belt,
                     &mut self.triangle_storage,
                     &layer.triangles,
-                    viewport.projection() * Transformation::scale(scale_factor),
+                    Transformation::scale(scale_factor),
+                    viewport.physical_size(),
                 );
             }
 
@@ -187,7 +188,6 @@ impl Renderer {
     fn render(
         &mut self,
         engine: &mut Engine,
-        device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         frame: &wgpu::TextureView,
         clear_color: Option<Color>,
@@ -264,13 +264,11 @@ impl Renderer {
                 let _ = ManuallyDrop::into_inner(render_pass);
 
                 mesh_layer += engine.triangle_pipeline.render(
-                    device,
                     encoder,
                     frame,
                     &self.triangle_storage,
                     mesh_layer,
                     &layer.triangles,
-                    viewport.physical_size(),
                     physical_bounds,
                     scale,
                 );
