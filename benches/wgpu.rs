@@ -127,7 +127,9 @@ fn benchmark<'a>(
             &[],
         );
 
-        engine.submit(&queue, encoder);
+        let submission = engine.submit(&queue, encoder);
+
+        let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
     });
 }
 
