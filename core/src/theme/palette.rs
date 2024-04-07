@@ -4,7 +4,7 @@ use crate::{color, Color};
 use once_cell::sync::Lazy;
 use palette::color_difference::Wcag21RelativeContrast;
 use palette::rgb::Rgb;
-use palette::{FromColor, Hsl, Mix};
+use palette::{FromColor, Hsl, Lch, Mix};
 
 /// A color palette.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -613,7 +613,7 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
         text
-    } else if is_dark(background) {
+    } else if to_lch(background).l < 70.0 {
         Color::WHITE
     } else {
         Color::BLACK
@@ -633,6 +633,10 @@ fn is_readable(a: Color, b: Color) -> bool {
 
 fn to_hsl(color: Color) -> Hsl {
     Hsl::from_color(Rgb::from(color))
+}
+
+fn to_lch(color: Color) -> Lch {
+    Lch::from_color(Rgb::from(color))
 }
 
 fn from_hsl(hsl: Hsl) -> Color {
