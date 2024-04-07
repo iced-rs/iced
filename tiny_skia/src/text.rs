@@ -13,7 +13,7 @@ use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::hash_map;
 
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 pub struct Pipeline {
     glyph_cache: GlyphCache,
     cache: RefCell<Cache>,

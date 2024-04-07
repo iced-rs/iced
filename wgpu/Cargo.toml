@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
@@ -44,3 +47,4 @@ resvg.optional = true
 
 tracing.workspace = true
 tracing.optional = true
+

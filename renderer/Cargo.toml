@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 wgpu = ["iced_wgpu"]
 tiny-skia = ["iced_tiny_skia"]

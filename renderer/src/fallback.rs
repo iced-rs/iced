@@ -1,3 +1,4 @@
+//! Compose existing renderers and create type-safe fallback strategies.
 use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
@@ -8,24 +9,31 @@ use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 
-pub enum Renderer<L, R> {
-    Left(L),
-    Right(R),
+/// A renderer `A` with a fallback strategy `B`.
+///
+/// This type can be used to easily compose existing renderers and
+/// create custom, type-safe fallback strategies.
+#[derive(Debug)]
+pub enum Renderer<A, B> {
+    /// The primary rendering option.
+    Primary(A),
+    /// The secondary (or fallback) rendering option.
+    Secondary(B),
 }
 
 macro_rules! delegate {
     ($renderer:expr, $name:ident, $body:expr) => {
         match $renderer {
-            Self::Left($name) => $body,
-            Self::Right($name) => $body,
+            Self::Primary($name) => $body,
+            Self::Secondary($name) => $body,
         }
     };
 }
 
-impl<L, R> core::Renderer for Renderer<L, R>
+impl<A, B> core::Renderer for Renderer<A, B>
 where
-    L: core::Renderer,
-    R: core::Renderer,
+    A: core::Renderer,
+    B: core::Renderer,
 {
     fn fill_quad(
         &mut self,
@@ -56,22 +64,22 @@ where
     }
 }
 
-impl<L, R> core::text::Renderer for Renderer<L, R>
+impl<A, B> core::text::Renderer for Renderer<A, B>
 where
-    L: core::text::Renderer,
-    R: core::text::Renderer<
-        Font = L::Font,
-        Paragraph = L::Paragraph,
-        Editor = L::Editor,
+    A: core::text::Renderer,
+    B: core::text::Renderer<
+        Font = A::Font,
+        Paragraph = A::Paragraph,
+        Editor = A::Editor,
     >,
 {
-    type Font = L::Font;
-    type Paragraph = L::Paragraph;
-    type Editor = L::Editor;
+    type Font = A::Font;
+    type Paragraph = A::Paragraph;
+    type Editor = A::Editor;
 
-    const ICON_FONT: Self::Font = L::ICON_FONT;
-    const CHECKMARK_ICON: char = L::CHECKMARK_ICON;
-    const ARROW_DOWN_ICON: char = L::ARROW_DOWN_ICON;
+    const ICON_FONT: Self::Font = A::ICON_FONT;
+    const CHECKMARK_ICON: char = A::CHECKMARK_ICON;
+    const ARROW_DOWN_ICON: char = A::ARROW_DOWN_ICON;
 
     fn default_font(&self) -> Self::Font {
         delegate!(self, renderer, renderer.default_font())
@@ -128,12 +136,12 @@ where
     }
 }
 
-impl<L, R> image::Renderer for Renderer<L, R>
+impl<A, B> image::Renderer for Renderer<A, B>
 where
-    L: image::Renderer,
-    R: image::Renderer<Handle = L::Handle>,
+    A: image::Renderer,
+    B: image::Renderer<Handle = A::Handle>,
 {
-    type Handle = L::Handle;
+    type Handle = A::Handle;
 
     fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
         delegate!(self, renderer, renderer.measure_image(handle))
@@ -153,10 +161,10 @@ where
     }
 }
 
-impl<L, R> svg::Renderer for Renderer<L, R>
+impl<A, B> svg::Renderer for Renderer<A, B>
 where
-    L: svg::Renderer,
-    R: svg::Renderer,
+    A: svg::Renderer,
+    B: svg::Renderer,
 {
     fn measure_svg(&self, handle: &svg::Handle) -> Size<u32> {
         delegate!(self, renderer, renderer.measure_svg(handle))
@@ -172,37 +180,49 @@ where
     }
 }
 
-impl<L, R> mesh::Renderer for Renderer<L, R>
+impl<A, B> mesh::Renderer for Renderer<A, B>
 where
-    L: mesh::Renderer,
-    R: mesh::Renderer,
+    A: mesh::Renderer,
+    B: mesh::Renderer,
 {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
         delegate!(self, renderer, renderer.draw_mesh(mesh));
     }
 }
 
-pub enum Compositor<L, R>
+/// A compositor `A` with a fallback strategy `B`.
+///
+/// It works analogously to [`Renderer`].
+#[derive(Debug)]
+pub enum Compositor<A, B>
 where
-    L: graphics::Compositor,
-    R: graphics::Compositor,
+    A: graphics::Compositor,
+    B: graphics::Compositor,
 {
-    Left(L),
-    Right(R),
+    /// The primary compositing option.
+    Primary(A),
+    /// The secondary (or fallback) compositing option.
+    Secondary(B),
 }
 
-pub enum Surface<L, R> {
-    Left(L),
-    Right(R),
+/// A surface `A` with a fallback strategy `B`.
+///
+/// It works analogously to [`Renderer`].
+#[derive(Debug)]
+pub enum Surface<A, B> {
+    /// The primary surface option.
+    Primary(A),
+    /// The secondary (or fallback) surface option.
+    Secondary(B),
 }
 
-impl<L, R> graphics::Compositor for Compositor<L, R>
+impl<A, B> graphics::Compositor for Compositor<A, B>
 where
-    L: graphics::Compositor,
-    R: graphics::Compositor,
+    A: graphics::Compositor,
+    B: graphics::Compositor,
 {
-    type Renderer = Renderer<L::Renderer, R::Renderer>;
-    type Surface = Surface<L::Surface, R::Surface>;
+    type Renderer = Renderer<A::Renderer, B::Renderer>;
+    type Surface = Surface<A::Surface, B::Surface>;
 
     async fn with_backend<W: compositor::Window + Clone>(
         settings: graphics::Settings,
@@ -233,19 +253,19 @@ where
         let mut errors = vec![];
 
         for backend in candidates.iter().map(Option::as_deref) {
-            match L::with_backend(settings, compatible_window.clone(), backend)
+            match A::with_backend(settings, compatible_window.clone(), backend)
                 .await
             {
-                Ok(compositor) => return Ok(Self::Left(compositor)),
+                Ok(compositor) => return Ok(Self::Primary(compositor)),
                 Err(error) => {
                     errors.push(error);
                 }
             }
 
-            match R::with_backend(settings, compatible_window.clone(), backend)
+            match B::with_backend(settings, compatible_window.clone(), backend)
                 .await
             {
-                Ok(compositor) => return Ok(Self::Right(compositor)),
+                Ok(compositor) => return Ok(Self::Secondary(compositor)),
                 Err(error) => {
                     errors.push(error);
                 }
@@ -257,11 +277,11 @@ where
 
     fn create_renderer(&self) -> Self::Renderer {
         match self {
-            Self::Left(compositor) => {
-                Renderer::Left(compositor.create_renderer())
+            Self::Primary(compositor) => {
+                Renderer::Primary(compositor.create_renderer())
             }
-            Self::Right(compositor) => {
-                Renderer::Right(compositor.create_renderer())
+            Self::Secondary(compositor) => {
+                Renderer::Secondary(compositor.create_renderer())
             }
         }
     }
@@ -273,12 +293,12 @@ where
         height: u32,
     ) -> Self::Surface {
         match self {
-            Self::Left(compositor) => {
-                Surface::Left(compositor.create_surface(window, width, height))
-            }
-            Self::Right(compositor) => {
-                Surface::Right(compositor.create_surface(window, width, height))
-            }
+            Self::Primary(compositor) => Surface::Primary(
+                compositor.create_surface(window, width, height),
+            ),
+            Self::Secondary(compositor) => Surface::Secondary(
+                compositor.create_surface(window, width, height),
+            ),
         }
     }
 
@@ -289,10 +309,10 @@ where
         height: u32,
     ) {
         match (self, surface) {
-            (Self::Left(compositor), Surface::Left(surface)) => {
+            (Self::Primary(compositor), Surface::Primary(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
-            (Self::Right(compositor), Surface::Right(surface)) => {
+            (Self::Secondary(compositor), Surface::Secondary(surface)) => {
                 compositor.configure_surface(surface, width, height);
             }
             _ => unreachable!(),
@@ -313,9 +333,9 @@ where
     ) -> Result<(), compositor::SurfaceError> {
         match (self, renderer, surface) {
             (
-                Self::Left(compositor),
-                Renderer::Left(renderer),
-                Surface::Left(surface),
+                Self::Primary(compositor),
+                Renderer::Primary(renderer),
+                Surface::Primary(surface),
             ) => compositor.present(
                 renderer,
                 surface,
@@ -324,9 +344,9 @@ where
                 overlay,
             ),
             (
-                Self::Right(compositor),
-                Renderer::Right(renderer),
-                Surface::Right(surface),
+                Self::Secondary(compositor),
+                Renderer::Secondary(renderer),
+                Surface::Secondary(surface),
             ) => compositor.present(
                 renderer,
                 surface,
@@ -348,9 +368,9 @@ where
     ) -> Vec<u8> {
         match (self, renderer, surface) {
             (
-                Self::Left(compositor),
-                Renderer::Left(renderer),
-                Surface::Left(surface),
+                Self::Primary(compositor),
+                Renderer::Primary(renderer),
+                Surface::Primary(surface),
             ) => compositor.screenshot(
                 renderer,
                 surface,
@@ -359,9 +379,9 @@ where
                 overlay,
             ),
             (
-                Self::Right(compositor),
-                Renderer::Right(renderer),
-                Surface::Right(surface),
+                Self::Secondary(compositor),
+                Renderer::Secondary(renderer),
+                Surface::Secondary(surface),
             ) => compositor.screenshot(
                 renderer,
                 surface,
@@ -375,10 +395,10 @@ where
 }
 
 #[cfg(feature = "wgpu")]
-impl<L, R> iced_wgpu::primitive::pipeline::Renderer for Renderer<L, R>
+impl<A, B> iced_wgpu::primitive::pipeline::Renderer for Renderer<A, B>
 where
-    L: iced_wgpu::primitive::pipeline::Renderer,
-    R: core::Renderer,
+    A: iced_wgpu::primitive::pipeline::Renderer,
+    B: core::Renderer,
 {
     fn draw_pipeline_primitive(
         &mut self,
@@ -386,10 +406,10 @@ where
         primitive: impl iced_wgpu::primitive::pipeline::Primitive,
     ) {
         match self {
-            Self::Left(renderer) => {
+            Self::Primary(renderer) => {
                 renderer.draw_pipeline_primitive(bounds, primitive);
             }
-            Self::Right(_) => {
+            Self::Secondary(_) => {
                 log::warn!(
                     "Custom shader primitive is not supported with this renderer."
                 );
@@ -405,27 +425,31 @@ mod geometry {
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
     use crate::graphics::Cached;
 
-    impl<L, R> geometry::Renderer for Renderer<L, R>
+    impl<A, B> geometry::Renderer for Renderer<A, B>
     where
-        L: geometry::Renderer,
-        R: geometry::Renderer,
+        A: geometry::Renderer,
+        B: geometry::Renderer,
     {
-        type Geometry = Geometry<L::Geometry, R::Geometry>;
-        type Frame = Frame<L::Frame, R::Frame>;
+        type Geometry = Geometry<A::Geometry, B::Geometry>;
+        type Frame = Frame<A::Frame, B::Frame>;
 
         fn new_frame(&self, size: iced_graphics::core::Size) -> Self::Frame {
             match self {
-                Self::Left(renderer) => Frame::Left(renderer.new_frame(size)),
-                Self::Right(renderer) => Frame::Right(renderer.new_frame(size)),
+                Self::Primary(renderer) => {
+                    Frame::Primary(renderer.new_frame(size))
+                }
+                Self::Secondary(renderer) => {
+                    Frame::Secondary(renderer.new_frame(size))
+                }
             }
         }
 
         fn draw_geometry(&mut self, geometry: Self::Geometry) {
             match (self, geometry) {
-                (Self::Left(renderer), Geometry::Left(geometry)) => {
+                (Self::Primary(renderer), Geometry::Primary(geometry)) => {
                     renderer.draw_geometry(geometry);
                 }
-                (Self::Right(renderer), Geometry::Right(geometry)) => {
+                (Self::Secondary(renderer), Geometry::Secondary(geometry)) => {
                     renderer.draw_geometry(geometry);
                 }
                 _ => unreachable!(),
@@ -433,44 +457,48 @@ mod geometry {
         }
     }
 
-    pub enum Geometry<L, R> {
-        Left(L),
-        Right(R),
+    #[derive(Debug)]
+    pub enum Geometry<A, B> {
+        Primary(A),
+        Secondary(B),
     }
 
-    impl<L, R> Cached for Geometry<L, R>
+    impl<A, B> Cached for Geometry<A, B>
     where
-        L: Cached,
-        R: Cached,
+        A: Cached,
+        B: Cached,
     {
-        type Cache = Geometry<L::Cache, R::Cache>;
+        type Cache = Geometry<A::Cache, B::Cache>;
 
         fn load(cache: &Self::Cache) -> Self {
             match cache {
-                Geometry::Left(cache) => Self::Left(L::load(cache)),
-                Geometry::Right(cache) => Self::Right(R::load(cache)),
+                Geometry::Primary(cache) => Self::Primary(A::load(cache)),
+                Geometry::Secondary(cache) => Self::Secondary(B::load(cache)),
             }
         }
 
         fn cache(self) -> Self::Cache {
             match self {
-                Self::Left(geometry) => Geometry::Left(geometry.cache()),
-                Self::Right(geometry) => Geometry::Right(geometry.cache()),
+                Self::Primary(geometry) => Geometry::Primary(geometry.cache()),
+                Self::Secondary(geometry) => {
+                    Geometry::Secondary(geometry.cache())
+                }
             }
         }
     }
 
-    pub enum Frame<L, R> {
-        Left(L),
-        Right(R),
+    #[derive(Debug)]
+    pub enum Frame<A, B> {
+        Primary(A),
+        Secondary(B),
     }
 
-    impl<L, R> geometry::frame::Backend for Frame<L, R>
+    impl<A, B> geometry::frame::Backend for Frame<A, B>
     where
-        L: geometry::frame::Backend,
-        R: geometry::frame::Backend,
+        A: geometry::frame::Backend,
+        B: geometry::frame::Backend,
     {
-        type Geometry = Geometry<L::Geometry, R::Geometry>;
+        type Geometry = Geometry<A::Geometry, B::Geometry>;
 
         fn width(&self) -> f32 {
             delegate!(self, frame, frame.width())
@@ -519,17 +547,17 @@ mod geometry {
 
         fn draft(&mut self, size: Size) -> Self {
             match self {
-                Self::Left(frame) => Self::Left(frame.draft(size)),
-                Self::Right(frame) => Self::Right(frame.draft(size)),
+                Self::Primary(frame) => Self::Primary(frame.draft(size)),
+                Self::Secondary(frame) => Self::Secondary(frame.draft(size)),
             }
         }
 
         fn paste(&mut self, frame: Self, at: Point) {
             match (self, frame) {
-                (Self::Left(target), Self::Left(source)) => {
+                (Self::Primary(target), Self::Primary(source)) => {
                     target.paste(source, at);
                 }
-                (Self::Right(target), Self::Right(source)) => {
+                (Self::Secondary(target), Self::Secondary(source)) => {
                     target.paste(source, at);
                 }
                 _ => unreachable!(),
@@ -554,17 +582,21 @@ mod geometry {
 
         fn into_geometry(self) -> Self::Geometry {
             match self {
-                Frame::Left(frame) => Geometry::Left(frame.into_geometry()),
-                Frame::Right(frame) => Geometry::Right(frame.into_geometry()),
+                Frame::Primary(frame) => {
+                    Geometry::Primary(frame.into_geometry())
+                }
+                Frame::Secondary(frame) => {
+                    Geometry::Secondary(frame.into_geometry())
+                }
             }
         }
     }
 }
 
-impl<L, R> compositor::Default for Renderer<L, R>
+impl<A, B> compositor::Default for Renderer<A, B>
 where
-    L: compositor::Default,
-    R: compositor::Default,
+    A: compositor::Default,
+    B: compositor::Default,
 {
-    type Compositor = Compositor<L::Compositor, R::Compositor>;
+    type Compositor = Compositor<A::Compositor, B::Compositor>;
 }

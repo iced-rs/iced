@@ -1,5 +1,4 @@
-#![forbid(rust_2018_idioms)]
-#![deny(unsafe_code, unused_results, rustdoc::broken_intra_doc_links)]
+#![allow(missing_docs)]
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 pub mod window;
 
