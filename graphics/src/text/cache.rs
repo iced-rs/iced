@@ -7,8 +7,7 @@ use std::collections::hash_map;
 use std::hash::{Hash, Hasher};
 
 /// A store of recently used sections of text.
-#[allow(missing_debug_implementations)]
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Cache {
     entries: FxHashMap<KeyHash, Entry>,
     aliases: FxHashMap<KeyHash, KeyHash>,
@@ -135,7 +134,7 @@ impl Key<'_> {
 pub type KeyHash = u64;
 
 /// A cache entry.
-#[allow(missing_debug_implementations)]
+#[derive(Debug)]
 pub struct Entry {
     /// The buffer of text, ready for drawing.
     pub buffer: cosmic_text::Buffer,

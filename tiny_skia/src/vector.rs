@@ -9,6 +9,7 @@ use std::cell::RefCell;
 use std::collections::hash_map;
 use std::fs;
 
+#[derive(Debug)]
 pub struct Pipeline {
     cache: RefCell<Cache>,
 }
@@ -201,5 +202,15 @@ impl Cache {
 
         self.tree_hits.clear();
         self.raster_hits.clear();
+    }
+}
+
+impl std::fmt::Debug for Cache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Cache")
+            .field("tree_hits", &self.tree_hits)
+            .field("rasters", &self.rasters)
+            .field("raster_hits", &self.raster_hits)
+            .finish_non_exhaustive()
     }
 }
