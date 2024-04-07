@@ -8,5 +8,10 @@ jobs:
       with:
         components: clippy
     - uses: actions/checkout@master
+    - name: Install dependencies
+      run: |
+        export DEBIAN_FRONTED=noninteractive
+        sudo apt-get -qq update
+        sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
     - name: Check lints
       run: cargo lint
