@@ -1,6 +1,6 @@
 [alias]
 lint = """
-clippy --workspace --no-deps -- \
+clippy --workspace --benches --no-deps -- \
   -D warnings \
   -A clippy::type_complexity \
   -D clippy::semicolon_if_nothing_returned \
@@ -18,7 +18,7 @@ clippy --workspace --no-deps -- \
 """
 
 nitpick = """
-clippy --workspace --no-deps -- \
+clippy --workspace --benches --no-deps -- \
   -D warnings \
   -D clippy::pedantic \
   -A clippy::type_complexity \
