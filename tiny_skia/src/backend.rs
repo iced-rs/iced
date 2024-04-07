@@ -9,6 +9,7 @@ use crate::window;
 
 use std::borrow::Cow;
 
+#[derive(Debug)]
 pub struct Backend {
     text_pipeline: crate::text::Pipeline,
 

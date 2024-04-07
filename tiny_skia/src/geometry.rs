@@ -8,6 +8,7 @@ use crate::graphics::geometry::{self, Path, Style, Text};
 use crate::graphics::Gradient;
 use crate::primitive::{self, Primitive};
 
+#[derive(Debug)]
 pub struct Frame {
     size: Size,
     transform: tiny_skia::Transform,

@@ -31,12 +31,13 @@ pub struct Frame {
     stroke_tessellator: tessellation::StrokeTessellator,
 }
 
+#[derive(Debug)]
 pub enum Geometry {
     Live { meshes: Vec<Mesh>, text: Vec<Text> },
     Cached(Cache),
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Cache {
     pub meshes: Option<triangle::Cache>,
     pub text: Option<text::Cache>,

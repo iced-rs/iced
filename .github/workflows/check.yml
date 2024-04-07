@@ -1,14 +1,6 @@
 name: Check
 on: [push, pull_request]
 jobs:
-  benchmarks:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: hecrj/setup-rust-action@v2
-    - uses: actions/checkout@master
-    - name: Check benchmarks
-      run: cargo check --benches --all-features
-
   wasm:
     runs-on: ubuntu-latest
     env:

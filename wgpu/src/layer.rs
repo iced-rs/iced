@@ -8,6 +8,7 @@ use crate::quad::{self, Quad};
 use crate::text::{self, Text};
 use crate::triangle;
 
+#[derive(Debug)]
 pub struct Layer {
     pub bounds: Rectangle,
     pub quads: quad::Batch,
@@ -28,6 +29,7 @@ impl Default for Layer {
     }
 }
 
+#[derive(Debug)]
 pub struct Stack {
     layers: Vec<Layer>,
     transformations: Vec<Transformation>,

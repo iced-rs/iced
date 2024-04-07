@@ -16,6 +16,7 @@ const INITIAL_VERTEX_COUNT: usize = 1_000;
 
 pub type Batch = Vec<Item>;
 
+#[derive(Debug)]
 pub enum Item {
     Group {
         transformation: Transformation,

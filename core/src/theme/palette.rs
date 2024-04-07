@@ -612,11 +612,19 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
 
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
-        text
-    } else if is_dark(background) {
+        return text;
+    }
+
+    let fallback = if is_dark(background) {
         Color::WHITE
     } else {
         Color::BLACK
+    };
+
+    if is_readable(background, fallback) {
+        fallback
+    } else {
+        fallback.inverse()
     }
 }
 

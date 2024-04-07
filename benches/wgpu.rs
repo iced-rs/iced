@@ -1,3 +1,4 @@
+#![allow(missing_docs)]
 use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
 use iced::alignment;
@@ -11,6 +12,7 @@ use iced_wgpu::Renderer;
 criterion_main!(benches);
 criterion_group!(benches, wgpu_benchmark);
 
+#[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
     c.bench_function("wgpu — canvas (light)", |b| benchmark(b, scene(10)));
     c.bench_function("wgpu — canvas (heavy)", |b| benchmark(b, scene(1_000)));
@@ -101,7 +103,7 @@ fn benchmark(
     );
 
     bencher.iter(|| {
-        user_interface.draw(
+        let _ = user_interface.draw(
             &mut renderer,
             &Theme::Dark,
             &core::renderer::Style {
@@ -128,7 +130,6 @@ fn benchmark(
         );
 
         let submission = engine.submit(&queue, encoder);
-
         let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
     });
 }

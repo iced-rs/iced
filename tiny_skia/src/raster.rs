@@ -6,6 +6,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use std::cell::RefCell;
 use std::collections::hash_map;
 
+#[derive(Debug)]
 pub struct Pipeline {
     cache: RefCell<Cache>,
 }
@@ -68,7 +69,7 @@ impl Pipeline {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 struct Cache {
     entries: FxHashMap<u64, Option<Entry>>,
     hits: FxHashSet<u64>,
@@ -119,6 +120,7 @@ impl Cache {
     }
 }
 
+#[derive(Debug)]
 struct Entry {
     width: u32,
     height: u32,

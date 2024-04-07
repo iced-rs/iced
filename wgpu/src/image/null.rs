@@ -1,6 +1,6 @@
 pub use crate::graphics::Image;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Batch;
 
 impl Batch {
