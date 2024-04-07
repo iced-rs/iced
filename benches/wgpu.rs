@@ -16,9 +16,9 @@ pub fn wgpu_benchmark(c: &mut Criterion) {
     c.bench_function("wgpu — canvas (heavy)", |b| benchmark(b, scene(1_000)));
 }
 
-fn benchmark<'a>(
+fn benchmark(
     bencher: &mut Bencher<'_>,
-    widget: Element<'a, (), Theme, Renderer>,
+    widget: Element<'_, (), Theme, Renderer>,
 ) {
     use iced_futures::futures::executor;
     use iced_wgpu::graphics;
