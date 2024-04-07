@@ -1,13 +1,13 @@
 name: Check
 on: [push, pull_request]
 jobs:
-  widget:
+  benchmarks:
     runs-on: ubuntu-latest
     steps:
     - uses: hecrj/setup-rust-action@v2
     - uses: actions/checkout@master
-    - name: Check standalone `iced_widget` crate
-      run: cargo check --package iced_widget --features image,svg,canvas
+    - name: Check benchmarks
+      run: cargo check --benches --all-features
 
   wasm:
     runs-on: ubuntu-latest
@@ -27,3 +27,11 @@ jobs:
       run: cargo build --package todos --target wasm32-unknown-unknown
     - name: Check compilation of `integration` example
       run: cargo build --package integration --target wasm32-unknown-unknown
+
+  widget:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: hecrj/setup-rust-action@v2
+    - uses: actions/checkout@master
+    - name: Check standalone `iced_widget` crate
+      run: cargo check --package iced_widget --features image,svg,canvas

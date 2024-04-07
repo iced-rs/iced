@@ -22,5 +22,5 @@ jobs:
         sudo apt-get install -y libxkbcommon-dev libgtk-3-dev
     - name: Run tests
       run: |
-        cargo test --verbose --workspace --benches
-        cargo test --verbose --workspace --benches --all-features
+        cargo test --verbose --workspace
+        cargo test --verbose --workspace --all-features
