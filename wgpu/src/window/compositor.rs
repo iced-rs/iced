@@ -289,7 +289,11 @@ impl graphics::Compositor for Compositor {
     }
 
     fn create_renderer(&self) -> Self::Renderer {
-        Renderer::new(self.settings, &self.engine)
+        Renderer::new(
+            &self.engine,
+            self.settings.default_font,
+            self.settings.default_text_size,
+        )
     }
 
     fn create_surface<W: compositor::Window>(

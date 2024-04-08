@@ -63,16 +63,7 @@ fn benchmark(
         Some(Antialiasing::MSAAx4),
     );
 
-    let mut renderer = Renderer::new(
-        iced_wgpu::Settings {
-            present_mode: wgpu::PresentMode::Immediate,
-            backends: wgpu::Backends::all(),
-            default_font: Font::DEFAULT,
-            default_text_size: Pixels::from(16),
-            antialiasing: Some(Antialiasing::MSAAx4),
-        },
-        &engine,
-    );
+    let mut renderer = Renderer::new(&engine, Font::DEFAULT, Pixels::from(16));
 
     let viewport =
         graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);

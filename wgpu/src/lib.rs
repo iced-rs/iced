@@ -87,10 +87,14 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(settings: Settings, _engine: &Engine) -> Self {
+    pub fn new(
+        _engine: &Engine,
+        default_font: Font,
+        default_text_size: Pixels,
+    ) -> Self {
         Self {
-            default_font: settings.default_font,
-            default_text_size: settings.default_text_size,
+            default_font,
+            default_text_size,
             layers: layer::Stack::new(),
 
             triangle_storage: triangle::Storage::new(),
