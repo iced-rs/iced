@@ -1,7 +1,7 @@
 use crate::core::event;
 use crate::core::mouse;
 use crate::core::{Rectangle, Shell};
-use crate::renderer::wgpu::primitive::pipeline;
+use crate::renderer::wgpu::Primitive;
 use crate::shader;
 
 /// The state and logic of a [`Shader`] widget.
@@ -15,7 +15,7 @@ pub trait Program<Message> {
     type State: Default + 'static;
 
     /// The type of primitive this [`Program`] can draw.
-    type Primitive: pipeline::Primitive + 'static;
+    type Primitive: Primitive + 'static;
 
     /// Update the internal [`State`] of the [`Program`]. This can be used to reflect state changes
     /// based on mouse & other events. You can use the [`Shell`] to publish messages, request a

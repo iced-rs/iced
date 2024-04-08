@@ -147,13 +147,20 @@ impl Rectangle<f32> {
     }
 
     /// Snaps the [`Rectangle`] to __unsigned__ integer coordinates.
-    pub fn snap(self) -> Rectangle<u32> {
-        Rectangle {
+    pub fn snap(self) -> Option<Rectangle<u32>> {
+        let width = self.width as u32;
+        let height = self.height as u32;
+
+        if width < 1 || height < 1 {
+            return None;
+        }
+
+        Some(Rectangle {
             x: self.x as u32,
             y: self.y as u32,
-            width: self.width as u32,
-            height: self.height as u32,
-        }
+            width,
+            height,
+        })
     }
 
     /// Expands the [`Rectangle`] a given amount.

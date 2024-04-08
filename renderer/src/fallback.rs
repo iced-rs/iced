@@ -399,19 +399,19 @@ where
 }
 
 #[cfg(feature = "wgpu")]
-impl<A, B> iced_wgpu::primitive::pipeline::Renderer for Renderer<A, B>
+impl<A, B> iced_wgpu::primitive::Renderer for Renderer<A, B>
 where
-    A: iced_wgpu::primitive::pipeline::Renderer,
+    A: iced_wgpu::primitive::Renderer,
     B: core::Renderer,
 {
-    fn draw_pipeline_primitive(
+    fn draw_primitive(
         &mut self,
         bounds: Rectangle,
-        primitive: impl iced_wgpu::primitive::pipeline::Primitive,
+        primitive: impl iced_wgpu::Primitive,
     ) {
         match self {
             Self::Primary(renderer) => {
-                renderer.draw_pipeline_primitive(bounds, primitive);
+                renderer.draw_primitive(bounds, primitive);
             }
             Self::Secondary(_) => {
                 log::warn!(

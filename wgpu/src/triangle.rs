@@ -501,13 +501,12 @@ impl Layer {
         let mut last_is_solid = None;
 
         for (index, mesh) in meshes.iter().enumerate() {
-            let Some(clip_bounds) =
-                bounds.intersection(&(mesh.clip_bounds() * transformation))
+            let Some(clip_bounds) = bounds
+                .intersection(&(mesh.clip_bounds() * transformation))
+                .and_then(Rectangle::snap)
             else {
                 continue;
             };
-
-            let clip_bounds = clip_bounds.snap();
 
             render_pass.set_scissor_rect(
                 clip_bounds.x,

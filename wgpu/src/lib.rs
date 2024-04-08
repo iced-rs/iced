@@ -101,8 +101,6 @@ impl Renderer {
         }
     }
 
-    pub fn draw_primitive(&mut self, _primitive: Primitive) {}
-
     pub fn present<T: AsRef<str>>(
         &mut self,
         engine: &mut Engine,
@@ -156,6 +154,19 @@ impl Renderer {
                     Transformation::scale(scale_factor),
                     viewport.physical_size(),
                 );
+            }
+
+            if !layer.primitives.is_empty() {
+                for instance in &layer.primitives {
+                    instance.primitive.prepare(
+                        device,
+                        queue,
+                        engine.format,
+                        &mut engine.primitive_storage,
+                        &instance.bounds,
+                        viewport,
+                    );
+                }
             }
 
             if !layer.text.is_empty() {
@@ -247,7 +258,9 @@ impl Renderer {
                 continue;
             };
 
-            let scissor_rect = physical_bounds.snap();
+            let Some(scissor_rect) = physical_bounds.snap() else {
+                continue;
+            };
 
             if !layer.quads.is_empty() {
                 engine.quad_pipeline.render(
@@ -272,6 +285,43 @@ impl Renderer {
                     physical_bounds,
                     scale,
                 );
+
+                render_pass = ManuallyDrop::new(encoder.begin_render_pass(
+                    &wgpu::RenderPassDescriptor {
+                        label: Some("iced_wgpu render pass"),
+                        color_attachments: &[Some(
+                            wgpu::RenderPassColorAttachment {
+                                view: frame,
+                                resolve_target: None,
+                                ops: wgpu::Operations {
+                                    load: wgpu::LoadOp::Load,
+                                    store: wgpu::StoreOp::Store,
+                                },
+                            },
+                        )],
+                        depth_stencil_attachment: None,
+                        timestamp_writes: None,
+                        occlusion_query_set: None,
+                    },
+                ));
+            }
+
+            if !layer.primitives.is_empty() {
+                let _ = ManuallyDrop::into_inner(render_pass);
+
+                for instance in &layer.primitives {
+                    if let Some(clip_bounds) = (instance.bounds * scale)
+                        .intersection(&physical_bounds)
+                        .and_then(Rectangle::snap)
+                    {
+                        instance.primitive.render(
+                            encoder,
+                            &engine.primitive_storage,
+                            frame,
+                            &clip_bounds,
+                        );
+                    }
+                }
 
                 render_pass = ManuallyDrop::new(encoder.begin_render_pass(
                     &wgpu::RenderPassDescriptor {
@@ -517,6 +567,12 @@ impl graphics::geometry::Renderer for Renderer {
                 }
             }
         }
+    }
+}
+
+impl primitive::Renderer for Renderer {
+    fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl Primitive) {
+        self.layers.draw_primitive(bounds, Box::new(primitive));
     }
 }
 

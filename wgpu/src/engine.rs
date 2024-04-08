@@ -1,19 +1,21 @@
 use crate::buffer;
 use crate::graphics::Antialiasing;
-use crate::primitive::pipeline;
+use crate::primitive;
 use crate::quad;
 use crate::text;
 use crate::triangle;
 
 #[allow(missing_debug_implementations)]
 pub struct Engine {
+    pub(crate) staging_belt: wgpu::util::StagingBelt,
+    pub(crate) format: wgpu::TextureFormat,
+
     pub(crate) quad_pipeline: quad::Pipeline,
     pub(crate) text_pipeline: text::Pipeline,
     pub(crate) triangle_pipeline: triangle::Pipeline,
-    pub(crate) _pipeline_storage: pipeline::Storage,
     #[cfg(any(feature = "image", feature = "svg"))]
     pub(crate) image_pipeline: crate::image::Pipeline,
-    pub(crate) staging_belt: wgpu::util::StagingBelt,
+    pub(crate) primitive_storage: primitive::Storage,
 }
 
 impl Engine {
@@ -43,13 +45,16 @@ impl Engine {
             staging_belt: wgpu::util::StagingBelt::new(
                 buffer::MAX_WRITE_SIZE as u64,
             ),
+            format,
+
             quad_pipeline,
             text_pipeline,
             triangle_pipeline,
-            _pipeline_storage: pipeline::Storage::default(),
 
             #[cfg(any(feature = "image", feature = "svg"))]
             image_pipeline,
+
+            primitive_storage: primitive::Storage::default(),
         }
     }
 

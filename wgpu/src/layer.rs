@@ -4,6 +4,7 @@ use crate::graphics::color;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Mesh;
 use crate::image::{self, Image};
+use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
 use crate::text::{self, Text};
 use crate::triangle;
@@ -13,6 +14,7 @@ pub struct Layer {
     pub bounds: Rectangle,
     pub quads: quad::Batch,
     pub triangles: triangle::Batch,
+    pub primitives: primitive::Batch,
     pub text: text::Batch,
     pub images: image::Batch,
 }
@@ -23,6 +25,7 @@ impl Default for Layer {
             bounds: Rectangle::INFINITE,
             quads: quad::Batch::default(),
             triangles: triangle::Batch::default(),
+            primitives: primitive::Batch::default(),
             text: text::Batch::default(),
             images: image::Batch::default(),
         }
@@ -222,6 +225,18 @@ impl Stack {
         });
     }
 
+    pub fn draw_primitive(
+        &mut self,
+        bounds: Rectangle,
+        primitive: Box<dyn Primitive>,
+    ) {
+        let bounds = bounds * self.transformation();
+
+        self.layers[self.current]
+            .primitives
+            .push(primitive::Instance { bounds, primitive });
+    }
+
     pub fn push_clip(&mut self, bounds: Rectangle) {
         self.previous.push(self.current);
 
@@ -282,6 +297,7 @@ impl Stack {
 
             live.quads.clear();
             live.triangles.clear();
+            live.primitives.clear();
             live.text.clear();
             live.images.clear();
             pending_meshes.clear();
