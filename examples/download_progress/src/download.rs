@@ -12,12 +12,6 @@ pub fn file<I: 'static + Hash + Copy + Send + Sync, T: ToString>(
     })
 }
 
-#[derive(Debug, Hash, Clone)]
-pub struct Download<I> {
-    id: I,
-    url: String,
-}
-
 async fn download<I: Copy>(id: I, state: State) -> ((I, Progress), State) {
     match state {
         State::Ready(url) => {
