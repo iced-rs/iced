@@ -612,19 +612,16 @@ fn mix(a: Color, b: Color, factor: f32) -> Color {
 
 fn readable(background: Color, text: Color) -> Color {
     if is_readable(background, text) {
-        return text;
-    }
-
-    let fallback = if is_dark(background) {
-        Color::WHITE
+        text
     } else {
-        Color::BLACK
-    };
+        let white_contrast = relative_contrast(background, Color::WHITE);
+        let black_contrast = relative_contrast(background, Color::BLACK);
 
-    if is_readable(background, fallback) {
-        fallback
-    } else {
-        fallback.inverse()
+        if white_contrast >= black_contrast {
+            Color::WHITE
+        } else {
+            Color::BLACK
+        }
     }
 }
 
@@ -637,6 +634,13 @@ fn is_readable(a: Color, b: Color) -> bool {
     let b_srgb = Rgb::from(b);
 
     a_srgb.has_enhanced_contrast_text(b_srgb)
+}
+
+fn relative_contrast(a: Color, b: Color) -> f32 {
+    let a_srgb = Rgb::from(a);
+    let b_srgb = Rgb::from(b);
+
+    a_srgb.relative_contrast(b_srgb)
 }
 
 fn to_hsl(color: Color) -> Hsl {
