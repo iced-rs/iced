@@ -43,7 +43,7 @@ pub struct Instance {
 }
 
 impl Instance {
-    /// Creates a new [`Pipeline`] with the given [`Primitive`].
+    /// Creates a new [`Instance`] with the given [`Primitive`].
     pub fn new(bounds: Rectangle, primitive: impl Primitive) -> Self {
         Instance {
             bounds,
@@ -80,7 +80,7 @@ impl Storage {
         self.pipelines.get(&TypeId::of::<T>()).map(|pipeline| {
             pipeline
                 .downcast_ref::<T>()
-                .expect("Pipeline with this type does not exist in Storage.")
+                .expect("Value with this type does not exist in Storage.")
         })
     }
 
@@ -89,7 +89,7 @@ impl Storage {
         self.pipelines.get_mut(&TypeId::of::<T>()).map(|pipeline| {
             pipeline
                 .downcast_mut::<T>()
-                .expect("Pipeline with this type does not exist in Storage.")
+                .expect("Value with this type does not exist in Storage.")
         })
     }
 }

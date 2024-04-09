@@ -9,6 +9,8 @@ use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 
+use std::borrow::Cow;
+
 /// A renderer `A` with a fallback strategy `B`.
 ///
 /// This type can be used to easily compose existing renderers and
@@ -51,8 +53,8 @@ where
         delegate!(self, renderer, renderer.start_layer(bounds));
     }
 
-    fn end_layer(&mut self, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.end_layer(bounds));
+    fn end_layer(&mut self) {
+        delegate!(self, renderer, renderer.end_layer());
     }
 
     fn start_transformation(&mut self, transformation: Transformation) {
@@ -63,8 +65,8 @@ where
         );
     }
 
-    fn end_transformation(&mut self, transformation: Transformation) {
-        delegate!(self, renderer, renderer.end_transformation(transformation));
+    fn end_transformation(&mut self) {
+        delegate!(self, renderer, renderer.end_transformation());
     }
 }
 
@@ -91,10 +93,6 @@ where
 
     fn default_size(&self) -> core::Pixels {
         delegate!(self, renderer, renderer.default_size())
-    }
-
-    fn load_font(&mut self, font: std::borrow::Cow<'static, [u8]>) {
-        delegate!(self, renderer, renderer.load_font(font));
     }
 
     fn fill_paragraph(
@@ -321,6 +319,10 @@ where
             }
             _ => unreachable!(),
         }
+    }
+
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        delegate!(self, compositor, compositor.load_font(font));
     }
 
     fn fetch_information(&self) -> compositor::Information {

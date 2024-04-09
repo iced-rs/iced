@@ -5,8 +5,10 @@ use crate::futures::{MaybeSend, MaybeSync};
 use crate::{Error, Settings, Viewport};
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
-use std::future::Future;
 use thiserror::Error;
+
+use std::borrow::Cow;
+use std::future::Future;
 
 /// A graphics compositor that can draw to windows.
 pub trait Compositor: Sized {
@@ -59,6 +61,14 @@ pub trait Compositor: Sized {
 
     /// Returns [`Information`] used by this [`Compositor`].
     fn fetch_information(&self) -> Information;
+
+    /// Loads a font from its bytes.
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        crate::text::font_system()
+            .write()
+            .expect("Write to font system")
+            .load_font(font);
+    }
 
     /// Presents the [`Renderer`] primitives to the next frame of the given [`Surface`].
     ///
@@ -167,6 +177,8 @@ impl Compositor for () {
         _height: u32,
     ) {
     }
+
+    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
     fn fetch_information(&self) -> Information {
         Information {

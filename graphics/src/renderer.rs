@@ -66,7 +66,7 @@ impl<B: Backend> iced_core::Renderer for Renderer<B> {
         self.stack.push(std::mem::take(&mut self.primitives));
     }
 
-    fn end_layer(&mut self, bounds: Rectangle) {
+    fn end_layer(&mut self) {
         let layer = std::mem::replace(
             &mut self.primitives,
             self.stack.pop().expect("a layer should be recording"),

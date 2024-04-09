@@ -66,8 +66,6 @@ use crate::core::{
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
 
-use std::borrow::Cow;
-
 /// A [`wgpu`] graphics renderer for [`iced`].
 ///
 /// [`wgpu`]: https://github.com/gfx-rs/wgpu-rs
@@ -422,7 +420,7 @@ impl core::Renderer for Renderer {
         self.layers.push_clip(bounds);
     }
 
-    fn end_layer(&mut self, _bounds: Rectangle) {
+    fn end_layer(&mut self) {
         self.layers.pop_clip();
     }
 
@@ -430,7 +428,7 @@ impl core::Renderer for Renderer {
         self.layers.push_transformation(transformation);
     }
 
-    fn end_transformation(&mut self, _transformation: Transformation) {
+    fn end_transformation(&mut self) {
         self.layers.pop_transformation();
     }
 
@@ -439,7 +437,8 @@ impl core::Renderer for Renderer {
         quad: core::renderer::Quad,
         background: impl Into<Background>,
     ) {
-        self.layers.draw_quad(quad, background.into());
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_quad(quad, background.into(), transformation);
     }
 
     fn clear(&mut self) {
@@ -464,15 +463,6 @@ impl core::text::Renderer for Renderer {
         self.default_text_size
     }
 
-    fn load_font(&mut self, font: Cow<'static, [u8]>) {
-        graphics::text::font_system()
-            .write()
-            .expect("Write font system")
-            .load_font(font);
-
-        // TODO: Invalidate buffer cache
-    }
-
     fn fill_paragraph(
         &mut self,
         text: &Self::Paragraph,
@@ -480,8 +470,15 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        self.layers
-            .draw_paragraph(text, position, color, clip_bounds);
+        let (layer, transformation) = self.layers.current_mut();
+
+        layer.draw_paragraph(
+            text,
+            position,
+            color,
+            clip_bounds,
+            transformation,
+        );
     }
 
     fn fill_editor(
@@ -491,8 +488,8 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        self.layers
-            .draw_editor(editor, position, color, clip_bounds);
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_editor(editor, position, color, clip_bounds, transformation);
     }
 
     fn fill_text(
@@ -502,7 +499,8 @@ impl core::text::Renderer for Renderer {
         color: Color,
         clip_bounds: Rectangle,
     ) {
-        self.layers.draw_text(text, position, color, clip_bounds);
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_text(text, position, color, clip_bounds, transformation);
     }
 }
 
@@ -520,7 +518,8 @@ impl core::image::Renderer for Renderer {
         filter_method: core::image::FilterMethod,
         bounds: Rectangle,
     ) {
-        self.layers.draw_image(handle, filter_method, bounds);
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_image(handle, filter_method, bounds, transformation);
     }
 }
 
@@ -536,13 +535,15 @@ impl core::svg::Renderer for Renderer {
         color_filter: Option<Color>,
         bounds: Rectangle,
     ) {
-        self.layers.draw_svg(handle, color_filter, bounds);
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_svg(handle, color_filter, bounds, transformation);
     }
 }
 
 impl graphics::mesh::Renderer for Renderer {
     fn draw_mesh(&mut self, mesh: graphics::Mesh) {
-        self.layers.draw_mesh(mesh);
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_mesh(mesh, transformation);
     }
 }
 
@@ -556,18 +557,20 @@ impl graphics::geometry::Renderer for Renderer {
     }
 
     fn draw_geometry(&mut self, geometry: Self::Geometry) {
+        let (layer, transformation) = self.layers.current_mut();
+
         match geometry {
             Geometry::Live { meshes, text } => {
-                self.layers.draw_mesh_group(meshes);
-                self.layers.draw_text_group(text);
+                layer.draw_mesh_group(meshes, transformation);
+                layer.draw_text_group(text, transformation);
             }
             Geometry::Cached(cache) => {
                 if let Some(meshes) = cache.meshes {
-                    self.layers.draw_mesh_cache(meshes);
+                    layer.draw_mesh_cache(meshes, transformation);
                 }
 
                 if let Some(text) = cache.text {
-                    self.layers.draw_text_cache(text);
+                    layer.draw_text_cache(text, transformation);
                 }
             }
         }
@@ -576,7 +579,8 @@ impl graphics::geometry::Renderer for Renderer {
 
 impl primitive::Renderer for Renderer {
     fn draw_primitive(&mut self, bounds: Rectangle, primitive: impl Primitive) {
-        self.layers.draw_primitive(bounds, Box::new(primitive));
+        let (layer, transformation) = self.layers.current_mut();
+        layer.draw_primitive(bounds, Box::new(primitive), transformation);
     }
 }
 

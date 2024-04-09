@@ -1,9 +1,8 @@
 use crate::core::{Color, Rectangle, Size};
 use crate::graphics::compositor::{self, Information};
-use crate::graphics::damage;
 use crate::graphics::error::{self, Error};
 use crate::graphics::{self, Viewport};
-use crate::{Backend, Primitive, Renderer, Settings};
+use crate::{Layer, Renderer, Settings};
 
 use std::collections::VecDeque;
 use std::num::NonZeroU32;
@@ -21,7 +20,7 @@ pub struct Surface {
         Box<dyn compositor::Window>,
     >,
     clip_mask: tiny_skia::Mask,
-    primitive_stack: VecDeque<Vec<Primitive>>,
+    layer_stack: VecDeque<Vec<Layer>>,
     background_color: Color,
     max_age: u8,
 }
@@ -50,7 +49,6 @@ impl crate::graphics::Compositor for Compositor {
 
     fn create_renderer(&self) -> Self::Renderer {
         Renderer::new(
-            Backend::new(),
             self.settings.default_font,
             self.settings.default_text_size,
         )
@@ -72,7 +70,7 @@ impl crate::graphics::Compositor for Compositor {
             window,
             clip_mask: tiny_skia::Mask::new(width, height)
                 .expect("Create clip mask"),
-            primitive_stack: VecDeque::new(),
+            layer_stack: VecDeque::new(),
             background_color: Color::BLACK,
             max_age: 0,
         };
@@ -98,7 +96,7 @@ impl crate::graphics::Compositor for Compositor {
 
         surface.clip_mask =
             tiny_skia::Mask::new(width, height).expect("Create clip mask");
-        surface.primitive_stack.clear();
+        surface.layer_stack.clear();
     }
 
     fn fetch_information(&self) -> Information {
@@ -116,16 +114,7 @@ impl crate::graphics::Compositor for Compositor {
         background_color: Color,
         overlay: &[T],
     ) -> Result<(), compositor::SurfaceError> {
-        renderer.with_primitives(|backend, primitives| {
-            present(
-                backend,
-                surface,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
-        })
+        present(renderer, surface, viewport, background_color, overlay)
     }
 
     fn screenshot<T: AsRef<str>>(
@@ -136,16 +125,7 @@ impl crate::graphics::Compositor for Compositor {
         background_color: Color,
         overlay: &[T],
     ) -> Vec<u8> {
-        renderer.with_primitives(|backend, primitives| {
-            screenshot(
-                surface,
-                backend,
-                primitives,
-                viewport,
-                background_color,
-                overlay,
-            )
-        })
+        screenshot(renderer, surface, viewport, background_color, overlay)
     }
 }
 
@@ -161,49 +141,52 @@ pub fn new<W: compositor::Window>(
 }
 
 pub fn present<T: AsRef<str>>(
-    backend: &mut Backend,
+    renderer: &mut Renderer,
     surface: &mut Surface,
-    primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
 ) -> Result<(), compositor::SurfaceError> {
     let physical_size = viewport.physical_size();
-    let scale_factor = viewport.scale_factor() as f32;
 
     let mut buffer = surface
         .window
         .buffer_mut()
         .map_err(|_| compositor::SurfaceError::Lost)?;
 
-    let last_primitives = {
+    let _last_layers = {
         let age = buffer.age();
 
         surface.max_age = surface.max_age.max(age);
-        surface.primitive_stack.truncate(surface.max_age as usize);
+        surface.layer_stack.truncate(surface.max_age as usize);
 
         if age > 0 {
-            surface.primitive_stack.get(age as usize - 1)
+            surface.layer_stack.get(age as usize - 1)
         } else {
             None
         }
     };
 
-    let damage = last_primitives
-        .and_then(|last_primitives| {
-            (surface.background_color == background_color)
-                .then(|| damage::list(last_primitives, primitives))
-        })
-        .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+    // TODO
+    // let damage = last_layers
+    //     .and_then(|last_layers| {
+    //         (surface.background_color == background_color)
+    //             .then(|| damage::layers(last_layers, renderer.layers()))
+    //     })
+    //     .unwrap_or_else(|| vec![Rectangle::with_size(viewport.logical_size())]);
+
+    let damage = vec![Rectangle::with_size(viewport.logical_size())];
 
     if damage.is_empty() {
         return Ok(());
     }
 
-    surface.primitive_stack.push_front(primitives.to_vec());
+    surface
+        .layer_stack
+        .push_front(renderer.layers().cloned().collect());
     surface.background_color = background_color;
 
-    let damage = damage::group(damage, scale_factor, physical_size);
+    // let damage = damage::group(damage, viewport.logical_size());
 
     let mut pixels = tiny_skia::PixmapMut::from_bytes(
         bytemuck::cast_slice_mut(&mut buffer),
@@ -212,10 +195,9 @@ pub fn present<T: AsRef<str>>(
     )
     .expect("Create pixel map");
 
-    backend.draw(
+    renderer.draw(
         &mut pixels,
         &mut surface.clip_mask,
-        primitives,
         viewport,
         &damage,
         background_color,
@@ -226,9 +208,8 @@ pub fn present<T: AsRef<str>>(
 }
 
 pub fn screenshot<T: AsRef<str>>(
+    renderer: &mut Renderer,
     surface: &mut Surface,
-    backend: &mut Backend,
-    primitives: &[Primitive],
     viewport: &Viewport,
     background_color: Color,
     overlay: &[T],
@@ -238,7 +219,7 @@ pub fn screenshot<T: AsRef<str>>(
     let mut offscreen_buffer: Vec<u32> =
         vec![0; size.width as usize * size.height as usize];
 
-    backend.draw(
+    renderer.draw(
         &mut tiny_skia::PixmapMut::from_bytes(
             bytemuck::cast_slice_mut(&mut offscreen_buffer),
             size.width,
@@ -246,7 +227,6 @@ pub fn screenshot<T: AsRef<str>>(
         )
         .expect("Create offscreen pixel map"),
         &mut surface.clip_mask,
-        primitives,
         viewport,
         &[Rectangle::with_size(Size::new(
             size.width as f32,

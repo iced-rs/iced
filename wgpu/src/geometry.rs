@@ -19,18 +19,6 @@ use lyon::tessellation;
 
 use std::borrow::Cow;
 
-/// A frame for drawing some geometry.
-#[allow(missing_debug_implementations)]
-pub struct Frame {
-    clip_bounds: Rectangle,
-    buffers: BufferStack,
-    meshes: Vec<Mesh>,
-    text: Vec<Text>,
-    transforms: Transforms,
-    fill_tessellator: tessellation::FillTessellator,
-    stroke_tessellator: tessellation::StrokeTessellator,
-}
-
 #[derive(Debug)]
 pub enum Geometry {
     Live { meshes: Vec<Mesh>, text: Vec<Text> },
@@ -77,6 +65,18 @@ impl Cached for Geometry {
             Self::Cached(cache) => cache,
         }
     }
+}
+
+/// A frame for drawing some geometry.
+#[allow(missing_debug_implementations)]
+pub struct Frame {
+    clip_bounds: Rectangle,
+    buffers: BufferStack,
+    meshes: Vec<Mesh>,
+    text: Vec<Text>,
+    transforms: Transforms,
+    fill_tessellator: tessellation::FillTessellator,
+    stroke_tessellator: tessellation::StrokeTessellator,
 }
 
 impl Frame {

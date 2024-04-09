@@ -14,7 +14,7 @@ pub trait Renderer {
     /// Ends recording a new layer.
     ///
     /// The new layer will clip its contents to the provided `bounds`.
-    fn end_layer(&mut self, bounds: Rectangle);
+    fn end_layer(&mut self);
 
     /// Draws the primitives recorded in the given closure in a new layer.
     ///
@@ -22,7 +22,7 @@ pub trait Renderer {
     fn with_layer(&mut self, bounds: Rectangle, f: impl FnOnce(&mut Self)) {
         self.start_layer(bounds);
         f(self);
-        self.end_layer(bounds);
+        self.end_layer();
     }
 
     /// Starts recording with a new [`Transformation`].
@@ -31,7 +31,7 @@ pub trait Renderer {
     /// Ends recording a new layer.
     ///
     /// The new layer will clip its contents to the provided `bounds`.
-    fn end_transformation(&mut self, transformation: Transformation);
+    fn end_transformation(&mut self);
 
     /// Applies a [`Transformation`] to the primitives recorded in the given closure.
     fn with_transformation(
@@ -41,7 +41,7 @@ pub trait Renderer {
     ) {
         self.start_transformation(transformation);
         f(self);
-        self.end_transformation(transformation);
+        self.end_transformation();
     }
 
     /// Applies a translation to the primitives recorded in the given closure.

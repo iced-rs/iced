@@ -1,6 +1,8 @@
 use crate::core::renderer;
 use crate::core::{Background, Color, Point, Rectangle, Transformation};
+use crate::graphics;
 use crate::graphics::color;
+use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Mesh;
 use crate::image::{self, Image};
@@ -8,6 +10,8 @@ use crate::primitive::{self, Primitive};
 use crate::quad::{self, Quad};
 use crate::text::{self, Text};
 use crate::triangle;
+
+pub type Stack = layer::Stack<Layer>;
 
 #[derive(Debug)]
 pub struct Layer {
@@ -17,48 +21,18 @@ pub struct Layer {
     pub primitives: primitive::Batch,
     pub text: text::Batch,
     pub images: image::Batch,
+    pending_meshes: Vec<Mesh>,
+    pending_text: Vec<Text>,
 }
 
-impl Default for Layer {
-    fn default() -> Self {
-        Self {
-            bounds: Rectangle::INFINITE,
-            quads: quad::Batch::default(),
-            triangles: triangle::Batch::default(),
-            primitives: primitive::Batch::default(),
-            text: text::Batch::default(),
-            images: image::Batch::default(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Stack {
-    layers: Vec<Layer>,
-    transformations: Vec<Transformation>,
-    previous: Vec<usize>,
-    pending_meshes: Vec<Vec<Mesh>>,
-    pending_text: Vec<Vec<Text>>,
-    current: usize,
-    active_count: usize,
-}
-
-impl Stack {
-    pub fn new() -> Self {
-        Self {
-            layers: vec![Layer::default()],
-            transformations: vec![Transformation::IDENTITY],
-            previous: vec![],
-            pending_meshes: vec![Vec::new()],
-            pending_text: vec![Vec::new()],
-            current: 0,
-            active_count: 1,
-        }
-    }
-
-    pub fn draw_quad(&mut self, quad: renderer::Quad, background: Background) {
-        let transformation = self.transformations.last().unwrap();
-        let bounds = quad.bounds * *transformation;
+impl Layer {
+    pub fn draw_quad(
+        &mut self,
+        quad: renderer::Quad,
+        background: Background,
+        transformation: Transformation,
+    ) {
+        let bounds = quad.bounds * transformation;
 
         let quad = Quad {
             position: [bounds.x, bounds.y],
@@ -71,7 +45,7 @@ impl Stack {
             shadow_blur_radius: quad.shadow.blur_radius,
         };
 
-        self.layers[self.current].quads.add(quad, &background);
+        self.quads.add(quad, &background);
     }
 
     pub fn draw_paragraph(
@@ -80,16 +54,17 @@ impl Stack {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
+        transformation: Transformation,
     ) {
         let paragraph = Text::Paragraph {
             paragraph: paragraph.downgrade(),
             position,
             color,
             clip_bounds,
-            transformation: self.transformations.last().copied().unwrap(),
+            transformation,
         };
 
-        self.pending_text[self.current].push(paragraph);
+        self.pending_text.push(paragraph);
     }
 
     pub fn draw_editor(
@@ -98,16 +73,17 @@ impl Stack {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
+        transformation: Transformation,
     ) {
         let editor = Text::Editor {
             editor: editor.downgrade(),
             position,
             color,
             clip_bounds,
-            transformation: self.transformation(),
+            transformation,
         };
 
-        self.pending_text[self.current].push(editor);
+        self.pending_text.push(editor);
     }
 
     pub fn draw_text(
@@ -116,9 +92,8 @@ impl Stack {
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
+        transformation: Transformation,
     ) {
-        let transformation = self.transformation();
-
         let text = Text::Cached {
             content: text.content,
             bounds: Rectangle::new(position, text.bounds) * transformation,
@@ -133,7 +108,7 @@ impl Stack {
             clip_bounds: clip_bounds * transformation,
         };
 
-        self.pending_text[self.current].push(text);
+        self.pending_text.push(text);
     }
 
     pub fn draw_image(
@@ -141,14 +116,15 @@ impl Stack {
         handle: crate::core::image::Handle,
         filter_method: crate::core::image::FilterMethod,
         bounds: Rectangle,
+        transformation: Transformation,
     ) {
         let image = Image::Raster {
             handle,
             filter_method,
-            bounds: bounds * self.transformation(),
+            bounds: bounds * transformation,
         };
 
-        self.layers[self.current].images.push(image);
+        self.images.push(image);
     }
 
     pub fn draw_svg(
@@ -156,72 +132,87 @@ impl Stack {
         handle: crate::core::svg::Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        transformation: Transformation,
     ) {
         let svg = Image::Vector {
             handle,
             color,
-            bounds: bounds * self.transformation(),
+            bounds: bounds * transformation,
         };
 
-        self.layers[self.current].images.push(svg);
+        self.images.push(svg);
     }
 
-    pub fn draw_mesh(&mut self, mut mesh: Mesh) {
+    pub fn draw_mesh(
+        &mut self,
+        mut mesh: Mesh,
+        transformation: Transformation,
+    ) {
         match &mut mesh {
-            Mesh::Solid { transformation, .. }
-            | Mesh::Gradient { transformation, .. } => {
-                *transformation = *transformation * self.transformation();
+            Mesh::Solid {
+                transformation: local_transformation,
+                ..
+            }
+            | Mesh::Gradient {
+                transformation: local_transformation,
+                ..
+            } => {
+                *local_transformation = *local_transformation * transformation;
             }
         }
 
-        self.pending_meshes[self.current].push(mesh);
+        self.pending_meshes.push(mesh);
     }
 
-    pub fn draw_mesh_group(&mut self, meshes: Vec<Mesh>) {
-        self.flush_pending();
+    pub fn draw_mesh_group(
+        &mut self,
+        meshes: Vec<Mesh>,
+        transformation: Transformation,
+    ) {
+        self.flush_meshes();
 
-        let transformation = self.transformation();
-
-        self.layers[self.current]
-            .triangles
-            .push(triangle::Item::Group {
-                transformation,
-                meshes,
-            });
-    }
-
-    pub fn draw_mesh_cache(&mut self, cache: triangle::Cache) {
-        self.flush_pending();
-
-        let transformation = self.transformation();
-
-        self.layers[self.current]
-            .triangles
-            .push(triangle::Item::Cached {
-                transformation,
-                cache,
-            });
-    }
-
-    pub fn draw_text_group(&mut self, text: Vec<Text>) {
-        self.flush_pending();
-
-        let transformation = self.transformation();
-
-        self.layers[self.current].text.push(text::Item::Group {
+        self.triangles.push(triangle::Item::Group {
+            meshes,
             transformation,
-            text,
         });
     }
 
-    pub fn draw_text_cache(&mut self, cache: text::Cache) {
-        self.flush_pending();
+    pub fn draw_mesh_cache(
+        &mut self,
+        cache: triangle::Cache,
+        transformation: Transformation,
+    ) {
+        self.flush_meshes();
 
-        let transformation = self.transformation();
-
-        self.layers[self.current].text.push(text::Item::Cached {
-            transformation,
+        self.triangles.push(triangle::Item::Cached {
             cache,
+            transformation,
+        });
+    }
+
+    pub fn draw_text_group(
+        &mut self,
+        text: Vec<Text>,
+        transformation: Transformation,
+    ) {
+        self.flush_text();
+
+        self.text.push(text::Item::Group {
+            text,
+            transformation,
+        });
+    }
+
+    pub fn draw_text_cache(
+        &mut self,
+        cache: text::Cache,
+        transformation: Transformation,
+    ) {
+        self.flush_text();
+
+        self.text.push(text::Item::Cached {
+            cache,
+            transformation,
         });
     }
 
@@ -229,112 +220,74 @@ impl Stack {
         &mut self,
         bounds: Rectangle,
         primitive: Box<dyn Primitive>,
+        transformation: Transformation,
     ) {
-        let bounds = bounds * self.transformation();
+        let bounds = bounds * transformation;
 
-        self.layers[self.current]
-            .primitives
+        self.primitives
             .push(primitive::Instance { bounds, primitive });
     }
 
-    pub fn push_clip(&mut self, bounds: Rectangle) {
-        self.previous.push(self.current);
-
-        self.current = self.active_count;
-        self.active_count += 1;
-
-        let bounds = bounds * self.transformation();
-
-        if self.current == self.layers.len() {
-            self.layers.push(Layer {
-                bounds,
-                ..Layer::default()
+    fn flush_meshes(&mut self) {
+        if !self.pending_meshes.is_empty() {
+            self.triangles.push(triangle::Item::Group {
+                transformation: Transformation::IDENTITY,
+                meshes: self.pending_meshes.drain(..).collect(),
             });
-            self.pending_meshes.push(Vec::new());
-            self.pending_text.push(Vec::new());
-        } else {
-            self.layers[self.current].bounds = bounds;
         }
     }
 
-    pub fn pop_clip(&mut self) {
-        self.flush_pending();
-
-        self.current = self.previous.pop().unwrap();
-    }
-
-    pub fn push_transformation(&mut self, transformation: Transformation) {
-        self.flush_pending();
-
-        self.transformations
-            .push(self.transformation() * transformation);
-    }
-
-    pub fn pop_transformation(&mut self) {
-        let _ = self.transformations.pop();
-    }
-
-    fn transformation(&self) -> Transformation {
-        self.transformations.last().copied().unwrap()
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Layer> {
-        self.flush_pending();
-
-        self.layers[..self.active_count].iter_mut()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Layer> {
-        self.layers[..self.active_count].iter()
-    }
-
-    pub fn clear(&mut self) {
-        for (live, pending_meshes) in self.layers[..self.active_count]
-            .iter_mut()
-            .zip(self.pending_meshes.iter_mut())
-        {
-            live.bounds = Rectangle::INFINITE;
-
-            live.quads.clear();
-            live.triangles.clear();
-            live.primitives.clear();
-            live.text.clear();
-            live.images.clear();
-            pending_meshes.clear();
-        }
-
-        self.current = 0;
-        self.active_count = 1;
-        self.previous.clear();
-    }
-
-    // We want to keep the allocated memory
-    #[allow(clippy::drain_collect)]
-    fn flush_pending(&mut self) {
-        let transformation = self.transformation();
-
-        let pending_meshes = &mut self.pending_meshes[self.current];
-        if !pending_meshes.is_empty() {
-            self.layers[self.current]
-                .triangles
-                .push(triangle::Item::Group {
-                    transformation,
-                    meshes: pending_meshes.drain(..).collect(),
-                });
-        }
-
-        let pending_text = &mut self.pending_text[self.current];
-        if !pending_text.is_empty() {
-            self.layers[self.current].text.push(text::Item::Group {
-                transformation,
-                text: pending_text.drain(..).collect(),
+    fn flush_text(&mut self) {
+        if !self.pending_text.is_empty() {
+            self.text.push(text::Item::Group {
+                transformation: Transformation::IDENTITY,
+                text: self.pending_text.drain(..).collect(),
             });
         }
     }
 }
 
-impl Default for Stack {
+impl graphics::Layer for Layer {
+    fn with_bounds(bounds: Rectangle) -> Self {
+        Self {
+            bounds,
+            ..Self::default()
+        }
+    }
+
+    fn flush(&mut self) {
+        self.flush_meshes();
+        self.flush_text();
+    }
+
+    fn resize(&mut self, bounds: Rectangle) {
+        self.bounds = bounds;
+    }
+
+    fn reset(&mut self) {
+        self.bounds = Rectangle::INFINITE;
+
+        self.quads.clear();
+        self.triangles.clear();
+        self.primitives.clear();
+        self.text.clear();
+        self.images.clear();
+        self.pending_meshes.clear();
+        self.pending_text.clear();
+    }
+}
+
+impl Default for Layer {
     fn default() -> Self {
-        Self::new()
+        Self {
+            bounds: Rectangle::INFINITE,
+            quads: quad::Batch::default(),
+            triangles: triangle::Batch::default(),
+            primitives: primitive::Batch::default(),
+            text: text::Batch::default(),
+            images: image::Batch::default(),
+            pending_meshes: Vec::new(),
+            pending_text: Vec::new(),
+        }
     }
 }

@@ -1,10 +1,5 @@
-use crate::core::Rectangle;
-use crate::graphics::{Damage, Mesh};
-
-pub type Primitive = crate::graphics::Primitive<Custom>;
-
 #[derive(Debug, Clone, PartialEq)]
-pub enum Custom {
+pub enum Primitive {
     /// A path filled with some paint.
     Fill {
         /// The path to fill.
@@ -23,30 +18,4 @@ pub enum Custom {
         /// The stroke settings.
         stroke: tiny_skia::Stroke,
     },
-}
-
-impl Damage for Custom {
-    fn bounds(&self) -> Rectangle {
-        match self {
-            Self::Fill { path, .. } | Self::Stroke { path, .. } => {
-                let bounds = path.bounds();
-
-                Rectangle {
-                    x: bounds.x(),
-                    y: bounds.y(),
-                    width: bounds.width(),
-                    height: bounds.height(),
-                }
-                .expand(1.0)
-            }
-        }
-    }
-}
-
-impl TryFrom<Mesh> for Custom {
-    type Error = &'static str;
-
-    fn try_from(_mesh: Mesh) -> Result<Self, Self::Error> {
-        Err("unsupported")
-    }
 }

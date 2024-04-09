@@ -19,7 +19,7 @@ use std::borrow::Cow;
 use std::sync::{Arc, RwLock, Weak};
 
 /// A text primitive.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Text {
     /// A paragraph.
     #[allow(missing_docs)]
