@@ -7,7 +7,7 @@ use crate::core::svg;
 use crate::core::{Color, Rectangle};
 
 /// A raster or vector image.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Image {
     /// A raster image.
     Raster {
@@ -31,6 +31,17 @@ pub enum Image {
         /// The bounds of the image.
         bounds: Rectangle,
     },
+}
+
+impl Image {
+    /// Returns the bounds of the [`Image`].
+    pub fn bounds(&self) -> Rectangle {
+        match self {
+            Image::Raster { bounds, .. } | Image::Vector { bounds, .. } => {
+                *bounds
+            }
+        }
+    }
 }
 
 #[cfg(feature = "image")]

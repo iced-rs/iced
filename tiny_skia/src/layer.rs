@@ -241,8 +241,16 @@ impl Layer {
             },
         );
 
+        let images = damage::list(
+            &previous.images,
+            &current.images,
+            |image| vec![image.bounds().expand(1.0)],
+            Image::eq,
+        );
+
         damage.extend(text);
         damage.extend(primitives);
+        damage.extend(images);
         damage
     }
 }
