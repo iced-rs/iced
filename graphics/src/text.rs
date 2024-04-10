@@ -78,10 +78,12 @@ impl Text {
                 position,
                 paragraph,
                 clip_bounds,
+                transformation,
                 ..
             } => (
                 Rectangle::new(*position, paragraph.min_bounds)
-                    .intersection(clip_bounds),
+                    .intersection(clip_bounds)
+                    .map(|bounds| bounds * *transformation),
                 Some(paragraph.horizontal_alignment),
                 Some(paragraph.vertical_alignment),
             ),
@@ -89,10 +91,12 @@ impl Text {
                 editor,
                 position,
                 clip_bounds,
+                transformation,
                 ..
             } => (
                 Rectangle::new(*position, editor.bounds)
-                    .intersection(clip_bounds),
+                    .intersection(clip_bounds)
+                    .map(|bounds| bounds * *transformation),
                 None,
                 None,
             ),

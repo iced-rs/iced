@@ -200,9 +200,7 @@ impl Layer {
                     |text| {
                         text.visible_bounds()
                             .into_iter()
-                            .filter_map(|bounds| {
-                                bounds.intersection(&text_a.clip_bounds())
-                            })
+                            .map(|bounds| bounds * text_a.transformation())
                             .collect()
                     },
                     |text_a, text_b| text_a == text_b,
