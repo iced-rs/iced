@@ -174,10 +174,20 @@ impl Layer {
     }
 
     pub fn damage(previous: &Self, current: &Self) -> Vec<Rectangle> {
+        if previous.bounds != current.bounds {
+            return vec![previous.bounds, current.bounds];
+        }
+
         let mut damage = damage::list(
             &previous.quads,
             &current.quads,
-            |(quad, _)| vec![quad.bounds.expand(1.0)],
+            |(quad, _)| {
+                quad.bounds
+                    .expand(1.0)
+                    .intersection(&current.bounds)
+                    .into_iter()
+                    .collect()
+            },
             |(quad_a, background_a), (quad_b, background_b)| {
                 quad_a == quad_b && background_a == background_b
             },
