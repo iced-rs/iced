@@ -166,7 +166,7 @@ impl geometry::frame::Backend for Frame {
 
         let (scale_x, scale_y) = self.transform.get_scale();
 
-        if self.transform.is_scale_translate()
+        if !self.transform.has_skew()
             && scale_x == scale_y
             && scale_x > 0.0
             && scale_y > 0.0

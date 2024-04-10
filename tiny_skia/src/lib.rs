@@ -29,7 +29,7 @@ pub use geometry::Geometry;
 
 use crate::core::renderer;
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Background, Color, Font, Pixels, Point, Rectangle, Transformation,
 };
 use crate::engine::Engine;
 use crate::graphics::compositor;
@@ -58,9 +58,9 @@ impl Renderer {
         }
     }
 
-    pub fn layers(&mut self) -> impl Iterator<Item = &Layer> {
+    pub fn layers(&mut self) -> &[Layer] {
         self.layers.flush();
-        self.layers.iter()
+        self.layers.as_slice()
     }
 
     pub fn draw<T: AsRef<str>>(
@@ -135,12 +135,12 @@ impl Renderer {
             );
 
             for layer in self.layers.iter() {
-                let Some(clip_bounds) = region.intersection(&layer.bounds)
+                let Some(clip_bounds) =
+                    region.intersection(&(layer.bounds * scale_factor))
                 else {
                     continue;
                 };
 
-                let clip_bounds = clip_bounds * scale_factor;
                 engine::adjust_clip_mask(clip_mask, clip_bounds);
 
                 for (quad, background) in &layer.quads {
@@ -154,30 +154,15 @@ impl Renderer {
                     );
                 }
 
-                for group in &layer.text {
-                    for text in group.as_slice() {
-                        self.engine.draw_text(
-                            text,
-                            group.transformation()
-                                * Transformation::scale(scale_factor),
-                            pixels,
-                            clip_mask,
-                            clip_bounds,
-                        );
-                    }
-                }
-
                 for group in &layer.primitives {
-                    let Some(new_clip_bounds) =
-                        group.clip_bounds().intersection(&layer.bounds)
+                    let Some(new_clip_bounds) = (group.clip_bounds()
+                        * scale_factor)
+                        .intersection(&clip_bounds)
                     else {
                         continue;
                     };
 
-                    engine::adjust_clip_mask(
-                        clip_mask,
-                        new_clip_bounds * scale_factor,
-                    );
+                    engine::adjust_clip_mask(clip_mask, new_clip_bounds);
 
                     for primitive in group.as_slice() {
                         self.engine.draw_primitive(
@@ -191,6 +176,19 @@ impl Renderer {
                     }
 
                     engine::adjust_clip_mask(clip_mask, clip_bounds);
+                }
+
+                for group in &layer.text {
+                    for text in group.as_slice() {
+                        self.engine.draw_text(
+                            text,
+                            group.transformation()
+                                * Transformation::scale(scale_factor),
+                            pixels,
+                            clip_mask,
+                            clip_bounds,
+                        );
+                    }
                 }
 
                 for image in &layer.images {
@@ -370,7 +368,7 @@ impl graphics::mesh::Renderer for Renderer {
 impl core::image::Renderer for Renderer {
     type Handle = core::image::Handle;
 
-    fn measure_image(&self, handle: &Self::Handle) -> Size<u32> {
+    fn measure_image(&self, handle: &Self::Handle) -> crate::core::Size<u32> {
         self.engine.raster_pipeline.dimensions(handle)
     }
 
@@ -387,7 +385,10 @@ impl core::image::Renderer for Renderer {
 
 #[cfg(feature = "svg")]
 impl core::svg::Renderer for Renderer {
-    fn measure_svg(&self, handle: &core::svg::Handle) -> Size<u32> {
+    fn measure_svg(
+        &self,
+        handle: &core::svg::Handle,
+    ) -> crate::core::Size<u32> {
         self.engine.vector_pipeline.viewport_dimensions(handle)
     }
 

@@ -113,6 +113,11 @@ impl<T: Layer> Stack<T> {
         self.layers[..self.active_count].iter()
     }
 
+    /// Returns the slice of layers in the [`Stack`].
+    pub fn as_slice(&self) -> &[T] {
+        &self.layers[..self.active_count]
+    }
+
     /// Flushes and settles any primitives in the current layer of the [`Stack`].
     pub fn flush(&mut self) {
         self.layers[self.current].flush();

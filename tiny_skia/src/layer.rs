@@ -2,6 +2,7 @@ use crate::core::image;
 use crate::core::renderer::Quad;
 use crate::core::svg;
 use crate::core::{Background, Color, Point, Rectangle, Transformation};
+use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
 use crate::graphics::{self, Image};
@@ -18,39 +19,6 @@ pub struct Layer {
     pub primitives: Vec<Item<Primitive>>,
     pub text: Vec<Item<Text>>,
     pub images: Vec<Image>,
-}
-
-#[derive(Debug, Clone)]
-pub enum Item<T> {
-    Live(T),
-    Group(Vec<T>, Rectangle, Transformation),
-    Cached(Rc<[T]>, Rectangle, Transformation),
-}
-
-impl<T> Item<T> {
-    pub fn transformation(&self) -> Transformation {
-        match self {
-            Item::Live(_) => Transformation::IDENTITY,
-            Item::Group(_, _, transformation)
-            | Item::Cached(_, _, transformation) => *transformation,
-        }
-    }
-
-    pub fn clip_bounds(&self) -> Rectangle {
-        match self {
-            Item::Live(_) => Rectangle::INFINITE,
-            Item::Group(_, clip_bounds, _)
-            | Item::Cached(_, clip_bounds, _) => *clip_bounds,
-        }
-    }
-
-    pub fn as_slice(&self) -> &[T] {
-        match self {
-            Item::Live(item) => std::slice::from_ref(item),
-            Item::Group(group, _, _) => group.as_slice(),
-            Item::Cached(cache, _, _) => cache,
-        }
-    }
 }
 
 impl Layer {
@@ -204,6 +172,81 @@ impl Layer {
             transformation,
         ));
     }
+
+    pub fn damage(previous: &Self, current: &Self) -> Vec<Rectangle> {
+        let mut damage = damage::list(
+            &previous.quads,
+            &current.quads,
+            |(quad, _)| vec![quad.bounds.expand(1.0)],
+            |(quad_a, background_a), (quad_b, background_b)| {
+                quad_a == quad_b && background_a == background_b
+            },
+        );
+
+        let text = damage::diff(
+            &previous.text,
+            &current.text,
+            |item| {
+                item.as_slice()
+                    .iter()
+                    .filter_map(Text::visible_bounds)
+                    .map(|bounds| bounds * item.transformation())
+                    .collect()
+            },
+            |text_a, text_b| {
+                damage::list(
+                    text_a.as_slice(),
+                    text_b.as_slice(),
+                    |text| {
+                        text.visible_bounds()
+                            .into_iter()
+                            .filter_map(|bounds| {
+                                bounds.intersection(&text_a.clip_bounds())
+                            })
+                            .collect()
+                    },
+                    |text_a, text_b| text_a == text_b,
+                )
+            },
+        );
+
+        let primitives = damage::list(
+            &previous.primitives,
+            &current.primitives,
+            |item| match item {
+                Item::Live(primitive) => vec![primitive.visible_bounds()],
+                Item::Group(primitives, bounds, transformation) => {
+                    damage::group(
+                        primitives
+                            .as_slice()
+                            .iter()
+                            .map(Primitive::visible_bounds)
+                            .map(|bounds| bounds * *transformation)
+                            .collect(),
+                        *bounds,
+                    )
+                }
+                Item::Cached(_, bounds, _) => {
+                    vec![*bounds]
+                }
+            },
+            |primitive_a, primitive_b| match (primitive_a, primitive_b) {
+                (
+                    Item::Cached(cache_a, bounds_a, transformation_a),
+                    Item::Cached(cache_b, bounds_b, transformation_b),
+                ) => {
+                    Rc::ptr_eq(cache_a, cache_b)
+                        && bounds_a == bounds_b
+                        && transformation_a == transformation_b
+                }
+                _ => false,
+            },
+        );
+
+        damage.extend(text);
+        damage.extend(primitives);
+        damage
+    }
 }
 
 impl Default for Layer {
@@ -236,8 +279,41 @@ impl graphics::Layer for Layer {
         self.bounds = Rectangle::INFINITE;
 
         self.quads.clear();
-        self.text.clear();
         self.primitives.clear();
+        self.text.clear();
         self.images.clear();
+    }
+}
+
+#[derive(Debug, Clone)]
+pub enum Item<T> {
+    Live(T),
+    Group(Vec<T>, Rectangle, Transformation),
+    Cached(Rc<[T]>, Rectangle, Transformation),
+}
+
+impl<T> Item<T> {
+    pub fn transformation(&self) -> Transformation {
+        match self {
+            Item::Live(_) => Transformation::IDENTITY,
+            Item::Group(_, _, transformation)
+            | Item::Cached(_, _, transformation) => *transformation,
+        }
+    }
+
+    pub fn clip_bounds(&self) -> Rectangle {
+        match self {
+            Item::Live(_) => Rectangle::INFINITE,
+            Item::Group(_, clip_bounds, _)
+            | Item::Cached(_, clip_bounds, _) => *clip_bounds,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        match self {
+            Item::Live(item) => std::slice::from_ref(item),
+            Item::Group(group, _, _) => group.as_slice(),
+            Item::Cached(cache, _, _) => cache,
+        }
     }
 }

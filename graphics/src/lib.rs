@@ -15,6 +15,7 @@ mod viewport;
 
 pub mod color;
 pub mod compositor;
+pub mod damage;
 pub mod error;
 pub mod gradient;
 pub mod image;

@@ -70,6 +70,76 @@ pub enum Text {
     },
 }
 
+impl Text {
+    /// Returns the visible bounds of the [`Text`].
+    pub fn visible_bounds(&self) -> Option<Rectangle> {
+        let (bounds, horizontal_alignment, vertical_alignment) = match self {
+            Text::Paragraph {
+                position,
+                paragraph,
+                clip_bounds,
+                ..
+            } => (
+                Rectangle::new(*position, paragraph.min_bounds)
+                    .intersection(clip_bounds),
+                Some(paragraph.horizontal_alignment),
+                Some(paragraph.vertical_alignment),
+            ),
+            Text::Editor {
+                editor,
+                position,
+                clip_bounds,
+                ..
+            } => (
+                Rectangle::new(*position, editor.bounds)
+                    .intersection(clip_bounds),
+                None,
+                None,
+            ),
+            Text::Cached {
+                bounds,
+                clip_bounds,
+                horizontal_alignment,
+                vertical_alignment,
+                ..
+            } => (
+                bounds.intersection(clip_bounds),
+                Some(*horizontal_alignment),
+                Some(*vertical_alignment),
+            ),
+            Text::Raw { raw, .. } => (Some(raw.clip_bounds), None, None),
+        };
+
+        let mut bounds = bounds?;
+
+        if let Some(alignment) = horizontal_alignment {
+            match alignment {
+                alignment::Horizontal::Left => {}
+                alignment::Horizontal::Center => {
+                    bounds.x -= bounds.width / 2.0;
+                }
+                alignment::Horizontal::Right => {
+                    bounds.x -= bounds.width;
+                }
+            }
+        }
+
+        if let Some(alignment) = vertical_alignment {
+            match alignment {
+                alignment::Vertical::Top => {}
+                alignment::Vertical::Center => {
+                    bounds.y -= bounds.height / 2.0;
+                }
+                alignment::Vertical::Bottom => {
+                    bounds.y -= bounds.height;
+                }
+            }
+        }
+
+        Some(bounds)
+    }
+}
+
 /// The regular variant of the [Fira Sans] font.
 ///
 /// It is loaded as part of the default fonts in Wasm builds.
