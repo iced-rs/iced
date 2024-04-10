@@ -213,16 +213,14 @@ impl Layer {
             &current.primitives,
             |item| match item {
                 Item::Live(primitive) => vec![primitive.visible_bounds()],
-                Item::Group(primitives, bounds, transformation) => {
-                    damage::group(
-                        primitives
-                            .as_slice()
-                            .iter()
-                            .map(Primitive::visible_bounds)
-                            .map(|bounds| bounds * *transformation)
-                            .collect(),
-                        *bounds,
-                    )
+                Item::Group(primitives, group_bounds, transformation) => {
+                    primitives
+                        .as_slice()
+                        .iter()
+                        .map(Primitive::visible_bounds)
+                        .map(|bounds| bounds * *transformation)
+                        .filter_map(|bounds| bounds.intersection(group_bounds))
+                        .collect()
                 }
                 Item::Cached(_, bounds, _) => {
                     vec![*bounds]

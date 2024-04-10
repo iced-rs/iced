@@ -1,5 +1,5 @@
 //! Compute the damage between frames.
-use crate::core::Rectangle;
+use crate::core::{Point, Rectangle};
 
 /// Diffs the damage regions given some previous and current primitives.
 pub fn diff<T>(
@@ -50,9 +50,10 @@ pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> Vec<Rectangle> {
     const AREA_THRESHOLD: f32 = 20_000.0;
 
     damage.sort_by(|a, b| {
-        a.x.partial_cmp(&b.x)
+        a.center()
+            .distance(Point::ORIGIN)
+            .partial_cmp(&b.center().distance(Point::ORIGIN))
             .unwrap_or(Ordering::Equal)
-            .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal))
     });
 
     let mut output = Vec::new();
