@@ -242,7 +242,7 @@ impl Pipeline {
                         &mut self.atlas,
                         &mut self.cache,
                         text,
-                        layer_bounds,
+                        layer_bounds * layer_transformation,
                         layer_transformation * *transformation,
                         target_size,
                     );
@@ -269,7 +269,7 @@ impl Pipeline {
                         self.format,
                         cache,
                         layer_transformation * *transformation,
-                        layer_bounds,
+                        layer_bounds * layer_transformation,
                         target_size,
                     );
                 }
@@ -387,8 +387,6 @@ fn prepare(
             Text::Raw { raw, .. } => raw.buffer.upgrade().map(Allocation::Raw),
         })
         .collect();
-
-    let layer_bounds = layer_bounds * layer_transformation;
 
     let text_areas = sections.iter().zip(allocations.iter()).filter_map(
         |(section, allocation)| {
