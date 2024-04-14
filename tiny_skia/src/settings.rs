@@ -1,9 +1,9 @@
 use crate::core::{Font, Pixels};
 use crate::graphics;
 
-/// The settings of a [`Backend`].
+/// The settings of a [`Compositor`].
 ///
-/// [`Backend`]: crate::Backend
+/// [`Compositor`]: crate::window::Compositor
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
     /// The default [`Font`] to use.

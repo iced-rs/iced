@@ -12,10 +12,36 @@ use bytemuck::{Pod, Zeroable};
 
 use std::mem;
 
-#[cfg(feature = "tracing")]
-use tracing::info_span;
-
 const INITIAL_INSTANCES: usize = 2_000;
+
+/// The properties of a quad.
+#[derive(Clone, Copy, Debug, Pod, Zeroable)]
+#[repr(C)]
+pub struct Quad {
+    /// The position of the [`Quad`].
+    pub position: [f32; 2],
+
+    /// The size of the [`Quad`].
+    pub size: [f32; 2],
+
+    /// The border color of the [`Quad`], in __linear RGB__.
+    pub border_color: color::Packed,
+
+    /// The border radii of the [`Quad`].
+    pub border_radius: [f32; 4],
+
+    /// The border width of the [`Quad`].
+    pub border_width: f32,
+
+    /// The shadow color of the [`Quad`].
+    pub shadow_color: color::Packed,
+
+    /// The shadow offset of the [`Quad`].
+    pub shadow_offset: [f32; 2],
+
+    /// The shadow blur radius of the [`Quad`].
+    pub shadow_blur_radius: f32,
+}
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -124,7 +150,7 @@ impl Pipeline {
 }
 
 #[derive(Debug)]
-struct Layer {
+pub struct Layer {
     constants: wgpu::BindGroup,
     constants_buffer: wgpu::Buffer,
     solid: solid::Layer,
@@ -169,9 +195,26 @@ impl Layer {
         transformation: Transformation,
         scale: f32,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Quad", "PREPARE").entered();
+        self.update(device, encoder, belt, transformation, scale);
 
+        if !quads.solids.is_empty() {
+            self.solid.prepare(device, encoder, belt, &quads.solids);
+        }
+
+        if !quads.gradients.is_empty() {
+            self.gradient
+                .prepare(device, encoder, belt, &quads.gradients);
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        transformation: Transformation,
+        scale: f32,
+    ) {
         let uniforms = Uniforms::new(transformation, scale);
         let bytes = bytemuck::bytes_of(&uniforms);
 
@@ -183,45 +226,7 @@ impl Layer {
             device,
         )
         .copy_from_slice(bytes);
-
-        if !quads.solids.is_empty() {
-            self.solid.prepare(device, encoder, belt, &quads.solids);
-        }
-
-        if !quads.gradients.is_empty() {
-            self.gradient
-                .prepare(device, encoder, belt, &quads.gradients);
-        }
     }
-}
-
-/// The properties of a quad.
-#[derive(Clone, Copy, Debug, Pod, Zeroable)]
-#[repr(C)]
-pub struct Quad {
-    /// The position of the [`Quad`].
-    pub position: [f32; 2],
-
-    /// The size of the [`Quad`].
-    pub size: [f32; 2],
-
-    /// The border color of the [`Quad`], in __linear RGB__.
-    pub border_color: color::Packed,
-
-    /// The border radii of the [`Quad`].
-    pub border_radius: [f32; 4],
-
-    /// The border width of the [`Quad`].
-    pub border_width: f32,
-
-    /// The shadow color of the [`Quad`].
-    pub shadow_color: [f32; 4],
-
-    /// The shadow offset of the [`Quad`].
-    pub shadow_offset: [f32; 2],
-
-    /// The shadow blur radius of the [`Quad`].
-    pub shadow_blur_radius: f32,
 }
 
 /// A group of [`Quad`]s rendered together.
@@ -233,9 +238,12 @@ pub struct Batch {
     /// The gradient quads of the [`Layer`].
     gradients: Vec<Gradient>,
 
-    /// The quad order of the [`Layer`]; stored as a tuple of the quad type & its count.
-    order: Vec<(Kind, usize)>,
+    /// The quad order of the [`Layer`].
+    order: Order,
 }
+
+/// The quad order of a [`Layer`]; stored as a tuple of the quad type & its count.
+type Order = Vec<(Kind, usize)>;
 
 impl Batch {
     /// Returns true if there are no quads of any type in [`Quads`].
@@ -275,6 +283,12 @@ impl Batch {
                 self.order.push((kind, 1));
             }
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.solids.clear();
+        self.gradients.clear();
+        self.order.clear();
     }
 }
 

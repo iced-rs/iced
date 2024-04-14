@@ -12,18 +12,15 @@ use iced_wgpu::Renderer;
 criterion_main!(benches);
 criterion_group!(benches, wgpu_benchmark);
 
+#[allow(unused_results)]
 pub fn wgpu_benchmark(c: &mut Criterion) {
-    let _ = c
-        .bench_function("wgpu — canvas (light)", |b| benchmark(b, scene(10)));
-
-    let _ = c.bench_function("wgpu — canvas (heavy)", |b| {
-        benchmark(b, scene(1_000))
-    });
+    c.bench_function("wgpu — canvas (light)", |b| benchmark(b, scene(10)));
+    c.bench_function("wgpu — canvas (heavy)", |b| benchmark(b, scene(1_000)));
 }
 
-fn benchmark<'a>(
+fn benchmark(
     bencher: &mut Bencher<'_>,
-    widget: Element<'a, (), Theme, Renderer>,
+    widget: Element<'_, (), Theme, Renderer>,
 ) {
     use iced_futures::futures::executor;
     use iced_wgpu::graphics;
@@ -58,21 +55,15 @@ fn benchmark<'a>(
 
     let format = wgpu::TextureFormat::Bgra8UnormSrgb;
 
-    let backend = iced_wgpu::Backend::new(
+    let mut engine = iced_wgpu::Engine::new(
         &adapter,
         &device,
         &queue,
-        iced_wgpu::Settings {
-            present_mode: wgpu::PresentMode::Immediate,
-            internal_backend: wgpu::Backends::all(),
-            default_font: Font::DEFAULT,
-            default_text_size: Pixels::from(16),
-            antialiasing: Some(Antialiasing::MSAAx4),
-        },
         format,
+        Some(Antialiasing::MSAAx4),
     );
 
-    let mut renderer = Renderer::new(backend, Font::DEFAULT, Pixels::from(16));
+    let mut renderer = Renderer::new(&engine, Font::DEFAULT, Pixels::from(16));
 
     let viewport =
         graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);
@@ -117,25 +108,20 @@ fn benchmark<'a>(
                 label: None,
             });
 
-        renderer.with_primitives(|backend, primitives| {
-            backend.present::<&str>(
-                &device,
-                &queue,
-                &mut encoder,
-                Some(Color::BLACK),
-                format,
-                &texture_view,
-                primitives,
-                &viewport,
-                &[],
-            );
+        renderer.present::<&str>(
+            &mut engine,
+            &device,
+            &queue,
+            &mut encoder,
+            Some(Color::BLACK),
+            format,
+            &texture_view,
+            &viewport,
+            &[],
+        );
 
-            let submission = queue.submit(Some(encoder.finish()));
-            backend.recall();
-
-            let _ =
-                device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
-        });
+        let submission = engine.submit(&queue, encoder);
+        let _ = device.poll(wgpu::Maintain::WaitForSubmissionIndex(submission));
     });
 }
 

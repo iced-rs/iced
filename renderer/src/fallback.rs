@@ -9,6 +9,8 @@ use crate::graphics;
 use crate::graphics::compositor;
 use crate::graphics::mesh;
 
+use std::borrow::Cow;
+
 /// A renderer `A` with a fallback strategy `B`.
 ///
 /// This type can be used to easily compose existing renderers and
@@ -47,20 +49,24 @@ where
         delegate!(self, renderer, renderer.clear());
     }
 
-    fn start_layer(&mut self) {
-        delegate!(self, renderer, renderer.start_layer());
+    fn start_layer(&mut self, bounds: Rectangle) {
+        delegate!(self, renderer, renderer.start_layer(bounds));
     }
 
-    fn end_layer(&mut self, bounds: Rectangle) {
-        delegate!(self, renderer, renderer.end_layer(bounds));
+    fn end_layer(&mut self) {
+        delegate!(self, renderer, renderer.end_layer());
     }
 
-    fn start_transformation(&mut self) {
-        delegate!(self, renderer, renderer.start_transformation());
+    fn start_transformation(&mut self, transformation: Transformation) {
+        delegate!(
+            self,
+            renderer,
+            renderer.start_transformation(transformation)
+        );
     }
 
-    fn end_transformation(&mut self, transformation: Transformation) {
-        delegate!(self, renderer, renderer.end_transformation(transformation));
+    fn end_transformation(&mut self) {
+        delegate!(self, renderer, renderer.end_transformation());
     }
 }
 
@@ -87,10 +93,6 @@ where
 
     fn default_size(&self) -> core::Pixels {
         delegate!(self, renderer, renderer.default_size())
-    }
-
-    fn load_font(&mut self, font: std::borrow::Cow<'static, [u8]>) {
-        delegate!(self, renderer, renderer.load_font(font));
     }
 
     fn fill_paragraph(
@@ -319,6 +321,10 @@ where
         }
     }
 
+    fn load_font(&mut self, font: Cow<'static, [u8]>) {
+        delegate!(self, compositor, compositor.load_font(font));
+    }
+
     fn fetch_information(&self) -> compositor::Information {
         delegate!(self, compositor, compositor.fetch_information())
     }
@@ -395,19 +401,19 @@ where
 }
 
 #[cfg(feature = "wgpu")]
-impl<A, B> iced_wgpu::primitive::pipeline::Renderer for Renderer<A, B>
+impl<A, B> iced_wgpu::primitive::Renderer for Renderer<A, B>
 where
-    A: iced_wgpu::primitive::pipeline::Renderer,
+    A: iced_wgpu::primitive::Renderer,
     B: core::Renderer,
 {
-    fn draw_pipeline_primitive(
+    fn draw_primitive(
         &mut self,
         bounds: Rectangle,
-        primitive: impl iced_wgpu::primitive::pipeline::Primitive,
+        primitive: impl iced_wgpu::Primitive,
     ) {
         match self {
             Self::Primary(renderer) => {
-                renderer.draw_pipeline_primitive(bounds, primitive);
+                renderer.draw_primitive(bounds, primitive);
             }
             Self::Secondary(_) => {
                 log::warn!(
@@ -421,7 +427,7 @@ where
 #[cfg(feature = "geometry")]
 mod geometry {
     use super::Renderer;
-    use crate::core::{Point, Radians, Size, Vector};
+    use crate::core::{Point, Radians, Rectangle, Size, Vector};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
     use crate::graphics::Cached;
 
@@ -457,7 +463,7 @@ mod geometry {
         }
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, Clone)]
     pub enum Geometry<A, B> {
         Primary(A),
         Secondary(B),
@@ -477,12 +483,23 @@ mod geometry {
             }
         }
 
-        fn cache(self) -> Self::Cache {
-            match self {
-                Self::Primary(geometry) => Geometry::Primary(geometry.cache()),
-                Self::Secondary(geometry) => {
-                    Geometry::Secondary(geometry.cache())
+        fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+            match (self, previous) {
+                (
+                    Self::Primary(geometry),
+                    Some(Geometry::Primary(previous)),
+                ) => Geometry::Primary(geometry.cache(Some(previous))),
+                (Self::Primary(geometry), None) => {
+                    Geometry::Primary(geometry.cache(None))
                 }
+                (
+                    Self::Secondary(geometry),
+                    Some(Geometry::Secondary(previous)),
+                ) => Geometry::Secondary(geometry.cache(Some(previous))),
+                (Self::Secondary(geometry), None) => {
+                    Geometry::Secondary(geometry.cache(None))
+                }
+                _ => unreachable!(),
             }
         }
     }
@@ -545,10 +562,10 @@ mod geometry {
             delegate!(self, frame, frame.pop_transform());
         }
 
-        fn draft(&mut self, size: Size) -> Self {
+        fn draft(&mut self, bounds: Rectangle) -> Self {
             match self {
-                Self::Primary(frame) => Self::Primary(frame.draft(size)),
-                Self::Secondary(frame) => Self::Secondary(frame.draft(size)),
+                Self::Primary(frame) => Self::Primary(frame.draft(bounds)),
+                Self::Secondary(frame) => Self::Secondary(frame.draft(bounds)),
             }
         }
 

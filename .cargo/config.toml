@@ -1,2 +1,2 @@
 [alias]
-lint = "clippy --workspace --no-deps -- -D warnings"
+lint = "clippy --workspace --benches --all-features --no-deps -- -D warnings"

@@ -1,196 +1,14 @@
-//! Track and compute the damage of graphical primitives.
-use crate::core::alignment;
-use crate::core::{Rectangle, Size};
-use crate::Primitive;
+//! Compute the damage between frames.
+use crate::core::{Point, Rectangle};
 
-use std::sync::Arc;
-
-/// A type that has some damage bounds.
-pub trait Damage: PartialEq {
-    /// Returns the bounds of the [`Damage`].
-    fn bounds(&self) -> Rectangle;
-}
-
-impl<T: Damage> Damage for Primitive<T> {
-    fn bounds(&self) -> Rectangle {
-        match self {
-            Self::Text {
-                bounds,
-                horizontal_alignment,
-                vertical_alignment,
-                ..
-            } => {
-                let mut bounds = *bounds;
-
-                bounds.x = match horizontal_alignment {
-                    alignment::Horizontal::Left => bounds.x,
-                    alignment::Horizontal::Center => {
-                        bounds.x - bounds.width / 2.0
-                    }
-                    alignment::Horizontal::Right => bounds.x - bounds.width,
-                };
-
-                bounds.y = match vertical_alignment {
-                    alignment::Vertical::Top => bounds.y,
-                    alignment::Vertical::Center => {
-                        bounds.y - bounds.height / 2.0
-                    }
-                    alignment::Vertical::Bottom => bounds.y - bounds.height,
-                };
-
-                bounds.expand(1.5)
-            }
-            Self::Paragraph {
-                paragraph,
-                position,
-                ..
-            } => {
-                let mut bounds =
-                    Rectangle::new(*position, paragraph.min_bounds);
-
-                bounds.x = match paragraph.horizontal_alignment {
-                    alignment::Horizontal::Left => bounds.x,
-                    alignment::Horizontal::Center => {
-                        bounds.x - bounds.width / 2.0
-                    }
-                    alignment::Horizontal::Right => bounds.x - bounds.width,
-                };
-
-                bounds.y = match paragraph.vertical_alignment {
-                    alignment::Vertical::Top => bounds.y,
-                    alignment::Vertical::Center => {
-                        bounds.y - bounds.height / 2.0
-                    }
-                    alignment::Vertical::Bottom => bounds.y - bounds.height,
-                };
-
-                bounds.expand(1.5)
-            }
-            Self::Editor {
-                editor, position, ..
-            } => {
-                let bounds = Rectangle::new(*position, editor.bounds);
-
-                bounds.expand(1.5)
-            }
-            Self::RawText(raw) => {
-                // TODO: Add `size` field to `raw` to compute more accurate
-                // damage bounds (?)
-                raw.clip_bounds.expand(1.5)
-            }
-            Self::Quad { bounds, shadow, .. } if shadow.color.a > 0.0 => {
-                let bounds_with_shadow = Rectangle {
-                    x: bounds.x + shadow.offset.x.min(0.0) - shadow.blur_radius,
-                    y: bounds.y + shadow.offset.y.min(0.0) - shadow.blur_radius,
-                    width: bounds.width
-                        + shadow.offset.x.abs()
-                        + shadow.blur_radius * 2.0,
-                    height: bounds.height
-                        + shadow.offset.y.abs()
-                        + shadow.blur_radius * 2.0,
-                };
-
-                bounds_with_shadow.expand(1.0)
-            }
-            Self::Quad { bounds, .. }
-            | Self::Image { bounds, .. }
-            | Self::Svg { bounds, .. } => bounds.expand(1.0),
-            Self::Clip { bounds, .. } => bounds.expand(1.0),
-            Self::Group { primitives } => primitives
-                .iter()
-                .map(Self::bounds)
-                .fold(Rectangle::with_size(Size::ZERO), |a, b| {
-                    Rectangle::union(&a, &b)
-                }),
-            Self::Transform {
-                transformation,
-                content,
-            } => content.bounds() * *transformation,
-            Self::Cache { content } => content.bounds(),
-            Self::Custom(custom) => custom.bounds(),
-        }
-    }
-}
-
-fn regions<T: Damage>(a: &Primitive<T>, b: &Primitive<T>) -> Vec<Rectangle> {
-    match (a, b) {
-        (
-            Primitive::Group {
-                primitives: primitives_a,
-            },
-            Primitive::Group {
-                primitives: primitives_b,
-            },
-        ) => return list(primitives_a, primitives_b),
-        (
-            Primitive::Clip {
-                bounds: bounds_a,
-                content: content_a,
-                ..
-            },
-            Primitive::Clip {
-                bounds: bounds_b,
-                content: content_b,
-                ..
-            },
-        ) => {
-            if bounds_a == bounds_b {
-                return regions(content_a, content_b)
-                    .into_iter()
-                    .filter_map(|r| r.intersection(&bounds_a.expand(1.0)))
-                    .collect();
-            } else {
-                return vec![bounds_a.expand(1.0), bounds_b.expand(1.0)];
-            }
-        }
-        (
-            Primitive::Transform {
-                transformation: transformation_a,
-                content: content_a,
-            },
-            Primitive::Transform {
-                transformation: transformation_b,
-                content: content_b,
-            },
-        ) => {
-            if transformation_a == transformation_b {
-                return regions(content_a, content_b)
-                    .into_iter()
-                    .map(|r| r * *transformation_a)
-                    .collect();
-            }
-        }
-        (
-            Primitive::Cache { content: content_a },
-            Primitive::Cache { content: content_b },
-        ) => {
-            if Arc::ptr_eq(content_a, content_b) {
-                return vec![];
-            }
-        }
-        _ if a == b => return vec![],
-        _ => {}
-    }
-
-    let bounds_a = a.bounds();
-    let bounds_b = b.bounds();
-
-    if bounds_a == bounds_b {
-        vec![bounds_a]
-    } else {
-        vec![bounds_a, bounds_b]
-    }
-}
-
-/// Computes the damage regions between the two given lists of primitives.
-pub fn list<T: Damage>(
-    previous: &[Primitive<T>],
-    current: &[Primitive<T>],
+/// Diffs the damage regions given some previous and current primitives.
+pub fn diff<T>(
+    previous: &[T],
+    current: &[T],
+    bounds: impl Fn(&T) -> Vec<Rectangle>,
+    diff: impl Fn(&T, &T) -> Vec<Rectangle>,
 ) -> Vec<Rectangle> {
-    let damage = previous
-        .iter()
-        .zip(current)
-        .flat_map(|(a, b)| regions(a, b));
+    let damage = previous.iter().zip(current).flat_map(|(a, b)| diff(a, b));
 
     if previous.len() == current.len() {
         damage.collect()
@@ -203,39 +21,45 @@ pub fn list<T: Damage>(
 
         // Extend damage by the added/removed primitives
         damage
-            .chain(bigger[smaller.len()..].iter().map(Damage::bounds))
+            .chain(bigger[smaller.len()..].iter().flat_map(bounds))
             .collect()
     }
 }
 
+/// Computes the damage regions given some previous and current primitives.
+pub fn list<T>(
+    previous: &[T],
+    current: &[T],
+    bounds: impl Fn(&T) -> Vec<Rectangle>,
+    are_equal: impl Fn(&T, &T) -> bool,
+) -> Vec<Rectangle> {
+    diff(previous, current, &bounds, |a, b| {
+        if are_equal(a, b) {
+            vec![]
+        } else {
+            bounds(a).into_iter().chain(bounds(b)).collect()
+        }
+    })
+}
+
 /// Groups the given damage regions that are close together inside the given
 /// bounds.
-pub fn group(
-    mut damage: Vec<Rectangle>,
-    scale_factor: f32,
-    bounds: Size<u32>,
-) -> Vec<Rectangle> {
+pub fn group(mut damage: Vec<Rectangle>, bounds: Rectangle) -> Vec<Rectangle> {
     use std::cmp::Ordering;
 
     const AREA_THRESHOLD: f32 = 20_000.0;
 
-    let bounds = Rectangle {
-        x: 0.0,
-        y: 0.0,
-        width: bounds.width as f32,
-        height: bounds.height as f32,
-    };
-
     damage.sort_by(|a, b| {
-        a.x.partial_cmp(&b.x)
+        a.center()
+            .distance(Point::ORIGIN)
+            .partial_cmp(&b.center().distance(Point::ORIGIN))
             .unwrap_or(Ordering::Equal)
-            .then_with(|| a.y.partial_cmp(&b.y).unwrap_or(Ordering::Equal))
     });
 
     let mut output = Vec::new();
     let mut scaled = damage
         .into_iter()
-        .filter_map(|region| (region * scale_factor).intersection(&bounds))
+        .filter_map(|region| region.intersection(&bounds))
         .filter(|region| region.width >= 1.0 && region.height >= 1.0);
 
     if let Some(mut current) = scaled.next() {

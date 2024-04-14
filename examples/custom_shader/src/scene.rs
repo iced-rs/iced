@@ -9,8 +9,8 @@ use pipeline::cube::{self, Cube};
 
 use iced::mouse;
 use iced::time::Duration;
-use iced::widget::shader;
-use iced::{Color, Rectangle, Size};
+use iced::widget::shader::{self, Viewport};
+use iced::{Color, Rectangle};
 
 use glam::Vec3;
 use rand::Rng;
@@ -130,25 +130,29 @@ impl Primitive {
 impl shader::Primitive for Primitive {
     fn prepare(
         &self,
-        format: wgpu::TextureFormat,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        _bounds: Rectangle,
-        target_size: Size<u32>,
-        _scale_factor: f32,
+        format: wgpu::TextureFormat,
         storage: &mut shader::Storage,
+        _bounds: &Rectangle,
+        viewport: &Viewport,
     ) {
         if !storage.has::<Pipeline>() {
-            storage.store(Pipeline::new(device, queue, format, target_size));
+            storage.store(Pipeline::new(
+                device,
+                queue,
+                format,
+                viewport.physical_size(),
+            ));
         }
 
         let pipeline = storage.get_mut::<Pipeline>().unwrap();
 
-        //upload data to GPU
+        // Upload data to GPU
         pipeline.update(
             device,
             queue,
-            target_size,
+            viewport.physical_size(),
             &self.uniforms,
             self.cubes.len(),
             &self.cubes,
@@ -157,20 +161,19 @@ impl shader::Primitive for Primitive {
 
     fn render(
         &self,
+        encoder: &mut wgpu::CommandEncoder,
         storage: &shader::Storage,
         target: &wgpu::TextureView,
-        _target_size: Size<u32>,
-        viewport: Rectangle<u32>,
-        encoder: &mut wgpu::CommandEncoder,
+        clip_bounds: &Rectangle<u32>,
     ) {
-        //at this point our pipeline should always be initialized
+        // At this point our pipeline should always be initialized
         let pipeline = storage.get::<Pipeline>().unwrap();
 
-        //render primitive
+        // Render primitive
         pipeline.render(
             target,
             encoder,
-            viewport,
+            *clip_bounds,
             self.cubes.len() as u32,
             self.show_depth_buffer,
         );
