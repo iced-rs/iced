@@ -6,23 +6,74 @@ use crate::core::{
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
-    self, LineCap, LineDash, LineJoin, Path, Stroke, Style, Text,
+    self, LineCap, LineDash, LineJoin, Path, Stroke, Style,
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::primitive::{self, Primitive};
+use crate::graphics::{self, Cached, Text};
+use crate::text;
+use crate::triangle;
 
 use lyon::geom::euclid;
 use lyon::tessellation;
 
 use std::borrow::Cow;
 
+#[derive(Debug)]
+pub enum Geometry {
+    Live { meshes: Vec<Mesh>, text: Vec<Text> },
+    Cached(Cache),
+}
+
+#[derive(Debug, Clone)]
+pub struct Cache {
+    pub meshes: Option<triangle::Cache>,
+    pub text: Option<text::Cache>,
+}
+
+impl Cached for Geometry {
+    type Cache = Cache;
+
+    fn load(cache: &Self::Cache) -> Self {
+        Geometry::Cached(cache.clone())
+    }
+
+    fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+        match self {
+            Self::Live { meshes, text } => {
+                if let Some(mut previous) = previous {
+                    if let Some(cache) = &mut previous.meshes {
+                        cache.update(meshes);
+                    } else {
+                        previous.meshes = triangle::Cache::new(meshes);
+                    }
+
+                    if let Some(cache) = &mut previous.text {
+                        cache.update(text);
+                    } else {
+                        previous.text = text::Cache::new(text);
+                    }
+
+                    previous
+                } else {
+                    Cache {
+                        meshes: triangle::Cache::new(meshes),
+                        text: text::Cache::new(text),
+                    }
+                }
+            }
+            Self::Cached(cache) => cache,
+        }
+    }
+}
+
 /// A frame for drawing some geometry.
 #[allow(missing_debug_implementations)]
 pub struct Frame {
-    size: Size,
+    clip_bounds: Rectangle,
     buffers: BufferStack,
-    primitives: Vec<Primitive>,
+    meshes: Vec<Mesh>,
+    text: Vec<Text>,
     transforms: Transforms,
     fill_tessellator: tessellation::FillTessellator,
     stroke_tessellator: tessellation::StrokeTessellator,
@@ -31,81 +82,49 @@ pub struct Frame {
 impl Frame {
     /// Creates a new [`Frame`] with the given [`Size`].
     pub fn new(size: Size) -> Frame {
+        Self::with_clip(Rectangle::with_size(size))
+    }
+
+    /// Creates a new [`Frame`] with the given clip bounds.
+    pub fn with_clip(bounds: Rectangle) -> Frame {
         Frame {
-            size,
+            clip_bounds: bounds,
             buffers: BufferStack::new(),
-            primitives: Vec::new(),
+            meshes: Vec::new(),
+            text: Vec::new(),
             transforms: Transforms {
                 previous: Vec::new(),
-                current: Transform(lyon::math::Transform::identity()),
+                current: Transform(lyon::math::Transform::translation(
+                    bounds.x, bounds.y,
+                )),
             },
             fill_tessellator: tessellation::FillTessellator::new(),
             stroke_tessellator: tessellation::StrokeTessellator::new(),
         }
     }
-
-    fn into_primitives(mut self) -> Vec<Primitive> {
-        for buffer in self.buffers.stack {
-            match buffer {
-                Buffer::Solid(buffer) => {
-                    if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::Custom(
-                            primitive::Custom::Mesh(Mesh::Solid {
-                                buffers: mesh::Indexed {
-                                    vertices: buffer.vertices,
-                                    indices: buffer.indices,
-                                },
-                                size: self.size,
-                            }),
-                        ));
-                    }
-                }
-                Buffer::Gradient(buffer) => {
-                    if !buffer.indices.is_empty() {
-                        self.primitives.push(Primitive::Custom(
-                            primitive::Custom::Mesh(Mesh::Gradient {
-                                buffers: mesh::Indexed {
-                                    vertices: buffer.vertices,
-                                    indices: buffer.indices,
-                                },
-                                size: self.size,
-                            }),
-                        ));
-                    }
-                }
-            }
-        }
-
-        self.primitives
-    }
 }
 
 impl geometry::frame::Backend for Frame {
-    type Geometry = Primitive;
-
-    /// Creates a new empty [`Frame`] with the given dimensions.
-    ///
-    /// The default coordinate system of a [`Frame`] has its origin at the
-    /// top-left corner of its bounds.
+    type Geometry = Geometry;
 
     #[inline]
     fn width(&self) -> f32 {
-        self.size.width
+        self.clip_bounds.width
     }
 
     #[inline]
     fn height(&self) -> f32 {
-        self.size.height
+        self.clip_bounds.height
     }
 
     #[inline]
     fn size(&self) -> Size {
-        self.size
+        self.clip_bounds.size()
     }
 
     #[inline]
     fn center(&self) -> Point {
-        Point::new(self.size.width / 2.0, self.size.height / 2.0)
+        Point::new(self.clip_bounds.width / 2.0, self.clip_bounds.height / 2.0)
     }
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
@@ -208,7 +227,7 @@ impl geometry::frame::Backend for Frame {
         .expect("Stroke path");
     }
 
-    fn fill_text(&mut self, text: impl Into<Text>) {
+    fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
         let (scale_x, scale_y) = self.transforms.current.scale();
@@ -246,18 +265,17 @@ impl geometry::frame::Backend for Frame {
                 height: f32::INFINITY,
             };
 
-            // TODO: Honor layering!
-            self.primitives.push(Primitive::Text {
+            self.text.push(graphics::Text::Cached {
                 content: text.content,
                 bounds,
                 color: text.color,
                 size,
-                line_height,
+                line_height: line_height.to_absolute(size),
                 font: text.font,
                 horizontal_alignment: text.horizontal_alignment,
                 vertical_alignment: text.vertical_alignment,
                 shaping: text.shaping,
-                clip_bounds: Rectangle::with_size(Size::INFINITY),
+                clip_bounds: self.clip_bounds,
             });
         } else {
             text.draw_with(|path, color| self.fill(&path, color));
@@ -308,41 +326,24 @@ impl geometry::frame::Backend for Frame {
         self.transforms.current = self.transforms.previous.pop().unwrap();
     }
 
-    fn draft(&mut self, size: Size) -> Frame {
-        Frame::new(size)
+    fn draft(&mut self, clip_bounds: Rectangle) -> Frame {
+        Frame::with_clip(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Frame, at: Point) {
-        let size = frame.size();
-        let primitives = frame.into_primitives();
-        let transformation = Transformation::translate(at.x, at.y);
+    fn paste(&mut self, frame: Frame, _at: Point) {
+        self.meshes
+            .extend(frame.buffers.into_meshes(frame.clip_bounds));
 
-        let (text, meshes) = primitives
-            .into_iter()
-            .partition(|primitive| matches!(primitive, Primitive::Text { .. }));
-
-        self.primitives.push(Primitive::Group {
-            primitives: vec![
-                Primitive::Transform {
-                    transformation,
-                    content: Box::new(Primitive::Group { primitives: meshes }),
-                },
-                Primitive::Transform {
-                    transformation,
-                    content: Box::new(Primitive::Clip {
-                        bounds: Rectangle::with_size(size),
-                        content: Box::new(Primitive::Group {
-                            primitives: text,
-                        }),
-                    }),
-                },
-            ],
-        });
+        self.text.extend(frame.text);
     }
 
-    fn into_geometry(self) -> Self::Geometry {
-        Primitive::Group {
-            primitives: self.into_primitives(),
+    fn into_geometry(mut self) -> Self::Geometry {
+        self.meshes
+            .extend(self.buffers.into_meshes(self.clip_bounds));
+
+        Geometry::Live {
+            meshes: self.meshes,
+            text: self.text,
         }
     }
 }
@@ -428,6 +429,34 @@ impl BufferStack {
             }
             _ => unreachable!(),
         }
+    }
+
+    fn into_meshes(self, clip_bounds: Rectangle) -> impl Iterator<Item = Mesh> {
+        self.stack
+            .into_iter()
+            .filter_map(move |buffer| match buffer {
+                Buffer::Solid(buffer) if !buffer.indices.is_empty() => {
+                    Some(Mesh::Solid {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        clip_bounds,
+                        transformation: Transformation::IDENTITY,
+                    })
+                }
+                Buffer::Gradient(buffer) if !buffer.indices.is_empty() => {
+                    Some(Mesh::Gradient {
+                        buffers: mesh::Indexed {
+                            vertices: buffer.vertices,
+                            indices: buffer.indices,
+                        },
+                        clip_bounds,
+                        transformation: Transformation::IDENTITY,
+                    })
+                }
+                _ => None,
+            })
     }
 }
 
@@ -591,7 +620,9 @@ pub(super) fn dashed(path: &Path, line_dash: LineDash<'_>) -> Path {
         let mut draw_line = false;
 
         walk_along_path(
-            path.raw().iter().flattened(0.01),
+            path.raw().iter().flattened(
+                lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
+            ),
             0.0,
             lyon::tessellation::StrokeOptions::DEFAULT_TOLERANCE,
             &mut RepeatedPattern {

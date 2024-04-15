@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [features]
 default = ["x11", "wayland", "wayland-dlopen", "wayland-csd-adwaita"]
 debug = ["iced_runtime/debug"]
@@ -26,6 +29,7 @@ iced_graphics.workspace = true
 iced_runtime.workspace = true
 
 log.workspace = true
+rustc-hash.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 window_clipboard.workspace = true
@@ -40,3 +44,4 @@ winapi.workspace = true
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys.workspace = true
 web-sys.features = ["Document", "Window"]
+

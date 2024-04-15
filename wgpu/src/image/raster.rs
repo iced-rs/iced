@@ -4,7 +4,7 @@ use crate::graphics;
 use crate::graphics::image::image_rs;
 use crate::image::atlas::{self, Atlas};
 
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 
 /// Entry in cache corresponding to an image handle
 #[derive(Debug)]
@@ -38,8 +38,8 @@ impl Memory {
 /// Caches image raster data
 #[derive(Debug, Default)]
 pub struct Cache {
-    map: HashMap<u64, Memory>,
-    hits: HashSet<u64>,
+    map: FxHashMap<u64, Memory>,
+    hits: FxHashSet<u64>,
 }
 
 impl Cache {

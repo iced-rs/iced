@@ -46,11 +46,12 @@ impl Layer {
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         instances: &[Gradient],
     ) {
         let _ = self.instances.resize(device, instances.len());
-        let _ = self.instances.write(queue, 0, instances);
+        let _ = self.instances.write(device, encoder, belt, 0, instances);
 
         self.instance_count = instances.len();
     }

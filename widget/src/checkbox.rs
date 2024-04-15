@@ -340,7 +340,7 @@ where
             if self.is_checked {
                 renderer.fill_text(
                     text::Text {
-                        content: &code_point.to_string(),
+                        content: code_point.to_string(),
                         font: *font,
                         size,
                         line_height: *line_height,

@@ -145,13 +145,26 @@ where
 ///
 /// [`Text`]: core::widget::Text
 pub fn text<'a, Theme, Renderer>(
-    text: impl ToString,
+    text: impl text::IntoFragment<'a>,
 ) -> Text<'a, Theme, Renderer>
 where
     Theme: text::Catalog + 'a,
     Renderer: core::text::Renderer,
 {
-    Text::new(text.to_string())
+    Text::new(text)
+}
+
+/// Creates a new [`Text`] widget that displays the provided value.
+///
+/// [`Text`]: core::widget::Text
+pub fn value<'a, Theme, Renderer>(
+    value: impl ToString,
+) -> Text<'a, Theme, Renderer>
+where
+    Theme: text::Catalog + 'a,
+    Renderer: core::text::Renderer,
+{
+    Text::new(value.to_string())
 }
 
 /// Creates a new [`Checkbox`].

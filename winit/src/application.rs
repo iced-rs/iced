@@ -220,13 +220,11 @@ where
         };
     }
 
-    let compositor = C::new(graphics_settings, window.clone()).await?;
-    let mut renderer = compositor.create_renderer();
+    let mut compositor = C::new(graphics_settings, window.clone()).await?;
+    let renderer = compositor.create_renderer();
 
     for font in settings.fonts {
-        use crate::core::text::Renderer;
-
-        renderer.load_font(font);
+        compositor.load_font(font);
     }
 
     let (mut event_sender, event_receiver) = mpsc::unbounded();
@@ -950,10 +948,8 @@ pub fn run_command<A, C, E>(
                 *cache = current_cache;
             }
             command::Action::LoadFont { bytes, tagger } => {
-                use crate::core::text::Renderer;
-
                 // TODO: Error handling (?)
-                renderer.load_font(bytes);
+                compositor.load_font(bytes);
 
                 proxy
                     .send_event(tagger(Ok(())))

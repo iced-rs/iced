@@ -1,57 +1,98 @@
 use crate::core::text::LineHeight;
-use crate::core::{
-    Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
-};
+use crate::core::{Pixels, Point, Radians, Rectangle, Size, Vector};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
-use crate::graphics::geometry::{self, Path, Style, Text};
-use crate::graphics::Gradient;
-use crate::primitive::{self, Primitive};
+use crate::graphics::geometry::{self, Path, Style};
+use crate::graphics::{Cached, Gradient, Text};
+use crate::Primitive;
 
+use std::rc::Rc;
+
+#[derive(Debug)]
+pub enum Geometry {
+    Live {
+        text: Vec<Text>,
+        primitives: Vec<Primitive>,
+        clip_bounds: Rectangle,
+    },
+    Cache(Cache),
+}
+
+#[derive(Debug, Clone)]
+pub struct Cache {
+    pub text: Rc<[Text]>,
+    pub primitives: Rc<[Primitive]>,
+    pub clip_bounds: Rectangle,
+}
+
+impl Cached for Geometry {
+    type Cache = Cache;
+
+    fn load(cache: &Cache) -> Self {
+        Self::Cache(cache.clone())
+    }
+
+    fn cache(self, _previous: Option<Cache>) -> Cache {
+        match self {
+            Self::Live {
+                primitives,
+                text,
+                clip_bounds,
+            } => Cache {
+                primitives: Rc::from(primitives),
+                text: Rc::from(text),
+                clip_bounds,
+            },
+            Self::Cache(cache) => cache,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Frame {
-    size: Size,
+    clip_bounds: Rectangle,
     transform: tiny_skia::Transform,
     stack: Vec<tiny_skia::Transform>,
     primitives: Vec<Primitive>,
+    text: Vec<Text>,
 }
 
 impl Frame {
     pub fn new(size: Size) -> Self {
-        Self {
-            size,
-            transform: tiny_skia::Transform::identity(),
-            stack: Vec::new(),
-            primitives: Vec::new(),
-        }
+        Self::with_clip(Rectangle::with_size(size))
     }
 
-    pub fn into_primitive(self) -> Primitive {
-        Primitive::Clip {
-            bounds: Rectangle::new(Point::ORIGIN, self.size),
-            content: Box::new(Primitive::Group {
-                primitives: self.primitives,
-            }),
+    pub fn with_clip(clip_bounds: Rectangle) -> Self {
+        Self {
+            clip_bounds,
+            stack: Vec::new(),
+            primitives: Vec::new(),
+            text: Vec::new(),
+            transform: tiny_skia::Transform::from_translate(
+                clip_bounds.x,
+                clip_bounds.y,
+            ),
         }
     }
 }
 
 impl geometry::frame::Backend for Frame {
-    type Geometry = Primitive;
+    type Geometry = Geometry;
 
     fn width(&self) -> f32 {
-        self.size.width
+        self.clip_bounds.width
     }
 
     fn height(&self) -> f32 {
-        self.size.height
+        self.clip_bounds.height
     }
 
     fn size(&self) -> Size {
-        self.size
+        self.clip_bounds.size()
     }
 
     fn center(&self) -> Point {
-        Point::new(self.size.width / 2.0, self.size.height / 2.0)
+        Point::new(self.clip_bounds.width / 2.0, self.clip_bounds.height / 2.0)
     }
 
     fn fill(&mut self, path: &Path, fill: impl Into<Fill>) {
@@ -66,12 +107,11 @@ impl geometry::frame::Backend for Frame {
         let mut paint = into_paint(fill.style);
         paint.shader.transform(self.transform);
 
-        self.primitives
-            .push(Primitive::Custom(primitive::Custom::Fill {
-                path,
-                paint,
-                rule: into_fill_rule(fill.rule),
-            }));
+        self.primitives.push(Primitive::Fill {
+            path,
+            paint,
+            rule: into_fill_rule(fill.rule),
+        });
     }
 
     fn fill_rectangle(
@@ -94,12 +134,11 @@ impl geometry::frame::Backend for Frame {
         };
         paint.shader.transform(self.transform);
 
-        self.primitives
-            .push(Primitive::Custom(primitive::Custom::Fill {
-                path,
-                paint,
-                rule: into_fill_rule(fill.rule),
-            }));
+        self.primitives.push(Primitive::Fill {
+            path,
+            paint,
+            rule: into_fill_rule(fill.rule),
+        });
     }
 
     fn stroke<'a>(&mut self, path: &Path, stroke: impl Into<Stroke<'a>>) {
@@ -115,20 +154,19 @@ impl geometry::frame::Backend for Frame {
         let mut paint = into_paint(stroke.style);
         paint.shader.transform(self.transform);
 
-        self.primitives
-            .push(Primitive::Custom(primitive::Custom::Stroke {
-                path,
-                paint,
-                stroke: skia_stroke,
-            }));
+        self.primitives.push(Primitive::Stroke {
+            path,
+            paint,
+            stroke: skia_stroke,
+        });
     }
 
-    fn fill_text(&mut self, text: impl Into<Text>) {
+    fn fill_text(&mut self, text: impl Into<geometry::Text>) {
         let text = text.into();
 
         let (scale_x, scale_y) = self.transform.get_scale();
 
-        if self.transform.is_scale_translate()
+        if !self.transform.has_skew()
             && scale_x == scale_y
             && scale_x > 0.0
             && scale_y > 0.0
@@ -170,12 +208,12 @@ impl geometry::frame::Backend for Frame {
             };
 
             // TODO: Honor layering!
-            self.primitives.push(Primitive::Text {
+            self.text.push(Text::Cached {
                 content: text.content,
                 bounds,
                 color: text.color,
                 size,
-                line_height,
+                line_height: line_height.to_absolute(size),
                 font: text.font,
                 horizontal_alignment: text.horizontal_alignment,
                 vertical_alignment: text.vertical_alignment,
@@ -195,15 +233,13 @@ impl geometry::frame::Backend for Frame {
         self.transform = self.stack.pop().expect("Pop transform");
     }
 
-    fn draft(&mut self, size: Size) -> Self {
-        Self::new(size)
+    fn draft(&mut self, clip_bounds: Rectangle) -> Self {
+        Self::with_clip(clip_bounds)
     }
 
-    fn paste(&mut self, frame: Self, at: Point) {
-        self.primitives.push(Primitive::Transform {
-            transformation: Transformation::translate(at.x, at.y),
-            content: Box::new(frame.into_primitive()),
-        });
+    fn paste(&mut self, frame: Self, _at: Point) {
+        self.primitives.extend(frame.primitives);
+        self.text.extend(frame.text);
     }
 
     fn translate(&mut self, translation: Vector) {
@@ -229,8 +265,12 @@ impl geometry::frame::Backend for Frame {
         self.transform = self.transform.pre_scale(scale.x, scale.y);
     }
 
-    fn into_geometry(self) -> Self::Geometry {
-        self.into_primitive()
+    fn into_geometry(self) -> Geometry {
+        Geometry::Live {
+            primitives: self.primitives,
+            text: self.text,
+            clip_bounds: self.clip_bounds,
+        }
     }
 }
 

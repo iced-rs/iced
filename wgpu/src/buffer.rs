@@ -1,5 +1,12 @@
 use std::marker::PhantomData;
+use std::num::NonZeroU64;
 use std::ops::RangeBounds;
+
+pub const MAX_WRITE_SIZE: usize = 100 * 1024;
+
+#[allow(unsafe_code)]
+const MAX_WRITE_SIZE_U64: NonZeroU64 =
+    unsafe { NonZeroU64::new_unchecked(MAX_WRITE_SIZE as u64) };
 
 #[derive(Debug)]
 pub struct Buffer<T> {
@@ -61,12 +68,46 @@ impl<T: bytemuck::Pod> Buffer<T> {
     /// Returns the size of the written bytes.
     pub fn write(
         &mut self,
-        queue: &wgpu::Queue,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
         offset: usize,
         contents: &[T],
     ) -> usize {
         let bytes: &[u8] = bytemuck::cast_slice(contents);
-        queue.write_buffer(&self.raw, offset as u64, bytes);
+        let mut bytes_written = 0;
+
+        // Split write into multiple chunks if necessary
+        while bytes_written + MAX_WRITE_SIZE < bytes.len() {
+            belt.write_buffer(
+                encoder,
+                &self.raw,
+                (offset + bytes_written) as u64,
+                MAX_WRITE_SIZE_U64,
+                device,
+            )
+            .copy_from_slice(
+                &bytes[bytes_written..bytes_written + MAX_WRITE_SIZE],
+            );
+
+            bytes_written += MAX_WRITE_SIZE;
+        }
+
+        // There will always be some bytes left, since the previous
+        // loop guarantees `bytes_written < bytes.len()`
+        let bytes_left = ((bytes.len() - bytes_written) as u64)
+            .try_into()
+            .expect("non-empty write");
+
+        // Write them
+        belt.write_buffer(
+            encoder,
+            &self.raw,
+            (offset + bytes_written) as u64,
+            bytes_left,
+            device,
+        )
+        .copy_from_slice(&bytes[bytes_written..]);
 
         self.offsets.push(offset as u64);
 

@@ -1,3 +1,6 @@
+pub(crate) mod cache;
+pub(crate) use cache::Cache;
+
 mod atlas;
 
 #[cfg(feature = "image")]
@@ -6,181 +9,28 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
-use atlas::Atlas;
-
 use crate::core::{Rectangle, Size, Transformation};
-use crate::layer;
 use crate::Buffer;
 
-use std::cell::RefCell;
+use bytemuck::{Pod, Zeroable};
 use std::mem;
 
-use bytemuck::{Pod, Zeroable};
+pub use crate::graphics::Image;
 
-#[cfg(feature = "image")]
-use crate::core::image;
-
-#[cfg(feature = "svg")]
-use crate::core::svg;
-
-#[cfg(feature = "tracing")]
-use tracing::info_span;
+pub type Batch = Vec<Image>;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    #[cfg(feature = "image")]
-    raster_cache: RefCell<raster::Cache>,
-    #[cfg(feature = "svg")]
-    vector_cache: RefCell<vector::Cache>,
-
     pipeline: wgpu::RenderPipeline,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
     texture_version: usize,
-    texture_atlas: Atlas,
     texture_layout: wgpu::BindGroupLayout,
     constant_layout: wgpu::BindGroupLayout,
-
+    cache: cache::Shared,
     layers: Vec<Layer>,
     prepare_layer: usize,
-}
-
-#[derive(Debug)]
-struct Layer {
-    uniforms: wgpu::Buffer,
-    nearest: Data,
-    linear: Data,
-}
-
-impl Layer {
-    fn new(
-        device: &wgpu::Device,
-        constant_layout: &wgpu::BindGroupLayout,
-        nearest_sampler: &wgpu::Sampler,
-        linear_sampler: &wgpu::Sampler,
-    ) -> Self {
-        let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
-            label: Some("iced_wgpu::image uniforms buffer"),
-            size: mem::size_of::<Uniforms>() as u64,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-
-        let nearest =
-            Data::new(device, constant_layout, nearest_sampler, &uniforms);
-
-        let linear =
-            Data::new(device, constant_layout, linear_sampler, &uniforms);
-
-        Self {
-            uniforms,
-            nearest,
-            linear,
-        }
-    }
-
-    fn prepare(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        nearest_instances: &[Instance],
-        linear_instances: &[Instance],
-        transformation: Transformation,
-    ) {
-        queue.write_buffer(
-            &self.uniforms,
-            0,
-            bytemuck::bytes_of(&Uniforms {
-                transform: transformation.into(),
-            }),
-        );
-
-        self.nearest.upload(device, queue, nearest_instances);
-        self.linear.upload(device, queue, linear_instances);
-    }
-
-    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        self.nearest.render(render_pass);
-        self.linear.render(render_pass);
-    }
-}
-
-#[derive(Debug)]
-struct Data {
-    constants: wgpu::BindGroup,
-    instances: Buffer<Instance>,
-    instance_count: usize,
-}
-
-impl Data {
-    pub fn new(
-        device: &wgpu::Device,
-        constant_layout: &wgpu::BindGroupLayout,
-        sampler: &wgpu::Sampler,
-        uniforms: &wgpu::Buffer,
-    ) -> Self {
-        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::image constants bind group"),
-            layout: constant_layout,
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: wgpu::BindingResource::Buffer(
-                        wgpu::BufferBinding {
-                            buffer: uniforms,
-                            offset: 0,
-                            size: None,
-                        },
-                    ),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::Sampler(sampler),
-                },
-            ],
-        });
-
-        let instances = Buffer::new(
-            device,
-            "iced_wgpu::image instance buffer",
-            Instance::INITIAL,
-            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
-        );
-
-        Self {
-            constants,
-            instances,
-            instance_count: 0,
-        }
-    }
-
-    fn upload(
-        &mut self,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        instances: &[Instance],
-    ) {
-        self.instance_count = instances.len();
-
-        if self.instance_count == 0 {
-            return;
-        }
-
-        let _ = self.instances.resize(device, instances.len());
-        let _ = self.instances.write(queue, 0, instances);
-    }
-
-    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
-        if self.instance_count == 0 {
-            return;
-        }
-
-        render_pass.set_bind_group(0, &self.constants, &[]);
-        render_pass.set_vertex_buffer(0, self.instances.slice(..));
-
-        render_pass.draw(0..6, 0..self.instance_count as u32);
-    }
 }
 
 impl Pipeline {
@@ -265,9 +115,9 @@ impl Pipeline {
                 label: Some("iced_wgpu image shader"),
                 source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
                     concat!(
-                        include_str!("shader/vertex.wgsl"),
+                        include_str!("../shader/vertex.wgsl"),
                         "\n",
-                        include_str!("shader/image.wgsl"),
+                        include_str!("../shader/image.wgsl"),
                     ),
                 )),
             });
@@ -330,126 +180,82 @@ impl Pipeline {
                 multiview: None,
             });
 
-        let texture_atlas = Atlas::new(device, backend);
-
-        let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::image texture atlas bind group"),
-            layout: &texture_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(
-                    texture_atlas.view(),
-                ),
-            }],
-        });
+        let cache = Cache::new(device, backend);
+        let texture = cache.create_bind_group(device, &texture_layout);
 
         Pipeline {
-            #[cfg(feature = "image")]
-            raster_cache: RefCell::new(raster::Cache::default()),
-
-            #[cfg(feature = "svg")]
-            vector_cache: RefCell::new(vector::Cache::default()),
-
             pipeline,
             nearest_sampler,
             linear_sampler,
             texture,
-            texture_version: texture_atlas.layer_count(),
-            texture_atlas,
+            texture_version: cache.layer_count(),
             texture_layout,
             constant_layout,
-
+            cache: cache::Shared::new(cache),
             layers: Vec::new(),
             prepare_layer: 0,
         }
     }
 
-    #[cfg(feature = "image")]
-    pub fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
-        let mut cache = self.raster_cache.borrow_mut();
-        let memory = cache.load(handle);
-
-        memory.dimensions()
-    }
-
-    #[cfg(feature = "svg")]
-    pub fn viewport_dimensions(&self, handle: &svg::Handle) -> Size<u32> {
-        let mut cache = self.vector_cache.borrow_mut();
-        let svg = cache.load(handle);
-
-        svg.viewport_dimensions()
+    pub fn cache(&self) -> &cache::Shared {
+        &self.cache
     }
 
     pub fn prepare(
         &mut self,
         device: &wgpu::Device,
-        queue: &wgpu::Queue,
         encoder: &mut wgpu::CommandEncoder,
-        images: &[layer::Image],
+        belt: &mut wgpu::util::StagingBelt,
+        images: &Batch,
         transformation: Transformation,
-        _scale: f32,
+        scale: f32,
     ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "PREPARE").entered();
-
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "DRAW").entered();
+        let transformation = transformation * Transformation::scale(scale);
 
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
 
-        #[cfg(feature = "image")]
-        let mut raster_cache = self.raster_cache.borrow_mut();
-
-        #[cfg(feature = "svg")]
-        let mut vector_cache = self.vector_cache.borrow_mut();
+        let mut cache = self.cache.lock();
 
         for image in images {
             match &image {
                 #[cfg(feature = "image")]
-                layer::Image::Raster {
+                Image::Raster {
                     handle,
                     filter_method,
                     bounds,
                 } => {
-                    if let Some(atlas_entry) = raster_cache.upload(
-                        device,
-                        encoder,
-                        handle,
-                        &mut self.texture_atlas,
-                    ) {
+                    if let Some(atlas_entry) =
+                        cache.upload_raster(device, encoder, handle)
+                    {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             atlas_entry,
                             match filter_method {
-                                image::FilterMethod::Nearest => {
+                                crate::core::image::FilterMethod::Nearest => {
                                     nearest_instances
                                 }
-                                image::FilterMethod::Linear => linear_instances,
+                                crate::core::image::FilterMethod::Linear => {
+                                    linear_instances
+                                }
                             },
                         );
                     }
                 }
                 #[cfg(not(feature = "image"))]
-                layer::Image::Raster { .. } => {}
+                Image::Raster { .. } => {}
 
                 #[cfg(feature = "svg")]
-                layer::Image::Vector {
+                Image::Vector {
                     handle,
                     color,
                     bounds,
                 } => {
                     let size = [bounds.width, bounds.height];
 
-                    if let Some(atlas_entry) = vector_cache.upload(
-                        device,
-                        encoder,
-                        handle,
-                        *color,
-                        size,
-                        _scale,
-                        &mut self.texture_atlas,
+                    if let Some(atlas_entry) = cache.upload_vector(
+                        device, encoder, handle, *color, size, scale,
                     ) {
                         add_instances(
                             [bounds.x, bounds.y],
@@ -460,7 +266,7 @@ impl Pipeline {
                     }
                 }
                 #[cfg(not(feature = "svg"))]
-                layer::Image::Vector { .. } => {}
+                Image::Vector { .. } => {}
             }
         }
 
@@ -468,23 +274,13 @@ impl Pipeline {
             return;
         }
 
-        let texture_version = self.texture_atlas.layer_count();
+        let texture_version = cache.layer_count();
 
         if self.texture_version != texture_version {
             log::info!("Atlas has grown. Recreating bind group...");
 
             self.texture =
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("iced_wgpu::image texture atlas bind group"),
-                    layout: &self.texture_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(
-                            self.texture_atlas.view(),
-                        ),
-                    }],
-                });
-
+                cache.create_bind_group(device, &self.texture_layout);
             self.texture_version = texture_version;
         }
 
@@ -501,7 +297,8 @@ impl Pipeline {
 
         layer.prepare(
             device,
-            queue,
+            encoder,
+            belt,
             nearest_instances,
             linear_instances,
             transformation,
@@ -533,13 +330,156 @@ impl Pipeline {
     }
 
     pub fn end_frame(&mut self) {
-        #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
-
-        #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
-
+        self.cache.lock().trim();
         self.prepare_layer = 0;
+    }
+}
+
+#[derive(Debug)]
+struct Layer {
+    uniforms: wgpu::Buffer,
+    nearest: Data,
+    linear: Data,
+}
+
+impl Layer {
+    fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+        nearest_sampler: &wgpu::Sampler,
+        linear_sampler: &wgpu::Sampler,
+    ) -> Self {
+        let uniforms = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("iced_wgpu::image uniforms buffer"),
+            size: mem::size_of::<Uniforms>() as u64,
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            mapped_at_creation: false,
+        });
+
+        let nearest =
+            Data::new(device, constant_layout, nearest_sampler, &uniforms);
+
+        let linear =
+            Data::new(device, constant_layout, linear_sampler, &uniforms);
+
+        Self {
+            uniforms,
+            nearest,
+            linear,
+        }
+    }
+
+    fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        nearest_instances: &[Instance],
+        linear_instances: &[Instance],
+        transformation: Transformation,
+    ) {
+        let uniforms = Uniforms {
+            transform: transformation.into(),
+        };
+
+        let bytes = bytemuck::bytes_of(&uniforms);
+
+        belt.write_buffer(
+            encoder,
+            &self.uniforms,
+            0,
+            (bytes.len() as u64).try_into().expect("Sized uniforms"),
+            device,
+        )
+        .copy_from_slice(bytes);
+
+        self.nearest
+            .upload(device, encoder, belt, nearest_instances);
+
+        self.linear.upload(device, encoder, belt, linear_instances);
+    }
+
+    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        self.nearest.render(render_pass);
+        self.linear.render(render_pass);
+    }
+}
+
+#[derive(Debug)]
+struct Data {
+    constants: wgpu::BindGroup,
+    instances: Buffer<Instance>,
+    instance_count: usize,
+}
+
+impl Data {
+    pub fn new(
+        device: &wgpu::Device,
+        constant_layout: &wgpu::BindGroupLayout,
+        sampler: &wgpu::Sampler,
+        uniforms: &wgpu::Buffer,
+    ) -> Self {
+        let constants = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("iced_wgpu::image constants bind group"),
+            layout: constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Buffer(
+                        wgpu::BufferBinding {
+                            buffer: uniforms,
+                            offset: 0,
+                            size: None,
+                        },
+                    ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: wgpu::BindingResource::Sampler(sampler),
+                },
+            ],
+        });
+
+        let instances = Buffer::new(
+            device,
+            "iced_wgpu::image instance buffer",
+            Instance::INITIAL,
+            wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+        );
+
+        Self {
+            constants,
+            instances,
+            instance_count: 0,
+        }
+    }
+
+    fn upload(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        instances: &[Instance],
+    ) {
+        self.instance_count = instances.len();
+
+        if self.instance_count == 0 {
+            return;
+        }
+
+        let _ = self.instances.resize(device, instances.len());
+        let _ = self.instances.write(device, encoder, belt, 0, instances);
+    }
+
+    fn render<'a>(&'a self, render_pass: &mut wgpu::RenderPass<'a>) {
+        if self.instance_count == 0 {
+            return;
+        }
+
+        render_pass.set_bind_group(0, &self.constants, &[]);
+        render_pass.set_vertex_buffer(0, self.instances.slice(..));
+
+        render_pass.draw(0..6, 0..self.instance_count as u32);
     }
 }
 

@@ -11,14 +11,13 @@ pub use paragraph::Paragraph;
 use crate::alignment;
 use crate::{Color, Pixels, Point, Rectangle, Size};
 
-use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 
 /// A paragraph.
 #[derive(Debug, Clone, Copy)]
-pub struct Text<'a, Font> {
+pub struct Text<Content = String, Font = crate::Font> {
     /// The content of the paragraph.
-    pub content: &'a str,
+    pub content: Content,
 
     /// The bounds of the paragraph.
     pub bounds: Size,
@@ -192,9 +191,6 @@ pub trait Renderer: crate::Renderer {
     /// Returns the default size of [`Text`].
     fn default_size(&self) -> Pixels;
 
-    /// Loads a [`Self::Font`] from its bytes.
-    fn load_font(&mut self, font: Cow<'static, [u8]>);
-
     /// Draws the given [`Paragraph`] at the given position and with the given
     /// [`Color`].
     fn fill_paragraph(
@@ -219,7 +215,7 @@ pub trait Renderer: crate::Renderer {
     /// [`Color`].
     fn fill_text(
         &mut self,
-        text: Text<'_, Self::Font>,
+        text: Text<String, Self::Font>,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,

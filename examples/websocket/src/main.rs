@@ -96,10 +96,8 @@ impl WebSocket {
             .into()
         } else {
             scrollable(
-                column(
-                    self.messages.iter().cloned().map(text).map(Element::from),
-                )
-                .spacing(10),
+                column(self.messages.iter().map(text).map(Element::from))
+                    .spacing(10),
             )
             .id(MESSAGE_LOG.clone())
             .height(Length::Fill)

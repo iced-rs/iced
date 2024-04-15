@@ -5,7 +5,7 @@ use crate::image::atlas::{self, Atlas};
 
 use resvg::tiny_skia;
 use resvg::usvg::{self, TreeTextToPath};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::fs;
 
 /// Entry in cache corresponding to an svg handle
@@ -33,10 +33,10 @@ impl Svg {
 /// Caches svg vector and raster data
 #[derive(Debug, Default)]
 pub struct Cache {
-    svgs: HashMap<u64, Svg>,
-    rasterized: HashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
-    svg_hits: HashSet<u64>,
-    rasterized_hits: HashSet<(u64, u32, u32, ColorFilter)>,
+    svgs: FxHashMap<u64, Svg>,
+    rasterized: FxHashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
+    svg_hits: FxHashSet<u64>,
+    rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
 }
 
 type ColorFilter = Option<[u8; 4]>;

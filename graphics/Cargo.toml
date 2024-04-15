@@ -10,6 +10,9 @@ homepage.workspace = true
 categories.workspace = true
 keywords.workspace = true
 
+[lints]
+workspace = true
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
 all-features = true
@@ -34,7 +37,6 @@ raw-window-handle.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
 unicode-segmentation.workspace = true
-xxhash-rust.workspace = true
 
 image.workspace = true
 image.optional = true
