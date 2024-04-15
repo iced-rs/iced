@@ -7,16 +7,14 @@ use crate::{
     Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
 };
 
-use std::borrow::Cow;
-
 impl Renderer for () {
-    fn start_layer(&mut self) {}
+    fn start_layer(&mut self, _bounds: Rectangle) {}
 
-    fn end_layer(&mut self, _bounds: Rectangle) {}
+    fn end_layer(&mut self) {}
 
-    fn start_transformation(&mut self) {}
+    fn start_transformation(&mut self, _transformation: Transformation) {}
 
-    fn end_transformation(&mut self, _transformation: Transformation) {}
+    fn end_transformation(&mut self) {}
 
     fn clear(&mut self) {}
 
@@ -44,8 +42,6 @@ impl text::Renderer for () {
     fn default_size(&self) -> Pixels {
         Pixels(16.0)
     }
-
-    fn load_font(&mut self, _font: Cow<'static, [u8]>) {}
 
     fn fill_paragraph(
         &mut self,

@@ -700,38 +700,47 @@ where
                 ..
             } = tree.state.downcast_mut::<Menu<T>>();
 
-            let bounds = layout.bounds();
-
             self.state.sync_filtered_options(filtered_options);
 
-            let mut menu = menu::Menu::new(
-                menu,
-                &filtered_options.options,
-                hovered_option,
-                |x| {
-                    tree.children[0]
-                        .state
-                        .downcast_mut::<text_input::State<Renderer::Paragraph>>(
-                        )
-                        .unfocus();
+            if filtered_options.options.is_empty() {
+                None
+            } else {
+                let bounds = layout.bounds();
 
-                    (self.on_selected)(x)
-                },
-                self.on_option_hovered.as_deref(),
-                &self.menu_class,
-            )
-            .width(bounds.width)
-            .padding(self.padding);
+                let mut menu = menu::Menu::new(
+                    menu,
+                    &filtered_options.options,
+                    hovered_option,
+                    |x| {
+                        tree.children[0]
+                    .state
+                    .downcast_mut::<text_input::State<Renderer::Paragraph>>(
+                    )
+                    .unfocus();
 
-            if let Some(font) = self.font {
-                menu = menu.font(font);
+                        (self.on_selected)(x)
+                    },
+                    self.on_option_hovered.as_deref(),
+                    &self.menu_class,
+                )
+                .width(bounds.width)
+                .padding(self.padding);
+
+                if let Some(font) = self.font {
+                    menu = menu.font(font);
+                }
+
+                if let Some(size) = self.size {
+                    menu = menu.text_size(size);
+                }
+
+                Some(
+                    menu.overlay(
+                        layout.position() + translation,
+                        bounds.height,
+                    ),
+                )
             }
-
-            if let Some(size) = self.size {
-                menu = menu.text_size(size);
-            }
-
-            Some(menu.overlay(layout.position() + translation, bounds.height))
         } else {
             None
         }

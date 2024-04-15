@@ -5,7 +5,7 @@ use controls::Controls;
 use scene::Scene;
 
 use iced_wgpu::graphics::Viewport;
-use iced_wgpu::{wgpu, Backend, Renderer, Settings};
+use iced_wgpu::{wgpu, Engine, Renderer};
 use iced_winit::conversion;
 use iced_winit::core::mouse;
 use iced_winit::core::renderer;
@@ -155,11 +155,9 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize iced
     let mut debug = Debug::new();
-    let mut renderer = Renderer::new(
-        Backend::new(&adapter, &device, &queue, Settings::default(), format),
-        Font::default(),
-        Pixels(16.0),
-    );
+    let mut engine = Engine::new(&adapter, &device, &queue, format, None);
+    let mut renderer =
+        Renderer::new(&engine, Font::default(), Pixels::from(16));
 
     let mut state = program::State::new(
         controls,
@@ -228,19 +226,17 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
                         }
 
                         // And then iced on top
-                        renderer.with_primitives(|backend, primitive| {
-                            backend.present(
-                                &device,
-                                &queue,
-                                &mut encoder,
-                                None,
-                                frame.texture.format(),
-                                &view,
-                                primitive,
-                                &viewport,
-                                &debug.overlay(),
-                            );
-                        });
+                        renderer.present(
+                            &mut engine,
+                            &device,
+                            &queue,
+                            &mut encoder,
+                            None,
+                            frame.texture.format(),
+                            &view,
+                            &viewport,
+                            &debug.overlay(),
+                        );
 
                         // Then we submit the work
                         queue.submit(Some(encoder.finish()));

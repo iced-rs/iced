@@ -36,15 +36,6 @@ pub trait Renderer: core::Renderer {
     fn draw_geometry(&mut self, geometry: Self::Geometry);
 }
 
-/// The graphics backend of a geometry renderer.
-pub trait Backend {
-    /// The kind of [`Frame`] this backend supports.
-    type Frame: frame::Backend;
-
-    /// Creates a new [`Self::Frame`].
-    fn new_frame(&self, size: Size) -> Self::Frame;
-}
-
 #[cfg(debug_assertions)]
 impl Renderer for () {
     type Geometry = ();

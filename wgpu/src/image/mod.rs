@@ -1,3 +1,6 @@
+pub(crate) mod cache;
+pub(crate) use cache::Cache;
+
 mod atlas;
 
 #[cfg(feature = "image")]
@@ -6,44 +9,330 @@ mod raster;
 #[cfg(feature = "svg")]
 mod vector;
 
-use atlas::Atlas;
-
 use crate::core::{Rectangle, Size, Transformation};
-use crate::layer;
 use crate::Buffer;
 
-use std::cell::RefCell;
+use bytemuck::{Pod, Zeroable};
 use std::mem;
 
-use bytemuck::{Pod, Zeroable};
+pub use crate::graphics::Image;
 
-#[cfg(feature = "image")]
-use crate::core::image;
-
-#[cfg(feature = "svg")]
-use crate::core::svg;
-
-#[cfg(feature = "tracing")]
-use tracing::info_span;
+pub type Batch = Vec<Image>;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    #[cfg(feature = "image")]
-    raster_cache: RefCell<raster::Cache>,
-    #[cfg(feature = "svg")]
-    vector_cache: RefCell<vector::Cache>,
-
     pipeline: wgpu::RenderPipeline,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
     texture: wgpu::BindGroup,
     texture_version: usize,
-    texture_atlas: Atlas,
     texture_layout: wgpu::BindGroupLayout,
     constant_layout: wgpu::BindGroupLayout,
-
+    cache: cache::Shared,
     layers: Vec<Layer>,
     prepare_layer: usize,
+}
+
+impl Pipeline {
+    pub fn new(
+        device: &wgpu::Device,
+        format: wgpu::TextureFormat,
+        backend: wgpu::Backend,
+    ) -> Self {
+        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Nearest,
+            mag_filter: wgpu::FilterMode::Nearest,
+            mipmap_filter: wgpu::FilterMode::Nearest,
+            ..Default::default()
+        });
+
+        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::ClampToEdge,
+            address_mode_v: wgpu::AddressMode::ClampToEdge,
+            address_mode_w: wgpu::AddressMode::ClampToEdge,
+            min_filter: wgpu::FilterMode::Linear,
+            mag_filter: wgpu::FilterMode::Linear,
+            mipmap_filter: wgpu::FilterMode::Linear,
+            ..Default::default()
+        });
+
+        let constant_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("iced_wgpu::image constants layout"),
+                entries: &[
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: wgpu::BufferSize::new(
+                                mem::size_of::<Uniforms>() as u64,
+                            ),
+                        },
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
+                        visibility: wgpu::ShaderStages::FRAGMENT,
+                        ty: wgpu::BindingType::Sampler(
+                            wgpu::SamplerBindingType::Filtering,
+                        ),
+                        count: None,
+                    },
+                ],
+            });
+
+        let texture_layout =
+            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("iced_wgpu::image texture atlas layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float {
+                            filterable: true,
+                        },
+                        view_dimension: wgpu::TextureViewDimension::D2Array,
+                        multisampled: false,
+                    },
+                    count: None,
+                }],
+            });
+
+        let layout =
+            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("iced_wgpu::image pipeline layout"),
+                push_constant_ranges: &[],
+                bind_group_layouts: &[&constant_layout, &texture_layout],
+            });
+
+        let shader =
+            device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("iced_wgpu image shader"),
+                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
+                    concat!(
+                        include_str!("../shader/vertex.wgsl"),
+                        "\n",
+                        include_str!("../shader/image.wgsl"),
+                    ),
+                )),
+            });
+
+        let pipeline =
+            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("iced_wgpu::image pipeline"),
+                layout: Some(&layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: "vs_main",
+                    buffers: &[wgpu::VertexBufferLayout {
+                        array_stride: mem::size_of::<Instance>() as u64,
+                        step_mode: wgpu::VertexStepMode::Instance,
+                        attributes: &wgpu::vertex_attr_array!(
+                            // Position
+                            0 => Float32x2,
+                            // Scale
+                            1 => Float32x2,
+                            // Atlas position
+                            2 => Float32x2,
+                            // Atlas scale
+                            3 => Float32x2,
+                            // Layer
+                            4 => Sint32,
+                        ),
+                    }],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format,
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::SrcAlpha,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                            alpha: wgpu::BlendComponent {
+                                src_factor: wgpu::BlendFactor::One,
+                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
+                                operation: wgpu::BlendOperation::Add,
+                            },
+                        }),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    front_face: wgpu::FrontFace::Cw,
+                    ..Default::default()
+                },
+                depth_stencil: None,
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+            });
+
+        let cache = Cache::new(device, backend);
+        let texture = cache.create_bind_group(device, &texture_layout);
+
+        Pipeline {
+            pipeline,
+            nearest_sampler,
+            linear_sampler,
+            texture,
+            texture_version: cache.layer_count(),
+            texture_layout,
+            constant_layout,
+            cache: cache::Shared::new(cache),
+            layers: Vec::new(),
+            prepare_layer: 0,
+        }
+    }
+
+    pub fn cache(&self) -> &cache::Shared {
+        &self.cache
+    }
+
+    pub fn prepare(
+        &mut self,
+        device: &wgpu::Device,
+        encoder: &mut wgpu::CommandEncoder,
+        belt: &mut wgpu::util::StagingBelt,
+        images: &Batch,
+        transformation: Transformation,
+        scale: f32,
+    ) {
+        let transformation = transformation * Transformation::scale(scale);
+
+        let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
+        let linear_instances: &mut Vec<Instance> = &mut Vec::new();
+
+        let mut cache = self.cache.lock();
+
+        for image in images {
+            match &image {
+                #[cfg(feature = "image")]
+                Image::Raster {
+                    handle,
+                    filter_method,
+                    bounds,
+                } => {
+                    if let Some(atlas_entry) =
+                        cache.upload_raster(device, encoder, handle)
+                    {
+                        add_instances(
+                            [bounds.x, bounds.y],
+                            [bounds.width, bounds.height],
+                            atlas_entry,
+                            match filter_method {
+                                crate::core::image::FilterMethod::Nearest => {
+                                    nearest_instances
+                                }
+                                crate::core::image::FilterMethod::Linear => {
+                                    linear_instances
+                                }
+                            },
+                        );
+                    }
+                }
+                #[cfg(not(feature = "image"))]
+                Image::Raster { .. } => {}
+
+                #[cfg(feature = "svg")]
+                Image::Vector {
+                    handle,
+                    color,
+                    bounds,
+                } => {
+                    let size = [bounds.width, bounds.height];
+
+                    if let Some(atlas_entry) = cache.upload_vector(
+                        device, encoder, handle, *color, size, scale,
+                    ) {
+                        add_instances(
+                            [bounds.x, bounds.y],
+                            size,
+                            atlas_entry,
+                            nearest_instances,
+                        );
+                    }
+                }
+                #[cfg(not(feature = "svg"))]
+                Image::Vector { .. } => {}
+            }
+        }
+
+        if nearest_instances.is_empty() && linear_instances.is_empty() {
+            return;
+        }
+
+        let texture_version = cache.layer_count();
+
+        if self.texture_version != texture_version {
+            log::info!("Atlas has grown. Recreating bind group...");
+
+            self.texture =
+                cache.create_bind_group(device, &self.texture_layout);
+            self.texture_version = texture_version;
+        }
+
+        if self.layers.len() <= self.prepare_layer {
+            self.layers.push(Layer::new(
+                device,
+                &self.constant_layout,
+                &self.nearest_sampler,
+                &self.linear_sampler,
+            ));
+        }
+
+        let layer = &mut self.layers[self.prepare_layer];
+
+        layer.prepare(
+            device,
+            encoder,
+            belt,
+            nearest_instances,
+            linear_instances,
+            transformation,
+        );
+
+        self.prepare_layer += 1;
+    }
+
+    pub fn render<'a>(
+        &'a self,
+        layer: usize,
+        bounds: Rectangle<u32>,
+        render_pass: &mut wgpu::RenderPass<'a>,
+    ) {
+        if let Some(layer) = self.layers.get(layer) {
+            render_pass.set_pipeline(&self.pipeline);
+
+            render_pass.set_scissor_rect(
+                bounds.x,
+                bounds.y,
+                bounds.width,
+                bounds.height,
+            );
+
+            render_pass.set_bind_group(1, &self.texture, &[]);
+
+            layer.render(render_pass);
+        }
+    }
+
+    pub fn end_frame(&mut self) {
+        self.cache.lock().trim();
+        self.prepare_layer = 0;
+    }
 }
 
 #[derive(Debug)]
@@ -191,367 +480,6 @@ impl Data {
         render_pass.set_vertex_buffer(0, self.instances.slice(..));
 
         render_pass.draw(0..6, 0..self.instance_count as u32);
-    }
-}
-
-impl Pipeline {
-    pub fn new(
-        device: &wgpu::Device,
-        format: wgpu::TextureFormat,
-        backend: wgpu::Backend,
-    ) -> Self {
-        let nearest_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            min_filter: wgpu::FilterMode::Nearest,
-            mag_filter: wgpu::FilterMode::Nearest,
-            mipmap_filter: wgpu::FilterMode::Nearest,
-            ..Default::default()
-        });
-
-        let linear_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
-            address_mode_u: wgpu::AddressMode::ClampToEdge,
-            address_mode_v: wgpu::AddressMode::ClampToEdge,
-            address_mode_w: wgpu::AddressMode::ClampToEdge,
-            min_filter: wgpu::FilterMode::Linear,
-            mag_filter: wgpu::FilterMode::Linear,
-            mipmap_filter: wgpu::FilterMode::Linear,
-            ..Default::default()
-        });
-
-        let constant_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::image constants layout"),
-                entries: &[
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: wgpu::ShaderStages::VERTEX,
-                        ty: wgpu::BindingType::Buffer {
-                            ty: wgpu::BufferBindingType::Uniform,
-                            has_dynamic_offset: false,
-                            min_binding_size: wgpu::BufferSize::new(
-                                mem::size_of::<Uniforms>() as u64,
-                            ),
-                        },
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: wgpu::ShaderStages::FRAGMENT,
-                        ty: wgpu::BindingType::Sampler(
-                            wgpu::SamplerBindingType::Filtering,
-                        ),
-                        count: None,
-                    },
-                ],
-            });
-
-        let texture_layout =
-            device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-                label: Some("iced_wgpu::image texture atlas layout"),
-                entries: &[wgpu::BindGroupLayoutEntry {
-                    binding: 0,
-                    visibility: wgpu::ShaderStages::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        sample_type: wgpu::TextureSampleType::Float {
-                            filterable: true,
-                        },
-                        view_dimension: wgpu::TextureViewDimension::D2Array,
-                        multisampled: false,
-                    },
-                    count: None,
-                }],
-            });
-
-        let layout =
-            device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
-                label: Some("iced_wgpu::image pipeline layout"),
-                push_constant_ranges: &[],
-                bind_group_layouts: &[&constant_layout, &texture_layout],
-            });
-
-        let shader =
-            device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("iced_wgpu image shader"),
-                source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed(
-                    concat!(
-                        include_str!("shader/vertex.wgsl"),
-                        "\n",
-                        include_str!("shader/image.wgsl"),
-                    ),
-                )),
-            });
-
-        let pipeline =
-            device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
-                label: Some("iced_wgpu::image pipeline"),
-                layout: Some(&layout),
-                vertex: wgpu::VertexState {
-                    module: &shader,
-                    entry_point: "vs_main",
-                    buffers: &[wgpu::VertexBufferLayout {
-                        array_stride: mem::size_of::<Instance>() as u64,
-                        step_mode: wgpu::VertexStepMode::Instance,
-                        attributes: &wgpu::vertex_attr_array!(
-                            // Position
-                            0 => Float32x2,
-                            // Scale
-                            1 => Float32x2,
-                            // Atlas position
-                            2 => Float32x2,
-                            // Atlas scale
-                            3 => Float32x2,
-                            // Layer
-                            4 => Sint32,
-                        ),
-                    }],
-                },
-                fragment: Some(wgpu::FragmentState {
-                    module: &shader,
-                    entry_point: "fs_main",
-                    targets: &[Some(wgpu::ColorTargetState {
-                        format,
-                        blend: Some(wgpu::BlendState {
-                            color: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::SrcAlpha,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
-                            alpha: wgpu::BlendComponent {
-                                src_factor: wgpu::BlendFactor::One,
-                                dst_factor: wgpu::BlendFactor::OneMinusSrcAlpha,
-                                operation: wgpu::BlendOperation::Add,
-                            },
-                        }),
-                        write_mask: wgpu::ColorWrites::ALL,
-                    })],
-                }),
-                primitive: wgpu::PrimitiveState {
-                    topology: wgpu::PrimitiveTopology::TriangleList,
-                    front_face: wgpu::FrontFace::Cw,
-                    ..Default::default()
-                },
-                depth_stencil: None,
-                multisample: wgpu::MultisampleState {
-                    count: 1,
-                    mask: !0,
-                    alpha_to_coverage_enabled: false,
-                },
-                multiview: None,
-            });
-
-        let texture_atlas = Atlas::new(device, backend);
-
-        let texture = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: Some("iced_wgpu::image texture atlas bind group"),
-            layout: &texture_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::TextureView(
-                    texture_atlas.view(),
-                ),
-            }],
-        });
-
-        Pipeline {
-            #[cfg(feature = "image")]
-            raster_cache: RefCell::new(raster::Cache::default()),
-
-            #[cfg(feature = "svg")]
-            vector_cache: RefCell::new(vector::Cache::default()),
-
-            pipeline,
-            nearest_sampler,
-            linear_sampler,
-            texture,
-            texture_version: texture_atlas.layer_count(),
-            texture_atlas,
-            texture_layout,
-            constant_layout,
-
-            layers: Vec::new(),
-            prepare_layer: 0,
-        }
-    }
-
-    #[cfg(feature = "image")]
-    pub fn dimensions(&self, handle: &image::Handle) -> Size<u32> {
-        let mut cache = self.raster_cache.borrow_mut();
-        let memory = cache.load(handle);
-
-        memory.dimensions()
-    }
-
-    #[cfg(feature = "svg")]
-    pub fn viewport_dimensions(&self, handle: &svg::Handle) -> Size<u32> {
-        let mut cache = self.vector_cache.borrow_mut();
-        let svg = cache.load(handle);
-
-        svg.viewport_dimensions()
-    }
-
-    pub fn prepare(
-        &mut self,
-        device: &wgpu::Device,
-        encoder: &mut wgpu::CommandEncoder,
-        belt: &mut wgpu::util::StagingBelt,
-        images: &[layer::Image],
-        transformation: Transformation,
-        _scale: f32,
-    ) {
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "PREPARE").entered();
-
-        #[cfg(feature = "tracing")]
-        let _ = info_span!("Wgpu::Image", "DRAW").entered();
-
-        let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
-        let linear_instances: &mut Vec<Instance> = &mut Vec::new();
-
-        #[cfg(feature = "image")]
-        let mut raster_cache = self.raster_cache.borrow_mut();
-
-        #[cfg(feature = "svg")]
-        let mut vector_cache = self.vector_cache.borrow_mut();
-
-        for image in images {
-            match &image {
-                #[cfg(feature = "image")]
-                layer::Image::Raster {
-                    handle,
-                    filter_method,
-                    bounds,
-                } => {
-                    if let Some(atlas_entry) = raster_cache.upload(
-                        device,
-                        encoder,
-                        handle,
-                        &mut self.texture_atlas,
-                    ) {
-                        add_instances(
-                            [bounds.x, bounds.y],
-                            [bounds.width, bounds.height],
-                            atlas_entry,
-                            match filter_method {
-                                image::FilterMethod::Nearest => {
-                                    nearest_instances
-                                }
-                                image::FilterMethod::Linear => linear_instances,
-                            },
-                        );
-                    }
-                }
-                #[cfg(not(feature = "image"))]
-                layer::Image::Raster { .. } => {}
-
-                #[cfg(feature = "svg")]
-                layer::Image::Vector {
-                    handle,
-                    color,
-                    bounds,
-                } => {
-                    let size = [bounds.width, bounds.height];
-
-                    if let Some(atlas_entry) = vector_cache.upload(
-                        device,
-                        encoder,
-                        handle,
-                        *color,
-                        size,
-                        _scale,
-                        &mut self.texture_atlas,
-                    ) {
-                        add_instances(
-                            [bounds.x, bounds.y],
-                            size,
-                            atlas_entry,
-                            nearest_instances,
-                        );
-                    }
-                }
-                #[cfg(not(feature = "svg"))]
-                layer::Image::Vector { .. } => {}
-            }
-        }
-
-        if nearest_instances.is_empty() && linear_instances.is_empty() {
-            return;
-        }
-
-        let texture_version = self.texture_atlas.layer_count();
-
-        if self.texture_version != texture_version {
-            log::info!("Atlas has grown. Recreating bind group...");
-
-            self.texture =
-                device.create_bind_group(&wgpu::BindGroupDescriptor {
-                    label: Some("iced_wgpu::image texture atlas bind group"),
-                    layout: &self.texture_layout,
-                    entries: &[wgpu::BindGroupEntry {
-                        binding: 0,
-                        resource: wgpu::BindingResource::TextureView(
-                            self.texture_atlas.view(),
-                        ),
-                    }],
-                });
-
-            self.texture_version = texture_version;
-        }
-
-        if self.layers.len() <= self.prepare_layer {
-            self.layers.push(Layer::new(
-                device,
-                &self.constant_layout,
-                &self.nearest_sampler,
-                &self.linear_sampler,
-            ));
-        }
-
-        let layer = &mut self.layers[self.prepare_layer];
-
-        layer.prepare(
-            device,
-            encoder,
-            belt,
-            nearest_instances,
-            linear_instances,
-            transformation,
-        );
-
-        self.prepare_layer += 1;
-    }
-
-    pub fn render<'a>(
-        &'a self,
-        layer: usize,
-        bounds: Rectangle<u32>,
-        render_pass: &mut wgpu::RenderPass<'a>,
-    ) {
-        if let Some(layer) = self.layers.get(layer) {
-            render_pass.set_pipeline(&self.pipeline);
-
-            render_pass.set_scissor_rect(
-                bounds.x,
-                bounds.y,
-                bounds.width,
-                bounds.height,
-            );
-
-            render_pass.set_bind_group(1, &self.texture, &[]);
-
-            layer.render(render_pass);
-        }
-    }
-
-    pub fn end_frame(&mut self) {
-        #[cfg(feature = "image")]
-        self.raster_cache.borrow_mut().trim(&mut self.texture_atlas);
-
-        #[cfg(feature = "svg")]
-        self.vector_cache.borrow_mut().trim(&mut self.texture_atlas);
-
-        self.prepare_layer = 0;
     }
 }
 

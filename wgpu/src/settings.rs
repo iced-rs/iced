@@ -2,18 +2,18 @@
 use crate::core::{Font, Pixels};
 use crate::graphics::{self, Antialiasing};
 
-/// The settings of a [`Backend`].
+/// The settings of a [`Renderer`].
 ///
-/// [`Backend`]: crate::Backend
+/// [`Renderer`]: crate::Renderer
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Settings {
-    /// The present mode of the [`Backend`].
+    /// The present mode of the [`Renderer`].
     ///
-    /// [`Backend`]: crate::Backend
+    /// [`Renderer`]: crate::Renderer
     pub present_mode: wgpu::PresentMode,
 
-    /// The internal graphics backend to use.
-    pub internal_backend: wgpu::Backends,
+    /// The graphics backends to use.
+    pub backends: wgpu::Backends,
 
     /// The default [`Font`] to use.
     pub default_font: Font,
@@ -33,7 +33,7 @@ impl Default for Settings {
     fn default() -> Settings {
         Settings {
             present_mode: wgpu::PresentMode::AutoVsync,
-            internal_backend: wgpu::Backends::all(),
+            backends: wgpu::Backends::all(),
             default_font: Font::default(),
             default_text_size: Pixels(16.0),
             antialiasing: None,

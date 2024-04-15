@@ -1194,13 +1194,8 @@ fn run_command<A, C, E>(
                     uis.drain().map(|(id, ui)| (id, ui.into_cache())).collect();
             }
             command::Action::LoadFont { bytes, tagger } => {
-                use crate::core::text::Renderer;
-
-                // TODO change this once we change each renderer to having a single backend reference.. :pain:
                 // TODO: Error handling (?)
-                for (_, window) in window_manager.iter_mut() {
-                    window.renderer.load_font(bytes.clone());
-                }
+                compositor.load_font(bytes.clone());
 
                 proxy
                     .send_event(tagger(Ok(())))

@@ -651,7 +651,7 @@ where
         defaults: &renderer::Style,
         layout: Layout<'_>,
         cursor: mouse::Cursor,
-        _viewport: &Rectangle,
+        viewport: &Rectangle,
     ) {
         let state = tree.state.downcast_ref::<State>();
 
@@ -767,8 +767,8 @@ where
 
             renderer.with_layer(
                 Rectangle {
-                    width: bounds.width + 2.0,
-                    height: bounds.height + 2.0,
+                    width: (bounds.width + 2.0).min(viewport.width),
+                    height: (bounds.height + 2.0).min(viewport.height),
                     ..bounds
                 },
                 |renderer| {

@@ -11,7 +11,6 @@ pub use paragraph::Paragraph;
 use crate::alignment;
 use crate::{Color, Pixels, Point, Rectangle, Size};
 
-use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 
 /// A paragraph.
@@ -191,9 +190,6 @@ pub trait Renderer: crate::Renderer {
 
     /// Returns the default size of [`Text`].
     fn default_size(&self) -> Pixels;
-
-    /// Loads a [`Self::Font`] from its bytes.
-    fn load_font(&mut self, font: Cow<'static, [u8]>);
 
     /// Draws the given [`Paragraph`] at the given position and with the given
     /// [`Color`].

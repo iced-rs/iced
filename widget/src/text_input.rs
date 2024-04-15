@@ -368,7 +368,7 @@ where
 
         let text = value.to_string();
 
-        let (cursor, offset) = if let Some(focus) = state
+        let (cursor, offset, is_selecting) = if let Some(focus) = state
             .is_focused
             .as_ref()
             .filter(|focus| focus.is_window_focused)
@@ -406,7 +406,7 @@ where
                         None
                     };
 
-                    (cursor, offset)
+                    (cursor, offset, false)
                 }
                 cursor::State::Selection { start, end } => {
                     let left = start.min(end);
@@ -446,11 +446,12 @@ where
                         } else {
                             left_offset
                         },
+                        true,
                     )
                 }
             }
         } else {
-            (None, 0.0)
+            (None, 0.0, false)
         };
 
         let draw = |renderer: &mut Renderer, viewport| {
@@ -482,7 +483,7 @@ where
             );
         };
 
-        if cursor.is_some() {
+        if is_selecting {
             renderer
                 .with_layer(text_bounds, |renderer| draw(renderer, *viewport));
         } else {
@@ -712,7 +713,8 @@ where
 
                     match key.as_ref() {
                         keyboard::Key::Character("c")
-                            if state.keyboard_modifiers.command() =>
+                            if state.keyboard_modifiers.command()
+                                && !self.is_secure =>
                         {
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
@@ -726,7 +728,8 @@ where
                             return event::Status::Captured;
                         }
                         keyboard::Key::Character("x")
-                            if state.keyboard_modifiers.command() =>
+                            if state.keyboard_modifiers.command()
+                                && !self.is_secure =>
                         {
                             if let Some((start, end)) =
                                 state.cursor.selection(&self.value)
