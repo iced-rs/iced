@@ -319,7 +319,9 @@ where
     }
 }
 
-struct State<Highlighter: text::Highlighter> {
+/// The state of a [`TextEditor`].
+#[derive(Debug)]
+pub struct State<Highlighter: text::Highlighter> {
     is_focused: bool,
     last_click: Option<mouse::Click>,
     drag_click: Option<mouse::click::Kind>,
@@ -327,6 +329,13 @@ struct State<Highlighter: text::Highlighter> {
     highlighter: RefCell<Highlighter>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format_address: usize,
+}
+
+impl<Highlighter: text::Highlighter> State<Highlighter> {
+    /// Returns whether the [`TextEditor`] is currently focused or not.
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
 }
 
 impl<'a, Highlighter, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
