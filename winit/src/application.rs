@@ -149,13 +149,14 @@ where
     let event_loop = EventLoopBuilder::with_user_event()
         .build()
         .expect("Create event loop");
-    let proxy = event_loop.create_proxy();
+
+    let (proxy, worker) = Proxy::new(event_loop.create_proxy());
 
     let runtime = {
-        let proxy = Proxy::new(event_loop.create_proxy());
         let executor = E::new().map_err(Error::ExecutorCreationFailed)?;
+        executor.spawn(worker);
 
-        Runtime::new(executor, proxy)
+        Runtime::new(executor, proxy.clone())
     };
 
     let (application, init_command) = {
@@ -305,7 +306,7 @@ async fn run_instance<A, E, C>(
     mut compositor: C,
     mut renderer: A::Renderer,
     mut runtime: Runtime<E, Proxy<A::Message>, A::Message>,
-    mut proxy: winit::event_loop::EventLoopProxy<A::Message>,
+    mut proxy: Proxy<A::Message>,
     mut debug: Debug,
     mut event_receiver: mpsc::UnboundedReceiver<
         winit::event::Event<A::Message>,
@@ -370,6 +371,7 @@ async fn run_instance<A, E, C>(
     let mut mouse_interaction = mouse::Interaction::default();
     let mut events = Vec::new();
     let mut messages = Vec::new();
+    let mut user_events = 0;
     let mut redraw_pending = false;
 
     debug.startup_finished();
@@ -396,6 +398,7 @@ async fn run_instance<A, E, C>(
             }
             event::Event::UserEvent(message) => {
                 messages.push(message);
+                user_events += 1;
             }
             event::Event::WindowEvent {
                 event: event::WindowEvent::RedrawRequested { .. },
@@ -593,6 +596,11 @@ async fn run_instance<A, E, C>(
                     if should_exit {
                         break;
                     }
+
+                    if user_events > 0 {
+                        proxy.free_slots(user_events);
+                        user_events = 0;
+                    }
                 }
 
                 if !redraw_pending {
@@ -667,7 +675,7 @@ pub fn update<A: Application, C, E: Executor>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut Proxy<A::Message>,
     debug: &mut Debug,
     messages: &mut Vec<A::Message>,
     window: &winit::window::Window,
@@ -717,7 +725,7 @@ pub fn run_command<A, C, E>(
     runtime: &mut Runtime<E, Proxy<A::Message>, A::Message>,
     clipboard: &mut Clipboard,
     should_exit: &mut bool,
-    proxy: &mut winit::event_loop::EventLoopProxy<A::Message>,
+    proxy: &mut Proxy<A::Message>,
     debug: &mut Debug,
     window: &winit::window::Window,
 ) where
@@ -742,9 +750,7 @@ pub fn run_command<A, C, E>(
                 clipboard::Action::Read(tag, kind) => {
                     let message = tag(clipboard.read(kind));
 
-                    proxy
-                        .send_event(message)
-                        .expect("Send message to event loop");
+                    proxy.send(message);
                 }
                 clipboard::Action::Write(contents, kind) => {
                     clipboard.write(kind, contents);
@@ -774,25 +780,16 @@ pub fn run_command<A, C, E>(
                     let size =
                         window.inner_size().to_logical(window.scale_factor());
 
-                    proxy
-                        .send_event(callback(Size::new(
-                            size.width,
-                            size.height,
-                        )))
-                        .expect("Send message to event loop");
+                    proxy.send(callback(Size::new(size.width, size.height)));
                 }
                 window::Action::FetchMaximized(_id, callback) => {
-                    proxy
-                        .send_event(callback(window.is_maximized()))
-                        .expect("Send message to event loop");
+                    proxy.send(callback(window.is_maximized()));
                 }
                 window::Action::Maximize(_id, maximized) => {
                     window.set_maximized(maximized);
                 }
                 window::Action::FetchMinimized(_id, callback) => {
-                    proxy
-                        .send_event(callback(window.is_minimized()))
-                        .expect("Send message to event loop");
+                    proxy.send(callback(window.is_minimized()));
                 }
                 window::Action::Minimize(_id, minimized) => {
                     window.set_minimized(minimized);
@@ -808,9 +805,7 @@ pub fn run_command<A, C, E>(
                         })
                         .ok();
 
-                    proxy
-                        .send_event(callback(position))
-                        .expect("Send message to event loop");
+                    proxy.send(callback(position));
                 }
                 window::Action::Move(_id, position) => {
                     window.set_outer_position(winit::dpi::LogicalPosition {
@@ -835,9 +830,7 @@ pub fn run_command<A, C, E>(
                         core::window::Mode::Hidden
                     };
 
-                    proxy
-                        .send_event(tag(mode))
-                        .expect("Send message to event loop");
+                    proxy.send(tag(mode));
                 }
                 window::Action::ToggleMaximize(_id) => {
                     window.set_maximized(!window.is_maximized());
@@ -865,17 +858,13 @@ pub fn run_command<A, C, E>(
                     }
                 }
                 window::Action::FetchId(_id, tag) => {
-                    proxy
-                        .send_event(tag(window.id().into()))
-                        .expect("Send message to event loop");
+                    proxy.send(tag(window.id().into()));
                 }
                 window::Action::RunWithHandle(_id, tag) => {
                     use window::raw_window_handle::HasWindowHandle;
 
                     if let Ok(handle) = window.window_handle() {
-                        proxy
-                            .send_event(tag(&handle))
-                            .expect("Send message to event loop");
+                        proxy.send(tag(&handle));
                     }
                 }
 
@@ -888,12 +877,10 @@ pub fn run_command<A, C, E>(
                         &debug.overlay(),
                     );
 
-                    proxy
-                        .send_event(tag(window::Screenshot::new(
-                            bytes,
-                            state.physical_size(),
-                        )))
-                        .expect("Send message to event loop.");
+                    proxy.send(tag(window::Screenshot::new(
+                        bytes,
+                        state.physical_size(),
+                    )));
                 }
             },
             command::Action::System(action) => match action {
@@ -901,7 +888,7 @@ pub fn run_command<A, C, E>(
                     #[cfg(feature = "system")]
                     {
                         let graphics_info = compositor.fetch_information();
-                        let proxy = proxy.clone();
+                        let mut proxy = proxy.clone();
 
                         let _ = std::thread::spawn(move || {
                             let information =
@@ -909,9 +896,7 @@ pub fn run_command<A, C, E>(
 
                             let message = _tag(information);
 
-                            proxy
-                                .send_event(message)
-                                .expect("Send message to event loop");
+                            proxy.send(message);
                         });
                     }
                 }
@@ -934,9 +919,7 @@ pub fn run_command<A, C, E>(
                     match operation.finish() {
                         operation::Outcome::None => {}
                         operation::Outcome::Some(message) => {
-                            proxy
-                                .send_event(message)
-                                .expect("Send message to event loop");
+                            proxy.send(message);
                         }
                         operation::Outcome::Chain(next) => {
                             current_operation = Some(next);
@@ -951,9 +934,7 @@ pub fn run_command<A, C, E>(
                 // TODO: Error handling (?)
                 compositor.load_font(bytes);
 
-                proxy
-                    .send_event(tagger(Ok(())))
-                    .expect("Send message to event loop");
+                proxy.send(tagger(Ok(())));
             }
             command::Action::Custom(_) => {
                 log::warn!("Unsupported custom action in `iced_winit` shell");
