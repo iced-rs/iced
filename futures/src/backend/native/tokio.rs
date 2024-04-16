@@ -55,13 +55,15 @@ pub mod time {
 
             let start = tokio::time::Instant::now() + self.0;
 
+            let mut interval = tokio::time::interval_at(start, self.0);
+            interval.set_missed_tick_behavior(
+                tokio::time::MissedTickBehavior::Skip,
+            );
+
             let stream = {
-                futures::stream::unfold(
-                    tokio::time::interval_at(start, self.0),
-                    |mut interval| async move {
-                        Some((interval.tick().await, interval))
-                    },
-                )
+                futures::stream::unfold(interval, |mut interval| async move {
+                    Some((interval.tick().await, interval))
+                })
             };
 
             stream.map(tokio::time::Instant::into_std).boxed()
