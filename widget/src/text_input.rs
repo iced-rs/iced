@@ -140,6 +140,15 @@ where
         self
     }
 
+	/// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed, if `Some`.
+	///
+	/// If `None` the [`TextInput`] will be disabled.
+    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
+        self.on_submit = on_submit;
+        self
+    }
+
     /// Sets the message that should be produced when some text is pasted into
     /// the [`TextInput`].
     pub fn on_paste(
