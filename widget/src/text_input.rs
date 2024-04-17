@@ -137,10 +137,34 @@ where
         self
     }
 
+    /// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`], if `Some`.
+    ///
+    /// If `None`, the [`TextInput`] will be disabled.
+    pub fn on_input_maybe<F>(mut self, callback: Option<F>) -> Self
+    where
+        F: 'a + Fn(String) -> Message,
+    {
+        self.on_input = match callback {
+            Some(c) => Some(Box::new(c)),
+            None => None,
+        };
+        self
+    }
+
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
         self.on_submit = Some(message);
+        self
+    }
+
+    /// Sets the message that should be produced when the [`TextInput`] is
+    /// focused and the enter key is pressed, if `Some`.
+    ///
+    /// If `None` the [`TextInput`] nothing will happen.
+    pub fn on_submit_maybe(mut self, on_submit: Option<Message>) -> Self {
+        self.on_submit = on_submit;
         self
     }
 
@@ -151,6 +175,21 @@ where
         on_paste: impl Fn(String) -> Message + 'a,
     ) -> Self {
         self.on_paste = Some(Box::new(on_paste));
+        self
+    }
+
+    /// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`], if `Some`.
+    ///
+    /// If `None` nothing will happen.
+    pub fn on_paste_maybe(
+        mut self,
+        on_paste: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+        self.on_paste = match on_paste {
+            Some(func) => Some(Box::new(func)),
+            None => None,
+        };
         self
     }
 
