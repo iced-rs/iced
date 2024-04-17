@@ -133,6 +133,21 @@ where
         self
     }
 
+	/// Sets the message that should be produced when some text is typed into
+    /// the [`TextInput`], if `Some`.
+    ///
+    /// If `None`, the [`TextInput`] will be disabled.
+	pub fn on_input_maybe<F>(mut self, callback: Option<F>) -> Self
+    where
+        F: 'a + Fn(String) -> Message,
+    {
+		self.on_input = match callback {
+			Some(c) => Some(Box::new(c)),
+			None => None
+		};
+        self
+    }
+
     /// Sets the message that should be produced when the [`TextInput`] is
     /// focused and the enter key is pressed.
     pub fn on_submit(mut self, message: Message) -> Self {
