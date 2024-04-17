@@ -173,6 +173,21 @@ where
         self.on_paste = Some(Box::new(on_paste));
         self
     }
+	
+	/// Sets the message that should be produced when some text is pasted into
+    /// the [`TextInput`], if `Some`.
+	///
+	/// If `None` nothing will happen.
+    pub fn on_paste_maybe(
+        mut self,
+        on_paste: Option<impl Fn(String) -> Message + 'a>,
+    ) -> Self {
+		self.on_paste = match on_paste {
+			Some(func) => Some(Box::new(func)),
+			None => None
+		};
+        self
+    }
 
     /// Sets the [`Font`] of the [`TextInput`].
     ///
