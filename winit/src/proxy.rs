@@ -1,6 +1,6 @@
 use crate::futures::futures::{
     channel::mpsc,
-    stream,
+    select,
     task::{Context, Poll},
     Future, Sink, StreamExt,
 };
@@ -31,40 +31,33 @@ impl<Message: 'static> Proxy<Message> {
     pub fn new(
         raw: winit::event_loop::EventLoopProxy<Message>,
     ) -> (Self, impl Future<Output = ()>) {
-        let (notifier, processed) = mpsc::channel(Self::MAX_SIZE);
-        let (sender, receiver) = mpsc::channel(Self::MAX_SIZE);
+        let (notifier, mut processed) = mpsc::channel(Self::MAX_SIZE);
+        let (sender, mut receiver) = mpsc::channel(Self::MAX_SIZE);
         let proxy = raw.clone();
 
         let worker = async move {
-            enum Item<T> {
-                MessageProduced(T),
-                BatchProcessed(usize),
-            }
-
-            let mut receiver = receiver.map(Item::MessageProduced);
-            let mut processed = processed.map(Item::BatchProcessed);
-
             let mut count = 0;
 
             loop {
                 if count < Self::MAX_SIZE {
-                    let mut stream =
-                        stream::select(receiver.by_ref(), processed.by_ref());
-
-                    match stream.select_next_some().await {
-                        Item::MessageProduced(message) => {
+                    select! {
+                        message = receiver.select_next_some() => {
                             let _ = proxy.send_event(message);
-
                             count += 1;
+
                         }
-                        Item::BatchProcessed(amount) => {
+                        amount = processed.select_next_some() => {
                             count = count.saturating_sub(amount);
                         }
+                        complete => break,
                     }
-                } else if let Item::BatchProcessed(amount) =
-                    processed.select_next_some().await
-                {
-                    count = count.saturating_sub(amount);
+                } else {
+                    select! {
+                        amount = processed.select_next_some() => {
+                            count = count.saturating_sub(amount);
+                        }
+                        complete => break,
+                    }
                 }
             }
         };
