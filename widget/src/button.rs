@@ -53,6 +53,7 @@ where
 {
     content: Element<'a, Message, Theme, Renderer>,
     on_press: Option<Message>,
+    on_press_alt: Option<Message>,
     width: Length,
     height: Length,
     padding: Padding,
@@ -75,6 +76,7 @@ where
         Button {
             content,
             on_press: None,
+            on_press_alt: None,
             width: size.width.fluid(),
             height: size.height.fluid(),
             padding: DEFAULT_PADDING,
@@ -118,6 +120,15 @@ where
         self
     }
 
+    /// Sets the message that will be produced when the [`Button`] is pressed
+    /// with the right mouse button.
+    ///
+    /// Unless `on_press` is also called, the [`Button`] will be disabled.
+    pub fn on_press_alt(mut self, on_press: Message) -> Self {
+        self.on_press_alt = Some(on_press);
+        self
+    }
+
     /// Sets whether the contents of the [`Button`] should be clipped on
     /// overflow.
     pub fn clip(mut self, clip: bool) -> Self {
@@ -147,6 +158,7 @@ where
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 struct State {
     is_pressed: bool,
+    is_pressed_alt: bool,
 }
 
 impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -279,6 +291,36 @@ where
 
                 state.is_pressed = false;
             }
+            Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Right)) => {
+                if self.on_press.is_some() && self.on_press_alt.is_some() {
+                    let bounds = layout.bounds();
+
+                    if cursor.is_over(bounds) {
+                        let state = tree.state.downcast_mut::<State>();
+
+                        state.is_pressed_alt = true;
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
+            Event::Mouse(mouse::Event::ButtonReleased(mouse::Button::Right)) => {
+                if let Some(on_press_alt) = self.on_press_alt.clone() {
+                    let state = tree.state.downcast_mut::<State>();
+
+                    if state.is_pressed_alt {
+                        state.is_pressed_alt = false;
+
+                        let bounds = layout.bounds();
+
+                        if cursor.is_over(bounds) {
+                            shell.publish(on_press_alt);
+                        }
+
+                        return event::Status::Captured;
+                    }
+                }
+            }
             _ => {}
         }
 
@@ -304,7 +346,7 @@ where
         } else if is_mouse_over {
             let state = tree.state.downcast_ref::<State>();
 
-            if state.is_pressed {
+            if state.is_pressed || state.is_pressed_alt {
                 Status::Pressed
             } else {
                 Status::Hovered
