@@ -435,15 +435,17 @@ where
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
 
-                notify_on_scroll(
+                event_status = if notify_on_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                );
-
-                event_status = event::Status::Captured;
+                ) {
+                    event::Status::Captured
+                } else {
+                    event::Status::Ignored
+                };
             }
             Event::Touch(event)
                 if state.scroll_area_touched_at.is_some()
@@ -481,7 +483,8 @@ where
                             state.scroll_area_touched_at =
                                 Some(cursor_position);
 
-                            notify_on_scroll(
+                            // TODO: bubble up touch movements if not consumed.
+                            _ = notify_on_scroll(
                                 state,
                                 &self.on_scroll,
                                 bounds,
@@ -516,7 +519,7 @@ where
                             content_bounds,
                         );
 
-                        notify_on_scroll(
+                        _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -554,7 +557,7 @@ where
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        notify_on_scroll(
+                        _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -587,7 +590,7 @@ where
                             content_bounds,
                         );
 
-                        notify_on_scroll(
+                        _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -625,7 +628,7 @@ where
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        notify_on_scroll(
+                        _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -961,52 +964,55 @@ pub fn scroll_to<Message: 'static>(
     Command::widget(operation::scrollable::scroll_to(id.0, offset))
 }
 
-fn notify_on_scroll<Message>(
-    state: &mut State,
-    on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
-    bounds: Rectangle,
-    content_bounds: Rectangle,
-    shell: &mut Shell<'_, Message>,
-) {
-    if let Some(on_scroll) = on_scroll {
-        if content_bounds.width <= bounds.width
-            && content_bounds.height <= bounds.height
-        {
-            return;
-        }
+/ Returns [`true`] if the viewport actually changed.
+ fn notify_on_scroll<Message>(
+     state: &mut State,
+     on_scroll: &Option<Box<dyn Fn(Viewport) -> Message + '_>>,
+     bounds: Rectangle,
+     content_bounds: Rectangle,
+     shell: &mut Shell<'_, Message>,
+ ) -> bool {
+     if content_bounds.width <= bounds.width
+         && content_bounds.height <= bounds.height
+     {
+         return false;
+     }
 
-        let viewport = Viewport {
-            offset_x: state.offset_x,
-            offset_y: state.offset_y,
-            bounds,
-            content_bounds,
-        };
+     let viewport = Viewport {
+         offset_x: state.offset_x,
+         offset_y: state.offset_y,
+         bounds,
+         content_bounds,
+     };
 
-        // Don't publish redundant viewports to shell
-        if let Some(last_notified) = state.last_notified {
-            let last_relative_offset = last_notified.relative_offset();
-            let current_relative_offset = viewport.relative_offset();
+     // Don't publish redundant viewports to shell
+     if let Some(last_notified) = state.last_notified {
+         let last_relative_offset = last_notified.relative_offset();
+         let current_relative_offset = viewport.relative_offset();
 
-            let last_absolute_offset = last_notified.absolute_offset();
-            let current_absolute_offset = viewport.absolute_offset();
+         let last_absolute_offset = last_notified.absolute_offset();
+         let current_absolute_offset = viewport.absolute_offset();
 
-            let unchanged = |a: f32, b: f32| {
-                (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
-            };
+         let unchanged = |a: f32, b: f32| {
+             (a - b).abs() <= f32::EPSILON || (a.is_nan() && b.is_nan())
+         };
 
-            if unchanged(last_relative_offset.x, current_relative_offset.x)
-                && unchanged(last_relative_offset.y, current_relative_offset.y)
-                && unchanged(last_absolute_offset.x, current_absolute_offset.x)
-                && unchanged(last_absolute_offset.y, current_absolute_offset.y)
-            {
-                return;
-            }
-        }
+         if unchanged(last_relative_offset.x, current_relative_offset.x)
+             && unchanged(last_relative_offset.y, current_relative_offset.y)
+             && unchanged(last_absolute_offset.x, current_absolute_offset.x)
+             && unchanged(last_absolute_offset.y, current_absolute_offset.y)
+         {
+             return false;
+         }
+     }
 
-        shell.publish(on_scroll(viewport));
-        state.last_notified = Some(viewport);
-    }
-}
+     if let Some(on_scroll) = on_scroll {
+         shell.publish(on_scroll(viewport));
+     }
+     state.last_notified = Some(viewport);
+
+     true
+ }
 
 #[derive(Debug, Clone, Copy)]
 struct State {
