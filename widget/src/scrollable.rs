@@ -659,6 +659,10 @@ where
         let content_layout = layout.children().next().unwrap();
         let content_bounds = content_layout.bounds();
 
+        let Some(visible_bounds) = bounds.intersection(viewport) else {
+            return;
+        };
+
         let scrollbars =
             Scrollbars::new(state, self.direction, bounds, content_bounds);
 
@@ -704,7 +708,7 @@ where
 
         // Draw inner content
         if scrollbars.active() {
-            renderer.with_layer(bounds, |renderer| {
+            renderer.with_layer(visible_bounds, |renderer| {
                 renderer.with_translation(
                     Vector::new(-translation.x, -translation.y),
                     |renderer| {
@@ -767,9 +771,9 @@ where
 
             renderer.with_layer(
                 Rectangle {
-                    width: (bounds.width + 2.0).min(viewport.width),
-                    height: (bounds.height + 2.0).min(viewport.height),
-                    ..bounds
+                    width: (visible_bounds.width + 2.0).min(viewport.width),
+                    height: (visible_bounds.height + 2.0).min(viewport.height),
+                    ..visible_bounds
                 },
                 |renderer| {
                     if let Some(scrollbar) = scrollbars.y {
