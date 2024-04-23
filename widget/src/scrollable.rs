@@ -484,7 +484,7 @@ where
                                 Some(cursor_position);
 
                             // TODO: bubble up touch movements if not consumed.
-                            _ = notify_on_scroll(
+                            let _ = notify_on_scroll(
                                 state,
                                 &self.on_scroll,
                                 bounds,
@@ -519,7 +519,7 @@ where
                             content_bounds,
                         );
 
-                        _ = notify_on_scroll(
+                        let _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -557,7 +557,7 @@ where
 
                         state.y_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        _ = notify_on_scroll(
+                        let _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -590,7 +590,7 @@ where
                             content_bounds,
                         );
 
-                        _ = notify_on_scroll(
+                        let _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
@@ -628,7 +628,7 @@ where
 
                         state.x_scroller_grabbed_at = Some(scroller_grabbed_at);
 
-                        _ = notify_on_scroll(
+                        let _ = notify_on_scroll(
                             state,
                             &self.on_scroll,
                             bounds,
