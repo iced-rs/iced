@@ -358,13 +358,13 @@ where
                         mouse::Event::ButtonPressed(_)
                         | mouse::Event::ButtonReleased(_)
                         | mouse::Event::CursorLeft => {
-                            state.scroll_transaction = None
+                            state.scroll_transaction = None;
                         }
                         mouse::Event::CursorMoved { .. }
                             if latest.elapsed()
                                 > Duration::from_millis(100) =>
                         {
-                            state.scroll_transaction = None
+                            state.scroll_transaction = None;
                         }
                         _ => {}
                     },
@@ -466,20 +466,18 @@ where
 
                 state.scroll(delta, self.direction, bounds, content_bounds);
 
-                event_status = if notify_on_scroll(
+                let captured = notify_on_scroll(
                     state,
                     &self.on_scroll,
                     bounds,
                     content_bounds,
                     shell,
-                ) {
+                );
+                event_status = if captured || state.scroll_transaction.is_some()
+                {
                     event::Status::Captured
                 } else {
-                    if state.scroll_transaction.is_some() {
-                        event::Status::Captured
-                    } else {
-                        event::Status::Ignored
-                    }
+                    event::Status::Ignored
                 };
             }
             Event::Touch(event)
