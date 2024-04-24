@@ -5,6 +5,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::text;
+use crate::core::text::Wrapping;
 use crate::core::theme::palette;
 use crate::core::touch;
 use crate::core::widget;
@@ -240,6 +241,7 @@ where
                     alignment::Horizontal::Left,
                     alignment::Vertical::Top,
                     self.text_shaping,
+                    Wrapping::default(),
                 )
             },
         )
@@ -348,6 +350,7 @@ where
                         horizontal_alignment: alignment::Horizontal::Center,
                         vertical_alignment: alignment::Vertical::Center,
                         shaping: *shaping,
+                        wrapping: Wrapping::default(),
                     },
                     bounds.center(),
                     style.icon_color,

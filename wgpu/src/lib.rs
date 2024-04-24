@@ -408,6 +408,7 @@ impl Renderer {
                         horizontal_alignment: alignment::Horizontal::Left,
                         vertical_alignment: alignment::Vertical::Top,
                         shaping: core::text::Shaping::Basic,
+                        wrapping: core::text::Wrapping::default(),
                     };
 
                     renderer.fill_text(

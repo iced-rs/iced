@@ -216,6 +216,7 @@ where
                         self.text_alignment,
                         alignment::Vertical::Top,
                         self.text_shaping,
+                        text::Wrapping::default(),
                     )
                 } else {
                     layout::Node::new(Size::ZERO)
