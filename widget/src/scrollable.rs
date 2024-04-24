@@ -7,6 +7,7 @@ use crate::core::layout;
 use crate::core::mouse;
 use crate::core::overlay;
 use crate::core::renderer;
+use crate::core::time::{Duration, Instant};
 use crate::core::touch;
 use crate::core::widget;
 use crate::core::widget::operation::{self, Operation};
@@ -344,13 +345,41 @@ where
         let content = layout.children().next().unwrap();
         let content_bounds = content.bounds();
 
+        // See https://wiki.mozilla.org/Gecko:Mouse_Wheel_Scrolling#Mouse_wheel_transaction for the reference behaviour.
+        if let Some(latest) = state.scroll_transaction {
+            if latest.elapsed() > Duration::from_millis(1500)
+                || cursor_over_scrollable.is_none()
+            {
+                state.last_notified = None;
+            } else {
+                match event {
+                    Event::Keyboard(_) => state.scroll_transaction = None,
+                    Event::Mouse(e) => match e {
+                        mouse::Event::ButtonPressed(_)
+                        | mouse::Event::ButtonReleased(_)
+                        | mouse::Event::CursorLeft => {
+                            state.scroll_transaction = None
+                        }
+                        mouse::Event::CursorMoved { .. }
+                            if latest.elapsed()
+                                > Duration::from_millis(100) =>
+                        {
+                            state.scroll_transaction = None
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
+        }
+
         let scrollbars =
             Scrollbars::new(state, self.direction, bounds, content_bounds);
 
         let (mouse_over_y_scrollbar, mouse_over_x_scrollbar) =
             scrollbars.is_mouse_over(cursor);
 
-        let mut event_status = {
+        let mut event_status = if state.scroll_transaction.is_none() {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -384,6 +413,8 @@ where
                     ..bounds
                 },
             )
+        } else {
+            event::Status::Ignored
         };
 
         if matches!(
@@ -444,7 +475,11 @@ where
                 ) {
                     event::Status::Captured
                 } else {
-                    event::Status::Ignored
+                    if state.scroll_transaction.is_some() {
+                        event::Status::Captured
+                    } else {
+                        event::Status::Ignored
+                    }
                 };
             }
             Event::Touch(event)
@@ -1014,6 +1049,7 @@ fn notify_on_scroll<Message>(
         shell.publish(on_scroll(viewport));
     }
     state.last_notified = Some(viewport);
+    state.scroll_transaction = Some(Instant::now());
 
     true
 }
@@ -1027,6 +1063,8 @@ struct State {
     x_scroller_grabbed_at: Option<f32>,
     keyboard_modifiers: keyboard::Modifiers,
     last_notified: Option<Viewport>,
+
+    scroll_transaction: Option<Instant>,
 }
 
 impl Default for State {
@@ -1039,6 +1077,7 @@ impl Default for State {
             x_scroller_grabbed_at: None,
             keyboard_modifiers: keyboard::Modifiers::default(),
             last_notified: None,
+            scroll_transaction: None,
         }
     }
 }

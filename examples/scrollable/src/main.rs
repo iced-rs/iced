@@ -200,6 +200,21 @@ impl ScrollableDemo {
                 .padding(10)
                 .on_press(Message::ScrollToBeginning)
         };
+        let c = container(
+            scrollable(
+                container(vertical_space().width(Length::Fill).height(800))
+                    .style(|t: &Theme| container::Style {
+                        text_color: None,
+                        background: Some(iced::Background::Color(
+                            t.extended_palette().secondary.strong.color,
+                        )),
+                        border: Border::rounded(4),
+                        shadow: iced::Shadow::default(),
+                    }),
+            )
+            .height(200),
+        )
+        .padding(20);
 
         let scrollable_content: Element<Message> =
             Element::from(match self.scrollable_direction {
@@ -209,6 +224,7 @@ impl ScrollableDemo {
                         text("Beginning!"),
                         vertical_space().height(1200),
                         text("Middle!"),
+                        c,
                         vertical_space().height(1200),
                         text("End!"),
                         scroll_to_beginning_button(),
