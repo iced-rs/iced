@@ -94,7 +94,7 @@ impl Atlas {
             entry
         };
 
-        log::info!("Allocated atlas entry: {entry:?}");
+        log::debug!("Allocated atlas entry: {entry:?}");
 
         // It is a webgpu requirement that:
         //   BufferCopyView.layout.bytes_per_row % wgpu::COPY_BYTES_PER_ROW_ALIGNMENT == 0
@@ -147,13 +147,20 @@ impl Atlas {
             }
         }
 
-        log::info!("Current atlas: {self:?}");
+        if log::log_enabled!(log::Level::Debug) {
+            log::debug!(
+                "Atlas layers: {} (busy: {}, allocations: {})",
+                self.layer_count(),
+                self.layers.iter().filter(|layer| !layer.is_empty()).count(),
+                self.layers.iter().map(Layer::allocations).sum::<usize>(),
+            );
+        }
 
         Some(entry)
     }
 
     pub fn remove(&mut self, entry: &Entry) {
-        log::info!("Removing atlas entry: {entry:?}");
+        log::debug!("Removing atlas entry: {entry:?}");
 
         match entry {
             Entry::Contiguous(allocation) => {
@@ -266,7 +273,7 @@ impl Atlas {
     }
 
     fn deallocate(&mut self, allocation: &Allocation) {
-        log::info!("Deallocating atlas: {allocation:?}");
+        log::debug!("Deallocating atlas: {allocation:?}");
 
         match allocation {
             Allocation::Full { layer } => {

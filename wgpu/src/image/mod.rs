@@ -277,7 +277,7 @@ impl Pipeline {
         let texture_version = cache.layer_count();
 
         if self.texture_version != texture_version {
-            log::info!("Atlas has grown. Recreating bind group...");
+            log::debug!("Atlas has grown. Recreating bind group...");
 
             self.texture =
                 cache.create_bind_group(device, &self.texture_layout);
