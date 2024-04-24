@@ -40,6 +40,7 @@ impl Memory {
 pub struct Cache {
     map: FxHashMap<u64, Memory>,
     hits: FxHashSet<u64>,
+    should_trim: bool,
 }
 
 impl Cache {
@@ -54,6 +55,8 @@ impl Cache {
             Err(image_rs::error::ImageError::IoError(_)) => Memory::NotFound,
             Err(_) => Memory::Invalid,
         };
+
+        self.should_trim = true;
 
         self.insert(handle, memory);
         self.get(handle).unwrap()
@@ -86,6 +89,11 @@ impl Cache {
 
     /// Trim cache misses from cache
     pub fn trim(&mut self, atlas: &mut Atlas) {
+        // Only trim if new entries have landed in the `Cache`
+        if !self.should_trim {
+            return;
+        }
+
         let hits = &self.hits;
 
         self.map.retain(|k, memory| {
@@ -101,6 +109,7 @@ impl Cache {
         });
 
         self.hits.clear();
+        self.should_trim = false;
     }
 
     fn get(&mut self, handle: &image::Handle) -> Option<&mut Memory> {

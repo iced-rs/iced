@@ -33,6 +33,10 @@ impl Allocator {
     pub fn is_empty(&self) -> bool {
         self.allocations == 0
     }
+
+    pub fn allocations(&self) -> usize {
+        self.allocations
+    }
 }
 
 pub struct Region {
