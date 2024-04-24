@@ -1,4 +1,4 @@
-//! Distribute content vertically.
+//! Display content on top of other content.
 use crate::core::event::{self, Event};
 use crate::core::layout;
 use crate::core::mouse;
