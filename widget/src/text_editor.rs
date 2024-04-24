@@ -2,7 +2,7 @@
 use crate::core::clipboard::{self, Clipboard};
 use crate::core::event::{self, Event};
 use crate::core::keyboard;
-use crate::core::keyboard::key;
+use crate::core::keyboard::{key, Modifiers};
 use crate::core::layout::{self, Layout};
 use crate::core::mouse;
 use crate::core::renderer;
@@ -763,7 +763,7 @@ impl Update {
                     }
 
                     if let keyboard::Key::Named(named_key) = key.as_ref() {
-                        if let Some(motion) = motion(named_key) {
+                        if let Some(motion) = motion(named_key, modifiers) {
                             let motion = if platform::is_jump_modifier_pressed(
                                 modifiers,
                             ) {
@@ -789,10 +789,19 @@ impl Update {
     }
 }
 
-fn motion(key: key::Named) -> Option<Motion> {
+fn motion(key: key::Named, modifiers: Modifiers) -> Option<Motion> {
+    let cmd_pressed = modifiers.command();
     match key {
-        key::Named::ArrowLeft => Some(Motion::Left),
-        key::Named::ArrowRight => Some(Motion::Right),
+        key::Named::ArrowLeft => Some(if cmd_pressed {
+            Motion::Home
+        } else {
+            Motion::Left
+        }),
+        key::Named::ArrowRight => Some(if cmd_pressed {
+            Motion::End
+        } else {
+            Motion::Right
+        }),
         key::Named::ArrowUp => Some(Motion::Up),
         key::Named::ArrowDown => Some(Motion::Down),
         key::Named::Home => Some(Motion::Home),
