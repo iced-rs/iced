@@ -200,50 +200,60 @@ impl ScrollableDemo {
                 .padding(10)
                 .on_press(Message::ScrollToBeginning)
         };
-        let c = container(
-            scrollable(
-                container(vertical_space().width(Length::Fill).height(800))
-                    .style(|t: &Theme| container::Style {
-                        text_color: None,
-                        background: Some(iced::Background::Color(
-                            t.extended_palette().secondary.strong.color,
-                        )),
-                        border: Border::rounded(4),
-                        shadow: iced::Shadow::default(),
-                    }),
-            )
-            .height(200),
-        )
-        .padding(20);
 
         let scrollable_content: Element<Message> =
             Element::from(match self.scrollable_direction {
-                Direction::Vertical => Scrollable::with_direction(
-                    column![
-                        scroll_to_end_button(),
-                        text("Beginning!"),
-                        vertical_space().height(1200),
-                        text("Middle!"),
-                        c,
-                        vertical_space().height(1200),
-                        text("End!"),
-                        scroll_to_beginning_button(),
-                    ]
-                    .align_items(Alignment::Center)
-                    .padding([40, 0, 40, 0])
-                    .spacing(40),
-                    scrollable::Direction::Vertical(
-                        Properties::new()
-                            .width(self.scrollbar_width)
-                            .margin(self.scrollbar_margin)
-                            .scroller_width(self.scroller_width)
-                            .alignment(self.alignment),
-                    ),
-                )
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .id(SCROLLABLE_ID.clone())
-                .on_scroll(Message::Scrolled),
+                Direction::Vertical => {
+                    Scrollable::with_direction(
+                        column![
+                            scroll_to_end_button(),
+                            text("Beginning!"),
+                            vertical_space().height(1200),
+                            text("Middle!"),
+                            text("Nested:"),
+                            container(
+                                scrollable(
+                                    container(
+                                        vertical_space()
+                                            .width(Length::Fill)
+                                            .height(800)
+                                    )
+                                    .style(|t: &Theme| container::Style {
+                                        background: Some(
+                                            iced::Background::Color(
+                                                t.extended_palette()
+                                                    .secondary
+                                                    .weak
+                                                    .color,
+                                            )
+                                        ),
+                                        border: Border::rounded(4),
+                                        ..Default::default()
+                                    }),
+                                )
+                                .height(200),
+                            )
+                            .padding(20),
+                            vertical_space().height(1200),
+                            text("End!"),
+                            scroll_to_beginning_button(),
+                        ]
+                        .align_items(Alignment::Center)
+                        .padding([40, 0, 40, 0])
+                        .spacing(40),
+                        scrollable::Direction::Vertical(
+                            Properties::new()
+                                .width(self.scrollbar_width)
+                                .margin(self.scrollbar_margin)
+                                .scroller_width(self.scroller_width)
+                                .alignment(self.alignment),
+                        ),
+                    )
+                    .width(Length::Fill)
+                    .height(Length::Fill)
+                    .id(SCROLLABLE_ID.clone())
+                    .on_scroll(Message::Scrolled)
+                }
                 Direction::Horizontal => Scrollable::with_direction(
                     row![
                         scroll_to_end_button(),
