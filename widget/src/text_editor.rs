@@ -20,6 +20,7 @@ use std::fmt;
 use std::ops::DerefMut;
 use std::sync::Arc;
 
+use crate::text::Wrapping;
 pub use text::editor::{Action, Edit, Motion};
 
 /// A multi-line text input.
@@ -43,6 +44,7 @@ pub struct TextEditor<
     height: Length,
     padding: Padding,
     class: Theme::Class<'a>,
+    wrapping: Wrapping,
     on_edit: Option<Box<dyn Fn(Action) -> Message + 'a>>,
     highlighter_settings: Highlighter::Settings,
     highlighter_format: fn(
@@ -68,6 +70,7 @@ where
             height: Length::Shrink,
             padding: Padding::new(5.0),
             class: Theme::default(),
+            wrapping: Wrapping::default(),
             on_edit: None,
             highlighter_settings: (),
             highlighter_format: |_highlight, _theme| {
@@ -131,6 +134,12 @@ where
         self
     }
 
+    /// Sets the [`Wrapping`] strategy of the [`TextEditor`].
+    pub fn wrapping(mut self, wrapping: Wrapping) -> Self {
+        self.wrapping = wrapping;
+        self
+    }
+
     /// Highlights the [`TextEditor`] with the given [`Highlighter`] and
     /// a strategy to turn its highlights into some text format.
     pub fn highlight<H: text::Highlighter>(
@@ -150,6 +159,7 @@ where
             height: self.height,
             padding: self.padding,
             class: self.class,
+            wrapping: self.wrapping,
             on_edit: self.on_edit,
             highlighter_settings: settings,
             highlighter_format: to_format,
@@ -400,6 +410,7 @@ where
         internal.editor.update(
             limits.shrink(self.padding).max(),
             self.font.unwrap_or_else(|| renderer.default_font()),
+            self.wrapping,
             self.text_size.unwrap_or_else(|| renderer.default_size()),
             self.line_height,
             state.highlighter.borrow_mut().deref_mut(),
