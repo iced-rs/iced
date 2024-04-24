@@ -21,7 +21,7 @@ use crate::text_input::{self, TextInput};
 use crate::toggler::{self, Toggler};
 use crate::tooltip::{self, Tooltip};
 use crate::vertical_slider::{self, VerticalSlider};
-use crate::{Column, MouseArea, Row, Space, Themer};
+use crate::{Column, MouseArea, Row, Space, Stack, Themer};
 
 use std::borrow::Borrow;
 use std::ops::RangeInclusive;
@@ -49,6 +49,19 @@ macro_rules! row {
     );
     ($($x:expr),+ $(,)?) => (
         $crate::Row::with_children([$($crate::core::Element::from($x)),+])
+    );
+}
+
+/// Creates a [`Stack`] with the given children.
+///
+/// [`Stack`]: crate::Stack
+#[macro_export]
+macro_rules! stack {
+    () => (
+        $crate::Stack::new()
+    );
+    ($($x:expr),+ $(,)?) => (
+        $crate::Stack::with_children([$($crate::core::Element::from($x)),+])
     );
 }
 
@@ -96,6 +109,18 @@ where
     Renderer: core::Renderer,
 {
     Row::with_children(children)
+}
+
+/// Creates a new [`Stack`] with the given children.
+///
+/// [`Stack`]: crate::Stack
+pub fn stack<'a, Message, Theme, Renderer>(
+    children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,
+) -> Stack<'a, Message, Theme, Renderer>
+where
+    Renderer: core::Renderer,
+{
+    Stack::with_children(children)
 }
 
 /// Creates a new [`Scrollable`] with the provided content.
