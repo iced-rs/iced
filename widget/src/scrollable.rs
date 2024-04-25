@@ -857,7 +857,7 @@ where
         if (mouse_over_x_scrollbar || mouse_over_y_scrollbar)
             || state.scrollers_grabbed()
         {
-            mouse::Interaction::Idle
+            mouse::Interaction::None
         } else {
             let translation =
                 state.translation(self.direction, bounds, content_bounds);

@@ -60,7 +60,7 @@ where
                 exit_on_close_request,
                 surface,
                 renderer,
-                mouse_interaction: mouse::Interaction::Idle,
+                mouse_interaction: mouse::Interaction::None,
             },
         );
 

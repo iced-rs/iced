@@ -137,7 +137,7 @@ where
         _viewport: &Rectangle,
         _renderer: &Renderer,
     ) -> mouse::Interaction {
-        mouse::Interaction::Idle
+        mouse::Interaction::None
     }
 
     /// Returns the overlay of the [`Widget`], if there is any.
