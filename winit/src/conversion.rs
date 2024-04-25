@@ -396,7 +396,9 @@ pub fn mouse_interaction(
     use mouse::Interaction;
 
     match interaction {
-        Interaction::Idle => winit::window::CursorIcon::Default,
+        Interaction::None | Interaction::Idle => {
+            winit::window::CursorIcon::Default
+        }
         Interaction::Pointer => winit::window::CursorIcon::Pointer,
         Interaction::Working => winit::window::CursorIcon::Progress,
         Interaction::Grab => winit::window::CursorIcon::Grab,

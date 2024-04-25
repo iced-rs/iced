@@ -159,7 +159,7 @@ mod loupe {
             if cursor.is_over(layout.bounds()) {
                 mouse::Interaction::ZoomIn
             } else {
-                mouse::Interaction::Idle
+                mouse::Interaction::None
             }
         }
     }

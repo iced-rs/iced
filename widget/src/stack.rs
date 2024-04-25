@@ -249,7 +249,7 @@ where
                     state, layout, cursor, viewport, renderer,
                 )
             })
-            .find(|&interaction| interaction != mouse::Interaction::Idle)
+            .find(|&interaction| interaction != mouse::Interaction::None)
             .unwrap_or_default()
     }
 
