@@ -155,13 +155,14 @@ where
             return layout::Node::new(Size::ZERO);
         }
 
+        let limits = limits.width(self.width).height(self.height);
         let base = self.children[0].as_widget().layout(
             &mut tree.children[0],
             renderer,
-            limits,
+            &limits,
         );
 
-        let size = base.size();
+        let size = limits.resolve(self.width, self.height, base.size());
         let limits = layout::Limits::new(Size::ZERO, size);
 
         let nodes = std::iter::once(base)
