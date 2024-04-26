@@ -569,23 +569,27 @@ where
         if state.is_focused {
             match internal.editor.cursor() {
                 Cursor::Caret(position) => {
-                    let position = position + translation;
+                    let cursor =
+                        Rectangle::new(
+                            position + translation,
+                            Size::new(
+                                1.0,
+                                self.line_height
+                                    .to_absolute(self.text_size.unwrap_or_else(
+                                        || renderer.default_size(),
+                                    ))
+                                    .into(),
+                            ),
+                        );
 
-                    if bounds.contains(position) {
+                    if let Some(clipped_cursor) = bounds.intersection(&cursor) {
                         renderer.fill_quad(
                             renderer::Quad {
                                 bounds: Rectangle {
-                                    x: position.x.floor(),
-                                    y: position.y,
-                                    width: 1.0,
-                                    height: self
-                                        .line_height
-                                        .to_absolute(
-                                            self.text_size.unwrap_or_else(
-                                                || renderer.default_size(),
-                                            ),
-                                        )
-                                        .into(),
+                                    x: clipped_cursor.x.floor(),
+                                    y: clipped_cursor.y,
+                                    width: clipped_cursor.width,
+                                    height: clipped_cursor.height,
                                 },
                                 ..renderer::Quad::default()
                             },
