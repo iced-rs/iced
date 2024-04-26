@@ -304,7 +304,7 @@ where
         } else if is_mouse_over {
             mouse::Interaction::Grab
         } else {
-            mouse::Interaction::Idle
+            mouse::Interaction::None
         }
     }
 

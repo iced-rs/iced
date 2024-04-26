@@ -232,7 +232,7 @@ where
         );
 
         match (self.interaction, content_interaction) {
-            (Some(interaction), mouse::Interaction::Idle)
+            (Some(interaction), mouse::Interaction::None)
                 if cursor.is_over(layout.bounds()) =>
             {
                 interaction

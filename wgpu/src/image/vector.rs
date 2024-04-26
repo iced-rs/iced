@@ -37,6 +37,7 @@ pub struct Cache {
     rasterized: FxHashMap<(u64, u32, u32, ColorFilter), atlas::Entry>,
     svg_hits: FxHashSet<u64>,
     rasterized_hits: FxHashSet<(u64, u32, u32, ColorFilter)>,
+    should_trim: bool,
 }
 
 type ColorFilter = Option<[u8; 4]>;
@@ -75,6 +76,8 @@ impl Cache {
                 svg.convert_text(font_system.raw().db_mut());
             }
         }
+
+        self.should_trim = true;
 
         let _ = self.svgs.insert(handle.id(), svg);
         self.svgs.get(&handle.id()).unwrap()
@@ -176,6 +179,10 @@ impl Cache {
 
     /// Load svg and upload raster data
     pub fn trim(&mut self, atlas: &mut Atlas) {
+        if !self.should_trim {
+            return;
+        }
+
         let svg_hits = &self.svg_hits;
         let rasterized_hits = &self.rasterized_hits;
 
@@ -191,6 +198,7 @@ impl Cache {
         });
         self.svg_hits.clear();
         self.rasterized_hits.clear();
+        self.should_trim = false;
     }
 }
 
