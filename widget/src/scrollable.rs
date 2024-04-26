@@ -521,7 +521,11 @@ where
             }
         }
 
-        let mut event_status = if state.scroll_transaction.is_none() {
+        let mut event_status = if state.scroll_transaction.is_some()
+            && matches!(event, Event::Mouse(mouse::Event::WheelScrolled { .. }))
+        {
+            event::Status::Ignored
+        } else {
             let cursor = match cursor_over_scrollable {
                 Some(cursor_position)
                     if !(mouse_over_x_scrollbar || mouse_over_y_scrollbar) =>
@@ -555,8 +559,6 @@ where
                     ..bounds
                 },
             )
-        } else {
-            event::Status::Ignored
         };
 
         if matches!(
