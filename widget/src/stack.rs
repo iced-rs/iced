@@ -152,7 +152,11 @@ where
         limits: &layout::Limits,
     ) -> layout::Node {
         if self.children.is_empty() {
-            return layout::Node::new(Size::ZERO);
+            return layout::Node::new(limits.resolve(
+                self.width,
+                self.height,
+                Size::ZERO,
+            ));
         }
 
         let limits = limits.width(self.width).height(self.height);
