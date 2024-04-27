@@ -124,7 +124,7 @@ where
 }
 
 /// Wraps the given widget and captures any mouse button presses inside the bounds of
-/// the widget—therefore making it _opaque_.
+/// the widget—effectively making it _opaque_.
 ///
 /// This helper is meant to be used to mark elements in a [`Stack`] to avoid mouse
 /// events from passing through layers.
@@ -287,6 +287,234 @@ where
 
     Element::new(Opaque {
         content: content.into(),
+    })
+}
+
+/// Displays a widget on top of another one, only when the base widget is hovered.
+///
+/// This works analogously to a [`stack`], but it will only display the layer on top
+/// when the cursor is over the base. It can be useful for removing visual clutter.
+pub fn hover<'a, Message, Theme, Renderer>(
+    base: impl Into<Element<'a, Message, Theme, Renderer>>,
+    top: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Element<'a, Message, Theme, Renderer>
+where
+    Message: 'a,
+    Theme: 'a,
+    Renderer: core::Renderer + 'a,
+{
+    use crate::core::event::{self, Event};
+    use crate::core::layout::{self, Layout};
+    use crate::core::mouse;
+    use crate::core::renderer;
+    use crate::core::widget::tree::{self, Tree};
+    use crate::core::{Rectangle, Shell, Size};
+
+    struct Hover<'a, Message, Theme, Renderer> {
+        base: Element<'a, Message, Theme, Renderer>,
+        top: Element<'a, Message, Theme, Renderer>,
+        is_overlay_active: bool,
+    }
+
+    impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
+        for Hover<'a, Message, Theme, Renderer>
+    where
+        Renderer: core::Renderer,
+    {
+        fn tag(&self) -> tree::Tag {
+            struct Tag;
+            tree::Tag::of::<Tag>()
+        }
+
+        fn children(&self) -> Vec<Tree> {
+            vec![Tree::new(&self.base), Tree::new(&self.top)]
+        }
+
+        fn diff(&self, tree: &mut Tree) {
+            tree.diff_children(&[&self.base, &self.top]);
+        }
+
+        fn size(&self) -> Size<Length> {
+            self.base.as_widget().size()
+        }
+
+        fn size_hint(&self) -> Size<Length> {
+            self.base.as_widget().size_hint()
+        }
+
+        fn layout(
+            &self,
+            tree: &mut Tree,
+            renderer: &Renderer,
+            limits: &layout::Limits,
+        ) -> layout::Node {
+            let base = self.base.as_widget().layout(
+                &mut tree.children[0],
+                renderer,
+                limits,
+            );
+
+            let top = self.top.as_widget().layout(
+                &mut tree.children[1],
+                renderer,
+                &layout::Limits::new(Size::ZERO, base.size()),
+            );
+
+            layout::Node::with_children(base.size(), vec![base, top])
+        }
+
+        fn draw(
+            &self,
+            tree: &Tree,
+            renderer: &mut Renderer,
+            theme: &Theme,
+            style: &renderer::Style,
+            layout: Layout<'_>,
+            cursor: mouse::Cursor,
+            viewport: &Rectangle,
+        ) {
+            let mut children = layout.children().zip(&tree.children);
+
+            let (base_layout, base_tree) = children.next().unwrap();
+
+            self.base.as_widget().draw(
+                base_tree,
+                renderer,
+                theme,
+                style,
+                base_layout,
+                cursor,
+                viewport,
+            );
+
+            if cursor.is_over(layout.bounds()) || self.is_overlay_active {
+                let (top_layout, top_tree) = children.next().unwrap();
+
+                renderer.with_layer(layout.bounds(), |renderer| {
+                    self.top.as_widget().draw(
+                        top_tree, renderer, theme, style, top_layout, cursor,
+                        viewport,
+                    );
+                });
+            }
+        }
+
+        fn operate(
+            &self,
+            tree: &mut Tree,
+            layout: Layout<'_>,
+            renderer: &Renderer,
+            operation: &mut dyn operation::Operation<Message>,
+        ) {
+            let children = [&self.base, &self.top]
+                .into_iter()
+                .zip(layout.children().zip(&mut tree.children));
+
+            for (child, (layout, tree)) in children {
+                child.as_widget().operate(tree, layout, renderer, operation);
+            }
+        }
+
+        fn on_event(
+            &mut self,
+            tree: &mut Tree,
+            event: Event,
+            layout: Layout<'_>,
+            cursor: mouse::Cursor,
+            renderer: &Renderer,
+            clipboard: &mut dyn core::Clipboard,
+            shell: &mut Shell<'_, Message>,
+            viewport: &Rectangle,
+        ) -> event::Status {
+            let mut children = layout.children().zip(&mut tree.children);
+            let (base_layout, base_tree) = children.next().unwrap();
+
+            let top_status = if cursor.is_over(layout.bounds()) {
+                let (top_layout, top_tree) = children.next().unwrap();
+
+                self.top.as_widget_mut().on_event(
+                    top_tree,
+                    event.clone(),
+                    top_layout,
+                    cursor,
+                    renderer,
+                    clipboard,
+                    shell,
+                    viewport,
+                )
+            } else {
+                event::Status::Ignored
+            };
+
+            if top_status == event::Status::Captured {
+                return top_status;
+            }
+
+            self.base.as_widget_mut().on_event(
+                base_tree,
+                event.clone(),
+                base_layout,
+                cursor,
+                renderer,
+                clipboard,
+                shell,
+                viewport,
+            )
+        }
+
+        fn mouse_interaction(
+            &self,
+            tree: &Tree,
+            layout: Layout<'_>,
+            cursor: mouse::Cursor,
+            viewport: &Rectangle,
+            renderer: &Renderer,
+        ) -> mouse::Interaction {
+            [&self.base, &self.top]
+                .into_iter()
+                .rev()
+                .zip(layout.children().rev().zip(tree.children.iter().rev()))
+                .map(|(child, (layout, tree))| {
+                    child.as_widget().mouse_interaction(
+                        tree, layout, cursor, viewport, renderer,
+                    )
+                })
+                .find(|&interaction| interaction != mouse::Interaction::None)
+                .unwrap_or_default()
+        }
+
+        fn overlay<'b>(
+            &'b mut self,
+            tree: &'b mut core::widget::Tree,
+            layout: core::Layout<'_>,
+            renderer: &Renderer,
+            translation: core::Vector,
+        ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
+        {
+            let overlay = [&mut self.base, &mut self.top]
+                .into_iter()
+                .rev()
+                .zip(
+                    layout.children().rev().zip(tree.children.iter_mut().rev()),
+                )
+                .find_map(|(child, (layout, tree))| {
+                    child.as_widget_mut().overlay(
+                        tree,
+                        layout,
+                        renderer,
+                        translation,
+                    )
+                });
+
+            self.is_overlay_active = overlay.is_some();
+            overlay
+        }
+    }
+
+    Element::new(Hover {
+        base: base.into(),
+        top: top.into(),
+        is_overlay_active: false,
     })
 }
 
