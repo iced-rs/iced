@@ -294,6 +294,8 @@ where
 ///
 /// This works analogously to a [`stack`], but it will only display the layer on top
 /// when the cursor is over the base. It can be useful for removing visual clutter.
+///
+/// [`stack`]: stack()
 pub fn hover<'a, Message, Theme, Renderer>(
     base: impl Into<Element<'a, Message, Theme, Renderer>>,
     top: impl Into<Element<'a, Message, Theme, Renderer>>,
