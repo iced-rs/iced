@@ -6,9 +6,9 @@ use crate::graphics::mesh::{self, Mesh};
 use crate::graphics::Antialiasing;
 use crate::Buffer;
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::rc::Rc;
+use std::rc::{self, Rc};
 use std::sync::atomic::{self, AtomicU64};
 
 const INITIAL_INDEX_COUNT: usize = 1_000;
@@ -64,12 +64,12 @@ struct Upload {
     layer: Layer,
     transformation: Transformation,
     version: usize,
+    batch: rc::Weak<[Mesh]>,
 }
 
 #[derive(Debug, Default)]
 pub struct Storage {
     uploads: FxHashMap<Id, Upload>,
-    recently_used: FxHashSet<Id>,
 }
 
 impl Storage {
@@ -134,6 +134,7 @@ impl Storage {
                     layer,
                     transformation: new_transformation,
                     version: 0,
+                    batch: Rc::downgrade(&cache.batch),
                 });
 
                 log::info!(
@@ -143,13 +144,11 @@ impl Storage {
                 );
             }
         }
-
-        let _ = self.recently_used.insert(cache.id);
     }
 
     pub fn trim(&mut self) {
-        self.uploads.retain(|id, _| self.recently_used.contains(id));
-        self.recently_used.clear();
+        self.uploads
+            .retain(|_id, upload| upload.batch.strong_count() > 0);
     }
 }
 
