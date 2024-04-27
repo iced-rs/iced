@@ -434,7 +434,14 @@ where
             let mut children = layout.children().zip(&mut tree.children);
             let (base_layout, base_tree) = children.next().unwrap();
 
-            let top_status = if cursor.is_over(layout.bounds()) {
+            let top_status = if matches!(
+                event,
+                Event::Mouse(
+                    mouse::Event::CursorMoved { .. }
+                        | mouse::Event::ButtonReleased(_)
+                )
+            ) || cursor.is_over(layout.bounds())
+            {
                 let (top_layout, top_tree) = children.next().unwrap();
 
                 self.top.as_widget_mut().on_event(
