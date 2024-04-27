@@ -375,29 +375,32 @@ where
             cursor: mouse::Cursor,
             viewport: &Rectangle,
         ) {
-            let mut children = layout.children().zip(&tree.children);
+            if let Some(bounds) = layout.bounds().intersection(viewport) {
+                let mut children = layout.children().zip(&tree.children);
 
-            let (base_layout, base_tree) = children.next().unwrap();
+                let (base_layout, base_tree) = children.next().unwrap();
 
-            self.base.as_widget().draw(
-                base_tree,
-                renderer,
-                theme,
-                style,
-                base_layout,
-                cursor,
-                viewport,
-            );
+                self.base.as_widget().draw(
+                    base_tree,
+                    renderer,
+                    theme,
+                    style,
+                    base_layout,
+                    cursor,
+                    viewport,
+                );
 
-            if cursor.is_over(layout.bounds()) || self.is_top_overlay_active {
-                let (top_layout, top_tree) = children.next().unwrap();
+                if cursor.is_over(layout.bounds()) || self.is_top_overlay_active
+                {
+                    let (top_layout, top_tree) = children.next().unwrap();
 
-                renderer.with_layer(layout.bounds(), |renderer| {
-                    self.top.as_widget().draw(
-                        top_tree, renderer, theme, style, top_layout, cursor,
-                        viewport,
-                    );
-                });
+                    renderer.with_layer(bounds, |renderer| {
+                        self.top.as_widget().draw(
+                            top_tree, renderer, theme, style, top_layout,
+                            cursor, viewport,
+                        );
+                    });
+                }
             }
         }
 
