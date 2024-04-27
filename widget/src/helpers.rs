@@ -313,7 +313,7 @@ where
     struct Hover<'a, Message, Theme, Renderer> {
         base: Element<'a, Message, Theme, Renderer>,
         top: Element<'a, Message, Theme, Renderer>,
-        is_overlay_active: bool,
+        is_top_overlay_active: bool,
     }
 
     impl<'a, Message, Theme, Renderer> Widget<Message, Theme, Renderer>
@@ -387,7 +387,7 @@ where
                 viewport,
             );
 
-            if cursor.is_over(layout.bounds()) || self.is_overlay_active {
+            if cursor.is_over(layout.bounds()) || self.is_top_overlay_active {
                 let (top_layout, top_tree) = children.next().unwrap();
 
                 renderer.with_layer(layout.bounds(), |renderer| {
@@ -491,13 +491,10 @@ where
             translation: core::Vector,
         ) -> Option<core::overlay::Element<'b, Message, Theme, Renderer>>
         {
-            let overlay = [&mut self.base, &mut self.top]
+            let mut overlays = [&mut self.base, &mut self.top]
                 .into_iter()
-                .rev()
-                .zip(
-                    layout.children().rev().zip(tree.children.iter_mut().rev()),
-                )
-                .find_map(|(child, (layout, tree))| {
+                .zip(layout.children().zip(tree.children.iter_mut()))
+                .map(|(child, (layout, tree))| {
                     child.as_widget_mut().overlay(
                         tree,
                         layout,
@@ -506,15 +503,21 @@ where
                     )
                 });
 
-            self.is_overlay_active = overlay.is_some();
-            overlay
+            if let Some(base_overlay) = overlays.next()? {
+                return Some(base_overlay);
+            }
+
+            let top_overlay = overlays.next()?;
+            self.is_top_overlay_active = top_overlay.is_some();
+
+            top_overlay
         }
     }
 
     Element::new(Hover {
         base: base.into(),
         top: top.into(),
-        is_overlay_active: false,
+        is_top_overlay_active: false,
     })
 }
 
