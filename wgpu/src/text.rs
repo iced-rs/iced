@@ -4,9 +4,9 @@ use crate::graphics::color;
 use crate::graphics::text::cache::{self, Cache as BufferCache};
 use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use std::collections::hash_map;
-use std::rc::Rc;
+use std::rc::{self, Rc};
 use std::sync::atomic::{self, AtomicU64};
 use std::sync::Arc;
 
@@ -69,12 +69,12 @@ struct Upload {
     buffer_cache: BufferCache,
     transformation: Transformation,
     version: usize,
+    text: rc::Weak<[Text]>,
 }
 
 #[derive(Default)]
 pub struct Storage {
     uploads: FxHashMap<Id, Upload>,
-    recently_used: FxHashSet<Id>,
 }
 
 impl Storage {
@@ -162,6 +162,7 @@ impl Storage {
                     buffer_cache,
                     transformation: new_transformation,
                     version: 0,
+                    text: Rc::downgrade(&cache.text),
                 });
 
                 log::info!(
@@ -171,13 +172,11 @@ impl Storage {
                 );
             }
         }
-
-        let _ = self.recently_used.insert(cache.id);
     }
 
     pub fn trim(&mut self) {
-        self.uploads.retain(|id, _| self.recently_used.contains(id));
-        self.recently_used.clear();
+        self.uploads
+            .retain(|_id, upload| upload.text.strong_count() > 0);
     }
 }
 
