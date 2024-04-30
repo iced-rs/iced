@@ -10,13 +10,26 @@ use std::path::{Path, PathBuf};
 /// A handle of some image data.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Handle {
-    /// File data
+    /// A file handle. The image data will be read
+    /// from the file path.
+    ///
+    /// Use [`from_path`] to create this variant.
+    ///
+    /// [`from_path`]: Self::from_path
     Path(Id, PathBuf),
 
-    /// In-memory data
+    /// A handle pointing to some encoded image bytes in-memory.
+    ///
+    /// Use [`from_bytes`] to create this variant.
+    ///
+    /// [`from_bytes`]: Self::from_bytes
     Bytes(Id, Bytes),
 
-    /// Decoded image pixels in RGBA format.
+    /// A handle pointing to decoded image pixels in RGBA format.
+    ///
+    /// Use [`from_rgba`] to create this variant.
+    ///
+    /// [`from_rgba`]: Self::from_bytes
     Rgba {
         /// The id of this handle.
         id: Id,
@@ -39,12 +52,24 @@ impl Handle {
         Self::Path(Id::path(&path), path)
     }
 
-    /// Creates an image [`Handle`] containing the image pixels directly. This
-    /// function expects the input data to be provided as a `Vec<u8>` of RGBA
-    /// pixels.
+    /// Creates an image [`Handle`] containing the encoded image data directly.
+    ///
+    /// Makes an educated guess about the image format by examining the given data.
+    ///
+    /// This is useful if you already have your image loaded in-memory, maybe
+    /// because you downloaded or generated it procedurally.
+    pub fn from_bytes(bytes: impl Into<Bytes>) -> Handle {
+        Self::Bytes(Id::unique(), bytes.into())
+    }
+
+    /// Creates an image [`Handle`] containing the decoded image pixels directly.
+    ///
+    /// This function expects the pixel data to be provided as a collection of [`Bytes`]
+    /// of RGBA pixels. Therefore, the length of the pixel data should always be
+    /// `width * height * 4`.
     ///
     /// This is useful if you have already decoded your image.
-    pub fn from_pixels(
+    pub fn from_rgba(
         width: u32,
         height: u32,
         pixels: impl Into<Bytes>,
@@ -55,16 +80,6 @@ impl Handle {
             height,
             pixels: pixels.into(),
         }
-    }
-
-    /// Creates an image [`Handle`] containing the image data directly.
-    ///
-    /// Makes an educated guess about the image format by examining the given data.
-    ///
-    /// This is useful if you already have your image loaded in-memory, maybe
-    /// because you downloaded or generated it procedurally.
-    pub fn from_memory(bytes: impl Into<Bytes>) -> Handle {
-        Self::Bytes(Id::unique(), bytes.into())
     }
 
     /// Returns the unique identifier of the [`Handle`].
@@ -100,10 +115,11 @@ impl std::fmt::Debug for Handle {
 
 /// The unique identifier of some [`Handle`] data.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Id {
-    /// A unique identifier.
+pub struct Id(_Id);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+enum _Id {
     Unique(u64),
-    /// A hash identifier.
     Hash(u64),
 }
 
@@ -113,7 +129,7 @@ impl Id {
 
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
-        Self::Unique(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
+        Self(_Id::Unique(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)))
     }
 
     fn path(path: impl AsRef<Path>) -> Self {
@@ -124,7 +140,7 @@ impl Id {
             hasher.finish()
         };
 
-        Self::Hash(hash)
+        Self(_Id::Hash(hash))
     }
 }
 

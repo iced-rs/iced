@@ -188,7 +188,7 @@ impl Pokemon {
         {
             let bytes = reqwest::get(&url).await?.bytes().await?;
 
-            Ok(image::Handle::from_memory(bytes))
+            Ok(image::Handle::from_bytes(bytes))
         }
 
         #[cfg(target_arch = "wasm32")]
