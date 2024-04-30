@@ -80,9 +80,9 @@ impl AsRef<[u8]> for Screenshot {
     }
 }
 
-impl Into<Bytes> for Screenshot {
-    fn into(self) -> Bytes {
-        self.bytes
+impl From<Screenshot> for Bytes {
+    fn from(screenshot: Screenshot) -> Self {
+        screenshot.bytes
     }
 }
 
