@@ -15,7 +15,7 @@ impl<T> Cache<T> {
     /// Creates a new empty [`Cache`].
     pub fn new() -> Self {
         Cache {
-            group: Group::unique(),
+            group: Group::singleton(),
             state: RefCell::new(State::Empty { previous: None }),
         }
     }
@@ -27,6 +27,11 @@ impl<T> Cache<T> {
     /// You should generally group caches that are likely to change
     /// together.
     pub fn with_group(group: Group) -> Self {
+        assert!(
+            !group.is_singleton(),
+            "The group {group:?} cannot be shared!"
+        );
+
         Cache {
             group,
             state: RefCell::new(State::Empty { previous: None }),
@@ -75,14 +80,40 @@ impl<T> Cache<T> {
 /// A cache group can be used to implement certain performance
 /// optimizations during rendering, like batching or sharing atlases.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Group(u64);
+pub struct Group {
+    id: u64,
+    is_singleton: bool,
+}
 
 impl Group {
     /// Generates a new unique cache [`Group`].
     pub fn unique() -> Self {
         static NEXT: AtomicU64 = AtomicU64::new(0);
 
-        Self(NEXT.fetch_add(1, atomic::Ordering::Relaxed))
+        Self {
+            id: NEXT.fetch_add(1, atomic::Ordering::Relaxed),
+            is_singleton: false,
+        }
+    }
+
+    /// Returns `true` if the [`Group`] can only ever have a
+    /// single [`Cache`] in it.
+    ///
+    /// This is the default kind of [`Group`] assigned when using
+    /// [`Cache::new`].
+    ///
+    /// Knowing that a [`Group`] will never be shared may be
+    /// useful for rendering backends to perform additional
+    /// optimizations.
+    pub fn is_singleton(self) -> bool {
+        self.is_singleton
+    }
+
+    fn singleton() -> Self {
+        Self {
+            is_singleton: true,
+            ..Self::unique()
+        }
     }
 }
 

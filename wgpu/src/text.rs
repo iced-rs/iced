@@ -157,13 +157,16 @@ impl Storage {
                         target_size,
                     );
 
+                    // Only trim if glyphs have changed
+                    group.should_trim =
+                        group.should_trim || upload.version != cache.version;
+
                     upload.text = Rc::downgrade(&cache.text);
                     upload.version = cache.version;
                     upload.group_version = group.version;
                     upload.transformation = new_transformation;
 
                     upload.buffer_cache.trim();
-                    group.should_trim = true;
                 }
             }
             hash_map::Entry::Vacant(entry) => {
@@ -213,19 +216,28 @@ impl Storage {
             .retain(|_id, upload| upload.text.strong_count() > 0);
 
         self.groups.retain(|id, group| {
-            if Rc::weak_count(&group.handle) == 0 {
+            let active_uploads = Rc::weak_count(&group.handle);
+
+            if active_uploads == 0 {
                 log::debug!("Dropping text atlas: {id:?}");
 
                 return false;
             }
 
-            if group.should_trim {
-                log::debug!("Trimming text atlas: {id:?}");
+            if id.is_singleton() || group.should_trim {
+                log::debug!(
+                    "Trimming text atlas: {id:?} (uploads: {active_uploads})"
+                );
 
                 group.atlas.trim();
-
-                group.version += 1;
                 group.should_trim = false;
+
+                // We only need to worry about glyph fighting
+                // when the atlas may be shared by multiple
+                // uploads.
+                if !id.is_singleton() {
+                    group.version += 1;
+                }
             }
 
             true
