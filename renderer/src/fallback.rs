@@ -428,8 +428,8 @@ where
 mod geometry {
     use super::Renderer;
     use crate::core::{Point, Radians, Rectangle, Size, Vector};
+    use crate::graphics::cache::{self, Cached};
     use crate::graphics::geometry::{self, Fill, Path, Stroke, Text};
-    use crate::graphics::Cached;
 
     impl<A, B> geometry::Renderer for Renderer<A, B>
     where
@@ -483,21 +483,25 @@ mod geometry {
             }
         }
 
-        fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+        fn cache(
+            self,
+            group: cache::Group,
+            previous: Option<Self::Cache>,
+        ) -> Self::Cache {
             match (self, previous) {
                 (
                     Self::Primary(geometry),
                     Some(Geometry::Primary(previous)),
-                ) => Geometry::Primary(geometry.cache(Some(previous))),
+                ) => Geometry::Primary(geometry.cache(group, Some(previous))),
                 (Self::Primary(geometry), None) => {
-                    Geometry::Primary(geometry.cache(None))
+                    Geometry::Primary(geometry.cache(group, None))
                 }
                 (
                     Self::Secondary(geometry),
                     Some(Geometry::Secondary(previous)),
-                ) => Geometry::Secondary(geometry.cache(Some(previous))),
+                ) => Geometry::Secondary(geometry.cache(group, Some(previous))),
                 (Self::Secondary(geometry), None) => {
-                    Geometry::Secondary(geometry.cache(None))
+                    Geometry::Secondary(geometry.cache(group, None))
                 }
                 _ => unreachable!(),
             }

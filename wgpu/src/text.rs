@@ -1,7 +1,8 @@
 use crate::core::alignment;
 use crate::core::{Rectangle, Size, Transformation};
+use crate::graphics::cache;
 use crate::graphics::color;
-use crate::graphics::text::cache::{self, Cache as BufferCache};
+use crate::graphics::text::cache::{self as text_cache, Cache as BufferCache};
 use crate::graphics::text::{font_system, to_color, Editor, Paragraph};
 
 use rustc_hash::FxHashMap;
@@ -35,6 +36,7 @@ pub enum Item {
 #[derive(Debug, Clone)]
 pub struct Cache {
     id: Id,
+    group: cache::Group,
     text: Rc<[Text]>,
     version: usize,
 }
@@ -43,7 +45,7 @@ pub struct Cache {
 pub struct Id(u64);
 
 impl Cache {
-    pub fn new(text: Vec<Text>) -> Option<Self> {
+    pub fn new(group: cache::Group, text: Vec<Text>) -> Option<Self> {
         static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
         if text.is_empty() {
@@ -52,12 +54,17 @@ impl Cache {
 
         Some(Self {
             id: Id(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed)),
+            group,
             text: Rc::from(text),
             version: 0,
         })
     }
 
     pub fn update(&mut self, text: Vec<Text>) {
+        if self.text.is_empty() && text.is_empty() {
+            return;
+        }
+
         self.text = Rc::from(text);
         self.version += 1;
     }
@@ -65,16 +72,25 @@ impl Cache {
 
 struct Upload {
     renderer: glyphon::TextRenderer,
-    atlas: glyphon::TextAtlas,
     buffer_cache: BufferCache,
     transformation: Transformation,
     version: usize,
+    group_version: usize,
     text: rc::Weak<[Text]>,
+    _atlas: rc::Weak<()>,
 }
 
 #[derive(Default)]
 pub struct Storage {
+    groups: FxHashMap<cache::Group, Group>,
     uploads: FxHashMap<Id, Upload>,
+}
+
+struct Group {
+    atlas: glyphon::TextAtlas,
+    version: usize,
+    should_trim: bool,
+    handle: Rc<()>, // Keeps track of active uploads
 }
 
 impl Storage {
@@ -82,12 +98,15 @@ impl Storage {
         Self::default()
     }
 
-    fn get(&self, cache: &Cache) -> Option<&Upload> {
+    fn get(&self, cache: &Cache) -> Option<(&glyphon::TextAtlas, &Upload)> {
         if cache.text.is_empty() {
             return None;
         }
 
-        self.uploads.get(&cache.id)
+        self.groups
+            .get(&cache.group)
+            .map(|group| &group.atlas)
+            .zip(self.uploads.get(&cache.id))
     }
 
     fn prepare(
@@ -101,42 +120,63 @@ impl Storage {
         bounds: Rectangle,
         target_size: Size<u32>,
     ) {
+        let group_count = self.groups.len();
+
+        let group = self.groups.entry(cache.group).or_insert_with(|| {
+            log::debug!(
+                "New text atlas: {:?} (total: {})",
+                cache.group,
+                group_count + 1
+            );
+
+            Group {
+                atlas: glyphon::TextAtlas::with_color_mode(
+                    device, queue, format, COLOR_MODE,
+                ),
+                version: 0,
+                should_trim: false,
+                handle: Rc::new(()),
+            }
+        });
+
         match self.uploads.entry(cache.id) {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if !cache.text.is_empty()
-                    && (upload.version != cache.version
-                        || upload.transformation != new_transformation)
+                if upload.version != cache.version
+                    || upload.group_version != group.version
+                    || upload.transformation != new_transformation
                 {
-                    let _ = prepare(
-                        device,
-                        queue,
-                        encoder,
-                        &mut upload.renderer,
-                        &mut upload.atlas,
-                        &mut upload.buffer_cache,
-                        &cache.text,
-                        bounds,
-                        new_transformation,
-                        target_size,
-                    );
+                    if !cache.text.is_empty() {
+                        let _ = prepare(
+                            device,
+                            queue,
+                            encoder,
+                            &mut upload.renderer,
+                            &mut group.atlas,
+                            &mut upload.buffer_cache,
+                            &cache.text,
+                            bounds,
+                            new_transformation,
+                            target_size,
+                        );
+                    }
+
+                    // Only trim if glyphs have changed
+                    group.should_trim =
+                        group.should_trim || upload.version != cache.version;
 
                     upload.text = Rc::downgrade(&cache.text);
                     upload.version = cache.version;
+                    upload.group_version = group.version;
                     upload.transformation = new_transformation;
 
                     upload.buffer_cache.trim();
-                    upload.atlas.trim();
                 }
             }
             hash_map::Entry::Vacant(entry) => {
-                let mut atlas = glyphon::TextAtlas::with_color_mode(
-                    device, queue, format, COLOR_MODE,
-                );
-
                 let mut renderer = glyphon::TextRenderer::new(
-                    &mut atlas,
+                    &mut group.atlas,
                     device,
                     wgpu::MultisampleState::default(),
                     None,
@@ -144,29 +184,34 @@ impl Storage {
 
                 let mut buffer_cache = BufferCache::new();
 
-                let _ = prepare(
-                    device,
-                    queue,
-                    encoder,
-                    &mut renderer,
-                    &mut atlas,
-                    &mut buffer_cache,
-                    &cache.text,
-                    bounds,
-                    new_transformation,
-                    target_size,
-                );
+                if !cache.text.is_empty() {
+                    let _ = prepare(
+                        device,
+                        queue,
+                        encoder,
+                        &mut renderer,
+                        &mut group.atlas,
+                        &mut buffer_cache,
+                        &cache.text,
+                        bounds,
+                        new_transformation,
+                        target_size,
+                    );
+                }
 
                 let _ = entry.insert(Upload {
                     renderer,
-                    atlas,
                     buffer_cache,
                     transformation: new_transformation,
                     version: 0,
+                    group_version: group.version,
                     text: Rc::downgrade(&cache.text),
+                    _atlas: Rc::downgrade(&group.handle),
                 });
 
-                log::info!(
+                group.should_trim = cache.group.is_singleton();
+
+                log::debug!(
                     "New text upload: {} (total: {})",
                     cache.id.0,
                     self.uploads.len()
@@ -178,6 +223,37 @@ impl Storage {
     pub fn trim(&mut self) {
         self.uploads
             .retain(|_id, upload| upload.text.strong_count() > 0);
+
+        self.groups.retain(|id, group| {
+            let active_uploads = Rc::weak_count(&group.handle);
+
+            if active_uploads == 0 {
+                log::debug!("Dropping text atlas: {id:?}");
+
+                return false;
+            }
+
+            if group.should_trim {
+                log::trace!("Trimming text atlas: {id:?}");
+
+                group.atlas.trim();
+                group.should_trim = false;
+
+                // We only need to worry about glyph fighting
+                // when the atlas may be shared by multiple
+                // uploads.
+                if !id.is_singleton() {
+                    log::debug!(
+                        "Invalidating text atlas: {id:?} \
+                        (uploads: {active_uploads})"
+                    );
+
+                    group.version += 1;
+                }
+            }
+
+            true
+        });
     }
 }
 
@@ -306,10 +382,10 @@ impl Pipeline {
                     layer_count += 1;
                 }
                 Item::Cached { cache, .. } => {
-                    if let Some(upload) = storage.get(cache) {
+                    if let Some((atlas, upload)) = storage.get(cache) {
                         upload
                             .renderer
-                            .render(&upload.atlas, render_pass)
+                            .render(atlas, render_pass)
                             .expect("Render cached text");
                     }
                 }
@@ -345,7 +421,7 @@ fn prepare(
     enum Allocation {
         Paragraph(Paragraph),
         Editor(Editor),
-        Cache(cache::KeyHash),
+        Cache(text_cache::KeyHash),
         Raw(Arc<glyphon::Buffer>),
     }
 
@@ -369,7 +445,7 @@ fn prepare(
             } => {
                 let (key, _) = buffer_cache.allocate(
                     font_system,
-                    cache::Key {
+                    text_cache::Key {
                         content,
                         size: f32::from(*size),
                         line_height: f32::from(*line_height),

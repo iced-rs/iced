@@ -1,22 +1,25 @@
 use iced::mouse;
 use iced::time::{self, Instant};
 use iced::widget::canvas;
-use iced::widget::canvas::{Cache, Geometry};
 use iced::{
     Color, Element, Font, Length, Point, Rectangle, Renderer, Subscription,
     Theme,
 };
 
+use std::cell::RefCell;
+
 pub fn main() -> iced::Result {
+    tracing_subscriber::fmt::init();
+
     iced::program("The Matrix - Iced", TheMatrix::update, TheMatrix::view)
         .subscription(TheMatrix::subscription)
         .antialiasing(true)
         .run()
 }
 
+#[derive(Default)]
 struct TheMatrix {
-    ticks: usize,
-    backgrounds: Vec<Cache>,
+    tick: usize,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -28,7 +31,7 @@ impl TheMatrix {
     fn update(&mut self, message: Message) {
         match message {
             Message::Tick(_now) => {
-                self.ticks += 1;
+                self.tick += 1;
             }
         }
     }
@@ -45,35 +48,31 @@ impl TheMatrix {
     }
 }
 
-impl Default for TheMatrix {
-    fn default() -> Self {
-        let mut backgrounds = Vec::with_capacity(30);
-        backgrounds.resize_with(30, Cache::default);
-
-        Self {
-            ticks: 0,
-            backgrounds,
-        }
-    }
-}
-
 impl<Message> canvas::Program<Message> for TheMatrix {
-    type State = ();
+    type State = RefCell<Vec<canvas::Cache>>;
 
     fn draw(
         &self,
-        _state: &Self::State,
+        state: &Self::State,
         renderer: &Renderer,
         _theme: &Theme,
         bounds: Rectangle,
         _cursor: mouse::Cursor,
-    ) -> Vec<Geometry> {
+    ) -> Vec<canvas::Geometry> {
         use rand::distributions::Distribution;
         use rand::Rng;
 
         const CELL_SIZE: f32 = 10.0;
 
-        vec![self.backgrounds[self.ticks % self.backgrounds.len()].draw(
+        let mut caches = state.borrow_mut();
+
+        if caches.is_empty() {
+            let group = canvas::Group::unique();
+
+            caches.resize_with(30, || canvas::Cache::with_group(group));
+        }
+
+        vec![caches[self.tick % caches.len()].draw(
             renderer,
             bounds.size(),
             |frame| {

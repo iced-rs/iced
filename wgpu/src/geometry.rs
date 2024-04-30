@@ -3,6 +3,7 @@ use crate::core::text::LineHeight;
 use crate::core::{
     Pixels, Point, Radians, Rectangle, Size, Transformation, Vector,
 };
+use crate::graphics::cache::{self, Cached};
 use crate::graphics::color;
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::{
@@ -10,7 +11,7 @@ use crate::graphics::geometry::{
 };
 use crate::graphics::gradient::{self, Gradient};
 use crate::graphics::mesh::{self, Mesh};
-use crate::graphics::{self, Cached, Text};
+use crate::graphics::{self, Text};
 use crate::text;
 use crate::triangle;
 
@@ -38,7 +39,11 @@ impl Cached for Geometry {
         Geometry::Cached(cache.clone())
     }
 
-    fn cache(self, previous: Option<Self::Cache>) -> Self::Cache {
+    fn cache(
+        self,
+        group: cache::Group,
+        previous: Option<Self::Cache>,
+    ) -> Self::Cache {
         match self {
             Self::Live { meshes, text } => {
                 if let Some(mut previous) = previous {
@@ -51,14 +56,14 @@ impl Cached for Geometry {
                     if let Some(cache) = &mut previous.text {
                         cache.update(text);
                     } else {
-                        previous.text = text::Cache::new(text);
+                        previous.text = text::Cache::new(group, text);
                     }
 
                     previous
                 } else {
                     Cache {
                         meshes: triangle::Cache::new(meshes),
-                        text: text::Cache::new(text),
+                        text: text::Cache::new(group, text),
                     }
                 }
             }

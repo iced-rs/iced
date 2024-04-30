@@ -10,3 +10,4 @@ iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
 
 rand = "0.8"
+tracing-subscriber = "0.3"

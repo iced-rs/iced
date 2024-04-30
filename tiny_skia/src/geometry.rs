@@ -1,9 +1,10 @@
 use crate::core::text::LineHeight;
 use crate::core::{Pixels, Point, Radians, Rectangle, Size, Vector};
+use crate::graphics::cache::{self, Cached};
 use crate::graphics::geometry::fill::{self, Fill};
 use crate::graphics::geometry::stroke::{self, Stroke};
 use crate::graphics::geometry::{self, Path, Style};
-use crate::graphics::{Cached, Gradient, Text};
+use crate::graphics::{Gradient, Text};
 use crate::Primitive;
 
 use std::rc::Rc;
@@ -32,7 +33,7 @@ impl Cached for Geometry {
         Self::Cache(cache.clone())
     }
 
-    fn cache(self, _previous: Option<Cache>) -> Cache {
+    fn cache(self, _group: cache::Group, _previous: Option<Cache>) -> Cache {
         match self {
             Self::Live {
                 primitives,

@@ -10,3 +10,4 @@ iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
 
 time = { version = "0.3", features = ["local-offset"] }
+tracing-subscriber = "0.3"

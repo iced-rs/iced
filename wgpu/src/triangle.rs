@@ -138,7 +138,7 @@ impl Storage {
                     batch: Rc::downgrade(&cache.batch),
                 });
 
-                log::info!(
+                log::debug!(
                     "New mesh upload: {} (total: {})",
                     cache.id.0,
                     self.uploads.len()
