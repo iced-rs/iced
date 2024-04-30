@@ -29,7 +29,7 @@ pub enum Handle {
     ///
     /// Use [`from_rgba`] to create this variant.
     ///
-    /// [`from_rgba`]: Self::from_bytes
+    /// [`from_rgba`]: Self::from_rgba
     Rgba {
         /// The id of this handle.
         id: Id,
