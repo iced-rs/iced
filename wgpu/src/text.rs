@@ -61,6 +61,10 @@ impl Cache {
     }
 
     pub fn update(&mut self, text: Vec<Text>) {
+        if self.text.is_empty() && text.is_empty() {
+            return;
+        }
+
         self.text = Rc::from(text);
         self.version += 1;
     }
@@ -139,23 +143,24 @@ impl Storage {
             hash_map::Entry::Occupied(entry) => {
                 let upload = entry.into_mut();
 
-                if !cache.text.is_empty()
-                    && (upload.version != cache.version
-                        || upload.group_version != group.version
-                        || upload.transformation != new_transformation)
+                if upload.version != cache.version
+                    || upload.group_version != group.version
+                    || upload.transformation != new_transformation
                 {
-                    let _ = prepare(
-                        device,
-                        queue,
-                        encoder,
-                        &mut upload.renderer,
-                        &mut group.atlas,
-                        &mut upload.buffer_cache,
-                        &cache.text,
-                        bounds,
-                        new_transformation,
-                        target_size,
-                    );
+                    if !cache.text.is_empty() {
+                        let _ = prepare(
+                            device,
+                            queue,
+                            encoder,
+                            &mut upload.renderer,
+                            &mut group.atlas,
+                            &mut upload.buffer_cache,
+                            &cache.text,
+                            bounds,
+                            new_transformation,
+                            target_size,
+                        );
+                    }
 
                     // Only trim if glyphs have changed
                     group.should_trim =
@@ -179,18 +184,20 @@ impl Storage {
 
                 let mut buffer_cache = BufferCache::new();
 
-                let _ = prepare(
-                    device,
-                    queue,
-                    encoder,
-                    &mut renderer,
-                    &mut group.atlas,
-                    &mut buffer_cache,
-                    &cache.text,
-                    bounds,
-                    new_transformation,
-                    target_size,
-                );
+                if !cache.text.is_empty() {
+                    let _ = prepare(
+                        device,
+                        queue,
+                        encoder,
+                        &mut renderer,
+                        &mut group.atlas,
+                        &mut buffer_cache,
+                        &cache.text,
+                        bounds,
+                        new_transformation,
+                        target_size,
+                    );
+                }
 
                 let _ = entry.insert(Upload {
                     renderer,
@@ -201,6 +208,8 @@ impl Storage {
                     text: Rc::downgrade(&cache.text),
                     _atlas: Rc::downgrade(&group.handle),
                 });
+
+                group.should_trim = cache.group.is_singleton();
 
                 log::debug!(
                     "New text upload: {} (total: {})",
@@ -224,10 +233,8 @@ impl Storage {
                 return false;
             }
 
-            if id.is_singleton() || group.should_trim {
-                log::debug!(
-                    "Trimming text atlas: {id:?} (uploads: {active_uploads})"
-                );
+            if group.should_trim {
+                log::trace!("Trimming text atlas: {id:?}");
 
                 group.atlas.trim();
                 group.should_trim = false;
@@ -236,6 +243,11 @@ impl Storage {
                 // when the atlas may be shared by multiple
                 // uploads.
                 if !id.is_singleton() {
+                    log::debug!(
+                        "Invalidating text atlas: {id:?} \
+                        (uploads: {active_uploads})"
+                    );
+
                     group.version += 1;
                 }
             }
