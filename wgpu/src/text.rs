@@ -71,6 +71,7 @@ struct Upload {
     buffer_cache: BufferCache,
     transformation: Transformation,
     version: usize,
+    group_version: usize,
     text: rc::Weak<[Text]>,
     _atlas: rc::Weak<()>,
 }
@@ -83,8 +84,9 @@ pub struct Storage {
 
 struct Group {
     atlas: glyphon::TextAtlas,
-    previous_uploads: usize,
-    handle: Rc<()>,
+    version: usize,
+    should_trim: bool,
+    handle: Rc<()>, // Keeps track of active uploads
 }
 
 impl Storage {
@@ -117,13 +119,18 @@ impl Storage {
         let group_count = self.groups.len();
 
         let group = self.groups.entry(cache.group).or_insert_with(|| {
-            log::info!("New text atlas created (total: {})", group_count + 1);
+            log::debug!(
+                "New text atlas: {:?} (total: {})",
+                cache.group,
+                group_count + 1
+            );
 
             Group {
                 atlas: glyphon::TextAtlas::with_color_mode(
                     device, queue, format, COLOR_MODE,
                 ),
-                previous_uploads: 0,
+                version: 0,
+                should_trim: false,
                 handle: Rc::new(()),
             }
         });
@@ -134,6 +141,7 @@ impl Storage {
 
                 if !cache.text.is_empty()
                     && (upload.version != cache.version
+                        || upload.group_version != group.version
                         || upload.transformation != new_transformation)
                 {
                     let _ = prepare(
@@ -151,9 +159,11 @@ impl Storage {
 
                     upload.text = Rc::downgrade(&cache.text);
                     upload.version = cache.version;
+                    upload.group_version = group.version;
                     upload.transformation = new_transformation;
 
                     upload.buffer_cache.trim();
+                    group.should_trim = true;
                 }
             }
             hash_map::Entry::Vacant(entry) => {
@@ -184,11 +194,12 @@ impl Storage {
                     buffer_cache,
                     transformation: new_transformation,
                     version: 0,
+                    group_version: group.version,
                     text: Rc::downgrade(&cache.text),
                     _atlas: Rc::downgrade(&group.handle),
                 });
 
-                log::info!(
+                log::debug!(
                     "New text upload: {} (total: {})",
                     cache.id.0,
                     self.uploads.len()
@@ -201,18 +212,21 @@ impl Storage {
         self.uploads
             .retain(|_id, upload| upload.text.strong_count() > 0);
 
-        self.groups.retain(|_id, group| {
-            let uploads_alive = Rc::weak_count(&group.handle);
+        self.groups.retain(|id, group| {
+            if Rc::weak_count(&group.handle) == 0 {
+                log::debug!("Dropping text atlas: {id:?}");
 
-            if uploads_alive == 0 {
                 return false;
             }
 
-            if uploads_alive < group.previous_uploads {
-                group.atlas.trim();
-            }
+            if group.should_trim {
+                log::debug!("Trimming text atlas: {id:?}");
 
-            group.previous_uploads = uploads_alive;
+                group.atlas.trim();
+
+                group.version += 1;
+                group.should_trim = false;
+            }
 
             true
         });
