@@ -137,11 +137,11 @@ iced_winit = { version = "0.13.0-dev", path = "winit" }
 async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
-cosmic-text = "0.10"
+cosmic-text = "0.11"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "ceed55403ce53e120ce9d1fae17dcfe388726118" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "670140e2a1482a1ad3607dead44c40d8261ba582" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -170,9 +170,9 @@ tracing = "0.1"
 unicode-segmentation = "1.0"
 wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
-web-sys = "=0.3.67"
+web-sys = "0.3"
 web-time = "0.2"
-wgpu = "0.19"
+wgpu = "0.20"
 winapi = "0.3"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "592bd152f6d5786fae7d918532d7db752c0d164f" }

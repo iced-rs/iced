@@ -20,7 +20,7 @@ use std::sync::{Arc, RwLock, Weak};
 
 /// A text primitive.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Text {
+pub enum Text<'buffer> {
     /// A paragraph.
     #[allow(missing_docs)]
     Paragraph {
@@ -33,7 +33,7 @@ pub enum Text {
     /// An editor.
     #[allow(missing_docs)]
     Editor {
-        editor: editor::Weak,
+        editor: editor::Weak<'buffer>,
         position: Point,
         color: Color,
         clip_bounds: Rectangle,
@@ -70,7 +70,7 @@ pub enum Text {
     },
 }
 
-impl Text {
+impl Text<'_> {
     /// Returns the visible bounds of the [`Text`].
     pub fn visible_bounds(&self) -> Option<Rectangle> {
         let (bounds, horizontal_alignment, vertical_alignment) = match self {

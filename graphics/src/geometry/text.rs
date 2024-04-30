@@ -52,6 +52,7 @@ impl Text {
             self.size.0,
             f32::MAX,
             cosmic_text::Wrap::None,
+            None
         );
 
         let translation_x = match self.horizontal_alignment {

@@ -7,32 +7,32 @@ use crate::core::text::LineHeight;
 use crate::core::{Font, Pixels, Point, Rectangle, Size};
 use crate::text;
 
-use cosmic_text::Edit as _;
+use cosmic_text::{Edit as _, Selection};
 
 use std::fmt;
 use std::sync::{self, Arc};
 
 /// A multi-line text editor.
 #[derive(Debug, PartialEq)]
-pub struct Editor(Option<Arc<Internal>>);
+pub struct Editor<'buffer>(Option<Arc<Internal<'buffer>>>);
 
-struct Internal {
-    editor: cosmic_text::Editor,
+struct Internal<'buffer> {
+    editor: cosmic_text::Editor<'buffer>,
     font: Font,
     bounds: Size,
     topmost_line_changed: Option<usize>,
     version: text::Version,
 }
 
-impl Editor {
+impl Editor<'_> {
     /// Creates a new empty [`Editor`].
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Returns the buffer of the [`Editor`].
-    pub fn buffer(&self) -> &cosmic_text::Buffer {
-        self.internal().editor.buffer()
+    /// Get the internal buffer of the [`Editor`]
+    pub fn with_buffer<F: FnOnce(&cosmic_text::Buffer) -> T, T>(&self, f: F) -> T {
+        self.internal().editor.with_buffer(f)
     }
 
     /// Creates a [`Weak`] reference to the [`Editor`].
@@ -40,7 +40,7 @@ impl Editor {
     /// This is useful to avoid cloning the [`Editor`] when
     /// referential guarantees are unnecessary. For instance,
     /// when creating a rendering tree.
-    pub fn downgrade(&self) -> Weak {
+    pub fn downgrade(&self) -> Weak<'_> {
         let editor = self.internal();
 
         Weak {
@@ -49,14 +49,14 @@ impl Editor {
         }
     }
 
-    fn internal(&self) -> &Arc<Internal> {
+    fn internal(&self) -> &Arc<Internal<'_>> {
         self.0
             .as_ref()
             .expect("Editor should always be initialized")
     }
 }
 
-impl editor::Editor for Editor {
+impl editor::Editor for Editor<'_> {
     type Font = Font;
 
     fn with_text(text: &str) -> Self {
@@ -83,14 +83,17 @@ impl editor::Editor for Editor {
     }
 
     fn line(&self, index: usize) -> Option<&str> {
-        self.buffer()
-            .lines
-            .get(index)
-            .map(cosmic_text::BufferLine::text)
+        self.with_buffer(|buffer| {
+            buffer.lines
+                .get(index)
+                .map(cosmic_text::BufferLine::text)
+        })
     }
 
     fn line_count(&self) -> usize {
-        self.buffer().lines.len()
+        self.with_buffer(|buffer| {
+            buffer.lines.len()
+        })
     }
 
     fn selection(&self) -> Option<String> {
@@ -101,133 +104,136 @@ impl editor::Editor for Editor {
         let internal = self.internal();
 
         let cursor = internal.editor.cursor();
-        let buffer = internal.editor.buffer();
 
-        match internal.editor.select_opt() {
-            Some(selection) => {
-                let (start, end) = if cursor < selection {
-                    (cursor, selection)
-                } else {
-                    (selection, cursor)
-                };
+        internal.editor.with_buffer(|buffer| {
+            match internal.editor.selection() {
+                Selection::Line(selection) |
+                Selection::Normal(selection) |
+                Selection::Word(selection) => {
+                    let (start, end) = if cursor < selection {
+                        (cursor, selection)
+                    } else {
+                        (selection, cursor)
+                    };
 
-                let line_height = buffer.metrics().line_height;
-                let selected_lines = end.line - start.line + 1;
+                    let line_height = buffer.metrics().line_height;
+                    let selected_lines = end.line - start.line + 1;
 
-                let visual_lines_offset =
-                    visual_lines_offset(start.line, buffer);
+                    let visual_lines_offset =
+                        visual_lines_offset(start.line, buffer);
 
-                let regions = buffer
-                    .lines
-                    .iter()
-                    .skip(start.line)
-                    .take(selected_lines)
-                    .enumerate()
-                    .flat_map(|(i, line)| {
-                        highlight_line(
-                            line,
-                            if i == 0 { start.index } else { 0 },
-                            if i == selected_lines - 1 {
-                                end.index
+                    let regions = buffer
+                        .lines
+                        .iter()
+                        .skip(start.line)
+                        .take(selected_lines)
+                        .enumerate()
+                        .flat_map(|(i, line)| {
+                            highlight_line(
+                                line,
+                                if i == 0 { start.index } else { 0 },
+                                if i == selected_lines - 1 {
+                                    end.index
+                                } else {
+                                    line.text().len()
+                                },
+                            )
+                        })
+                        .enumerate()
+                        .filter_map(|(visual_line, (x, width))| {
+                            if width > 0.0 {
+                                Some(Rectangle {
+                                    x,
+                                    width,
+                                    y: (visual_line as i32 + visual_lines_offset)
+                                        as f32
+                                        * line_height,
+                                    height: line_height,
+                                })
                             } else {
-                                line.text().len()
-                            },
-                        )
-                    })
-                    .enumerate()
-                    .filter_map(|(visual_line, (x, width))| {
-                        if width > 0.0 {
-                            Some(Rectangle {
-                                x,
-                                width,
-                                y: (visual_line as i32 + visual_lines_offset)
-                                    as f32
-                                    * line_height,
-                                height: line_height,
-                            })
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-
-                Cursor::Selection(regions)
-            }
-            _ => {
-                let line_height = buffer.metrics().line_height;
-
-                let visual_lines_offset =
-                    visual_lines_offset(cursor.line, buffer);
-
-                let line = buffer
-                    .lines
-                    .get(cursor.line)
-                    .expect("Cursor line should be present");
-
-                let layout = line
-                    .layout_opt()
-                    .as_ref()
-                    .expect("Line layout should be cached");
-
-                let mut lines = layout.iter().enumerate();
-
-                let (visual_line, offset) = lines
-                    .find_map(|(i, line)| {
-                        let start = line
-                            .glyphs
-                            .first()
-                            .map(|glyph| glyph.start)
-                            .unwrap_or(0);
-                        let end = line
-                            .glyphs
-                            .last()
-                            .map(|glyph| glyph.end)
-                            .unwrap_or(0);
-
-                        let is_cursor_before_start = start > cursor.index;
-
-                        let is_cursor_before_end = match cursor.affinity {
-                            cosmic_text::Affinity::Before => {
-                                cursor.index <= end
+                                None
                             }
-                            cosmic_text::Affinity::After => cursor.index < end,
-                        };
+                        })
+                        .collect();
 
-                        if is_cursor_before_start {
-                            // Sometimes, the glyph we are looking for is right
-                            // between lines. This can happen when a line wraps
-                            // on a space.
-                            // In that case, we can assume the cursor is at the
-                            // end of the previous line.
-                            // i is guaranteed to be > 0 because `start` is always
-                            // 0 for the first line, so there is no way for the
-                            // cursor to be before it.
-                            Some((i - 1, layout[i - 1].w))
-                        } else if is_cursor_before_end {
-                            let offset = line
+                    Cursor::Selection(regions)
+                }
+                Selection::None => {
+                    let line_height = buffer.metrics().line_height;
+
+                    let visual_lines_offset =
+                        visual_lines_offset(cursor.line, buffer);
+
+                    let line = buffer
+                        .lines
+                        .get(cursor.line)
+                        .expect("Cursor line should be present");
+
+                    let layout = line
+                        .layout_opt()
+                        .as_ref()
+                        .expect("Line layout should be cached");
+
+                    let mut lines = layout.iter().enumerate();
+
+                    let (visual_line, offset) = lines
+                        .find_map(|(i, line)| {
+                            let start = line
                                 .glyphs
-                                .iter()
-                                .take_while(|glyph| cursor.index > glyph.start)
-                                .map(|glyph| glyph.w)
-                                .sum();
+                                .first()
+                                .map(|glyph| glyph.start)
+                                .unwrap_or(0);
+                            let end = line
+                                .glyphs
+                                .last()
+                                .map(|glyph| glyph.end)
+                                .unwrap_or(0);
 
-                            Some((i, offset))
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or((
-                        layout.len().saturating_sub(1),
-                        layout.last().map(|line| line.w).unwrap_or(0.0),
-                    ));
+                            let is_cursor_before_start = start > cursor.index;
 
-                Cursor::Caret(Point::new(
-                    offset,
-                    (visual_lines_offset + visual_line as i32) as f32
-                        * line_height,
-                ))
+                            let is_cursor_before_end = match cursor.affinity {
+                                cosmic_text::Affinity::Before => {
+                                    cursor.index <= end
+                                }
+                                cosmic_text::Affinity::After => cursor.index < end,
+                            };
+
+                            if is_cursor_before_start {
+                                // Sometimes, the glyph we are looking for is right
+                                // between lines. This can happen when a line wraps
+                                // on a space.
+                                // In that case, we can assume the cursor is at the
+                                // end of the previous line.
+                                // i is guaranteed to be > 0 because `start` is always
+                                // 0 for the first line, so there is no way for the
+                                // cursor to be before it.
+                                Some((i - 1, layout[i - 1].w))
+                            } else if is_cursor_before_end {
+                                let offset = line
+                                    .glyphs
+                                    .iter()
+                                    .take_while(|glyph| cursor.index > glyph.start)
+                                    .map(|glyph| glyph.w)
+                                    .sum();
+
+                                Some((i, offset))
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or((
+                            layout.len().saturating_sub(1),
+                            layout.last().map(|line| line.w).unwrap_or(0.0),
+                        ));
+
+                    Cursor::Caret(Point::new(
+                        offset,
+                        (visual_lines_offset + visual_line as i32) as f32
+                            * line_height,
+                    ))
+                }
             }
-        }
+        })
     }
 
     fn cursor_position(&self) -> (usize, usize) {
@@ -252,7 +258,9 @@ impl editor::Editor for Editor {
         match action {
             // Motion events
             Action::Move(motion) => {
-                if let Some(selection) = editor.select_opt() {
+                if let Selection::Line(selection) |
+                Selection::Normal(selection) |
+                Selection::Word(selection) = editor.selection() {
                     let cursor = editor.cursor();
 
                     let (left, right) = if cursor < selection {
@@ -261,7 +269,7 @@ impl editor::Editor for Editor {
                         (selection, cursor)
                     };
 
-                    editor.set_select_opt(None);
+                    editor.set_selection(Selection::None);
 
                     match motion {
                         // These motions are performed as-is even when a selection
@@ -290,20 +298,22 @@ impl editor::Editor for Editor {
             Action::Select(motion) => {
                 let cursor = editor.cursor();
 
-                if editor.select_opt().is_none() {
-                    editor.set_select_opt(Some(cursor));
+                if editor.selection() == Selection::None {
+                    editor.set_selection(Selection::Normal(cursor));
                 }
 
                 editor.action(font_system.raw(), motion_to_action(motion));
 
                 // Deselect if selection matches cursor position
-                if let Some(selection) = editor.select_opt() {
+                if let Selection::Line(selection) |
+                    Selection::Normal(selection) |
+                    Selection::Word(selection) = editor.selection() {
                     let cursor = editor.cursor();
 
                     if cursor.line == selection.line
                         && cursor.index == selection.index
                     {
-                        editor.set_select_opt(None);
+                        editor.set_selection(Selection::None);
                     }
                 }
             }
@@ -312,7 +322,9 @@ impl editor::Editor for Editor {
 
                 let cursor = editor.cursor();
 
-                if let Some(line) = editor.buffer().lines.get(cursor.line) {
+                if let Some(line) = editor.with_buffer(|buffer| {
+                    buffer.lines.get(cursor.line)
+                }) {
                     let (start, end) =
                         UnicodeSegmentation::unicode_word_indices(line.text())
                             // Split words with dots
@@ -353,14 +365,13 @@ impl editor::Editor for Editor {
 
                                 (start, end)
                             });
-
                     if start != end {
                         editor.set_cursor(cosmic_text::Cursor {
                             index: start,
                             ..cursor
                         });
 
-                        editor.set_select_opt(Some(cosmic_text::Cursor {
+                        editor.set_selection(Selection::Word(cosmic_text::Cursor {
                             index: end,
                             ..cursor
                         }));
@@ -370,16 +381,16 @@ impl editor::Editor for Editor {
             Action::SelectLine => {
                 let cursor = editor.cursor();
 
-                if let Some(line_length) = editor
-                    .buffer()
-                    .lines
-                    .get(cursor.line)
-                    .map(|line| line.text().len())
-                {
+                if let Some(line_length) = editor.with_buffer(|buffer| {
+                    buffer
+                        .lines
+                        .get(cursor.line)
+                        .map(|line| line.text().len())
+                }) {
                     editor
                         .set_cursor(cosmic_text::Cursor { index: 0, ..cursor });
 
-                    editor.set_select_opt(Some(cosmic_text::Cursor {
+                    editor.set_selection(Selection::Line(cosmic_text::Cursor {
                         index: line_length,
                         ..cursor
                     }));
@@ -419,7 +430,12 @@ impl editor::Editor for Editor {
                 }
 
                 let cursor = editor.cursor();
-                let selection = editor.select_opt().unwrap_or(cursor);
+                let selection = match editor.selection() {
+                    Selection::Line(selection) => selection,
+                    Selection::Normal(selection) => selection,
+                    Selection::Word(selection) => selection,
+                    Selection::None => cursor
+                };
 
                 internal.topmost_line_changed =
                     Some(cursor.min(selection).line);
@@ -445,18 +461,22 @@ impl editor::Editor for Editor {
                 );
 
                 // Deselect if selection matches cursor position
-                if let Some(selection) = editor.select_opt() {
+                if let Selection::Line(selection) |
+                    Selection::Normal(selection) |
+                    Selection::Word(selection) = editor.selection() {
                     let cursor = editor.cursor();
 
                     if cursor.line == selection.line
                         && cursor.index == selection.index
                     {
-                        editor.set_select_opt(None);
+                        editor.set_selection(Selection::None);
                     }
                 }
             }
             Action::Scroll { lines } => {
-                let (_, height) = editor.buffer().size();
+                let (_, height) = editor.with_buffer(|buffer| {
+                     buffer.size()
+                });
 
                 if height < i32::MAX as f32 {
                     editor.action(
@@ -477,7 +497,9 @@ impl editor::Editor for Editor {
     fn min_bounds(&self) -> Size {
         let internal = self.internal();
 
-        text::measure(internal.editor.buffer())
+        internal.editor.with_buffer(|buffer| {
+            text::measure(buffer)
+        })
     }
 
     fn update(
@@ -500,9 +522,11 @@ impl editor::Editor for Editor {
         if font_system.version() != internal.version {
             log::trace!("Updating `FontSystem` of `Editor`...");
 
-            for line in internal.editor.buffer_mut().lines.iter_mut() {
-                line.reset();
-            }
+            internal.editor.with_buffer_mut(|buffer| {
+                for line in buffer.lines.iter_mut() {
+                    line.reset();
+                }
+            });
 
             internal.version = font_system.version();
             internal.topmost_line_changed = Some(0);
@@ -511,17 +535,21 @@ impl editor::Editor for Editor {
         if new_font != internal.font {
             log::trace!("Updating font of `Editor`...");
 
-            for line in internal.editor.buffer_mut().lines.iter_mut() {
-                let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
-                    text::to_attributes(new_font),
-                ));
-            }
+            internal.editor.with_buffer_mut(|buffer| {
+                for line in buffer.lines.iter_mut() {
+                    let _ = line.set_attrs_list(cosmic_text::AttrsList::new(
+                        text::to_attributes(new_font),
+                    ));
+                }
+            });
 
             internal.font = new_font;
             internal.topmost_line_changed = Some(0);
         }
 
-        let metrics = internal.editor.buffer().metrics();
+        let metrics = internal.editor.with_buffer(|buffer| {
+            buffer.metrics()
+        });
         let new_line_height = new_line_height.to_absolute(new_size);
 
         if new_size.0 != metrics.font_size
@@ -529,20 +557,24 @@ impl editor::Editor for Editor {
         {
             log::trace!("Updating `Metrics` of `Editor`...");
 
-            internal.editor.buffer_mut().set_metrics(
-                font_system.raw(),
-                cosmic_text::Metrics::new(new_size.0, new_line_height.0),
-            );
+            internal.editor.with_buffer_mut(|buffer| {
+                buffer.set_metrics(
+                    font_system.raw(),
+                    cosmic_text::Metrics::new(new_size.0, new_line_height.0),
+                );
+            });
         }
 
         if new_bounds != internal.bounds {
             log::trace!("Updating size of `Editor`...");
 
-            internal.editor.buffer_mut().set_size(
-                font_system.raw(),
-                new_bounds.width,
-                new_bounds.height,
-            );
+            internal.editor.with_buffer_mut(|buffer| {
+                buffer.set_size(
+                    font_system.raw(),
+                    new_bounds.width,
+                    new_bounds.height,
+                );
+            });
 
             internal.bounds = new_bounds;
         }
@@ -556,7 +588,7 @@ impl editor::Editor for Editor {
             new_highlighter.change_line(topmost_line_changed);
         }
 
-        internal.editor.shape_as_needed(font_system.raw());
+        internal.editor.shape_as_needed(font_system.raw(), false);
 
         self.0 = Some(Arc::new(internal));
     }
@@ -568,29 +600,32 @@ impl editor::Editor for Editor {
         format_highlight: impl Fn(&H::Highlight) -> highlighter::Format<Self::Font>,
     ) {
         let internal = self.internal();
-        let buffer = internal.editor.buffer();
 
-        let mut window = buffer.scroll() + buffer.visible_lines();
+        let mut window = internal.editor.with_buffer(|buffer| {
+            buffer.scroll().layout + buffer.visible_lines()
+        });
 
-        let last_visible_line = buffer
-            .lines
-            .iter()
-            .enumerate()
-            .find_map(|(i, line)| {
-                let visible_lines = line
-                    .layout_opt()
-                    .as_ref()
-                    .expect("Line layout should be cached")
-                    .len() as i32;
+        let last_visible_line = internal.editor.with_buffer(|buffer| {
+            buffer
+                .lines
+                .iter()
+                .enumerate()
+                .find_map(|(i, line)| {
+                    let visible_lines = line
+                        .layout_opt()
+                        .as_ref()
+                        .expect("Line layout should be cached")
+                        .len() as i32;
 
-                if window > visible_lines {
-                    window -= visible_lines;
-                    None
-                } else {
-                    Some(i)
-                }
-            })
-            .unwrap_or(buffer.lines.len().saturating_sub(1));
+                    if window > visible_lines {
+                        window -= visible_lines;
+                        None
+                    } else {
+                        Some(i)
+                    }
+                })
+                .unwrap_or(buffer.lines.len().saturating_sub(1))
+        });
 
         let current_line = highlighter.current_line();
 
@@ -609,53 +644,64 @@ impl editor::Editor for Editor {
 
         let attributes = text::to_attributes(font);
 
-        for line in &mut internal.editor.buffer_mut().lines
-            [current_line..=last_visible_line]
-        {
-            let mut list = cosmic_text::AttrsList::new(attributes);
+        internal.editor.with_buffer_mut(|buffer| {
+            for line in &mut buffer.lines
+                [current_line..=last_visible_line]
+            {
+                let mut list = cosmic_text::AttrsList::new(attributes);
 
-            for (range, highlight) in highlighter.highlight_line(line.text()) {
-                let format = format_highlight(&highlight);
+                for (range, highlight) in highlighter.highlight_line(line.text()) {
+                    let format = format_highlight(&highlight);
 
-                if format.color.is_some() || format.font.is_some() {
-                    list.add_span(
-                        range,
-                        cosmic_text::Attrs {
-                            color_opt: format.color.map(text::to_color),
-                            ..if let Some(font) = format.font {
-                                text::to_attributes(font)
-                            } else {
-                                attributes
-                            }
-                        },
-                    );
+                    if format.color.is_some() || format.font.is_some() {
+                        list.add_span(
+                            range,
+                            cosmic_text::Attrs {
+                                color_opt: format.color.map(text::to_color),
+                                ..if let Some(font) = format.font {
+                                    text::to_attributes(font)
+                                } else {
+                                    attributes
+                                }
+                            },
+                        );
+                    }
                 }
+
+                let _ = line.set_attrs_list(list);
             }
 
-            let _ = line.set_attrs_list(list);
-        }
+        });
 
-        internal.editor.shape_as_needed(font_system.raw());
+        internal.editor.shape_as_needed(font_system.raw(), false);
 
         self.0 = Some(Arc::new(internal));
     }
 }
 
-impl Default for Editor {
+impl Default for Editor<'_> {
     fn default() -> Self {
         Self(Some(Arc::new(Internal::default())))
     }
 }
 
-impl PartialEq for Internal {
+impl PartialEq for Internal<'_> {
     fn eq(&self, other: &Self) -> bool {
+        let self_metrics = self.editor.with_buffer(|buffer| {
+            buffer.metrics()
+        });
+
+        let other_metrics = other.editor.with_buffer(|buffer| {
+            buffer.metrics()
+        });
+
         self.font == other.font
             && self.bounds == other.bounds
-            && self.editor.buffer().metrics() == other.editor.buffer().metrics()
+            && self_metrics == other_metrics
     }
 }
 
-impl Default for Internal {
+impl Default for Internal<'_> {
     fn default() -> Self {
         Self {
             editor: cosmic_text::Editor::new(cosmic_text::Buffer::new_empty(
@@ -672,7 +718,7 @@ impl Default for Internal {
     }
 }
 
-impl fmt::Debug for Internal {
+impl fmt::Debug for Internal<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Internal")
             .field("font", &self.font)
@@ -683,20 +729,20 @@ impl fmt::Debug for Internal {
 
 /// A weak reference to an [`Editor`].
 #[derive(Debug, Clone)]
-pub struct Weak {
-    raw: sync::Weak<Internal>,
+pub struct Weak<'buffer> {
+    raw: sync::Weak<Internal<'buffer>>,
     /// The bounds of the [`Editor`].
     pub bounds: Size,
 }
 
-impl Weak {
+impl Weak<'_> {
     /// Tries to update the reference into an [`Editor`].
-    pub fn upgrade(&self) -> Option<Editor> {
+    pub fn upgrade(&self) -> Option<Editor<'_>> {
         self.raw.upgrade().map(Some).map(Editor)
     }
 }
 
-impl PartialEq for Weak {
+impl PartialEq for Weak<'_> {
     fn eq(&self, other: &Self) -> bool {
         match (self.raw.upgrade(), other.raw.upgrade()) {
             (Some(p1), Some(p2)) => p1 == p2,
@@ -768,22 +814,22 @@ fn visual_lines_offset(line: usize, buffer: &cosmic_text::Buffer) -> i32 {
         })
         .sum();
 
-    visual_lines_before_start as i32 - buffer.scroll()
+    visual_lines_before_start as i32 - buffer.scroll().layout
 }
 
 fn motion_to_action(motion: Motion) -> cosmic_text::Action {
     match motion {
-        Motion::Left => cosmic_text::Action::Left,
-        Motion::Right => cosmic_text::Action::Right,
-        Motion::Up => cosmic_text::Action::Up,
-        Motion::Down => cosmic_text::Action::Down,
-        Motion::WordLeft => cosmic_text::Action::LeftWord,
-        Motion::WordRight => cosmic_text::Action::RightWord,
-        Motion::Home => cosmic_text::Action::Home,
-        Motion::End => cosmic_text::Action::End,
-        Motion::PageUp => cosmic_text::Action::PageUp,
-        Motion::PageDown => cosmic_text::Action::PageDown,
-        Motion::DocumentStart => cosmic_text::Action::BufferStart,
-        Motion::DocumentEnd => cosmic_text::Action::BufferEnd,
+        Motion::Left => cosmic_text::Action::Motion(cosmic_text::Motion::Left),
+        Motion::Right => cosmic_text::Action::Motion(cosmic_text::Motion::Right),
+        Motion::Up => cosmic_text::Action::Motion(cosmic_text::Motion::Up),
+        Motion::Down => cosmic_text::Action::Motion(cosmic_text::Motion::Down),
+        Motion::WordLeft => cosmic_text::Action::Motion(cosmic_text::Motion::LeftWord),
+        Motion::WordRight => cosmic_text::Action::Motion(cosmic_text::Motion::RightWord),
+        Motion::Home => cosmic_text::Action::Motion(cosmic_text::Motion::Home),
+        Motion::End => cosmic_text::Action::Motion(cosmic_text::Motion::End),
+        Motion::PageUp => cosmic_text::Action::Motion(cosmic_text::Motion::PageUp),
+        Motion::PageDown => cosmic_text::Action::Motion(cosmic_text::Motion::PageDown),
+        Motion::DocumentStart => cosmic_text::Action::Motion(cosmic_text::Motion::BufferStart),
+        Motion::DocumentEnd => cosmic_text::Action::Motion(cosmic_text::Motion::BufferEnd),
     }
 }

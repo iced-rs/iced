@@ -745,6 +745,7 @@ mod solid {
                         vertex: wgpu::VertexState {
                             module: &shader,
                             entry_point: "solid_vs_main",
+                            compilation_options: wgpu::PipelineCompilationOptions::default(),
                             buffers: &[wgpu::VertexBufferLayout {
                                 array_stride: std::mem::size_of::<
                                     mesh::SolidVertex2D,
@@ -763,6 +764,7 @@ mod solid {
                         fragment: Some(wgpu::FragmentState {
                             module: &shader,
                             entry_point: "solid_fs_main",
+                            compilation_options: wgpu::PipelineCompilationOptions::default(),
                             targets: &[Some(triangle::fragment_target(format))],
                         }),
                         primitive: triangle::primitive_state(),
@@ -913,6 +915,7 @@ mod gradient {
                     vertex: wgpu::VertexState {
                         module: &shader,
                         entry_point: "gradient_vs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<
                                 mesh::GradientVertex2D,
@@ -940,6 +943,7 @@ mod gradient {
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
                         targets: &[Some(triangle::fragment_target(format))],
                     }),
                     primitive: triangle::primitive_state(),

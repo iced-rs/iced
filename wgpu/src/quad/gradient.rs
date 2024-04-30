@@ -125,6 +125,7 @@ impl Pipeline {
                     vertex: wgpu::VertexState {
                         module: &shader,
                         entry_point: "gradient_vs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
                         buffers: &[wgpu::VertexBufferLayout {
                             array_stride: std::mem::size_of::<Gradient>()
                                 as u64,
@@ -156,6 +157,7 @@ impl Pipeline {
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
+                        compilation_options: wgpu::PipelineCompilationOptions::default(),
                         targets: &quad::color_target_state(format),
                     }),
                     primitive: wgpu::PrimitiveState {
