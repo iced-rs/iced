@@ -113,6 +113,7 @@ impl Storage {
                         new_transformation,
                     );
 
+                    upload.batch = Rc::downgrade(&cache.batch);
                     upload.version = cache.version;
                     upload.transformation = new_transformation;
                 }

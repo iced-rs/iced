@@ -122,6 +122,7 @@ impl Storage {
                         target_size,
                     );
 
+                    upload.text = Rc::downgrade(&cache.text);
                     upload.version = cache.version;
                     upload.transformation = new_transformation;
 
