@@ -102,7 +102,7 @@ pub fn load(
     }
 
     let (width, height, pixels) = match handle {
-        image::Handle::Path(path) => {
+        image::Handle::Path(_, path) => {
             let image = ::image::open(path)?;
 
             let operation = std::fs::File::open(path)
@@ -119,7 +119,7 @@ pub fn load(
                 image::Bytes::from(rgba.into_raw()),
             )
         }
-        image::Handle::Bytes(bytes) => {
+        image::Handle::Bytes(_, bytes) => {
             let image = ::image::load_from_memory(bytes)?;
             let operation =
                 Operation::from_exif(&mut std::io::Cursor::new(bytes))
@@ -138,6 +138,7 @@ pub fn load(
             width,
             height,
             pixels,
+            ..
         } => (*width, *height, pixels.clone()),
     };
 

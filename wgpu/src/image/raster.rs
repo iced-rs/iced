@@ -38,8 +38,8 @@ impl Memory {
 /// Caches image raster data
 #[derive(Debug, Default)]
 pub struct Cache {
-    map: FxHashMap<u64, Memory>,
-    hits: FxHashSet<u64>,
+    map: FxHashMap<image::Id, Memory>,
+    hits: FxHashSet<image::Id>,
     should_trim: bool,
 }
 

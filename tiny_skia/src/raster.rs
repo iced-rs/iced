@@ -71,8 +71,8 @@ impl Pipeline {
 
 #[derive(Debug, Default)]
 struct Cache {
-    entries: FxHashMap<u64, Option<Entry>>,
-    hits: FxHashSet<u64>,
+    entries: FxHashMap<raster::Id, Option<Entry>>,
+    hits: FxHashSet<raster::Id>,
 }
 
 impl Cache {

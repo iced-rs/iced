@@ -5,19 +5,21 @@ use crate::{Rectangle, Size};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// A handle of some image data.
 #[derive(Clone, PartialEq, Eq)]
 pub enum Handle {
     /// File data
-    Path(PathBuf),
+    Path(Id, PathBuf),
 
     /// In-memory data
-    Bytes(Bytes),
+    Bytes(Id, Bytes),
 
     /// Decoded image pixels in RGBA format.
     Rgba {
+        /// The id of this handle.
+        id: Id,
         /// The width of the image.
         width: u32,
         /// The height of the image.
@@ -32,7 +34,9 @@ impl Handle {
     ///
     /// Makes an educated guess about the image format by examining the data in the file.
     pub fn from_path<T: Into<PathBuf>>(path: T) -> Handle {
-        Self::Path(path.into())
+        let path = path.into();
+
+        Self::Path(Id::path(&path), path)
     }
 
     /// Creates an image [`Handle`] containing the image pixels directly. This
@@ -46,6 +50,7 @@ impl Handle {
         pixels: impl Into<Bytes>,
     ) -> Handle {
         Self::Rgba {
+            id: Id::unique(),
             width,
             height,
             pixels: pixels.into(),
@@ -59,24 +64,15 @@ impl Handle {
     /// This is useful if you already have your image loaded in-memory, maybe
     /// because you downloaded or generated it procedurally.
     pub fn from_memory(bytes: impl Into<Bytes>) -> Handle {
-        Self::Bytes(bytes.into())
+        Self::Bytes(Id::unique(), bytes.into())
     }
 
     /// Returns the unique identifier of the [`Handle`].
-    pub fn id(&self) -> u64 {
-        let mut hasher = FxHasher::default();
-        self.hash(&mut hasher);
-
-        hasher.finish()
-    }
-}
-
-impl Hash for Handle {
-    fn hash<H: Hasher>(&self, state: &mut H) {
+    pub fn id(&self) -> Id {
         match self {
-            Self::Path(path) => path.hash(state),
-            Self::Bytes(bytes) => bytes.as_ptr().hash(state),
-            Self::Rgba { pixels, .. } => pixels.as_ptr().hash(state),
+            Handle::Path(id, _)
+            | Handle::Bytes(id, _)
+            | Handle::Rgba { id, .. } => *id,
         }
     }
 }
@@ -93,12 +89,42 @@ where
 impl std::fmt::Debug for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Path(path) => write!(f, "Path({path:?})"),
-            Self::Bytes(_) => write!(f, "Bytes(...)"),
+            Self::Path(_, path) => write!(f, "Path({path:?})"),
+            Self::Bytes(_, _) => write!(f, "Bytes(...)"),
             Self::Rgba { width, height, .. } => {
                 write!(f, "Pixels({width} * {height})")
             }
         }
+    }
+}
+
+/// The unique identifier of some [`Handle`] data.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Id {
+    /// A unique identifier.
+    Unique(u64),
+    /// A hash identifier.
+    Hash(u64),
+}
+
+impl Id {
+    fn unique() -> Self {
+        use std::sync::atomic::{self, AtomicU64};
+
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+
+        Self::Unique(NEXT_ID.fetch_add(1, atomic::Ordering::Relaxed))
+    }
+
+    fn path(path: impl AsRef<Path>) -> Self {
+        let hash = {
+            let mut hasher = FxHasher::default();
+            path.as_ref().hash(&mut hasher);
+
+            hasher.finish()
+        };
+
+        Self::Hash(hash)
     }
 }
 
@@ -119,7 +145,7 @@ pub trait Renderer: crate::Renderer {
     /// The image Handle to be displayed. Iced exposes its own default implementation of a [`Handle`]
     ///
     /// [`Handle`]: Self::Handle
-    type Handle: Clone + Hash;
+    type Handle: Clone;
 
     /// Returns the dimensions of an image for the given [`Handle`].
     fn measure_image(&self, handle: &Self::Handle) -> Size<u32>;
