@@ -10,7 +10,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 #[derive(Debug)]
 pub enum Memory {
     /// Image data on host
-    Host(image_rs::ImageBuffer<image_rs::Rgba<u8>, Vec<u8>>),
+    Host(image_rs::ImageBuffer<image_rs::Rgba<u8>, image::Bytes>),
     /// Storage entry
     Device(atlas::Entry),
     /// Image not found
@@ -51,7 +51,7 @@ impl Cache {
         }
 
         let memory = match graphics::image::load(handle) {
-            Ok(image) => Memory::Host(image.to_rgba8()),
+            Ok(image) => Memory::Host(image),
             Err(image_rs::error::ImageError::IoError(_)) => Memory::NotFound,
             Err(_) => Memory::Invalid,
         };

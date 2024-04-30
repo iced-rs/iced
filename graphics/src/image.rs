@@ -50,7 +50,8 @@ impl Image {
 /// [`Handle`]: image::Handle
 pub fn load(
     handle: &image::Handle,
-) -> ::image::ImageResult<::image::DynamicImage> {
+) -> ::image::ImageResult<::image::ImageBuffer<::image::Rgba<u8>, image::Bytes>>
+{
     use bitflags::bitflags;
 
     bitflags! {
@@ -100,8 +101,8 @@ pub fn load(
         }
     }
 
-    match handle.data() {
-        image::Data::Path(path) => {
+    let (width, height, pixels) = match handle {
+        image::Handle::Path(path) => {
             let image = ::image::open(path)?;
 
             let operation = std::fs::File::open(path)
@@ -110,33 +111,43 @@ pub fn load(
                 .and_then(|mut reader| Operation::from_exif(&mut reader).ok())
                 .unwrap_or_else(Operation::empty);
 
-            Ok(operation.perform(image))
+            let rgba = operation.perform(image).into_rgba8();
+
+            (
+                rgba.width(),
+                rgba.height(),
+                image::Bytes::from(rgba.into_raw()),
+            )
         }
-        image::Data::Bytes(bytes) => {
+        image::Handle::Bytes(bytes) => {
             let image = ::image::load_from_memory(bytes)?;
             let operation =
                 Operation::from_exif(&mut std::io::Cursor::new(bytes))
                     .ok()
                     .unwrap_or_else(Operation::empty);
 
-            Ok(operation.perform(image))
+            let rgba = operation.perform(image).into_rgba8();
+
+            (
+                rgba.width(),
+                rgba.height(),
+                image::Bytes::from(rgba.into_raw()),
+            )
         }
-        image::Data::Rgba {
+        image::Handle::Rgba {
             width,
             height,
             pixels,
-        } => {
-            if let Some(image) =
-                ::image::ImageBuffer::from_vec(*width, *height, pixels.to_vec())
-            {
-                Ok(::image::DynamicImage::ImageRgba8(image))
-            } else {
-                Err(::image::error::ImageError::Limits(
-                    ::image::error::LimitError::from_kind(
-                        ::image::error::LimitErrorKind::DimensionError,
-                    ),
-                ))
-            }
-        }
+        } => (*width, *height, pixels.clone()),
+    };
+
+    if let Some(image) = ::image::ImageBuffer::from_raw(width, height, pixels) {
+        Ok(image)
+    } else {
+        Err(::image::error::ImageError::Limits(
+            ::image::error::LimitError::from_kind(
+                ::image::error::LimitErrorKind::DimensionError,
+            ),
+        ))
     }
 }
