@@ -15,6 +15,7 @@ pub fn main() -> iced::Result {
         .run()
 }
 
+#[derive(Default)]
 struct TheMatrix {
     tick: usize,
 }
@@ -42,12 +43,6 @@ impl TheMatrix {
 
     fn subscription(&self) -> Subscription<Message> {
         time::every(std::time::Duration::from_millis(50)).map(Message::Tick)
-    }
-}
-
-impl Default for TheMatrix {
-    fn default() -> Self {
-        Self { tick: 0 }
     }
 }
 
