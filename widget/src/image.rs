@@ -11,8 +11,6 @@ use crate::core::{
     ContentFit, Element, Layout, Length, Rectangle, Size, Vector, Widget,
 };
 
-use std::hash::Hash;
-
 pub use image::{FilterMethod, Handle};
 
 /// Creates a new [`Viewer`] with the given image `Handle`.
@@ -128,7 +126,7 @@ pub fn draw<Renderer, Handle>(
     filter_method: FilterMethod,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
     let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
@@ -167,7 +165,7 @@ impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
     for Image<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
     fn size(&self) -> Size<Length> {
         Size {
@@ -216,7 +214,7 @@ impl<'a, Message, Theme, Renderer, Handle> From<Image<Handle>>
     for Element<'a, Message, Theme, Renderer>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash + 'a,
+    Handle: Clone + 'a,
 {
     fn from(image: Image<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(image)

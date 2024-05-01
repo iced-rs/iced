@@ -109,7 +109,7 @@ impl Example {
     fn view(&self) -> Element<'_, Message> {
         let image: Element<Message> = if let Some(screenshot) = &self.screenshot
         {
-            image(image::Handle::from_pixels(
+            image(image::Handle::from_rgba(
                 screenshot.size.width,
                 screenshot.size.height,
                 screenshot.clone(),

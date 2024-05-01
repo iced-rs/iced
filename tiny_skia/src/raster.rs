@@ -71,8 +71,8 @@ impl Pipeline {
 
 #[derive(Debug, Default)]
 struct Cache {
-    entries: FxHashMap<u64, Option<Entry>>,
-    hits: FxHashSet<u64>,
+    entries: FxHashMap<raster::Id, Option<Entry>>,
+    hits: FxHashSet<raster::Id>,
 }
 
 impl Cache {
@@ -83,7 +83,7 @@ impl Cache {
         let id = handle.id();
 
         if let hash_map::Entry::Vacant(entry) = self.entries.entry(id) {
-            let image = graphics::image::load(handle).ok()?.into_rgba8();
+            let image = graphics::image::load(handle).ok()?;
 
             let mut buffer =
                 vec![0u32; image.width() as usize * image.height() as usize];

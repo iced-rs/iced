@@ -10,8 +10,6 @@ use crate::core::{
     Vector, Widget,
 };
 
-use std::hash::Hash;
-
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
 pub struct Viewer<Handle> {
@@ -94,7 +92,7 @@ impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
     for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -401,7 +399,7 @@ impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
-    Handle: Clone + Hash + 'a,
+    Handle: Clone + 'a,
 {
     fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(viewer)
