@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, Bencher, Criterion};
 
 use iced::alignment;
 use iced::mouse;
-use iced::widget::{canvas, text};
+use iced::widget::{canvas, stack, text};
 use iced::{
     Color, Element, Font, Length, Pixels, Point, Rectangle, Size, Theme,
 };
@@ -16,6 +16,13 @@ criterion_group!(benches, wgpu_benchmark);
 pub fn wgpu_benchmark(c: &mut Criterion) {
     c.bench_function("wgpu — canvas (light)", |b| benchmark(b, scene(10)));
     c.bench_function("wgpu — canvas (heavy)", |b| benchmark(b, scene(1_000)));
+
+    c.bench_function("wgpu - layered text (light)", |b| {
+        benchmark(b, layered_text(10));
+    });
+    c.bench_function("wgpu - layered text (heavy)", |b| {
+        benchmark(b, layered_text(1_000));
+    });
 }
 
 fn benchmark(
@@ -125,52 +132,59 @@ fn benchmark(
     });
 }
 
-fn scene<'a, Message: 'a, Theme: 'a>(
-    n: usize,
-) -> Element<'a, Message, Theme, Renderer> {
+fn scene<'a, Message: 'a>(n: usize) -> Element<'a, Message, Theme, Renderer> {
+    struct Scene {
+        n: usize,
+    }
+
+    impl<Message, Theme> canvas::Program<Message, Theme, Renderer> for Scene {
+        type State = canvas::Cache<Renderer>;
+
+        fn draw(
+            &self,
+            cache: &Self::State,
+            renderer: &Renderer,
+            _theme: &Theme,
+            bounds: Rectangle,
+            _cursor: mouse::Cursor,
+        ) -> Vec<canvas::Geometry<Renderer>> {
+            vec![cache.draw(renderer, bounds.size(), |frame| {
+                for i in 0..self.n {
+                    frame.fill_rectangle(
+                        Point::new(0.0, i as f32),
+                        Size::new(10.0, 10.0),
+                        Color::WHITE,
+                    );
+                }
+
+                for i in 0..self.n {
+                    frame.fill_text(canvas::Text {
+                        content: i.to_string(),
+                        position: Point::new(0.0, i as f32),
+                        color: Color::BLACK,
+                        size: Pixels::from(16),
+                        line_height: text::LineHeight::default(),
+                        font: Font::DEFAULT,
+                        horizontal_alignment: alignment::Horizontal::Left,
+                        vertical_alignment: alignment::Vertical::Top,
+                        shaping: text::Shaping::Basic,
+                    });
+                }
+            })]
+        }
+    }
+
     canvas(Scene { n })
         .width(Length::Fill)
         .height(Length::Fill)
         .into()
 }
 
-struct Scene {
+fn layered_text<'a, Message: 'a>(
     n: usize,
-}
-
-impl<Message, Theme> canvas::Program<Message, Theme, Renderer> for Scene {
-    type State = canvas::Cache<Renderer>;
-
-    fn draw(
-        &self,
-        cache: &Self::State,
-        renderer: &Renderer,
-        _theme: &Theme,
-        bounds: Rectangle,
-        _cursor: mouse::Cursor,
-    ) -> Vec<canvas::Geometry<Renderer>> {
-        vec![cache.draw(renderer, bounds.size(), |frame| {
-            for i in 0..self.n {
-                frame.fill_rectangle(
-                    Point::new(0.0, i as f32),
-                    Size::new(10.0, 10.0),
-                    Color::WHITE,
-                );
-            }
-
-            for i in 0..self.n {
-                frame.fill_text(canvas::Text {
-                    content: i.to_string(),
-                    position: Point::new(0.0, i as f32),
-                    color: Color::BLACK,
-                    size: Pixels::from(16),
-                    line_height: text::LineHeight::default(),
-                    font: Font::DEFAULT,
-                    horizontal_alignment: alignment::Horizontal::Left,
-                    vertical_alignment: alignment::Vertical::Top,
-                    shaping: text::Shaping::Basic,
-                });
-            }
-        })]
-    }
+) -> Element<'a, Message, Theme, Renderer> {
+    stack((0..n).map(|i| text(format!("I am paragraph {i}!")).into()))
+        .width(Length::Fill)
+        .height(Length::Fill)
+        .into()
 }
