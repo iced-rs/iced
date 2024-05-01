@@ -138,11 +138,11 @@ async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
 bytes = "1.6"
-cosmic-text = "0.10"
+cosmic-text = "0.11"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "f07e7bab705e69d39a5e6e52c73039a93c4552f8" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "0a688982e914bcd1efe4d30ac0dad0dff3c58b24" }
 guillotiere = "0.6"
 half = "2.2"
 image = "0.24"
@@ -157,7 +157,7 @@ ouroboros = "0.18"
 palette = "0.7"
 qrcode = { version = "0.13", default-features = false }
 raw-window-handle = "0.6"
-resvg = "0.36"
+resvg = "0.41"
 rustc-hash = "1.0"
 smol = "1.0"
 smol_str = "0.2"
