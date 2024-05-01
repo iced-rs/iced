@@ -148,7 +148,7 @@ cosmic-text = "0.12"
 dark-light = "1.0"
 futures = "0.3"
 glam = "0.25"
-glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "feef9f5630c2adb3528937e55f7bfad2da561a65" }
+glyphon = { git = "https://github.com/hecrj/glyphon.git", rev = "ce412b3954118d2a4ae20de2d6959247d6f7ed76" }
 guillotiere = "0.6"
 half = "2.2"
 image = { version = "0.24", default-features = false }
@@ -181,7 +181,7 @@ wasm-bindgen-futures = "0.4"
 wasm-timer = "0.2"
 web-sys = "0.3.69"
 web-time = "1.1"
-wgpu = "0.19"
+wgpu = "0.20.1"
 winapi = "0.3"
 window_clipboard = "0.4.1"
 winit = { git = "https://github.com/iced-rs/winit.git", rev = "254d6b3420ce4e674f516f7a2bd440665e05484d" }

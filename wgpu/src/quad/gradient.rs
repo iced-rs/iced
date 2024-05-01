@@ -152,11 +152,15 @@ impl Pipeline {
                                 9 => Float32
                             ),
                         }],
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     },
                     fragment: Some(wgpu::FragmentState {
                         module: &shader,
                         entry_point: "gradient_fs_main",
                         targets: &quad::color_target_state(format),
+                        compilation_options:
+                            wgpu::PipelineCompilationOptions::default(),
                     }),
                     primitive: wgpu::PrimitiveState {
                         topology: wgpu::PrimitiveTopology::TriangleList,

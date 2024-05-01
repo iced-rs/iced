@@ -243,6 +243,8 @@ impl Pipeline {
                     module: &shader,
                     entry_point: "vs_main",
                     buffers: &[Vertex::desc(), cube::Raw::desc()],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 },
                 primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: Some(wgpu::DepthStencilState {
@@ -276,6 +278,8 @@ impl Pipeline {
                         }),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 }),
                 multiview: None,
             });
@@ -490,6 +494,8 @@ impl DepthPipeline {
                     module: &shader,
                     entry_point: "vs_main",
                     buffers: &[],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 },
                 primitive: wgpu::PrimitiveState::default(),
                 depth_stencil: Some(wgpu::DepthStencilState {
@@ -508,6 +514,8 @@ impl DepthPipeline {
                         blend: Some(wgpu::BlendState::REPLACE),
                         write_mask: wgpu::ColorWrites::ALL,
                     })],
+                    compilation_options:
+                        wgpu::PipelineCompilationOptions::default(),
                 }),
                 multiview: None,
             });
