@@ -212,10 +212,9 @@ impl Pipeline {
         belt: &mut wgpu::util::StagingBelt,
         images: &Batch,
         transformation: Transformation,
-        global_scale: f32,
+        scale: f32,
     ) {
-        let transformation =
-            transformation * Transformation::scale(global_scale);
+        let transformation = transformation * Transformation::scale(scale);
 
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
@@ -263,12 +262,7 @@ impl Pipeline {
                     let size = [bounds.width, bounds.height];
 
                     if let Some(atlas_entry) = cache.upload_vector(
-                        device,
-                        encoder,
-                        handle,
-                        *color,
-                        size,
-                        global_scale,
+                        device, encoder, handle, *color, size, scale,
                     ) {
                         add_instances(
                             [bounds.x, bounds.y],
