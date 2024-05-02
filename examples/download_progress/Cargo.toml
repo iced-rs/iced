@@ -6,10 +6,18 @@ edition = "2021"
 publish = false
 
 [dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced.workspace = true
 iced.features = ["tokio"]
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["tokio", "webgl"]
+
+bytes = "1.6"
+futures = "0.3"
+
 [dependencies.reqwest]
-version = "0.11"
+version = "0.12"
 default-features = false
-features = ["rustls-tls"]
+features = ["rustls-tls", "stream"]
