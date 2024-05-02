@@ -171,6 +171,8 @@ impl image::Renderer for () {
         _handle: Self::Handle,
         _filter_method: image::FilterMethod,
         _bounds: Rectangle,
+        _rotation: f32,
+        _scale: Size,
     ) {
     }
 }
@@ -185,6 +187,8 @@ impl svg::Renderer for () {
         _handle: svg::Handle,
         _color: Option<Color>,
         _bounds: Rectangle,
+        _rotation: f32,
+        _scale: Size,
     ) {
     }
 }

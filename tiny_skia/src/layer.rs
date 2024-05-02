@@ -1,7 +1,7 @@
-use crate::core::image;
-use crate::core::renderer::Quad;
-use crate::core::svg;
-use crate::core::{Background, Color, Point, Rectangle, Transformation};
+use crate::core::{
+    image, renderer::Quad, svg, Background, Color, Point, Rectangle, Size,
+    Transformation,
+};
 use crate::graphics::damage;
 use crate::graphics::layer;
 use crate::graphics::text::{Editor, Paragraph, Text};
@@ -121,11 +121,15 @@ impl Layer {
         filter_method: image::FilterMethod,
         bounds: Rectangle,
         transformation: Transformation,
+        rotation: f32,
+        scale: Size,
     ) {
         let image = Image::Raster {
             handle,
             filter_method,
             bounds: bounds * transformation,
+            rotation,
+            scale,
         };
 
         self.images.push(image);
@@ -137,11 +141,15 @@ impl Layer {
         color: Option<Color>,
         bounds: Rectangle,
         transformation: Transformation,
+        rotation: f32,
+        scale: Size,
     ) {
         let svg = Image::Vector {
             handle,
             color,
             bounds: bounds * transformation,
+            rotation,
+            scale,
         };
 
         self.images.push(svg);
@@ -255,6 +263,22 @@ impl Layer {
             |image| vec![image.bounds().expand(1.0)],
             Image::eq,
         );
+
+        // let center = bounds.center();
+        // let rotated_size = RotationLayout::Change
+        //     .apply_to_size(bounds.size(), *rotation);
+        //
+        // let scaled_size = Size::new(
+        //     rotated_size.width * scale.width,
+        //     rotated_size.height * scale.height,
+        // );
+        //
+        // let top_left = Point::new(
+        //     center.x - scaled_size.width / 2.0,
+        //     center.y - scaled_size.height / 2.0,
+        // );
+        //
+        // Rectangle::new(top_left, scaled_size).expand(1.0)
 
         damage.extend(text);
         damage.extend(primitives);

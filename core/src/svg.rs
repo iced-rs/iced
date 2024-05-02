@@ -100,5 +100,7 @@ pub trait Renderer: crate::Renderer {
         handle: Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rotation: f32,
+        scale: Size,
     );
 }

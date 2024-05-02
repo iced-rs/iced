@@ -154,11 +154,13 @@ where
         handle: Self::Handle,
         filter_method: image::FilterMethod,
         bounds: Rectangle,
+        rotation: f32,
+        scale: Size,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_image(handle, filter_method, bounds)
+            renderer.draw_image(handle, filter_method, bounds, rotation, scale)
         );
     }
 }
@@ -177,8 +179,14 @@ where
         handle: svg::Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rotation: f32,
+        scale: Size,
     ) {
-        delegate!(self, renderer, renderer.draw_svg(handle, color, bounds));
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_svg(handle, color, bounds, rotation, scale)
+        );
     }
 }
 

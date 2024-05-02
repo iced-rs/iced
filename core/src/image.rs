@@ -173,5 +173,7 @@ pub trait Renderer: crate::Renderer {
         handle: Self::Handle,
         filter_method: FilterMethod,
         bounds: Rectangle,
+        rotation: f32,
+        scale: Size,
     );
 }

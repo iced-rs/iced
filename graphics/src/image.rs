@@ -2,9 +2,7 @@
 #[cfg(feature = "image")]
 pub use ::image as image_rs;
 
-use crate::core::image;
-use crate::core::svg;
-use crate::core::{Color, Rectangle};
+use crate::core::{image, svg, Color, Rectangle, Size};
 
 /// A raster or vector image.
 #[derive(Debug, Clone, PartialEq)]
@@ -19,6 +17,12 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image in radians
+        rotation: f32,
+
+        /// The scale of the image after rotation
+        scale: Size,
     },
     /// A vector image.
     Vector {
@@ -30,6 +34,12 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image in radians
+        rotation: f32,
+
+        /// The scale of the image after rotation
+        scale: Size,
     },
 }
 
