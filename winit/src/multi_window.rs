@@ -1190,7 +1190,7 @@ fn run_command<A, C, E>(
 }
 
 /// Build the user interface for every window.
-pub fn build_user_interfaces<'a, A: Application, C: Compositor>(
+pub fn build_user_interfaces<'a, A: Application, C>(
     application: &'a A,
     debug: &mut Debug,
     window_manager: &mut WindowManager<A, C>,
