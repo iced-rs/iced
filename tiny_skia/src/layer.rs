@@ -260,22 +260,6 @@ impl Layer {
             Image::eq,
         );
 
-        // let center = bounds.center();
-        // let rotated_size = RotationLayout::Change
-        //     .apply_to_size(bounds.size(), *rotation);
-        //
-        // let scaled_size = Size::new(
-        //     rotated_size.width * scale.width,
-        //     rotated_size.height * scale.height,
-        // );
-        //
-        // let top_left = Point::new(
-        //     center.x - scaled_size.width / 2.0,
-        //     center.y - scaled_size.height / 2.0,
-        // );
-        //
-        // Rectangle::new(top_left, scaled_size).expand(1.0)
-
         damage.extend(text);
         damage.extend(primitives);
         damage.extend(images);
