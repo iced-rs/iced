@@ -65,6 +65,12 @@ impl From<u8> for Radians {
     }
 }
 
+impl From<Radians> for f32 {
+    fn from(radians: Radians) -> Self {
+        radians.0
+    }
+}
+
 impl From<Radians> for f64 {
     fn from(radians: Radians) -> Self {
         Self::from(radians.0)

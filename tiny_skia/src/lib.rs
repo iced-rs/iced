@@ -29,7 +29,7 @@ pub use geometry::Geometry;
 
 use crate::core::renderer;
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Background, Color, Font, Pixels, Point, Radians, Rectangle, Transformation,
 };
 use crate::engine::Engine;
 use crate::graphics::compositor;
@@ -377,8 +377,7 @@ impl core::image::Renderer for Renderer {
         handle: Self::Handle,
         filter_method: core::image::FilterMethod,
         bounds: Rectangle,
-        rotation: f32,
-        scale: Size,
+        rotation: Radians,
     ) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_image(
@@ -387,7 +386,6 @@ impl core::image::Renderer for Renderer {
             bounds,
             transformation,
             rotation,
-            scale,
         );
     }
 }
@@ -406,11 +404,10 @@ impl core::svg::Renderer for Renderer {
         handle: core::svg::Handle,
         color: Option<Color>,
         bounds: Rectangle,
-        rotation: f32,
-        scale: Size,
+        rotation: Radians,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(handle, color, bounds, transformation, rotation, scale);
+        layer.draw_svg(handle, color, bounds, transformation, rotation);
     }
 }
 

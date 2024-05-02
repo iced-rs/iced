@@ -11,7 +11,7 @@ use crate::Size;
 /// in CSS, see [Mozilla's docs][1], or run the `tour` example
 ///
 /// [1]: https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ContentFit {
     /// Scale as big as it can be without needing to crop or hide parts.
     ///
@@ -23,6 +23,7 @@ pub enum ContentFit {
     /// This is a great fit for when you need to display an image without losing
     /// any part of it, particularly when the image itself is the focus of the
     /// screen.
+    #[default]
     Contain,
 
     /// Scale the image to cover all of the bounding box, cropping if needed.

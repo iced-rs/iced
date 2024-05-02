@@ -551,7 +551,6 @@ impl Engine {
                 filter_method,
                 bounds,
                 rotation,
-                scale,
             } => {
                 let physical_bounds = *bounds * transformation;
 
@@ -563,11 +562,13 @@ impl Engine {
                     .then_some(clip_mask as &_);
 
                 let center = physical_bounds.center();
-                let transform = into_transform(transformation)
-                    .post_rotate_at(rotation.to_degrees(), center.x, center.y)
-                    .post_translate(-center.x, -center.y)
-                    .post_scale(scale.width, scale.height)
-                    .post_translate(center.x, center.y);
+                let radians = f32::from(*rotation);
+
+                let transform = into_transform(transformation).post_rotate_at(
+                    radians.to_degrees(),
+                    center.x,
+                    center.y,
+                );
 
                 self.raster_pipeline.draw(
                     handle,
@@ -584,7 +585,6 @@ impl Engine {
                 color,
                 bounds,
                 rotation,
-                scale,
             } => {
                 let physical_bounds = *bounds * transformation;
 
@@ -596,11 +596,13 @@ impl Engine {
                     .then_some(clip_mask as &_);
 
                 let center = physical_bounds.center();
-                let transform = into_transform(transformation)
-                    .post_rotate_at(rotation.to_degrees(), center.x, center.y)
-                    .post_translate(-center.x, -center.y)
-                    .post_scale(scale.width, scale.height)
-                    .post_translate(center.x, center.y);
+                let radians = f32::from(*rotation);
+
+                let transform = into_transform(transformation).post_rotate_at(
+                    radians.to_degrees(),
+                    center.x,
+                    center.y,
+                );
 
                 self.vector_pipeline.draw(
                     handle,

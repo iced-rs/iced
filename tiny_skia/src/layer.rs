@@ -1,5 +1,5 @@
 use crate::core::{
-    image, renderer::Quad, svg, Background, Color, Point, Rectangle, Size,
+    image, renderer::Quad, svg, Background, Color, Point, Radians, Rectangle,
     Transformation,
 };
 use crate::graphics::damage;
@@ -121,15 +121,13 @@ impl Layer {
         filter_method: image::FilterMethod,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: f32,
-        scale: Size,
+        rotation: Radians,
     ) {
         let image = Image::Raster {
             handle,
             filter_method,
             bounds: bounds * transformation,
             rotation,
-            scale,
         };
 
         self.images.push(image);
@@ -141,15 +139,13 @@ impl Layer {
         color: Option<Color>,
         bounds: Rectangle,
         transformation: Transformation,
-        rotation: f32,
-        scale: Size,
+        rotation: Radians,
     ) {
         let svg = Image::Vector {
             handle,
             color,
             bounds: bounds * transformation,
             rotation,
-            scale,
         };
 
         self.images.push(svg);

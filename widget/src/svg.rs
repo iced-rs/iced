@@ -5,8 +5,8 @@ use crate::core::renderer;
 use crate::core::svg;
 use crate::core::widget::Tree;
 use crate::core::{
-    Color, ContentFit, Element, Layout, Length, Point, Rectangle,
-    RotationLayout, Size, Theme, Widget,
+    Color, ContentFit, Element, Layout, Length, Point, Rectangle, Rotation,
+    Size, Theme, Vector, Widget,
 };
 
 use std::path::PathBuf;
@@ -29,8 +29,7 @@ where
     height: Length,
     content_fit: ContentFit,
     class: Theme::Class<'a>,
-    rotation: f32,
-    rotation_layout: RotationLayout,
+    rotation: Rotation,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -45,8 +44,7 @@ where
             height: Length::Shrink,
             content_fit: ContentFit::Contain,
             class: Theme::default(),
-            rotation: 0.0,
-            rotation_layout: RotationLayout::Change,
+            rotation: Rotation::default(),
         }
     }
 
@@ -100,15 +98,9 @@ where
         self
     }
 
-    /// Rotates the [`Svg`] by the given angle in radians.
-    pub fn rotation(mut self, degrees: f32) -> Self {
-        self.rotation = degrees;
-        self
-    }
-
-    /// Sets the [`RotationLayout`] of the [`Svg`].
-    pub fn rotation_layout(mut self, rotation_layout: RotationLayout) -> Self {
-        self.rotation_layout = rotation_layout;
+    /// Applies the given [`Rotation`] to the [`Svg`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
         self
     }
 }
@@ -137,9 +129,7 @@ where
         let image_size = Size::new(width as f32, height as f32);
 
         // The rotated size of the svg
-        let rotated_size = self
-            .rotation_layout
-            .apply_to_size(image_size, self.rotation);
+        let rotated_size = self.rotation.apply(image_size);
 
         // The size to be available to the widget prior to `Shrink`ing
         let raw_size = limits.resolve(self.width, self.height, rotated_size);
@@ -174,49 +164,46 @@ where
     ) {
         let Size { width, height } = renderer.measure_svg(&self.handle);
         let image_size = Size::new(width as f32, height as f32);
-        let rotated_size = self
-            .rotation_layout
-            .apply_to_size(image_size, self.rotation);
+        let rotated_size = self.rotation.apply(image_size);
 
         let bounds = layout.bounds();
         let adjusted_fit = self.content_fit.fit(rotated_size, bounds.size());
-        let scale = Size::new(
+        let scale = Vector::new(
             adjusted_fit.width / rotated_size.width,
             adjusted_fit.height / rotated_size.height,
         );
 
+        let final_size = image_size * scale;
+
+        let position = match self.content_fit {
+            ContentFit::None => Point::new(
+                bounds.x + (rotated_size.width - adjusted_fit.width) / 2.0,
+                bounds.y + (rotated_size.height - adjusted_fit.height) / 2.0,
+            ),
+            _ => Point::new(
+                bounds.center_x() - final_size.width / 2.0,
+                bounds.center_y() - final_size.height / 2.0,
+            ),
+        };
+
+        let drawing_bounds = Rectangle::new(position, final_size);
+
         let is_mouse_over = cursor.is_over(bounds);
 
+        let status = if is_mouse_over {
+            Status::Hovered
+        } else {
+            Status::Idle
+        };
+
+        let style = theme.style(&self.class, status);
+
         let render = |renderer: &mut Renderer| {
-            let position = match self.content_fit {
-                ContentFit::None => Point::new(
-                    bounds.position().x
-                        + (rotated_size.width - image_size.width) / 2.0,
-                    bounds.position().y
-                        + (rotated_size.height - image_size.height) / 2.0,
-                ),
-                _ => Point::new(
-                    bounds.center_x() - image_size.width / 2.0,
-                    bounds.center_y() - image_size.height / 2.0,
-                ),
-            };
-
-            let drawing_bounds = Rectangle::new(position, image_size);
-
-            let status = if is_mouse_over {
-                Status::Hovered
-            } else {
-                Status::Idle
-            };
-
-            let style = theme.style(&self.class, status);
-
             renderer.draw_svg(
                 self.handle.clone(),
                 style.color,
                 drawing_bounds,
-                self.rotation,
-                scale,
+                self.rotation.radians(),
             );
         };
 

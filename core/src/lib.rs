@@ -65,7 +65,7 @@ pub use pixels::Pixels;
 pub use point::Point;
 pub use rectangle::Rectangle;
 pub use renderer::Renderer;
-pub use rotation::RotationLayout;
+pub use rotation::Rotation;
 pub use shadow::Shadow;
 pub use shell::Shell;
 pub use size::Size;

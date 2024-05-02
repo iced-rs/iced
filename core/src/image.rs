@@ -1,7 +1,7 @@
 //! Load and draw raster graphics.
 pub use bytes::Bytes;
 
-use crate::{Rectangle, Size};
+use crate::{Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
 use std::hash::{Hash, Hasher};
@@ -173,7 +173,6 @@ pub trait Renderer: crate::Renderer {
         handle: Self::Handle,
         filter_method: FilterMethod,
         bounds: Rectangle,
-        rotation: f32,
-        scale: Size,
+        rotation: Radians,
     );
 }

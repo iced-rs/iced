@@ -113,3 +113,17 @@ where
         }
     }
 }
+
+impl<T> std::ops::Mul<Vector<T>> for Size<T>
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    type Output = Size<T>;
+
+    fn mul(self, scale: Vector<T>) -> Self::Output {
+        Size {
+            width: self.width * scale.x,
+            height: self.height * scale.y,
+        }
+    }
+}

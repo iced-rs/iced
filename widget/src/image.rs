@@ -1,6 +1,5 @@
 //! Display images in your user interface.
 pub mod viewer;
-use iced_renderer::core::{Point, RotationLayout};
 pub use viewer::Viewer;
 
 use crate::core::image;
@@ -9,7 +8,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::Tree;
 use crate::core::{
-    ContentFit, Element, Layout, Length, Rectangle, Size, Widget,
+    ContentFit, Element, Layout, Length, Point, Rectangle, Rotation, Size,
+    Vector, Widget,
 };
 
 pub use image::{FilterMethod, Handle};
@@ -37,8 +37,7 @@ pub struct Image<Handle> {
     height: Length,
     content_fit: ContentFit,
     filter_method: FilterMethod,
-    rotation: f32,
-    rotation_layout: RotationLayout,
+    rotation: Rotation,
 }
 
 impl<Handle> Image<Handle> {
@@ -48,10 +47,9 @@ impl<Handle> Image<Handle> {
             handle: handle.into(),
             width: Length::Shrink,
             height: Length::Shrink,
-            content_fit: ContentFit::Contain,
+            content_fit: ContentFit::default(),
             filter_method: FilterMethod::default(),
-            rotation: 0.0,
-            rotation_layout: RotationLayout::Change,
+            rotation: Rotation::default(),
         }
     }
 
@@ -81,15 +79,9 @@ impl<Handle> Image<Handle> {
         self
     }
 
-    /// Rotates the [`Image`] by the given angle in radians.
-    pub fn rotation(mut self, degrees: f32) -> Self {
-        self.rotation = degrees;
-        self
-    }
-
-    /// Sets the [`RotationLayout`] of the [`Image`].
-    pub fn rotation_layout(mut self, rotation_layout: RotationLayout) -> Self {
-        self.rotation_layout = rotation_layout;
+    /// Applies the given [`Rotation`] to the [`Image`].
+    pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
+        self.rotation = rotation.into();
         self
     }
 }
@@ -102,8 +94,7 @@ pub fn layout<Renderer, Handle>(
     width: Length,
     height: Length,
     content_fit: ContentFit,
-    rotation: f32,
-    rotation_layout: RotationLayout,
+    rotation: Rotation,
 ) -> layout::Node
 where
     Renderer: image::Renderer<Handle = Handle>,
@@ -114,7 +105,7 @@ where
         Size::new(image_size.width as f32, image_size.height as f32);
 
     // The rotated size of the image
-    let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
+    let rotated_size = rotation.apply(image_size);
 
     // The size to be available to the widget prior to `Shrink`ing
     let raw_size = limits.resolve(width, height, rotated_size);
@@ -144,45 +135,44 @@ pub fn draw<Renderer, Handle>(
     handle: &Handle,
     content_fit: ContentFit,
     filter_method: FilterMethod,
-    rotation: f32,
-    rotation_layout: RotationLayout,
+    rotation: Rotation,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
 {
     let Size { width, height } = renderer.measure_image(handle);
     let image_size = Size::new(width as f32, height as f32);
-    let rotated_size = rotation_layout.apply_to_size(image_size, rotation);
+    let rotated_size = rotation.apply(image_size);
 
     let bounds = layout.bounds();
     let adjusted_fit = content_fit.fit(rotated_size, bounds.size());
-    let scale = Size::new(
+
+    let scale = Vector::new(
         adjusted_fit.width / rotated_size.width,
         adjusted_fit.height / rotated_size.height,
     );
 
+    let final_size = image_size * scale;
+
+    let position = match content_fit {
+        ContentFit::None => Point::new(
+            bounds.x + (rotated_size.width - adjusted_fit.width) / 2.0,
+            bounds.y + (rotated_size.height - adjusted_fit.height) / 2.0,
+        ),
+        _ => Point::new(
+            bounds.center_x() - final_size.width / 2.0,
+            bounds.center_y() - final_size.height / 2.0,
+        ),
+    };
+
+    let drawing_bounds = Rectangle::new(position, final_size);
+
     let render = |renderer: &mut Renderer| {
-        let position = match content_fit {
-            ContentFit::None => Point::new(
-                bounds.position().x
-                    + (rotated_size.width - image_size.width) / 2.0,
-                bounds.position().y
-                    + (rotated_size.height - image_size.height) / 2.0,
-            ),
-            _ => Point::new(
-                bounds.center_x() - image_size.width / 2.0,
-                bounds.center_y() - image_size.height / 2.0,
-            ),
-        };
-
-        let drawing_bounds = Rectangle::new(position, image_size);
-
         renderer.draw_image(
             handle.clone(),
             filter_method,
             drawing_bounds,
-            rotation,
-            scale,
+            rotation.radians(),
         );
     };
 
@@ -221,7 +211,6 @@ where
             self.height,
             self.content_fit,
             self.rotation,
-            self.rotation_layout,
         )
     }
 
@@ -242,7 +231,6 @@ where
             self.content_fit,
             self.filter_method,
             self.rotation,
-            self.rotation_layout,
         );
     }
 }

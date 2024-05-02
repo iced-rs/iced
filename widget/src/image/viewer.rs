@@ -6,8 +6,8 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Radians, Rectangle,
+    Shell, Size, Vector, Widget,
 };
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
@@ -341,8 +341,7 @@ where
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
-                    0.0,
-                    Size::UNIT,
+                    Radians(0.0),
                 );
             });
         });

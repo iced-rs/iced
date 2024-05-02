@@ -1,37 +1,68 @@
-//! Control the rotation of some content (like an image) with the `RotationLayout` within a
-//! space.
-use crate::Size;
+//! Control the rotation of some content (like an image) within a space.
+use crate::{Radians, Size};
 
 /// The strategy used to rotate the content.
 ///
 /// This is used to control the behavior of the layout when the content is rotated
 /// by a certain angle.
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
-pub enum RotationLayout {
-    /// The layout is kept exactly as it was before the rotation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum Rotation {
+    /// The element will float while rotating. The layout will be kept exactly as it was
+    /// before the rotation.
     ///
     /// This is especially useful when used for animations, as it will avoid the
     /// layout being shifted or resized when smoothly i.e. an icon.
-    Keep,
-    /// The layout is adjusted to fit the rotated content.
+    ///
+    /// This is the default.
+    Floating(Radians),
+    /// The element will be solid while rotating. The layout will be adjusted to fit
+    /// the rotated content.
     ///
     /// This allows you to rotate an image and have the layout adjust to fit the new
     /// size of the image.
-    Change,
+    Solid(Radians),
 }
 
-impl RotationLayout {
-    /// Applies the rotation to the layout while respecting the [`RotationLayout`] strategy.
-    /// The rotation is given in radians.
-    pub fn apply_to_size(&self, size: Size, rotation: f32) -> Size {
+impl Rotation {
+    /// Returns the angle of the [`Rotation`] in [`Radians`].
+    pub fn radians(self) -> Radians {
         match self {
-            Self::Keep => size,
-            Self::Change => Size {
-                width: (size.width * rotation.cos()).abs()
-                    + (size.height * rotation.sin()).abs(),
-                height: (size.width * rotation.sin()).abs()
-                    + (size.height * rotation.cos()).abs(),
-            },
+            Rotation::Floating(radians) | Rotation::Solid(radians) => radians,
         }
+    }
+
+    /// Rotates the given [`Size`].
+    pub fn apply(self, size: Size) -> Size {
+        match self {
+            Self::Floating(_) => size,
+            Self::Solid(rotation) => {
+                let radians = f32::from(rotation);
+
+                Size {
+                    width: (size.width * radians.cos()).abs()
+                        + (size.height * radians.sin()).abs(),
+                    height: (size.width * radians.sin()).abs()
+                        + (size.height * radians.cos()).abs(),
+                }
+            }
+        }
+    }
+}
+
+impl Default for Rotation {
+    fn default() -> Self {
+        Self::Floating(Radians(0.0))
+    }
+}
+
+impl From<Radians> for Rotation {
+    fn from(radians: Radians) -> Self {
+        Self::Floating(radians)
+    }
+}
+
+impl From<f32> for Rotation {
+    fn from(radians: f32) -> Self {
+        Self::Floating(Radians(radians))
     }
 }
