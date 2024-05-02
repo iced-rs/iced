@@ -1,6 +1,8 @@
 //! Control the fit of some content (like an image) within a space.
 use crate::Size;
 
+use std::fmt;
+
 /// The strategy used to fit the contents of a widget to its bounding box.
 ///
 /// Each variant of this enum is a strategy that can be applied for resolving
@@ -116,5 +118,17 @@ impl ContentFit {
                 }
             }
         }
+    }
+}
+
+impl fmt::Display for ContentFit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ContentFit::Contain => "Contain",
+            ContentFit::Cover => "Cover",
+            ContentFit::Fill => "Fill",
+            ContentFit::None => "None",
+            ContentFit::ScaleDown => "Scale Down",
+        })
     }
 }

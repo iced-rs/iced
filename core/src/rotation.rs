@@ -1,5 +1,5 @@
 //! Control the rotation of some content (like an image) within a space.
-use crate::{Radians, Size};
+use crate::{Degrees, Radians, Size};
 
 /// The strategy used to rotate the content.
 ///
@@ -29,6 +29,11 @@ impl Rotation {
         match self {
             Rotation::Floating(radians) | Rotation::Solid(radians) => radians,
         }
+    }
+
+    /// Returns the angle of the [`Rotation`] in [`Degrees`].
+    pub fn degrees(self) -> Degrees {
+        Degrees(self.radians().0.to_degrees())
     }
 
     /// Rotates the given [`Size`].

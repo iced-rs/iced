@@ -7,6 +7,11 @@ use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Sub, SubAssign};
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
 pub struct Degrees(pub f32);
 
+impl Degrees {
+    /// The range of degrees of a circle.
+    pub const RANGE: RangeInclusive<Self> = Self(0.0)..=Self(360.0);
+}
+
 impl PartialEq<f32> for Degrees {
     fn eq(&self, other: &f32) -> bool {
         self.0.eq(other)
@@ -16,6 +21,44 @@ impl PartialEq<f32> for Degrees {
 impl PartialOrd<f32> for Degrees {
     fn partial_cmp(&self, other: &f32) -> Option<std::cmp::Ordering> {
         self.0.partial_cmp(other)
+    }
+}
+
+impl From<f32> for Degrees {
+    fn from(degrees: f32) -> Self {
+        Self(degrees)
+    }
+}
+
+impl From<u8> for Degrees {
+    fn from(degrees: u8) -> Self {
+        Self(f32::from(degrees))
+    }
+}
+
+impl From<Degrees> for f32 {
+    fn from(degrees: Degrees) -> Self {
+        degrees.0
+    }
+}
+
+impl From<Degrees> for f64 {
+    fn from(degrees: Degrees) -> Self {
+        Self::from(degrees.0)
+    }
+}
+
+impl num_traits::FromPrimitive for Degrees {
+    fn from_i64(n: i64) -> Option<Self> {
+        Some(Self(n as f32))
+    }
+
+    fn from_u64(n: u64) -> Option<Self> {
+        Some(Self(n as f32))
+    }
+
+    fn from_f64(n: f64) -> Option<Self> {
+        Some(Self(n as f32))
     }
 }
 
