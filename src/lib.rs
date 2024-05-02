@@ -51,6 +51,7 @@
 //! We start by modelling the __state__ of our application:
 //!
 //! ```
+//! #[derive(Default)]
 //! struct Counter {
 //!     // The counter value
 //!     value: i32,
