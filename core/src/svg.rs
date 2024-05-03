@@ -101,5 +101,6 @@ pub trait Renderer: crate::Renderer {
         color: Option<Color>,
         bounds: Rectangle,
         rotation: Radians,
+        opacity: f32,
     );
 }

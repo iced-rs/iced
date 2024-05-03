@@ -137,16 +137,18 @@ impl Pipeline {
                             0 => Float32x2,
                             // Center
                             1 => Float32x2,
-                            // Image size
+                            // Scale
                             2 => Float32x2,
                             // Rotation
                             3 => Float32,
+                            // Opacity
+                            4 => Float32,
                             // Atlas position
-                            4 => Float32x2,
-                            // Atlas scale
                             5 => Float32x2,
+                            // Atlas scale
+                            6 => Float32x2,
                             // Layer
-                            6 => Sint32,
+                            7 => Sint32,
                         ),
                     }],
                 },
@@ -229,6 +231,7 @@ impl Pipeline {
                     filter_method,
                     bounds,
                     rotation,
+                    opacity,
                 } => {
                     if let Some(atlas_entry) =
                         cache.upload_raster(device, encoder, handle)
@@ -237,6 +240,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
                             f32::from(*rotation),
+                            *opacity,
                             atlas_entry,
                             match filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
@@ -258,6 +262,7 @@ impl Pipeline {
                     color,
                     bounds,
                     rotation,
+                    opacity,
                 } => {
                     let size = [bounds.width, bounds.height];
 
@@ -268,6 +273,7 @@ impl Pipeline {
                             [bounds.x, bounds.y],
                             size,
                             f32::from(*rotation),
+                            *opacity,
                             atlas_entry,
                             nearest_instances,
                         );
@@ -498,6 +504,7 @@ struct Instance {
     _center: [f32; 2],
     _size: [f32; 2],
     _rotation: f32,
+    _opacity: f32,
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
@@ -517,6 +524,7 @@ fn add_instances(
     image_position: [f32; 2],
     image_size: [f32; 2],
     rotation: f32,
+    opacity: f32,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
@@ -532,6 +540,7 @@ fn add_instances(
                 center,
                 image_size,
                 rotation,
+                opacity,
                 allocation,
                 instances,
             );
@@ -561,7 +570,8 @@ fn add_instances(
                 ];
 
                 add_instance(
-                    position, center, size, rotation, allocation, instances,
+                    position, center, size, rotation, opacity, allocation,
+                    instances,
                 );
             }
         }
@@ -574,6 +584,7 @@ fn add_instance(
     center: [f32; 2],
     size: [f32; 2],
     rotation: f32,
+    opacity: f32,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -586,6 +597,7 @@ fn add_instance(
         _center: center,
         _size: size,
         _rotation: rotation,
+        _opacity: opacity,
         _position_in_atlas: [
             (x as f32 + 0.5) / atlas::SIZE as f32,
             (y as f32 + 0.5) / atlas::SIZE as f32,

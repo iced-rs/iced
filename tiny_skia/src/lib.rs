@@ -378,6 +378,7 @@ impl core::image::Renderer for Renderer {
         filter_method: core::image::FilterMethod,
         bounds: Rectangle,
         rotation: core::Radians,
+        opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
         layer.draw_image(
@@ -386,6 +387,7 @@ impl core::image::Renderer for Renderer {
             bounds,
             transformation,
             rotation,
+            opacity,
         );
     }
 }
@@ -405,9 +407,17 @@ impl core::svg::Renderer for Renderer {
         color: Option<Color>,
         bounds: Rectangle,
         rotation: core::Radians,
+        opacity: f32,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(handle, color, bounds, transformation, rotation);
+        layer.draw_svg(
+            handle,
+            color,
+            bounds,
+            transformation,
+            rotation,
+            opacity,
+        );
     }
 }
 

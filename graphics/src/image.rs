@@ -18,8 +18,11 @@ pub enum Image {
         /// The bounds of the image.
         bounds: Rectangle,
 
-        /// The rotation of the image in radians
+        /// The rotation of the image.
         rotation: Radians,
+
+        /// The opacity of the image.
+        opacity: f32,
     },
     /// A vector image.
     Vector {
@@ -32,8 +35,11 @@ pub enum Image {
         /// The bounds of the image.
         bounds: Rectangle,
 
-        /// The rotation of the image in radians
+        /// The rotation of the image.
         rotation: Radians,
+
+        /// The opacity of the image.
+        opacity: f32,
     },
 }
 

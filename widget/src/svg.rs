@@ -30,6 +30,7 @@ where
     content_fit: ContentFit,
     class: Theme::Class<'a>,
     rotation: Rotation,
+    opacity: f32,
 }
 
 impl<'a, Theme> Svg<'a, Theme>
@@ -45,6 +46,7 @@ where
             content_fit: ContentFit::Contain,
             class: Theme::default(),
             rotation: Rotation::default(),
+            opacity: 1.0,
         }
     }
 
@@ -101,6 +103,15 @@ where
     /// Applies the given [`Rotation`] to the [`Svg`].
     pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
         self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Svg`].
+    ///
+    /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
+    /// and `1.0` meaning completely opaque.
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
         self
     }
 }
@@ -204,6 +215,7 @@ where
                 style.color,
                 drawing_bounds,
                 self.rotation.radians(),
+                self.opacity,
             );
         };
 

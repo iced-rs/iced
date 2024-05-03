@@ -31,6 +31,7 @@ impl Pipeline {
         handle: &raster::Handle,
         filter_method: raster::FilterMethod,
         bounds: Rectangle,
+        opacity: f32,
         pixels: &mut tiny_skia::PixmapMut<'_>,
         transform: tiny_skia::Transform,
         clip_mask: Option<&tiny_skia::Mask>,
@@ -56,6 +57,7 @@ impl Pipeline {
                 image,
                 &tiny_skia::PixmapPaint {
                     quality,
+                    opacity,
                     ..Default::default()
                 },
                 transform,

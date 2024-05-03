@@ -173,6 +173,7 @@ impl image::Renderer for () {
         _filter_method: image::FilterMethod,
         _bounds: Rectangle,
         _rotation: Radians,
+        _opacity: f32,
     ) {
     }
 }
@@ -188,6 +189,7 @@ impl svg::Renderer for () {
         _color: Option<Color>,
         _bounds: Rectangle,
         _rotation: Radians,
+        _opacity: f32,
     ) {
     }
 }

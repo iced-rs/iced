@@ -38,6 +38,7 @@ pub struct Image<Handle> {
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
+    opacity: f32,
 }
 
 impl<Handle> Image<Handle> {
@@ -50,6 +51,7 @@ impl<Handle> Image<Handle> {
             content_fit: ContentFit::default(),
             filter_method: FilterMethod::default(),
             rotation: Rotation::default(),
+            opacity: 1.0,
         }
     }
 
@@ -82,6 +84,15 @@ impl<Handle> Image<Handle> {
     /// Applies the given [`Rotation`] to the [`Image`].
     pub fn rotation(mut self, rotation: impl Into<Rotation>) -> Self {
         self.rotation = rotation.into();
+        self
+    }
+
+    /// Sets the opacity of the [`Image`].
+    ///
+    /// It should be in the [0.0, 1.0] range—`0.0` meaning completely transparent,
+    /// and `1.0` meaning completely opaque.
+    pub fn opacity(mut self, opacity: impl Into<f32>) -> Self {
+        self.opacity = opacity.into();
         self
     }
 }
@@ -136,6 +147,7 @@ pub fn draw<Renderer, Handle>(
     content_fit: ContentFit,
     filter_method: FilterMethod,
     rotation: Rotation,
+    opacity: f32,
 ) where
     Renderer: image::Renderer<Handle = Handle>,
     Handle: Clone,
@@ -173,6 +185,7 @@ pub fn draw<Renderer, Handle>(
             filter_method,
             drawing_bounds,
             rotation.radians(),
+            opacity,
         );
     };
 
@@ -231,6 +244,7 @@ where
             self.content_fit,
             self.filter_method,
             self.rotation,
+            self.opacity,
         );
     }
 }
