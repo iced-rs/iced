@@ -216,7 +216,7 @@ where
                 event::Status::Captured
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let Some(cursor_position) = cursor.position() else {
+                let Some(cursor_position) = cursor.position_over(bounds) else {
                     return event::Status::Ignored;
                 };
 
