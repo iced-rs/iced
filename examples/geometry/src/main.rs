@@ -153,7 +153,7 @@ mod rainbow {
 }
 
 use iced::widget::{column, container, scrollable};
-use iced::{Element, Length};
+use iced::Element;
 use rainbow::rainbow;
 
 pub fn main() -> iced::Result {
@@ -176,12 +176,7 @@ fn view(_state: &()) -> Element<'_, ()> {
     .spacing(20)
     .max_width(500);
 
-    let scrollable =
-        scrollable(container(content).width(Length::Fill).center_x());
+    let scrollable = scrollable(container(content).center_x());
 
-    container(scrollable)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_y()
-        .into()
+    container(scrollable).center_y().into()
 }

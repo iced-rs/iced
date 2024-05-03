@@ -2,8 +2,8 @@ use iced::event::{self, Event};
 use iced::keyboard;
 use iced::keyboard::key;
 use iced::widget::{
-    self, button, column, container, horizontal_space, mouse_area, opaque,
-    pick_list, row, stack, text, text_input,
+    self, button, center, column, container, horizontal_space, mouse_area,
+    opaque, pick_list, row, stack, text, text_input,
 };
 use iced::{Alignment, Color, Command, Element, Length, Subscription};
 
@@ -98,13 +98,7 @@ impl App {
                 row![text("Top Left"), horizontal_space(), text("Top Right")]
                     .align_items(Alignment::Start)
                     .height(Length::Fill),
-                container(
-                    button(text("Show Modal")).on_press(Message::ShowModal)
-                )
-                .center_x()
-                .center_y()
-                .width(Length::Fill)
-                .height(Length::Fill),
+                center(button(text("Show Modal")).on_press(Message::ShowModal)),
                 row![
                     text("Bottom Left"),
                     horizontal_space(),
@@ -115,9 +109,7 @@ impl App {
             ]
             .height(Length::Fill),
         )
-        .padding(10)
-        .width(Length::Fill)
-        .height(Length::Fill);
+        .padding(10);
 
         if self.show_modal {
             let signup = container(
@@ -210,25 +202,18 @@ where
 {
     stack![
         base.into(),
-        mouse_area(
-            container(opaque(content))
-                .width(Length::Fill)
-                .height(Length::Fill)
-                .center_x()
-                .center_y()
-                .style(|_theme| {
-                    container::Style {
-                        background: Some(
-                            Color {
-                                a: 0.8,
-                                ..Color::BLACK
-                            }
-                            .into(),
-                        ),
-                        ..container::Style::default()
+        mouse_area(center(opaque(content)).style(|_theme| {
+            container::Style {
+                background: Some(
+                    Color {
+                        a: 0.8,
+                        ..Color::BLACK
                     }
-                })
-        )
+                    .into(),
+                ),
+                ..container::Style::default()
+            }
+        }))
         .on_press(on_blur)
     ]
     .into()

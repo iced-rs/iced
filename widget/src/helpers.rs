@@ -78,6 +78,27 @@ where
     Container::new(content)
 }
 
+/// Creates a new [`Container`] that fills all the available space
+/// and centers its contents inside.
+///
+/// This is equivalent to:
+/// ```rust,no_run
+/// # use iced_widget::Container;
+/// # fn container<A>(x: A) -> Container<'static, ()> { unreachable!() }
+/// let centered = container("Centered!").center();
+/// ```
+///
+/// [`Container`]: crate::Container
+pub fn center<'a, Message, Theme, Renderer>(
+    content: impl Into<Element<'a, Message, Theme, Renderer>>,
+) -> Container<'a, Message, Theme, Renderer>
+where
+    Theme: container::Catalog + 'a,
+    Renderer: core::Renderer,
+{
+    container(content).fill().center()
+}
+
 /// Creates a new [`Column`] with the given children.
 pub fn column<'a, Message, Theme, Renderer>(
     children: impl IntoIterator<Item = Element<'a, Message, Theme, Renderer>>,

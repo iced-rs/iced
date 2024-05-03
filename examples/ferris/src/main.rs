@@ -1,6 +1,6 @@
 use iced::time::Instant;
 use iced::widget::{
-    checkbox, column, container, image, pick_list, row, slider, text,
+    center, checkbox, column, container, image, pick_list, row, slider, text,
 };
 use iced::window;
 use iced::{
@@ -87,28 +87,22 @@ impl Image {
     }
 
     fn view(&self) -> Element<Message> {
-        let i_am_ferris = container(
-            column![
-                "Hello!",
-                Element::from(
-                    image(format!(
-                        "{}/../tour/images/ferris.png",
-                        env!("CARGO_MANIFEST_DIR")
-                    ))
-                    .width(self.width)
-                    .content_fit(self.content_fit)
-                    .rotation(self.rotation)
-                )
-                .explain(Color::WHITE),
-                "I am Ferris!"
-            ]
-            .spacing(20)
-            .align_items(Alignment::Center),
-        )
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y();
+        let i_am_ferris = column![
+            "Hello!",
+            Element::from(
+                image(format!(
+                    "{}/../tour/images/ferris.png",
+                    env!("CARGO_MANIFEST_DIR")
+                ))
+                .width(self.width)
+                .content_fit(self.content_fit)
+                .rotation(self.rotation)
+            )
+            .explain(Color::WHITE),
+            "I am Ferris!"
+        ]
+        .spacing(20)
+        .align_items(Alignment::Center);
 
         let sizing = row![
             pick_list(
@@ -126,13 +120,14 @@ impl Image {
             column![
                 slider(100.0..=500.0, self.width, Message::WidthChanged),
                 text(format!("Width: {}px", self.width))
-                    .size(14)
+                    .size(12)
                     .line_height(1.0)
             ]
-            .spacing(5)
+            .spacing(2)
             .align_items(Alignment::Center)
         ]
-        .spacing(10);
+        .spacing(10)
+        .align_items(Alignment::End);
 
         let rotation = row![
             pick_list(
@@ -144,30 +139,34 @@ impl Image {
                 Message::RotationStrategyChanged,
             )
             .width(Length::Fill),
-            row![
-                column![
+            column![
+                row![
                     slider(
                         Degrees::RANGE,
                         self.rotation.degrees(),
                         Message::RotationChanged
                     ),
-                    text(format!(
-                        "Rotation: {:.0}°",
-                        f32::from(self.rotation.degrees())
-                    ))
-                    .size(14)
-                    .line_height(1.0)
+                    checkbox("Spin!", self.spin)
+                        .text_size(12)
+                        .on_toggle(Message::SpinToggled)
+                        .size(12)
                 ]
-                .spacing(5)
+                .spacing(10)
                 .align_items(Alignment::Center),
-                checkbox("Spin!", self.spin).on_toggle(Message::SpinToggled)
+                text(format!(
+                    "Rotation: {:.0}°",
+                    f32::from(self.rotation.degrees())
+                ))
+                .size(12)
+                .line_height(1.0)
             ]
-            .spacing(5)
+            .spacing(2)
             .align_items(Alignment::Center)
         ]
-        .spacing(10);
+        .spacing(10)
+        .align_items(Alignment::End);
 
-        container(column![i_am_ferris, sizing, rotation].spacing(10))
+        container(column![center(i_am_ferris), sizing, rotation].spacing(10))
             .padding(10)
             .into()
     }
