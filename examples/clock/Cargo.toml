@@ -8,6 +8,5 @@ publish = false
 [dependencies]
 iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
-
-time = { version = "0.3", features = ["local-offset"] }
+chrono = { version = "0.4", features = [ "clock" ] }
 tracing-subscriber = "0.3"

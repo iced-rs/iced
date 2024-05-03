@@ -7,6 +7,9 @@ use iced::{
     Theme, Vector,
 };
 
+use chrono as time;
+use time::Timelike;
+
 pub fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
@@ -18,13 +21,13 @@ pub fn main() -> iced::Result {
 }
 
 struct Clock {
-    now: time::OffsetDateTime,
+    now: time::DateTime<time::Local>,
     clock: Cache,
 }
 
 #[derive(Debug, Clone, Copy)]
 enum Message {
-    Tick(time::OffsetDateTime),
+    Tick(time::DateTime<time::Local>),
 }
 
 impl Clock {
@@ -54,16 +57,12 @@ impl Clock {
     }
 
     fn subscription(&self) -> Subscription<Message> {
-        iced::time::every(std::time::Duration::from_millis(500)).map(|_| {
-            Message::Tick(
-                time::OffsetDateTime::now_local()
-                    .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
-            )
-        })
+        iced::time::every(std::time::Duration::from_millis(500))
+            .map(|_| Message::Tick(time::offset::Local::now()))
     }
 
     fn theme(&self) -> Theme {
-        Theme::ALL[(self.now.unix_timestamp() as usize / 10) % Theme::ALL.len()]
+        Theme::ALL[(self.now.timestamp() as usize / 10) % Theme::ALL.len()]
             .clone()
     }
 }
@@ -71,8 +70,7 @@ impl Clock {
 impl Default for Clock {
     fn default() -> Self {
         Self {
-            now: time::OffsetDateTime::now_local()
-                .unwrap_or_else(|_| time::OffsetDateTime::now_utc()),
+            now: time::offset::Local::now(),
             clock: Cache::default(),
         }
     }
@@ -127,17 +125,17 @@ impl<Message> canvas::Program<Message> for Clock {
             frame.translate(Vector::new(center.x, center.y));
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.hour(), 12));
+                frame.rotate(hand_rotation(self.now.hour() as u8, 12));
                 frame.stroke(&short_hand, wide_stroke());
             });
 
             frame.with_save(|frame| {
-                frame.rotate(hand_rotation(self.now.minute(), 60));
+                frame.rotate(hand_rotation(self.now.minute() as u8, 60));
                 frame.stroke(&long_hand, wide_stroke());
             });
 
             frame.with_save(|frame| {
-                let rotation = hand_rotation(self.now.second(), 60);
+                let rotation = hand_rotation(self.now.second() as u8, 60);
 
                 frame.rotate(rotation);
                 frame.stroke(&long_hand, thin_stroke());
