@@ -1,5 +1,5 @@
 //! Load and draw vector graphics.
-use crate::{Color, Rectangle, Size};
+use crate::{Color, Radians, Rectangle, Size};
 
 use rustc_hash::FxHasher;
 use std::borrow::Cow;
@@ -100,5 +100,6 @@ pub trait Renderer: crate::Renderer {
         handle: Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rotation: Radians,
     );
 }

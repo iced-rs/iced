@@ -2,9 +2,7 @@
 #[cfg(feature = "image")]
 pub use ::image as image_rs;
 
-use crate::core::image;
-use crate::core::svg;
-use crate::core::{Color, Rectangle};
+use crate::core::{image, svg, Color, Radians, Rectangle};
 
 /// A raster or vector image.
 #[derive(Debug, Clone, PartialEq)]
@@ -19,6 +17,9 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image in radians
+        rotation: Radians,
     },
     /// A vector image.
     Vector {
@@ -30,6 +31,9 @@ pub enum Image {
 
         /// The bounds of the image.
         bounds: Rectangle,
+
+        /// The rotation of the image in radians
+        rotation: Radians,
     },
 }
 
@@ -37,9 +41,12 @@ impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster { bounds, .. } | Image::Vector { bounds, .. } => {
-                *bounds
+            Image::Raster {
+                bounds, rotation, ..
             }
+            | Image::Vector {
+                bounds, rotation, ..
+            } => bounds.rotate(*rotation),
         }
     }
 }

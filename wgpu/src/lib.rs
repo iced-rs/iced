@@ -61,7 +61,8 @@ pub use settings::Settings;
 pub use geometry::Geometry;
 
 use crate::core::{
-    Background, Color, Font, Pixels, Point, Rectangle, Size, Transformation,
+    Background, Color, Font, Pixels, Point, Radians, Rectangle, Size,
+    Transformation, Vector,
 };
 use crate::graphics::text::{Editor, Paragraph};
 use crate::graphics::Viewport;
@@ -378,7 +379,6 @@ impl Renderer {
         use crate::core::alignment;
         use crate::core::text::Renderer as _;
         use crate::core::Renderer as _;
-        use crate::core::Vector;
 
         self.with_layer(
             Rectangle::with_size(viewport.logical_size()),
@@ -517,9 +517,16 @@ impl core::image::Renderer for Renderer {
         handle: Self::Handle,
         filter_method: core::image::FilterMethod,
         bounds: Rectangle,
+        rotation: Radians,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_image(handle, filter_method, bounds, transformation);
+        layer.draw_image(
+            handle,
+            filter_method,
+            bounds,
+            transformation,
+            rotation,
+        );
     }
 }
 
@@ -534,9 +541,10 @@ impl core::svg::Renderer for Renderer {
         handle: core::svg::Handle,
         color_filter: Option<Color>,
         bounds: Rectangle,
+        rotation: Radians,
     ) {
         let (layer, transformation) = self.layers.current_mut();
-        layer.draw_svg(handle, color_filter, bounds, transformation);
+        layer.draw_svg(handle, color_filter, bounds, transformation, rotation);
     }
 }
 

@@ -3,7 +3,7 @@ use crate::core::image;
 use crate::core::renderer;
 use crate::core::svg;
 use crate::core::{
-    self, Background, Color, Point, Rectangle, Size, Transformation,
+    self, Background, Color, Point, Radians, Rectangle, Size, Transformation,
 };
 use crate::graphics;
 use crate::graphics::compositor;
@@ -154,11 +154,12 @@ where
         handle: Self::Handle,
         filter_method: image::FilterMethod,
         bounds: Rectangle,
+        rotation: Radians,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_image(handle, filter_method, bounds)
+            renderer.draw_image(handle, filter_method, bounds, rotation)
         );
     }
 }
@@ -177,8 +178,13 @@ where
         handle: svg::Handle,
         color: Option<Color>,
         bounds: Rectangle,
+        rotation: Radians,
     ) {
-        delegate!(self, renderer, renderer.draw_svg(handle, color, bounds));
+        delegate!(
+            self,
+            renderer,
+            renderer.draw_svg(handle, color, bounds, rotation)
+        );
     }
 }
 
