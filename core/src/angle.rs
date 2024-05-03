@@ -1,7 +1,7 @@
 use crate::{Point, Rectangle, Vector};
 
 use std::f32::consts::{FRAC_PI_2, PI};
-use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, Mul, RangeInclusive, Rem, Sub, SubAssign};
 
 /// Degrees
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
@@ -45,6 +45,14 @@ impl From<Degrees> for f32 {
 impl From<Degrees> for f64 {
     fn from(degrees: Degrees) -> Self {
         Self::from(degrees.0)
+    }
+}
+
+impl Mul<f32> for Degrees {
+    type Output = Degrees;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self(self.0 * rhs)
     }
 }
 
@@ -156,6 +164,14 @@ impl Add for Radians {
     }
 }
 
+impl Add<Degrees> for Radians {
+    type Output = Self;
+
+    fn add(self, rhs: Degrees) -> Self::Output {
+        Self(self.0 + rhs.0.to_radians())
+    }
+}
+
 impl AddAssign for Radians {
     fn add_assign(&mut self, rhs: Radians) {
         self.0 = self.0 + rhs.0;
@@ -199,6 +215,14 @@ impl Div for Radians {
 
     fn div(self, rhs: Self) -> Self::Output {
         Self(self.0 / rhs.0)
+    }
+}
+
+impl Rem for Radians {
+    type Output = Self;
+
+    fn rem(self, rhs: Self) -> Self::Output {
+        Self(self.0 % rhs.0)
     }
 }
 

@@ -31,6 +31,13 @@ impl Rotation {
         }
     }
 
+    /// Returns a mutable reference to the angle of the [`Rotation`] in [`Radians`].
+    pub fn radians_mut(&mut self) -> &mut Radians {
+        match self {
+            Rotation::Floating(radians) | Rotation::Solid(radians) => radians,
+        }
+    }
+
     /// Returns the angle of the [`Rotation`] in [`Degrees`].
     pub fn degrees(self) -> Degrees {
         Degrees(self.radians().0.to_degrees())

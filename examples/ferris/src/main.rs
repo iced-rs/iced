@@ -1,10 +1,16 @@
-use iced::widget::{column, container, image, pick_list, row, slider, text};
+use iced::time::Instant;
+use iced::widget::{
+    checkbox, column, container, image, pick_list, row, slider, text,
+};
+use iced::window;
 use iced::{
-    Alignment, Color, ContentFit, Degrees, Element, Length, Rotation, Theme,
+    Alignment, Color, ContentFit, Degrees, Element, Length, Radians, Rotation,
+    Subscription, Theme,
 };
 
 pub fn main() -> iced::Result {
     iced::program("Ferris - Iced", Image::update, Image::view)
+        .subscription(Image::subscription)
         .theme(|_| Theme::TokyoNight)
         .run()
 }
@@ -13,6 +19,8 @@ struct Image {
     width: f32,
     rotation: Rotation,
     content_fit: ContentFit,
+    spin: bool,
+    last_tick: Instant,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -21,6 +29,8 @@ enum Message {
     RotationStrategyChanged(RotationStrategy),
     RotationChanged(Degrees),
     ContentFitChanged(ContentFit),
+    SpinToggled(bool),
+    RedrawRequested(Instant),
 }
 
 impl Image {
@@ -50,6 +60,29 @@ impl Image {
             Message::ContentFitChanged(content_fit) => {
                 self.content_fit = content_fit;
             }
+            Message::SpinToggled(spin) => {
+                self.spin = spin;
+                self.last_tick = Instant::now();
+            }
+            Message::RedrawRequested(now) => {
+                const ROTATION_SPEED: Degrees = Degrees(360.0);
+
+                let delta = (now - self.last_tick).as_millis() as f32 / 1_000.0;
+
+                *self.rotation.radians_mut() = (self.rotation.radians()
+                    + ROTATION_SPEED * delta)
+                    % (2.0 * Radians::PI);
+
+                self.last_tick = now;
+            }
+        }
+    }
+
+    fn subscription(&self) -> Subscription<Message> {
+        if self.spin {
+            window::frames().map(Message::RedrawRequested)
+        } else {
+            Subscription::none()
         }
     }
 
@@ -111,18 +144,23 @@ impl Image {
                 Message::RotationStrategyChanged,
             )
             .width(Length::Fill),
-            column![
-                slider(
-                    Degrees::RANGE,
-                    self.rotation.degrees(),
-                    Message::RotationChanged
-                ),
-                text(format!(
-                    "Rotation: {:.0}°",
-                    f32::from(self.rotation.degrees())
-                ))
-                .size(14)
-                .line_height(1.0)
+            row![
+                column![
+                    slider(
+                        Degrees::RANGE,
+                        self.rotation.degrees(),
+                        Message::RotationChanged
+                    ),
+                    text(format!(
+                        "Rotation: {:.0}°",
+                        f32::from(self.rotation.degrees())
+                    ))
+                    .size(14)
+                    .line_height(1.0)
+                ]
+                .spacing(5)
+                .align_items(Alignment::Center),
+                checkbox("Spin!", self.spin).on_toggle(Message::SpinToggled)
             ]
             .spacing(5)
             .align_items(Alignment::Center)
@@ -141,6 +179,8 @@ impl Default for Image {
             width: 300.0,
             rotation: Rotation::default(),
             content_fit: ContentFit::default(),
+            spin: false,
+            last_tick: Instant::now(),
         }
     }
 }
