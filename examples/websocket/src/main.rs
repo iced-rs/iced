@@ -1,7 +1,9 @@
 mod echo;
 
 use iced::alignment::{self, Alignment};
-use iced::widget::{button, center, column, row, scrollable, text, text_input};
+use iced::widget::{
+    self, button, center, column, row, scrollable, text, text_input,
+};
 use iced::{color, Command, Element, Length, Subscription};
 use once_cell::sync::Lazy;
 
@@ -29,7 +31,10 @@ enum Message {
 
 impl WebSocket {
     fn load() -> Command<Message> {
-        Command::perform(echo::server::run(), |_| Message::Server)
+        Command::batch([
+            Command::perform(echo::server::run(), |_| Message::Server),
+            widget::focus_next(),
+        ])
     }
 
     fn update(&mut self, message: Message) -> Command<Message> {
