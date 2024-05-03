@@ -110,7 +110,7 @@ impl Image {
         .spacing(20)
         .align_items(Alignment::Center);
 
-        let sizing = row![
+        let fit = row![
             pick_list(
                 [
                     ContentFit::Contain,
@@ -123,20 +123,6 @@ impl Image {
                 Message::ContentFitChanged
             )
             .width(Length::Fill),
-            with_value(
-                slider(100.0..=500.0, self.width, Message::WidthChanged),
-                format!("Width: {}px", self.width)
-            ),
-            with_value(
-                slider(0.0..=1.0, self.opacity, Message::OpacityChanged)
-                    .step(0.01),
-                format!("Opacity: {:.2}", self.opacity)
-            )
-        ]
-        .spacing(10)
-        .align_items(Alignment::End);
-
-        let rotation = row![
             pick_list(
                 [RotationStrategy::Floating, RotationStrategy::Solid],
                 Some(match self.rotation {
@@ -146,6 +132,20 @@ impl Image {
                 Message::RotationStrategyChanged,
             )
             .width(Length::Fill),
+        ]
+        .spacing(10)
+        .align_items(Alignment::End);
+
+        let properties = row![
+            with_value(
+                slider(100.0..=500.0, self.width, Message::WidthChanged),
+                format!("Width: {}px", self.width)
+            ),
+            with_value(
+                slider(0.0..=1.0, self.opacity, Message::OpacityChanged)
+                    .step(0.01),
+                format!("Opacity: {:.2}", self.opacity)
+            ),
             with_value(
                 row![
                     slider(
@@ -166,7 +166,7 @@ impl Image {
         .spacing(10)
         .align_items(Alignment::End);
 
-        container(column![center(i_am_ferris), sizing, rotation].spacing(10))
+        container(column![fit, center(i_am_ferris), properties].spacing(10))
             .padding(10)
             .into()
     }
