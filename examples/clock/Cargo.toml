@@ -6,7 +6,15 @@ edition = "2021"
 publish = false
 
 [dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
 chrono = { version = "0.4", features = [ "clock" ] }
 tracing-subscriber = "0.3"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+iced.workspace = true
+iced.features = ["webgl", "canvas", "tokio", "debug"]
+chrono = { version = "0.4", features = [ "clock", "wasmbind" ] }
+instant = { version = "0.1", features = [ "wasm-bindgen" ] }
+

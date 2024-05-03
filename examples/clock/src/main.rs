@@ -11,6 +11,7 @@ use chrono as time;
 use time::Timelike;
 
 pub fn main() -> iced::Result {
+    #[cfg(not(target_arch = "wasm32"))]
     tracing_subscriber::fmt::init();
 
     iced::program("Clock - Iced", Clock::update, Clock::view)
