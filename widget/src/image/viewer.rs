@@ -342,6 +342,7 @@ where
                         ..Rectangle::with_size(image_size)
                     },
                     Radians(0.0),
+                    1.0,
                 );
             });
         });

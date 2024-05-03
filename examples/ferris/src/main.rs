@@ -17,6 +17,7 @@ pub fn main() -> iced::Result {
 
 struct Image {
     width: f32,
+    opacity: f32,
     rotation: Rotation,
     content_fit: ContentFit,
     spin: bool,
@@ -26,6 +27,7 @@ struct Image {
 #[derive(Debug, Clone, Copy)]
 enum Message {
     WidthChanged(f32),
+    OpacityChanged(f32),
     RotationStrategyChanged(RotationStrategy),
     RotationChanged(Degrees),
     ContentFitChanged(ContentFit),
@@ -38,6 +40,9 @@ impl Image {
         match message {
             Message::WidthChanged(width) => {
                 self.width = width;
+            }
+            Message::OpacityChanged(opacity) => {
+                self.opacity = opacity;
             }
             Message::RotationStrategyChanged(strategy) => {
                 self.rotation = match strategy {
@@ -97,6 +102,7 @@ impl Image {
                 .width(self.width)
                 .content_fit(self.content_fit)
                 .rotation(self.rotation)
+                .opacity(self.opacity)
             )
             .explain(Color::WHITE),
             "I am Ferris!"
@@ -117,14 +123,15 @@ impl Image {
                 Message::ContentFitChanged
             )
             .width(Length::Fill),
-            column![
+            with_value(
                 slider(100.0..=500.0, self.width, Message::WidthChanged),
-                text(format!("Width: {}px", self.width))
-                    .size(12)
-                    .line_height(1.0)
-            ]
-            .spacing(2)
-            .align_items(Alignment::Center)
+                format!("Width: {}px", self.width)
+            ),
+            with_value(
+                slider(0.0..=1.0, self.opacity, Message::OpacityChanged)
+                    .step(0.01),
+                format!("Opacity: {:.2}", self.opacity)
+            )
         ]
         .spacing(10)
         .align_items(Alignment::End);
@@ -139,7 +146,7 @@ impl Image {
                 Message::RotationStrategyChanged,
             )
             .width(Length::Fill),
-            column![
+            with_value(
                 row![
                     slider(
                         Degrees::RANGE,
@@ -153,15 +160,8 @@ impl Image {
                 ]
                 .spacing(10)
                 .align_items(Alignment::Center),
-                text(format!(
-                    "Rotation: {:.0}°",
-                    f32::from(self.rotation.degrees())
-                ))
-                .size(12)
-                .line_height(1.0)
-            ]
-            .spacing(2)
-            .align_items(Alignment::Center)
+                format!("Rotation: {:.0}°", f32::from(self.rotation.degrees()))
+            )
         ]
         .spacing(10)
         .align_items(Alignment::End);
@@ -176,6 +176,7 @@ impl Default for Image {
     fn default() -> Self {
         Self {
             width: 300.0,
+            opacity: 1.0,
             rotation: Rotation::default(),
             content_fit: ContentFit::default(),
             spin: false,
@@ -197,4 +198,14 @@ impl std::fmt::Display for RotationStrategy {
             Self::Solid => "Solid",
         })
     }
+}
+
+fn with_value<'a>(
+    control: impl Into<Element<'a, Message>>,
+    value: String,
+) -> Element<'a, Message> {
+    column![control.into(), text(value).size(12).line_height(1.0)]
+        .spacing(2)
+        .align_items(Alignment::Center)
+        .into()
 }

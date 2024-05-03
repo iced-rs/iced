@@ -122,12 +122,14 @@ impl Layer {
         bounds: Rectangle,
         transformation: Transformation,
         rotation: Radians,
+        opacity: f32,
     ) {
         let image = Image::Raster {
             handle,
             filter_method,
             bounds: bounds * transformation,
             rotation,
+            opacity,
         };
 
         self.images.push(image);
@@ -140,12 +142,14 @@ impl Layer {
         bounds: Rectangle,
         transformation: Transformation,
         rotation: Radians,
+        opacity: f32,
     ) {
         let svg = Image::Vector {
             handle,
             color,
             bounds: bounds * transformation,
             rotation,
+            opacity,
         };
 
         self.images.push(svg);

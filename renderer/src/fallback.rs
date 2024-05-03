@@ -155,11 +155,18 @@ where
         filter_method: image::FilterMethod,
         bounds: Rectangle,
         rotation: Radians,
+        opacity: f32,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_image(handle, filter_method, bounds, rotation)
+            renderer.draw_image(
+                handle,
+                filter_method,
+                bounds,
+                rotation,
+                opacity
+            )
         );
     }
 }
@@ -179,11 +186,12 @@ where
         color: Option<Color>,
         bounds: Rectangle,
         rotation: Radians,
+        opacity: f32,
     ) {
         delegate!(
             self,
             renderer,
-            renderer.draw_svg(handle, color, bounds, rotation)
+            renderer.draw_svg(handle, color, bounds, rotation, opacity)
         );
     }
 }

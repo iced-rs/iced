@@ -551,6 +551,7 @@ impl Engine {
                 filter_method,
                 bounds,
                 rotation,
+                opacity,
             } => {
                 let physical_bounds = *bounds * _transformation;
 
@@ -574,6 +575,7 @@ impl Engine {
                     handle,
                     *filter_method,
                     *bounds,
+                    *opacity,
                     _pixels,
                     transform,
                     clip_mask,
@@ -585,6 +587,7 @@ impl Engine {
                 color,
                 bounds,
                 rotation,
+                opacity,
             } => {
                 let physical_bounds = *bounds * _transformation;
 
@@ -608,6 +611,7 @@ impl Engine {
                     handle,
                     *color,
                     physical_bounds,
+                    *opacity,
                     _pixels,
                     transform,
                     clip_mask,
