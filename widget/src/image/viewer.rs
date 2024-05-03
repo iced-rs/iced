@@ -6,11 +6,9 @@ use crate::core::mouse;
 use crate::core::renderer;
 use crate::core::widget::tree::{self, Tree};
 use crate::core::{
-    Clipboard, Element, Layout, Length, Pixels, Point, Rectangle, Shell, Size,
-    Vector, Widget,
+    Clipboard, Element, Layout, Length, Pixels, Point, Radians, Rectangle,
+    Shell, Size, Vector, Widget,
 };
-
-use std::hash::Hash;
 
 /// A frame that displays an image with the ability to zoom in/out and pan.
 #[allow(missing_debug_implementations)]
@@ -94,7 +92,7 @@ impl<Message, Theme, Renderer, Handle> Widget<Message, Theme, Renderer>
     for Viewer<Handle>
 where
     Renderer: image::Renderer<Handle = Handle>,
-    Handle: Clone + Hash,
+    Handle: Clone,
 {
     fn tag(&self) -> tree::Tag {
         tree::Tag::of::<State>()
@@ -218,7 +216,7 @@ where
                 event::Status::Captured
             }
             Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) => {
-                let Some(cursor_position) = cursor.position() else {
+                let Some(cursor_position) = cursor.position_over(bounds) else {
                     return event::Status::Ignored;
                 };
 
@@ -343,6 +341,7 @@ where
                         y: bounds.y,
                         ..Rectangle::with_size(image_size)
                     },
+                    Radians(0.0),
                 );
             });
         });
@@ -401,7 +400,7 @@ impl<'a, Message, Theme, Renderer, Handle> From<Viewer<Handle>>
 where
     Renderer: 'a + image::Renderer<Handle = Handle>,
     Message: 'a,
-    Handle: Clone + Hash + 'a,
+    Handle: Clone + 'a,
 {
     fn from(viewer: Viewer<Handle>) -> Element<'a, Message, Theme, Renderer> {
         Element::new(viewer)

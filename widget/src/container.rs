@@ -92,6 +92,49 @@ where
         self
     }
 
+    /// Sets the [`Container`] to fill the available space in the horizontal axis.
+    ///
+    /// This can be useful to quickly position content when chained with
+    /// alignment functions—like [`center_x`].
+    ///
+    /// Calling this method is equivalent to calling [`width`] with a
+    /// [`Length::Fill`].
+    ///
+    /// [`center_x`]: Self::center_x
+    /// [`width`]: Self::width
+    pub fn fill_x(self) -> Self {
+        self.width(Length::Fill)
+    }
+
+    /// Sets the [`Container`] to fill the available space in the vetical axis.
+    ///
+    /// This can be useful to quickly position content when chained with
+    /// alignment functions—like [`center_y`].
+    ///
+    /// Calling this method is equivalent to calling [`height`] with a
+    /// [`Length::Fill`].
+    ///
+    /// [`center_y`]: Self::center_x
+    /// [`height`]: Self::height
+    pub fn fill_y(self) -> Self {
+        self.height(Length::Fill)
+    }
+
+    /// Sets the [`Container`] to fill all the available space.
+    ///
+    /// This can be useful to quickly position content when chained with
+    /// alignment functions—like [`center`].
+    ///
+    /// Calling this method is equivalent to chaining [`fill_x`] and
+    /// [`fill_y`].
+    ///
+    /// [`center`]: Self::center
+    /// [`fill_x`]: Self::fill_x
+    /// [`fill_y`]: Self::fill_y
+    pub fn fill(self) -> Self {
+        self.width(Length::Fill).height(Length::Fill)
+    }
+
     /// Sets the maximum width of the [`Container`].
     pub fn max_width(mut self, max_width: impl Into<Pixels>) -> Self {
         self.max_width = max_width.into().0;
@@ -116,16 +159,31 @@ where
         self
     }
 
-    /// Centers the contents in the horizontal axis of the [`Container`].
+    /// Sets the [`Container`] to fill the available space in the horizontal axis
+    /// and centers its contents there.
     pub fn center_x(mut self) -> Self {
+        self.width = Length::Fill;
         self.horizontal_alignment = alignment::Horizontal::Center;
         self
     }
 
-    /// Centers the contents in the vertical axis of the [`Container`].
+    /// Sets the [`Container`] to fill the available space in the vertical axis
+    /// and centers its contents there.
     pub fn center_y(mut self) -> Self {
+        self.height = Length::Fill;
         self.vertical_alignment = alignment::Vertical::Center;
         self
+    }
+
+    /// Centers the contents in both the horizontal and vertical axes of the
+    /// [`Container`].
+    ///
+    /// This is equivalent to chaining [`center_x`] and [`center_y`].
+    ///
+    /// [`center_x`]: Self::center_x
+    /// [`center_y`]: Self::center_y
+    pub fn center(self) -> Self {
+        self.center_x().center_y()
     }
 
     /// Sets whether the contents of the [`Container`] should be clipped on

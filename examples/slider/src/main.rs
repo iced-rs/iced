@@ -1,5 +1,5 @@
-use iced::widget::{column, container, slider, text, vertical_slider};
-use iced::{Element, Length};
+use iced::widget::{center, column, container, slider, text, vertical_slider};
+use iced::Element;
 
 pub fn main() -> iced::Result {
     iced::run("Slider - Iced", Slider::update, Slider::view)
@@ -54,18 +54,14 @@ impl Slider {
 
         let text = text(self.value);
 
-        container(
+        center(
             column![
-                container(v_slider).width(Length::Fill).center_x(),
-                container(h_slider).width(Length::Fill).center_x(),
-                container(text).width(Length::Fill).center_x(),
+                container(v_slider).center_x(),
+                container(h_slider).center_x(),
+                container(text).center_x()
             ]
             .spacing(25),
         )
-        .height(Length::Fill)
-        .width(Length::Fill)
-        .center_x()
-        .center_y()
         .into()
     }
 }

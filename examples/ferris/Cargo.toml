@@ -1,5 +1,5 @@
 [package]
-name = "clock"
+name = "ferris"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
@@ -7,7 +7,4 @@ publish = false
 
 [dependencies]
 iced.workspace = true
-iced.features = ["canvas", "tokio", "debug"]
-
-time = { version = "0.3", features = ["local-offset"] }
-tracing-subscriber = "0.3"
+iced.features = ["image", "tokio", "debug"]

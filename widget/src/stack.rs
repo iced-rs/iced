@@ -151,11 +151,16 @@ where
         renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
+        let limits = limits.width(self.width).height(self.height);
+
         if self.children.is_empty() {
-            return layout::Node::new(Size::ZERO);
+            return layout::Node::new(limits.resolve(
+                self.width,
+                self.height,
+                Size::ZERO,
+            ));
         }
 
-        let limits = limits.width(self.width).height(self.height);
         let base = self.children[0].as_widget().layout(
             &mut tree.children[0],
             renderer,

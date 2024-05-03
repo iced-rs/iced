@@ -135,14 +135,18 @@ impl Pipeline {
                         attributes: &wgpu::vertex_attr_array!(
                             // Position
                             0 => Float32x2,
-                            // Scale
+                            // Center
                             1 => Float32x2,
-                            // Atlas position
+                            // Image size
                             2 => Float32x2,
+                            // Rotation
+                            3 => Float32,
+                            // Atlas position
+                            4 => Float32x2,
                             // Atlas scale
-                            3 => Float32x2,
+                            5 => Float32x2,
                             // Layer
-                            4 => Sint32,
+                            6 => Sint32,
                         ),
                     }],
                 },
@@ -224,6 +228,7 @@ impl Pipeline {
                     handle,
                     filter_method,
                     bounds,
+                    rotation,
                 } => {
                     if let Some(atlas_entry) =
                         cache.upload_raster(device, encoder, handle)
@@ -231,6 +236,7 @@ impl Pipeline {
                         add_instances(
                             [bounds.x, bounds.y],
                             [bounds.width, bounds.height],
+                            f32::from(*rotation),
                             atlas_entry,
                             match filter_method {
                                 crate::core::image::FilterMethod::Nearest => {
@@ -251,6 +257,7 @@ impl Pipeline {
                     handle,
                     color,
                     bounds,
+                    rotation,
                 } => {
                     let size = [bounds.width, bounds.height];
 
@@ -260,6 +267,7 @@ impl Pipeline {
                         add_instances(
                             [bounds.x, bounds.y],
                             size,
+                            f32::from(*rotation),
                             atlas_entry,
                             nearest_instances,
                         );
@@ -487,7 +495,9 @@ impl Data {
 #[derive(Debug, Clone, Copy, Zeroable, Pod)]
 struct Instance {
     _position: [f32; 2],
+    _center: [f32; 2],
     _size: [f32; 2],
+    _rotation: f32,
     _position_in_atlas: [f32; 2],
     _size_in_atlas: [f32; 2],
     _layer: u32,
@@ -506,12 +516,25 @@ struct Uniforms {
 fn add_instances(
     image_position: [f32; 2],
     image_size: [f32; 2],
+    rotation: f32,
     entry: &atlas::Entry,
     instances: &mut Vec<Instance>,
 ) {
+    let center = [
+        image_position[0] + image_size[0] / 2.0,
+        image_position[1] + image_size[1] / 2.0,
+    ];
+
     match entry {
         atlas::Entry::Contiguous(allocation) => {
-            add_instance(image_position, image_size, allocation, instances);
+            add_instance(
+                image_position,
+                center,
+                image_size,
+                rotation,
+                allocation,
+                instances,
+            );
         }
         atlas::Entry::Fragmented { fragments, size } => {
             let scaling_x = image_size[0] / size.width as f32;
@@ -537,7 +560,9 @@ fn add_instances(
                     fragment_height as f32 * scaling_y,
                 ];
 
-                add_instance(position, size, allocation, instances);
+                add_instance(
+                    position, center, size, rotation, allocation, instances,
+                );
             }
         }
     }
@@ -546,7 +571,9 @@ fn add_instances(
 #[inline]
 fn add_instance(
     position: [f32; 2],
+    center: [f32; 2],
     size: [f32; 2],
+    rotation: f32,
     allocation: &atlas::Allocation,
     instances: &mut Vec<Instance>,
 ) {
@@ -556,7 +583,9 @@ fn add_instance(
 
     let instance = Instance {
         _position: position,
+        _center: center,
         _size: size,
+        _rotation: rotation,
         _position_in_atlas: [
             (x as f32 + 0.5) / atlas::SIZE as f32,
             (y as f32 + 0.5) / atlas::SIZE as f32,

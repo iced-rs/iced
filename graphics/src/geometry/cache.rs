@@ -1,8 +1,8 @@
+use crate::cache::{self, Cached};
 use crate::core::Size;
 use crate::geometry::{self, Frame};
-use crate::Cached;
 
-use std::cell::RefCell;
+pub use cache::Group;
 
 /// A simple cache that stores generated geometry to avoid recomputation.
 ///
@@ -12,7 +12,13 @@ pub struct Cache<Renderer>
 where
     Renderer: geometry::Renderer,
 {
-    state: RefCell<State<Renderer::Geometry>>,
+    raw: crate::Cache<Data<<Renderer::Geometry as Cached>::Cache>>,
+}
+
+#[derive(Debug, Clone)]
+struct Data<T> {
+    bounds: Size,
+    geometry: T,
 }
 
 impl<Renderer> Cache<Renderer>
@@ -22,20 +28,25 @@ where
     /// Creates a new empty [`Cache`].
     pub fn new() -> Self {
         Cache {
-            state: RefCell::new(State::Empty { previous: None }),
+            raw: cache::Cache::new(),
+        }
+    }
+
+    /// Creates a new empty [`Cache`] with the given [`Group`].
+    ///
+    /// Caches within the same group may reuse internal rendering storage.
+    ///
+    /// You should generally group caches that are likely to change
+    /// together.
+    pub fn with_group(group: Group) -> Self {
+        Cache {
+            raw: crate::Cache::with_group(group),
         }
     }
 
     /// Clears the [`Cache`], forcing a redraw the next time it is used.
     pub fn clear(&self) {
-        use std::ops::Deref;
-
-        let previous = match self.state.borrow().deref() {
-            State::Empty { previous } => previous.clone(),
-            State::Filled { geometry, .. } => Some(geometry.clone()),
-        };
-
-        *self.state.borrow_mut() = State::Empty { previous };
+        self.raw.clear();
     }
 
     /// Draws geometry using the provided closure and stores it in the
@@ -56,27 +67,30 @@ where
     ) -> Renderer::Geometry {
         use std::ops::Deref;
 
-        let previous = match self.state.borrow().deref() {
-            State::Empty { previous } => previous.clone(),
-            State::Filled {
-                bounds: cached_bounds,
-                geometry,
-            } => {
-                if *cached_bounds == bounds {
-                    return Cached::load(geometry);
+        let state = self.raw.state();
+
+        let previous = match state.borrow().deref() {
+            cache::State::Empty { previous } => {
+                previous.as_ref().map(|data| data.geometry.clone())
+            }
+            cache::State::Filled { current } => {
+                if current.bounds == bounds {
+                    return Cached::load(&current.geometry);
                 }
 
-                Some(geometry.clone())
+                Some(current.geometry.clone())
             }
         };
 
         let mut frame = Frame::new(renderer, bounds);
         draw_fn(&mut frame);
 
-        let geometry = frame.into_geometry().cache(previous);
+        let geometry = frame.into_geometry().cache(self.raw.group(), previous);
         let result = Cached::load(&geometry);
 
-        *self.state.borrow_mut() = State::Filled { bounds, geometry };
+        *state.borrow_mut() = cache::State::Filled {
+            current: Data { bounds, geometry },
+        };
 
         result
     }
@@ -85,16 +99,10 @@ where
 impl<Renderer> std::fmt::Debug for Cache<Renderer>
 where
     Renderer: geometry::Renderer,
+    <Renderer::Geometry as Cached>::Cache: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let state = self.state.borrow();
-
-        match *state {
-            State::Empty { .. } => write!(f, "Cache::Empty"),
-            State::Filled { bounds, .. } => {
-                write!(f, "Cache::Filled {{ bounds: {bounds:?} }}")
-            }
-        }
+        write!(f, "{:?}", &self.raw)
     }
 }
 
@@ -105,17 +113,4 @@ where
     fn default() -> Self {
         Self::new()
     }
-}
-
-enum State<Geometry>
-where
-    Geometry: Cached,
-{
-    Empty {
-        previous: Option<Geometry::Cache>,
-    },
-    Filled {
-        bounds: Size,
-        geometry: Geometry::Cache,
-    },
 }

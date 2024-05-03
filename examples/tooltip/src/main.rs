@@ -1,6 +1,6 @@
 use iced::widget::tooltip::Position;
-use iced::widget::{button, container, tooltip};
-use iced::{Element, Length};
+use iced::widget::{button, center, container, tooltip};
+use iced::Element;
 
 pub fn main() -> iced::Result {
     iced::run("Tooltip - Iced", Tooltip::update, Tooltip::view)
@@ -43,12 +43,7 @@ impl Tooltip {
         .gap(10)
         .style(container::rounded_box);
 
-        container(tooltip)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(tooltip).into()
     }
 }
 

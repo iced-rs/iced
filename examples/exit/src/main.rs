@@ -1,6 +1,6 @@
-use iced::widget::{button, column, container};
+use iced::widget::{button, center, column};
 use iced::window;
-use iced::{Alignment, Command, Element, Length};
+use iced::{Alignment, Command, Element};
 
 pub fn main() -> iced::Result {
     iced::program("Exit - Iced", Exit::update, Exit::view).run()
@@ -46,12 +46,6 @@ impl Exit {
         .spacing(10)
         .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .padding(20)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).padding(20).into()
     }
 }

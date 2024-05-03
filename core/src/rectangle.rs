@@ -1,6 +1,6 @@
-use crate::{Point, Size, Vector};
+use crate::{Point, Radians, Size, Vector};
 
-/// A rectangle.
+/// An axis-aligned rectangle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Rectangle<T = f32> {
     /// X coordinate of the top-left corner.
@@ -172,6 +172,18 @@ impl Rectangle<f32> {
             height: self.height + amount * 2.0,
         }
     }
+
+    /// Rotates the [`Rectangle`] and returns the smallest [`Rectangle`]
+    /// containing it.
+    pub fn rotate(self, rotation: Radians) -> Self {
+        let size = self.size().rotate(rotation);
+        let position = Point::new(
+            self.center_x() - size.width / 2.0,
+            self.center_y() - size.height / 2.0,
+        );
+
+        Self::new(position, size)
+    }
 }
 
 impl std::ops::Mul<f32> for Rectangle<f32> {
@@ -224,6 +236,22 @@ where
             x: self.x - translation.x,
             y: self.y - translation.y,
             ..self
+        }
+    }
+}
+
+impl<T> std::ops::Mul<Vector<T>> for Rectangle<T>
+where
+    T: std::ops::Mul<Output = T> + Copy,
+{
+    type Output = Rectangle<T>;
+
+    fn mul(self, scale: Vector<T>) -> Self {
+        Rectangle {
+            x: self.x * scale.x,
+            y: self.y * scale.y,
+            width: self.width * scale.x,
+            height: self.height * scale.y,
         }
     }
 }

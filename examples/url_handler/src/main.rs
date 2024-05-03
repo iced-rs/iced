@@ -1,6 +1,6 @@
 use iced::event::{self, Event};
-use iced::widget::{container, text};
-use iced::{Element, Length, Subscription};
+use iced::widget::{center, text};
+use iced::{Element, Subscription};
 
 pub fn main() -> iced::Result {
     iced::program("URL Handler - Iced", App::update, App::view)
@@ -44,11 +44,6 @@ impl App {
             None => text("No URL received yet!"),
         };
 
-        container(content.size(48))
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content.size(48)).into()
     }
 }

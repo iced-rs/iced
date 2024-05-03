@@ -82,8 +82,8 @@ mod circle {
 }
 
 use circle::circle;
-use iced::widget::{column, container, slider, text};
-use iced::{Alignment, Element, Length};
+use iced::widget::{center, column, slider, text};
+use iced::{Alignment, Element};
 
 pub fn main() -> iced::Result {
     iced::run("Custom Widget - Iced", Example::update, Example::view)
@@ -122,12 +122,7 @@ impl Example {
         .max_width(500)
         .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 }
 

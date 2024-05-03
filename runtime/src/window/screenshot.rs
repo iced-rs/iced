@@ -1,8 +1,8 @@
 //! Take screenshots of a window.
 use crate::core::{Rectangle, Size};
 
+use bytes::Bytes;
 use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
 
 /// Data of a screenshot, captured with `window::screenshot()`.
 ///
@@ -10,7 +10,7 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct Screenshot {
     /// The bytes of the [`Screenshot`].
-    pub bytes: Arc<Vec<u8>>,
+    pub bytes: Bytes,
     /// The size of the [`Screenshot`].
     pub size: Size<u32>,
 }
@@ -28,9 +28,9 @@ impl Debug for Screenshot {
 
 impl Screenshot {
     /// Creates a new [`Screenshot`].
-    pub fn new(bytes: Vec<u8>, size: Size<u32>) -> Self {
+    pub fn new(bytes: impl Into<Bytes>, size: Size<u32>) -> Self {
         Self {
-            bytes: Arc::new(bytes),
+            bytes: bytes.into(),
             size,
         }
     }
@@ -68,7 +68,7 @@ impl Screenshot {
         );
 
         Ok(Self {
-            bytes: Arc::new(chopped),
+            bytes: Bytes::from(chopped),
             size: Size::new(region.width, region.height),
         })
     }
@@ -77,6 +77,12 @@ impl Screenshot {
 impl AsRef<[u8]> for Screenshot {
     fn as_ref(&self) -> &[u8] {
         &self.bytes
+    }
+}
+
+impl From<Screenshot> for Bytes {
+    fn from(screenshot: Screenshot) -> Self {
+        screenshot.bytes
     }
 }
 

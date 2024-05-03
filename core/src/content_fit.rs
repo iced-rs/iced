@@ -1,6 +1,8 @@
 //! Control the fit of some content (like an image) within a space.
 use crate::Size;
 
+use std::fmt;
+
 /// The strategy used to fit the contents of a widget to its bounding box.
 ///
 /// Each variant of this enum is a strategy that can be applied for resolving
@@ -11,7 +13,7 @@ use crate::Size;
 /// in CSS, see [Mozilla's docs][1], or run the `tour` example
 ///
 /// [1]: https://developer.mozilla.org/en-US/docs/Web/CSS/object-fit
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ContentFit {
     /// Scale as big as it can be without needing to crop or hide parts.
     ///
@@ -23,6 +25,7 @@ pub enum ContentFit {
     /// This is a great fit for when you need to display an image without losing
     /// any part of it, particularly when the image itself is the focus of the
     /// screen.
+    #[default]
     Contain,
 
     /// Scale the image to cover all of the bounding box, cropping if needed.
@@ -115,5 +118,17 @@ impl ContentFit {
                 }
             }
         }
+    }
+}
+
+impl fmt::Display for ContentFit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            ContentFit::Contain => "Contain",
+            ContentFit::Cover => "Cover",
+            ContentFit::Fill => "Fill",
+            ContentFit::None => "None",
+            ContentFit::ScaleDown => "Scale Down",
+        })
     }
 }

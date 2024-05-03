@@ -137,6 +137,7 @@ iced_winit = { version = "0.13.0-dev", path = "winit" }
 async-std = "1.0"
 bitflags = "2.0"
 bytemuck = { version = "1.0", features = ["derive"] }
+bytes = "1.6"
 cosmic-text = "0.10"
 dark-light = "1.0"
 futures = "0.3"

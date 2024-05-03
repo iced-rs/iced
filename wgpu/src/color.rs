@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use wgpu::util::DeviceExt;
+
 pub fn convert(
     device: &wgpu::Device,
     encoder: &mut wgpu::CommandEncoder,
@@ -15,28 +17,58 @@ pub fn convert(
         ..wgpu::SamplerDescriptor::default()
     });
 
-    //sampler in 0
-    let sampler_layout =
+    #[derive(Debug, Clone, Copy, bytemuck::Zeroable, bytemuck::Pod)]
+    #[repr(C)]
+    struct Ratio {
+        u: f32,
+        v: f32,
+    }
+
+    let ratio = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+        label: Some("iced-wgpu::triangle::msaa ratio"),
+        contents: bytemuck::bytes_of(&Ratio { u: 1.0, v: 1.0 }),
+        usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::UNIFORM,
+    });
+
+    let constant_layout =
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("iced_wgpu.offscreen.blit.sampler_layout"),
-            entries: &[wgpu::BindGroupLayoutEntry {
-                binding: 0,
-                visibility: wgpu::ShaderStages::FRAGMENT,
-                ty: wgpu::BindingType::Sampler(
-                    wgpu::SamplerBindingType::NonFiltering,
-                ),
-                count: None,
-            }],
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Sampler(
+                        wgpu::SamplerBindingType::NonFiltering,
+                    ),
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: wgpu::ShaderStages::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: None,
+                    },
+                    count: None,
+                },
+            ],
         });
 
-    let sampler_bind_group =
+    let constant_bind_group =
         device.create_bind_group(&wgpu::BindGroupDescriptor {
             label: Some("iced_wgpu.offscreen.sampler.bind_group"),
-            layout: &sampler_layout,
-            entries: &[wgpu::BindGroupEntry {
-                binding: 0,
-                resource: wgpu::BindingResource::Sampler(&sampler),
-            }],
+            layout: &constant_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::Sampler(&sampler),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: ratio.as_entire_binding(),
+                },
+            ],
         });
 
     let texture_layout =
@@ -59,7 +91,7 @@ pub fn convert(
     let pipeline_layout =
         device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: Some("iced_wgpu.offscreen.blit.pipeline_layout"),
-            bind_group_layouts: &[&sampler_layout, &texture_layout],
+            bind_group_layouts: &[&constant_layout, &texture_layout],
             push_constant_ranges: &[],
         });
 
@@ -152,7 +184,7 @@ pub fn convert(
     });
 
     pass.set_pipeline(&pipeline);
-    pass.set_bind_group(0, &sampler_bind_group, &[]);
+    pass.set_bind_group(0, &constant_bind_group, &[]);
     pass.set_bind_group(1, &texture_bind_group, &[]);
     pass.draw(0..6, 0..1);
 

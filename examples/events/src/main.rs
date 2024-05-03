@@ -1,6 +1,6 @@
 use iced::alignment;
 use iced::event::{self, Event};
-use iced::widget::{button, checkbox, container, text, Column};
+use iced::widget::{button, center, checkbox, text, Column};
 use iced::window;
 use iced::{Alignment, Command, Element, Length, Subscription};
 
@@ -84,11 +84,6 @@ impl Events {
             .push(toggle)
             .push(exit);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 }

@@ -1,7 +1,7 @@
 mod download;
 
-use iced::widget::{button, column, container, progress_bar, text, Column};
-use iced::{Alignment, Element, Length, Subscription};
+use iced::widget::{button, center, column, progress_bar, text, Column};
+use iced::{Alignment, Element, Subscription};
 
 pub fn main() -> iced::Result {
     iced::program("Download Progress - Iced", Example::update, Example::view)
@@ -67,13 +67,7 @@ impl Example {
                 .spacing(20)
                 .align_items(Alignment::End);
 
-        container(downloads)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .padding(20)
-            .into()
+        center(downloads).padding(20).into()
     }
 }
 

@@ -76,11 +76,10 @@ impl Tour {
             } else {
                 content
             })
-            .width(Length::Fill)
             .center_x(),
         );
 
-        container(scrollable).height(Length::Fill).center_y().into()
+        container(scrollable).center_y().into()
     }
 }
 
@@ -670,7 +669,6 @@ fn ferris<'a>(
         .filter_method(filter_method)
         .width(width),
     )
-    .width(Length::Fill)
     .center_x()
 }
 

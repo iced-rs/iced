@@ -1,8 +1,8 @@
 use iced::alignment;
 use iced::keyboard;
 use iced::time;
-use iced::widget::{button, column, container, row, text};
-use iced::{Alignment, Element, Length, Subscription, Theme};
+use iced::widget::{button, center, column, row, text};
+use iced::{Alignment, Element, Subscription, Theme};
 
 use std::time::{Duration, Instant};
 
@@ -128,12 +128,7 @@ impl Stopwatch {
             .align_items(Alignment::Center)
             .spacing(20);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 
     fn theme(&self) -> Theme {

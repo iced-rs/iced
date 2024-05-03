@@ -67,7 +67,7 @@ pub struct Storage {
 impl Storage {
     /// Returns `true` if `Storage` contains a type `T`.
     pub fn has<T: 'static>(&self) -> bool {
-        self.pipelines.get(&TypeId::of::<T>()).is_some()
+        self.pipelines.contains_key(&TypeId::of::<T>())
     }
 
     /// Inserts the data `T` in to [`Storage`].

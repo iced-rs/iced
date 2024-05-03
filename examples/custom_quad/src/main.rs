@@ -81,8 +81,8 @@ mod quad {
     }
 }
 
-use iced::widget::{column, container, slider, text};
-use iced::{Alignment, Color, Element, Length, Shadow, Vector};
+use iced::widget::{center, column, slider, text};
+use iced::{Alignment, Color, Element, Shadow, Vector};
 
 pub fn main() -> iced::Result {
     iced::run("Custom Quad - Iced", Example::update, Example::view)
@@ -187,12 +187,7 @@ impl Example {
         .max_width(500)
         .align_items(Alignment::Center);
 
-        container(content)
-            .width(Length::Fill)
-            .height(Length::Fill)
-            .center_x()
-            .center_y()
-            .into()
+        center(content).into()
     }
 }
 

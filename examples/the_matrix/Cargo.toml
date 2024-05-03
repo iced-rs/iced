@@ -1,5 +1,5 @@
 [package]
-name = "clock"
+name = "the_matrix"
 version = "0.1.0"
 authors = ["Héctor Ramón Jiménez <hector0193@gmail.com>"]
 edition = "2021"
@@ -9,5 +9,5 @@ publish = false
 iced.workspace = true
 iced.features = ["canvas", "tokio", "debug"]
 
-time = { version = "0.3", features = ["local-offset"] }
+rand = "0.8"
 tracing-subscriber = "0.3"

@@ -550,6 +550,7 @@ impl Engine {
                 handle,
                 filter_method,
                 bounds,
+                rotation,
             } => {
                 let physical_bounds = *bounds * _transformation;
 
@@ -560,12 +561,21 @@ impl Engine {
                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
                     .then_some(_clip_mask as &_);
 
+                let center = physical_bounds.center();
+                let radians = f32::from(*rotation);
+
+                let transform = into_transform(_transformation).post_rotate_at(
+                    radians.to_degrees(),
+                    center.x,
+                    center.y,
+                );
+
                 self.raster_pipeline.draw(
                     handle,
                     *filter_method,
                     *bounds,
                     _pixels,
-                    into_transform(_transformation),
+                    transform,
                     clip_mask,
                 );
             }
@@ -574,6 +584,7 @@ impl Engine {
                 handle,
                 color,
                 bounds,
+                rotation,
             } => {
                 let physical_bounds = *bounds * _transformation;
 
@@ -584,11 +595,21 @@ impl Engine {
                 let clip_mask = (!physical_bounds.is_within(&_clip_bounds))
                     .then_some(_clip_mask as &_);
 
+                let center = physical_bounds.center();
+                let radians = f32::from(*rotation);
+
+                let transform = into_transform(_transformation).post_rotate_at(
+                    radians.to_degrees(),
+                    center.x,
+                    center.y,
+                );
+
                 self.vector_pipeline.draw(
                     handle,
                     *color,
                     physical_bounds,
                     _pixels,
+                    transform,
                     clip_mask,
                 );
             }
