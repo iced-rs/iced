@@ -291,12 +291,7 @@ fn view_content<'a>(
     .spacing(10)
     .align_items(Alignment::Center);
 
-    container(scrollable(content))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .padding(5)
-        .center_y()
-        .into()
+    container(scrollable(content)).center_y().padding(5).into()
 }
 
 fn view_controls<'a>(

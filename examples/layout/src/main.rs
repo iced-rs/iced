@@ -1,8 +1,8 @@
 use iced::keyboard;
 use iced::mouse;
 use iced::widget::{
-    button, canvas, checkbox, column, container, horizontal_space, pick_list,
-    row, scrollable, text,
+    button, canvas, center, checkbox, column, container, horizontal_space,
+    pick_list, row, scrollable, text,
 };
 use iced::{
     color, Alignment, Element, Font, Length, Point, Rectangle, Renderer,
@@ -76,7 +76,7 @@ impl Layout {
         .spacing(20)
         .align_items(Alignment::Center);
 
-        let example = container(if self.explain {
+        let example = center(if self.explain {
             self.example.view().explain(color!(0x0000ff))
         } else {
             self.example.view()
@@ -87,11 +87,7 @@ impl Layout {
             container::Style::default()
                 .with_border(palette.background.strong.color, 4.0)
         })
-        .padding(4)
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y();
+        .padding(4);
 
         let controls = row([
             (!self.example.is_first()).then_some(
@@ -195,12 +191,7 @@ impl Default for Example {
 }
 
 fn centered<'a>() -> Element<'a, Message> {
-    container(text("I am centered!").size(50))
-        .width(Length::Fill)
-        .height(Length::Fill)
-        .center_x()
-        .center_y()
-        .into()
+    center(text("I am centered!").size(50)).into()
 }
 
 fn column_<'a>() -> Element<'a, Message> {
@@ -260,7 +251,6 @@ fn application<'a>() -> Element<'a, Message> {
             .align_items(Alignment::Center),
     )
     .style(container::rounded_box)
-    .height(Length::Fill)
     .center_y();
 
     let content = container(
