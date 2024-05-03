@@ -36,20 +36,12 @@ impl Rotation {
         Degrees(self.radians().0.to_degrees())
     }
 
-    /// Rotates the given [`Size`].
+    /// Applies the [`Rotation`] to the given [`Size`], returning
+    /// the minimum [`Size`] containing the rotated one.
     pub fn apply(self, size: Size) -> Size {
         match self {
             Self::Floating(_) => size,
-            Self::Solid(rotation) => {
-                let radians = f32::from(rotation);
-
-                Size {
-                    width: (size.width * radians.cos()).abs()
-                        + (size.height * radians.sin()).abs(),
-                    height: (size.width * radians.sin()).abs()
-                        + (size.height * radians.cos()).abs(),
-                }
-            }
+            Self::Solid(rotation) => size.rotate(rotation),
         }
     }
 }

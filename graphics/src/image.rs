@@ -41,9 +41,12 @@ impl Image {
     /// Returns the bounds of the [`Image`].
     pub fn bounds(&self) -> Rectangle {
         match self {
-            Image::Raster { bounds, .. } | Image::Vector { bounds, .. } => {
-                *bounds
+            Image::Raster {
+                bounds, rotation, ..
             }
+            | Image::Vector {
+                bounds, rotation, ..
+            } => bounds.rotate(*rotation),
         }
     }
 }
