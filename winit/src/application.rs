@@ -431,6 +431,7 @@ async fn run_instance<A, E, C>(
                     viewport_version = current_viewport_version;
                 }
 
+                debug.draw_started();
                 // TODO: Avoid redrawing all the time by forcing widgets to
                 // request redraws on state changes
                 //
@@ -467,7 +468,6 @@ async fn run_instance<A, E, C>(
 
                 runtime.broadcast(redraw_event, core::event::Status::Ignored);
 
-                debug.draw_started();
                 let new_mouse_interaction = user_interface.draw(
                     &mut renderer,
                     state.theme(),
