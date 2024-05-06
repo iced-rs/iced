@@ -1,8 +1,11 @@
 use iced::alignment;
 use iced::event::{self, Event};
-use iced::widget::{button, center, checkbox, text, Column};
+use iced::widget::{
+    button, center, checkbox, container, list, scrollable, text, Column,
+    Scrollable,
+};
 use iced::window;
-use iced::{Alignment, Command, Element, Length, Subscription};
+use iced::{Alignment, Command, Element, Font, Length, Subscription};
 
 pub fn main() -> iced::Result {
     iced::program("Events - Iced", Events::update, Events::view)
@@ -13,7 +16,7 @@ pub fn main() -> iced::Result {
 
 #[derive(Debug, Default)]
 struct Events {
-    last: Vec<Event>,
+    log: list::Content<Event>,
     enabled: bool,
 }
 
@@ -28,10 +31,10 @@ impl Events {
     fn update(&mut self, message: Message) -> Command<Message> {
         match message {
             Message::EventOccurred(event) if self.enabled => {
-                self.last.push(event);
+                self.log.push(event);
 
-                if self.last.len() > 5 {
-                    let _ = self.last.remove(0);
+                if self.log.len() > 1_000 {
+                    self.log.remove(0);
                 }
 
                 Command::none()
@@ -58,12 +61,24 @@ impl Events {
     }
 
     fn view(&self) -> Element<Message> {
-        let events = Column::with_children(
-            self.last
-                .iter()
-                .map(|event| text(format!("{event:?}")).size(40))
-                .map(Element::from),
-        );
+        let events = container(
+            Scrollable::with_direction(
+                container(list(&self.log, |_i, event| {
+                    text(format!("{event:?}"))
+                        .size(14)
+                        .font(Font::MONOSPACE)
+                        .into()
+                }))
+                .padding(10),
+                scrollable::Direction::Vertical(
+                    scrollable::Properties::default()
+                        .alignment(scrollable::Alignment::End),
+                ),
+            )
+            .height(Length::Fill),
+        )
+        .style(container::rounded_box)
+        .padding(5);
 
         let toggle = checkbox("Listen to runtime events", self.enabled)
             .on_toggle(Message::Toggled);
@@ -84,6 +99,6 @@ impl Events {
             .push(toggle)
             .push(exit);
 
-        center(content).into()
+        center(content).padding(10).into()
     }
 }
