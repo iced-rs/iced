@@ -44,6 +44,7 @@ struct State {
     size: Size,
     offsets: Vec<f32>,
     task: Task,
+    visible_outdated: bool,
 }
 
 enum Task {
@@ -85,6 +86,7 @@ where
             size: Size::ZERO,
             offsets: vec![0.0],
             task: Task::Idle,
+            visible_outdated: false,
         })
     }
 
@@ -98,14 +100,184 @@ where
     fn layout(
         &self,
         tree: &mut Tree,
-        _renderer: &Renderer,
+        renderer: &Renderer,
         limits: &layout::Limits,
     ) -> layout::Node {
         let state = tree.state.downcast_mut::<State>();
+        let loose_limits = limits.loose();
 
-        if &state.last_limits != limits {
-            state.last_limits = *limits;
+        if state.last_limits != loose_limits {
+            state.last_limits = loose_limits;
             state.recompute(self.content.len());
+        }
+
+        let mut changes = self.content.changes.borrow_mut();
+
+        match state.task {
+            Task::Idle => {
+                while let Some(change) = changes.pop_front() {
+                    match change {
+                        Change::Updated { original, current } => {
+                            let mut new_element = (self.view_item)(
+                                current,
+                                &self.content.items[current],
+                            );
+
+                            let visible_index = state
+                                .visible_layouts
+                                .iter_mut()
+                                .position(|(i, _, _)| *i == original);
+
+                            let mut new_tree;
+
+                            // Update if visible
+                            let mut tree =
+                                if let Some(visible_index) = visible_index {
+                                    let (_i, _layout, tree) = &mut state
+                                        .visible_layouts[visible_index];
+
+                                    tree.diff(&new_element);
+                                    state.visible_outdated = true;
+
+                                    tree
+                                } else {
+                                    new_tree = Tree::new(&new_element);
+
+                                    &mut new_tree
+                                };
+
+                            let layout = new_element.as_widget_mut().layout(
+                                &mut tree,
+                                renderer,
+                                &state.last_limits,
+                            );
+
+                            let new_size = layout.size();
+
+                            let height_difference = new_size.height
+                                - (state.offsets[original + 1]
+                                    - state.offsets[original]);
+
+                            for offset in &mut state.offsets[original + 1..] {
+                                *offset += height_difference;
+                            }
+
+                            if let Some(visible_index) = visible_index {
+                                for (i, layout, _) in
+                                    &mut state.visible_layouts[visible_index..]
+                                {
+                                    layout
+                                        .move_to_mut((0.0, state.offsets[*i]));
+                                }
+                            }
+
+                            state.size.height += height_difference;
+                        }
+                        Change::Removed { original, current } => {
+                            let height = state.offsets[original + 1]
+                                - state.offsets[original];
+
+                            let _ = state.offsets.remove(original + 1);
+
+                            for offset in &mut state.offsets[original + 1..] {
+                                *offset -= height;
+                            }
+
+                            state.size.height -= height;
+                            state.visible_layouts.clear();
+
+                            // TODO: Smarter visible layout updates
+                        }
+                        Change::Pushed { current, .. } => {
+                            let mut new_element = (self.view_item)(
+                                current,
+                                &self.content.items[current],
+                            );
+
+                            let mut tree = Tree::new(&new_element);
+
+                            let layout = new_element.as_widget_mut().layout(
+                                &mut tree,
+                                renderer,
+                                &state.last_limits,
+                            );
+
+                            let size = layout.size();
+
+                            state.offsets.push(
+                                state.offsets.last().unwrap() + size.height,
+                            );
+
+                            state.size.width = state.size.width.max(size.width);
+                            state.size.height += size.height;
+                        }
+                    }
+                }
+            }
+            Task::Computing { .. } => {
+                if !changes.is_empty() {
+                    // If changes happen during layout computation,
+                    // we simply restart the computation
+                    changes.clear();
+                    state.recompute(self.content.len());
+                }
+            }
+        }
+
+        // Recompute if new
+        {
+            let mut is_new = self.content.is_new.borrow_mut();
+
+            if *is_new {
+                state.recompute(self.content.len());
+                *is_new = false;
+            }
+        }
+
+        match &mut state.task {
+            Task::Idle => {}
+            Task::Computing {
+                current,
+                size,
+                offsets,
+            } => {
+                const MAX_BATCH_SIZE: usize = 100;
+
+                let end = (*current + MAX_BATCH_SIZE).min(self.content.len());
+
+                let batch = &self.content.items[*current..end];
+
+                let mut max_width = size.width;
+                let mut accumulated_height =
+                    offsets.last().copied().unwrap_or(0.0);
+
+                for (i, item) in batch.iter().enumerate() {
+                    let element = (self.view_item)(*current + i, item);
+                    let mut tree = Tree::new(&element);
+
+                    let layout = element
+                        .as_widget()
+                        .layout(&mut tree, renderer, &state.last_limits)
+                        .move_to((0.0, accumulated_height));
+
+                    let bounds = layout.bounds();
+
+                    max_width = max_width.max(bounds.width);
+                    accumulated_height += bounds.height;
+
+                    offsets.push(accumulated_height);
+                }
+
+                *size = Size::new(max_width, accumulated_height);
+
+                if end < self.content.len() {
+                    *current = end;
+                } else {
+                    state.offsets = std::mem::take(offsets);
+                    state.size = std::mem::take(size);
+                    state.task = Task::Idle;
+                }
+            }
         }
 
         let size = limits.resolve(Length::Shrink, Length::Shrink, state.size);
@@ -146,230 +318,9 @@ where
             .fold(event::Status::Ignored, event::Status::merge);
 
         if let Event::Window(_, window::Event::RedrawRequested(_)) = event {
-            // Process changes first
-            {
-                let mut changes = self.content.changes.borrow_mut();
-
-                match state.task {
-                    Task::Idle => {
-                        while let Some(change) = changes.pop_front() {
-                            match change {
-                                Change::Updated(index) => {
-                                    let mut new_element = (self.view_item)(
-                                        index,
-                                        &self.content.items[index],
-                                    );
-
-                                    let visible_index = state
-                                        .visible_layouts
-                                        .iter_mut()
-                                        .position(|(i, _, _)| *i == index);
-
-                                    // Update if visible
-                                    let new_size = if let Some(visible_index) =
-                                        visible_index
-                                    {
-                                        let (_, layout, tree) = &mut state
-                                            .visible_layouts[visible_index];
-
-                                        tree.diff(&new_element);
-
-                                        let new_layout = new_element
-                                            .as_widget_mut()
-                                            .layout(
-                                                tree,
-                                                renderer,
-                                                &state.last_limits,
-                                            )
-                                            .move_to((
-                                                0.0,
-                                                state.offsets[index],
-                                            ));
-
-                                        if let Some(element) = self
-                                            .visible_elements
-                                            .get_mut(visible_index)
-                                        {
-                                            *element = new_element;
-                                        }
-
-                                        *layout = new_layout;
-
-                                        layout.size()
-                                    } else {
-                                        let mut tree = Tree::new(&new_element);
-
-                                        let layout =
-                                            new_element.as_widget_mut().layout(
-                                                &mut tree,
-                                                renderer,
-                                                &state.last_limits,
-                                            );
-
-                                        layout.size()
-                                    };
-
-                                    let height_difference = new_size.height
-                                        - (state.offsets[index + 1]
-                                            - state.offsets[index]);
-
-                                    for offset in
-                                        &mut state.offsets[index + 1..]
-                                    {
-                                        *offset += height_difference;
-                                    }
-
-                                    if let Some(visible_index) = visible_index {
-                                        for (i, layout, _) in &mut state
-                                            .visible_layouts[visible_index..]
-                                        {
-                                            layout.move_to_mut((
-                                                0.0,
-                                                state.offsets[*i],
-                                            ));
-                                        }
-                                    }
-
-                                    state.size.height += height_difference;
-                                }
-                                Change::Removed(index) => {
-                                    let visible_index = state
-                                        .visible_layouts
-                                        .iter_mut()
-                                        .position(|(i, _, _)| *i == index);
-
-                                    let height = state.offsets[index + 1]
-                                        - state.offsets[index];
-
-                                    let _ = state.offsets.remove(index);
-
-                                    for offset in &mut state.offsets[index..] {
-                                        *offset -= height;
-                                    }
-
-                                    state.size.height -= height;
-
-                                    if let Some(visible_index) = visible_index {
-                                        let _ = state
-                                            .visible_layouts
-                                            .remove(visible_index);
-
-                                        for (i, layout, _) in &mut state
-                                            .visible_layouts[visible_index..]
-                                        {
-                                            *i -= 1;
-
-                                            layout.move_to_mut((
-                                                0.0,
-                                                state.offsets[*i],
-                                            ));
-                                        }
-
-                                        if visible_index
-                                            < self.visible_elements.len()
-                                        {
-                                            let _ = self
-                                                .visible_elements
-                                                .remove(visible_index);
-                                        }
-                                    }
-                                }
-                                Change::Pushed(index) => {
-                                    let mut new_element = (self.view_item)(
-                                        index,
-                                        &self.content.items[index],
-                                    );
-
-                                    let mut tree = Tree::new(&new_element);
-
-                                    let layout =
-                                        new_element.as_widget_mut().layout(
-                                            &mut tree,
-                                            renderer,
-                                            &state.last_limits,
-                                        );
-
-                                    let size = layout.size();
-
-                                    state.offsets.push(
-                                        state.offsets[index] + size.height,
-                                    );
-
-                                    state.size.width =
-                                        state.size.width.max(size.width);
-                                    state.size.height += size.height;
-                                }
-                            }
-
-                            shell.invalidate_layout();
-                        }
-                    }
-                    Task::Computing { .. } => {
-                        if !changes.is_empty() {
-                            // If changes happen during layout computation,
-                            // we simply restart the computation
-                            changes.clear();
-                            state.recompute(self.content.len());
-                        }
-                    }
-                }
-            }
-
-            // Recompute if new
-            {
-                let mut is_new = self.content.is_new.borrow_mut();
-
-                if *is_new {
-                    state.recompute(self.content.len());
-                    *is_new = false;
-                }
-            }
-
             match &mut state.task {
                 Task::Idle => {}
-                Task::Computing {
-                    current,
-                    size,
-                    offsets,
-                } => {
-                    const MAX_BATCH_SIZE: usize = 50;
-
-                    let end =
-                        (*current + MAX_BATCH_SIZE).min(self.content.len());
-
-                    let batch = &self.content.items[*current..end];
-
-                    let mut max_width = size.width;
-                    let mut accumulated_height =
-                        offsets.last().copied().unwrap_or(0.0);
-
-                    for (i, item) in batch.iter().enumerate() {
-                        let element = (self.view_item)(*current + i, item);
-                        let mut tree = Tree::new(&element);
-
-                        let layout = element
-                            .as_widget()
-                            .layout(&mut tree, renderer, &state.last_limits)
-                            .move_to((0.0, accumulated_height));
-
-                        let bounds = layout.bounds() + offset;
-
-                        max_width = max_width.max(bounds.width);
-                        accumulated_height += bounds.height;
-
-                        offsets.push(accumulated_height);
-                    }
-
-                    *size = Size::new(max_width, accumulated_height);
-
-                    if end < self.content.len() {
-                        *current = end;
-                    } else {
-                        state.offsets = std::mem::take(offsets);
-                        state.size = std::mem::take(size);
-                        state.task = Task::Idle;
-                    }
-
+                Task::Computing { .. } => {
                     shell.invalidate_layout();
                     shell.request_redraw(window::RedrawRequest::NextFrame);
                 }
@@ -378,8 +329,8 @@ where
             let offsets = &state.offsets;
 
             let start = match offsets.binary_search_by(|height| {
-                (height + offset.y)
-                    .partial_cmp(&viewport.y)
+                height
+                    .partial_cmp(&(viewport.y - offset.y))
                     .unwrap_or(Ordering::Equal)
             }) {
                 Ok(i) => i,
@@ -388,8 +339,8 @@ where
             .min(self.content.len());
 
             let end = match offsets.binary_search_by(|height| {
-                (height + offset.y)
-                    .partial_cmp(&(viewport.y + viewport.height))
+                height
+                    .partial_cmp(&(viewport.y + viewport.height - offset.y))
                     .unwrap_or(Ordering::Equal)
             }) {
                 Ok(i) => i,
@@ -397,8 +348,11 @@ where
             }
             .min(self.content.len());
 
-            if state.visible_layouts.len() != self.visible_elements.len() {
+            if state.visible_outdated
+                || state.visible_layouts.len() != self.visible_elements.len()
+            {
                 self.visible_elements.clear();
+                state.visible_outdated = false;
             }
 
             // If view was recreated, we repopulate the visible elements
@@ -412,10 +366,6 @@ where
                     })
                     .collect();
             }
-
-            dbg!(self.visible_elements.len());
-            dbg!(state.visible_layouts.len());
-            dbg!(start, end);
 
             // Clear no longer visible elements
             let top = state
@@ -445,8 +395,6 @@ where
             if let Some(first_visible) =
                 state.visible_layouts.first().map(|(i, _, _)| *i)
             {
-                dbg!(first_visible);
-
                 if start < first_visible {
                     for (i, item) in self.content.items[start..first_visible]
                         .iter()
@@ -628,9 +576,9 @@ pub struct Content<T> {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Change {
-    Updated(usize),
-    Removed(usize),
-    Pushed(usize),
+    Updated { original: usize, current: usize },
+    Removed { original: usize, current: usize },
+    Pushed { original: usize, current: usize },
 }
 
 impl<T> Content<T> {
@@ -655,14 +603,20 @@ impl<T> Content<T> {
     }
 
     pub fn get_mut(&mut self, index: usize) -> Option<&mut T> {
-        self.changes.borrow_mut().push_back(Change::Updated(index));
+        self.changes.borrow_mut().push_back(Change::Updated {
+            original: index,
+            current: index,
+        });
         self.items.get_mut(index)
     }
 
     pub fn push(&mut self, item: T) {
-        self.changes
-            .borrow_mut()
-            .push_back(Change::Pushed(self.items.len()));
+        let index = self.items.len();
+
+        self.changes.borrow_mut().push_back(Change::Pushed {
+            original: index,
+            current: index,
+        });
 
         self.items.push(item);
     }
@@ -672,18 +626,23 @@ impl<T> Content<T> {
 
         // Update pending changes after removal
         changes.retain_mut(|change| match change {
-            Change::Updated(i) | Change::Removed(i) | Change::Pushed(i) => {
+            Change::Updated { current, .. }
+            | Change::Removed { current, .. }
+            | Change::Pushed { current, .. }
+                if *current > index =>
+            {
                 // Decrement index of later changes
-                if *i > index {
-                    *i -= 1;
-                }
+                *current -= 1;
 
-                // Remove any changes to the removed item
-                *i != index
+                true
             }
+            _ => true,
         });
 
-        changes.push_back(Change::Removed(index));
+        changes.push_back(Change::Removed {
+            original: index,
+            current: index,
+        });
 
         self.items.remove(index)
     }
