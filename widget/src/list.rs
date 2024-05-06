@@ -131,7 +131,7 @@ where
                             let mut new_tree;
 
                             // Update if visible
-                            let mut tree =
+                            let tree =
                                 if let Some(visible_index) = visible_index {
                                     let (_i, _layout, tree) = &mut state
                                         .visible_layouts[visible_index];
@@ -147,7 +147,7 @@ where
                                 };
 
                             let layout = new_element.as_widget_mut().layout(
-                                &mut tree,
+                                tree,
                                 renderer,
                                 &state.last_limits,
                             );
@@ -173,7 +173,7 @@ where
 
                             state.size.height += height_difference;
                         }
-                        Change::Removed { original, current } => {
+                        Change::Removed { original, .. } => {
                             let height = state.offsets[original + 1]
                                 - state.offsets[original];
 
