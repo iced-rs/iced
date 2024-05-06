@@ -13,7 +13,9 @@ use crate::core::{Rectangle, Size, Transformation};
 use crate::Buffer;
 
 use bytemuck::{Pod, Zeroable};
+
 use std::mem;
+use std::sync::Arc;
 
 pub use crate::graphics::Image;
 
@@ -22,13 +24,11 @@ pub type Batch = Vec<Image>;
 #[derive(Debug)]
 pub struct Pipeline {
     pipeline: wgpu::RenderPipeline,
+    backend: wgpu::Backend,
     nearest_sampler: wgpu::Sampler,
     linear_sampler: wgpu::Sampler,
-    texture: wgpu::BindGroup,
-    texture_version: usize,
-    texture_layout: wgpu::BindGroupLayout,
+    texture_layout: Arc<wgpu::BindGroupLayout>,
     constant_layout: wgpu::BindGroupLayout,
-    cache: cache::Shared,
     layers: Vec<Layer>,
     prepare_layer: usize,
 }
@@ -186,25 +186,20 @@ impl Pipeline {
                 multiview: None,
             });
 
-        let cache = Cache::new(device, backend);
-        let texture = cache.create_bind_group(device, &texture_layout);
-
         Pipeline {
             pipeline,
+            backend,
             nearest_sampler,
             linear_sampler,
-            texture,
-            texture_version: cache.layer_count(),
-            texture_layout,
+            texture_layout: Arc::new(texture_layout),
             constant_layout,
-            cache: cache::Shared::new(cache),
             layers: Vec::new(),
             prepare_layer: 0,
         }
     }
 
-    pub fn cache(&self) -> &cache::Shared {
-        &self.cache
+    pub fn create_cache(&self, device: &wgpu::Device) -> Cache {
+        Cache::new(device, self.backend, self.texture_layout.clone())
     }
 
     pub fn prepare(
@@ -212,6 +207,7 @@ impl Pipeline {
         device: &wgpu::Device,
         encoder: &mut wgpu::CommandEncoder,
         belt: &mut wgpu::util::StagingBelt,
+        cache: &mut Cache,
         images: &Batch,
         transformation: Transformation,
         scale: f32,
@@ -220,8 +216,6 @@ impl Pipeline {
 
         let nearest_instances: &mut Vec<Instance> = &mut Vec::new();
         let linear_instances: &mut Vec<Instance> = &mut Vec::new();
-
-        let mut cache = self.cache.lock();
 
         for image in images {
             match &image {
@@ -288,16 +282,6 @@ impl Pipeline {
             return;
         }
 
-        let texture_version = cache.layer_count();
-
-        if self.texture_version != texture_version {
-            log::debug!("Atlas has grown. Recreating bind group...");
-
-            self.texture =
-                cache.create_bind_group(device, &self.texture_layout);
-            self.texture_version = texture_version;
-        }
-
         if self.layers.len() <= self.prepare_layer {
             self.layers.push(Layer::new(
                 device,
@@ -323,6 +307,7 @@ impl Pipeline {
 
     pub fn render<'a>(
         &'a self,
+        cache: &'a Cache,
         layer: usize,
         bounds: Rectangle<u32>,
         render_pass: &mut wgpu::RenderPass<'a>,
@@ -337,14 +322,13 @@ impl Pipeline {
                 bounds.height,
             );
 
-            render_pass.set_bind_group(1, &self.texture, &[]);
+            render_pass.set_bind_group(1, cache.bind_group(), &[]);
 
             layer.render(render_pass);
         }
     }
 
     pub fn end_frame(&mut self) {
-        self.cache.lock().trim();
         self.prepare_layer = 0;
     }
 }

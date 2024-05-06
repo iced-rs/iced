@@ -70,7 +70,8 @@ fn benchmark(
         Some(Antialiasing::MSAAx4),
     );
 
-    let mut renderer = Renderer::new(&engine, Font::DEFAULT, Pixels::from(16));
+    let mut renderer =
+        Renderer::new(&device, &engine, Font::DEFAULT, Pixels::from(16));
 
     let viewport =
         graphics::Viewport::with_physical_size(Size::new(3840, 2160), 2.0);

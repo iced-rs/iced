@@ -290,6 +290,7 @@ impl graphics::Compositor for Compositor {
 
     fn create_renderer(&self) -> Self::Renderer {
         Renderer::new(
+            &self.device,
             &self.engine,
             self.settings.default_font,
             self.settings.default_text_size,
