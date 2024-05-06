@@ -125,6 +125,9 @@ impl Renderer {
 
         self.triangle_storage.trim();
         self.text_storage.trim();
+
+        #[cfg(any(feature = "svg", feature = "image"))]
+        self.image_cache.borrow_mut().trim();
     }
 
     fn prepare(
