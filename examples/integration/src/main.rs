@@ -157,7 +157,7 @@ pub fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut debug = Debug::new();
     let mut engine = Engine::new(&adapter, &device, &queue, format, None);
     let mut renderer =
-        Renderer::new(&engine, Font::default(), Pixels::from(16));
+        Renderer::new(&device, &engine, Font::default(), Pixels::from(16));
 
     let mut state = program::State::new(
         controls,

@@ -59,8 +59,11 @@ impl Engine {
     }
 
     #[cfg(any(feature = "image", feature = "svg"))]
-    pub fn image_cache(&self) -> &crate::image::cache::Shared {
-        self.image_pipeline.cache()
+    pub fn create_image_cache(
+        &self,
+        device: &wgpu::Device,
+    ) -> crate::image::Cache {
+        self.image_pipeline.create_cache(device)
     }
 
     pub fn submit(
