@@ -341,6 +341,21 @@ where
             }
         }
 
+        fn new_events(
+            &mut self,
+            event_loop: &winit::event_loop::ActiveEventLoop,
+            cause: winit::event::StartCause,
+        ) {
+            if self.boot.is_some() {
+                return;
+            }
+
+            self.process_event(
+                event_loop,
+                winit::event::Event::NewEvents(cause),
+            );
+        }
+
         fn window_event(
             &mut self,
             event_loop: &winit::event_loop::ActiveEventLoop,
