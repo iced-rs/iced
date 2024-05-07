@@ -65,6 +65,7 @@ enum Task {
     Computing {
         current: usize,
         offsets: Vec<f32>,
+        widths: Vec<f32>,
         size: Size,
     },
 }
@@ -77,6 +78,7 @@ impl State {
         self.task = Task::Computing {
             current: 0,
             offsets,
+            widths: Vec::with_capacity(size),
             size: Size::ZERO,
         };
         self.visible_layouts.clear();
@@ -160,13 +162,11 @@ where
                                     &mut new_tree
                                 };
 
-                            let layout = new_element.as_widget_mut().layout(
-                                tree,
-                                renderer,
-                                &state.last_limits,
-                            );
+                            let new_layout = new_element
+                                .as_widget_mut()
+                                .layout(tree, renderer, &state.last_limits);
 
-                            let new_size = layout.size();
+                            let new_size = new_layout.size();
 
                             let height_difference = new_size.height
                                 - (state.offsets[original + 1]
@@ -180,6 +180,9 @@ where
                             state.widths[original] = new_size.width;
 
                             if let Some(visible_index) = visible_index {
+                                state.visible_layouts[visible_index].1 =
+                                    new_layout;
+
                                 for (i, layout, _) in
                                     &mut state.visible_layouts[visible_index..]
                                 {
@@ -276,9 +279,10 @@ where
             Task::Computing {
                 current,
                 size,
+                widths,
                 offsets,
             } => {
-                const MAX_BATCH_SIZE: usize = 100;
+                const MAX_BATCH_SIZE: usize = 50;
 
                 let end = (*current + MAX_BATCH_SIZE).min(self.content.len());
 
@@ -303,6 +307,7 @@ where
                     accumulated_height += bounds.height;
 
                     offsets.push(accumulated_height);
+                    widths.push(bounds.width);
                 }
 
                 *size = Size::new(max_width, accumulated_height);
@@ -311,6 +316,7 @@ where
                     *current = end;
                 } else {
                     state.offsets = std::mem::take(offsets);
+                    state.widths = std::mem::take(widths);
                     state.size = std::mem::take(size);
                     state.task = Task::Idle;
                 }
