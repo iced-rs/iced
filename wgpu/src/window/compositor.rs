@@ -4,7 +4,8 @@ use crate::graphics::color;
 use crate::graphics::compositor;
 use crate::graphics::error;
 use crate::graphics::{self, Viewport};
-use crate::{Engine, Renderer, Settings};
+use crate::settings::{self, Settings};
+use crate::{Engine, Renderer};
 
 /// A window graphics backend for iced powered by `wgpu`.
 #[allow(missing_debug_implementations)]
@@ -270,15 +271,19 @@ impl graphics::Compositor for Compositor {
         backend: Option<&str>,
     ) -> Result<Self, graphics::Error> {
         match backend {
-            None | Some("wgpu") => Ok(new(
-                Settings {
-                    backends: wgpu::util::backend_bits_from_env()
-                        .unwrap_or(wgpu::Backends::all()),
-                    ..settings.into()
-                },
-                compatible_window,
-            )
-            .await?),
+            None | Some("wgpu") => {
+                let mut settings = Settings::from(settings);
+
+                if let Some(backends) = wgpu::util::backend_bits_from_env() {
+                    settings.backends = backends;
+                }
+
+                if let Some(present_mode) = settings::present_mode_from_env() {
+                    settings.present_mode = present_mode;
+                }
+
+                Ok(new(settings, compatible_window).await?)
+            }
             Some(backend) => Err(graphics::Error::GraphicsAdapterNotFound {
                 backend: "wgpu",
                 reason: error::Reason::DidNotMatch {
