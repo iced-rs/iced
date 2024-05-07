@@ -43,6 +43,7 @@ struct State {
     visible_layouts: Vec<(usize, layout::Node, Tree)>,
     size: Size,
     offsets: Vec<f32>,
+    widths: Vec<f32>,
     task: Task,
     visible_outdated: bool,
 }
@@ -85,6 +86,7 @@ where
             visible_layouts: Vec::new(),
             size: Size::ZERO,
             offsets: vec![0.0],
+            widths: Vec::new(),
             task: Task::Idle,
             visible_outdated: false,
         })
@@ -162,6 +164,9 @@ where
                                 *offset += height_difference;
                             }
 
+                            let original_width = state.widths[original];
+                            state.widths[original] = new_size.width;
+
                             if let Some(visible_index) = visible_index {
                                 for (i, layout, _) in
                                     &mut state.visible_layouts[visible_index..]
@@ -172,21 +177,40 @@ where
                             }
 
                             state.size.height += height_difference;
+
+                            if original_width == state.size.width {
+                                state.size.width = state.widths.iter().fold(
+                                    0.0,
+                                    |current, candidate| {
+                                        current.max(*candidate)
+                                    },
+                                );
+                            }
                         }
                         Change::Removed { original, .. } => {
                             let height = state.offsets[original + 1]
                                 - state.offsets[original];
 
+                            let original_width = state.widths.remove(original);
                             let _ = state.offsets.remove(original + 1);
 
                             for offset in &mut state.offsets[original + 1..] {
                                 *offset -= height;
                             }
 
-                            state.size.height -= height;
+                            // TODO: Smarter visible layout partial updates
                             state.visible_layouts.clear();
 
-                            // TODO: Smarter visible layout updates
+                            state.size.height -= height;
+
+                            if original_width == state.size.width {
+                                state.size.width = state.widths.iter().fold(
+                                    0.0,
+                                    |current, candidate| {
+                                        current.max(*candidate)
+                                    },
+                                );
+                            }
                         }
                         Change::Pushed { current, .. } => {
                             let mut new_element = (self.view_item)(
@@ -204,6 +228,7 @@ where
 
                             let size = layout.size();
 
+                            state.widths.push(size.width);
                             state.offsets.push(
                                 state.offsets.last().unwrap() + size.height,
                             );
